@@ -6,11 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_backend_unittest_executable(test_qbraid
-  SOURCES QbraidTester.cpp
-  BACKEND qbraid
-  BACKEND_CONFIG "qbraid emulate=false url=http://localhost:62454 api_key=00000000000000000000000000000000"
+add_backend_unittest_executable(test_scaleway
+  SOURCES ScalewayTester.cpp
+  BACKEND scaleway
+  BACKEND_CONFIG "scaleway url=http://localhost:62450 machine=EMU-CUDAQ-FAKE"
 )
 
-configure_file("QbraidStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/qbraid/QbraidStartServerAndTest.sh" @ONLY)
-add_test(NAME qbraid-tests COMMAND bash QbraidStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/qbraid/)
+configure_file(ScalewayStartServerAndTest.sh.in ScalewayStartServerAndTest.sh @ONLY)
+add_test(NAME scaleway-tests COMMAND bash ScalewayStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_property(TEST scaleway-tests PROPERTY SKIP_RETURN_CODE 77)
