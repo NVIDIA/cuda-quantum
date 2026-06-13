@@ -15,8 +15,8 @@ import pytest
 FTQC_LOGICAL_TARGET = 'compiler-bench-ftqc-logical'
 
 ALLOWED_LOGICAL_OPS = {
-    'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'cx', 'cz',
-    'ccx', 'ccz', 'mz'
+    'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'cx', 'cy',
+    'cz', 'ccx', 'ccz', 'mz'
 }
 
 
@@ -72,6 +72,21 @@ def test_preserves_structured_logical_operations():
     assert ops.get('cz', 0) == 1
     assert ops.get('ccx', 0) == 1
     assert ops.get('ccz', 0) == 1
+
+
+def test_preserves_native_cy_as_structured_logical_operation():
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    kernel.cy(q[0], q[1])
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert_logical_basis_only(ops)
+    assert ops.get('cy', 0) == 1
+    assert ops.get('s', 0) == 0
+    assert ops.get('sdg', 0) == 0
+    assert ops.get('cx', 0) == 0
 
 
 def test_axis_measurements_count_as_measurements():
