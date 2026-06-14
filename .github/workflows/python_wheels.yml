@@ -324,6 +324,9 @@ jobs:
           run: |
             retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
+            # retry(), but purges conda caches between tries so a corrupt
+            # download (ChecksumMismatchError) is re-fetched, not reused.
+            retry_conda() { for n in 1 2 3 4 5; do "$@" && return 0; [ $n -lt 5 ] && { conda clean --yes --packages --tarballs --index-cache >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
             # In this step, we test the full installation workflow with conda;
             # hence we don't want to mix conda and pip packages.
@@ -344,6 +347,15 @@ jobs:
             # "sqlite3.OperationalError: database is locked". Disable sharding so
             # conda uses classic repodata.json (slower, but reliable in CI).
             export CONDA_PLUGINS_USE_SHARDED_REPODATA=0
+
+            # Retry dropped downloads (ConnectionResetError) at conda's HTTP
+            # layer with backoff and longer timeouts.
+            export CONDA_REMOTE_MAX_RETRIES=8
+            export CONDA_REMOTE_BACKOFF_FACTOR=2
+            export CONDA_REMOTE_CONNECT_TIMEOUT_SECS=30
+            export CONDA_REMOTE_READ_TIMEOUT_SECS=120
+            # Fewer parallel connections => fewer peer resets from throttling.
+            export CONDA_FETCH_THREADS=2
 
             # Accept Anaconda's non-interactive ToS for the default channels;
             # `conda create -n cudaq-env python=...` below hits pkgs/main.
@@ -380,7 +392,7 @@ jobs:
               # Fail loudly on the failing command. Without this a failed
               # `conda install` is swallowed and only surfaces ~60 lines later
               # as a misleading "mpirun: command not found".
-              if ! eval "$line"; then
+              if ! retry_conda eval "$line"; then
                 echo "::error file=python_wheel.yml::conda install step failed: $line"
                 exit 1
               fi
@@ -388,7 +400,7 @@ jobs:
             ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')"
             while IFS= read -r line; do
                 echo "+ $line"
-                if ! eval "$line"; then
+                if ! retry eval "$line"; then
                   echo "::error file=python_wheel.yml::ompi setup step failed: $line"
                   exit 1
                 fi
