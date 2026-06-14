@@ -153,6 +153,13 @@ public:
   /// For state vectors (pure states), it is computed as `|<this | other>|`.
   std::complex<double> overlap(const state &other);
 
+  /// @brief Return the tensor product of this state with another.
+  state tensor_product(const state &other) const;
+
+  /// @brief Return the trace of this state.
+  /// Note: Only valid for density matrices (rank 2 states).
+  std::complex<double> trace() const;
+
   /// @brief Return the amplitude of the given computational basis state
   std::complex<double> amplitude(const std::vector<int> &basisState);
 

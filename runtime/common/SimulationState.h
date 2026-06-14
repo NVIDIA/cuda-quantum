@@ -207,6 +207,69 @@ public:
   /// @brief Destroy the state representation, frees all associated memory.
   virtual void destroyState() = 0;
 
+  /// @brief Return the trace of this state.
+  virtual std::complex<double> trace() {
+    auto t = getTensor(0);
+    if (t.extents.size() != 2)
+      throw std::runtime_error("trace() only supported for density matrices.");
+
+    std::complex<double> tr = 0.0;
+    auto dim = t.extents[0];
+    for (std::size_t i = 0; i < dim; ++i)
+      tr += (*this)(0, {i, i});
+    return tr;
+  }
+
+  /// @brief Return the tensor product of this state with another.
+  virtual std::unique_ptr<SimulationState>
+  tensorProduct(const SimulationState &other) {
+    if (!isArrayLike() || !other.isArrayLike())
+      throw std::runtime_error(
+          "tensorProduct() not supported for non-array-like states.");
+
+    auto t1 = getTensor(0);
+    auto t2 = other.getTensor(0);
+
+    auto get_data = [](const SimulationState &s) {
+      auto t = s.getTensor(0);
+      std::vector<std::complex<double>> data(t.get_num_elements());
+      if (s.isDeviceData()) {
+        s.toHost(data.data(), data.size());
+      } else {
+        auto ptr = reinterpret_cast<const std::complex<double> *>(t.data);
+        std::copy(ptr, ptr + data.size(), data.begin());
+      }
+      return data;
+    };
+
+    auto data1 = get_data(*this);
+    auto data2 = get_data(other);
+
+    if (t1.extents.size() == 1 && t2.extents.size() == 1) {
+      // Vector-Vector
+      std::vector<std::complex<double>> res(data1.size() * data2.size());
+      for (std::size_t i = 0; i < data1.size(); ++i)
+        for (std::size_t j = 0; j < data2.size(); ++j)
+          res[i * data2.size() + j] = data1[i] * data2[j];
+      return createFromData(res);
+    }
+
+    // DM cases
+    auto m1 = (t1.extents.size() == 2)
+                  ? complex_matrix(data1, {t1.extents[0], t1.extents[1]})
+                  : complex_matrix(data1, {t1.extents[0], 1});
+    if (t1.extents.size() == 1)
+      m1 = m1 * m1.adjoint();
+
+    auto m2 = (t2.extents.size() == 2)
+                  ? complex_matrix(data2, {t2.extents[0], t2.extents[1]})
+                  : complex_matrix(data2, {t2.extents[0], 1});
+    if (t2.extents.size() == 1)
+      m2 = m2 * m2.adjoint();
+
+    return createFromData(kronecker(m1, m2));
+  }
+
   /// @brief Return the element from the tensor at the
   /// given tensor index and at the given indices.
   virtual std::complex<double>
