@@ -234,3 +234,77 @@ func.func @mz_handle_register_scalar_result(%v: !quake.veq<?>) {
   %m = quake.mz %v : (!quake.veq<?>) -> !cc.measure_handle
   return
 }
+
+// -----
+
+module {
+  func.func @test_custom_unitary_non_square() {
+    %0 = quake.alloca !quake.ref
+    // expected-error@+1 {{Invalid matrix size, required 2^N * 2^N for N-qubit operation}}
+    quake.custom_unitary_constant @nonsquare_3_mat %0 : (!quake.ref) -> ()
+    return
+  }
+  cc.global constant private @nonsquare_3_mat (dense<[(0.0,0.0), (1.0,0.0), (1.0,0.0)]> : tensor<3xcomplex<f64>>) : !cc.array<complex<f64> x 3>
+}
+
+// -----
+
+module {
+  func.func @test_custom_unitary_target_mismatch_too_small() {
+    %0 = quake.alloca !quake.veq<2>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+    // expected-error@+1 {{Invalid matrix size, required 2^N * 2^N for N-qubit operation}}
+    quake.custom_unitary_constant @one_q_mat %1, %2 : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant private @one_q_mat (dense<[(0.0,0.0), (1.0,0.0), (1.0,0.0), (0.0,0.0)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+}
+
+// -----
+
+module {
+  func.func @test_custom_unitary_target_mismatch_too_large() {
+    %0 = quake.alloca !quake.ref
+    // expected-error@+1 {{Invalid matrix size, required 2^N * 2^N for N-qubit operation}}
+    quake.custom_unitary_constant @two_q_mat %0 : (!quake.ref) -> ()
+    return
+  }
+  cc.global constant private @two_q_mat (dense<[(1.0,0.0), (0.0,0.0), (0.0,0.0), (0.0,0.0), (0.0,0.0), (1.0,0.0), (0.0,0.0), (0.0,0.0), (0.0,0.0), (0.0,0.0), (1.0,0.0), (0.0,0.0), (0.0,0.0), (0.0,0.0), (0.0,0.0), (1.0,0.0)]> : tensor<16xcomplex<f64>>) : !cc.array<complex<f64> x 16>
+}
+
+// -----
+
+module {
+  func.func @test_custom_unitary_extern_matrix() {
+    %0 = quake.alloca !quake.ref
+    // expected-error@+1 {{Invalid matrix symbol, must have a constant value}}
+    quake.custom_unitary_constant @extern_mat %0 : (!quake.ref) -> ()
+    return
+  }
+  cc.global extern private @extern_mat : !cc.array<complex<f64> x 4>
+}
+
+// -----
+
+module {
+  func.func @test_custom_unitary_non_elements_matrix() {
+    %0 = quake.alloca !quake.ref
+    // expected-error@+1 {{Invalid matrix symbol, must be an elements attribute}}
+    quake.custom_unitary_constant @str_mat %0 : (!quake.ref) -> ()
+    return
+  }
+  cc.global constant private @str_mat ("hello") : !cc.array<i8 x 5>
+}
+
+// -----
+
+module {
+  func.func @test_custom_unitary_integer_elements() {
+    %0 = quake.alloca !quake.ref
+    // expected-error@+1 {{Invalid matrix element type, required `complex<f64>`}}
+    quake.custom_unitary_constant @int_mat %0 : (!quake.ref) -> ()
+    return
+  }
+  cc.global constant private @int_mat (dense<[0, 1, 1, 0]> : tensor<4xi64>) : !cc.array<i64 x 4>
+}
