@@ -1240,7 +1240,41 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
   auto fn =
       SymbolTable::lookupNearestSymbolFrom<cudaq::cc::GlobalOp>(*this, mat);
   if (!fn)
-    return emitOpError("symbol must be a cc.global");
+    return emitOpError("Invalid matrix symbol, must reference a `cc.global`");
+  auto attr = fn.getValue();
+  if (!attr)
+    return emitOpError("Invalid matrix symbol, must have a constant value");
+  auto elementsAttr = dyn_cast<mlir::ElementsAttr>(*attr);
+  if (!elementsAttr)
+    return emitOpError("Invalid matrix symbol, must be an elements attribute");
+  auto complex64Ty = ComplexType::get(Float64Type::get(getContext()));
+  if (elementsAttr.getElementType() != complex64Ty)
+    return emitOpError("Invalid matrix element type, required `complex<f64>`");
+
+  size_t numQubits = 0;
+  bool sizeKnown = true;
+  for (auto target : getTargets()) {
+    if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(target.getType())) {
+      if (!veqTy.hasSpecifiedSize()) {
+        sizeKnown = false;
+        break;
+      }
+      numQubits += veqTy.getSize();
+    } else {
+      ++numQubits;
+    }
+  }
+  if (numQubits >= 32)
+    return emitOpError("Too many qubits (>=32), not supported");
+  if (sizeKnown) {
+    const size_t numEntries =
+        static_cast<size_t>(elementsAttr.getNumElements());
+    const size_t expectedDim = size_t{1} << numQubits;
+    if (numEntries != expectedDim * expectedDim)
+      return emitOpError(
+          "Invalid matrix size, required 2^N * 2^N for N-qubit operation");
+  }
+
   return verifyWireResultsAreLinear(getOperation());
 }
 
