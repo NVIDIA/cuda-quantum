@@ -121,6 +121,10 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
         table->entries[i].handler.graph_exec;
     handle->workers[worker_idx].stream = stream;
     handle->workers[worker_idx].function_id = table->entries[i].function_id;
+    // Inherit the sub-routing key like function_id: the dispatch loop matches
+    // GRAPH_LAUNCH workers on (function_id, routing_key), so a 0 here would
+    // break sub-routing when entries share a function_id (0 == no sub-routing).
+    handle->workers[worker_idx].routing_key = table->entries[i].routing_key;
     handle->workers[worker_idx].pre_launch_fn = nullptr;
     handle->workers[worker_idx].pre_launch_data = nullptr;
     handle->workers[worker_idx].post_launch_fn = nullptr;
