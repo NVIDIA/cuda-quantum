@@ -17,7 +17,6 @@
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
-// #include "mlir/IR/BuiltinOps.h"
 #include <string>
 
 using namespace cudaq_internal::compiler;
@@ -115,6 +114,7 @@ getDefaultPythonCompileTargetImpl() {
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
 
   ct->fullySpecialize = !isLocalSimulator;
+  ct->isLocalSimulator = isLocalSimulator;
   ct->supportDeviceCalls = true;
   ct->argumentSynthChangeSemantics = false;
   ct->pipelineConfig.codegenTranslation = "qir:";
@@ -343,15 +343,11 @@ cudaq::altLaunchKernel(const char *kernelName,
   std::string kernName = kernelName;
   KernelArgs args{KernelArgs::PackedArgs{kernelArgs, argsSize, resultOffset}};
   SourceModule src{kernName, kernelFunc};
-  // TODO: we are bypassing the compiler to avoid a dependency on the compiler.
-  // This delays compilation until inside the QPU.
-  // CompiledModule compiled{src};
   auto ctx = cudaq::getExecutionContext();
   if (ctx && ctx->executeKernelApi) {
     ctx->executeKernelApi(src, args);
     return {};
   }
-
   std::size_t qpu_id = cudaq::getCurrentQpuId();
   return platform.unifiedLaunchModule(src, args, qpu_id);
 }
@@ -369,7 +365,6 @@ cudaq::streamlinedLaunchKernel(const char *kernelName,
     ctx->executeKernelApi(src, args);
     return {};
   }
-
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = cudaq::getCurrentQpuId();
   [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, args, qpu_id);
@@ -389,7 +384,6 @@ cudaq::streamlinedLaunchModule(const CompiledModule &compiled,
     ctx->executeKernelApi(compiled, {rawArgs});
     return {};
   }
-
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = getCurrentQpuId();
   return platform.unifiedLaunchModule(compiled, {rawArgs}, qpu_id);

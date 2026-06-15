@@ -24,11 +24,7 @@ DEFAULT_DURATION = "10m"
 DEFAULT_SHOT_COUNT = 3000
 DEFAULT_DEDUPLICATION_ID = "cudaq-test-scaleway"
 
-try:
-    from utils.mock_qpu.scaleway import startServer
-except:
-    pytest.skip("Mock qpu not available, skipping Scaleway tests.",
-                allow_module_level=True)
+from utils.mock_qpu.scaleway import startServer
 
 
 @pytest.fixture(scope="session", autouse=True)
