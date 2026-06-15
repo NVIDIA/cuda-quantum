@@ -381,6 +381,8 @@ _LAZY_ATTRS = {
     'evolve': '.dynamics.evolution',
     'evolve_async': '.dynamics.evolution',
     'IntermediateResultSave': '.dynamics.helpers',
+    'amplitude_encode': '.contrib.embeddings',       # <-- ADD
+    'angular_encode': '.contrib.embeddings',          # <-- ADD
 }
 
 _LAZY_SUBMODULES = {
