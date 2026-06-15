@@ -114,6 +114,7 @@ getDefaultPythonCompileTargetImpl() {
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
 
   ct->fullySpecialize = !isLocalSimulator;
+  ct->isLocalSimulator = isLocalSimulator;
   ct->supportDeviceCalls = true;
   ct->argumentSynthChangeSemantics = false;
   ct->pipelineConfig.codegenTranslation = "qir:";
