@@ -58,12 +58,13 @@ jobs:
       - name: Download artifacts
         id: artifacts
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             artifacts_url=https://api.github.com/repos/${{ inputs.github_repository || github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
           else
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           fi
-          artifacts=$(gh api --paginate $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(retry gh api --paginate $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=cuda_quantum_docs
 
           docs_found=${{ github.event.workflow_run.name == 'CI' || false }}
@@ -71,11 +72,11 @@ jobs:
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "$artifact_name" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > cuda_quantum_docs.zip
+              retry gh api $url > cuda_quantum_docs.zip
               docs_found=true && echo "docs_archive=cuda_quantum_docs.zip" >> $GITHUB_OUTPUT
             elif [ "$name" == "metadata_ci" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > metadata.zip
+              retry gh api $url > metadata.zip
               unzip -d metadata metadata.zip
               for file in `find metadata/ -type f`; do
                 cat "$file" >> metadata.txt
@@ -114,7 +115,7 @@ jobs:
             elif ${{ github.event.workflow_run.name != 'CI' }} && [ "$head_branch" != "${head_branch#staging/}" ]; then
               # Only publish docs if no release branch exists for that version.
               version=`echo ${head_branch#staging/} | (egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$" || true)`
-              gh api repos/${{ github.repository }}/branches \
+              retry gh api repos/${{ github.repository }}/branches \
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 --paginate --jq '.[].name | select(startswith("releases/"))' \

@@ -9,10 +9,10 @@
 #include "DeviceCodeRegistry.h"
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <map>
 #include <mutex>
 #include <shared_mutex>
-#include <string>
 #include <vector>
 
 // Shared mutex to guard concurrent access to global kernel data (e.g.,

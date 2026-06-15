@@ -9,4 +9,8 @@
 name: orca-photonics
 description: "Photonics simulator"
 config:
+  # `orca-photonics` executes kernels via direct host invocation through the
+  # photonics execution manager. Enabling library mode internally here lets the
+  # target work without the (now removed) user-facing `--library-mode` flag.
+  library-mode: true
   library-mode-execution-manager: photonics

@@ -8,6 +8,7 @@
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.util import trace
 
 
 def _detail_draw(format, decorator, *args):
@@ -20,9 +21,11 @@ def _detail_draw(format, decorator, *args):
     # Must handle arguments exactly like this is a `callsite` to the decorator.
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.draw_impl(format, decorator.uniqName, module,
+                                   decorator.cachedCompiledModule(),
                                    *processedArgs)
 
 
+@trace.traced
 def draw(decoratorOrFormat, *args):
     """
     The CUDA-Q specification overloads draw. To meet that, this function uses

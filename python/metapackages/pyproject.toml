@@ -14,22 +14,23 @@ description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-cl
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = { file="README.md.in", content-type = "text/markdown"}
-requires-python = ">=3.10"
-license = { file="LICENSE" }
+requires-python = ">=3.11"
+license-files = ["LICENSE", "NOTICE", "CITATION.cff"]
 classifiers = [
     'Intended Audience :: Science/Research',
     'Intended Audience :: Developers',
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     "Environment :: GPU :: NVIDIA CUDA",
     "Environment :: GPU :: NVIDIA CUDA :: 11",
     "Environment :: GPU :: NVIDIA CUDA :: 12",
     'Topic :: Software Development',
     'Topic :: Scientific/Engineering',
 ]
+
 
 [project.urls]
 Homepage = "https://developer.nvidia.com/cuda-q"
@@ -42,14 +43,26 @@ chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py==3.12.1"  ]
 visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 
 [build-system]
-requires = ["setuptools", "nvidia-ml-py"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.25", "nvidia-ml-py"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-packages = []
-include-package-data = true
-license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
+[tool.hatch.version]
+source = "regex"
+path = "_version.txt"
+pattern = "^(?P<version>.+?)\\s*$"
 
-[tool.setuptools.dynamic]
-version = {file = "_version.txt"}
+[tool.hatch.metadata]
+core-metadata-version = "2.3"
 
+[tool.hatch.metadata.hooks.custom]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "_version.txt",
+  "_deprecated.txt",
+]
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "_version.txt",
+]

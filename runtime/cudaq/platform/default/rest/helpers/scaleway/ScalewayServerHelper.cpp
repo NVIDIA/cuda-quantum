@@ -7,8 +7,8 @@
  ******************************************************************************/
 #include "ScalewayServerHelper.h"
 #include "common/RestClient.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 #include <map>
 #include <sstream>
 
@@ -120,7 +120,8 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     taskRequest["name"] = circuitCode.name;
     taskRequest["parameters"] = qioParams;
 
-    backendConfig["output_names." + model.id] = circuitCode.output_names.dump();
+    backendConfig["output_names." + model.id] =
+        circuitCode.output_names->dump();
 
     tasks.push_back(taskRequest);
   }

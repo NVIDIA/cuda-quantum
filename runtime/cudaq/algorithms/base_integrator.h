@@ -43,7 +43,7 @@ struct SystemDynamics {
   SystemDynamics(const std::vector<std::int64_t> extents,
                  const std::vector<super_op> &superOperator)
       : modeExtents(extents), superOp(superOperator) {}
-  SystemDynamics() : hamiltonian({cudaq::matrix_op::empty()}){};
+  SystemDynamics() : hamiltonian({cudaq::matrix_op::empty()}) {};
 };
 
 class base_time_stepper;

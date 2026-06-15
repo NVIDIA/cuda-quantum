@@ -74,7 +74,7 @@ source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activat
 [//]: # (End conda install)
 
 **Warning (conda-forge)**: Installing `cudaq` from the `conda-forge` channel on recent versions of Python can lead to segmentation faults.
-If you see such errors, please switch to one of the Python versions 3.10.15, 3.11.10, or 3.12.7 as per the issue
+If you see such errors, please switch to one of the Python versions 3.11.10 or 3.12.7 as per the issue
 [#2999](https://github.com/NVIDIA/cuda-quantum/issues/2999) or [#3104](https://github.com/NVIDIA/cuda-quantum/issues/3104).
 
 You must configure MPI by setting the following environment variables:

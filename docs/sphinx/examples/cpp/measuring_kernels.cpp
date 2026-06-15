@@ -37,7 +37,7 @@ __qpu__ std::vector<bool> kernel2() {
   if (b0) {
     h(q[1]);
   }
-  return cudaq::to_bool_vector(mz(q));
+  return cudaq::to_bools(mz(q));
 }
 
 int main() {

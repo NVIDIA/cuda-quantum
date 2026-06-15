@@ -240,7 +240,7 @@ public:
                                 bool includeSequentialData = true) override {
     auto executionContext = cudaq::getExecutionContext();
 
-    const bool hasNoise = executionContext && executionContext->noiseModel;
+    const bool hasNoise = this->getNoiseModel() != nullptr;
     if (!hasNoise || shots < 1)
       return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots,
                                                         includeSequentialData);
@@ -317,7 +317,7 @@ public:
     auto executionContext = cudaq::getExecutionContext();
 
     LOG_API_TIME();
-    const bool hasNoise = executionContext && executionContext->noiseModel;
+    const bool hasNoise = this->getNoiseModel() != nullptr;
     // If no noise, just use base class implementation.
     if (!hasNoise)
       return SimulatorTensorNetBase<ScalarType>::observe(ham);
@@ -459,6 +459,14 @@ public:
     return std::make_unique<MPSSimulationState<ScalarType>>(
         std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,
         m_cutnHandle, m_randomEngine);
+  }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<MPSSimulationState<ScalarType>>(
+               nullptr, std::vector<MPSTensor>{}, scratchPad, m_cutnHandle,
+               m_randomEngine)
+        ->createFromData(data);
   }
 
   bool requireCacheWorkspace() const override { return false; }

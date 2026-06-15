@@ -10,6 +10,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.runtime.sample import (_detail_check_conditionals_on_measure,
                                   AsyncSampleResult)
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
@@ -47,6 +48,7 @@ def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
     return decorator
 
 
+@trace.traced
 def sample(kernel,
            *args,
            shots_count=1000,
@@ -106,21 +108,23 @@ def sample(kernel,
         results = []
         for argSet in argSets:
             processedArgs, module = decorator.prepare_call(*argSet)
+            compiled = decorator.cachedCompiledModule()
             result = cudaq_runtime.ptsbe.sample_impl(
-                decorator.uniqName, module, shots_count, noise_model,
+                decorator.uniqName, module, compiled, shots_count, noise_model,
                 max_trajectories, sampling_strategy, shot_allocation,
                 return_execution_data, include_sequential_data, *processedArgs)
             results.append(result)
         return results
 
     processedArgs, module = decorator.prepare_call(*args)
-
+    compiled = decorator.cachedCompiledModule()
     return cudaq_runtime.ptsbe.sample_impl(
-        decorator.uniqName, module, shots_count, noise_model, max_trajectories,
-        sampling_strategy, shot_allocation, return_execution_data,
-        include_sequential_data, *processedArgs)
+        decorator.uniqName, module, compiled, shots_count, noise_model,
+        max_trajectories, sampling_strategy, shot_allocation,
+        return_execution_data, include_sequential_data, *processedArgs)
 
 
+@trace.traced
 def sample_async(kernel,
                  *args,
                  shots_count=1000,

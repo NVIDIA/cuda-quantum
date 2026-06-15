@@ -1,5 +1,5 @@
 BasedOnStyle: LLVM
-AlwaysBreakTemplateDeclarations: Yes
+BreakTemplateDeclarations: Yes
 IncludeCategories:
   - Regex:           '^<'
     Priority:        4

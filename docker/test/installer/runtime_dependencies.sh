@@ -10,11 +10,17 @@
 
 trap '(return 0 2>/dev/null) && return 1 || exit 1' ERR
 
+# Tolerate transient apt/dnf mirror failures.
+if [ -d /etc/apt/apt.conf.d ]; then
+    echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries 2>/dev/null || \
+        sudo sh -c 'echo "Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries' 2>/dev/null || true
+fi
+
 case $1 in
     *ubuntu*)
         pkg_manager=apt-get
     ;;
-    *debian*) 
+    *debian*)
         pkg_manager=apt-get
     ;;
     *almalinux*|*redhat*)

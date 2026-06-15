@@ -11,15 +11,15 @@
 trap '(return 0 2>/dev/null) && return 1 || exit 1' ERR
 
 # [>InstallLocations]
-export CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
-export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
-export CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
-export LLVM_INSTALL_PREFIX=/usr/local/llvm
-export BLAS_INSTALL_PREFIX=/usr/local/blas
-export ZLIB_INSTALL_PREFIX=/usr/local/zlib
-export OPENSSL_INSTALL_PREFIX=/usr/local/openssl
-export CURL_INSTALL_PREFIX=/usr/local/curl
-export AWS_INSTALL_PREFIX=/usr/local/aws
+export CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-/usr/local/cudaq}
+export CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/usr/local/cuquantum}
+export CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/usr/local/cutensor}
+export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/usr/local/llvm}  
+export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
+export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
+export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/local/openssl}
+export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
+export AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-/usr/local/aws}
 
 # [<InstallLocations]
 
@@ -75,7 +75,7 @@ if [ "$1" == "install-cuquantum" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
-    CUQUANTUM_VERSION=26.01.0.4
+    CUQUANTUM_VERSION=26.03.1.9
     CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
 
     cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
@@ -103,7 +103,7 @@ fi
 
 if [ "$1" == "install-gcc" ]; then
 # [>gccInstall]
-    GCC_VERSION=${GCC_VERSION:-11}
+    GCC_VERSION=${GCC_VERSION:-12}
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
     # Enabling the toolchain globally is only needed for debug builds
@@ -116,7 +116,7 @@ if [ "$1" == "install-gcc" ]; then
 fi
 
 # [>ToolchainConfiguration]
-export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
+export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-12/root/usr/
 export CXX="${GCC_TOOLCHAIN}/bin/g++"
 export CC="${GCC_TOOLCHAIN}/bin/gcc"
 export CUDACXX=/usr/local/cuda/bin/nvcc

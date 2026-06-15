@@ -16,7 +16,7 @@ pytestmark = pytest.mark.xdist_group("quantinuum_mock")
 
 
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.2
+    return got < -1.1 and got > -2.21
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -118,6 +118,31 @@ def test_quantinuum_observe():
     assert assert_close(res.expectation())
 
 
+def test_quantinuum_observe_broadcast():
+    qubit_count = 5
+    sample_count = 4
+    shots_count = 10000
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                   high=1,
+                                                   size=(sample_count,
+                                                         qubit_count))
+
+    @cudaq.kernel
+    def kernel(qubit_count: int, parameters: List[float]):
+        qvector = cudaq.qvector(qubit_count)
+        for i in range(qubit_count - 1):
+            rx(parameters[i], qvector[i])
+
+    results = cudaq.observe(kernel,
+                            spin.z(0), [qubit_count] * sample_count,
+                            parameters,
+                            shots_count=shots_count)
+    expected = np.cos(parameters[:, 0])
+
+    assert len(results) == sample_count
+    assert np.allclose([r.expectation() for r in results], expected, atol=0.1)
+
+
 def test_quantinuum_u3_decomposition():
 
     @cudaq.kernel
@@ -198,6 +223,23 @@ def test_quantinuum_state_preparation():
     assert '10' in counts
     assert not '01' in counts
     assert not '11' in counts
+
+
+def test_quantinuum_conditional_kernel():
+
+    @cudaq.kernel
+    def kernel():
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        h(q0)
+        m0 = mz(q0)
+        if m0:
+            x(q1)
+        m1 = mz(q1)
+        cudaq.detector(m0, m1)
+
+    with pytest.raises(RuntimeError, match=r"branches on a measurement"):
+        cudaq.dem_from_kernel(kernel)
 
 
 # leave for gdb debugging

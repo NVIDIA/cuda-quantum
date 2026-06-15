@@ -72,10 +72,27 @@ Kernel Execution
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
 .. autofunction:: cudaq::estimate_resources
+.. autofunction:: cudaq::dem_from_kernel
+
+Quantum Error Correction
+=============================
+
+These functions are called inside an ``@cudaq.kernel`` body to declare
+detectors and logical observables for detector-error-model generation with
+``cudaq.dem_from_kernel``, and to discriminate measurement handles. They are
+intercepted by the compiler; calling them at host scope raises
+``RuntimeError``. (``cudaq.to_integer`` is likewise available inside kernels
+to pack discriminated bits into an integer.)
+
+.. autofunction:: cudaq::detector
+.. autofunction:: cudaq::detectors
+.. autofunction:: cudaq::logical_observable
+.. autofunction:: cudaq::to_bools
 
 Backend Configuration
 =============================
 
+.. autofunction:: cudaq::parse_args
 .. autofunction:: cudaq::has_target
 .. autofunction:: cudaq::get_target
 .. autofunction:: cudaq::get_targets
@@ -258,6 +275,8 @@ Data Types
 .. autoclass:: cudaq::qreg
 .. autoclass:: cudaq::qvector
 
+.. autoclass:: cudaq::measure_handle
+
 .. autoclass:: cudaq::ComplexMatrix
     :members:
     :special-members: __getitem__, __str__
@@ -411,6 +430,8 @@ MPI Submodule
 .. automethod:: cudaq.mpi::all_gather
 .. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
+.. automethod:: cudaq.mpi::split_communicator
+.. automethod:: cudaq.mpi::set_communicator
 .. automethod:: cudaq.mpi::finalize
 
 ORCA Submodule
@@ -494,4 +515,3 @@ Trajectory and Selection Types
 
 .. autoclass:: cudaq.ptsbe.KrausSelection
     :members:
-

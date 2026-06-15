@@ -70,6 +70,17 @@ def test_run_async():
         assert non_zero_count > 0
 
 
+def test_run_async_shots_zero():
+    # `shots_count=0` is a valid input (docs require non-negative). The async
+    # path must match the sync path and return an empty list rather than
+    # crashing on `.get()`.
+    handle = cudaq.run_async(simple, 2, shots_count=0)
+    results = handle.get()
+    assert results == []
+    # Sync `cudaq.run` already returns []; asserting the contract is identical.
+    assert cudaq.run(simple, 2, shots_count=0) == results
+
+
 @pytest.mark.skip(reason="Skipping test due to issue #3193")
 def test_run_async_with_noise():
     cudaq.set_target("density-matrix-cpu")

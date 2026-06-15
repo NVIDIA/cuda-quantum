@@ -16,8 +16,14 @@ import pytest
 
 import cudaq
 import numpy as np
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
+
+skipStimP1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
 
 
+@skipStimP1
 def test_default_target():
     """Tests the default target set by environment variable"""
 
@@ -38,13 +44,15 @@ def test_default_target():
     assert '1' * 200 in result
 
 
+@skipStimP1
 def test_env_var_with_emulate():
     """Tests the target when emulating a hardware backend"""
 
     assert ("stim" == cudaq.get_target().name)
     cudaq.set_target("quantinuum", emulate=True)
     assert ("quantinuum" == cudaq.get_target().name)
-    # The underlying simulator (`stim`) used for emulation is a double-precision simulator
+    # The underlying simulator (`stim`) used for emulation is a double-precision
+    # simulator
     assert (cudaq.complex() is np.complex128)
 
     # `Stim` is used for emulation, hence can handle lots of qubits

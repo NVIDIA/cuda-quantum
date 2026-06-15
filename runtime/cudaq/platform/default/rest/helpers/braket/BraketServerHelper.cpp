@@ -8,6 +8,7 @@
 
 #include "common/BraketServerHelper.h"
 #include "common/FmtCore.h"
+#include "nlohmann/json.hpp"
 
 namespace {
 std::string prepareOpenQasm(std::string source) {

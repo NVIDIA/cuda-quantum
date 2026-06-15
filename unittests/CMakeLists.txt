@@ -13,6 +13,16 @@ set (CMAKE_CXX_FLAGS
 SET(CMAKE_EXE_LINKER_FLAGS "")
 SET(CMAKE_SHARED_LINKER_FLAGS "")
 
+# These unit test executables instantiate `__qpu__` kernel functor structs and
+# call `cudaq::sample(myKernel)` directly from C++ test code, with no `nvq++`
+# / `cudaq-quake` step. The AST bridge never runs, so measurement and gate
+# calls reach the inline bodies in `runtime/cudaq/qis/qubit_qis.h` on the
+# host.
+#
+# The user-facing `--library-mode` flag has been removed, but the macro it set
+# survives as an internal implementation detail.
+add_compile_definitions(CUDAQ_LIBRARY_MODE)
+
 # ctest's PROCESSORS property tells the scheduler how many CPU slots each test
 # occupies. Without it, `ctest -j N` launches N OpenMP-parallel tests at once
 # (2N threads competing for N cores). This value is only applied to tests that
@@ -51,11 +61,13 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
+  common/CompiledModuleTester.cpp
   common/ExecutionContextThreadTester.cpp
   ptsbe/PTSBESampleTester.cpp
   ptsbe/PTSBEMultiBackendTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
+  integration/analysis_scope_tester.cpp
 )
 
 # Make it so we can get function symbols
@@ -136,6 +148,84 @@ create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm backends/QPPDMTester.cpp)
 create_tests_with_backend(stim backends/StimTester.cpp)
 
+if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
+  add_executable(test_device_call_dispatch
+    device_call/DeviceCallDispatchTester.cpp
+    device_call/DeviceCallDispatchTester.cu)
+  set_target_properties(test_device_call_dispatch PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    ENABLE_EXPORTS ON)
+  target_include_directories(test_device_call_dispatch
+    PRIVATE
+      .)
+  target_link_libraries(test_device_call_dispatch
+    PRIVATE
+      cudaq-device-call-runtime
+      cudaq::cudaq-realtime-dispatch
+      CUDA::cudart_static
+      gtest_main)
+
+  gtest_discover_tests(test_device_call_dispatch
+    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+    DISCOVERY_TIMEOUT 120)
+
+  # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
+  # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
+  # unless the loopback test topology is provided via environment variables.
+  if (TARGET cudaq::cudaq-realtime-cpu-transport)
+    add_executable(cpu_roce_test_daemon
+      device_call/cpu_roce_test_daemon.cpp)
+    target_include_directories(cpu_roce_test_daemon
+      PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+    # host-dispatch.a contains relocatable device code (host_dispatcher.cu); the
+    # final link must run the CUDA device-link step even though this target has
+    # no .cu sources. Same "bridge as .cpp with CUDA device linking" pattern as
+    # the realtime hololink/hsb bridge tools.
+    set_target_properties(cpu_roce_test_daemon PROPERTIES
+      LINKER_LANGUAGE CUDA
+      CUDA_SEPARABLE_COMPILATION ON
+      CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+    target_link_libraries(cpu_roce_test_daemon
+      PRIVATE
+        cudaq::cudaq-realtime-cpu-transport
+        cudaq::cudaq-realtime-host-dispatch
+        CUDA::cudart_static
+        Threads::Threads)
+
+    # The cpu_roce GoogleTest fixture builds as its OWN executable rather than
+    # being linked into test_device_call_dispatch, so it can be compiled
+    # independently of DeviceCallDispatchTester.cu. This lets the build-only CI
+    # job compile-check just this harness (target test_cpu_roce_device_call)
+    # without pulling in the shared-memory device_call test, which #4565 keeps
+    # out of CI by design. CUDA device-link pattern matches cpu_roce_test_daemon
+    # (links the realtime dispatch static lib's relocatable device code).
+    add_executable(test_cpu_roce_device_call
+      device_call/CpuRoceChannelTester.cpp)
+    target_include_directories(test_cpu_roce_device_call
+      PRIVATE
+        .)
+    set_target_properties(test_cpu_roce_device_call PROPERTIES
+      LINKER_LANGUAGE CUDA
+      CUDA_SEPARABLE_COMPILATION ON
+      CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+    target_link_libraries(test_cpu_roce_device_call
+      PRIVATE
+        cudaq-device-call-runtime
+        cudaq::cudaq-realtime-dispatch
+        CUDA::cudart_static
+        gtest_main)
+    target_compile_definitions(test_cpu_roce_device_call
+      PRIVATE CPU_ROCE_DAEMON_PATH="$<TARGET_FILE:cpu_roce_test_daemon>")
+    add_dependencies(test_cpu_roce_device_call cpu_roce_test_daemon)
+    # PRE_TEST discovery so the build-only CI job never executes the binary at
+    # build time (no RDMA NIC there); ctest still enumerates it at test time.
+    gtest_discover_tests(test_cpu_roce_device_call
+      PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+      DISCOVERY_TIMEOUT 120
+      DISCOVERY_MODE PRE_TEST)
+  endif()
+endif()
+
 if (cuStateVec_FOUND)
   find_program(NVIDIA_SMI "nvidia-smi")
   if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
@@ -197,7 +287,7 @@ if (cuStateVec_FOUND)
   )
   target_include_directories(test_custatevec_observe_from_sampling PRIVATE .)
   target_compile_definitions(test_custatevec_observe_from_sampling
-                             PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
+    PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32 -DCUDAQ_SIMULATION_SCALAR_FP32)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_custatevec_observe_from_sampling PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
@@ -293,6 +383,7 @@ if(TARGET nvqir-tensornet)
   target_include_directories(test_tensornet_observe_path_reuse PRIVATE .)
   target_compile_definitions(test_tensornet_observe_path_reuse
                              PRIVATE -DNVQIR_BACKEND_NAME=tensornet)
+  target_compile_definitions(test_tensornet_observe_path_reuse PRIVATE -DCUDAQ_BACKEND_TENSORNET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_tensornet_observe_path_reuse PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
@@ -373,6 +464,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
    PRIVATE
    cudaq-operator
    cudaq
+   cudaq-em-default
    cudaq-logger
    nvqir-dynamics
    cuDensityMat::cuDensityMat
@@ -443,8 +535,6 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
   endif()
 endif()
 
-add_subdirectory(plugin)
-
 # build the test qudit execution manager
 add_subdirectory(qudit)
 add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
@@ -488,19 +578,6 @@ target_link_libraries(test_utils
   gtest_main)
 gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
-add_executable(test_json_convert main.cpp common/JsonConvertTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_json_convert PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
-target_link_libraries(test_json_convert
-  PRIVATE
-  cudaq
-  cudaq-platform-default
-  nvqir
-  nvqir-qpp
-  gtest_main)
-gtest_discover_tests(test_json_convert PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
-
 add_executable(test_ptsbe main.cpp
   ptsbe/KrausSelectionTester.cpp
   ptsbe/KrausTrajectoryTester.cpp
@@ -524,7 +601,7 @@ target_link_libraries(test_ptsbe
   nvqir-qpp
   fmt::fmt-header-only
   gtest_main)
-gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS})
+gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -539,6 +616,7 @@ target_link_libraries(test_nvqir_verify
     MLIRSupport
     MLIROptLib
     cudaq-qir-verifier
+    cudaq-platform-default
     gtest_main)
 gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
 
@@ -588,6 +666,7 @@ add_subdirectory(backends)
 add_subdirectory(Optimizer)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
+add_subdirectory(logger)
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)
@@ -601,6 +680,11 @@ if (CUDAQ_ENABLE_PYTHON)
 
   if(NOT ${PYSCF_result} EQUAL 0)
     message(STATUS "OpenFermion PySCF not available for chemistry tests.")
+    return()
+  endif()
+
+  if(NOT TARGET cudaq-pyscf)
+    message(STATUS "cudaq-pyscf plugin not enabled; skipping chemistry tests.")
     return()
   endif()
 

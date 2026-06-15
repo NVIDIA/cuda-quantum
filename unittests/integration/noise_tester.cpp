@@ -371,9 +371,8 @@ CUDAQ_TEST(NoiseTest, checkExceptions) {
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
                                         {0., 0.5, 0.0, 0.}};
   cudaq::noise_model noise;
-  EXPECT_ANY_THROW({
-    noise.add_channel<cudaq::types::x>({0, 1}, amplitudeDamping);
-  });
+  EXPECT_ANY_THROW(
+      { noise.add_channel<cudaq::types::x>({0, 1}, amplitudeDamping); });
 }
 
 #endif
@@ -565,7 +564,9 @@ CUDAQ_TEST(NoiseTest, checkBitFlipType) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+#if defined(CUDAQ_BACKEND_DM) ||                                               \
+    (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
+     !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
     defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
@@ -582,7 +583,9 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+#if defined(CUDAQ_BACKEND_DM) ||                                               \
+    (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
+     !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
     defined(CUDAQ_BACKEND_TENSORNET)
 // Same as above but use alternate sample interface that specifies the number of
 // shots and the noise model to use.
@@ -603,7 +606,9 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+#if defined(CUDAQ_BACKEND_DM) ||                                               \
+    (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
+     !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
     defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
@@ -681,7 +686,9 @@ struct xOpAll {
 };
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+#if defined(CUDAQ_BACKEND_DM) ||                                               \
+    (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
+     !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
     defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
@@ -845,7 +852,9 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
+#if defined(CUDAQ_BACKEND_DM) ||                                               \
+    (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
+     !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
     defined(CUDAQ_BACKEND_TENSORNET)
 
 CUDAQ_TEST(NoiseTest, checkCallbackChannel) {

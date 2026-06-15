@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
-void bindObserveAsync(pybind11::module &mod);
+void bindObserveAsync(nanobind::module_ &mod);
 } // namespace cudaq

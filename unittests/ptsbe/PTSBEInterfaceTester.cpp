@@ -12,40 +12,41 @@
 #include <type_traits>
 
 using namespace cudaq;
-using namespace cudaq::ptsbe;
 
 namespace {
 
 struct MockPTSBESimulator {
   mutable bool sampleWithPTSBE_called = false;
 
-  std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
+  std::vector<cudaq::sample_result>
+  sampleWithPTSBE(const ptsbe::PTSBatch &batch) {
     sampleWithPTSBE_called = true;
     return {};
   }
 };
 
-struct MockBatchSimulator : BatchSimulator {
+struct MockBatchSimulator : ptsbe::BatchSimulator {
   mutable bool sampleWithPTSBE_called = false;
 
-  std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
+  std::vector<cudaq::sample_result>
+  sampleWithPTSBE(const ptsbe::PTSBatch &batch) {
     sampleWithPTSBE_called = true;
     return {};
   }
 };
 
 struct NonPTSBESimulator {
-  void execute(const PTSBatch &) {}
+  void execute(const ptsbe::PTSBatch &) {}
 };
 
-static_assert(std::is_base_of_v<BatchSimulator, MockBatchSimulator>);
-static_assert(!std::is_base_of_v<BatchSimulator, MockPTSBESimulator>);
+static_assert(std::is_base_of_v<ptsbe::BatchSimulator, MockBatchSimulator>);
+static_assert(!std::is_base_of_v<ptsbe::BatchSimulator, MockPTSBESimulator>);
 
 } // namespace
 
-/// Test: PTSBatch compiles and can hold trajectory data
+/// Test: ptsbe::PTSBatch compiles and can hold trajectory data
 CUDAQ_TEST(PTSBEInterfaceTest, PTSBatchWithTrajectories) {
-  PTSBatch batch;
+  ptsbe::PTSBatch batch;
 
   for (size_t i = 0; i < 5; ++i) {
     KrausTrajectory traj;
@@ -79,7 +80,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, TrajectoryWithNoise) {
 
 /// Test: Shot allocation across multiple trajectories
 CUDAQ_TEST(PTSBEInterfaceTest, ShotAllocation) {
-  PTSBatch batch;
+  ptsbe::PTSBatch batch;
 
   // Different shot counts per trajectory
   std::vector<size_t> shot_counts = {500, 300, 150, 50};
@@ -100,7 +101,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, ShotAllocation) {
 
 /// Test: Zero-shot trajectory (probability thresholding edge case)
 CUDAQ_TEST(PTSBEInterfaceTest, ZeroShotTrajectory) {
-  PTSBatch batch;
+  ptsbe::PTSBatch batch;
 
   KrausTrajectory zero_traj;
   zero_traj.trajectory_id = 0;
@@ -118,7 +119,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, ZeroShotTrajectory) {
 
 /// Test: Empty batch (validation edge case)
 CUDAQ_TEST(PTSBEInterfaceTest, EmptyBatch) {
-  PTSBatch batch;
+  ptsbe::PTSBatch batch;
 
   EXPECT_TRUE(batch.trajectories.empty());
   EXPECT_TRUE(batch.measureQubits.empty());
@@ -134,26 +135,27 @@ CUDAQ_TEST(PTSBEInterfaceTest, CleanTrajectory) {
   EXPECT_EQ(traj.num_shots, 500);
 }
 
-/// Test: Runtime dispatch calls sampleWithPTSBE for BatchSimulator implementers
+/// Test: Runtime dispatch calls sampleWithPTSBE for ptsbe::BatchSimulator
+/// implementers
 CUDAQ_TEST(PTSBEInterfaceTest, RuntimeDispatchCallsMock) {
   MockBatchSimulator ptsbe_sim;
-  PTSBatch batch;
+  ptsbe::PTSBatch batch;
   batch.measureQubits = {0, 1};
 
   ptsbe_sim.sampleWithPTSBE(batch);
   EXPECT_TRUE(ptsbe_sim.sampleWithPTSBE_called);
 
   constexpr bool nonPtsbeIsBatchSimulator =
-      std::is_base_of_v<BatchSimulator, NonPTSBESimulator>;
+      std::is_base_of_v<ptsbe::BatchSimulator, NonPTSBESimulator>;
   EXPECT_FALSE(nonPtsbeIsBatchSimulator);
 }
 
-/// Test: BatchSimulator inheritance is the dispatch contract
+/// Test: ptsbe::BatchSimulator inheritance is the dispatch contract
 CUDAQ_TEST(PTSBEInterfaceTest, BatchSimulatorDispatchContract) {
   constexpr bool mockBatchIsBatchSimulator =
-      std::is_base_of_v<BatchSimulator, MockBatchSimulator>;
+      std::is_base_of_v<ptsbe::BatchSimulator, MockBatchSimulator>;
   constexpr bool mockPtsbeIsBatchSimulator =
-      std::is_base_of_v<BatchSimulator, MockPTSBESimulator>;
+      std::is_base_of_v<ptsbe::BatchSimulator, MockPTSBESimulator>;
   EXPECT_TRUE(mockBatchIsBatchSimulator);
   EXPECT_FALSE(mockPtsbeIsBatchSimulator);
 }

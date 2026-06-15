@@ -229,9 +229,7 @@ Create a ``YAML`` configuration file for your target:
       # Tell the rest-qpu that we are generating QIR base profile.
       # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
       codegen-emission: qir-base
-      # Library mode is only for simulators, physical backends must turn this off
-      library-mode: false
-    
+
     # Some examples of target arguments are shown below.
     # You do not need to add any arguments for your backend if you do not need them.
     target-arguments:
@@ -303,9 +301,9 @@ Create unit tests for your server helper:
 .. code-block:: bash
 
     #!/bin/bash
-    
+
     # Start the mock server
-    python3 utils/start_mock_qpu.py <provider_name> &
+    python3 python/tests/utils/start_mock_qpu.py <provider_name> &
     SERVER_PID=$!
     
     # Wait for server to start
@@ -373,7 +371,7 @@ Create a mock server for testing:
 
 .. code-block:: text
 
-    utils/mock_qpu/<provider_name>/
+    python/tests/utils/mock_qpu/<provider_name>/
     └── __init__.py
 
 Implement the mock server:
@@ -459,11 +457,7 @@ Create Python tests for your backend:
         not (cudaq.has_target("<provider_name>")),
         reason='Could not find `<provider_name>` in installation')
     
-    try:
-        from utils.mock_qpu.<provider_name> import startServer
-    except:
-        print("Mock qpu not available, skipping Provider Name tests.")
-        pytest.skip("Mock qpu not available.", allow_module_level=True)
+    from utils.mock_qpu.<provider_name> import startServer
     
     # Define the port for the mock server - make sure this is unique
     # across all tests.

@@ -1,0 +1,61 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(canonicalize,distributed-device-call{realtime=1},cse,canonicalize)' %s | FileCheck %s
+
+// CHECK-LABEL:   func.func @kernel(
+// CHECK-SAME:                      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i32,
+// CHECK-SAME:                      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 1517064222 : i32
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 4 : i64
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant 8 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_2:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_3:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[CONSTANT_0]], %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_0:.*]] = call @__cudaq_device_call_acquire_realtime_frame(%[[CONSTANT_1]], %[[CONSTANT_2]], %[[CONSTANT_4]], %[[CONSTANT_3]], %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]]) : (i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[CONSTANT_1]] : i32
+// CHECK:           cc.if(%[[CMPI_0]]) {
+// CHECK:             %[[CAST_0:.*]] = cc.cast signed %[[VAL_0]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[LOAD_2:.*]] = cc.load %[[ALLOCA_2]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[ARG0]], %[[CAST_2]] : !cc.ptr<i32>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[CAST_1]][4] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[COMPUTE_PTR_0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[ARG1]], %[[CAST_3]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_1:.*]] = call @__cudaq_device_call_dispatch_realtime_frame(%[[LOAD_0]], %[[ALLOCA_3]]) : (!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:           %[[CMPI_1:.*]] = arith.cmpi ne, %[[VAL_1]], %[[CONSTANT_1]] : i32
+// CHECK:           cc.if(%[[CMPI_1]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             %[[CAST_4:.*]] = cc.cast signed %[[VAL_1]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_4]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[CAST_5:.*]] = cc.cast %[[LOAD_2]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           %[[LOAD_3:.*]] = cc.load %[[CAST_5]] : !cc.ptr<i32>
+// CHECK:           call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           return %[[LOAD_3]] : i32
+// CHECK:         }
+// CHECK:         func.func private @addThem(i32, i32) -> i32 attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @__cudaq_device_call_acquire_realtime_frame(i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:         func.func private @__cudaq_device_call_dispatch_realtime_frame(!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:         func.func private @__cudaq_device_call_safely_release_realtime_frame(!cc.ptr<i8>)
+// CHECK:         func.func private @__quantum__qis__trap(i64)
+func.func @kernel(%arg0 : i32, %arg1 : i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = cc.device_call @addThem(%arg0, %arg1) : (i32, i32) -> i32
+  return %0 : i32
+}
+
+func.func private @addThem(i32, i32) -> i32 attributes {"cudaq-devicecall"}

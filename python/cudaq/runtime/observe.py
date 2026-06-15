@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.kernel_builder import isa_dynamic_kernel
@@ -30,27 +31,27 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
+    kernel_name = kernel.name if hasattr(kernel, 'name') else ''
     ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
     ctx.totalIterations = N
     ctx.setSpinOperator(spin_operator)
+    ctx.kernelName = kernel_name
     has_vector_args = isa_kernel_decorator(kernel) and any(
         hasattr(a, 'shape') and len(a.shape) == 2 for a in args)
     if has_vector_args:
         ctx.allowJitEngineCaching = True
         ctx.useParametricJit = True
+    policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, spin_operator)
     for i, a in enumerate(argSet):
         ctx.batchIteration = i
-        with ctx:
-            kernel(*a)
-        res = ctx.result
         results.append(
-            cudaq_runtime.ObserveResult(ctx.getExpectationValue(),
-                                        spin_operator, res))
+            cudaq_runtime.launch_observe(policy, ctx, lambda a=a: kernel(*a)))
     if has_vector_args:
         ctx.unset_jit_engine()
     return results
 
 
+@trace.traced
 def observe(kernel,
             spin_operator,
             *args,
@@ -176,27 +177,10 @@ def observe(kernel,
                 raise RuntimeError(
                     "num_trajectories is provided without a noise_model.")
             ctx.numberTrajectories = num_trajectories
-        with ctx:
-            kernel(*args)
-        res = ctx.result
-
-        expVal = ctx.getExpectationValue()
-        if expVal == None:
-            sum = 0.0
-
-            def computeExpVal(term):
-                nonlocal sum
-                if term.is_identity():
-                    sum += term.evaluate_coefficient().real
-                else:
-                    sum += res.expectation(
-                        term.term_id) * term.evaluate_coefficient().real
-
-            for term in localOp:
-                computeExpVal(term)
-            expVal = sum
-
-        observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)
+        kernel_name = kernel.name if hasattr(kernel, 'name') else ''
+        policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, localOp)
+        observeResult = cudaq_runtime.launch_observe(
+            policy, ctx, lambda args=args: kernel(*args))
         if not isinstance(spin_operator, list):
             if noise_model != None:
                 cudaq_runtime.unset_noise()
@@ -226,6 +210,7 @@ def observe(kernel,
     return results
 
 
+@trace.traced
 def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
     """
     Compute the expected value of the `spin_operator` with respect to the

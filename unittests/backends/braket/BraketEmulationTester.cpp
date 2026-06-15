@@ -59,6 +59,25 @@ CUDAQ_TEST(BraketTester, checkObserveSyncEmulate) {
   EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
+CUDAQ_TEST(BraketTester, observeKernelWithMeasuresFailsEmulate) {
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(1);
+  kernel.h(qubit[0]);
+  kernel.mz(qubit[0]);
+
+  cudaq::spin_op hamiltonian = cudaq::spin_op::z(0);
+  testing::internal::CaptureStderr();
+  try {
+    cudaq::observe(100, kernel, hamiltonian);
+    FAIL() << "cudaq::observe should throw for kernels with measurements";
+  } catch (const std::runtime_error &) {
+  }
+  const std::string diag = testing::internal::GetCapturedStderr();
+  EXPECT_NE(diag.find("Cannot observe kernel with measures in it"),
+            std::string::npos)
+      << "stderr was: " << diag;
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   auto ret = RUN_ALL_TESTS();

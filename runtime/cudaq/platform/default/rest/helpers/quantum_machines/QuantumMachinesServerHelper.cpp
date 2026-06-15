@@ -8,6 +8,7 @@
 
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -19,6 +20,7 @@
 #include <sstream>
 #include <thread>
 #include <unordered_set>
+
 using json = nlohmann::json;
 
 namespace cudaq {
@@ -61,9 +63,30 @@ public:
         getValueOrDefault(config, "version", DEFAULT_VERSION);
     backendConfig["executor"] =
         getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
-    // Check for API key in config, then fall back to environment variable
+    // Resolve the API key from either 'api_key' or 'api_key_file'.
     std::string apiKey = getValueOrDefault(config, "api_key", "");
-    if (apiKey.empty()) {
+    std::string apiKeyFile = getValueOrDefault(config, "api_key_file", "");
+
+    if (!apiKey.empty() && !apiKeyFile.empty()) {
+      CUDAQ_ERROR("Both 'api_key' and 'api_key_file' were provided. "
+                  "Please specify only one.");
+    } else if (!apiKeyFile.empty()) {
+      // Read the key from the file.
+      std::ifstream file(apiKeyFile);
+      if (!file.is_open()) {
+        CUDAQ_ERROR("Could not open api_key_file: " + apiKeyFile);
+      }
+      std::stringstream buffer;
+      buffer << file.rdbuf();
+      apiKey = buffer.str();
+      // Strip surrounding whitespace (e.g. a trailing newline).
+      cudaq::trim(apiKey);
+      // The file has been consumed into 'api_key'. Remove 'api_key_file' so a
+      // subsequent initialize() pass (the platform initializes more than once)
+      // does not see both keys and falsely trip the mutual-exclusivity guard.
+      backendConfig.erase("api_key_file");
+    } else if (apiKey.empty()) {
+      // Neither was provided: fall back to the environment variable.
       char *envApiKey = std::getenv("QUANTUM_MACHINES_API_KEY");
       if (envApiKey)
         apiKey = envApiKey;

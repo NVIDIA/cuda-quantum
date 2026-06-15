@@ -8,8 +8,10 @@
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.util import trace
 
 
+@trace.traced
 def estimate_resources(kernel, *args, **kwargs):
     """
     Performs resource counting on the given quantum kernel expression and

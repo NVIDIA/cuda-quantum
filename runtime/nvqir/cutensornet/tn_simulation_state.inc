@@ -48,31 +48,9 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   // Compute <bra|ket> by conjugating the entire |bra> tensor network.
   // Reverse them
   std::reverse(tensorOps.begin(), tensorOps.end());
-  std::vector<void *> tempDeviceBuffers;
-  for (auto &op : tensorOps) {
+  for (auto &op : tensorOps)
     op.isAdjoint = !op.isAdjoint;
-    if (!op.isUnitary) {
-      // For non-unitary ops, i.e., projectors, we need to do a transpose to
-      // reverse the leg connection.
-      const auto dim = (1 << op.targetQubitIds.size());
-      // FIXME: perform this in device memory.
-      Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
-          mat(dim, dim);
-      HANDLE_CUDA_ERROR(
-          cudaMemcpy(mat.data(), op.deviceData,
-                     mat.size() * sizeof(std::complex<ScalarType>),
-                     cudaMemcpyDeviceToHost));
-      mat.transposeInPlace();
-      void *tempBuffer{nullptr};
-      const auto sizeBytes = mat.size() * sizeof(std::complex<ScalarType>);
-      HANDLE_CUDA_ERROR(cudaMalloc(&tempBuffer, sizeBytes));
-      HANDLE_CUDA_ERROR(cudaMemcpy(
-          tempBuffer, mat.data(), mat.size() * sizeof(std::complex<ScalarType>),
-          cudaMemcpyHostToDevice));
-      op.deviceData = tempBuffer;
-      tempDeviceBuffers.emplace_back(tempBuffer);
-    }
-  }
+
   // Append them to ket
   // Note: we clone a new ket tensor network to keep this ket as-is.
   const auto nbQubits = std::max(getNumQubits(), other.getNumQubits());
@@ -202,8 +180,6 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
   HANDLE_CUTN_ERROR(cutensornetDestroyState(tempQuantumState));
-  for (auto *tempBuffer : tempDeviceBuffers)
-    HANDLE_CUDA_ERROR(cudaFree(tempBuffer));
 
   return std::abs(h_overlap);
 }

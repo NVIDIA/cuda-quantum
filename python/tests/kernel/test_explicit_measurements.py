@@ -10,6 +10,7 @@ import cudaq
 import pytest
 import os
 import numpy as np
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
@@ -195,26 +196,74 @@ def test_no_measurements():
     assert "not supported on a kernel without any measurement" in repr(e)
 
 
-def test_mx_my():
+def test_mixed_basis_measurement_order_and_preservation():
 
     @cudaq.kernel
-    def my_kernel():
-        q = cudaq.qvector(2)
-        h(q[0])
-        x.ctrl(q[0], q[1])
-        mx(q[0])
-        my(q[1])
+    def mixed_basis_kernel():
+        q = cudaq.qvector(9)
 
-    counts = cudaq.sample(my_kernel)
-    assert len(counts) == 2
+        # Prepare a non-palindromic deterministic pattern over measured bits.
+        # q0=0 (mz), q1=1 (mz), q2=1 (mx), q3=? (my), q4=0 (mz), q5=0 (mx),
+        # q6=1 (mz) -> 011?001 in allocation order.
+        x(q[1])
+        x(q[2])
+        h(q[2])
+        h(q[5])
+        x(q[6])
 
-    counts = cudaq.sample(my_kernel, explicit_measurements=True)
-    assert len(counts) == 4
+        # Mix measurement bases and execution order.
+        mz(q[4])
+        mx(q[2])
+        my(q[3])
+        mz(q[0])
+        mx(q[5])
+        mz(q[6])
+        mz(q[1])
+
+    counts = cudaq.sample(mixed_basis_kernel, shots_count=100)
+
+    total_counts = 0
+    for bits in counts:
+        assert len(bits) == 7
+        assert bits[0] == '0'
+        assert bits[1] == '1'
+        assert bits[2] == '1'
+        assert bits[4] == '0'
+        assert bits[5] == '0'
+        assert bits[6] == '1'
+        total_counts += counts[bits]
+
+    assert total_counts == 100
+
+    counts = cudaq.sample(mixed_basis_kernel,
+                          explicit_measurements=True,
+                          shots_count=100)
+
+    # Execution order was q4, q2, q3, q0, q5, q6, q1 => 01?0011.
+    total_counts = 0
+    for bits in counts:
+        assert len(bits) == 7
+        assert bits[0] == '0'
+        assert bits[1] == '1'
+        assert bits[3] == '0'
+        assert bits[4] == '0'
+        assert bits[5] == '1'
+        assert bits[6] == '1'
+        total_counts += counts[bits]
+
+    assert total_counts == 100
+
+
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
 
 
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
-@pytest.mark.parametrize("target",
-                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
+@pytest.mark.parametrize("target", [
+    "density-matrix-cpu", "nvidia", "qpp-cpu",
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_simulators(target):
 
     def can_set_target(name):

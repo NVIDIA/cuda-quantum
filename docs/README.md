@@ -36,7 +36,7 @@ configured by the settings in the [sphinx/conf.py](./sphinx/conf.py) file.
   incorporate content from the generated Markdown files in our docs.
 
 - **Python bindings**: <br/>
-  We use [pybind11](https://github.com/pybind/pybind11) to define Python
+  We use [nanobind](https://github.com/wjakob/nanobind) to define Python
   bindings for the CUDA-Q API. Doc comments are defined as part of
   defining these bindings in C++. To incorporate the API documentation, the
   `cudaq` Python package needs to be built and installed prior to generating the

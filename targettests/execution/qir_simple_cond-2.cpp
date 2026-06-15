@@ -8,11 +8,6 @@
 
 // clang-format off
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
-// XFAIL: *
-// ^^^^^ This is caused by this error: invalid instruction found:   %2 = xor i1 %0, true
-//       This error is reasonable given the current version of the Adaptive
-//       Profile that is supported, but future versions of the Adaptive
-//       Profile (that contain optional capabilities) may legalize this.
 // clang-format on
 
 #include <cudaq.h>

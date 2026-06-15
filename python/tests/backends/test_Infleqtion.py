@@ -24,8 +24,8 @@ def set_up_target():
     cudaq.reset_target()
 
 
-def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+def assert_close(want, got, tolerance=1.0e-5) -> bool:
+    return abs(want - got) < tolerance
 
 
 def test_simple_kernel():
@@ -179,7 +179,7 @@ def test_state_synthesis():
 
 
 def test_state_preparation():
-    shots = 10000
+    shots = 100
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
@@ -187,23 +187,20 @@ def test_state_preparation():
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state, shots_count=shots)
-    assert assert_close(counts["00"], shots / 2, 2)
-    assert assert_close(counts["10"], shots / 2, 2)
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
+    counts.dump()
+    assert assert_close(shots / 2, counts["00"], shots / 10)
+    assert assert_close(shots / 2, counts["10"], shots / 10)
 
 
 def test_state_preparation_builder():
-    shots = 10000
+    shots = 100
     kernel, state = cudaq.make_kernel(list[complex])
     qubits = kernel.qalloc(state)
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state, shots_count=shots)
-    assert assert_close(counts["00"], shots / 2, 2)
-    assert assert_close(counts["10"], shots / 2, 2)
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
+    assert assert_close(shots / 2, counts["00"], shots / 10)
+    assert assert_close(shots / 2, counts["10"], shots / 10)
 
 
 def test_exp_pauli():

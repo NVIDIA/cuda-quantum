@@ -15,6 +15,10 @@ from typing import List
 import cudaq
 from cudaq import spin
 
+skipIfNoTensorNet = pytest.mark.skipif(
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('tensornet')),
+    reason="tensornet backend not available")
+
 
 @pytest.fixture(autouse=True)
 def run_and_clear_registries():
@@ -271,6 +275,26 @@ def test_empty_spin_op():
     batched = h.distribute_terms(2)
     assert batched[1].term_count == 0
     assert cudaq.observe(circuit, batched[1], .59).expectation() == 0
+
+
+@skipIfNoTensorNet
+def test_empty_spin_op_tensornet():
+
+    @cudaq.kernel
+    def circuit():
+        q = cudaq.qvector(2)
+        h(q[0])
+
+    cudaq.set_target('tensornet')
+    try:
+        empty_op = cudaq.SpinOperator()
+        assert empty_op.term_count == 0
+        assert empty_op.degrees == []
+
+        result = cudaq.observe(circuit, empty_op)
+        assert result.expectation() == 0.0
+    finally:
+        cudaq.reset_target()
 
 
 def test_spec_adherence():

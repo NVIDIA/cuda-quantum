@@ -136,7 +136,14 @@ TEST_F(CuDensityMatStateTest, InitializeWithEmptyRawData) {
 }
 
 TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
   hilbertSpaceDims = {2};
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
   stateVectorData = {{1.0, 0.0}, {0.0, 0.0}};
   CuDensityMatState state(stateVectorData.size(),
                           cudaq::dynamics::createArrayGpu(stateVectorData));
@@ -192,10 +199,11 @@ TEST_F(CuDensityMatStateTest, InitialStateEnum) {
           const std::complex<double> firstVal = *hostBufferView.begin();
           // First element is 1.0, the rest are zero
           return std::abs(firstVal - 1.0) < 1e-12 &&
-                 std::all_of(hostBufferView.begin() + 1, hostBufferView.end(),
-                             [](std::complex<double> val) {
-                               return std::abs(val) < 1e-12;
-                             });
+                 std::all_of(
+                     hostBufferView.begin() + 1, hostBufferView.end(),
+                     [](std::complex<double> val) {
+                       return std::abs(val) < 1e-12;
+                     });
         } else {
           // All elements are equal.
           // The norm condition should guarantee that it's the expected value.

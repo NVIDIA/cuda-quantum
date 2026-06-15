@@ -7,8 +7,12 @@
  ******************************************************************************/
 
 #include "ServerHelper.h"
+#include "nlohmann/json.hpp"
+#include "cudaq/platform/qpu_utils.h"
+#include "cudaq/utils/owning_ptr.h"
 
 namespace cudaq {
+
 void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
   // Parse common parameters for each job and place into member variables
   for (auto &[key, val] : config) {
@@ -38,6 +42,26 @@ void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
     }
   }
 }
+
+// Out-of-line definition of the deleter for owning_ptr<ServerHelper>;
+// defined here where ServerHelper is complete so headers holding an
+// owning_ptr<ServerHelper> do not need to see the full type.
+template <>
+void opaque_deleter<ServerHelper>::operator()(ServerHelper *p) const {
+  delete p;
+}
 } // namespace cudaq
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)
+
+// Bridge so the Python extension (which has hidden-visibility Head/Tail for
+// Registry<ServerHelper>) can look up server helpers registered in this DSO's
+// unique-symbol registry (populated by dlopen'd serverhelper .so files).
+extern "C" cudaq::ServerHelper *cudaq_find_server_helper(const char *name) {
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>(std::string(name));
+  return helper.release();
+}
+
+extern "C" bool cudaq_has_server_helper(const char *name) {
+  return cudaq::registry::isRegistered<cudaq::ServerHelper>(std::string(name));
+}

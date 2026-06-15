@@ -9,6 +9,7 @@
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
 #include "common/FmtCore.h"
+#include "nlohmann/json.hpp"
 
 #include <aws/braket/model/Association.h>
 #include <aws/braket/model/AssociationType.h>
@@ -132,18 +133,18 @@ void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
   assert(braketServerHelper);
   auto config = braketServerHelper->getConfig();
 
-  auto output_names = codeToExecute.output_names.dump();
+  auto output_names = codeToExecute.output_names->dump();
   config["output_names." + taskId] = output_names;
 
   braketServerHelper->setOutputNames(taskId, output_names);
 }
 
-details::future
+detail::future
 BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
-                        cudaq::details::ExecutionContextType execType,
+                        cudaq::detail::ExecutionContextType execType,
                         std::vector<char> *rawOutput) {
   const bool isObserve =
-      execType == cudaq::details::ExecutionContextType::observe;
+      execType == cudaq::detail::ExecutionContextType::observe;
   auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
 
   std::string const defaultBucket = defaultBucketFuture.get();

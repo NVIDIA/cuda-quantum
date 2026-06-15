@@ -27,9 +27,6 @@ struct TBIParameters {
   int n_samples;
 };
 
-/// @brief Return type for asynchronous sampling.
-using async_sample_result = cudaq::async_result<cudaq::sample_result>;
-
 /// @brief Implementation of the sample method of the cudaq::orca namespace
 cudaq::sample_result sample(std::vector<std::size_t> &input_state,
                             std::vector<std::size_t> &loop_lengths,

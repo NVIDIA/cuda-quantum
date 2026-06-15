@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target oqc --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %oqc_avail; then nvq++ --target oqc --emulate %s -o %t && %t | FileCheck %s; fi
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

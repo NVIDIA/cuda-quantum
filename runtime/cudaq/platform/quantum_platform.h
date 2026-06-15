@@ -9,13 +9,17 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
+#include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
+#include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
 #include "common/ThunkInterface.h"
+#include "nvqpp_interface.h"
+#include "cudaq/Target/CompileTarget.h"
+#include "cudaq/platform/qpu.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nvqpp_interface.h"
 #include <cstring>
 #include <cxxabi.h>
 #include <functional>
@@ -23,10 +27,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-
-namespace mlir {
-class ModuleOp;
-}
 
 namespace cudaq {
 
@@ -36,9 +36,10 @@ class optimizer;
 struct RuntimeTarget;
 class LinkedLibraryHolder;
 
-namespace __internal__ {
+namespace detail {
 class TargetSetter;
-}
+class with_platform_in_library_mode;
+} // namespace detail
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -131,6 +132,11 @@ public:
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformQPUs.size(); }
 
+  QPU &getQPU(std::size_t qpu_id = 0) const {
+    validateQpuId(qpu_id);
+    return *(platformQPUs[qpu_id].get());
+  }
+
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
 
@@ -165,6 +171,9 @@ public:
   // `set_target` arguments).
   const RuntimeTarget *get_runtime_target() const;
 
+  /// True if the active target runs without the MLIR/QIR kernel launch path.
+  bool is_library_mode() const;
+
   /// @brief Turn off any noise models.
   void reset_noise(std::size_t qpu_id = 0);
 
@@ -176,10 +185,10 @@ public:
   void finalizeExecutionContext(cudaq::ExecutionContext &ctx) const;
 
   /// @brief Begin a new execution on this platform.
-  void beginExecution();
+  virtual void beginExecution();
 
   /// @brief End the current execution on this platform.
-  void endExecution();
+  virtual void endExecution();
 
   /// Enqueue an asynchronous sampling task.
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
@@ -194,24 +203,26 @@ public:
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots, std::size_t qpu_id = 0);
 
-  // This method is the hook for the kernel rewrites to invoke quantum kernels.
   [[nodiscard]] KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset, const std::vector<void *> &rawArgs,
-               std::size_t qpu_id = 0);
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args,
+                      std::size_t qpu_id = 0);
 
-  // This method launches a kernel from a ModuleOp that has already been
-  // created.
-  [[nodiscard]] KernelThunkResultType
-  launchModule(const std::string &kernelName, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs, std::size_t qpu_id);
+  template <typename Policy>
+  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
+  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
+    validateQpuId(qpu_id);
+    auto &qpu = platformQPUs[qpu_id];
+    return qpu->getCompileTarget(policy);
+  }
 
-  [[nodiscard]] void *
-  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs,
-                   std::optional<cudaq::JitEngine> &cachedEngine,
-                   std::size_t qpu_id, bool isEntryPoint);
+  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
+  getCompileTarget(const cudaq::other_policies &policy,
+                   std::size_t qpu_id = 0) {
+    auto *ctx = getExecutionContext();
+    validateQpuId(qpu_id);
+    auto &qpu = platformQPUs[qpu_id];
+    return qpu->getCompileTarget(policy, ctx);
+  }
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
@@ -226,19 +237,9 @@ public:
   /// set.
   virtual void onRandomSeedSet(std::size_t seed);
 
-  /// @brief Turn off any custom logging stream.
-  void resetLogStream();
-
-  /// @brief Get the stream for info logging.
-  // Returns null if no specific stream was set.
-  std::ostream *getLogStream();
-
-  /// @brief Set the info logging stream.
-  void setLogStream(std::ostream &logStream);
-
 protected:
   friend class cudaq::LinkedLibraryHolder;
-  friend class cudaq::__internal__::TargetSetter;
+  friend class cudaq::detail::TargetSetter;
   /// @brief Set the target backend, by default do nothing, let subclasses
   /// override
   /// @param name
@@ -256,15 +257,35 @@ protected:
   /// Name of the platform.
   std::string platformName;
 
-  /// Optional logging stream for platform output.
-  // If set, the platform and its QPUs will print info log to this stream.
-  // Otherwise, default output stream (std::cout) will be used.
-  std::ostream *platformLogStream = nullptr;
-
 private:
+  friend class detail::with_platform_in_library_mode;
+
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
+
+  int libraryModeOverride = 0;
 };
+
+namespace detail {
+
+/// @brief RAII guard that temporarily forces
+/// `quantum_platform::is_library_mode()` to return true for non-QIR algorithm
+/// functors (e.g. evolve observe lambdas).
+class with_platform_in_library_mode {
+  quantum_platform &platform_;
+
+public:
+  explicit with_platform_in_library_mode(quantum_platform &platform)
+      : platform_(platform) {
+    ++platform_.libraryModeOverride;
+  }
+  ~with_platform_in_library_mode() { --platform_.libraryModeOverride; }
+  with_platform_in_library_mode(const with_platform_in_library_mode &) = delete;
+  with_platform_in_library_mode &
+  operator=(const with_platform_in_library_mode &) = delete;
+};
+
+} // namespace detail
 
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be
 /// tied to the quantum platform instance somehow. Note that the compiler cannot

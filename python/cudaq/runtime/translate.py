@@ -9,8 +9,10 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.kernel_builder import isa_dynamic_kernel
+from cudaq.util import trace
 
 
+@trace.traced
 def translate(kernel, *args, format="qir:0.1"):
     """
     Return a `UTF-8` encoded string representing drawing of the execution path,

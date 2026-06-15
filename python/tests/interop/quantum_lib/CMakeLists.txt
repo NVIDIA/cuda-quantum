@@ -9,7 +9,7 @@
 set(CMAKE_CXX_COMPILER "${CMAKE_BINARY_DIR}/bin/nvq++")
 
 set(CMAKE_CXX_COMPILE_OBJECT
-  "<CMAKE_CXX_COMPILER> -fPIC --enable-mlir --disable-mlir-links <DEFINES> <INCLUDES> -o <OBJECT> -c <SOURCE>")
+  "<CMAKE_CXX_COMPILER> -fPIC --disable-mlir-links <DEFINES> <INCLUDES> -o <OBJECT> -c <SOURCE>")
 
 # FIXME Error with SHARED, it pulls in all the mlir libraries anyway
 add_library(quantum_lib
@@ -19,8 +19,7 @@ add_library(quantum_lib
 
 target_include_directories(quantum_lib
   PRIVATE
-    ${PYTHON_INCLUDE_DIRS}
-    ${pybind11_INCLUDE_DIRS}
+    ${Python3_INCLUDE_DIRS}
 )
 
 # Dependencies: quantum_lib uses nvq++ as its compiler, so we need the full

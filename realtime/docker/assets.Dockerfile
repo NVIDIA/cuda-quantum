@@ -44,7 +44,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
 RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
 # [>ToolchainConfiguration]
-ENV GCC_TOOLCHAIN="/opt/rh/gcc-toolset-11/root/usr/"
+ENV GCC_TOOLCHAIN="/opt/rh/gcc-toolset-12/root/usr/"
 ENV CXX="${GCC_TOOLCHAIN}/bin/g++"
 ENV CC="${GCC_TOOLCHAIN}/bin/gcc"
 ENV CUDACXX=/usr/local/cuda/bin/nvcc

@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <ctype.h>
 #include <string>
+#include <vector>
 
 namespace cudaq {
 
@@ -56,9 +57,9 @@ private:
   std::string term; ///< Pauli words are string-like.
 };
 
-namespace details {
+namespace detail {
 static_assert(sizeof(std::string) == sizeof(pauli_word));
 // This constant used by the compiler.
 static constexpr std::uint64_t _nvqpp_sizeof = sizeof(pauli_word);
-} // namespace details
+} // namespace detail
 } // namespace cudaq

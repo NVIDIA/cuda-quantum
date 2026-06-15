@@ -11,14 +11,14 @@
 #include <iostream>
 
 namespace cudaq {
-namespace details {
+namespace detail {
 std::vector<std::string> grayCode(std::size_t);
 }
 } // namespace cudaq
 
 CUDAQ_TEST(KernelsTester, checkGrayCode) {
   {
-    auto test = cudaq::details::grayCode(2);
+    auto test = cudaq::detail::grayCode(2);
     std::vector<std::string> expected{"00", "01", "11", "10"};
     EXPECT_EQ(test.size(), expected.size());
     for (auto &t : test) {
@@ -33,7 +33,7 @@ CUDAQ_TEST(KernelsTester, checkGrayCode) {
         "11000", "11001", "11011", "11010", "11110", "11111", "11101", "11100",
         "10100", "10101", "10111", "10110", "10010", "10011", "10001", "10000"};
 
-    auto test = cudaq::details::grayCode(5);
+    auto test = cudaq::detail::grayCode(5);
     EXPECT_EQ(test.size(), expected.size());
     for (auto &t : test) {
       EXPECT_TRUE(std::find(expected.begin(), expected.end(), t) !=
@@ -44,7 +44,7 @@ CUDAQ_TEST(KernelsTester, checkGrayCode) {
 
 CUDAQ_TEST(KernelsTester, checkGenCtrlIndices) {
   {
-    auto test = cudaq::details::getControlIndices(2);
+    auto test = cudaq::detail::getControlIndices(2);
     std::vector<std::size_t> expected{0, 1, 0, 1};
     EXPECT_EQ(test.size(), expected.size());
     EXPECT_EQ(test, expected);
@@ -54,7 +54,7 @@ CUDAQ_TEST(KernelsTester, checkGenCtrlIndices) {
                                       2, 0, 1, 0, 4, 0, 1, 0, 2, 0, 1,
                                       0, 3, 0, 1, 0, 2, 0, 1, 0, 4};
 
-    auto test = cudaq::details::getControlIndices(5);
+    auto test = cudaq::detail::getControlIndices(5);
     EXPECT_EQ(test.size(), expected.size());
     EXPECT_EQ(test, expected);
   }
@@ -63,7 +63,7 @@ CUDAQ_TEST(KernelsTester, checkGenCtrlIndices) {
 CUDAQ_TEST(KernelsTester, checkGetAlphaY) {
   {
     std::vector<double> state{.70710678, 0., 0., 0.70710678};
-    auto thetas = cudaq::details::getAlphaY(state, 2, 2);
+    auto thetas = cudaq::detail::getAlphaY(state, 2, 2);
     std::vector<double> expected{1.57079633};
     for (std::size_t i = 0; auto t : thetas) {
       EXPECT_NEAR(t, expected[i++], 1e-3);
@@ -72,7 +72,7 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaY) {
 
   {
     std::vector<double> state{.70710678, 0., 0., 0.70710678};
-    auto thetas = cudaq::details::getAlphaY(state, 2, 1);
+    auto thetas = cudaq::detail::getAlphaY(state, 2, 1);
     std::vector<double> expected{0.0, 3.14159265};
     for (std::size_t i = 0; auto t : thetas) {
       EXPECT_NEAR(t, expected[i++], 1e-3);
@@ -83,7 +83,7 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaY) {
 CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
   {
     std::vector<double> omega{0., 0., 0., 0., 0., 1.57079633, 3.14159265, 0.};
-    auto thetas = cudaq::details::getAlphaZ(omega, 3, 3);
+    auto thetas = cudaq::detail::getAlphaZ(omega, 3, 3);
     std::vector<double> expected{1.17809725};
     for (std::size_t i = 0; auto t : thetas) {
       EXPECT_NEAR(t, expected[i++], 1e-3);
@@ -91,7 +91,7 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
   }
   {
     std::vector<double> omega{0., 0., 0., 0., 0., 1.57079633, 3.14159265, 0.};
-    auto thetas = cudaq::details::getAlphaZ(omega, 3, 2);
+    auto thetas = cudaq::detail::getAlphaZ(omega, 3, 2);
     std::vector<double> expected{0., 0.78539816};
     for (std::size_t i = 0; auto t : thetas) {
       EXPECT_NEAR(t, expected[i++], 1e-3);
@@ -100,7 +100,7 @@ CUDAQ_TEST(KernelsTester, checkGetAlphaZ) {
 
   {
     std::vector<double> omega{0., 0., 0., 0., 0., 1.57079633, 3.14159265, 0.};
-    auto thetas = cudaq::details::getAlphaZ(omega, 3, 1);
+    auto thetas = cudaq::detail::getAlphaZ(omega, 3, 1);
     std::vector<double> expected{0., 0., 1.57079633, -3.14159265};
     for (std::size_t i = 0; auto t : thetas) {
       EXPECT_NEAR(t, expected[i++], 1e-3);
@@ -178,6 +178,46 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
     // Check the state (accounted for global phase)
     for (std::size_t i = 0; i < (1u << numQubits); i++)
       EXPECT_NEAR(std::abs(globalPhase * ss[i] - expectedData[i]), 0.0, 1e-6);
+  }
+}
+
+CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
+  auto verifyBasis = [](std::size_t numQubits, std::size_t idx) {
+    std::vector<std::complex<double>> state(1ULL << numQubits, 0.0);
+    state[idx] = 1.0;
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(numQubits);
+    cudaq::from_state(kernel, qubits, state);
+    auto ss = cudaq::get_state(kernel);
+    for (std::size_t i = 0; i < state.size(); i++)
+      EXPECT_NEAR(std::abs(ss[i] - state[i]), 0.0, 1e-6);
+  };
+
+  for (std::size_t idx = 0; idx < 8; idx++)
+    verifyBasis(3, idx);
+
+  verifyBasis(4, 0);
+  verifyBasis(4, 5);
+  verifyBasis(4, 15);
+
+  {
+    std::vector<std::complex<double>> zero(8, 0.0);
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(3);
+    EXPECT_THROW(cudaq::from_state(kernel, qubits, zero),
+                 std::invalid_argument);
+  }
+
+  {
+    constexpr std::size_t numQubits = 16;
+    std::vector<std::complex<double>> state(1ULL << numQubits, 0.0);
+    state[0] = 1.0;
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(numQubits);
+    cudaq::from_state(kernel, qubits, state);
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(counts.size(), 1u);
+    EXPECT_EQ(counts.begin()->first, std::string(numQubits, '0'));
   }
 }
 

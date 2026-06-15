@@ -43,6 +43,41 @@ config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
 if cmake_boolvar_to_bool(config.test_remote_sim):
   config.available_features.add('remote-sim')
 
+config.cudaq_backends_anyon = "@CUDAQ_ENABLE_ANYON_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_anyon):
+  config.available_features.add('anyon')
+  config.substitutions.append(('%anyon_avail', 'true'))
+else:
+  config.substitutions.append(('%anyon_avail', 'false'))
+
+config.cudaq_backends_ionq = "@CUDAQ_ENABLE_IONQ_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_ionq):
+  config.available_features.add('ionq')
+  config.substitutions.append(('%ionq_avail', 'true'))
+else:
+  config.substitutions.append(('%ionq_avail', 'false'))
+
+config.cudaq_backends_iqm = "@CUDAQ_ENABLE_IQM_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_iqm):
+  config.available_features.add('iqm')
+  config.substitutions.append(('%iqm_avail', 'true'))
+else:
+  config.substitutions.append(('%iqm_avail', 'false'))
+
+config.cudaq_backends_oqc = "@CUDAQ_ENABLE_OQC_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_oqc):
+  config.available_features.add('oqc')
+  config.substitutions.append(('%oqc_avail', 'true'))
+else:
+  config.substitutions.append(('%oqc_avail', 'false'))
+
+config.cudaq_backends_qbraid = "@CUDAQ_ENABLE_QBRAID_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_qbraid):
+  config.available_features.add('qbraid')
+  config.substitutions.append(('%qbraid_avail', 'true'))
+else:
+  config.substitutions.append(('%qbraid_avail', 'false'))
+
 config.cudaq_backends_braket = "@CUDAQ_ENABLE_BRAKET_BACKEND@"
 if cmake_boolvar_to_bool(config.cudaq_backends_braket):
   config.available_features.add('braket')
@@ -70,6 +105,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
   config.substitutions.append(('%quantum_machines_avail', 'true'))
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
+
+config.cudaq_stim_backend_disabled = "@CUDAQ_ENABLE_ASSERTIONS@"
+if cmake_boolvar_to_bool(config.cudaq_stim_backend_disabled):
+  config.substitutions.append(('%stim_avail', 'false'))
+else:
+  config.available_features.add('stim')
+  config.substitutions.append(('%stim_avail', 'true'))
 
 import lit.llvm
 lit.llvm.initialize(lit_config, config)

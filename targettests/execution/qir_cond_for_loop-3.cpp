@@ -8,14 +8,8 @@
 
 // clang-format off
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %stim_avail; then CUDAQ_DEFAULT_SIMULATOR=stim nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s ; fi
 // clang-format on
-
-// Original test used `std::vector<cudaq::measure_result>(n)` with element
-// assignment, both of which are incompatible with measure_result's deleted
-// default ctor and deleted assignment operators. Rewritten to use a loop-local
-// `measure_result` variable, retaining the mid-circuit measurement +
-// conditional parity pattern with deferred discrimination.
 
 #include <cudaq.h>
 #include <iostream>
@@ -24,10 +18,11 @@ struct kernel {
   bool operator()(const int n_iter) __qpu__ {
     cudaq::qubit q0;
     cudaq::qubit q1;
+    std::vector<cudaq::measure_result> resultVector(n_iter);
     for (int i = 0; i < n_iter; i++) {
       h(q0);
-      cudaq::measure_result result = mz(q0);
-      if (result)
+      resultVector[i] = mz(q0);
+      if (resultVector[i])
         x(q1); // toggle q1 on every q0 coin toss that lands heads
     }
     return mz(q1); // the measured q1 should contain the parity bit for

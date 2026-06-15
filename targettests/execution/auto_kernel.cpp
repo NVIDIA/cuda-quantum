@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
@@ -20,7 +20,7 @@ struct ak2 {
     h(q[0]);
     x(q[1]);
     y(q[2]);
-    return cudaq::to_bool_vector(mz(q));
+    return cudaq::to_bools(mz(q));
   }
 };
 

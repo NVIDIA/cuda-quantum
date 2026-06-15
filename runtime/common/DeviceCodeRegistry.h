@@ -51,9 +51,6 @@ void *__cudaq_getRunnableKernel(const std::string &kernelName);
 namespace detail {
 /// Is the kernel `kernelName` registered?
 bool isKernelGenerated(const std::string &kernelName);
-
-/// Is the kernel `kernelName` in library mode?
-bool isLibraryMode(const std::string &kernelName);
 } // namespace detail
 
 /// @brief Given a string kernel name, return the corresponding Quake code
@@ -87,5 +84,7 @@ inline std::string get_quake(std::string &&functionName,
 
 typedef std::size_t (*KernelArgsCreator)(void **, void **);
 KernelArgsCreator getArgsCreator(const std::string &kernelName);
+
+bool kernelHasConditionalFeedback(const std::string &kernelName);
 
 } // namespace cudaq
