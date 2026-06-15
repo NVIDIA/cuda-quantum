@@ -5,9 +5,17 @@ qBraid
 
 `qBraid <https://www.qbraid.com/>`__ is a cloud platform that brokers access to
 quantum simulators and hardware from multiple vendors through a single API.
-CUDA-Q can submit OpenQASM 2 jobs to any device exposed by the qBraid service.
-See the `qBraid device catalog <https://account.qbraid.com/devices>`__ for the
-set of simulators and QPUs currently available.
+CUDA-Q submits OpenQASM 2 jobs to gate-based devices exposed by the qBraid
+service. See the `qBraid device catalog <https://account.qbraid.com/devices>`__
+for the set of simulators and QPUs currently available.
+
+.. note::
+
+    Only gate-based (gate-model) devices are supported through this target.
+    qBraid also brokers analog devices, such as analog Hamiltonian simulation
+    (AHS) QPUs, which cannot execute the gate-based kernels CUDA-Q emits.
+    Selecting such a device (for example, ``aws:quera:qpu:aquila``) is rejected
+    when the target is configured.
 
 Setting Credentials
 ```````````````````

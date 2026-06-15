@@ -9,6 +9,7 @@
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
 #include "common/RestClient.h"
+#include "common/ServerHelper.h"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
@@ -300,6 +301,23 @@ CUDAQ_TEST(QbraidTester, checkResultServerErrorRetries) {
   kernel.mz(qubit[0]);
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1u);
+}
+
+// An analog/AHS device must be rejected at initialize() time, mirroring the
+// Python test_qbraid_rejects_analog_device. Driven through the registry so the
+// non-default machine can be supplied directly (the shared target config used
+// by the other tests pins the default gate-model device).
+CUDAQ_TEST(QbraidTester, checkAnalogDeviceRejected) {
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("qbraid");
+  ASSERT_TRUE(helper);
+  cudaq::BackendConfig config;
+  config["emulate"] = "false";
+  config["url"] = "http://localhost:" + mockPort;
+  config["machine"] = "aws:quera:qpu:aquila";
+  config["api_key"] = "00000000000000000000000000000000";
+  EXPECT_TRUE(
+      throwsWithMessage([&]() { helper->initialize(config); },
+                        "device 'aws:quera:qpu:aquila' has paradigm 'analog'"));
 }
 
 int main(int argc, char **argv) {
