@@ -55,8 +55,7 @@ public:
       throw DeviceCallError(
           DeviceCallStatus::InvalidArgument,
           "host device_call graph-launch entries require a pinned, mapped "
-          "mailbox "
-          "(cudaHostAlloc with cudaHostAllocMapped) sized for the "
+          "mailbox (cudaHostAlloc with cudaHostAllocMapped) sized for the "
           "GRAPH_LAUNCH worker count");
   }
 
