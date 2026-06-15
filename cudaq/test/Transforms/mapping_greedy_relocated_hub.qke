@@ -1,0 +1,46 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The interaction hub is virtual q3, not q0. Greedy placement should choose the
+// high-degree virtual qubit from the interaction graph rather than relying on
+// virtual-qubit index order.
+
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=identity search=none' %s | FileCheck --check-prefix=IDENT52 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=greedy search=none' %s | FileCheck --check-prefix=GREEDY52 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,0) placement=greedy search=none' %s | FileCheck --check-prefix=GREEDY50 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=greedy search=none' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,0) placement=greedy search=none' %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @relocated_hub() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %v3 = quake.borrow_wire @wires[3] : !quake.wire
+  %v4 = quake.borrow_wire @wires[4] : !quake.wire
+  %a:2 = quake.x [%v3] %v0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#0] %v1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %c:2 = quake.x [%b#0] %v2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d:2 = quake.x [%c#0] %v4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %d#0 : !quake.wire
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  quake.return_wire %d#1 : !quake.wire
+  return
+}
+
+// IDENT52-COUNT-1: quake.swap
+// IDENT52-NOT: quake.swap
+
+// GREEDY52-LABEL: func.func @relocated_hub
+// GREEDY52-NOT: quake.swap
+
+// GREEDY50-LABEL: func.func @relocated_hub
+// GREEDY50-NOT: quake.swap

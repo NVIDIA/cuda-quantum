@@ -1,0 +1,263 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A dense quantum-volume-style circuit on a 20-qubit path. The reverse-traversal
+// refinement can hand the router a layout where the SABRE heuristic stalls in a
+// local minimum. Without the release valve the search loops forever on this
+// input. The check is simply that mapping terminates and emits a mapped kernel.
+// CircuitCheck is omitted: equivalence checking builds the 2^20 unitary.
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(20) placement=auto search=sabre' %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+func.func @qv_path20() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %v3 = quake.borrow_wire @wires[3] : !quake.wire
+  %v4 = quake.borrow_wire @wires[4] : !quake.wire
+  %v5 = quake.borrow_wire @wires[5] : !quake.wire
+  %v6 = quake.borrow_wire @wires[6] : !quake.wire
+  %v7 = quake.borrow_wire @wires[7] : !quake.wire
+  %v8 = quake.borrow_wire @wires[8] : !quake.wire
+  %v9 = quake.borrow_wire @wires[9] : !quake.wire
+  %v10 = quake.borrow_wire @wires[10] : !quake.wire
+  %v11 = quake.borrow_wire @wires[11] : !quake.wire
+  %v12 = quake.borrow_wire @wires[12] : !quake.wire
+  %v13 = quake.borrow_wire @wires[13] : !quake.wire
+  %v14 = quake.borrow_wire @wires[14] : !quake.wire
+  %v15 = quake.borrow_wire @wires[15] : !quake.wire
+  %v16 = quake.borrow_wire @wires[16] : !quake.wire
+  %v17 = quake.borrow_wire @wires[17] : !quake.wire
+  %v18 = quake.borrow_wire @wires[18] : !quake.wire
+  %v19 = quake.borrow_wire @wires[19] : !quake.wire
+  %g0:2 = quake.x [%v10] %v18 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g1:2 = quake.x [%v16] %v14 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g2:2 = quake.x [%v0] %v17 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g3:2 = quake.x [%v11] %v2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g4:2 = quake.x [%v3] %v9 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g5:2 = quake.x [%v5] %v7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g6:2 = quake.x [%v4] %v19 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g7:2 = quake.x [%v6] %v15 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g8:2 = quake.x [%v8] %v1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g9:2 = quake.x [%v13] %v12 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g10:2 = quake.x [%g9#0] %g3#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g11:2 = quake.x [%g1#0] %g2#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g12:2 = quake.x [%g2#1] %g6#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g13:2 = quake.x [%g1#1] %g5#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g14:2 = quake.x [%g0#1] %g6#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g15:2 = quake.x [%g9#1] %g7#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g16:2 = quake.x [%g5#0] %g8#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g17:2 = quake.x [%g8#0] %g7#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g18:2 = quake.x [%g0#0] %g3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g19:2 = quake.x [%g4#0] %g4#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g20:2 = quake.x [%g14#0] %g14#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g21:2 = quake.x [%g12#0] %g13#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g22:2 = quake.x [%g12#1] %g11#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g23:2 = quake.x [%g15#1] %g17#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g24:2 = quake.x [%g19#1] %g13#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g25:2 = quake.x [%g16#1] %g10#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g26:2 = quake.x [%g16#0] %g10#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g27:2 = quake.x [%g19#0] %g18#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g28:2 = quake.x [%g17#1] %g11#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g29:2 = quake.x [%g15#0] %g18#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g30:2 = quake.x [%g21#1] %g28#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g31:2 = quake.x [%g29#0] %g29#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g32:2 = quake.x [%g21#0] %g25#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g33:2 = quake.x [%g23#0] %g20#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g34:2 = quake.x [%g20#1] %g26#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g35:2 = quake.x [%g24#1] %g25#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g36:2 = quake.x [%g26#1] %g22#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g37:2 = quake.x [%g23#1] %g24#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g38:2 = quake.x [%g27#0] %g28#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g39:2 = quake.x [%g22#1] %g27#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g40:2 = quake.x [%g32#1] %g33#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g41:2 = quake.x [%g33#0] %g32#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g42:2 = quake.x [%g37#0] %g34#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g43:2 = quake.x [%g36#0] %g35#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g44:2 = quake.x [%g39#0] %g36#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g45:2 = quake.x [%g38#1] %g30#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g46:2 = quake.x [%g35#0] %g38#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g47:2 = quake.x [%g31#1] %g37#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g48:2 = quake.x [%g30#0] %g39#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g49:2 = quake.x [%g31#0] %g34#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g50:2 = quake.x [%g49#1] %g40#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g51:2 = quake.x [%g43#1] %g45#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g52:2 = quake.x [%g47#0] %g42#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g53:2 = quake.x [%g46#0] %g45#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g54:2 = quake.x [%g44#1] %g43#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g55:2 = quake.x [%g41#0] %g47#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g56:2 = quake.x [%g48#1] %g46#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g57:2 = quake.x [%g40#0] %g48#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g58:2 = quake.x [%g42#0] %g44#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g59:2 = quake.x [%g49#0] %g41#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g60:2 = quake.x [%g58#1] %g59#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g61:2 = quake.x [%g58#0] %g57#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g62:2 = quake.x [%g50#0] %g53#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g63:2 = quake.x [%g59#1] %g55#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g64:2 = quake.x [%g52#0] %g52#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g65:2 = quake.x [%g56#1] %g51#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g66:2 = quake.x [%g54#0] %g54#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g67:2 = quake.x [%g51#1] %g57#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g68:2 = quake.x [%g55#0] %g56#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g69:2 = quake.x [%g50#1] %g53#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g70:2 = quake.x [%g67#1] %g61#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g71:2 = quake.x [%g60#1] %g66#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g72:2 = quake.x [%g64#1] %g69#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g73:2 = quake.x [%g60#0] %g61#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g74:2 = quake.x [%g68#0] %g62#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g75:2 = quake.x [%g66#1] %g63#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g76:2 = quake.x [%g65#0] %g68#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g77:2 = quake.x [%g62#0] %g67#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g78:2 = quake.x [%g64#0] %g63#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g79:2 = quake.x [%g69#0] %g65#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g80:2 = quake.x [%g70#0] %g76#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g81:2 = quake.x [%g79#0] %g74#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g82:2 = quake.x [%g73#1] %g78#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g83:2 = quake.x [%g72#0] %g71#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g84:2 = quake.x [%g77#0] %g75#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g85:2 = quake.x [%g71#1] %g73#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g86:2 = quake.x [%g75#1] %g78#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g87:2 = quake.x [%g70#1] %g77#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g88:2 = quake.x [%g79#1] %g74#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g89:2 = quake.x [%g72#1] %g76#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g90:2 = quake.x [%g89#0] %g87#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g91:2 = quake.x [%g80#1] %g82#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g92:2 = quake.x [%g86#1] %g87#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g93:2 = quake.x [%g88#1] %g81#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g94:2 = quake.x [%g82#1] %g86#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g95:2 = quake.x [%g80#0] %g84#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g96:2 = quake.x [%g83#0] %g85#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g97:2 = quake.x [%g84#0] %g83#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g98:2 = quake.x [%g89#1] %g88#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g99:2 = quake.x [%g81#1] %g85#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g100:2 = quake.x [%g95#1] %g97#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g101:2 = quake.x [%g94#0] %g97#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g102:2 = quake.x [%g99#1] %g95#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g103:2 = quake.x [%g98#1] %g93#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g104:2 = quake.x [%g91#1] %g92#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g105:2 = quake.x [%g96#1] %g90#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g106:2 = quake.x [%g94#1] %g93#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g107:2 = quake.x [%g91#0] %g90#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g108:2 = quake.x [%g92#1] %g96#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g109:2 = quake.x [%g99#0] %g98#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g110:2 = quake.x [%g103#1] %g108#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g111:2 = quake.x [%g106#1] %g101#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g112:2 = quake.x [%g109#0] %g104#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g113:2 = quake.x [%g102#0] %g101#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g114:2 = quake.x [%g100#0] %g107#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g115:2 = quake.x [%g106#0] %g108#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g116:2 = quake.x [%g102#1] %g100#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g117:2 = quake.x [%g109#1] %g105#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g118:2 = quake.x [%g105#1] %g104#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g119:2 = quake.x [%g103#0] %g107#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g120:2 = quake.x [%g119#0] %g116#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g121:2 = quake.x [%g113#1] %g118#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g122:2 = quake.x [%g117#1] %g113#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g123:2 = quake.x [%g112#0] %g111#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g124:2 = quake.x [%g114#0] %g115#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g125:2 = quake.x [%g112#1] %g110#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g126:2 = quake.x [%g114#1] %g118#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g127:2 = quake.x [%g117#0] %g116#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g128:2 = quake.x [%g115#1] %g119#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g129:2 = quake.x [%g111#0] %g110#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g130:2 = quake.x [%g126#0] %g122#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g131:2 = quake.x [%g120#0] %g124#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g132:2 = quake.x [%g127#0] %g129#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g133:2 = quake.x [%g126#1] %g120#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g134:2 = quake.x [%g128#1] %g129#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g135:2 = quake.x [%g124#1] %g125#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g136:2 = quake.x [%g125#1] %g122#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g137:2 = quake.x [%g127#1] %g123#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g138:2 = quake.x [%g121#1] %g121#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g139:2 = quake.x [%g123#0] %g128#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g140:2 = quake.x [%g130#0] %g136#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g141:2 = quake.x [%g139#0] %g135#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g142:2 = quake.x [%g137#1] %g138#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g143:2 = quake.x [%g137#0] %g131#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g144:2 = quake.x [%g135#0] %g131#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g145:2 = quake.x [%g132#0] %g136#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g146:2 = quake.x [%g139#1] %g132#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g147:2 = quake.x [%g134#0] %g133#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g148:2 = quake.x [%g134#1] %g130#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g149:2 = quake.x [%g138#1] %g133#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g150:2 = quake.x [%g145#1] %g147#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g151:2 = quake.x [%g140#1] %g146#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g152:2 = quake.x [%g144#0] %g144#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g153:2 = quake.x [%g141#0] %g142#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g154:2 = quake.x [%g142#1] %g149#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g155:2 = quake.x [%g141#1] %g143#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g156:2 = quake.x [%g143#0] %g148#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g157:2 = quake.x [%g148#0] %g149#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g158:2 = quake.x [%g147#1] %g140#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g159:2 = quake.x [%g145#0] %g146#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g160:2 = quake.x [%g158#0] %g151#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g161:2 = quake.x [%g159#0] %g159#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g162:2 = quake.x [%g155#1] %g156#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g163:2 = quake.x [%g157#1] %g153#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g164:2 = quake.x [%g150#0] %g156#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g165:2 = quake.x [%g153#0] %g158#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g166:2 = quake.x [%g157#0] %g155#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g167:2 = quake.x [%g152#0] %g152#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g168:2 = quake.x [%g150#1] %g154#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g169:2 = quake.x [%g154#0] %g151#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g170:2 = quake.x [%g164#1] %g161#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g171:2 = quake.x [%g168#1] %g169#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g172:2 = quake.x [%g167#0] %g165#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g173:2 = quake.x [%g163#0] %g164#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g174:2 = quake.x [%g163#1] %g166#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g175:2 = quake.x [%g162#0] %g167#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g176:2 = quake.x [%g165#0] %g160#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g177:2 = quake.x [%g161#1] %g168#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g178:2 = quake.x [%g169#0] %g160#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g179:2 = quake.x [%g162#1] %g166#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g180:2 = quake.x [%g174#0] %g170#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g181:2 = quake.x [%g176#1] %g171#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g182:2 = quake.x [%g177#0] %g177#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g183:2 = quake.x [%g174#1] %g176#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g184:2 = quake.x [%g175#0] %g178#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g185:2 = quake.x [%g173#0] %g178#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g186:2 = quake.x [%g179#1] %g173#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g187:2 = quake.x [%g175#1] %g172#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g188:2 = quake.x [%g170#1] %g172#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g189:2 = quake.x [%g179#0] %g171#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g190:2 = quake.x [%g184#1] %g188#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g191:2 = quake.x [%g188#1] %g180#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g192:2 = quake.x [%g181#0] %g182#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g193:2 = quake.x [%g185#0] %g189#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g194:2 = quake.x [%g186#0] %g181#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g195:2 = quake.x [%g183#0] %g187#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g196:2 = quake.x [%g183#1] %g180#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g197:2 = quake.x [%g184#0] %g186#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g198:2 = quake.x [%g182#1] %g185#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g199:2 = quake.x [%g187#1] %g189#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %g194#0 : !quake.wire
+  quake.return_wire %g197#0 : !quake.wire
+  quake.return_wire %g193#0 : !quake.wire
+  quake.return_wire %g190#1 : !quake.wire
+  quake.return_wire %g193#1 : !quake.wire
+  quake.return_wire %g192#1 : !quake.wire
+  quake.return_wire %g194#1 : !quake.wire
+  quake.return_wire %g196#1 : !quake.wire
+  quake.return_wire %g190#0 : !quake.wire
+  quake.return_wire %g191#0 : !quake.wire
+  quake.return_wire %g198#0 : !quake.wire
+  quake.return_wire %g195#1 : !quake.wire
+  quake.return_wire %g192#0 : !quake.wire
+  quake.return_wire %g195#0 : !quake.wire
+  quake.return_wire %g196#0 : !quake.wire
+  quake.return_wire %g199#0 : !quake.wire
+  quake.return_wire %g197#1 : !quake.wire
+  quake.return_wire %g199#1 : !quake.wire
+  quake.return_wire %g198#1 : !quake.wire
+  quake.return_wire %g191#1 : !quake.wire
+  return
+}
+
+// CHECK: func.func @qv_path20() attributes
+// CHECK-SAME: mapping_v2p

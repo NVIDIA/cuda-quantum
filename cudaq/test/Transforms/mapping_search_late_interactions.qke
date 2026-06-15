@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// An early cluster (q1-q2-q3) and a heavy late pair (q0-q4) pull a fixed seed in
+// different directions. The default search routes both seeds, refines them, and
+// keeps the best, so its swap count is at most either fixed seed's. Here it
+// reaches a swap-free layout.
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(5) placement=identity search=none' %s | FileCheck --check-prefix=IDENT %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(5) placement=greedy search=none' %s | FileCheck --check-prefix=GREEDY %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(5)' %s | FileCheck --check-prefix=DEFAULT %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(5)' %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @late_interactions() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %v3 = quake.borrow_wire @wires[3] : !quake.wire
+  %v4 = quake.borrow_wire @wires[4] : !quake.wire
+  // Early cluster among q1, q2, q3.
+  %f:2 = quake.x [%v1] %v2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g:2 = quake.x [%f#1] %v3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // Heavy late interaction between the far-apart q0 and q4.
+  %c:2 = quake.x [%v0] %v4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d:2 = quake.x [%c#0] %c#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %e:2 = quake.x [%d#0] %d#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %f#0 : !quake.wire
+  quake.return_wire %g#0 : !quake.wire
+  quake.return_wire %g#1 : !quake.wire
+  quake.return_wire %e#0 : !quake.wire
+  quake.return_wire %e#1 : !quake.wire
+  return
+}
+
+// IDENT-COUNT-3: quake.swap
+// IDENT-NOT: quake.swap
+
+// GREEDY-COUNT-2: quake.swap
+// GREEDY-NOT: quake.swap
+
+// DEFAULT-NOT: quake.swap

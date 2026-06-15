@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The issue (#4289): identity placement ties the routed swap count to the
+// physical numbering of an isomorphic device. The default search removes that
+// dependence by selecting the seed that routes best.
+
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,0) placement=identity search=none' %s | FileCheck --check-prefix=IDENT50 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=identity search=none' %s | FileCheck --check-prefix=IDENT52 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,0)' %s | FileCheck --check-prefix=DEFAULT50 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2)' %s | FileCheck --check-prefix=DEFAULT52 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,0)' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2)' %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @fan() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %v3 = quake.borrow_wire @wires[3] : !quake.wire
+  %v4 = quake.borrow_wire @wires[4] : !quake.wire
+  %a:2 = quake.x [%v0] %v1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#0] %v2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %c:2 = quake.x [%b#0] %v3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d:2 = quake.x [%c#0] %v4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %d#0 : !quake.wire
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  quake.return_wire %d#1 : !quake.wire
+  return
+}
+
+// Identity routes the hub-numbering for free but pays for the other numbering.
+// IDENT50-NOT: quake.swap
+
+// IDENT52-COUNT-1: quake.swap
+// IDENT52-NOT: quake.swap
+
+// The default search routes both numberings identically.
+// DEFAULT50-NOT: quake.swap
+// DEFAULT52-NOT: quake.swap

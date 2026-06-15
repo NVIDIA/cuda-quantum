@@ -956,6 +956,14 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "Decay delta">,
     Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
            "Number of rounds before decay is reset">,
+    Option<"placement", "placement", "std::string",
+           /*default=*/"\"auto\"",
+           "Initial placement strategy: auto (propose identity and greedy "
+           "seeds, select by routed swap count), identity, greedy">,
+    Option<"search", "search", "std::string", /*default=*/"\"sabre\"",
+           "Layout search strategy: sabre (SABRE forward-backward-forward "
+           "reverse-traversal refinement of each seed), none (single forward "
+           "route per seed; legacy mapping is placement=identity search=none)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
            "internal compiler errors">
