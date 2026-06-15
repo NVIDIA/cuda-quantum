@@ -70,9 +70,9 @@ public:
   bool supports_task_distribution() const override { return true; }
 
   void beginExecution() override {
-    // Only set the CUDA device when GPU-backed QPUs are in use. When a
-    // non-GPU platform (e.g. ORCA) replaces the default QPUs via
-    // setTargetBackend.
+    // Only set the CUDA device when GPU-backed QPUs are active.
+    // Non-GPU platforms (e.g. ORCA) that replace the default QPUs
+    // via setTargetBackend do not require a CUDA device assignment.
     auto qid = cudaq::getCurrentQpuId();
     int nDevices = cudaq::getCudaDeviceCount();
     if (nDevices > 0)
