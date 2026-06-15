@@ -9,10 +9,10 @@
 #include "PTSBESample.h"
 #include "NoiseExtractor.h"
 #include "ShotAllocationStrategy.h"
+#include "strategies/ProbabilisticSamplingStrategy.h"
 #include "cudaq/algorithms/sample.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
-#include "strategies/ProbabilisticSamplingStrategy.h"
 #include <algorithm>
 #include <iostream>
 #include <numeric>

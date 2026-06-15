@@ -6,57 +6,78 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/BaseRemoteRESTQPU.h"
+#include "RemoteRESTQPU.h"
 
-#include <memory>
+using namespace cudaq;
+cudaq::RemoteRESTQPU::~RemoteRESTQPU() = default;
 
-using namespace mlir;
+sample_result RemoteRESTQPU::launchKernel(const sample_policy &policy,
+                                          const AnyModule &module,
+                                          KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
 
-namespace {
+async_sample_result
+RemoteRESTQPU::launchKernel(const async_sample_policy &policy,
+                            const AnyModule &module, KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
 
-/// @brief The `RemoteRESTQPU` is a subtype of QPU that enables the
-/// execution of CUDA-Q kernels on remotely hosted quantum computing
-/// services via a REST Client / Server interaction. This type is meant
-/// to be general enough to support any remotely hosted service. Specific
-/// details about JSON payloads are abstracted via an abstract type called
-/// ServerHelper, which is meant to be subtyped by each provided remote QPU
-/// service. Moreover, this QPU handles launching kernels under a number of
-/// Execution Contexts, including sampling and observation via synchronous or
-/// asynchronous client invocations. This type should enable both QIR-based
-/// backends as well as those that take OpenQASM2 as input.
-class RemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
+observe_result RemoteRESTQPU::launchKernel(const observe_policy &policy,
+                                           const AnyModule &module,
+                                           KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
 
-public:
-  /// @brief The constructor
-  RemoteRESTQPU() : BaseRemoteRESTQPU() {}
+async_observe_result RemoteRESTQPU::launchKernel(async_observe_policy &policy,
+                                                 const AnyModule &module,
+                                                 KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
 
-  RemoteRESTQPU(RemoteRESTQPU &&) = delete;
-  virtual ~RemoteRESTQPU() = default;
-};
-} // namespace
+KernelThunkResultType
+RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
+  Compiler compiler(getCompileTarget(other_policies{}, getExecutionContext()));
 
-// When compiled into the standalone libcudaq-rest-qpu.so, use
-// CUDAQ_REGISTER_TYPE directly (same DSO as the registry instantiation's
-// consumer). When compiled into the Python extension, we must register into
-// libcudaq's QPU registry via the C-linkage hook, same pattern as
-// PythonLauncher.
-#ifdef CUDAQ_PYTHON_EXTENSION
-extern "C" void cudaq_add_qpu_node(void *node_ptr);
+  std::string kernelName;
+  std::optional<CompiledModule> compiled;
 
-namespace {
-struct RemoteRESTQPURegistration {
-  cudaq::RegistryEntry<cudaq::QPU> entry;
-  cudaq::Registry<cudaq::QPU>::node node;
-  RemoteRESTQPURegistration()
-      : entry("remote_rest", &RemoteRESTQPURegistration::ctorFn), node(entry) {
-    cudaq_add_qpu_node(&node);
+  if (std::holds_alternative<SourceModule>(module)) {
+    const auto &src = std::get<SourceModule>(module);
+    kernelName = src.getName();
+    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
+
+    auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
+
+    // Get the Quake code, lowered according to config file.
+    compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
+                                        std::move(context));
+  } else {
+    compiled = std::get<CompiledModule>(module);
+    kernelName = compiled->getName();
+    CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
   }
-  static std::unique_ptr<cudaq::QPU> ctorFn() {
-    return std::make_unique<RemoteRESTQPU>();
+
+  auto codes = compiler.emitKernelExecutions(*compiled);
+
+  // Propagate metadata from the compiled artifact to the execution context.
+  if (auto ctx = getExecutionContext()) {
+    ctx->hasConditionalsOnMeasureResults =
+        compiled->getMetadata().hasConditionalsOnMeasureResults;
   }
-};
-static RemoteRESTQPURegistration s_remoteRESTQPURegistration;
-} // namespace
-#else
-CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteRESTQPU, remote_rest)
-#endif
+
+  completeLaunchKernel(kernelName, std::move(codes));
+  return {};
+}
+
+CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::RemoteRESTQPU, remote_rest)

@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "py_unitary.h"
-#include "cudaq/algorithms/unitary.h"
 #include "runtime/cudaq/operators/py_helpers.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "cudaq/algorithms/unitary.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 
 using namespace cudaq;
@@ -17,14 +17,15 @@ using namespace cudaq;
 /// Compute the unitary of this kernel module.
 static nanobind::object get_unitary_impl(const std::string &shortName,
                                          MlirModule module,
+                                         cudaq::CompiledModule *compiled,
                                          nanobind::args args) {
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, args);
+    return cudaq::marshal_and_launch_module(shortName, module, args, compiled);
   };
 
   // Return as numpy array (dim, dim), complex128
   auto temp = contrib::get_unitary_cmat(std::move(f));
-  return details::cmat_to_numpy(temp);
+  return detail::cmat_to_numpy(temp);
 }
 
 /// Bind the get_unitary cudaq function

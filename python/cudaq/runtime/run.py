@@ -63,8 +63,8 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
 
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
-                                  shots_count, noise_model, qpu_id,
-                                  *processedArgs)
+                                  decorator.cachedCompiledModule(), shots_count,
+                                  noise_model, qpu_id, *processedArgs)
 
 
 @trace.traced
@@ -114,9 +114,8 @@ Returns:
                          f"QPUs ({num_qpus}).")
 
     if noise_model != None:
-        if target.is_remote_simulator() or target.is_remote():
-            raise ValueError("Noise model is not supported on remote simulator"
-                             " or hardware QPU.")
+        if target.is_remote():
+            raise ValueError("Noise model is not supported on hardware QPU.")
 
     processedArgs, module = decorator.prepare_call(*args)
     async_results = cudaq_runtime.run_async_impl(decorator.uniqName + ".run",

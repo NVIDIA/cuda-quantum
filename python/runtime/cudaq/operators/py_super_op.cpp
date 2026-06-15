@@ -15,9 +15,9 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-#include "cudaq/operators.h"
 #include "py_helpers.h"
 #include "py_super_op.h"
+#include "cudaq/operators.h"
 
 namespace cudaq {
 

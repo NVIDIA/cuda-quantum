@@ -70,26 +70,26 @@ namespace cudaq::policies {
 /// });
 /// @endcode
 template <typename Func>
-void withPolicy(std::string_view name, Func &&func) {
+decltype(auto) withPolicy(std::string_view name, Func &&func) {
   using FuncRef = std::remove_reference_t<Func> &;
-  using Entry = std::pair<std::string_view, void (*)(FuncRef)>;
+  using Ret = decltype(std::declval<FuncRef>()(std::declval<other_policies>()));
+  using Entry = std::pair<std::string_view, Ret (*)(FuncRef)>;
 
   // One static array per Func instantiation — initialized once, no heap
   // allocation. To add a new policy, append an entry here and define the policy
   // struct above.
   static const Entry registry[] = {
-      {"sample", [](FuncRef f) { f(sample_policy{}); }},
-      {"observe", [](FuncRef f) { f(observe_policy{}); }},
+      {"sample", [](FuncRef f) -> Ret { return f(sample_policy{}); }},
+      {"observe", [](FuncRef f) -> Ret { return f(observe_policy{}); }},
   };
 
   for (auto &[key, dispatch] : registry) {
     if (name == key) {
-      dispatch(func);
-      return;
+      return dispatch(func);
     }
   }
 
-  func(other_policies{});
+  return func(other_policies{});
 }
 
 // =============================================================================

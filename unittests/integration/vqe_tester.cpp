@@ -90,7 +90,21 @@ protected:
     //   auto ptr = reinterpret_cast<double *>(raw);
     //   (*ptr) = h2_data[i];
     // }
-    H = std::make_unique<cudaq::spin_op>(h2_data, 4);
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+    H.reset(new cudaq::spin_op(h2_data, 4));
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
   }
 
   template <typename Kernel>

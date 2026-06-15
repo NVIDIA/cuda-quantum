@@ -1,0 +1,137 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --run-semantics-hackery %s | FileCheck %s
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b482e030 = "__nvqpp__mlirgen__kernel..0x7de5b482e030_PyKernelEntryPointRewrite", __nvqpp__mlirgen__kernel..0x7de5b482e030.run = "__nvqpp__mlirgen__kernel..0x7de5b482e030.run.entry"}} {
+  func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030(%arg0: i64 {quake.pylifted}) -> !cc.stdvec<i64> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %c8_i64 = arith.constant 8 : i64
+    %cst = arith.constant 1.5707963267948966 : f64
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0 = cc.undef i64
+    %1 = quake.alloca !quake.veq<?>[%arg0 : i64]
+    %2 = arith.subi %arg0, %c1_i64 : i64
+    %3:2 = cc.loop while ((%arg1 = %c0_i64, %arg2 = %0) -> (i64, i64)) {
+      %14 = arith.cmpi slt, %arg1, %2 : i64
+      cc.condition %14(%arg1, %arg2 : i64, i64)
+    } do {
+    ^bb0(%arg1: i64, %arg2: i64):
+      %14 = quake.extract_ref %1[%arg1] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.h %14 : (!quake.ref) -> ()
+      cc.continue %arg1, %arg1 : i64, i64
+    } step {
+    ^bb0(%arg1: i64, %arg2: i64):
+      %14 = arith.addi %arg1, %c1_i64 : i64
+      cc.continue %14, %arg2 : i64, i64
+    }
+    %4 = quake.extract_ref %1[0] : (!quake.veq<?>) -> !quake.ref
+    quake.s %4 : (!quake.ref) -> ()
+    %5 = quake.extract_ref %1[1] : (!quake.veq<?>) -> !quake.ref
+    quake.r1 (%cst) %5 : (f64, !quake.ref) -> ()
+    %measOut = quake.mz %1 name "a" : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+    %6 = quake.discriminate %measOut : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+    %7 = cc.stdvec_data %6 : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+    %8 = cc.stdvec_size %6 : (!cc.stdvec<i1>) -> i64
+    %9 = cc.alloca i64[%8 : i64]
+    %10 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+      %14 = arith.cmpi slt, %arg1, %8 : i64
+      cc.condition %14(%arg1 : i64)
+    } do {
+    ^bb0(%arg1: i64):
+      %14 = cc.compute_ptr %7[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+      %15 = cc.load %14 : !cc.ptr<i8>
+      %16 = cc.cast signed %15 : (i8) -> i64
+      %17 = cc.compute_ptr %9[%arg1] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+      cc.store %16, %17 : !cc.ptr<i64>
+      cc.continue %arg1 : i64
+    } step {
+    ^bb0(%arg1: i64):
+      %14 = arith.addi %arg1, %c1_i64 : i64
+      cc.continue %14 : i64
+    } {invariant}
+    %11 = cc.cast %9 : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i8>
+    %12 = call @__nvqpp_vectorCopyCtor(%11, %8, %c8_i64) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+    %13 = cc.stdvec_init %12, %8 : (!cc.ptr<i8>, i64) -> !cc.stdvec<i64>
+    quake.dealloc %1 : !quake.veq<?>
+    return %13 : !cc.stdvec<i64>
+  }
+  func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
+  func.func private @malloc(i64) -> !cc.ptr<i8>
+  func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: i64) -> !cc.ptr<i8> {
+    %false = arith.constant false
+    %0 = arith.muli %arg1, %arg2 : i64
+    %1 = call @malloc(%0) : (i64) -> !cc.ptr<i8>
+    call @llvm.memcpy.p0.p0.i64(%1, %arg0, %0, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    return %1 : !cc.ptr<i8>
+  }
+  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+  func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
+  llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
+  func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)
+  func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
+  func.func private @cudaqRegisterKernelName(!cc.ptr<i8>)
+  func.func private @free(!cc.ptr<i8>)
+  func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>)
+  func.func private @__nvqpp_vector_bool_free_temporary_initlists(!cc.ptr<i8>)
+  func.func private @llvm.memset.p0.i64(!cc.ptr<i8>, i8, i64, i1)
+  func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
+    %c0_i64 = arith.constant 0 : i64
+    %0 = cc.cast %c0_i64 : (i64) -> !cc.ptr<i8>
+    %1 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
+    %2 = cc.insert_value %1[0], %0 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %3 = cc.insert_value %2[1], %c0_i64 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    return %3 : !cc.struct<{!cc.ptr<i8>, i64}>
+  }
+  func.func private @__nvqpp_createDynamicResult(%arg0: !cc.ptr<i8>, %arg1: i64, %arg2: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>, %arg3: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+    %0 = cc.compute_ptr %arg2[1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
+    %1 = cc.load %0 : !cc.ptr<i64>
+    %2 = arith.addi %arg1, %1 : i64
+    %3 = call @malloc(%2) : (i64) -> !cc.ptr<i8>
+    %4 = cc.cast %3 : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+    %false = arith.constant false
+    call @llvm.memcpy.p0.p0.i64(%3, %arg0, %arg1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    %5 = cc.compute_ptr %arg2[0] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<!cc.ptr<i8>>
+    %6 = cc.load %5 : !cc.ptr<!cc.ptr<i8>>
+    %7 = cc.compute_ptr %4[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+    call @llvm.memcpy.p0.p0.i64(%7, %6, %1, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+    %8 = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
+    %9 = cc.insert_value %8[0], %3 : (!cc.struct<{!cc.ptr<i8>, i64}>, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %10 = cc.insert_value %9[1], %2 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+    %11 = cc.compute_ptr %4[%arg3] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+    %12 = cc.cast %11 : (!cc.ptr<i8>) -> !cc.ptr<!cc.ptr<i8>>
+    cc.store %7, %12 : !cc.ptr<!cc.ptr<i8>>
+    return %10 : !cc.struct<{!cc.ptr<i8>, i64}>
+  }
+  func.func private @_ZNK5cudaq10pauli_word11_nvqpp_dataEv(!cc.ptr<i8>) -> !cc.ptr<i8>
+  func.func private @__nvqpp_getStringData(!cc.ptr<i8>) -> !cc.ptr<i8>
+  func.func private @__nvqpp_getStringSize(!cc.ptr<i8>) -> i64
+  func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(!cc.ptr<i8>) -> i64
+  func.func private @__nvqpp_cleanup_arrays()
+  func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run(%arg0: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.stdvec<i64>]} {
+    %0 = call @__nvqpp__mlirgen__kernel..0x7de5b482e030(%arg0) : (i64) -> !cc.stdvec<i64>
+    cc.log_output %0 : !cc.stdvec<i64>
+    return
+  }
+  func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run.entry(%arg0: i64) attributes {no_this} {
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.run(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [!cc.stdvec<i64>]} {
+// CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__kernel..0x7de5b482e030.ruined(%[[ARG0]]) : (i64) -> !cc.stdvec<i64>
+// CHECK:           cc.log_output %[[VAL_0]] : !cc.stdvec<i64>
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel..0x7de5b482e030.ruined(
+// CHECK-SAME:      %[[ARG0:.*]]: i64 {quake.pylifted}) -> !cc.stdvec<i64> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-NOT:       __nvqpp_vectorCopyCtor
+// CHECK:           return {{.*}}: !cc.stdvec<i64>

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: if %stim_avail; then nvq++ --target stim --enable-mlir %s -o %t && %t | FileCheck %s ; fi
+// RUN: if %stim_avail; then nvq++ --target stim %s -o %t && %t | FileCheck %s ; fi
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 

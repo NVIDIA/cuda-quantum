@@ -21,8 +21,7 @@ public:
     // a quick set-reset to trigger sampling
     this->configureExecutionContext(ctx);
     cudaq::detail::setExecutionContext(&ctx);
-    auto sampleResults =
-        this->finalizeExecutionContext(cudaq::sample_policy{}, ctx);
+    auto sampleResults = this->finalizeExecutionContext(cudaq::sample_policy{});
     cudaq::detail::resetExecutionContext();
 
     return sampleResults.begin()->first;

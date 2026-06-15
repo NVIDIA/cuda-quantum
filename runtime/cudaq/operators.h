@@ -83,7 +83,7 @@ protected:
   std::vector<scalar_operator> coefficients;
   bool is_default = true;
 
-  constexpr sum_op(bool is_default) : is_default(is_default){};
+  constexpr sum_op(bool is_default) : is_default(is_default) {};
   sum_op(const sum_op<HandlerTy> &other, bool is_default, std::size_t size);
   sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size);
 

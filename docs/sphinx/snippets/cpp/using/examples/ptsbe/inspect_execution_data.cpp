@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 // [Begin PTSBE_Execution_Data]
+#include "utils.h"
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/ShotAllocationStrategy.h"
-#include "utils.h"
 #include <cstdio>
 
 int main() {

@@ -7,9 +7,9 @@
  ******************************************************************************/
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nlohmann/json.hpp"
 #include <fstream>
 #include <iostream>
 #include <thread>

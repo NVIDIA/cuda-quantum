@@ -8,12 +8,14 @@
 
 #pragma once
 #include "common/ExecutionContext.h"
-#include "common/ServerHelper.h"
+#include "common/KernelExecution.h"
+#include "common/Registry.h"
 #include <memory>
 
 namespace cudaq {
 
 class RestClient;
+class ServerHelper;
 
 /// @brief The Executor provides an abstraction for executing compiled
 /// quantum codes targeting a remote REST server. This type provides a
@@ -43,10 +45,10 @@ public:
 
   /// @brief Execute the provided quantum codes and return a future object
   /// The caller can make this synchronous by just immediately calling .get().
-  virtual details::future
+  virtual detail::future
   execute(std::vector<KernelExecution> &codesToExecute,
-          cudaq::details::ExecutionContextType execType =
-              cudaq::details::ExecutionContextType::sample,
+          cudaq::detail::ExecutionContextType execType =
+              cudaq::detail::ExecutionContextType::sample,
           std::vector<char> *rawOutput = nullptr);
 };
 

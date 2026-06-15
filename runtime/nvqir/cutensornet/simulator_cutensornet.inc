@@ -296,7 +296,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
     return;
 
   // Do nothing if no noise model
-  if (!executionContext->noiseModel)
+  if (!this->getNoiseModel())
     return;
 
   // Get the name as a string
@@ -305,7 +305,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
   qubits.insert(qubits.end(), targets.begin(), targets.end());
 
   // Get the Kraus channels specified for this gate and qubits
-  auto krausChannels = executionContext->noiseModel->get_channels(
+  auto krausChannels = this->getNoiseModel()->get_channels(
       gName, targets, controls, params);
 
   // If none, do nothing

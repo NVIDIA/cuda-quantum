@@ -38,14 +38,15 @@ jobs:
       - name: Download cache keys
         id: artifacts
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           artifacts_url=${{ github.event.workflow_run.artifacts_url }}
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(retry gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "${name#cache_key}" != "${name}" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > cache_keys.zip
+              retry gh api $url > cache_keys.zip
               unzip -d cache_keys cache_keys.zip
               for file in `find cache_keys/ -type f`; do
                 keys+=" `cat $file`"

@@ -14,6 +14,14 @@
 // case, we will examine the dynamic noise channel specified as a callback
 // function.
 
+struct kernel {
+  void operator()(double angle) __qpu__ {
+    cudaq::qubit q;
+    rx(angle, q);
+    mz(q);
+  }
+};
+
 int main() {
 
   // We will begin by defining an empty noise model that we will add
@@ -41,12 +49,6 @@ int main() {
   // Bind the noise model callback function to the `rx` gate
   noise.add_channel<cudaq::types::rx>(rx_noise);
 
-  auto kernel = [](double angle) __qpu__ {
-    cudaq::qubit q;
-    rx(angle, q);
-    mz(q);
-  };
-
   // Now let's set the noise and we're ready to run the simulation!
   cudaq::set_noise(noise);
 
@@ -54,13 +56,13 @@ int main() {
   // indicating that the noise has successfully impacted the system. Note: a
   // `rx(pi)` is equivalent to a Pauli X gate, and thus, it should be in the |1>
   // state if no noise is present.
-  auto noisy_counts = cudaq::sample(kernel, M_PI);
+  auto noisy_counts = cudaq::sample(kernel{}, M_PI);
   std::cout << "Noisy result:\n";
   noisy_counts.dump();
 
   // To confirm this, we can run the simulation again without noise.
   cudaq::unset_noise();
-  auto noiseless_counts = cudaq::sample(kernel, M_PI);
+  auto noiseless_counts = cudaq::sample(kernel{}, M_PI);
   std::cout << "Noiseless result:\n";
   noiseless_counts.dump();
   return 0;

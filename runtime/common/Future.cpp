@@ -10,11 +10,11 @@
 #include "ObserveResult.h"
 #include "RestClient.h"
 #include "ServerHelper.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 #include <thread>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 sample_result future::get() {
   if (wrapsFutureSampling)
@@ -50,7 +50,7 @@ sample_result future::get() {
                                  " must inherit `QirServerHelper` class");
       if (!inFutureRawOutput)
         throw std::runtime_error(
-            "cudaq::details::future::get() for 'run' requires a raw output "
+            "cudaq::detail::future::get() for 'run' requires a raw output "
             "pointer but it was not provided.");
 
       const auto qirOutputLog =
@@ -82,7 +82,7 @@ sample_result future::get() {
 
   return sample_result(results);
 #else
-  throw std::runtime_error("cudaq::details::future::get() requires REST Client "
+  throw std::runtime_error("cudaq::detail::future::get() requires REST Client "
                            "but CUDA-Q was built without it.");
   return sample_result();
 #endif
@@ -143,4 +143,4 @@ std::istream &operator>>(std::istream &is, future &f) {
   return is;
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

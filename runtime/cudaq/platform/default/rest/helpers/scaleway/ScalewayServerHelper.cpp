@@ -7,8 +7,8 @@
  ******************************************************************************/
 #include "ScalewayServerHelper.h"
 #include "common/RestClient.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 #include <map>
 #include <sstream>
 

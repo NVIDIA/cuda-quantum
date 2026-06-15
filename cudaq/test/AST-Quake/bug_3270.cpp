@@ -1,0 +1,33 @@
+/*******************************************************************************
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// clang-format off
+// RUN: cudaq-quake %s | cudaq-opt --expand-measurements --classical-optimization-pipeline | FileCheck %s
+// clang-format on
+
+#include <cudaq.h>
+
+__qpu__ void foo() {
+  cudaq::qvector qubits(3);
+  x(qubits);
+  auto result = mz(qubits);
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
+// CHECK:           quake.mz %[[VAL_1]] name "result%{{.*}}" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           quake.mz %[[VAL_2]] name "result%{{.*}}" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           quake.mz %[[VAL_3]] name "result%{{.*}}" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           return
+// CHECK:         }

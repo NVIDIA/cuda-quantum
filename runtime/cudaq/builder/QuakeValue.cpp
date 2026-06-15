@@ -102,7 +102,7 @@ std::size_t QuakeValue::getRequiredElements() {
 QuakeValue QuakeValue::operator[](const std::size_t idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
+  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -115,9 +115,9 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
   Value indexVar = arith::ConstantIntOp::create(opBuilder, idx, 32);
 
-  if (isa<quake::VeqType>(type)) {
+  if (isa<cudaq::quake::VeqType>(type)) {
     Value extractedQubit =
-        quake::ExtractRefOp::create(opBuilder, vectorValue, indexVar);
+        cudaq::quake::ExtractRefOp::create(opBuilder, vectorValue, indexVar);
     return QuakeValue(opBuilder, extractedQubit);
   }
 
@@ -140,7 +140,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
+  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -153,9 +153,9 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 
   Value indexVar = idx.getValue();
 
-  if (isa<quake::VeqType>(type)) {
+  if (isa<cudaq::quake::VeqType>(type)) {
     Value extractedQubit =
-        quake::ExtractRefOp::create(opBuilder, vectorValue, indexVar);
+        cudaq::quake::ExtractRefOp::create(opBuilder, vectorValue, indexVar);
     return QuakeValue(opBuilder, extractedQubit);
   }
 
@@ -177,7 +177,7 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 QuakeValue QuakeValue::size() {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type))
+  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue does not expose .size().");
 
   Type i64Ty = opBuilder.getI64Type();
@@ -185,13 +185,13 @@ QuakeValue QuakeValue::size() {
   if (isa<cc::StdvecType>(type))
     ret = cc::StdvecSizeOp::create(opBuilder, i64Ty, vectorValue);
   else
-    ret = quake::VeqSizeOp::create(opBuilder, i64Ty, vectorValue);
+    ret = cudaq::quake::VeqSizeOp::create(opBuilder, i64Ty, vectorValue);
 
   return QuakeValue(opBuilder, ret);
 }
 
 std::optional<std::size_t> QuakeValue::constantSize() {
-  if (auto qvecTy = dyn_cast<quake::VeqType>(getValue().getType()))
+  if (auto qvecTy = dyn_cast<cudaq::quake::VeqType>(getValue().getType()))
     if (qvecTy.hasSpecifiedSize())
       return qvecTy.getSize();
 
@@ -202,7 +202,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
                              const std::size_t count) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type))
+  if (!isa<cc::StdvecType, cudaq::quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue is not sliceable.");
 
   if (count == 0)
@@ -210,7 +210,7 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
 
   Value startIdxValue = arith::ConstantIntOp::create(opBuilder, startIdx, 64);
   Value countValue = arith::ConstantIntOp::create(opBuilder, count, 64);
-  if (auto veqType = mlir::dyn_cast_if_present<quake::VeqType>(type)) {
+  if (auto veqType = mlir::dyn_cast_if_present<cudaq::quake::VeqType>(type)) {
     auto veqSize = veqType.getSize();
     if (startIdx + count > veqSize)
       throw std::runtime_error("Invalid number of elements requested in slice, "
@@ -220,9 +220,9 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
     auto one = arith::ConstantIntOp::create(opBuilder, 1, 64);
     Value offset = arith::AddIOp::create(opBuilder, startIdxValue, countValue);
     offset = arith::SubIOp::create(opBuilder, offset, one);
-    auto sizedVecTy = quake::VeqType::get(opBuilder.getContext(), count);
-    Value subVeq = quake::SubVeqOp::create(opBuilder, sizedVecTy, vectorValue,
-                                           startIdxValue, offset);
+    auto sizedVecTy = cudaq::quake::VeqType::get(opBuilder.getContext(), count);
+    Value subVeq = cudaq::quake::SubVeqOp::create(
+        opBuilder, sizedVecTy, vectorValue, startIdxValue, offset);
     return QuakeValue(opBuilder, subVeq);
   }
 

@@ -8,10 +8,10 @@
 #include "py_evolve.h"
 #include "LinkedLibraryHolder.h"
 #include "common/ArgumentWrapper.h"
-#include "cudaq/algorithms/evolve_internal.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/evolve_internal.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include <nanobind/ndarray.h>
@@ -60,7 +60,7 @@ pyEvolve(state initial_state, nanobind::object kernel,
     spin_ops.push_back(observable(params));
   }
 
-  auto res = __internal__::evolve(
+  auto res = detail::evolve(
       initial_state,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
@@ -112,8 +112,8 @@ pyEvolve(state initial_state, std::vector<nanobind::object> kernels,
     spin_ops.push_back(std::move(ops));
   }
 
-  return __internal__::evolve(initial_state, launchFcts, spin_ops, shots_count,
-                              save_intermediate_states);
+  return detail::evolve(initial_state, launchFcts, spin_ops, shots_count,
+                        save_intermediate_states);
 }
 
 template <typename numeric_type>
@@ -141,7 +141,7 @@ pyEvolveAsync(state initial_state, nanobind::object kernel,
   }
 
   nanobind::gil_scoped_release release;
-  return __internal__::evolve_async(
+  return detail::evolve_async(
       initial_state,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
@@ -197,9 +197,9 @@ pyEvolveAsync(state initial_state, std::vector<nanobind::object> kernels,
   }
 
   nanobind::gil_scoped_release release;
-  return __internal__::evolve_async(initial_state, launchFcts, spin_ops, qpu_id,
-                                    noise_model, shots_count,
-                                    save_intermediate_states);
+  return detail::evolve_async(initial_state, launchFcts, spin_ops, qpu_id,
+                              noise_model, shots_count,
+                              save_intermediate_states);
 }
 
 #define DEFINE_PARAM_TYPE_OVERLOAD_VEC(type, pyMod)                            \
@@ -281,6 +281,15 @@ pyEvolveAsync(state initial_state, std::vector<nanobind::object> kernels,
       nanobind::arg("noise_model") = std::nullopt,                             \
       nanobind::arg("shots_count") = -1);
 
+#define DEFINE_ASYNC_CALLABLE_OVERLOAD(pyMod)                                  \
+  pyMod.def(                                                                   \
+      "evolve_async",                                                          \
+      [](std::function<evolve_result()> evolveFunctor, std::size_t qpu_id) {   \
+        return detail::evolve_async(std::move(evolveFunctor), qpu_id);         \
+      },                                                                       \
+      "Asynchronously execute a callable that returns an evolution result.",   \
+      nanobind::arg("evolve_function"), nanobind::arg("qpu_id") = 0);
+
 /// @brief Bind the evolve cudaq function for circuit simulator
 void bindPyEvolve(nanobind::module_ &mod) {
   // Sync evolve overloads
@@ -298,6 +307,7 @@ void bindPyEvolve(nanobind::module_ &mod) {
   DEFINE_ASYNC_PARAM_TYPE_OVERLOAD(long, mod);
   DEFINE_ASYNC_PARAM_TYPE_OVERLOAD(double, mod);
   DEFINE_ASYNC_PARAM_TYPE_OVERLOAD(std::complex<double>, mod);
+  DEFINE_ASYNC_CALLABLE_OVERLOAD(mod);
 }
 
 } // namespace cudaq

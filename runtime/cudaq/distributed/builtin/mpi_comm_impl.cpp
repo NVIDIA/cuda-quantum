@@ -98,7 +98,7 @@ MPI_Comm unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
 struct PendingRequest {
   MPI_Request requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
   int nActiveRequests;
-  PendingRequest() : nActiveRequests(0){};
+  PendingRequest() : nActiveRequests(0) {};
   static std::mutex g_mutex;
   static std::unordered_map<const cudaqDistributedCommunicator_t *,
                             PendingRequest>

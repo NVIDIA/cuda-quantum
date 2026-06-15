@@ -23,7 +23,6 @@
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 
 using namespace cudaq::ptsbe;
-using namespace cudaq::ptsbe::detail;
 
 namespace {
 
@@ -81,13 +80,13 @@ auto inlineNoiseKernel = []() __qpu__ {
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchCapturesBellCircuit) {
-  auto batch = tracePTSBatch(bellKernel);
+  auto batch = detail::tracePTSBatch(bellKernel);
   // Bell circuit: h, x gates + mz measurements
   EXPECT_EQ(countInstructions(batch.trace, TraceInstructionType::Gate), 2);
 }
 
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchPreservesGateNames) {
-  auto batch = tracePTSBatch(bellKernel);
+  auto batch = detail::tracePTSBatch(bellKernel);
 
   // Find Gate instructions
   std::vector<const TraceInstruction *> gates;
@@ -101,7 +100,7 @@ CUDAQ_TEST(PTSBESampleTest, TracePTSBatchPreservesGateNames) {
 }
 
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchHandlesKernelArgs) {
-  auto batch = tracePTSBatch(rotationKernel, 1.57);
+  auto batch = detail::tracePTSBatch(rotationKernel, 1.57);
 
   ASSERT_FALSE(batch.trace.empty());
   EXPECT_EQ(batch.trace[0].name, "rx");
@@ -109,7 +108,7 @@ CUDAQ_TEST(PTSBESampleTest, TracePTSBatchHandlesKernelArgs) {
 }
 
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchHandlesEmptyKernel) {
-  auto batch = tracePTSBatch(emptyKernel);
+  auto batch = detail::tracePTSBatch(emptyKernel);
   EXPECT_TRUE(batch.trace.empty());
 }
 
@@ -132,7 +131,7 @@ CUDAQ_TEST(PTSBESampleTest, ValidateKernelThrowsForMCMContext) {
   cudaq::ExecutionContext ctx("tracer");
   ctx.registerNames.push_back("mcm_result");
   try {
-    validatePTSBEKernel("testKernel", ctx);
+    detail::validatePTSBEKernel("testKernel", ctx);
     FAIL() << "Expected an exception for MCM context";
   } catch (...) {
   }
@@ -140,24 +139,24 @@ CUDAQ_TEST(PTSBESampleTest, ValidateKernelThrowsForMCMContext) {
 
 CUDAQ_TEST(PTSBESampleTest, ValidateKernelNoThrowForValidContext) {
   cudaq::ExecutionContext ctx("tracer");
-  EXPECT_NO_THROW(validatePTSBEKernel("testKernel", ctx));
+  EXPECT_NO_THROW(detail::validatePTSBEKernel("testKernel", ctx));
 }
 
 CUDAQ_TEST(PTSBESampleTest, WarnNamedRegisters) {
   // __global__ only: no warning
   cudaq::ExecutionContext globalCtx("tracer");
   globalCtx.kernelTrace.appendMeasurement("mz", {{2, 0}}, "__global__");
-  warnNamedRegisters("testKernel", globalCtx);
+  detail::warnNamedRegisters("testKernel", globalCtx);
   EXPECT_FALSE(globalCtx.warnedNamedMeasurements);
 
   // Named register: sets flag
   cudaq::ExecutionContext namedCtx("tracer");
   namedCtx.kernelTrace.appendMeasurement("mz", {{2, 0}}, "my_register");
-  warnNamedRegisters("testKernel", namedCtx);
+  detail::warnNamedRegisters("testKernel", namedCtx);
   EXPECT_TRUE(namedCtx.warnedNamedMeasurements);
 
   // Second call is a no-op (flag already set)
-  warnNamedRegisters("testKernel", namedCtx);
+  detail::warnNamedRegisters("testKernel", namedCtx);
   EXPECT_TRUE(namedCtx.warnedNamedMeasurements);
 }
 
@@ -166,20 +165,20 @@ CUDAQ_TEST(PTSBESampleTest, WarnNamedRegisters) {
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchHasCorrectMeasureQubits) {
-  auto batch = tracePTSBatch(bellKernel);
+  auto batch = detail::tracePTSBatch(bellKernel);
   EXPECT_EQ(batch.measureQubits.size(), 2);
   EXPECT_EQ(batch.measureQubits[0], 0);
   EXPECT_EQ(batch.measureQubits[1], 1);
 }
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchFromGHZHas3Qubits) {
-  auto batch = tracePTSBatch(ghzKernel);
+  auto batch = detail::tracePTSBatch(ghzKernel);
   EXPECT_EQ(numQubits(batch.trace), 3);
   EXPECT_EQ(batch.measureQubits.size(), 3);
 }
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchTrajectoriesEmptyForPOC) {
-  auto batch = tracePTSBatch(bellKernel);
+  auto batch = detail::tracePTSBatch(bellKernel);
   EXPECT_TRUE(batch.trajectories.empty());
 }
 
@@ -187,14 +186,14 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchTrajectoriesEmptyForPOC) {
 // extractMeasureQubits derives the list from Measurement entries,
 // so only the actually-measured qubits appear, in kernel order.
 CUDAQ_TEST(PTSBESampleTest, PTSBatchSeparatedMeasureQubits) {
-  auto batch = tracePTSBatch(separatedMeasureKernel);
+  auto batch = detail::tracePTSBatch(separatedMeasureKernel);
   EXPECT_EQ(batch.measureQubits.size(), 2);
   EXPECT_EQ(batch.measureQubits[0], 0);
   EXPECT_EQ(batch.measureQubits[1], 2);
 }
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
-  auto batch = tracePTSBatch(bellKernel);
+  auto batch = detail::tracePTSBatch(bellKernel);
 
   // Find Gate instructions
   std::vector<const TraceInstruction *> gates;
@@ -242,22 +241,22 @@ CUDAQ_TEST(PTSBESampleTest, SampleImplicitMeasureAllQubits) {
 // Test that a batch with valid trace but no trajectories returns empty results
 CUDAQ_TEST(PTSBESampleTest, ExecuteWithEmptyTrajectoriesReturnsEmpty) {
   // Capture a valid trace first
-  auto batch = tracePTSBatch(bellKernel);
+  auto batch = detail::tracePTSBatch(bellKernel);
   // Clear trajectories (they're already empty from tracePTSBatch)
   EXPECT_TRUE(batch.trajectories.empty());
 
   // No trajectories - should return empty results
-  auto results = samplePTSBEWithLifecycle(batch);
+  auto results = detail::samplePTSBEWithLifecycle(batch);
   EXPECT_TRUE(results.empty());
 }
 
 CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesTrace) {
-  auto batch = tracePTSBatch(bellKernel);
+  auto batch = detail::tracePTSBatch(bellKernel);
   EXPECT_FALSE(batch.trace.empty());
   EXPECT_FALSE(batch.measureQubits.empty());
 
   // With no trajectories, should return empty (not throw)
-  auto results = samplePTSBEWithLifecycle(batch);
+  auto results = detail::samplePTSBEWithLifecycle(batch);
   EXPECT_TRUE(results.empty());
 }
 
@@ -275,9 +274,9 @@ CUDAQ_TEST(PTSBESampleTest, RunSamplingPTSBEAcceptsShotAllocationStrategy) {
   PTSBEOptions ptsbe_opts;
   ptsbe_opts.shot_allocation =
       ShotAllocationStrategy(ShotAllocationStrategy::Type::UNIFORM);
-  auto result =
-      runSamplingPTSBE([]() { bellKernel(); }, platform,
-                       cudaq::getKernelName(bellKernel), 50, ptsbe_opts);
+  auto result = detail::runSamplingPTSBE([]() { bellKernel(); }, platform,
+                                         cudaq::getKernelName(bellKernel), 50,
+                                         ptsbe_opts);
 
   platform.reset_noise();
   (void)result;
@@ -299,7 +298,7 @@ CUDAQ_TEST(PTSBESampleTest, PTSBESampleWithShotAllocationOption) {
 
 // Test that tracePTSBatch correctly captures GHZ circuit structure
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchCapturesGHZCircuit) {
-  auto batch = tracePTSBatch(ghzKernel);
+  auto batch = detail::tracePTSBatch(ghzKernel);
   // GHZ has 3 gates (h, cx, cx)
   EXPECT_EQ(countInstructions(batch.trace, TraceInstructionType::Gate), 3);
   // 3 qubits
@@ -308,7 +307,7 @@ CUDAQ_TEST(PTSBESampleTest, TracePTSBatchCapturesGHZCircuit) {
 
 // Test that tracePTSBatch correctly handles parameterized kernels
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchHandlesParameterizedKernel) {
-  auto batch = tracePTSBatch(rotationKernel, 1.57);
+  auto batch = detail::tracePTSBatch(rotationKernel, 1.57);
   // rotationKernel has 2 gates (rx, ry)
   EXPECT_EQ(countInstructions(batch.trace, TraceInstructionType::Gate), 2);
   // 2 qubits
@@ -334,16 +333,16 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
   cudaq::ExecutionContext traceCtx("tracer");
   auto &platform = cudaq::get_platform();
   platform.with_execution_context(traceCtx, [&]() { bellKernel(); });
-  cleanupTracerQubits(traceCtx.kernelTrace);
+  detail::cleanupTracerQubits(traceCtx.kernelTrace);
 
   // Build PTSBE trace with noise model and extract noise sites
   PTSBatch batch;
-  batch.trace = buildPTSBETrace(traceCtx.kernelTrace, noise);
-  batch.measureQubits = extractMeasureQubits(batch.trace);
+  batch.trace = detail::buildPTSBETrace(traceCtx.kernelTrace, noise);
+  batch.measureQubits = detail::extractMeasureQubits(batch.trace);
   EXPECT_FALSE(batch.trace.empty());
   EXPECT_FALSE(batch.measureQubits.empty());
 
-  auto extraction = extractNoiseSites(batch.trace);
+  auto extraction = detail::extractNoiseSites(batch.trace);
   ASSERT_GT(extraction.noise_sites.size(), 0)
       << "Expected at least one noise site for h gate";
   EXPECT_TRUE(extraction.all_unitary_mixtures);
@@ -371,10 +370,10 @@ CUDAQ_TEST(PTSBESampleTest, E2E_GenerateTrajectoriesAllocateShotsRunSample) {
   EXPECT_EQ(sum_shots, total_shots);
 
   // Execute PTSBE and aggregate
-  auto results = samplePTSBEWithLifecycle(batch);
+  auto results = detail::samplePTSBEWithLifecycle(batch);
   EXPECT_EQ(results.size(), batch.trajectories.size());
 
-  auto result = aggregateResults(results);
+  auto result = detail::aggregateResults(results);
 
   // Total counts should equal total shots
   EXPECT_EQ(result.get_total_shots(), total_shots);
@@ -599,7 +598,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncPropagatesException) {
 
   auto &platform = cudaq::get_platform();
 
-  auto future = runSamplingAsyncPTSBE(
+  auto future = detail::runSamplingAsyncPTSBE(
       []() { throw std::runtime_error("injected async failure"); }, platform,
       "test_kernel", 10, PTSBEOptions{}, /*qpu_id=*/0, noise);
 
@@ -742,8 +741,8 @@ CUDAQ_TEST(PTSBESampleTest, PopulateExecutionDataFiltersZeroShotTrajectories) {
       cudaq::sample_result{cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
   results.push_back(cudaq::sample_result{cudaq::ExecutionResult{counts2}});
 
-  populateExecutionDataTrajectories(executionData, std::move(trajectories),
-                                    std::move(results));
+  detail::populateExecutionDataTrajectories(
+      executionData, std::move(trajectories), std::move(results));
 
   EXPECT_EQ(executionData.trajectories.size(), 2u);
   EXPECT_EQ(executionData.trajectories[0].trajectory_id, 0u);

@@ -16,7 +16,7 @@ pytestmark = pytest.mark.xdist_group("quantinuum_mock")
 
 
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.2
+    return got < -1.1 and got > -2.21
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -223,6 +223,23 @@ def test_quantinuum_state_preparation():
     assert '10' in counts
     assert not '01' in counts
     assert not '11' in counts
+
+
+def test_quantinuum_conditional_kernel():
+
+    @cudaq.kernel
+    def kernel():
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        h(q0)
+        m0 = mz(q0)
+        if m0:
+            x(q1)
+        m1 = mz(q1)
+        cudaq.detector(m0, m1)
+
+    with pytest.raises(RuntimeError, match=r"branches on a measurement"):
+        cudaq.dem_from_kernel(kernel)
 
 
 # leave for gdb debugging

@@ -8,8 +8,8 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/ExecutionContext.h"
-#include "cudaq/platform.h"
 #include "nvqir/Gates.h"
+#include "cudaq/platform.h"
 #include <cmath>
 
 extern "C" {

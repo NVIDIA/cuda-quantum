@@ -138,7 +138,7 @@ CUDAQ_TEST(ParserTester, checkArrayLabeled) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<int>> results = {
       reinterpret_cast<std::vector<int> *>(span.data),
       reinterpret_cast<std::vector<int> *>(span.data + span.lengthInBytes)};
@@ -168,7 +168,7 @@ CUDAQ_TEST(ParserTester, checkArrayIntMultiShot) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<int>> results = {
       reinterpret_cast<std::vector<int> *>(span.data),
       reinterpret_cast<std::vector<int> *>(span.data + span.lengthInBytes)};
@@ -202,7 +202,7 @@ CUDAQ_TEST(ParserTester, checkArrayDoubleMultiShot) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<double>> results = {
       reinterpret_cast<std::vector<double> *>(span.data),
       reinterpret_cast<std::vector<double> *>(span.data + span.lengthInBytes)};
@@ -278,7 +278,7 @@ CUDAQ_TEST(ParserTester, checkMultipleShots) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<std::int16_t>> results = {
       reinterpret_cast<std::vector<std::int16_t> *>(span.data),
       reinterpret_cast<std::vector<std::int16_t> *>(span.data +
@@ -349,7 +349,7 @@ CUDAQ_TEST(ParserTester, checkTupleWithLayoutAndBool) {
   EXPECT_EQ(24 * 2, bufferSize);
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   struct MyTuple {
     bool boolVal;
     std::int64_t i64Val;
@@ -510,7 +510,7 @@ CUDAQ_TEST(ParserTester, checkResultType) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -546,7 +546,7 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithRegisterName) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -600,7 +600,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_1) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<std::int16_t>> results = {
       reinterpret_cast<std::vector<std::int16_t> *>(span.data),
       reinterpret_cast<std::vector<std::int16_t> *>(span.data +
@@ -634,7 +634,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_2) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::int64_t> results = {
       reinterpret_cast<std::int64_t *>(span.data),
       reinterpret_cast<std::int64_t *>(span.data + span.lengthInBytes)};
@@ -672,7 +672,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_3) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
       reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
@@ -717,7 +717,7 @@ CUDAQ_TEST(ParserTester, checkOrder) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -772,7 +772,7 @@ CUDAQ_TEST(ParserTester, checkNamedResults) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -829,7 +829,7 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithArray) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),

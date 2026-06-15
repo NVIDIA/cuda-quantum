@@ -46,12 +46,20 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT CUDAQuantumPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
+  TD_FILE dialects/QECOps.td
+  SOURCES
+    dialects/qec.py
+  DIALECT_NAME qec)
+
 if(APPLE)
   set(_quakeDialects_mlir_runtime_sources "")
   set(_quakeDialects_extra_link_libs
     cudaq-mlir-runtime
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
   )
@@ -64,6 +72,7 @@ else()
     ../../runtime/internal/compiler/RuntimeMLIR.cpp
     ../../runtime/internal/compiler/JIT.cpp
     ../../runtime/internal/compiler/Compiler.cpp
+    ../../runtime/internal/compiler/JITTargetPipeline.cpp
     ../../runtime/internal/compiler/TracePassInstrumentation.cpp
   )
   set(_quakeDialects_extra_link_libs "")
@@ -71,7 +80,7 @@ else()
     OptCodeGen
     OptTransforms
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
     cudaq-qir-verifier
@@ -93,11 +102,14 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
     ../runtime/cudaq/algorithms/py_evolve.cpp
+    ../runtime/cudaq/algorithms/py_observe.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
+    ../runtime/cudaq/algorithms/py_sample.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_sample_ptsbe.cpp
     ../runtime/cudaq/algorithms/py_resource_count.cpp
+    ../runtime/cudaq/analysis/py_dem.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
     ../../runtime/cudaq/algorithms/run.cpp      # Common Python and C++ implementation of run
     ../runtime/cudaq/algorithms/py_state.cpp
@@ -121,11 +133,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/cudaq/trace/py_trace.cpp
     ../runtime/mlir/py_register_dialects.cpp
-    ../runtime/utils/PyRemoteSimulatorQPU.cpp
-    ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/CodeGenConfig.cpp
-    ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
     ../../runtime/cudaq/platform/orca/OrcaRemoteRESTQPU.cpp
@@ -170,9 +179,6 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
     cudaq-em-photonics
     fmt::fmt-header-only
 )
-if (CUDAQ_ENABLE_REST)
-  target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE unzip_util)
-endif()
 
 ################################################################################
 # Common CAPI
@@ -320,15 +326,6 @@ if(APPLE)
   set(_origin_prefix "@loader_path")
 else()
   set(_origin_prefix "$ORIGIN")
-endif()
-
-## Retain all linked libraries (e.g. libcudaq) so that static initializers
-## (ModuleLauncher registry and PythonLauncher registration) run and resolve
-## in the same process. Without --no-as-needed the linker may drop libcudaq
-## and the launcher is never registered.
-if(CUDAQ_FORCE_LINK_FLAG)
-  target_link_options(CUDAQuantumPythonCAPI PRIVATE
-    ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 
 if (NOT SKBUILD)

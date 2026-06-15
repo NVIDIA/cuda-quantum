@@ -20,10 +20,10 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
-#include "cudaq/operators.h"
-#include "cudaq/operators/serialization.h"
 #include "py_helpers.h"
 #include "py_scalar_op.h"
+#include "cudaq/operators.h"
+#include "cudaq/operators/serialization.h"
 
 namespace cudaq {
 
@@ -123,7 +123,7 @@ void bindScalarOperator(nanobind::module_ &mod) {
           [](scalar_operator *self, nanobind::callable func,
              const nanobind::kwargs &kwargs) {
             auto [introspected, acceptsKwargs] = introspectCallable(func);
-            auto paramDesc = details::kwargs_to_param_description(kwargs);
+            auto paramDesc = detail::kwargs_to_param_description(kwargs);
             std::vector<std::string> paramNames;
             for (const auto &[k, v] : paramDesc)
               paramNames.push_back(k);
@@ -141,7 +141,7 @@ void bindScalarOperator(nanobind::module_ &mod) {
       .def(
           "evaluate",
           [](const scalar_operator &self, const nanobind::kwargs &kwargs) {
-            return self.evaluate(details::kwargs_to_param_map(kwargs));
+            return self.evaluate(detail::kwargs_to_param_map(kwargs));
           },
           "Evaluated value of the operator.")
 

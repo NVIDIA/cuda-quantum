@@ -24,7 +24,7 @@ enum struct RecordType { HEADER, METADATA, OUTPUT, START, END };
 enum struct OutputType { RESULT, BOOL, INT, DOUBLE };
 enum struct ContainerType { NONE, ARRAY, TUPLE };
 
-namespace details {
+namespace detail {
 
 //===----------------------------------------------------------------------===//
 // Type conversion infrastructure for string-to-value parsing
@@ -254,10 +254,10 @@ public:
 template <typename T>
 class DataHandler : public DataHandlerBase {
 private:
-  std::unique_ptr<details::TypeConverterBase<T>> converter;
+  std::unique_ptr<detail::TypeConverterBase<T>> converter;
 
 public:
-  DataHandler(std::unique_ptr<details::TypeConverterBase<T>> conv)
+  DataHandler(std::unique_ptr<detail::TypeConverterBase<T>> conv)
       : converter(std::move(conv)) {}
   void addRecord(BufferHandler &bh, const std::string &value) override {
     bh.addPrimitiveRecord<T>(converter->convert(value));
@@ -278,7 +278,7 @@ public:
   }
 };
 
-} // namespace details
+} // namespace detail
 
 namespace {
 // Simplify look up of the required number of results by using a common
@@ -331,14 +331,14 @@ private:
   void processArrayEntry(const std::string &, const std::string &);
   void processTupleEntry(const std::string &, const std::string &);
   /// Get data handler for the specified type
-  details::DataHandlerBase &getDataHandler(const std::string &dataType);
+  detail::DataHandlerBase &getDataHandler(const std::string &dataType);
 
   RecordSchemaType schema = RecordSchemaType::ORDERED;
   OutputType currentOutput;
   /// Manages the underlying buffer storage
-  details::BufferHandler bufferHandler;
+  detail::BufferHandler bufferHandler;
   /// Tracks container metadata during decoding
-  details::ContainerMetadata containerMeta;
+  detail::ContainerMetadata containerMeta;
   /// Data layout information
   std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
       dataLayoutInfo = {std::nullopt, {}};

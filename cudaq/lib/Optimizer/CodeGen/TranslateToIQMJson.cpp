@@ -1,0 +1,216 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ * Copyright 2025 IQM Quantum Computers                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "nlohmann/json.hpp"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/Emitter.h"
+#include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/FormatAdapters.h"
+
+using namespace mlir;
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter, Operation &op);
+
+static LogicalResult emitEntryPoint(nlohmann::json &json,
+                                    cudaq::Emitter &emitter, func::FuncOp op) {
+  if (op.getBody().getBlocks().size() != 1)
+    op.emitError("Cannot translate kernels with more than 1 block to IQM Json. "
+                 "Must be a straight-line representation.");
+
+  cudaq::Emitter::Scope scope(emitter, /*isEntryPoint=*/true);
+  json["name"] = op.getName().str();
+  std::vector<nlohmann::json> instructions;
+  for (Operation &op : op.getOps()) {
+    nlohmann::json instruction = nlohmann::json::object();
+    if (failed(emitOperation(instruction, emitter, op)))
+      return failure();
+    if (!instruction.empty())
+      instructions.push_back(instruction);
+  }
+  json["instructions"] = instructions;
+  return success();
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter, ModuleOp moduleOp) {
+  func::FuncOp entryPoint = nullptr;
+  for (Operation &op : moduleOp) {
+    if (op.hasAttr(cudaq::entryPointAttrName)) {
+      if (entryPoint)
+        return moduleOp.emitError("has multiple entrypoints");
+      entryPoint = dyn_cast_or_null<func::FuncOp>(op);
+      continue;
+    }
+  }
+  if (!entryPoint)
+    return moduleOp.emitError("does not contain an entrypoint");
+  return emitEntryPoint(json, emitter, entryPoint);
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter,
+                                   cudaq::quake::AllocaOp op) {
+  Value refOrVeq = op.getRefOrVec();
+  auto name = emitter.createName("QB", 1);
+  emitter.getOrAssignName(refOrVeq, name);
+  return success();
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter,
+                                   cudaq::quake::BorrowWireOp op) {
+  auto name = std::string("QB") + std::to_string(op.getIdentity() + 1);
+  emitter.getOrAssignName(op.getResult(), name);
+  return success();
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter,
+                                   cudaq::quake::ExtractRefOp op) {
+  std::optional<int64_t> index = std::nullopt;
+  if (op.hasConstantIndex())
+    index = op.getConstantIndex();
+  else
+    index = cudaq::getIndexValueAsInt(op.getIndex());
+
+  if (!index.has_value())
+    return op.emitError("cannot translate runtime index to IQM Json");
+  auto qrefName = llvm::formatv("{0}{1}", "QB", *index + 1);
+  emitter.getOrAssignName(op.getRef(), qrefName);
+  return success();
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter,
+                                   cudaq::quake::OperatorInterface optor) {
+  auto name = optor->getName().stripDialect();
+  std::vector<std::string> validInstructions{"z", "phased_rx"};
+  if (std::find(validInstructions.begin(), validInstructions.end(),
+                name.str()) == validInstructions.end())
+    optor.emitError(
+        "Invalid operation, code not lowered to IQM native gate set (" + name +
+        ").");
+
+  std::vector<std::string> qubits;
+
+  if (name == "z") {
+    if (optor.getControls().size() != 1)
+      optor.emitError(
+          "IQM gate set only supports Z gates with exactly one control.");
+    json["name"] = "cz";
+    json["args"] = nlohmann::json::object();
+    for (auto control : optor.getControls())
+      qubits.push_back(emitter.getOrAssignName(control).str());
+
+    // Propagate the name of this qubit into the operation output values.
+    emitter.getOrAssignName(
+        optor.getControls()[0],
+        emitter.getOrAssignName(optor.getControls()[0]).str());
+    emitter.getOrAssignName(optor.getTarget(0),
+                            emitter.getOrAssignName(optor.getTarget(0)).str());
+  } else {
+    json["name"] = "prx";
+
+    if (optor.getParameters().size() != 2)
+      optor.emitError("IQM phased_rx gate expects exactly two parameters.");
+
+    auto parameter0 =
+        cudaq::getParameterValueAsDouble(optor.getParameters()[0]);
+    auto parameter1 =
+        cudaq::getParameterValueAsDouble(optor.getParameters()[1]);
+
+    auto convertToFullTurns = [](double &angleInRadians) {
+      return angleInRadians / (2 * M_PI);
+    };
+    json["args"]["angle_t"] = convertToFullTurns(*parameter0);
+    json["args"]["phase_t"] = convertToFullTurns(*parameter1);
+
+    // Propagate the name of this qubit into the operation output values.
+    emitter.getOrAssignName(optor.getTarget(0),
+                            emitter.getOrAssignName(optor.getTarget(0)).str());
+  }
+
+  if (optor.getTargets().size() != 1)
+    optor.emitError("IQM operation " + name + " supports exactly one target.");
+
+  qubits.push_back(emitter.getOrAssignName(optor.getTargets().front()).str());
+
+  json["qubits"] = qubits;
+
+  return success();
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter,
+                                   cudaq::quake::MzOp op) {
+  json["name"] = "measure";
+  std::vector<std::string> qubits;
+  for (auto target : op.getTargets())
+    qubits.push_back(emitter.getOrAssignName(target).str());
+
+  json["qubits"] = qubits;
+  json["args"] = nlohmann::json::object();
+  auto join_lambda = [](std::string a, std::string b) {
+    return a + std::string("_") + b;
+  };
+
+  auto regName = op.getRegisterName();
+  if (regName)
+    json["args"]["key"] = *regName;
+  else
+    json["args"]["key"] =
+        "m_" + (qubits.empty() ? ""
+                               : std::accumulate(++qubits.begin(), qubits.end(),
+                                                 *qubits.begin(), join_lambda));
+  return success();
+}
+
+static LogicalResult emitOperation(nlohmann::json &json,
+                                   cudaq::Emitter &emitter, Operation &op) {
+  return llvm::TypeSwitch<Operation *, LogicalResult>(&op)
+      .Case<ModuleOp>([&](auto op) { return emitOperation(json, emitter, op); })
+      // Quake
+      .Case<cudaq::quake::AllocaOp>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<cudaq::quake::BorrowWireOp>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<cudaq::quake::ExtractRefOp>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<cudaq::quake::OperatorInterface>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
+      .Case<cudaq::quake::MzOp>(
+          [&](auto op) { return emitOperation(json, emitter, op); })
+      // Ignore
+      .Case<cudaq::quake::DiscriminateOp>([](auto) { return success(); })
+      .Case<cudaq::quake::DeallocOp>([](auto) { return success(); })
+      .Case<cudaq::quake::ReturnWireOp>([](auto) { return success(); })
+      .Case<func::ReturnOp>([](auto) { return success(); })
+      .Case<arith::ConstantOp>([](auto) { return success(); })
+      .Default([&](Operation *) -> LogicalResult {
+        // Allow LLVM and cc dialect ops (for storing measure results).
+        if (op.getName().getDialectNamespace() == "llvm" ||
+            op.getName().getDialectNamespace() == "cc" ||
+            op.getName().getDialectNamespace() == "arith")
+          return success();
+        return op.emitOpError() << "unable to translate op to IQM Json "
+                                << op.getName().getIdentifier().str();
+      });
+}
+
+LogicalResult cudaq::translateToIQMJson(Operation *op, llvm::raw_ostream &os) {
+  nlohmann::json j;
+  Emitter emitter(os);
+  auto ret = emitOperation(j, emitter, *op);
+  os << j.dump(4);
+  return ret;
+}

@@ -10,7 +10,7 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 cudaq::parameter_map kwargs_to_param_map(const nanobind::kwargs &kwargs);
 /// Extracts parameter map from `kwargs`, also extracting an optional
 /// "invert_order" boolean (defaults to false if not present).
@@ -19,4 +19,4 @@ cudaq::parameter_map kwargs_to_param_map(nanobind::kwargs &kwargs,
 std::unordered_map<std::string, std::string>
 kwargs_to_param_description(const nanobind::kwargs &kwargs);
 nanobind::object cmat_to_numpy(complex_matrix &cmat);
-} // namespace cudaq::details
+} // namespace cudaq::detail

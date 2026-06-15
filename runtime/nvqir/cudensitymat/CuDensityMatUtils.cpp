@@ -21,7 +21,7 @@ cudaq::dynamics::PerfMetricScopeTimer::PerfMetricScopeTimer(
     : m_name(name), m_startTime(std::chrono::system_clock::now()) {}
 
 cudaq::dynamics::PerfMetricScopeTimer::~PerfMetricScopeTimer() {
-  if (!cudaq::details::should_log(cudaq::details::LogLevel::trace))
+  if (!cudaq::detail::should_log(cudaq::detail::LogLevel::trace))
     return;
 
   auto duration =

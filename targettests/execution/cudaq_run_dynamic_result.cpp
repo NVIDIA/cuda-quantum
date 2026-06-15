@@ -17,7 +17,7 @@
 __qpu__ std::vector<bool> arg_size_bool(int n) {
   cudaq::qvector qs(n);
   x(qs);
-  return mz(qs);
+  return cudaq::to_bools(mz(qs));
 }
 
 __qpu__ std::vector<int> arg_size_int(int n) {
@@ -49,7 +49,7 @@ __qpu__ std::vector<bool> branch_vec_test(bool flip) {
   bool b = mz(ctrl);
   int sz = b ? 2 : 4;
   cudaq::qvector data(sz);
-  return mz(data);
+  return cudaq::to_bools(mz(data));
 }
 
 int main() {

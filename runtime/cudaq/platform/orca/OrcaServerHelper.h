@@ -9,8 +9,8 @@
 
 #include "common/Registry.h"
 #include "common/ServerHelper.h"
-#include "cudaq/utils/cudaq_utils.h"
 #include "orca_qpu.h"
+#include "cudaq/utils/cudaq_utils.h"
 
 #include "nlohmann/json.hpp"
 

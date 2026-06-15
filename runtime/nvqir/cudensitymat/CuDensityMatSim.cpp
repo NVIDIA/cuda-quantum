@@ -10,6 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
+#include "ObserveResult.h"
 #include "common/FmtCore.h"
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/distributed/mpi_plugin.h"
@@ -61,7 +62,8 @@ void initCuDensityMatCommLib() {
   }
 }
 
-class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double> {
+class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double>,
+                        public nvqir::MpiCircuitSimulator {
 private:
   static constexpr int INVALID_CUDA_DEVICE = -1;
 
@@ -124,6 +126,12 @@ public:
 
   /// The destructor
   virtual ~CuDensityMatSim() {}
+
+  bool setMpiCommunicator(void *comm, int commSizeBytes) override {
+    return cudaq::dynamics::Context::getCurrentContext()->setMpiCommunicator(
+        comm, commSizeBytes);
+  }
+
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuDensityMatState>();
   }
@@ -144,10 +152,15 @@ protected:
   }
 
   cudaq::sample_result
-  finalizeExecutionContext(const cudaq::sample_policy &policy,
-                           cudaq::ExecutionContext &ctx) override {
-    finalizeExecutionContextImpl(ctx);
-    return cudaq::sample_result();
+  finalizeExecutionContext(const cudaq::sample_policy &policy) override {
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
+  }
+
+  cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &policy) override {
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
   }
 
   void finalizeExecutionContext(const cudaq::other_policies &policy,

@@ -52,8 +52,16 @@ typedef enum {
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
-// For CUDAQ_DISPATCH_PATH_HOST only GRAPH_LAUNCH is dispatched; DEVICE_CALL and
-// HOST_CALL table entries are dropped (slot cleared and advanced).
+//
+// On CUDAQ_DISPATCH_PATH_HOST:
+//   - GRAPH_LAUNCH: launched on a graph worker (worker pool, cudaGraphLaunch).
+//   - HOST_CALL:    invoked synchronously inline as a plain C++ function via
+//                   entry->handler.host_fn.  Bypasses the worker pool.  No
+//                   CUDA graph required.  Use for GPU-less bridges (e.g. the
+//                   CPU RoCE transport in lib/cpu_transport/) or for
+//                   handlers whose work fits on a single CPU thread.
+//   - DEVICE_CALL:  table entries are dropped (DEVICE_CALL belongs on the
+//                   GPU dispatch path).
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
   CUDAQ_DISPATCH_GRAPH_LAUNCH = 1,
@@ -128,10 +136,16 @@ typedef struct {
   uint8_t *tx_data_host;
 } cudaq_ringbuffer_t;
 
-// Host RPC callback: reads RPCHeader + args from slot, writes RPCResponse +
-// result. slot_host is the host pointer to the slot (same layout as device
-// slot).
-typedef void (*cudaq_host_rpc_fn_t)(void *slot_host, size_t slot_size);
+// Host RPC callback for CUDAQ_DISPATCH_HOST_CALL.  The handler reads the
+// RPCHeader + args from `rx_slot` (the inbound request, read-only) and writes
+// the RPCResponse + result into `tx_slot` (the outbound slot the transport will
+// send).  The two slots are distinct host buffers (separate RX/TX rings), so
+// the handler must echo any preserved header fields (e.g. request_id,
+// ptp_timestamp) from rx_slot into tx_slot explicitly.  `slot_size` is the
+// usable byte size of each slot (RX and TX strides are equal by configuration;
+// the smaller of the two is passed defensively).
+typedef void (*cudaq_host_rpc_fn_t)(const void *rx_slot, void *tx_slot,
+                                    size_t slot_size);
 
 // Unified function table entry with schema
 typedef struct {

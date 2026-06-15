@@ -47,14 +47,16 @@ jobs:
       - name: Build metapackages
         id: metapackage_build
         run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
             for file in LICENSE NOTICE CITATION.cff; do
                 cp $file python/metapackages/$file
             done
 
-            apt-get update && apt-get install -y --no-install-recommends \
+            retry sudo apt-get update
+            retry sudo apt-get install -y --no-install-recommends \
                 python3 python3-pip python3-venv
-            python3 -m pip install build
+            retry python3 -m pip install build
 
             echo "Creating README.md for cudaq package"
             package_name=cudaq
@@ -134,7 +136,9 @@ jobs:
 
       - name: Test installation
         run: |
-          mkdir -p /tmp/packages 
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
+          mkdir -p /tmp/packages
           mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
           rmdir /tmp/wheels /tmp/metapackages
 
@@ -146,23 +150,23 @@ jobs:
               "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
 
             cuda_version_suffix=`echo ${{ matrix.cuda_version }} | tr . -`
-            dnf install -y --nobest --setopt=install_weak_deps=False \
+            retry_dnf install -y --nobest --setopt=install_weak_deps=False \
               cuda-cudart-${cuda_version_suffix}
           fi
 
           python=python${{ matrix.python_version }}
-          $python -m pip install pip3-autoremove
+          retry $python -m pip install pip3-autoremove
 
           # autoremove is in an odd location that isn't found unless we search for it...
           autoremove="$python $($python -m pip show pip3-autoremove |  grep -e 'Location: .*$' | cut -d ' ' -f2)/pip_autoremove.py"
 
           package_dep=`echo cuda-quantum${cuda_version_suffix:+-cu$cuda_version_suffix} | cut -d '-' -f1-2`
-          if [ -n "$($python -m pip list | grep $package_dep)" ]; then 
+          if [ -n "$($python -m pip list | grep $package_dep)" ]; then
             echo "::error file=python_metapackages.yml::Unexpected installation of $package_dep package."
             exit 1
           fi
 
-          $python -m pip install "cudaq==${{ inputs.cudaq_version }}" --find-links "file:///tmp/packages"
+          retry $python -m pip install "cudaq==${{ inputs.cudaq_version }}" --find-links "file:///tmp/packages"
 
           if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
             echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
@@ -179,8 +183,8 @@ jobs:
           fi
 
           if [ "$package_dep" != "cuda-quantum" ]; then
-            $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
-            $python -m pip install cudaq==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
+            retry $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
+            retry $python -m pip install cudaq==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
             $python -c 'import cudaq; print(cudaq.get_target().name)'
             $autoremove -y cudaq
             if [ -z "$($python -m pip list | grep $package_dep)" ]; then 

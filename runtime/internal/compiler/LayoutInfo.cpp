@@ -8,10 +8,10 @@
 
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "common/DeviceCodeRegistry.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"

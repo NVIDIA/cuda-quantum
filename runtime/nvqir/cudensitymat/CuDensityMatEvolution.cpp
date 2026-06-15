@@ -13,14 +13,14 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
+#include "common/EvolveResult.h"
 #include "common/FmtCore.h"
-#include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include <iterator>
 #include <random>
 #include <stdexcept>
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 template <typename Key, typename Value>
 std::map<Key, Value>
 convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
@@ -240,7 +240,7 @@ evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
     }
   }
 
-  if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+  if (cudaq::detail::should_log(cudaq::detail::LogLevel::trace))
     cudaq::dynamics::dumpPerfTrace();
 
   if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
@@ -860,4 +860,4 @@ evolveBatched(const std::vector<super_op> &superOps,
 
   return allResults;
 }
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail

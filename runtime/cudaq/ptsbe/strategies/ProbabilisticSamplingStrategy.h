@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/algorithms/broadcast.h"
 #include "../PTSSamplingStrategy.h"
+#include "cudaq/algorithms/broadcast.h"
 #include <optional>
 #include <random>
 

@@ -36,7 +36,7 @@ def test_pr_4039():
                 ret = ret << num_data
             sub_data = data[i * num_data:(i + 1) * num_data]
             sub_meas = mz(sub_data)
-            ret |= cudaq.to_integer(sub_meas)
+            ret |= cudaq.to_integer(cudaq.to_bools(sub_meas))
 
         # The remaining bits are allocated to the number of corrections.
         return ret

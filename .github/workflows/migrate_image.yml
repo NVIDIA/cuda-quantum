@@ -74,12 +74,14 @@ jobs:
       - name: Prepare image
         id: setup
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           echo "FROM ${{ inputs.source_image }}" >> ngc.Dockerfile
           target_image_name=`echo ${{ inputs.target_image }} | cut -d : -f1`
           target_image_tag=`echo ${{ inputs.target_image }} | cut -d : -f2`
 
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends curl
-          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends curl
+          retry curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
           chmod 755 regctl
 
           manifest=`./regctl image manifest ${{ inputs.source_image }} --format "{{ json . }}"`
