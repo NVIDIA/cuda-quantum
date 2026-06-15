@@ -240,7 +240,6 @@ target_link_libraries(test_exec_ctx_thread
 gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
 add_subdirectory(nvqpp)
-add_subdirectory(Optimizer)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
