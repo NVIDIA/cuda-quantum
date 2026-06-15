@@ -28,7 +28,8 @@ static void construct_sample_policy(sample_policy *self, ExecutionContext &ctx,
   ctx.noiseModel = self->noiseModel;
 }
 
-static sample_result launch_sample(sample_policy &policy, ExecutionContext &ctx,
+static sample_result launch_sample(const sample_policy &policy,
+                                   ExecutionContext &ctx,
                                    nanobind::callable callable) {
   auto &platform = get_platform();
   if (platform.is_remote()) {

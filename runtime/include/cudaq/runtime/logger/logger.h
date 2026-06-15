@@ -169,33 +169,30 @@ public:
 
 // The following macros avoid the unnecessary processing cost of argument
 // evaluation and string formation until after the log level check is done.
-#define CUDAQ_ERROR(...)                                                       \
+#define CUDAQ_LOG_IMPL(LEVEL, msg, ...)                                        \
   do {                                                                         \
-    ::cudaq::error(__VA_ARGS__);                                               \
-    throw std::runtime_error(__VA_ARGS__);                                     \
-  } while (false)
-
-#define CUDAQ_WARN(...)                                                        \
-  do {                                                                         \
-    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::warn)) {        \
-      ::cudaq::warn(__VA_ARGS__);                                              \
+    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::LEVEL)) {       \
+      ::cudaq::detail::logMessage(::cudaq::detail::LogLevel::LEVEL, msg,       \
+                                  __FILE__,                                    \
+                                  __LINE__ __VA_OPT__(, ) __VA_ARGS__);        \
     }                                                                          \
   } while (false)
 
-#define CUDAQ_INFO(...)                                                        \
+#define CUDAQ_ERROR_IMPL(msg, ...)                                             \
   do {                                                                         \
-    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::info)) {        \
-      ::cudaq::info(__VA_ARGS__);                                              \
-    }                                                                          \
+    ::cudaq::detail::logMessage(::cudaq::detail::LogLevel::error, msg,         \
+                                __FILE__,                                      \
+                                __LINE__ __VA_OPT__(, ) __VA_ARGS__);          \
+    throw std::runtime_error(                                                  \
+        ::cudaq::detail::formatMessage(msg __VA_OPT__(, ) __VA_ARGS__));       \
   } while (false)
+
+#define CUDAQ_ERROR(...) CUDAQ_ERROR_IMPL(__VA_ARGS__)
+#define CUDAQ_WARN(...) CUDAQ_LOG_IMPL(warn, __VA_ARGS__)
+#define CUDAQ_INFO(...) CUDAQ_LOG_IMPL(info, __VA_ARGS__)
 
 #ifdef CUDAQ_DEBUG
-#define CUDAQ_DBG(...)                                                         \
-  do {                                                                         \
-    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::debug)) {       \
-      ::cudaq::debug(__VA_ARGS__);                                             \
-    }                                                                          \
-  } while (false)
+#define CUDAQ_DBG(...) CUDAQ_LOG_IMPL(debug, __VA_ARGS__)
 #else
 #define CUDAQ_DBG(...)
 #endif

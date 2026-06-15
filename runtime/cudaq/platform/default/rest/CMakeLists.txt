@@ -16,7 +16,7 @@ target_include_directories(cudaq-rest-qpu PRIVATE .
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<INSTALL_INTERFACE:include>)
 
-if (AWSSDK_ROOT)
+if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
   set(SERVICE_COMPONENTS braket s3-crt sts)
   find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
 else()

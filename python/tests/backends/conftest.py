@@ -34,10 +34,7 @@ def quantinuum_mock_server():
     Yields the path to the credentials file.
     """
     from network_utils import check_server_connection
-    try:
-        from utils.mock_qpu.quantinuum import startServer
-    except Exception:
-        pytest.skip("Mock qpu not available.", allow_module_level=False)
+    from utils.mock_qpu.quantinuum import startServer
 
     with open(QUANTINUUM_CREDS_FILE, 'w') as f:
         f.write('key: {}\nrefresh: {}\ntime: 0'.format("nexus_key",

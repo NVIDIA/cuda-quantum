@@ -101,7 +101,8 @@ public:
   bool fullySpecialize = true;
 
   /// Whether this target is a local simulator (not remote, not emulated). On
-  /// this path `i1` vector args are packed as bit-packed `std::vector<bool>`.
+  /// this path `i1` vector arguments are packed as bit-packed
+  /// `std::vector<bool>`.
   bool isLocalSimulator = false;
 
   /// Set the `changeSemantics` flag for the argument synthesis pass.

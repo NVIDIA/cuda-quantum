@@ -16,11 +16,7 @@ import cudaq
 from cudaq import spin
 import numpy as np
 
-try:
-    from utils.mock_qpu.oqc import startServer
-except:
-    print("Mock qpu not available, skipping OQC tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from utils.mock_qpu.oqc import startServer
 
 # Define the port for the mock server
 port = 62442

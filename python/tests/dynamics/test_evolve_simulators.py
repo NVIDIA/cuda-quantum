@@ -332,6 +332,27 @@ def test_evolve_async():
                                atol=0.15)
 
 
+@pytest.mark.parametrize("target", ["density-matrix-cpu", "qpp-cpu"])
+@pytest.mark.parametrize("initial_state",
+                         [InitialState.ZERO, InitialState.UNIFORM])
+def test_evolve_async_initial_state_enum(target, initial_state):
+    cudaq.set_target(target)
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    steps = np.linspace(0, 0.1, 3)
+
+    expected = cudaq.evolve(hamiltonian, dimensions, Schedule(steps, ["time"]),
+                            initial_state)
+    evolution_result = cudaq.evolve_async(hamiltonian, dimensions,
+                                          Schedule(steps, ["time"]),
+                                          initial_state).get()
+
+    np.testing.assert_allclose(np.array(evolution_result.final_state()),
+                               np.array(expected.final_state()),
+                               atol=1e-12)
+
+
 def test_evolve_no_intermediate_results():
     """Test evolve with store_intermediate_results=NONE 
     to verify the else branch in evolve_single is working."""
@@ -396,6 +417,58 @@ def test_evolve_no_intermediate_results():
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
 
 
+def test_evolve_intermediate_results_without_observables():
+    """Saving intermediate states should not require observables."""
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    rho0 = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    steps = np.linspace(0, 0.1, 3)
+
+    evolution_result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["time"]),
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.ALL)
+
+    assert len(evolution_result.intermediate_states()) == len(steps)
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    evolution_result = cudaq.evolve(hamiltonian,
+                                    dimensions,
+                                    Schedule(steps, ["time"]),
+                                    rho0,
+                                    store_intermediate_results=cudaq.
+                                    IntermediateResultSave.EXPECTATION_VALUE)
+
+    assert len(evolution_result.intermediate_states()) == 1
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    for save_mode in [
+            cudaq.IntermediateResultSave.NONE, cudaq.IntermediateResultSave.ALL
+    ]:
+        ideal_result = cudaq.evolve(hamiltonian,
+                                    dimensions,
+                                    Schedule(steps, ["time"]),
+                                    rho0,
+                                    store_intermediate_results=save_mode)
+        decay_result = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            Schedule(steps, ["time"]),
+            rho0,
+            collapse_operators=[np.sqrt(0.05) * spin.x(0)],
+            store_intermediate_results=save_mode)
+
+        assert not np.allclose(
+            np.array(ideal_result.final_state()).reshape(-1),
+            np.array(decay_result.final_state()).reshape(-1))
+
+
 def test_evolve_async_no_intermediate_results():
     """Test evolve_async with store_intermediate_results=NONE
     to verify the else branch in evolve_single_async is working."""
@@ -458,6 +531,60 @@ def test_evolve_async_no_intermediate_results():
     # inner list is observables. With NONE mode, there's only one time step (final).
     assert final_exp_decay[0][0].expectation() != final_exp[0][0].expectation()
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
+
+
+def test_evolve_async_intermediate_results_without_observables():
+    """Saving intermediate states asynchronously should not require observables."""
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    rho0 = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    steps = np.linspace(0, 0.1, 3)
+
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["time"]),
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.ALL).get()
+
+    assert len(evolution_result.intermediate_states()) == len(steps)
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["time"]),
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE).get()
+
+    assert len(evolution_result.intermediate_states()) == 1
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    for save_mode in [
+            cudaq.IntermediateResultSave.NONE, cudaq.IntermediateResultSave.ALL
+    ]:
+        ideal_result = cudaq.evolve_async(
+            hamiltonian,
+            dimensions,
+            Schedule(steps, ["time"]),
+            rho0,
+            store_intermediate_results=save_mode).get()
+        decay_result = cudaq.evolve_async(
+            hamiltonian,
+            dimensions,
+            Schedule(steps, ["time"]),
+            rho0,
+            collapse_operators=[np.sqrt(0.05) * spin.x(0)],
+            store_intermediate_results=save_mode).get()
+
+        assert not np.allclose(
+            np.array(ideal_result.final_state()).reshape(-1),
+            np.array(decay_result.final_state()).reshape(-1))
 
 
 @pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])

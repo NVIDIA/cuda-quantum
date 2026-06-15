@@ -15,8 +15,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   target_link_libraries(cudaq-device-call-runtime-headers INTERFACE
     cudaq::cudaq-realtime)
 
-  add_library(cudaq-device-call-runtime
-    SHARED
+  set(CUDAQ_DEVICE_CALL_SOURCES
       DeviceCallDispatch.cpp
       DeviceCallService.cpp
       DeviceCallChannel.cpp
@@ -25,6 +24,20 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       RingBufferWrapper.cpp
       DeviceCallRuntimePlugin.cpp
       RpcFrame.cpp)
+
+  # Optional CPU-RoCE RDMA channel (cpu_transport Phase 2). Only available when
+  # the realtime package was built with libibverbs (i.e. the cpu-transport
+  # target exists); hosts without RDMA simply omit the cpu_roce channel.
+  set(CUDAQ_DEVICE_CALL_CPU_ROCE_LIB "")
+  if (TARGET cudaq::cudaq-realtime-cpu-transport)
+    list(APPEND CUDAQ_DEVICE_CALL_SOURCES CpuRoceChannel.cpp)
+    set(CUDAQ_DEVICE_CALL_CPU_ROCE_LIB cudaq::cudaq-realtime-cpu-transport)
+    message(STATUS "  - device_call: cpu_roce channel enabled (libibverbs)")
+  endif()
+
+  add_library(cudaq-device-call-runtime
+    SHARED
+      ${CUDAQ_DEVICE_CALL_SOURCES})
 
   set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS
     cudaq-device-call-runtime)
@@ -40,6 +53,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     PRIVATE
       cudaq-common
       cudaq::cudaq-realtime
+      ${CUDAQ_DEVICE_CALL_CPU_ROCE_LIB}
       LLVMSupport
       CUDA::cudart_static
       dl)
