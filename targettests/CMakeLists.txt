@@ -35,6 +35,21 @@ set(CUDAQ_TEST_DEPENDS
     FileCheck
     CustomPassPlugin
 )
+
+# Some runtime/plugin libraries used by target tests are optional and are not
+# registered in CUDAQ_RUNTIME_LIBS, so only add dependencies for targets that
+# are enabled in this build.
+foreach(_cudaq_targettest_runtime_dep IN ITEMS
+    cudaq-chemistry
+    cudaq-platform-mqpu
+    cudaq-py-utils
+    cudaq-rest-qpu
+)
+  if(TARGET ${_cudaq_targettest_runtime_dep})
+    list(APPEND CUDAQ_TEST_DEPENDS ${_cudaq_targettest_runtime_dep})
+  endif()
+endforeach()
+
 # We require split-file, which should be installed along with FileCheck, but
 # the CI doesn't do it. Comment this out and open a bug.
 #   split-file
