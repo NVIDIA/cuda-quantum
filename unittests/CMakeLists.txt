@@ -239,36 +239,7 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
-# Create an executable for MPI UnitTests
-# (only if MPI was found, i.e., the builtin plugin is available)
-if (MPI_CXX_FOUND)
-  set(CUDAQ_MPI_TEST_SOURCES
-    mpi/mpi_tester.cpp
-  )
-  add_executable(test_mpi_plugin ${CUDAQ_MPI_TEST_SOURCES})
-  set(NUM_PROCS 4)
-  target_compile_definitions(test_mpi_plugin PRIVATE -DNUM_PROCS=${NUM_PROCS})
-  target_link_libraries(test_mpi_plugin
-    PRIVATE
-    cudaq
-    cudaq-platform-default
-    nvqir-qpp
-    gtest
-  )
-  target_link_options(test_mpi_plugin PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-  # Check if `--allow-run-as-root` is supported (OpenMPI)
-  # Note: MPICH doesn't need `--allow-run-as-root`.
-  execute_process(COMMAND ${MPIEXEC} --allow-run-as-root -np ${NUM_PROCS} hostname ERROR_VARIABLE CHECK_ALLOW_RUN_AS_ROOT_RESULTS ERROR_STRIP_TRAILING_WHITESPACE OUTPUT_QUIET)
-  if ("${CHECK_ALLOW_RUN_AS_ROOT_RESULTS}" STREQUAL "")
-    set(MPI_EXEC_CMD_ARGS "--allow-run-as-root")
-  endif()
-
-  add_test(NAME MPIApiTest COMMAND ${MPIEXEC} ${MPI_EXEC_CMD_ARGS} -np ${NUM_PROCS} ${CMAKE_BINARY_DIR}/unittests/test_mpi_plugin)
-  math(EXPR MPI_API_TEST_SLOTS "${NUM_PROCS} * ${CUDAQ_TEST_OMP_SLOTS}")
-  set_tests_properties(MPIApiTest PROPERTIES PROCESSORS ${MPI_API_TEST_SLOTS})
-endif()
-
-add_subdirectory(backends)
+add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
