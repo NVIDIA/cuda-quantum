@@ -152,8 +152,7 @@ void dumpSubstitutionModules(ArgumentConverter &con) {
 
 void doSimpleTest(mlir::MLIRContext *ctx, const std::string &typeName,
                   std::vector<void *> args,
-                  const std::string &additionalCode = "",
-                  bool boolVecBitPacked = false) {
+                  const std::string &additionalCode = "") {
   std::string code = additionalCode + R"#(
 func.func private @callee(%0: )#" +
                      typeName + R"#()
@@ -167,7 +166,7 @@ func.func @__nvqpp__mlirgen__testy(%0: )#" +
   // Create the Module
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
   llvm::outs() << "Source module:\n" << *mod << '\n';
-  ArgumentConverter ab{"testy", *mod, boolVecBitPacked};
+  ArgumentConverter ab{"testy", *mod};
   // Create the argument conversions
   ab.gen(args);
   // Dump all conversions
@@ -397,22 +396,6 @@ void test_vectors(mlir::MLIRContext *ctx) {
   // clang-format off
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK: %[[VAL_0:.*]] = cc.const_array [true, false] : !cc.array<i1 x ?>
-// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<i1 x ?>) -> !cc.stdvec<i1>
- // CHECK:         }
-  // clang-format on
-
-  {
-    // Real bit-packed `std::vector<bool>`, as the local-simulator launch path
-    // passes it. Reading this as a `{begin, end, capacity}` triple corrupts the
-    // heap; `boolVecBitPacked` selects the correct reader.
-    std::vector<bool> x = {true, false, true, true};
-    std::vector<void *> v = {static_cast<void *>(&x)};
-    doSimpleTest(ctx, "!cc.stdvec<i1>", v, /*additionalCode=*/"",
-                 /*boolVecBitPacked=*/true);
-  }
-  // clang-format off
-// CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK: %[[VAL_0:.*]] = cc.const_array [true, false, true, true] : !cc.array<i1 x ?>
 // CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<i1 x ?>) -> !cc.stdvec<i1>
  // CHECK:         }
   // clang-format on

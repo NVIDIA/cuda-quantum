@@ -1010,7 +1010,21 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
                      unsigned pos) {
     return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
   };
-  if (isLocalSimulator)
+  // Two encodings, one per execution mode (see PackingStyle):
+  //   - Direct launch (argsCreator): the kernel keeps live argument uses that
+  //     are supplied at runtime through the generated `.argsCreator`/thunk,
+  //     whose "C++ side magic" understands a host `std::vector<bool>` for an
+  //     `i1` vector. Used only for local simulators with un-synthesized args.
+  //   - Argument synthesis (the default): the arguments are folded into the
+  //     kernel as constants by `ArgumentConverter`, which reads every vector as
+  //     the universal `{begin, end, capacity}` triple and therefore must be
+  //     given the triple-compatible `std::vector<char>` for an `i1` vector
+  //     (never the bit-packed `std::vector<bool>` specialization).
+  // A kernel whose formal arguments are all unused is synthesized
+  // (`isFullySynthesized`); otherwise a local simulator direct-launches it.
+  const bool directLaunch =
+      isLocalSimulator && !cudaq::opt::factory::isFullySynthesized(kernelFunc);
+  if (directLaunch)
     cudaq::packArgs<cudaq::PackingStyle::argsCreator>(args, runtimeArgs,
                                                       kernelFunc, handler);
   else
