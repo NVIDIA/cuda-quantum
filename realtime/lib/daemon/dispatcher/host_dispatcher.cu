@@ -39,12 +39,13 @@ lookup_function(cudaq_function_entry_t *table, size_t count,
   return nullptr;
 }
 
-// Acquire an idle GRAPH_LAUNCH worker that matches both `function_id` and
-// `routing_key`.  The routing_key parameter sub-routes within a shared
-// `function_id` -- see [host_api.bs Routing-Key Sub-filter for GRAPH_LAUNCH
-// Workers].  Workloads that don't use sub-routing pass routing_key == 0 and
-// register every worker with routing_key == 0, in which case this loop
-// degenerates to the historical `function_id`-only match.
+// Acquire an idle GRAPH_LAUNCH worker for `function_id`.  When several workers
+// share a `function_id` but back different captured graphs, `routing_key` (the
+// request's arg0) sub-routes among them -- see [host_api.bs Routing-Key
+// Sub-filter for GRAPH_LAUNCH Workers].  A worker registered with
+// routing_key == 0 opts out of sub-routing and matches ANY request's
+// routing_key, so workloads that don't sub-route (every worker routing_key ==
+// 0) keep the historical `function_id`-only behavior regardless of arg0.
 static int
 find_idle_graph_worker_for_function(const cudaq_host_dispatch_loop_ctx_t *ctx,
                                     uint32_t function_id,
@@ -55,7 +56,10 @@ find_idle_graph_worker_for_function(const cudaq_host_dispatch_loop_ctx_t *ctx,
     int worker_id = __builtin_ffsll(static_cast<long long>(mask)) - 1;
     const cudaq_host_dispatch_worker_t &w =
         ctx->workers[static_cast<size_t>(worker_id)];
-    if (w.function_id == function_id && w.routing_key == routing_key)
+    // routing_key == 0 is a wildcard worker (no sub-routing); otherwise the
+    // worker's key must equal the request's routing_key (arg0).
+    if (w.function_id == function_id &&
+        (w.routing_key == 0 || w.routing_key == routing_key))
       return worker_id;
     mask &= ~(1ULL << worker_id);
   }
