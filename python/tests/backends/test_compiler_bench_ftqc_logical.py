@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Tests for the compiler-bench-ftqc-logical target: normalize broad logical
-# input into a pre-rotation-synthesis logical resource-counting basis.
+# Tests for the compiler-bench-ftqc-logical target: preserve structured logical
+# operations while lowering unsupported composites for resource counting.
 
 import cudaq
 import pytest
@@ -15,7 +15,8 @@ import pytest
 FTQC_LOGICAL_TARGET = 'compiler-bench-ftqc-logical'
 
 ALLOWED_LOGICAL_OPS = {
-    'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'cx', 'mz'
+    'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'cx', 'cy',
+    'cz', 'ccx', 'ccz', 'mz'
 }
 
 
@@ -57,6 +58,37 @@ def test_preserves_native_logical_resource_classes():
     assert ops.get('mz', 0) == 1
 
 
+def test_preserves_structured_logical_operations():
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.cz(q[0], q[1])
+    kernel.cx([q[0], q[1]], q[2])
+    kernel.cz([q[0], q[1]], q[2])
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert_logical_basis_only(ops)
+    assert ops.get('cz', 0) == 1
+    assert ops.get('ccx', 0) == 1
+    assert ops.get('ccz', 0) == 1
+
+
+def test_preserves_native_cy_as_structured_logical_operation():
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    kernel.cy(q[0], q[1])
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert_logical_basis_only(ops)
+    assert ops.get('cy', 0) == 1
+    assert ops.get('s', 0) == 0
+    assert ops.get('sdg', 0) == 0
+    assert ops.get('cx', 0) == 0
+
+
 def test_axis_measurements_count_as_measurements():
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
@@ -79,17 +111,14 @@ def test_composite_operations_lower_to_logical_basis():
     kernel.r1(0.75, q[0])
     kernel.cr1(0.375, q[1], q[2])
     kernel.swap(q[0], q[2])
-    kernel.cx([q[0], q[1]], q[2])
 
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
     assert 'r1' not in ops, f"R1 did not lower to RZ: {ops}"
     assert 'cr1' not in ops, f"CR1 did not lower to CX/RZ basis: {ops}"
     assert 'swap' not in ops, f"SWAP did not lower to CX basis: {ops}"
-    assert 'ccx' not in ops, f"CCX did not lower to logical basis: {ops}"
     assert ops.get('rz', 0) >= 2
     assert ops.get('cx', 0) >= 1
-    assert ops.get('t', 0) + ops.get('tdg', 0) >= 1
 
 
 def test_controlled_s_and_t_lower_to_logical_basis():
@@ -106,3 +135,17 @@ def test_controlled_s_and_t_lower_to_logical_basis():
     assert 'ct' not in ops, f"Controlled-T did not lower: {ops}"
     assert ops.get('cx', 0) >= 1
     assert ops.get('rz', 0) >= 1
+
+
+def test_exp_pauli_lowers_to_logical_basis():
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    kernel.exp_pauli(0.5, q, "XX")
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert_logical_basis_only(ops)
+    assert 'exp_pauli' not in ops, f"exp_pauli did not lower: {ops}"
+    assert ops.get('rz', 0) >= 1
+    assert ops.get('cx', 0) >= 1
