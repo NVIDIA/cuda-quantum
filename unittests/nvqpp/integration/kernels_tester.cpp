@@ -228,9 +228,9 @@ CUDAQ_TEST(KernelsTester, checkAngularEncodeRy) {
   cudaq::contrib::angular_encode(kernel, q, angles);
   const std::string code = kernel.to_quake();
   EXPECT_NE(code.find("quake.ry"), std::string::npos);
-  EXPECT_NE(code.find("0.1"), std::string::npos);
-  EXPECT_NE(code.find("0.2"), std::string::npos);
-  EXPECT_NE(code.find("0.3"), std::string::npos);
+  EXPECT_NE(code.find("1.000000e-01"), std::string::npos);
+  EXPECT_NE(code.find("2.000000e-01"), std::string::npos);
+  EXPECT_NE(code.find("3.000000e-01"), std::string::npos);
 }
 
 CUDAQ_TEST(KernelsTester, checkAngularEncodeRx) {
@@ -241,9 +241,8 @@ CUDAQ_TEST(KernelsTester, checkAngularEncodeRx) {
                                  cudaq::contrib::RotationAxis::X);
   const std::string code = kernel.to_quake();
   EXPECT_NE(code.find("quake.rx"), std::string::npos);
-  EXPECT_NE(code.find("0.5"), std::string::npos);
-  EXPECT_TRUE(code.find("1.0") != std::string::npos ||
-              code.find("1.000000") != std::string::npos);
+  EXPECT_NE(code.find("5.000000e-01"), std::string::npos);
+  EXPECT_NE(code.find("1.000000e+00"), std::string::npos);
 }
 
 CUDAQ_TEST(KernelsTester, checkAngularEncodeParametric) {
