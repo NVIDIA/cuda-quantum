@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from .qiskit_convert import from_qiskit, from_qasm
+from .propagator import propagator
 
 _LAZY_ATTRS = {
     'amplitude_encode': '.encoding',
