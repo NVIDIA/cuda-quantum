@@ -28,7 +28,7 @@ else
 fi
 
 
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
@@ -46,7 +46,7 @@ done
 echo "Server started successfully"
 test_err_sum=0
 # Test the app nvq++ (remote execution on the mock server)
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_app.cpp -o test_app
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app
 if [ $? -ne 0 ]; then
   echo ":x: nvq++ compilation failed"
   test_err_sum=$((test_err_sum+1))
@@ -65,7 +65,7 @@ fi
 # Loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the client
 # preserves cc.loop operations, and the mock server validates and executes the
 # submitted payload.
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_loop_app.cpp -o test_loop_app
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.cpp -o test_loop_app
 if [ $? -ne 0 ]; then
   echo ":x: nvq++ compilation failed for test_loop_app"
   test_err_sum=$((test_err_sum+1))
@@ -92,7 +92,7 @@ fi
 
 # Emulation test
 # Note: for emulation, we need to link in the device library. 
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_app.cpp -o test_app @CMAKE_BINARY_DIR@/unittests/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
 if [ $? -ne 0 ]; then
   echo ":x: nvq++ compilation failed"
   test_err_sum=$((test_err_sum+1))
@@ -109,7 +109,7 @@ else
 fi
 
 # Run the Python test
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_app.py
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.py
 if [ $? -ne 0 ]; then
   echo ":x: Python test_app.py failed"
   test_err_sum=$((test_err_sum+1))
@@ -119,7 +119,7 @@ fi
 
 # Python loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the Python
 # client preserves cc.loop operations for the nop codegen path.
-CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_loop_app.py > test_loop_app.py.out 2>&1
+CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.py > test_loop_app.py.out 2>&1
 if [ $? -ne 0 ]; then
   echo ":x: Python test_loop_app.py failed"
   cat test_loop_app.py.out

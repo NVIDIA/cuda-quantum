@@ -20,7 +20,7 @@ except Exception:
 EOF
 }
 # Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/extra_payload_provider/mock_server.py &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/extra_payload_provider/mock_server.py &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
@@ -49,7 +49,7 @@ else
 fi
 
 # Test nvq++ 
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target horizon --horizon-extra-payload-provider sunrise @CMAKE_SOURCE_DIR@/unittests/backends/extra_payload_provider/test_app.cpp -L@CMAKE_BINARY_DIR@/unittests/backends/extra_payload_provider/ -lsunrise-provider -o test_app
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target horizon --horizon-extra-payload-provider sunrise @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/extra_payload_provider/test_app.cpp -L@CMAKE_BINARY_DIR@/unittests/nvqpp/backends/extra_payload_provider/ -lsunrise-provider -o test_app
 if [ $? -ne 0 ]; then
   echo ":x: nvq++ compilation failed"
   test_err_sum=$((test_err_sum+1))
@@ -71,7 +71,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   LIB_EXT="so"
 fi
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/extra_payload_provider/test_app.py @CMAKE_BINARY_DIR@/unittests/backends/extra_payload_provider/libsunrise-provider.$LIB_EXT
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/extra_payload_provider/test_app.py @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/extra_payload_provider/libsunrise-provider.$LIB_EXT
 if [ $? -ne 0 ]; then
   echo ":x: Python test_app failed"
   test_err_sum=$((test_err_sum+1))

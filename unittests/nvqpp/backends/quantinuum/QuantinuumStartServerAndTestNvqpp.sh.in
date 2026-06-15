@@ -42,7 +42,7 @@ echo "refresh: refresh" >> $config
 echo "### nvq++ tests"
 set +e # Allow script to keep going through errors
 test_err_sum=0
-for filename in @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/test_*.cpp; do
+for filename in @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quantinuum/test_*.cpp; do
   echo "Testing $filename"
   @CMAKE_BINARY_DIR@/bin/nvq++ --target quantinuum --quantinuum-credentials $config --quantinuum-machine Helios-1SC --quantinuum-project mock --quantinuum-url http://localhost:62440 $filename 
   test_status=$?
@@ -63,11 +63,11 @@ done
 
 # Test separate compilation
 # Compile device code lib (with -fPIC -shared)
-@CMAKE_BINARY_DIR@/bin/nvq++ -fPIC -shared @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/run_separate_compilation/lib.cpp -o lib.so
+@CMAKE_BINARY_DIR@/bin/nvq++ -fPIC -shared @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quantinuum/run_separate_compilation/lib.cpp -o lib.so
 test_status=$?
 if [ $test_status -eq 0 ]; then
   # Compile the app + linking to the lib
-  @CMAKE_BINARY_DIR@/bin/nvq++ --target quantinuum --quantinuum-credentials $config --quantinuum-machine Helios-1SC --quantinuum-project mock --quantinuum-url http://localhost:62440 @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/run_separate_compilation/app.cpp lib.so -o test_app.x
+  @CMAKE_BINARY_DIR@/bin/nvq++ --target quantinuum --quantinuum-credentials $config --quantinuum-machine Helios-1SC --quantinuum-project mock --quantinuum-url http://localhost:62440 @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quantinuum/run_separate_compilation/app.cpp lib.so -o test_app.x
   test_status=$?
   if [ $test_status -eq 0 ]; then
     ./test_app.x
