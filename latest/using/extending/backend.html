@@ -1338,7 +1338,7 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
 
 <span class="c1"># Start the mock server</span>
-python3<span class="w"> </span>utils/start_mock_qpu.py<span class="w"> </span>&lt;provider_name&gt;<span class="w"> </span><span class="p">&amp;</span>
+python3<span class="w"> </span>python/tests/utils/start_mock_qpu.py<span class="w"> </span>&lt;provider_name&gt;<span class="w"> </span><span class="p">&amp;</span>
 <span class="nv">SERVER_PID</span><span class="o">=</span><span class="nv">$!</span>
 
 <span class="c1"># Wait for server to start</span>
@@ -1400,7 +1400,7 @@ sleep<span class="w"> </span><span class="m">2</span>
 <section id="mock-server">
 <h3>Mock Server<a class="headerlink" href="#mock-server" title="Permalink to this heading">¶</a></h3>
 <p>Create a mock server for testing:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>utils/mock_qpu/&lt;provider_name&gt;/
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>python/tests/utils/mock_qpu/&lt;provider_name&gt;/
 └── __init__.py
 </pre></div>
 </div>
@@ -1482,11 +1482,7 @@ sleep<span class="w"> </span><span class="m">2</span>
     <span class="ow">not</span> <span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">has_target</span><span class="p">(</span><span class="s2">&quot;&lt;provider_name&gt;&quot;</span><span class="p">)),</span>
     <span class="n">reason</span><span class="o">=</span><span class="s1">&#39;Could not find `&lt;provider_name&gt;` in installation&#39;</span><span class="p">)</span>
 
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">utils.mock_qpu.</span><span class="o">&lt;</span><span class="n">provider_name</span><span class="o">&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">startServer</span>
-<span class="k">except</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mock qpu not available, skipping Provider Name tests.&quot;</span><span class="p">)</span>
-    <span class="n">pytest</span><span class="o">.</span><span class="n">skip</span><span class="p">(</span><span class="s2">&quot;Mock qpu not available.&quot;</span><span class="p">,</span> <span class="n">allow_module_level</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">utils.mock_qpu.</span><span class="o">&lt;</span><span class="n">provider_name</span><span class="o">&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">startServer</span>
 
 <span class="c1"># Define the port for the mock server - make sure this is unique</span>
 <span class="c1"># across all tests.</span>

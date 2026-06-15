@@ -1149,15 +1149,15 @@ document assume you are using <code class="code docutils literal notranslate"><s
 </div>
 <p>In addition to installing the needed build dependencies listed above, make sure
 to set the following environment variables prior to proceeding:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/cudaq
-<span class="nb">export</span><span class="w"> </span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/cuquantum
-<span class="nb">export</span><span class="w"> </span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/cutensor
-<span class="nb">export</span><span class="w"> </span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/llvm
-<span class="nb">export</span><span class="w"> </span><span class="nv">BLAS_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/blas
-<span class="nb">export</span><span class="w"> </span><span class="nv">ZLIB_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/zlib
-<span class="nb">export</span><span class="w"> </span><span class="nv">OPENSSL_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/openssl
-<span class="nb">export</span><span class="w"> </span><span class="nv">CURL_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/curl
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_INSTALL_PREFIX</span><span class="o">=</span>/usr/local/aws
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDAQ_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/cudaq</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">CUQUANTUM_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/cuquantum</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">CUTENSOR_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/cutensor</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">LLVM_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/llvm</span><span class="si">}</span><span class="w">  </span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">BLAS_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">BLAS_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/blas</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">ZLIB_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">ZLIB_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/zlib</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">OPENSSL_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">OPENSSL_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/openssl</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">CURL_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">CURL_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/curl</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_INSTALL_PREFIX</span><span class="o">=</span><span class="si">${</span><span class="nv">AWS_INSTALL_PREFIX</span><span class="k">:-</span><span class="p">/usr/local/aws</span><span class="si">}</span>
 </pre></div>
 </div>
 <p>These environment variables <em>must</em> be set during the build. We strongly
