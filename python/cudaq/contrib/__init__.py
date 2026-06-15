@@ -6,4 +6,5 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .qiskit_convert import from_qiskit, from_qasm
+from .qiskit_convert import from_qiskit
+from .qasm_convert import from_qasm, from_qasm_str
