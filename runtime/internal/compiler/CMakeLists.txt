@@ -8,6 +8,14 @@
 
 include(HandleLLVMOptions)
 
+# Header-only target: public headers under include/cudaq_internal/compiler/.
+# Link this when you need declarations only (no cudaq-mlir-runtime .so).
+add_library(cudaq-mlir-runtime-headers INTERFACE)
+target_include_directories(cudaq-mlir-runtime-headers INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
 # MLIR/LLVM runtime support shared with cudaq-builder and remote platforms.
 # Single library so LLVM static Options are initialized at most once.
 
@@ -30,13 +38,9 @@ set_source_files_properties(
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
-target_include_directories(cudaq-mlir-runtime
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-
 target_link_libraries(cudaq-mlir-runtime
+  PUBLIC
+    cudaq-mlir-runtime-headers
   PRIVATE
     cudaq-common
     $<$<NOT:$<PLATFORM_ID:Darwin>>:cudaq-qir-verifier>
@@ -79,6 +83,9 @@ if(APPLE)
   target_link_options(cudaq-mlir-runtime PRIVATE
     "LINKER:-flat_namespace")
 endif()
+
+install(TARGETS cudaq-mlir-runtime-headers
+        EXPORT cudaq-mlir-runtime-targets)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
         DESTINATION include)
