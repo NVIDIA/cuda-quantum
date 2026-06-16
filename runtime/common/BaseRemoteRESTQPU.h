@@ -487,7 +487,6 @@ public:
     // observe) one time each.
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
-      // Avoid emitting the warning again during execution
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
