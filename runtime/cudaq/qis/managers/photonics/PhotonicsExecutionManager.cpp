@@ -201,8 +201,7 @@ protected:
     return result;
   }
 
-  observe_result finalizeExecutionContext(const observe_policy &,
-                                          ExecutionContext &ctx) override {
+  observe_result finalizeExecutionContext(const observe_policy &) override {
     throw std::runtime_error(
         "observe policy not supported for this photonics simulator.");
   }

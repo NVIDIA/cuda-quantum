@@ -328,6 +328,7 @@ public:
                            DataRecursionQueue *q = nullptr);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
+  bool VisitImaginaryLiteral(clang::ImaginaryLiteral *x);
 
   // Cast operations.
   bool TraverseCastExpr(clang::CastExpr *x, DataRecursionQueue *q = nullptr);
@@ -643,6 +644,12 @@ private:
   std::pair<mlir::func::FuncOp, bool> getOrAddFunc(mlir::Location loc,
                                                    mlir::StringRef funcName,
                                                    mlir::FunctionType funcTy);
+
+  /// Definite-assignment check for `for (bool b : v)` where `v` is a
+  /// `std::vector<measure_handle>`. Returns false only when it can prove the
+  /// vector was never bound to a measurement, and true for every shape it
+  /// cannot disprove. See: https://github.com/NVIDIA/cuda-quantum/issues/4479.
+  bool isBoundHandleVector(mlir::Value, llvm::SmallPtrSetImpl<mlir::Value> &);
 
   /// Stack of Values built by the visitor. (right-to-left ordering)
   mlir::SmallVector<mlir::Value> valueStack;

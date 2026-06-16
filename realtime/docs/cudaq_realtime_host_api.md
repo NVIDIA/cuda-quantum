@@ -453,8 +453,8 @@ Parameters:
     - `CUDAQ_DISPATCH_DEVICE_CALL`: direct `__device__` handler call (lowest latency)
     - `CUDAQ_DISPATCH_GRAPH_LAUNCH`: CUDA graph launch from device code
     (requires `sm_90`+, Hopper or later GPUs)
-    - `CUDAQ_DISPATCH_HOST_CALL`: host RPC callback (reserved; currently dropped
-    by both device and host dispatch paths -- see note below)
+    - `CUDAQ_DISPATCH_HOST_CALL`: plain C++ host callback, dispatched on the
+    host path (`CUDAQ_DISPATCH_PATH_HOST`) -- see note below
   - `dispatch_path` (default `CUDAQ_DISPATCH_PATH_DEVICE`):
   selects the top-level dispatch control path
 
@@ -476,15 +476,19 @@ Parameters:
   since the sentinel would be misinterpreted as a valid buffer address.
   Only meaningful when `dispatch_path == CUDAQ_DISPATCH_PATH_HOST`.
 
-Note: `CUDAQ_DISPATCH_HOST_CALL` is defined in the `cudaq_dispatch_mode_t` enum
-and the `host_fn` union member exists in `cudaq_function_entry_t`, but
-**neither dispatch path currently processes HOST_CALL entries**.  The device
-path has no awareness of host callbacks, and the host path drops any entry
-whose `dispatch_mode` is not `CUDAQ_DISPATCH_GRAPH_LAUNCH` (see
-[host-path-architecture](#host-path-architecture), step 4).  
-A future revision will add CPU worker thread support so that HOST_CALL handlers
-run on dedicated threads without blocking the monitor loop
-or tying up GPU graph workers.
+Note: `CUDAQ_DISPATCH_HOST_CALL` runs a plain C++ handler (`host_fn`, of type
+`cudaq_host_rpc_fn_t`) and is processed **only by the host dispatch path**
+(`CUDAQ_DISPATCH_PATH_HOST`).  The host loop invokes the handler
+**synchronously, inline on the dispatcher thread**, without acquiring a GPU
+graph worker: it calls `host_fn(rx_slot, tx_slot, slot_size)`, which reads the
+request from the RX slot and writes the `RPCResponse` directly into the TX slot
+(two-pointer ABI, no intermediate copy), then publishes the TX flag (see
+[host-path-architecture](#host-path-architecture)).
+The **device dispatch path does not process HOST_CALL entries** -- a host
+callback has no meaning inside a GPU persistent kernel, so such entries are
+ignored there.  Because dispatch is inline, a long-running handler blocks the
+monitor loop; moving HOST_CALL handlers onto dedicated CPU worker threads is a
+possible future optimization.
 
 - `out_dispatcher`: receives the created dispatcher handle.
 
@@ -539,15 +543,17 @@ Parameters:
   - `count`: number of entries in the table.
 
 ```cpp
-// Host RPC callback type (for CUDAQ_DISPATCH_HOST_CALL -- reserved, not yet dispatched)
-typedef void (*cudaq_host_rpc_fn_t)(void *slot_host, size_t slot_size);
+// Host RPC callback type (for CUDAQ_DISPATCH_HOST_CALL, host dispatch path).
+// Reads the request from rx_slot, writes the RPCResponse into tx_slot.
+typedef void (*cudaq_host_rpc_fn_t)(const void *rx_slot, void *tx_slot,
+                                    size_t slot_size);
 
 // Unified function table entry with schema
 struct cudaq_function_entry_t {
   union {
     void*               device_fn_ptr;  // for CUDAQ_DISPATCH_DEVICE_CALL
     cudaGraphExec_t     graph_exec;     // for CUDAQ_DISPATCH_GRAPH_LAUNCH
-    cudaq_host_rpc_fn_t host_fn;        // for CUDAQ_DISPATCH_HOST_CALL (reserved)
+    cudaq_host_rpc_fn_t host_fn;        // for CUDAQ_DISPATCH_HOST_CALL
   } handler;
   
   uint32_t                function_id;
@@ -1069,9 +1075,18 @@ tight poll loop.  On each iteration:
 3. If the flag is non-zero, it interprets the value as the host address of
      the slot data (the "address-as-flag" convention).
 4. It parses the `RPCHeader` to extract `function_id`, looks up the
-     corresponding `cudaq_function_entry_t` in the function table, and verifies
-     that `dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH`.  Entries with other
-     dispatch modes are dropped (the slot is cleared and the monitor advances).
+     corresponding `cudaq_function_entry_t` in the function table, and branches
+     on its `dispatch_mode`:
+     - `CUDAQ_DISPATCH_HOST_CALL`: the handler runs **synchronously, inline on
+       the monitor thread** -- `host_fn(rx_slot, tx_slot, slot_size)` reads the
+       request from the RX slot and writes the `RPCResponse` directly into the
+       TX slot (no copy), and the TX flag is published.  No graph worker is
+       used, so steps 5-7 are skipped (the slot is then cleared and the monitor
+       advances, as in step 8).
+     - `CUDAQ_DISPATCH_GRAPH_LAUNCH`: dispatch continues with the graph worker
+       pool (steps 5-7).
+     - any other mode (e.g., `CUDAQ_DISPATCH_DEVICE_CALL`): dropped (the slot is
+       cleared and the monitor advances; device calls belong on the device path).
 5. It acquires an idle worker whose `function_id` matches.
 6. It writes the slot's device pointer (or a `GraphIOContext*` for separate
      RX/TX buffers) into the pinned mailbox at `h_mailbox_bank[worker_id]`.

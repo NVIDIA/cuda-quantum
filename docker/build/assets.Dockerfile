@@ -308,7 +308,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     python3 -m pip install lit pytest scipy && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
-        --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
+        --param cudaq_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
 
 ## [C++ Tests]
@@ -326,7 +326,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     # Exclude lit test suites from ctest. They are run individually above/below.
     # FIXME: Tensor unit tests for runtime errors throw a different exception.
     # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
-    excludes+=" --exclude-regex ctest-nvqpp|ctest-targettests|pycudaq-mlir|Tensor.*Error" && \
+    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|pycudaq-mlir|Tensor.*Error" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
@@ -348,7 +348,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 	filtered+="|AST-Quake/calling_convention|test_argument_conversion"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/cudaq/test \
-        --param nvqpp_site_config=build/cudaq/test/lit.site.cfg.py ${filtered} && \
+        --param cudaq_site_config=build/cudaq/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
     filtered=" --filter-out Kernel/inline-qpu-func|execution/vector_bool_parameters" && \
@@ -356,7 +356,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         filtered+="|TargetConfig/check_compile"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
-        --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
+        --param cudaq_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
 # Export ccache data so CI can extract it for persistence.
 # Tar inside the container to export a single file instead of thousands of

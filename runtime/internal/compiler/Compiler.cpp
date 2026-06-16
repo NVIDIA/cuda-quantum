@@ -13,11 +13,11 @@
 #include "common/FmtCore.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
+#include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "nlohmann/json.hpp"
-#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
@@ -224,10 +224,14 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       // For quantum devices, we generate a collection of `init` and
       // `num_qubits` functions and their substitutions created
       // from a kernel and arguments that generated a state argument.
-      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp);
+      // Local simulators marshal `i1` vectors as bit-packed `std::vector<bool>`
+      // (argsCreator); remote/emulated targets use `std::vector<char>`.
+      const bool boolVecBitPacked = target->isLocalSimulator;
+      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp,
+                                                         boolVecBitPacked);
       // Must stay in scope as `eraseNonCallableArguments` may populate it
       std::vector<void *> closureArgs;
-      if (cudaq::opt::marshal::isFullySynthesized(epFunc)) {
+      if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
         // Already fully specialized, nothing to do.
         isFullySpecialized = true;
       } else if (isEntryPoint && !target->fullySpecialize) {
@@ -399,6 +403,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     const std::string &kernelName, const void *modulePtr,
     cudaq::KernelArgs args, bool isEntryPoint,
     std::shared_ptr<mlir::MLIRContext> context) {
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "Compiler::runPassPipeline");
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc, isFullySpecialized] =

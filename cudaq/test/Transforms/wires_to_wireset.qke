@@ -40,3 +40,112 @@ func.func @__nvqpp__mlirgen__run_test() attributes {"cudaq-entrypoint", "cudaq-k
 // CHECK:           quake.return_wire %[[VAL_3]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+// Kernel with a call to a non-quantum (device) function — assign-wire-indices
+// should still run and assign wire indices.
+
+func.func @__nvqpp__mlirgen__function_demo._Z4demov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %c0_i32 = arith.constant 0 : i32
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5 = cc.device_call @_Z14get_correctionv() : () -> i32
+  %6 = arith.cmpi ne, %5, %c0_i32 : i32
+  %7 = cc.if(%6) ((%arg0 = %4#0)) -> !quake.wire {
+    %8 = quake.x %arg0 : (!quake.wire) -> !quake.wire
+    cc.continue %8 : !quake.wire
+  } else {
+    cc.continue %arg0 : !quake.wire
+  }
+  quake.sink %7 : !quake.wire
+  quake.sink %3#1 : !quake.wire
+  quake.sink %4#1 : !quake.wire
+  return
+}
+func.func private @_Z14get_correctionv() -> i32 attributes {"cudaq-devicecall"}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_demo._Z4demov()
+// CHECK:           %[[W0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[W1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[W2:.*]] = quake.borrow_wire @wires[2] : !quake.wire
+// CHECK:           %[[X0:.*]]:2 = quake.x [%[[W0]]] %[[W1]]
+// CHECK:           %[[X1:.*]]:2 = quake.x [%[[X0]]#0] %[[W2]]
+// CHECK:           cc.device_call @_Z14get_correctionv() : () -> i32
+// CHECK:           cc.if({{.*}}) ((%[[ARG:.*]] = %[[X1]]#0)) -> !quake.wire {
+// CHECK:             quake.x %[[ARG]]
+// CHECK:           }
+// CHECK:           quake.return_wire
+// CHECK:           quake.return_wire
+// CHECK:           quake.return_wire
+
+// Kernel with a call to another quantum kernel — assign-wire-indices should
+// bail out and leave null_wire/sink ops unchanged.
+
+func.func @__nvqpp__mlirgen__caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = func.call @__nvqpp__mlirgen__callee() : () -> !quake.wire
+  quake.sink %0 : !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+func.func @__nvqpp__mlirgen__callee() -> !quake.wire attributes {"cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  return %1 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = call @__nvqpp__mlirgen__callee() : () -> !quake.wire
+// CHECK:           quake.sink %[[VAL_0]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_1]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__callee() -> !quake.wire attributes {"cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           return %[[VAL_1]] : !quake.wire
+// CHECK:         }
+
+// Kernel with a quake.call_by_ref — assign-wire-indices should bail out.
+
+func.func @__nvqpp__mlirgen__cbr_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.call_by_ref @cbr_callee(%0) : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+func.func @cbr_callee(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.h %arg0 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__cbr_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.call_by_ref @cbr_callee(%[[VAL_0]]) : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_1]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// Kernel with a quake.apply — assign-wire-indices should bail out.
+
+func.func @__nvqpp__mlirgen__apply_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.apply @apply_callee %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+func.func @apply_callee(%arg0: !quake.wire) -> !quake.wire attributes {"cudaq-kernel"} {
+  %0 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+  return %0 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__apply_caller() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.apply @apply_callee %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_1]] : !quake.wire
+// CHECK:           return
+// CHECK:         }

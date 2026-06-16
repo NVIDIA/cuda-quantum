@@ -31,53 +31,45 @@ namespace {
 
 constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID = fnv1a_hash("rpc_increment");
 
-/// Host-side increment handler.  Signature matches `cudaq_host_rpc_fn_t`:
-///   void (*)(void *slot_host, size_t slot_size)
+/// Host-side increment handler.  Two-pointer `cudaq_host_rpc_fn_t`:
+///   void (*)(const void *rx_slot, void *tx_slot, size_t slot_size)
 ///
-/// The host dispatcher's HOST_CALL path pre-copies the RX slot bytes into
-/// the TX slot and passes us a pointer to the TX slot.  We:
-///   1. Read the RPCHeader (in place at slot[0..24]).
-///   2. Read the payload at slot[24..24+arg_len].
-///   3. Overwrite slot[0..24] with the RPCResponse (RPCHeader and
-///      RPCResponse are both 24 bytes packed; the layout overlaps
-///      magic/status/result_len/request_id/ptp_timestamp safely).
-///   4. Write the incremented bytes back to slot[24..24+arg_len].
+/// Reads the RPCHeader + payload from `rx_slot` (the inbound request) and
+/// writes the RPCResponse + incremented payload into `tx_slot` (the outbound
+/// slot the transport sends).  RPCHeader and RPCResponse are both 24 bytes, so
+/// the payload offset is the same (24) on both sides.
 ///
 /// Wire-compatible with the device-side handler: same function_id, same
-/// payload semantics (add 1 to each byte), same first-8-bytes PTP echo
-/// (preserved by the RPCResponse.ptp_timestamp copy from the header).
-extern "C" void rpc_increment_handler_host(void *slot_host,
+/// payload semantics (add 1 to each byte), and the request_id / ptp_timestamp
+/// (first-8-bytes PTP) are echoed from the request into the response.
+extern "C" void rpc_increment_handler_host(const void *rx_slot, void *tx_slot,
                                            std::size_t slot_size) {
-  auto *header = static_cast<RPCHeader *>(slot_host);
+  const auto *header = static_cast<const RPCHeader *>(rx_slot);
   if (header->magic != RPC_MAGIC_REQUEST)
     return; // dispatcher already filtered, but be defensive
 
   const std::uint32_t arg_len = header->arg_len;
   const std::uint32_t request_id = header->request_id;
   const std::uint64_t ptp_timestamp = header->ptp_timestamp;
-  std::uint8_t *payload_in =
-      static_cast<std::uint8_t *>(slot_host) + sizeof(RPCHeader);
+  const std::uint8_t *payload_in =
+      static_cast<const std::uint8_t *>(rx_slot) + sizeof(RPCHeader);
 
-  // Bound the work by the slot size so a malformed arg_len can't write
-  // past the slot.  This mirrors what the dispatcher's max_result_len
-  // guard does for the device-side handler.
+  // Bound the work by the slot size so a malformed arg_len can't write past
+  // the TX slot.  This mirrors the dispatcher's max_result_len guard for the
+  // device-side handler.
   const std::size_t max_payload =
       slot_size > sizeof(RPCResponse) ? slot_size - sizeof(RPCResponse) : 0;
   const std::uint32_t len =
       arg_len < max_payload ? arg_len : static_cast<std::uint32_t>(max_payload);
 
-  // Increment in place.  Header bytes will be overwritten next; payload
-  // bytes live entirely after sizeof(RPCResponse) which is the same as
-  // sizeof(RPCHeader), so the indices don't shift.
+  // Read each input byte from the RX slot, write the incremented value into
+  // the TX slot.  The two slots are distinct buffers, so there is no aliasing.
+  std::uint8_t *payload_out =
+      static_cast<std::uint8_t *>(tx_slot) + sizeof(RPCResponse);
   for (std::uint32_t i = 0; i < len; ++i)
-    payload_in[i] = static_cast<std::uint8_t>(payload_in[i] + 1);
+    payload_out[i] = static_cast<std::uint8_t>(payload_in[i] + 1);
 
-  // Write the RPCResponse over the RPCHeader.  Same byte layout for the
-  // common fields (request_id, ptp_timestamp); magic/function_id slot is
-  // overwritten with magic/status; arg_len slot is overwritten with
-  // result_len.  All four fields are read above into locals first to
-  // avoid reading after partial overwrite.
-  auto *response = static_cast<RPCResponse *>(slot_host);
+  auto *response = static_cast<RPCResponse *>(tx_slot);
   response->magic = RPC_MAGIC_RESPONSE;
   response->status = 0;
   response->result_len = len;
