@@ -1101,8 +1101,10 @@ launch flag.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">--cudaq-device-call-timeout-ms=&lt;ms&gt;</span></code>: per-dispatch timeout</p></li>
 </ul>
 <p>The built-in channels (<code class="docutils literal notranslate"><span class="pre">shared-memory</span></code>, <code class="docutils literal notranslate"><span class="pre">host-dispatch</span></code>, <code class="docutils literal notranslate"><span class="pre">gpu-dispatch</span></code>) run an
-in-process service and are not covered in depth here. The remainder of this page
-documents the <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel.</p>
+in-process service and are not covered in depth here. <code class="docutils literal notranslate"><span class="pre">host-dispatch</span></code> uses the
+<code class="docutils literal notranslate"><span class="pre">libcudaq-realtime</span></code> host path and can dispatch service entries as either
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code> handlers or <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_GRAPH_LAUNCH</span></code> workers.
+The remainder of this page documents the <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel.</p>
 </section>
 <section id="the-cpu-roce-channel">
 <h2>The <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel<a class="headerlink" href="#the-cpu-roce-channel" title="Permalink to this heading">¶</a></h2>

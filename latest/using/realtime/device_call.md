@@ -1903,7 +1903,12 @@ The built-in channels ([`shared-memory`{.docutils .literal
 .notranslate}]{.pre}, [`host-dispatch`{.docutils .literal
 .notranslate}]{.pre}, [`gpu-dispatch`{.docutils .literal
 .notranslate}]{.pre}) run an in-process service and are not covered in
-depth here. The remainder of this page documents the
+depth here. [`host-dispatch`{.docutils .literal .notranslate}]{.pre}
+uses the [`libcudaq-realtime`{.docutils .literal .notranslate}]{.pre}
+host path and can dispatch service entries as either
+[`CUDAQ_DISPATCH_HOST_CALL`{.docutils .literal .notranslate}]{.pre}
+handlers or [`CUDAQ_DISPATCH_GRAPH_LAUNCH`{.docutils .literal
+.notranslate}]{.pre} workers. The remainder of this page documents the
 [`cpu_roce`{.docutils .literal .notranslate}]{.pre} channel.
 :::
 

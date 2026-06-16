@@ -2805,8 +2805,8 @@ C++
 Note
 
 When a custom operation is used on hardware backends, it is synthesized
-to a set of native quantum operations. Currently, only 1-qubit and
-2-qubit custom operations are supported on hardware backends.
+to a set of native quantum operations. Currently, only up to 5-qubit
+custom operations are supported on hardware backends.
 :::
 :::
 
