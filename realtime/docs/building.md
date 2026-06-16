@@ -170,7 +170,7 @@ the report as shown above.
 > bash hololink_test.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified --build  --hololink-dir $HOLOLINK_DIR --cuda-quantum-dir $CUDAQ_DIR
 > ```
 >
-> `$HOLOLINK_DIR` and `$CUDAQ_DIR` are the top-level source directory of Hololink
-> and CUDA-Q accordingly.
+> `$HOLOLINK_DIR` and `$CUDAQ_DIR` are the top-level source directories for HSB
+> and CUDA-Q, respectively.
 > Please note that `$CUDAQ_DIR` here is the parent directory
 > that contains the `realtime` sub-directory.

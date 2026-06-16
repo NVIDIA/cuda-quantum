@@ -18,7 +18,7 @@ using RDMA (Remote Direct Memory Access) via ConnectX NIC's. In the context of
 quantum error correction, HSB is one example of a transport mechanism that
 connects the quantum control system (typically an FPGA) to GPU-based decoders.
 
-**Repository**: [`nvidia-holoscan`/`holoscan-sensor-bridge` (`2.6.0-EA2` tag)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/2.6.0-EA2)
+**Repository**: [`nvidia-holoscan`/`holoscan-sensor-bridge`](https://github.com/nvidia-holoscan/holoscan-sensor-bridge)
 
 HSB handles:
 
@@ -983,7 +983,7 @@ Adapted from `test_realtime_decoding.cu` (the actual test uses a library helper,
 `cudaMemcpy`):
 
 Note: this host-side snippet emulates what the external device/FPGA would do
-when populating RX slots in a HSB deployment.
+when populating RX slots in an HSB deployment.
 
 ```cpp
 /// @brief Write detection events to RX buffer in RPC format.
@@ -1008,7 +1008,7 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
 ## Reading the Response
 
 Note: this host-side snippet emulates what the external device/FPGA would do
-when consuming TX slots in a HSB deployment.
+when consuming TX slots in an HSB deployment.
 
 ```cpp
 /// @brief Read response from TX buffer.
