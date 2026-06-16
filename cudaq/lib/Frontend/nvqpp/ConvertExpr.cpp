@@ -1497,6 +1497,21 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
       (funcName == "floor" || funcName == "floorf"))
     return floatOperator(math::FloorOp{}, "floor");
 
+  // Handle std::asin
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "asin" || funcName == "asinf"))
+    return floatOperator(math::AsinOp{}, "asin");
+
+  // Handle std::acos
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "acos" || funcName == "acosf"))
+    return floatOperator(math::AcosOp{}, "acos");
+
+  // Handle std::atan
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "atan" || funcName == "atanf"))
+    return floatOperator(math::AtanOp{}, "atan");
+
   return false;
 }
 

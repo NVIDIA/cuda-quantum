@@ -310,3 +310,109 @@ def test_float32_list_parameter_promotion():
     check([np.float32(np.pi / 2), 0])
     check([1, 0])
     check([np.pi / 2, 0, True])
+
+
+def test_float64_new_math_functions():
+    """Test new math functions: tan, log, floor (float64)."""
+
+    # tan
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.tan(np.float64(np.pi / 4))
+
+    t = np.tan(np.float64(np.pi / 4))
+    assert is_close(t, float_np_use())
+
+    # log
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.log(np.float64(np.e))
+
+    t = np.log(np.float64(np.e))
+    assert is_close(t, float_np_use())
+
+    # floor
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.floor(np.float64(np.pi))
+
+    t = np.floor(np.float64(np.pi))
+    assert is_close(t, float_np_use())
+
+
+def test_float32_new_math_functions():
+    """Test new math functions: tan, log, floor (float32)."""
+
+    # tan
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.tan(np.float32(np.pi / 4))
+
+    t = np.tan(np.float32(np.pi / 4))
+    assert is_close(t, float_np_use())
+
+    # log
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.log(np.float32(np.e))
+
+    t = np.log(np.float32(np.e))
+    assert is_close(t, float_np_use())
+
+    # floor
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.floor(np.float32(np.pi))
+
+    t = np.floor(np.float32(np.pi))
+    assert is_close(t, float_np_use())
+
+
+def test_float64_inverse_trig():
+    """Test inverse trig functions: asin, acos, atan (float64)."""
+
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.asin(np.float64(0.5))
+
+    t = np.asin(np.float64(0.5))
+    assert is_close(t, float_np_use())
+
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.acos(np.float64(0.5))
+
+    t = np.acos(np.float64(0.5))
+    assert is_close(t, float_np_use())
+
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.atan(np.float64(1.0))
+
+    t = np.atan(np.float64(1.0))
+    assert is_close(t, float_np_use())
+
+
+def test_float32_inverse_trig():
+    """Test inverse trig functions: asin, acos, atan (float32)."""
+
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.asin(np.float32(0.5))
+
+    t = np.asin(np.float32(0.5))
+    assert is_close(t, float_np_use())
+
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.acos(np.float32(0.5))
+
+    t = np.acos(np.float32(0.5))
+    assert is_close(t, float_np_use())
+
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.atan(np.float32(1.0))
+
+    t = np.atan(np.float32(1.0))
+    assert is_close(t, float_np_use())

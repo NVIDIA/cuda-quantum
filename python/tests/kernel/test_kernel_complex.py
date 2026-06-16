@@ -661,3 +661,71 @@ def test_complex64_list_parameter_promotion():
     check([0, 1.0])
     check([0, 1])
     check([0, 0.70710678 + 2j, True])
+
+
+def test_complex_new_math_functions():
+    """Test new math functions: tan, log, floor (complex)."""
+
+    # tan - real part
+    @cudaq.kernel
+    def complex_np_use_real() -> float:
+        v = np.tan(np.pi / 4 + 0j)
+        return v.real
+
+    t = np.tan(np.pi / 4 + 0j).real
+    assert is_close(t, complex_np_use_real())
+
+    # tan - imag part
+    @cudaq.kernel
+    def complex_np_use_imag() -> float:
+        v = np.tan(np.pi / 4 + 0j)
+        return v.imag
+
+    t = np.tan(np.pi / 4 + 0j).imag
+    assert is_close(t, complex_np_use_imag())
+
+    # log - real part
+    @cudaq.kernel
+    def complex_np_use_real() -> float:
+        v = np.log(np.e + 0j)
+        return v.real
+
+    t = np.log(np.e + 0j).real
+    assert is_close(t, complex_np_use_real())
+
+    # log - imag part
+    @cudaq.kernel
+    def complex_np_use_imag() -> float:
+        v = np.log(np.e + 0j)
+        return v.imag
+
+    t = np.log(np.e + 0j).imag
+    assert is_close(t, complex_np_use_imag())
+
+
+def test_complex_inverse_trig():
+    """Test inverse trig functions with real-valued complex input."""
+
+    @cudaq.kernel
+    def complex_np_use_real() -> float:
+        v = np.asin(0.5 + 0j)
+        return v.real
+
+    t = np.asin(0.5 + 0j).real
+    assert is_close(t, complex_np_use_real())
+
+    @cudaq.kernel
+    def complex_np_use_real() -> float:
+        v = np.acos(0.5 + 0j)
+        return v.real
+
+    t = np.acos(0.5 + 0j).real
+    assert is_close(t, complex_np_use_real())
+
+    @cudaq.kernel
+    def complex_np_use_real() -> float:
+        v = np.atan(1.0 + 0j)
+        return v.real
+
+    t = np.atan(1.0 + 0j).real
+    assert is_close(t, complex_np_use_real())
