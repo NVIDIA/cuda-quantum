@@ -32,8 +32,6 @@ func.func @sink_past_independent_local_refs() {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @sink_past_different_local_allocas() {
   %q0 = quake.alloca !quake.ref
   %q1 = quake.alloca !quake.ref
@@ -49,8 +47,6 @@ func.func @sink_past_different_local_allocas() {
 // CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @stop_before_later_extract_from_measured_veq() {
   %q = quake.alloca !quake.veq<2>
@@ -70,8 +66,6 @@ func.func @stop_before_later_extract_from_measured_veq() {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @sink_to_terminator() {
   %q = quake.alloca !quake.veq<2>
   %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
@@ -89,8 +83,6 @@ func.func @sink_to_terminator() {
 // CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @sink_past_memory_effect_free_classical_op() {
   %c0 = arith.constant 0 : i64
@@ -116,8 +108,6 @@ func.func @sink_past_memory_effect_free_classical_op() {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @stop_before_discriminate_user() {
   %q = quake.alloca !quake.veq<2>
   %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
@@ -138,8 +128,6 @@ func.func @stop_before_discriminate_user() {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @stop_before_same_ref_operand() {
   %q = quake.alloca !quake.ref
   %m = quake.mz %q : (!quake.ref) -> !quake.measure
@@ -153,8 +141,6 @@ func.func @stop_before_same_ref_operand() {
 // CHECK:           quake.h %[[ALLOCA_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @stop_before_same_constant_index_alias() {
   %q = quake.alloca !quake.veq<2>
@@ -174,8 +160,6 @@ func.func @stop_before_same_constant_index_alias() {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @stop_before_whole_veq_operand() {
   %q = quake.alloca !quake.veq<2>
   %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
@@ -191,8 +175,6 @@ func.func @stop_before_whole_veq_operand() {
 // CHECK:           quake.h %[[ALLOCA_0]] : (!quake.veq<2>) -> ()
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @stop_before_dynamic_index_operand(%idx: i64) {
   %q = quake.alloca !quake.veq<2>
@@ -213,8 +195,6 @@ func.func @stop_before_dynamic_index_operand(%idx: i64) {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @stop_before_nonlocal_same_base(%arg0: !quake.veq<2>) {
   %q0 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
   %q1 = quake.extract_ref %arg0[1] : (!quake.veq<2>) -> !quake.ref
@@ -232,8 +212,6 @@ func.func @stop_before_nonlocal_same_base(%arg0: !quake.veq<2>) {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @stop_before_different_nonlocal_bases(%arg0: !quake.ref, %arg1: !quake.ref) {
   %m = quake.mz %arg0 : (!quake.ref) -> !quake.measure
   quake.h %arg1 : (!quake.ref) -> ()
@@ -247,8 +225,6 @@ func.func @stop_before_different_nonlocal_bases(%arg0: !quake.ref, %arg1: !quake
 // CHECK:           quake.h %[[ARG1]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @stop_before_control_operand_alias() {
   %q = quake.alloca !quake.veq<2>
@@ -268,8 +244,6 @@ func.func @stop_before_control_operand_alias() {
 // CHECK:           return
 // CHECK:         }
 
-// -----
-
 func.func @stop_before_quantum_result_that_may_alias() {
   %q = quake.alloca !quake.veq<2>
   %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
@@ -287,8 +261,6 @@ func.func @stop_before_quantum_result_that_may_alias() {
 // CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.veq<1>
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @stop_before_later_measurement() {
   %q = quake.alloca !quake.veq<3>
@@ -311,8 +283,6 @@ func.func @stop_before_later_measurement() {
 // CHECK:           %[[MZ_1:.*]] = quake.mz %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @stop_before_region_op() {
   %true = arith.constant true
@@ -337,8 +307,6 @@ func.func @stop_before_region_op() {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
-
-// -----
 
 func.func @stop_before_side_effecting_non_quake_op() {
   %byte = arith.constant 1 : i8
