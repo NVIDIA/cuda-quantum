@@ -1,0 +1,367 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                        //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --sink-measurements %s | FileCheck %s
+
+func.func @sink_past_independent_local_refs() {
+  %q = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  quake.h %q1 : (!quake.ref) -> ()
+  quake.x %q2 : (!quake.ref) -> ()
+  %bit = quake.discriminate %m : (!quake.measure) -> i1
+  return
+}
+
+// CHECK-LABEL:   func.func @sink_past_independent_local_refs() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ALLOCA_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[EXTRACT_REF_2]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @sink_past_different_local_allocas() {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  quake.h %q1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @sink_past_different_local_allocas() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[ALLOCA_1]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_later_extract_from_measured_veq() {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h %q1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_later_extract_from_measured_veq() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @sink_to_terminator() {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  quake.h %q1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @sink_to_terminator() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @sink_past_memory_effect_free_classical_op() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %sum = arith.addi %c0, %c1 : i64
+  quake.h %q1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @sink_past_memory_effect_free_classical_op() {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[CONSTANT_0]], %[[CONSTANT_1]] : i64
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_discriminate_user() {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %bit = quake.discriminate %m : (!quake.measure) -> i1
+  quake.h %q1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_discriminate_user() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_same_ref_operand() {
+  %q = quake.alloca !quake.ref
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  quake.h %q : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_same_ref_operand() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.h %[[ALLOCA_0]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_same_constant_index_alias() {
+  %q = quake.alloca !quake.veq<2>
+  %q0a = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q0b = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0a : (!quake.ref) -> !quake.measure
+  quake.h %q0b : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_same_constant_index_alias() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_whole_veq_operand() {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  quake.h %q : (!quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_whole_veq_operand() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.h %[[ALLOCA_0]] : (!quake.veq<2>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_dynamic_index_operand(%idx: i64) {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %qx = quake.extract_ref %q[%idx] : (!quake.veq<2>, i64) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  quake.h %qx : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_dynamic_index_operand(
+// CHECK-SAME:      %[[ARG0:.*]]: i64) {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]]{{\[}}%[[ARG0]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_nonlocal_same_base(%arg0: !quake.veq<2>) {
+  %q0 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %arg0[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  quake.h %q1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_nonlocal_same_base(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.veq<2>) {
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ARG0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ARG0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_different_nonlocal_bases(%arg0: !quake.ref, %arg1: !quake.ref) {
+  %m = quake.mz %arg0 : (!quake.ref) -> !quake.measure
+  quake.h %arg1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_different_nonlocal_bases(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.ref,
+// CHECK-SAME:      %[[ARG1:.*]]: !quake.ref) {
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ARG0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.h %[[ARG1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_control_operand_alias() {
+  %q = quake.alloca !quake.veq<2>
+  %ctrl = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %target = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %ctrl : (!quake.ref) -> !quake.measure
+  quake.x [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_control_operand_alias() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.x {{\[}}%[[EXTRACT_REF_0]]] %[[EXTRACT_REF_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_quantum_result_that_may_alias() {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %aliasable = quake.concat %q1 : (!quake.ref) -> !quake.veq<1>
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_quantum_result_that_may_alias() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.veq<1>
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_later_measurement() {
+  %q = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  quake.h %q2 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_later_measurement() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ALLOCA_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.h %[[EXTRACT_REF_2]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_1:.*]] = quake.mz %[[EXTRACT_REF_1]] : (!quake.ref) -> !quake.measure
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_region_op() {
+  %true = arith.constant true
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  cc.if(%true) {
+    quake.h %q1 : (!quake.ref) -> ()
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_region_op() {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant true
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           cc.if(%[[CONSTANT_0]]) {
+// CHECK:             quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
+
+// -----
+
+func.func @stop_before_side_effecting_non_quake_op() {
+  %byte = arith.constant 1 : i8
+  %buffer = cc.alloca !cc.array<i8 x 1>
+  %ptr = cc.cast %buffer : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  cc.store %byte, %ptr : !cc.ptr<i8>
+  quake.h %q1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stop_before_side_effecting_non_quake_op() {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1 : i8
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<i8 x 1>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_1]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_1]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           cc.store %[[CONSTANT_0]], %[[CAST_0]] : !cc.ptr<i8>
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
