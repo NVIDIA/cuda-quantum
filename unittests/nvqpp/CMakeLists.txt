@@ -70,6 +70,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     cudaq
     cudaq-platform-default
     cudaq-builder
+    cudaq-mlir-runtime
     gtest_main)
   set(TEST_LABELS "")
   set(TEST_PROCESSORS 1)
@@ -169,6 +170,7 @@ if (cuStateVec_FOUND)
     cudaq
     cudaq-builder
     cudaq-platform-mqpu
+    cudaq-mlir-runtime
     nvqir-custatevec-fp64
     gtest_main)
   gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
@@ -192,6 +194,7 @@ if (cuStateVec_FOUND)
     cudaq
     cudaq-builder
     cudaq-platform-default
+    cudaq-mlir-runtime
     nvqir-custatevec-fp32
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
@@ -212,6 +215,7 @@ if (cuStateVec_FOUND)
             PRIVATE
             cudaq
             cudaq-platform-mqpu
+            cudaq-mlir-runtime
             nvqir-custatevec-fp32
             gtest_main)
           configure_file("mqpu/run_mpi.sh.in"
@@ -233,6 +237,7 @@ if (cuStateVec_FOUND)
       cudaq
       cudaq-builder
       cudaq-platform-mqpu
+      cudaq-mlir-runtime
       nvqir-custatevec-fp64
       gtest_main)
       gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
@@ -261,6 +266,7 @@ if(TARGET nvqir-tensornet)
             PRIVATE
             cudaq
             cudaq-platform-default
+            cudaq-mlir-runtime
             nvqir-tensornet
             gtest)
         add_test(NAME TensornetMPITest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/nvqpp/test_tensornet_mpi)
@@ -288,6 +294,7 @@ if(TARGET nvqir-tensornet)
     cudaq
     cudaq-builder
     cudaq-platform-default
+    cudaq-mlir-runtime
     nvqir-tensornet
     gtest_main)
   # Run this test with "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE"
@@ -304,6 +311,7 @@ target_link_libraries(test_qudit
   PRIVATE
   cudaq
   cudaq-platform-default
+  cudaq-mlir-runtime
   cudaq-em-qudit
   nvqir-qpp
   gtest_main)
@@ -318,6 +326,7 @@ target_link_libraries(test_photonics
   PRIVATE
   cudaq
   cudaq-platform-default
+  cudaq-mlir-runtime
   cudaq-em-photonics
   nvqir-qpp
   gtest_main)
@@ -342,6 +351,7 @@ target_link_libraries(test_ptsbe
   PRIVATE
   cudaq
   cudaq-platform-default
+  cudaq-mlir-runtime
   nvqir
   nvqir-qpp
   fmt::fmt-header-only
@@ -361,6 +371,7 @@ if (MPI_CXX_FOUND)
     PRIVATE
     cudaq
     cudaq-platform-default
+    cudaq-mlir-runtime
     nvqir-qpp
     gtest
   )
@@ -390,6 +401,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
    cudaq-operator
    cudaq
    cudaq-platform-mqpu
+   cudaq-mlir-runtime
    nvqir-dynamics
    cuDensityMat::cuDensityMat
    CUDA::cudart
@@ -419,6 +431,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
           cudaq-operator
           cudaq
           cudaq-platform-mqpu
+          cudaq-mlir-runtime
           nvqir-dynamics
           cuDensityMat::cuDensityMat
           CUDA::cudart
@@ -472,6 +485,7 @@ if (CUDAQ_ENABLE_PYTHON)
     PRIVATE
     cudaq
     cudaq-platform-default
+    cudaq-mlir-runtime
     nvqir nvqir-qpp
     cudaq-operator
     cudaq-chemistry
