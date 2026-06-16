@@ -8,3 +8,4 @@
 
 from .uccsd import uccsd, uccsd_num_parameters
 from .hwe import hwe, num_hwe_parameters
+from .embeddings import amplitude_encode, angular_encode
