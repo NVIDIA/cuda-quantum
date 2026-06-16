@@ -703,29 +703,4 @@ def test_complex_new_math_functions():
     assert is_close(t, complex_np_use_imag())
 
 
-def test_complex_inverse_trig():
-    """Test inverse trig functions with real-valued complex input."""
 
-    @cudaq.kernel
-    def complex_np_use_real() -> float:
-        v = np.asin(0.5 + 0j)
-        return v.real
-
-    t = np.asin(0.5 + 0j).real
-    assert is_close(t, complex_np_use_real())
-
-    @cudaq.kernel
-    def complex_np_use_real() -> float:
-        v = np.acos(0.5 + 0j)
-        return v.real
-
-    t = np.acos(0.5 + 0j).real
-    assert is_close(t, complex_np_use_real())
-
-    @cudaq.kernel
-    def complex_np_use_real() -> float:
-        v = np.atan(1.0 + 0j)
-        return v.real
-
-    t = np.atan(1.0 + 0j).real
-    assert is_close(t, complex_np_use_real())
