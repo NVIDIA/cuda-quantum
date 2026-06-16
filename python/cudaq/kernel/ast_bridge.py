@@ -1758,30 +1758,33 @@ class PyASTBridge(ast.NodeVisitor):
             f"{type(node).__name__} expressions", node)
 
     def visit(self, node):
-        self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
-        self.indent_level += 1
-        parentNode = self.currentNode
-        self.currentNode = node
-        numVals = 0 if self.valueStack.isEmpty else self.valueStack.currentNumValues
-        self.valueStack.pushFrame()
-        super().visit(node)
-        self.valueStack.popFrame()
-        if isinstance(node, ast.Module):
-            if not self.valueStack.isEmpty:
+        nodeType = type(node).__name__
+        with trace.span(f"ast_bridge.visit.{nodeType}"):
+            self.debug_msg(lambda: f'[Visit {nodeType}]', node)
+            self.indent_level += 1
+            parentNode = self.currentNode
+            self.currentNode = node
+            numVals = (0 if self.valueStack.isEmpty else
+                       self.valueStack.currentNumValues)
+            self.valueStack.pushFrame()
+            super().visit(node)
+            self.valueStack.popFrame()
+            if isinstance(node, ast.Module):
+                if not self.valueStack.isEmpty:
+                    self.emitFatalError(
+                        "processing error - unprocessed frame(s) in value stack",
+                        node)
+            elif self.valueStack.currentNumValues - numVals > 1:
+                # Do **NOT** change this to be more permissive and allow multiple
+                # values to be pushed without pushing proper frames for sub-nodes.
+                # If visiting a single node potentially produces more than one
+                # value, the bridge quickly will be a mess because we will easily
+                # end up with values in the wrong places.
                 self.emitFatalError(
-                    "processing error - unprocessed frame(s) in value stack",
+                    "must not generate more one value at a time in each frame",
                     node)
-        elif self.valueStack.currentNumValues - numVals > 1:
-            # Do **NOT** change this to be more permissive and allow multiple
-            # values to be pushed without pushing proper frames for sub-nodes.
-            # If visiting a single node potentially produces more than one
-            # value, the bridge quickly will be a mess because we will easily
-            # end up with values in the wrong places.
-            self.emitFatalError(
-                "must not generate more one value at a time in each frame",
-                node)
-        self.currentNode = parentNode
-        self.indent_level -= 1
+            self.currentNode = parentNode
+            self.indent_level -= 1
 
     @trace.traced("ast_bridge.visit_function_def")
     def visit_FunctionDef(self, node):
@@ -2581,6 +2584,10 @@ class PyASTBridge(ast.NodeVisitor):
         """
         global globalRegisteredOperations
 
+        def groupValues(pyVals, groups):
+            with trace.span("ast_bridge.call.group_values"):
+                return self.__groupValues(pyVals, groups)
+
         def copy_list_to_stack(value):
             symName = '__nvqpp_vectorCopyToStack'
             load_intrinsic(self.module, symName)
@@ -2655,26 +2662,27 @@ class PyASTBridge(ast.NodeVisitor):
                                     *args,
                                     broadcast=lambda q: [q],
                                     **kwargs):
-            opCtor = getattr(quake, f'{opName}Op')
-            checkControlAndTargetTypes(controls, targets)
-            if not broadcast:
-                return opCtor(*args, controls, targets, **kwargs)
-            elif quake.VeqType.isinstance(targets[0].type):
-                assert len(targets) == 1
+            with trace.span("ast_bridge.call.emit_quantum_operation"):
+                opCtor = getattr(quake, f'{opName}Op')
+                checkControlAndTargetTypes(controls, targets)
+                if not broadcast:
+                    return opCtor(*args, controls, targets, **kwargs)
+                elif quake.VeqType.isinstance(targets[0].type):
+                    assert len(targets) == 1
 
-                def bodyBuilder(iterVal):
-                    q = quake.ExtractRefOp(self.getRefType(),
-                                           targets[0],
-                                           -1,
-                                           index=iterVal).result
-                    opCtor(*args, controls, broadcast(q), **kwargs)
+                    def bodyBuilder(iterVal):
+                        q = quake.ExtractRefOp(self.getRefType(),
+                                               targets[0],
+                                               -1,
+                                               index=iterVal).result
+                        opCtor(*args, controls, broadcast(q), **kwargs)
 
-                veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                          targets[0]).result
-                self.createInvariantForLoop(bodyBuilder, veqSize)
-            else:
-                for target in targets:
-                    opCtor(*args, controls, broadcast(target), **kwargs)
+                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                              targets[0]).result
+                    self.createInvariantForLoop(bodyBuilder, veqSize)
+                else:
+                    for target in targets:
+                        opCtor(*args, controls, broadcast(target), **kwargs)
 
         def processQuakeCtor(opName,
                              pyArgs,
@@ -2682,33 +2690,34 @@ class PyASTBridge(ast.NodeVisitor):
                              isAdj,
                              numParams=0,
                              numTargets=1):
-            kwargs = {}
-            if isCtrl:
-                argGroups = [(numParams, numParams), (1, -1),
-                             (numTargets, numTargets)]
-                # FIXME: we could allow this as long as we have 1 target
-                kwargs['broadcast'] = False
-            elif numTargets == 1:
-                # when we have a single target and no controls, we generally
-                # support any version of `x(qubit)`, `x(qvector)`, `x(q, r)`
-                argGroups = [(numParams, numParams), 0, (1, -1)]
-            else:
-                argGroups = [(numParams, numParams), 0,
-                             (numTargets, numTargets)]
-                kwargs['broadcast'] = False
+            with trace.span("ast_bridge.call.process_quake_ctor"):
+                kwargs = {}
+                if isCtrl:
+                    argGroups = [(numParams, numParams), (1, -1),
+                                 (numTargets, numTargets)]
+                    # FIXME: we could allow this as long as we have 1 target
+                    kwargs['broadcast'] = False
+                elif numTargets == 1:
+                    # when we have a single target and no controls, we generally
+                    # support any version of `x(qubit)`, `x(qvector)`, `x(q, r)`
+                    argGroups = [(numParams, numParams), 0, (1, -1)]
+                else:
+                    argGroups = [(numParams, numParams), 0,
+                                 (numTargets, numTargets)]
+                    kwargs['broadcast'] = False
 
-            params, controls, targets = self.__groupValues(pyArgs, argGroups)
-            if isCtrl:
-                negatedControlQubits = getNegatedControlQubits(controls)
-                kwargs['negated_qubit_controls'] = negatedControlQubits
-            if isAdj:
-                kwargs['is_adj'] = True
-            params = [
-                self.changeOperandToType(self.getFloatType(), param)
-                for param in params
-            ]
-            processQuantumOperation(opName, controls, targets, [], params,
-                                    **kwargs)
+                params, controls, targets = groupValues(pyArgs, argGroups)
+                if isCtrl:
+                    negatedControlQubits = getNegatedControlQubits(controls)
+                    kwargs['negated_qubit_controls'] = negatedControlQubits
+                if isAdj:
+                    kwargs['is_adj'] = True
+                params = [
+                    self.changeOperandToType(self.getFloatType(), param)
+                    for param in params
+                ]
+                processQuantumOperation(opName, controls, targets, [], params,
+                                        **kwargs)
 
         def processDecorator(name, path=None):
             from .kernel_decorator import isa_kernel_decorator
@@ -2742,7 +2751,7 @@ class PyASTBridge(ast.NodeVisitor):
             functionTy = FunctionType(
                 cc.CallableType.getFunctionType(kernel.type))
             nrArgs = len(functionTy.inputs)
-            values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
+            values = groupValues(node.args, [(nrArgs, nrArgs)])
             values = convertArguments([t for t in functionTy.inputs], values)
             call = cc.CallCallableOp(functionTy.results, kernel, values)
             call.attributes.__setitem__('symbol', StringAttr.get(symName))
@@ -2763,68 +2772,69 @@ class PyASTBridge(ast.NodeVisitor):
             return self.__migrateLists(result, copy_list_to_stack)
 
         def resolveQualifiedName(pyVal):
-            if isinstance(pyVal, ast.Name):
-                return None, pyVal.id
-            if not isinstance(pyVal, ast.Attribute):
-                return None, None
+            with trace.span("ast_bridge.call.resolve_qualified_name"):
+                if isinstance(pyVal, ast.Name):
+                    return None, pyVal.id
+                if not isinstance(pyVal, ast.Attribute):
+                    return None, None
 
-            moduleNames = []
-            value = pyVal.value
-            while isinstance(value, ast.Attribute):
-                self.debug_msg(lambda: f'[(Inline) Visit Attribute]', value)
-                moduleNames.append(value.attr)
-                value = value.value
-            if not isinstance(value, ast.Name):
-                return None, None
+                moduleNames = []
+                value = pyVal.value
+                while isinstance(value, ast.Attribute):
+                    self.debug_msg(lambda: f'[(Inline) Visit Attribute]', value)
+                    moduleNames.append(value.attr)
+                    value = value.value
+                if not isinstance(value, ast.Name):
+                    return None, None
 
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
-            moduleNames.append(value.id)
-            moduleNames.reverse()
+                self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
+                moduleNames.append(value.id)
+                moduleNames.reverse()
 
-            # Helper method to check that the module `obj`
-            # contains the proper path defined by the submodules
-            # in `moduleNames[1:]` and value named by `pyVal.attr``
-            def checkModule(obj, moduleNames):
-                try:
-                    # Check that the module contains the desired submodules
-                    for part in moduleNames[1:]:
-                        obj = getattr(obj, part)
-                    # Check that the module contains the desired attribute
-                    getattr(obj, pyVal.attr)
-                    return obj.__name__
-                except AttributeError:
-                    return None
-
-            # Check if we can find the desired name among the modules
-            for module_name, module in list(sys.modules.items()):
-                if module_name.split('.')[-1] == moduleNames[0]:
+                # Helper method to check that the module `obj`
+                # contains the proper path defined by the submodules
+                # in `moduleNames[1:]` and value named by `pyVal.attr``
+                def checkModule(obj, moduleNames):
                     try:
-                        obj = module
+                        # Check that the module contains the desired submodules
+                        for part in moduleNames[1:]:
+                            obj = getattr(obj, part)
+                        # Check that the module contains the desired attribute
+                        getattr(obj, pyVal.attr)
+                        return obj.__name__
+                    except AttributeError:
+                        return None
+
+                # Check if we can find the desired name among the modules
+                for module_name, module in list(sys.modules.items()):
+                    if module_name.split('.')[-1] == moduleNames[0]:
+                        try:
+                            obj = module
+                            devKey = checkModule(obj, moduleNames)
+                            if devKey:
+                                return devKey, pyVal.attr
+                        except AttributeError:
+                            continue
+
+                # Look the qualified module name up in the python frames
+                # in case it was aliased (e.g., `import mod1 as mod2`)
+                obj = None
+                for frameinfo in inspect.stack():
+                    frame = frameinfo.frame
+                    if moduleNames[0] in frame.f_locals:
+                        obj = frame.f_locals.get(moduleNames[0])
+                    elif moduleNames[0] in frame.f_globals:
+                        obj = frame.f_globals.get(moduleNames[0])
+                    if obj is not None:
+                        # In case a module has been imported multiple times, grab the latest
+                        if isinstance(obj, list):
+                            obj = obj[-1]
                         devKey = checkModule(obj, moduleNames)
                         if devKey:
                             return devKey, pyVal.attr
-                    except AttributeError:
-                        continue
 
-            # Look the qualified module name up in the python frames
-            # in case it was aliased (e.g., `import mod1 as mod2`)
-            obj = None
-            for frameinfo in inspect.stack():
-                frame = frameinfo.frame
-                if moduleNames[0] in frame.f_locals:
-                    obj = frame.f_locals.get(moduleNames[0])
-                elif moduleNames[0] in frame.f_globals:
-                    obj = frame.f_globals.get(moduleNames[0])
-                if obj is not None:
-                    # In case a module has been imported multiple times, grab the latest
-                    if isinstance(obj, list):
-                        obj = obj[-1]
-                    devKey = checkModule(obj, moduleNames)
-                    if devKey:
-                        return devKey, pyVal.attr
-
-            # Default return value
-            return '.'.join(moduleNames), pyVal.attr
+                # Default return value
+                return '.'.join(moduleNames), pyVal.attr
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
@@ -3110,42 +3120,44 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if self.__isMeasurementGate(node.func.id):
-                registerName = self.currentAssignVariableName
+                with trace.span("ast_bridge.call.emit_measurement"):
+                    registerName = self.currentAssignVariableName
 
-                # By default we set the `register_name` for the measurement to
-                # the assigned variable name (if there is one). But the use
-                # could have manually specified `register_name='something'`
-                # check for that here and use it there
-                if len(node.keywords) == 1 and hasattr(node.keywords[0], 'arg'):
-                    if node.keywords[0].arg == 'register_name':
-                        userProvidedRegName = node.keywords[0]
-                        if not isinstance(userProvidedRegName.value,
-                                          ast.Constant):
-                            self.emitFatalError(
-                                "measurement register_name keyword must be a "
-                                "constant string literal.", node)
-                        self.debug_msg(lambda: f'[(Inline) Visit Constant]',
-                                       userProvidedRegName.value)
-                        registerName = userProvidedRegName.value.value
+                    # By default we set the `register_name` for the measurement to
+                    # the assigned variable name (if there is one). But the use
+                    # could have manually specified `register_name='something'`
+                    # check for that here and use it there
+                    if len(node.keywords) == 1 and hasattr(
+                            node.keywords[0], 'arg'):
+                        if node.keywords[0].arg == 'register_name':
+                            userProvidedRegName = node.keywords[0]
+                            if not isinstance(userProvidedRegName.value,
+                                              ast.Constant):
+                                self.emitFatalError(
+                                    "measurement register_name keyword must be a "
+                                    "constant string literal.", node)
+                            self.debug_msg(lambda: f'[(Inline) Visit Constant]',
+                                           userProvidedRegName.value)
+                            registerName = userProvidedRegName.value.value
 
-                qubits = self.__groupValues(node.args, [(1, -1)])
-                label = registerName or None
-                # `mx`/`my`/`mz` are the single measurement API: they emit
-                # `quake.{mx,my,mz}` producing `!cc.measure_handle` (scalar)
-                # or `!cc.stdvec<!cc.measure_handle>` (vector form on a
-                # `qvector`/`qview`).
-                handleEleTy = cc.MeasureHandleType.get()
-                if len(qubits) == 1 and quake.RefType.isinstance(
-                        qubits[0].type):
-                    measTy = handleEleTy
-                else:
-                    measTy = cc.StdvecType.get(handleEleTy)
-                handle = processQuantumOperation(node.func.id.title(), [],
-                                                 qubits,
-                                                 measTy,
-                                                 broadcast=False,
-                                                 registerName=label).result
-                self.pushValue(handle)
+                    qubits = groupValues(node.args, [(1, -1)])
+                    label = registerName or None
+                    # `mx`/`my`/`mz` are the single measurement API: they emit
+                    # `quake.{mx,my,mz}` producing `!cc.measure_handle` (scalar)
+                    # or `!cc.stdvec<!cc.measure_handle>` (vector form on a
+                    # `qvector`/`qview`).
+                    handleEleTy = cc.MeasureHandleType.get()
+                    if len(qubits) == 1 and quake.RefType.isinstance(
+                            qubits[0].type):
+                        measTy = handleEleTy
+                    else:
+                        measTy = cc.StdvecType.get(handleEleTy)
+                    handle = processQuantumOperation(node.func.id.title(), [],
+                                                     qubits,
+                                                     measTy,
+                                                     broadcast=False,
+                                                     registerName=label).result
+                    self.pushValue(handle)
                 return
 
             if node.func.id == 'swap':
@@ -3184,26 +3196,27 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id in globalRegisteredOperations:
-                unitary = globalRegisteredOperations[node.func.id]
-                numTargets = int(np.log2(np.sqrt(unitary.size)))
-                targets = self.__expandCustomOpTargets(node.args, numTargets,
-                                                       node)
+                with trace.span("ast_bridge.call.emit_custom_operation"):
+                    unitary = globalRegisteredOperations[node.func.id]
+                    numTargets = int(np.log2(np.sqrt(unitary.size)))
+                    targets = self.__expandCustomOpTargets(
+                        node.args, numTargets, node)
 
-                globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
+                    globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
-                currentST = SymbolTable(self.module.operation)
-                if not globalName in currentST:
-                    with InsertionPoint(self.module.body):
-                        gen_vector_of_complex_constant(self.loc, self.module,
-                                                       globalName,
-                                                       unitary.tolist())
-                quake.CustomUnitaryConstantOp(
-                    [],
-                    matrix=FlatSymbolRefAttr.get(globalName),
-                    parameters=[],
-                    controls=[],
-                    targets=targets,
-                    is_adj=False)
+                    currentST = SymbolTable(self.module.operation)
+                    if not globalName in currentST:
+                        with InsertionPoint(self.module.body):
+                            gen_vector_of_complex_constant(
+                                self.loc, self.module, globalName,
+                                unitary.tolist())
+                    quake.CustomUnitaryConstantOp(
+                        [],
+                        matrix=FlatSymbolRefAttr.get(globalName),
+                        parameters=[],
+                        controls=[],
+                        targets=targets,
+                        is_adj=False)
                 return
 
             elif node.func.id == 'int':
@@ -3560,98 +3573,101 @@ class PyASTBridge(ast.NodeVisitor):
                             f"{value.type}", node)
 
                     if node.func.attr == 'qvector':
-                        if len(node.args) == 0:
+                        with trace.span("ast_bridge.call.emit_qvector"):
+                            if len(node.args) == 0:
+                                self.emitFatalError(
+                                    'qvector does not have default constructor. '
+                                    'Init from size or existing state.', node)
+
+                            value = groupValues(node.args, [1])
+
+                            if (IntegerType.isinstance(value.type)):
+                                # handle `cudaq.qvector(n)`
+                                ty = self.getVeqType()
+                                qubits = quake.AllocaOp(ty, size=value).result
+                                self.pushValue(qubits)
+                                return
+
+                            if cc.StdvecType.isinstance(value.type):
+
+                                # handle `cudaq.qvector(initState)`
+                                def check_vector_init():
+                                    """Run semantics checks.
+
+                                    Validate the length in
+                                    case of a constant initializer:
+                                      `cudaq.qvector([1., 0., ...])`
+                                      `cudaq.qvector(np.array([1., 0., ...]))`
+                                    """
+                                    listScalar = None
+                                    arrNode = node.args[0]
+                                    if isinstance(arrNode, ast.List):
+                                        listScalar = arrNode.elts
+
+                                    if (isinstance(arrNode, ast.Call) and
+                                            isinstance(arrNode.func,
+                                                       ast.Attribute)):
+                                        if arrNode.func.value.id in [
+                                                'numpy', 'np'
+                                        ] and arrNode.func.attr == 'array':
+                                            lst = node.args[0].args[0]
+                                            if isinstance(lst, ast.List):
+                                                listScalar = lst.elts
+
+                                    if listScalar is not None:
+                                        size = len(listScalar)
+                                        numQubits = np.log2(size)
+                                        if not numQubits.is_integer():
+                                            self.emitFatalError(
+                                                "Invalid input state size for "
+                                                "qvector init (not a power of 2)",
+                                                node)
+
+                                check_vector_init()
+                                eleTy = cc.StdvecType.getElementType(value.type)
+                                arrTy = cc.ArrayType.get(eleTy)
+                                ptrArrTy = cc.PointerType.get(arrTy)
+                                data = cc.StdvecDataOp(ptrArrTy, value).result
+                                intTy = self.getIntegerType()
+                                size = cc.StdvecSizeOp(intTy, value).result
+                                stateTy = cc.PointerType.get(cc.StateType.get())
+                                state = quake.CreateStateOp(
+                                    stateTy, data, size).result
+                                numQubits = quake.GetNumberOfQubitsOp(
+                                    intTy, state).result
+                                # Dynamic checking that the state is normalized is
+                                # done at the library layer.
+                                veqTy = quake.VeqType.get()
+                                qubits = quake.AllocaOp(veqTy,
+                                                        size=numQubits).result
+                                init = quake.InitializeStateOp(
+                                    veqTy, qubits, state).result
+                                deleteState = quake.DeleteStateOp(state)
+                                self.pushValue(init)
+                                return
+
+                            if (cc.PointerType.isinstance(value.type) and
+                                    cc.StateType.isinstance(
+                                        cc.PointerType.getElementType(
+                                            value.type))):
+                                # handle `cudaq.qvector(state)`
+
+                                i64Ty = self.getIntegerType()
+                                numQubits = quake.GetNumberOfQubitsOp(
+                                    i64Ty, value).result
+
+                                veqTy = quake.VeqType.get()
+                                qubits = quake.AllocaOp(veqTy,
+                                                        size=numQubits).result
+                                init = quake.InitializeStateOp(
+                                    veqTy, qubits, value).result
+
+                                self.pushValue(init)
+                                return
+
                             self.emitFatalError(
-                                'qvector does not have default constructor. '
-                                'Init from size or existing state.', node)
-
-                        value = self.__groupValues(node.args, [1])
-
-                        if (IntegerType.isinstance(value.type)):
-                            # handle `cudaq.qvector(n)`
-                            ty = self.getVeqType()
-                            qubits = quake.AllocaOp(ty, size=value).result
-                            self.pushValue(qubits)
-                            return
-
-                        if cc.StdvecType.isinstance(value.type):
-
-                            # handle `cudaq.qvector(initState)`
-                            def check_vector_init():
-                                """Run semantics checks.
-
-                                Validate the length in
-                                case of a constant initializer:
-                                  `cudaq.qvector([1., 0., ...])`
-                                  `cudaq.qvector(np.array([1., 0., ...]))`
-                                """
-                                listScalar = None
-                                arrNode = node.args[0]
-                                if isinstance(arrNode, ast.List):
-                                    listScalar = arrNode.elts
-
-                                if isinstance(arrNode, ast.Call) and isinstance(
-                                        arrNode.func, ast.Attribute):
-                                    if arrNode.func.value.id in [
-                                            'numpy', 'np'
-                                    ] and arrNode.func.attr == 'array':
-                                        lst = node.args[0].args[0]
-                                        if isinstance(lst, ast.List):
-                                            listScalar = lst.elts
-
-                                if listScalar is not None:
-                                    size = len(listScalar)
-                                    numQubits = np.log2(size)
-                                    if not numQubits.is_integer():
-                                        self.emitFatalError(
-                                            "Invalid input state size for "
-                                            "qvector init (not a power of 2)",
-                                            node)
-
-                            check_vector_init()
-                            eleTy = cc.StdvecType.getElementType(value.type)
-                            arrTy = cc.ArrayType.get(eleTy)
-                            ptrArrTy = cc.PointerType.get(arrTy)
-                            data = cc.StdvecDataOp(ptrArrTy, value).result
-                            intTy = self.getIntegerType()
-                            size = cc.StdvecSizeOp(intTy, value).result
-                            stateTy = cc.PointerType.get(cc.StateType.get())
-                            state = quake.CreateStateOp(stateTy, data,
-                                                        size).result
-                            numQubits = quake.GetNumberOfQubitsOp(intTy,
-                                                                  state).result
-                            # Dynamic checking that the state is normalized is
-                            # done at the library layer.
-                            veqTy = quake.VeqType.get()
-                            qubits = quake.AllocaOp(veqTy,
-                                                    size=numQubits).result
-                            init = quake.InitializeStateOp(
-                                veqTy, qubits, state).result
-                            deleteState = quake.DeleteStateOp(state)
-                            self.pushValue(init)
-                            return
-
-                        if (cc.PointerType.isinstance(value.type) and
-                                cc.StateType.isinstance(
-                                    cc.PointerType.getElementType(value.type))):
-                            # handle `cudaq.qvector(state)`
-
-                            i64Ty = self.getIntegerType()
-                            numQubits = quake.GetNumberOfQubitsOp(i64Ty,
-                                                                  value).result
-
-                            veqTy = quake.VeqType.get()
-                            qubits = quake.AllocaOp(veqTy,
-                                                    size=numQubits).result
-                            init = quake.InitializeStateOp(
-                                veqTy, qubits, value).result
-
-                            self.pushValue(init)
-                            return
-
-                        self.emitFatalError(
-                            f"unsupported qvector argument type: {value.type}",
-                            node)
+                                f"unsupported qvector argument type: {value.type}",
+                                node)
 
                     if node.func.attr == "qubit":
                         if len(node.args) != 0:
@@ -3701,101 +3717,110 @@ class PyASTBridge(ast.NodeVisitor):
                         return self._lowerQECOp(node)
 
                     if node.func.attr == 'adjoint' or node.func.attr == 'control':
+                        with trace.span(
+                                "ast_bridge.call.emit_cudaq_control_adjoint"):
 
-                        # NOTE: We currently generally don't have the means in
-                        # the compiler to handle composition of control and
-                        # adjoint, since control and adjoint are not proper
-                        # functors (i.e. there is no way to obtain a new
-                        # callable object that is the adjoint or controlled
-                        # version of another callable).  Since we don't really
-                        # treat callables as first-class values, the first
-                        # argument to control and adjoint indeed has to be a
-                        # Name object.
+                            # NOTE: We currently generally don't have the means in
+                            # the compiler to handle composition of control and
+                            # adjoint, since control and adjoint are not proper
+                            # functors (i.e. there is no way to obtain a new
+                            # callable object that is the adjoint or controlled
+                            # version of another callable).  Since we don't really
+                            # treat callables as first-class values, the first
+                            # argument to control and adjoint indeed has to be a
+                            # Name object.
 
-                        otherFuncName = None
-                        if node.args:
-                            devKey, name = resolveQualifiedName(node.args[0])
-                            otherFuncName = processDecorator(name, path=devKey)
+                            otherFuncName = None
+                            if node.args:
+                                devKey, name = resolveQualifiedName(
+                                    node.args[0])
+                                otherFuncName = processDecorator(name,
+                                                                 path=devKey)
+                                if not otherFuncName:
+                                    otherFuncName = f"{devKey}.{name}" if devKey else name
+                                    maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                                        self.module, otherFuncName)
+                                    if maybeKernelName != None:
+                                        self.emitFatalError(
+                                            "calling cudaq.control or cudaq.adjoint on "
+                                            "a kernel defined in C++ is not currently "
+                                            "supported", node)
+
                             if not otherFuncName:
-                                otherFuncName = f"{devKey}.{name}" if devKey else name
-                                maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                                    self.module, otherFuncName)
-                                if maybeKernelName != None:
+                                self.emitFatalError(
+                                    f'unsupported argument in call to '
+                                    f'{node.func.attr} - first argument must be a'
+                                    f' symbol name', node)
+
+                            kwargs = {"is_adj": node.func.attr == 'adjoint'}
+                            if otherFuncName in self.symbolTable:
+                                self.visit(ast.Name(otherFuncName))
+                                fctArg = self.popValue()
+                                if not cc.CallableType.isinstance(fctArg.type):
                                     self.emitFatalError(
-                                        "calling cudaq.control or cudaq.adjoint on "
-                                        "a kernel defined in C++ is not currently "
-                                        "supported", node)
-
-                        if not otherFuncName:
-                            self.emitFatalError(
-                                f'unsupported argument in call to '
-                                f'{node.func.attr} - first argument must be a'
-                                f' symbol name', node)
-
-                        kwargs = {"is_adj": node.func.attr == 'adjoint'}
-                        if otherFuncName in self.symbolTable:
-                            self.visit(ast.Name(otherFuncName))
-                            fctArg = self.popValue()
-                            if not cc.CallableType.isinstance(fctArg.type):
+                                        f"{otherFuncName} is not a quantum kernel",
+                                        node)
+                                functionTy = FunctionType(
+                                    cc.CallableType.getFunctionType(
+                                        fctArg.type))
+                                inputTys = functionTy.inputs
+                                outputTys = functionTy.results
+                                indirectCallee = [fctArg]
+                            elif otherFuncName in globalRegisteredOperations:
                                 self.emitFatalError(
-                                    f"{otherFuncName} is not a quantum kernel",
-                                    node)
-                            functionTy = FunctionType(
-                                cc.CallableType.getFunctionType(fctArg.type))
-                            inputTys = functionTy.inputs
-                            outputTys = functionTy.results
-                            indirectCallee = [fctArg]
-                        elif otherFuncName in globalRegisteredOperations:
-                            self.emitFatalError(
-                                "calling cudaq.control or cudaq.adjoint on "
-                                "a globally registered operation is not "
-                                "supported", node)
-                        elif self.__isUnitaryGate(
-                                otherFuncName) or self.__isMeasurementGate(
-                                    otherFuncName):
-                            self.emitFatalError(
-                                "calling cudaq.control or cudaq.adjoint on a "
-                                "built-in gate is not supported", node)
-                        else:
-                            self.emitFatalError(
-                                f"{otherFuncName} is not a known quantum "
-                                f"kernel - maybe a cudaq.kernel attribute is"
-                                f" missing?.", node)
+                                    "calling cudaq.control or cudaq.adjoint on "
+                                    "a globally registered operation is not "
+                                    "supported", node)
+                            elif self.__isUnitaryGate(
+                                    otherFuncName) or self.__isMeasurementGate(
+                                        otherFuncName):
+                                self.emitFatalError(
+                                    "calling cudaq.control or cudaq.adjoint on a "
+                                    "built-in gate is not supported", node)
+                            else:
+                                self.emitFatalError(
+                                    f"{otherFuncName} is not a known quantum "
+                                    f"kernel - maybe a cudaq.kernel attribute is"
+                                    f" missing?.", node)
 
-                        numArgs = len(inputTys)
-                        invert_controls = lambda: None
-                        if node.func.attr == 'control':
-                            controls, args = self.__groupValues(
-                                node.args[1:], [(1, -1), (numArgs, numArgs)])
-                            qvec_or_qubits = (
-                                all((quake.RefType.isinstance(v.type)
+                            numArgs = len(inputTys)
+                            invert_controls = lambda: None
+                            if node.func.attr == 'control':
+                                controls, args = groupValues(
+                                    node.args[1:], [(1, -1),
+                                                    (numArgs, numArgs)])
+                                qvec_or_qubits = (all(
+                                    (quake.RefType.isinstance(v.type)
                                      for v in controls)) or
-                                (len(controls) == 1 and
-                                 quake.VeqType.isinstance(controls[0].type)))
-                            if not qvec_or_qubits:
-                                self.emitFatalError(
-                                    f'invalid argument type for control'
-                                    f' operand', node)
-                            # TODO: it would be cleaner to add support for
-                            # negated control qubits to `quake.ApplyOp`
-                            negatedControlQubits = self.controlNegations.copy()
-                            self.controlNegations.clear()
-                            if negatedControlQubits:
-                                invert_controls = lambda: processQuantumOperation(
-                                    'X', [], negatedControlQubits, [], [])
-                        else:
-                            controls, args = self.__groupValues(
-                                node.args[1:], [(0, 0), (numArgs, numArgs)])
+                                                  (len(controls) == 1 and
+                                                   quake.VeqType.isinstance(
+                                                       controls[0].type)))
+                                if not qvec_or_qubits:
+                                    self.emitFatalError(
+                                        f'invalid argument type for control'
+                                        f' operand', node)
+                                # TODO: it would be cleaner to add support for
+                                # negated control qubits to `quake.ApplyOp`
+                                negatedControlQubits = self.controlNegations.copy(
+                                )
+                                self.controlNegations.clear()
+                                if negatedControlQubits:
+                                    invert_controls = lambda: processQuantumOperation(
+                                        'X', [], negatedControlQubits, [], [])
+                            else:
+                                controls, args = groupValues(
+                                    node.args[1:], [(0, 0), (numArgs, numArgs)])
 
-                        args = convertArguments(inputTys, args)
-                        if len(outputTys) != 0:
-                            self.emitFatalError(
-                                f'cannot take {node.func.attr} of kernel '
-                                f'{otherFuncName} that returns a value', node)
-                        invert_controls()
-                        quake.ApplyOp([], indirectCallee, controls, args,
-                                      **kwargs)
-                        invert_controls()
+                            args = convertArguments(inputTys, args)
+                            if len(outputTys) != 0:
+                                self.emitFatalError(
+                                    f'cannot take {node.func.attr} of kernel '
+                                    f'{otherFuncName} that returns a value',
+                                    node)
+                            invert_controls()
+                            quake.ApplyOp([], indirectCallee, controls, args,
+                                          **kwargs)
+                            invert_controls()
                         return
 
                     if node.func.attr == 'apply_noise':
@@ -3991,49 +4016,52 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # custom `ctrl` and `adj`
                 if node.func.value.id in globalRegisteredOperations:
-                    if not node.func.attr == 'ctrl' and not node.func.attr == 'adj':
-                        self.emitFatalError(
-                            f'Unknown attribute on custom operation '
-                            f'{node.func.value.id} ({node.func.attr}).')
+                    with trace.span("ast_bridge.call.emit_custom_operation"):
+                        if (not node.func.attr == 'ctrl' and
+                                not node.func.attr == 'adj'):
+                            self.emitFatalError(
+                                f'Unknown attribute on custom operation '
+                                f'{node.func.value.id} ({node.func.attr}).')
 
-                    unitary = globalRegisteredOperations[node.func.value.id]
-                    numTargets = int(np.log2(np.sqrt(unitary.size)))
-                    globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
-                    currentST = SymbolTable(self.module.operation)
-                    if not globalName in currentST:
-                        with InsertionPoint(self.module.body):
-                            gen_vector_of_complex_constant(
-                                self.loc, self.module, globalName,
-                                unitary.tolist())
+                        unitary = globalRegisteredOperations[node.func.value.id]
+                        numTargets = int(np.log2(np.sqrt(unitary.size)))
+                        globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
+                        currentST = SymbolTable(self.module.operation)
+                        if not globalName in currentST:
+                            with InsertionPoint(self.module.body):
+                                gen_vector_of_complex_constant(
+                                    self.loc, self.module, globalName,
+                                    unitary.tolist())
 
-                    if node.func.attr == 'ctrl':
-                        controls, targets = self.__groupValues(
-                            node.args, [(1, -1), (numTargets, numTargets)])
-                        negatedControlQubits = getNegatedControlQubits(controls)
-                        is_adj = False
-                    if node.func.attr == 'adj':
-                        controls, targets = self.__groupValues(
-                            node.args, [0, (numTargets, numTargets)])
-                        negatedControlQubits = None
-                        is_adj = True
+                        if node.func.attr == 'ctrl':
+                            controls, targets = groupValues(
+                                node.args, [(1, -1), (numTargets, numTargets)])
+                            negatedControlQubits = getNegatedControlQubits(
+                                controls)
+                            is_adj = False
+                        if node.func.attr == 'adj':
+                            controls, targets = groupValues(
+                                node.args, [0, (numTargets, numTargets)])
+                            negatedControlQubits = None
+                            is_adj = True
 
-                    checkControlAndTargetTypes(controls, targets)
-                    # The check above makes sure targets are either a list
-                    # of individual qubits, or a single `qvector`. Since
-                    # a `qvector` is not allowed, we check this here:
-                    if not quake.RefType.isinstance(targets[0].type):
-                        self.emitFatalError(
-                            'invalid target operand - target must not be '
-                            'a qvector')
+                        checkControlAndTargetTypes(controls, targets)
+                        # The check above makes sure targets are either a list
+                        # of individual qubits, or a single `qvector`. Since
+                        # a `qvector` is not allowed, we check this here:
+                        if not quake.RefType.isinstance(targets[0].type):
+                            self.emitFatalError(
+                                'invalid target operand - target must not be '
+                                'a qvector')
 
-                    quake.CustomUnitaryConstantOp(
-                        [],
-                        matrix=FlatSymbolRefAttr.get(globalName),
-                        parameters=[],
-                        controls=controls,
-                        targets=targets,
-                        is_adj=is_adj,
-                        negated_qubit_controls=negatedControlQubits)
+                        quake.CustomUnitaryConstantOp(
+                            [],
+                            matrix=FlatSymbolRefAttr.get(globalName),
+                            parameters=[],
+                            controls=controls,
+                            targets=targets,
+                            is_adj=is_adj,
+                            negated_qubit_controls=negatedControlQubits)
                     return
 
         self.emitFatalError(f"unknown function call", node)
