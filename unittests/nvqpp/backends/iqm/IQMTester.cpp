@@ -96,10 +96,8 @@ CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
   serverHelper->initialize(config);
 
   cudaq::ServerMessage response = {
-      {"status", "ready"},
-      {"counts_batch",
-       cudaq::ServerMessage::array(
-           {{{"counts", {{"100", 1000}}}, {"measurement_keys", {"m_0"}}}})}};
+      {{"counts", {{"100", 1000}}},
+       {"measurement_keys", {"m_QB0, m_QB1, m_QB2"}}}};
 
   std::string jobIdCopy = jobId;
   auto result = serverHelper->processResults(response, jobIdCopy);
