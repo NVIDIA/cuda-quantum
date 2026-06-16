@@ -96,15 +96,16 @@ CompiledModule CompiledModuleHelper::createCompiledModule(
   return compiled;
 }
 
-void CompiledModuleHelper::loadMlirArtifacts(cudaq::SourceModule &module) {
-  if (!module.getMlirArtifacts().empty())
-    return;
+cudaq::FatQuakeModule::MlirArtifact
+CompiledModuleHelper::loadMlirArtifact(const cudaq::SourceModule &module) {
+  if (auto mlirArt = module.getMlir())
+    return *mlirArt;
 
   auto [moduleOp, context] =
       cudaq_internal::compiler::Compiler::loadQuakeCodeByName(module.getName());
   cudaq::FatQuakeModule::MlirArtifact mlirArtifact(moduleOp,
                                                    std::move(context));
-  module.addArtifact(module.getName(), std::move(mlirArtifact));
+  return mlirArtifact;
 }
 
 } // namespace cudaq_internal::compiler

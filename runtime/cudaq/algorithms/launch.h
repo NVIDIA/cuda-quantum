@@ -20,25 +20,13 @@
 #include <stdexcept>
 #include <variant>
 
+#ifndef CUDAQ_DISABLE_JIT_COMPILER
 namespace cudaq_internal::compiler {
-template <typename Policy>
 cudaq::CompiledModule
-compileModule(const Policy &policy,
-              std::unique_ptr<cudaq::CompileTarget> target,
+compileModule(std::unique_ptr<cudaq::CompileTarget> target,
               const cudaq::SourceModule &src, cudaq::KernelArgs args,
               bool isEntryPoint = true);
 } // namespace cudaq_internal::compiler
-
-// If JIT compilation is disabled, make compilation a no-op. QPUs may throw an
-// error if they expect a JIT-compiled module.
-#ifdef CUDAQ_DISABLE_JIT_COMPILER
-template <typename Policy>
-cudaq::CompiledModule cudaq_internal::compiler::compileModule(
-    const Policy &policy, std::unique_ptr<cudaq::CompileTarget> target,
-    const cudaq::SourceModule &src, cudaq::KernelArgs args, bool isEntryPoint) {
-  CUDAQ_INFO("JIT compilation is disabled. Compilation is a no-op.");
-  return cudaq::CompiledModule{src};
-}
 #endif
 
 namespace cudaq {
@@ -76,6 +64,12 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
                                                   const KernelArgs &args) {
     CompiledModule compiled;
     if (const auto *source = std::get_if<SourceModule>(&module)) {
+#ifdef CUDAQ_DISABLE_JIT_COMPILER
+      // If JIT compilation is disabled, compilation is a no-op. QPUs may throw
+      // an error if they expect a JIT-compiled module.
+      CUDAQ_INFO("JIT compilation is disabled. Compilation is a no-op.");
+      compiled = CompiledModule{*source};
+#else
       CUDAQ_INFO("No compiled module found. Compiling.");
       std::unique_ptr<cudaq::CompileTarget> target;
       if constexpr (requires { policy.inner; }) {
@@ -83,8 +77,9 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       } else {
         target = cudaq::get_compile_target(policy);
       }
-      compiled = cudaq_internal::compiler::compileModule(
-          policy, std::move(target), *source, args);
+      compiled = cudaq_internal::compiler::compileModule(std::move(target),
+                                                         *source, args);
+#endif
     } else {
       CUDAQ_INFO("Found compiled module. Skipping compilation.");
       compiled = std::get<CompiledModule>(module);

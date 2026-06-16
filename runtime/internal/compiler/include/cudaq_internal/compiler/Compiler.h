@@ -131,40 +131,9 @@ std::string getPassPipeline(const cudaq::CompileTarget &target);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.
-template <typename Policy>
 cudaq::CompiledModule
-compileModule(const Policy &policy,
-              std::unique_ptr<cudaq::CompileTarget> target,
+compileModule(std::unique_ptr<cudaq::CompileTarget> target,
               const cudaq::SourceModule &src, cudaq::KernelArgs args,
-              bool isEntryPoint = true) {
-  if (!target->overrideAOTCompilation && src.getFunctionPtr()) {
-    // We are allowed to use the AOT-compiled module as-is, so nothing to do.
-    CUDAQ_INFO("No JIT compilation required. Using AOT-compiled module as-is.");
-    return cudaq::CompiledModule{src};
-  }
-
-  const auto &kernelName = src.getName();
-  auto mlirArt = src.getMlir();
-  if (!mlirArt.has_value()) {
-    auto srcOwned = src;
-    CompiledModuleHelper::loadMlirArtifacts(srcOwned);
-    mlirArt = srcOwned.getMlir();
-  }
-
-  assert(mlirArt.has_value() &&
-         "Compiler::compileModule requires an MLIR artifact");
-
-  Compiler compiler(std::move(target));
-  auto compiled =
-      compiler.runPassPipeline(kernelName, mlirArt->getOpaqueModulePtr(), args,
-                               isEntryPoint, mlirArt->getContext());
-
-  if constexpr (std::is_same_v<Policy, cudaq::sample_policy>) {
-    // Any warning would have been emitted by the compiler. Silence further
-    // warnings.
-    policy.warnedNamedMeasurements = true;
-  }
-  return compiled;
-}
+              bool isEntryPoint = true);
 
 } // namespace cudaq_internal::compiler

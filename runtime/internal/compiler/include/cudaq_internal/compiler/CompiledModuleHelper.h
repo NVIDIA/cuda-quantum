@@ -79,8 +79,10 @@ public:
       std::vector<NamedCompiledArtifact> compiledArtifacts,
       cudaq::CompiledModule::CompilationMetadata metadata = {});
 
-  /// Load the module's source MLIR using `Compiler::loadQuakeCodeByName`.
-  static void loadMlirArtifacts(cudaq::SourceModule &module);
+  /// Load the module's source MLIR using `Compiler::loadQuakeCodeByName` and
+  /// return it.
+  static cudaq::FatQuakeModule::MlirArtifact
+  loadMlirArtifact(const cudaq::SourceModule &module);
 };
 
 } // namespace cudaq_internal::compiler
