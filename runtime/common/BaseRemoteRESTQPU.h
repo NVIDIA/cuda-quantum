@@ -299,10 +299,6 @@ public:
 
       compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
                                           std::move(context));
-      if constexpr (std::is_same_v<Policy, sample_policy>) {
-        if (compiler.hasWarnedNamedMeasurements())
-          policy.warnedNamedMeasurements = true;
-      }
     } else {
       compiled = std::get<CompiledModule>(module);
       kernelName = compiled->getName();
