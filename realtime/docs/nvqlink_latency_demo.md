@@ -2,12 +2,13 @@
 
 Start from the HSB FPGA artifacts described in the
 [CUDA-Q Realtime installation docs](https://nvidia.github.io/cuda-quantum/latest/using/realtime/installation.html#realtime-hsb-fpga-artifacts).
-For this demo, use the packaged RFSoC PYNQ reference design and place the
-matching `nv_hsb_ip` RTL source as described there.
+For this demo, program the Real Digital RFSoC 4x2 board with either the
+pre-built RFSoC bit-file or a bit-file built from the released RFSoC PYNQ source.
 
-The RFSoC PYNQ archive contains the top-level RTL, Vivado build scripts,
-Integrated Logic Analyzer (`ILA`) and latency scripts, and the pre-built
-bit-file for the packaged RFSoC example.
+The RFSoC PYNQ source contains the top-level RTL, Vivado build scripts,
+Integrated Logic Analyzer (`ILA`) and latency scripts.
+When building from source, use the matching `fpga/nv_hsb_ip` RTL source from the
+same HSB repository checkout.
 
 More details about how the `Holoscan Sensor Bridge` (`HSB`) IP can be incorporated
 can be found [here](https://docs.nvidia.com/holoscan/sensor-bridge/latest/fpga_index.html)
@@ -22,12 +23,12 @@ the capabilities required.
 
 ## Steps to do the experiment
 
-1. Load the packaged RFSoC example bit-file into the FPGA.
+1. Load the RFSoC bit-file into the FPGA.
 2. Setup the host to run the experiment.
 Mainly the IP address of the NIC needs to be set to `192.168.0.101`.
 More details can be found at the
 *Data Channel Enumeration and IP Address Configuration* section of [this document](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html)
-3. Download the accompanying software from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA)
+3. Download the accompanying software from the [released RFSoC PYNQ source](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/pynq)
 
    Then generate the docker:
 

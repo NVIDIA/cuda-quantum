@@ -62,7 +62,8 @@ Please refer to this [section](#using-docker) for instructions.
 2. Program the FPGA with `HSB`
 
     See the [CUDA-Q Realtime installation docs](https://nvidia.github.io/cuda-quantum/latest/using/realtime/installation.html#realtime-hsb-fpga-artifacts)
-    for the reusable `nv_hsb_ip` RTL source and the packaged RFSoC example bit-file.
+    for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
+    and the pre-built RFSoC bit-file.
 
     > **_NOTE:_** Please make sure to set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
     and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration)

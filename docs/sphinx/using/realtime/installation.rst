@@ -12,6 +12,8 @@ CUDA-Q Realtime has been tested with the following NVIDIA products:
 
 Prerequisites
 ---------------------
+The network transport bridge for `cudaq-realtime` is provided by the NVQLink reference architecture, based on the Holoscan Sensor Bridge FPGA IP.
+Users may also implement their own transport layer and make it accessible to `cudaq-realtime` as a bridge implementation.
 
 .. tab:: Using Holoscan Sensor Bridge
 
@@ -31,16 +33,17 @@ Prerequisites
 HSB FPGA IP core and RFSoC bit-file
 -----------------------------------
 
-The primary FPGA deliverable is the open-source HSB FPGA IP core, ``nv_hsb_ip``.
-Integrate this RTL source into your FPGA design when you want to use HSB with your FPGA target.
+We offer two artifacts to developers seeking to use `cudaq-realtime` with their FPGA systems:
 
-The HSB 2.6.0-EA release also provides a fully packaged RFSoC example for the Real Digital RFSoC 4x2 evaluation board, using Vivado part ``xczu48dr-ffvg1517-2-e``.
-The `HSB 2.6.0-EA artifact directory <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__ contains the pre-built ``nvqlink_rfsoc_v2603.bit`` bit-file and the ``pynq_rfsoc_2603_EA_release.zip`` RFSoC PYNQ reference-design archive.
-The matching ``nv_hsb_ip`` source directory is in the `Holoscan Sensor Bridge release-2.6.0-EA branch <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA/fpga/nv_hsb_ip>`__.
+1. The open-source HSB FPGA IP core, ``nv_hsb_ip``, can be incorporated in a developer's FPGA design to enable that design to define an NVQLink-connected device.
+   This core is available as RTL in the `HSB FPGA IP core source <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/nv_hsb_ip>`__.
+2. The RFSoC PYNQ example is a fully packaged example for the Real Digital RFSoC 4x2 evaluation board, using Vivado part ``xczu48dr-ffvg1517-2-e``.
+   Use the `RFSoC PYNQ source <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/pynq>`__ if you want to build or modify the design in Vivado.
+   Use the pre-built ``nvqlink_rfsoc_v2603.bit`` bit-file in the `HSB 2.6.0-EA artifact directory <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__ if you want to program the supported board without rebuilding it.
 
-When building the RFSoC project from the PYNQ archive, place the ``nv_hsb_ip`` directory from that release branch at the same level as the archive's ``pynq`` directory.
-Do not mix ``nv_hsb_ip`` from an older HSB release with the HSB 2.6.0-EA RFSoC files.
-For another RFSoC part or board, update the Vivado part and constraints in ``pynq/rfsoc-pynq/build/build.tcl`` and rebuild the bit-file.
+When building the RFSoC project from source, use the released ``fpga`` tree from the Holoscan Sensor Bridge repository, including both ``fpga/pynq`` and the sibling ``fpga/nv_hsb_ip`` directory.
+Do not mix ``nv_hsb_ip`` or RFSoC PYNQ files from an older HSB release with the packaged RFSoC example.
+For another RFSoC part or board, update the Vivado part and constraints in ``fpga/pynq/rfsoc-pynq/build/build.tcl`` and rebuild the bit-file.
 
 Setup
 ---------------------
@@ -56,7 +59,7 @@ Setup
   - Follow the instructions given by the installer for post-installation steps to set environment variables.
 
   - Program the FPGA with HSB.
-    See :ref:`realtime-hsb-fpga-artifacts` for the reusable ``nv_hsb_ip`` RTL source and the packaged RFSoC example bit-file.
+    See :ref:`realtime-hsb-fpga-artifacts` for the reusable ``nv_hsb_ip`` RTL source, the RFSoC PYNQ source example, and the pre-built RFSoC bit-file.
 
   .. note:: 
 

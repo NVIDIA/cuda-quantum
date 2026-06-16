@@ -62,7 +62,7 @@ to install `DOCA` for your system.
 
 To build CUDA-Q Realtime with `HSB`, first, one needs to compile the `HSB` code.
 
-After cloning `HSB` from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA),
+After cloning `HSB` from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge),
 build it with
 
 ```bash
@@ -113,7 +113,8 @@ using CUDA-Q Realtime and Holoscan Sensor Bridge,
 
 - Program the FPGA with `HSB`.
   See the [CUDA-Q Realtime installation docs](https://nvidia.github.io/cuda-quantum/latest/using/realtime/installation.html#realtime-hsb-fpga-artifacts)
-  for the reusable `nv_hsb_ip` RTL source and the packaged RFSoC example bit-file.
+  for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
+  and the pre-built RFSoC bit-file.
 
 - Run the test script (at `cuda-quantum/realtime/unittests/utils/hololink_test.sh`).
 For example,
