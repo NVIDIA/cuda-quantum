@@ -104,6 +104,7 @@ Ou
 POSIX
 PSIRT
 PTSBE
+PYNQ
 Pasqal
 Pauli
 Paulis
@@ -137,11 +138,13 @@ Quake
 Quantinuum
 RDMA
 REPL
+RFSoC
 RHEL
 RPC
 RPCs
 RSA
 RSH
+RTL
 RTR
 RTS
 Realtime
@@ -167,6 +170,7 @@ UCCSD
 VQE
 Vazirani
 Verilog
+Vivado
 WQEs
 WSL
 Xcode
