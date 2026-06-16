@@ -151,10 +151,6 @@ compileModule(const Policy &policy,
   auto compiled =
       compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
 
-  if constexpr (std::is_same_v<Policy, cudaq::sample_policy>) {
-    if (compiler.hasWarnedNamedMeasurements())
-      policy.warnedNamedMeasurements = true;
-  }
   return compiled;
 }
 

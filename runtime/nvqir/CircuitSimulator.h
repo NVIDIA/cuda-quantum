@@ -120,6 +120,10 @@ protected:
   /// @brief Noise model to apply to the current execution.
   const cudaq::noise_model *noiseModel = nullptr;
 
+  /// @brief Flag to indicate that a warning about named measurement registers
+  /// should be emitted.
+  bool warnAboutNamedMeasurements = false;
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -303,6 +307,7 @@ public:
 
   /// @brief Set the execution context
   void configureExecutionContext(const cudaq::sample_policy &policy) {
+    warnAboutNamedMeasurements = true;
     noiseModel = policy.noiseModel;
     currentCircuitName = policy.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
@@ -779,11 +784,10 @@ protected:
     auto execResult = sample(sampleQubits, getNumShotsToExec());
 
     // Warn if there are named measurement registers beyond `__global__`
-    if (!executionContext->warnedNamedMeasurements &&
-        registerNameToMeasuredQubit.size() > 1) {
-      executionContext->warnedNamedMeasurements = true;
+    if (warnAboutNamedMeasurements && registerNameToMeasuredQubit.size() > 1) {
+      warnAboutNamedMeasurements = false;
       std::cerr
-          << "WARNING: Kernel \"" << executionContext->kernelName
+          << "WARNING: Kernel \"" << currentCircuitName
           << "\" uses named measurement results but is "
              "invoked in sampling mode. Support for sub-registers in "
              "`sample_result` is deprecated and will be removed in a future "
@@ -1182,6 +1186,9 @@ protected:
 public:
   /// @brief Clean up state after execution ends
   void endExecution() override {
+    internalResult = {};
+    noiseModel = nullptr;
+
     if (nQubitsAllocated == 0) {
       tracker = {};
       return;
@@ -1203,7 +1210,6 @@ public:
     }
 
     tracker = {};
-    internalResult = {};
   }
 
   /// @brief Apply a pre-constructed gate task to the simulator state.
