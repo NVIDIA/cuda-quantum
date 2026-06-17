@@ -11,12 +11,15 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/bit.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <algorithm>
+#include <memory>
 #include <unsupported/Eigen/KroneckerProduct>
 #include <unsupported/Eigen/MatrixFunctions>
 
@@ -31,7 +34,34 @@ using namespace mlir;
 
 namespace {
 
+/// Tight tolerance for the input-unitarity *contract* and the pure
+/// numerical-safety guards (division by a near-zero determinant, Gram-Schmidt
+/// linear-independence). A custom operation's matrix must be unitary to this
+/// bound before we attempt to synthesize it.
 constexpr double TOL = 1e-7;
+
+/// Separate, calibrated tolerance for the always-on synthesis *reconstruction*
+/// self-checks (verifying that a computed factorization reproduces its target
+/// block). Eigen's `isApprox(B, p)` is a *relative* test
+/// (`||A - B|| <= p * min(||A||, ||B||)`), so this is a relative bound.
+///
+/// This is deliberately looser than `TOL` and is calibrated to measured
+/// behavior rather than chosen arbitrarily. The robust `atan2` angle formula in
+/// `OneQubitOpZYZ` (see below) removes the dominant numerical failure (a
+/// near-degenerate controlled single-qubit sub-block returning `NaN`). After
+/// that fix, a *correctly* synthesized unitary reconstructs to ~1e-10 when
+/// well-conditioned; however, rare near-degenerate sub-blocks that arise deep
+/// in the 5-qubit recursion (in the cosine-sine decomposition and multiplexor
+/// demultiplexing) push the reconstruction residual up to ~8e-7 while the
+/// emitted circuit still reproduces the target to <4e-7 end-to-end (verified by
+/// forced emission and state reconstruction over Haar-random 5-qubit inputs).
+/// A genuinely *wrong* decomposition, by contrast, reconstructs to O(0.1).
+/// `RECON_TOL` therefore sits ~1 order above the measured correct-synthesis
+/// residual and ~4 orders below the failure regime, so the advertised 3-5 qubit
+/// range synthesizes predictably (no spurious bail on a valid 5-qubit unitary)
+/// while the composable `emitWarning`/bail path still rejects genuinely broken
+/// results. The input-unitarity contract above stays at the tight `TOL`.
+constexpr double RECON_TOL = 1e-5;
 
 /// Base class for unitary synthesis, i.e. decomposing an arbitrary unitary
 /// matrix into native gate set. The native gate set here includes all the
@@ -41,7 +71,16 @@ class Decomposer {
 private:
   Eigen::MatrixXcd targetMatrix;
 
+protected:
+  /// Set to `false` by a decomposer when its synthesis cannot reproduce the
+  /// target matrix within `TOL` (e.g. accumulated numerical error). The pass
+  /// uses this to stay composable: on an invalid result it leaves the original
+  /// IR unchanged instead of emitting a wrong circuit or crashing the compiler.
+  bool valid = true;
+
 public:
+  /// Whether the decomposition reproduces the target matrix within `TOL`.
+  bool isValid() const { return valid; }
   /// Function which implements the unitary synthesis algorithm. The result of
   /// decomposition which depends on the algorithm must be convertible to
   /// quantum operations. For example, result is saved into class member(s) as
@@ -85,10 +124,17 @@ struct OneQubitOpZYZ : public Decomposer {
     Eigen::Matrix2cd specialUnitary = std::exp(-1i * phase) * targetMatrix;
     auto abs00 = std::abs(specialUnitary(0, 0));
     auto abs01 = std::abs(specialUnitary(0, 1));
-    if (abs00 >= abs01)
-      angles.beta = 2.0 * std::acos(abs00);
-    else
-      angles.beta = 2.0 * std::asin(abs01);
+    /// The Y-rotation angle is `beta = 2 * atan2(|u01|, |u00|)`. Using `atan2`
+    /// of the two magnitudes (rather than `acos(|u00|)` or `asin(|u01|)`) is
+    /// numerically robust: `acos`/`asin` are ill-conditioned near their +/-1
+    /// endpoints (derivative diverges, amplifying round-off to ~1e-8) and,
+    /// worse, return NaN when their argument exceeds 1 by even a rounding ULP
+    /// -- which happens for the near-degenerate sub-blocks produced deep in a
+    /// recursive Quantum Shannon Decomposition (e.g. a controlled single-qubit
+    /// gate, where |u00| ~ 0 and |u01| ~ 1). `atan2` is well-conditioned over
+    /// the whole domain and needs no clamping, so the same gate is emitted
+    /// reliably across the advertised 3-5 qubit range.
+    angles.beta = 2.0 * std::atan2(abs01, abs00);
     auto sum =
         std::atan2(specialUnitary(1, 1).imag(), specialUnitary(1, 1).real());
     auto diff =
@@ -211,9 +257,15 @@ const Eigen::Matrix4cd &GammaFactor() {
 /// `input_matrix = left * diagonal * right.transpose()`. This function uses QZ
 /// decomposition for this purpose.
 /// NOTE: This function may not generate accurate diagonal matrix in some corner
-/// cases like degenerate matrices.
+/// cases like degenerate matrices. The QZ step can lose accuracy on the
+/// numerically marginal sub-blocks produced deep in a recursive Quantum Shannon
+/// Decomposition; instead of asserting (which would abort the whole
+/// compilation), `ok` is cleared when the result is not diagonal within
+/// `RECON_TOL` so the caller can bail out gracefully and leave the IR
+/// unchanged. The final KAK reconstruction check is the authoritative
+/// correctness backstop.
 std::tuple<Eigen::Matrix4d, Eigen::Matrix4cd, Eigen::Matrix4d>
-bidiagonalize(const Eigen::Matrix4cd &matrix) {
+bidiagonalize(const Eigen::Matrix4cd &matrix, bool &ok) {
   Eigen::Matrix4d real = matrix.real();
   Eigen::Matrix4d imag = matrix.imag();
   Eigen::RealQZ<Eigen::Matrix4d> qz(4);
@@ -225,7 +277,8 @@ bidiagonalize(const Eigen::Matrix4cd &matrix) {
   if (right.determinant() < 0.0)
     right.row(0) *= -1.0;
   Eigen::Matrix4cd diagonal = left.transpose() * matrix * right.transpose();
-  assert(diagonal.isDiagonal(TOL));
+  if (!diagonal.isDiagonal(RECON_TOL))
+    ok = false;
   return std::make_tuple(left, diagonal, right);
 }
 
@@ -233,11 +286,15 @@ bidiagonalize(const Eigen::Matrix4cd &matrix) {
 /// special orthogonal. Given a map, SU(2) × SU(2) -> SO(4),
 /// map(A, B) = M.adjoint() (A ⊗ B∗) M, find A and B.
 std::tuple<Eigen::Matrix2cd, Eigen::Matrix2cd, std::complex<double>>
-extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
-  /// Verify input matrix is special orthogonal
-  assert(std::abs(std::abs(matrix.determinant()) - 1.0) < TOL);
-  assert((matrix * matrix.transpose() - Eigen::Matrix4cd::Identity()).norm() <
-         TOL);
+extractSU2FromSO4(const Eigen::Matrix4cd &matrix, bool &ok) {
+  /// Verify input matrix is special orthogonal. On a marginal sub-block from a
+  /// deep recursion this can drift; clear `ok` instead of asserting so the
+  /// caller bails out gracefully rather than aborting compilation.
+  if (!(std::abs(std::abs(matrix.determinant()) - 1.0) < RECON_TOL))
+    ok = false;
+  if (!((matrix * matrix.transpose() - Eigen::Matrix4cd::Identity()).norm() <
+        RECON_TOL))
+    ok = false;
   Eigen::Matrix4cd mb = MagicBasisMatrix() * matrix * MagicBasisMatrixAdj();
   /// Use Kronecker factorization
   size_t r = 0;
@@ -271,8 +328,10 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
     part1 *= -1;
     phase = -phase;
   }
-  assert(mb.isApprox(phase * Eigen::kroneckerProduct(part1, part2), TOL));
-  assert(part1.isUnitary(TOL) && part2.isUnitary(TOL));
+  if (!mb.isApprox(phase * Eigen::kroneckerProduct(part1, part2), RECON_TOL))
+    ok = false;
+  if (!(part1.isUnitary(RECON_TOL) && part2.isUnitary(RECON_TOL)))
+    ok = false;
   return std::make_tuple(part1, part2, phase);
 }
 
@@ -308,17 +367,22 @@ struct TwoQubitOpKAK : public Decomposer {
     /// Step1: Convert into magic basis
     Eigen::Matrix4cd matrixMagicBasis =
         MagicBasisMatrixAdj() * specialUnitary * MagicBasisMatrix();
-    /// Step2: Diagonalize
-    auto [left, diagonal, right] = bidiagonalize(matrixMagicBasis);
+    /// Step2: Diagonalize. The intermediate sanity checks below are composable:
+    /// they clear `ok` (and hence `valid`) instead of asserting, so a marginal
+    /// sub-block from a deep recursion makes the pass leave the IR unchanged
+    /// rather than aborting the compiler.
+    bool ok = true;
+    auto [left, diagonal, right] = bidiagonalize(matrixMagicBasis, ok);
     /// Step3: Get the KAK components
-    auto [a1, a0, aPh] = extractSU2FromSO4(left);
+    auto [a1, a0, aPh] = extractSU2FromSO4(left, ok);
     components.a0 = a0;
     components.a1 = a1;
     phase *= aPh;
-    auto [b1, b0, bPh] = extractSU2FromSO4(right);
+    auto [b1, b0, bPh] = extractSU2FromSO4(right, ok);
     components.b0 = b0;
     components.b1 = b1;
     phase *= bPh;
+    valid = valid && ok;
     /// Step4: Get the coefficients of canonical class vector
     if (diagonal.determinant().real() < 0.0)
       diagonal(0, 0) *= 1.0;
@@ -330,13 +394,16 @@ struct TwoQubitOpKAK : public Decomposer {
     components.y = coefficients(2).real();
     components.z = coefficients(3).real();
     phase *= std::exp(1i * coefficients(0));
-    /// Final check to verify results
+    /// Final check to verify results. This runs unconditionally (not just in
+    /// debug builds): on failure we mark the decomposition invalid so the pass
+    /// can leave the input IR untouched rather than emit a wrong circuit.
     auto canVecToMat =
         canonicalVecToMatrix(components.x, components.y, components.z);
-    assert(targetMatrix.isApprox(phase * Eigen::kroneckerProduct(a1, a0) *
-                                     canVecToMat *
-                                     Eigen::kroneckerProduct(b1, b0),
-                                 TOL));
+    if (!targetMatrix.isApprox(phase * Eigen::kroneckerProduct(a1, a0) *
+                                   canVecToMat *
+                                   Eigen::kroneckerProduct(b1, b0),
+                               RECON_TOL))
+      valid = false;
   }
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
@@ -353,8 +420,11 @@ struct TwoQubitOpKAK : public Decomposer {
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     Location loc = customOp->getLoc();
     auto targets = customOp.getTargets();
-    auto funcTy =
-        FunctionType::get(parentModule.getContext(), targets.getTypes(), {});
+    /// This 2-qubit decomposer always emits a 2-qubit replacement function. The
+    /// arity is fixed to 2 (not taken from `customOp`) so that it stays correct
+    /// when invoked as a base case of the recursive QSD on a larger operation.
+    SmallVector<Type, 2> argTys(2, targets[0].getType());
+    auto funcTy = FunctionType::get(parentModule.getContext(), argTys, {});
     auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
     auto func = func::FuncOp::create(rewriter, parentModule->getLoc(), funcName,
@@ -445,6 +515,319 @@ struct TwoQubitOpKAK : public Decomposer {
   }
 };
 
+/// Result for the Cosine-Sine decomposition of a `2m x 2m` unitary.
+/// `U = blockDiag(l0, l1) * [[C, -S], [S, C]] * blockDiag(r0, r1)` where the
+/// `l*`, `r*` are `m x m` unitaries and `C = diag(c)`, `S = diag(s)` satisfy
+/// `c^2 + s^2 = 1` element-wise.
+struct CSDComponents {
+  Eigen::MatrixXcd l0, l1, r0, r1;
+  Eigen::VectorXd c, s;
+};
+
+/// Deterministically extend a set of orthonormal columns to a full unitary by
+/// projecting the standard basis vectors onto the orthogonal complement. Used
+/// to fill the columns of a singular-vector basis that are left undetermined by
+/// degenerate (repeated) singular values, e.g. for permutation-like operators
+/// such as Toffoli.
+Eigen::MatrixXcd completeUnitaryBasis(const Eigen::MatrixXcd &definedCols,
+                                      Eigen::Index n) {
+  Eigen::MatrixXcd basis = definedCols;
+  /// `Eigen::Index` is the natural index type of Eigen containers, so taking
+  /// `.cols()` directly avoids a truncating cast and any signed/unsigned mix
+  /// with the Eigen indexing API below.
+  Eigen::Index col = basis.cols();
+  for (Eigen::Index i = 0; i < n && col < n; ++i) {
+    Eigen::VectorXcd v = Eigen::VectorXcd::Zero(n);
+    v(i) = 1.0;
+    if (col > 0)
+      v -= basis.leftCols(col) * (basis.leftCols(col).adjoint() * v);
+    double nv = v.norm();
+    if (nv > TOL) {
+      basis.conservativeResize(n, col + 1);
+      basis.col(col) = v / nv;
+      ++col;
+    }
+  }
+  return basis;
+}
+
+/// Compute the Cosine-Sine decomposition of a `2m x 2m` unitary.
+/// Eigen has no built-in CSD, so it is assembled from the SVD of the top-left
+/// block. The right singular vectors are shared by both block rows, which lets
+/// us recover the remaining factors. Degenerate singular values are handled via
+/// `completeUnitaryBasis`. Ref: arXiv quant-ph/0404089.
+CSDComponents cosineSineDecomposition(const Eigen::MatrixXcd &u, bool &ok) {
+  Eigen::Index m = u.rows() / 2;
+  Eigen::MatrixXcd u00 = u.topLeftCorner(m, m);
+  Eigen::MatrixXcd u01 = u.topRightCorner(m, m);
+  Eigen::MatrixXcd u11 = u.bottomRightCorner(m, m);
+  Eigen::MatrixXcd u10 = u.bottomLeftCorner(m, m);
+  Eigen::JacobiSVD<Eigen::MatrixXcd> svd(u00, Eigen::ComputeFullU |
+                                                  Eigen::ComputeFullV);
+  Eigen::MatrixXcd l0 = svd.matrixU();
+  Eigen::MatrixXcd v = svd.matrixV();
+  Eigen::MatrixXcd r0 = v.adjoint();
+  Eigen::VectorXd c = svd.singularValues().cwiseMin(1.0).cwiseMax(0.0);
+  Eigen::VectorXd s(m);
+  for (Eigen::Index k = 0; k < m; ++k)
+    s(k) = std::sqrt(std::max(0.0, 1.0 - c(k) * c(k)));
+  /// `u10 * v = l1 * diag(s)`; recover `l1` column-by-column, completing the
+  /// columns belonging to (near-)zero sines.
+  Eigen::MatrixXcd mCols = u10 * v;
+  Eigen::MatrixXcd l1 = Eigen::MatrixXcd::Zero(m, m);
+  std::vector<Eigen::Index> definedCols;
+  for (Eigen::Index k = 0; k < m; ++k)
+    if (s(k) > TOL) {
+      l1.col(k) = mCols.col(k) / s(k);
+      definedCols.push_back(k);
+    }
+  if (static_cast<Eigen::Index>(definedCols.size()) < m) {
+    Eigen::MatrixXcd known(m, definedCols.size());
+    for (size_t i = 0; i < definedCols.size(); ++i)
+      known.col(i) = l1.col(definedCols[i]);
+    Eigen::MatrixXcd full = completeUnitaryBasis(known, m);
+    std::vector<bool> isDefined(m, false);
+    for (Eigen::Index d : definedCols)
+      isDefined[d] = true;
+    Eigen::Index next = static_cast<Eigen::Index>(definedCols.size());
+    for (Eigen::Index k = 0; k < m; ++k)
+      if (!isDefined[k])
+        l1.col(k) = full.col(next++);
+  }
+  /// `r1` from `u11 = l1 diag(c) r1` where cosine dominates, otherwise from
+  /// `u01 = -l0 diag(s) r1`.
+  Eigen::MatrixXcd fromC = l1.adjoint() * u11;
+  Eigen::MatrixXcd fromS = -(l0.adjoint() * u01);
+  Eigen::MatrixXcd r1(m, m);
+  for (Eigen::Index k = 0; k < m; ++k) {
+    if (c(k) >= s(k))
+      r1.row(k) = fromC.row(k) / c(k);
+    else
+      r1.row(k) = fromS.row(k) / s(k);
+  }
+  /// Verify the reconstruction `blockDiag(l0,l1) * CS * blockDiag(r0,r1) == u`.
+  /// This runs unconditionally (host `double` precision, independent of the
+  /// backend's execution precision): `ok` is cleared on failure so the caller
+  /// can abandon synthesis and leave the input IR unchanged.
+  Eigen::MatrixXcd cMat = c.cast<std::complex<double>>().asDiagonal();
+  Eigen::MatrixXcd sMat = s.cast<std::complex<double>>().asDiagonal();
+  Eigen::MatrixXcd ld = Eigen::MatrixXcd::Zero(2 * m, 2 * m);
+  ld.topLeftCorner(m, m) = l0;
+  ld.bottomRightCorner(m, m) = l1;
+  Eigen::MatrixXcd rd = Eigen::MatrixXcd::Zero(2 * m, 2 * m);
+  rd.topLeftCorner(m, m) = r0;
+  rd.bottomRightCorner(m, m) = r1;
+  Eigen::MatrixXcd cs(2 * m, 2 * m);
+  cs.topLeftCorner(m, m) = cMat;
+  cs.topRightCorner(m, m) = -sMat;
+  cs.bottomLeftCorner(m, m) = sMat;
+  cs.bottomRightCorner(m, m) = cMat;
+  if (!(ld * cs * rd).isApprox(u, RECON_TOL))
+    ok = false;
+  return {l0, l1, r0, r1, c, s};
+}
+
+/// Demultiplex a quantum multiplexor `blockDiag(a, b)` (two `m x m` unitaries
+/// selected by the most-significant qubit) into
+/// `(I2 (x) v) * blockDiag(d, d^dagger) * (I2 (x) w)`, where `blockDiag(d,
+/// d^dagger)` is a uniformly-controlled Rz on the multiplexor qubit. The
+/// returned `angles` are the corresponding Rz rotation angles.
+/// Ref: arXiv quant-ph/0406176.
+void demultiplex(const Eigen::MatrixXcd &a, const Eigen::MatrixXcd &b,
+                 Eigen::MatrixXcd &vOut, Eigen::MatrixXcd &wOut,
+                 std::vector<double> &angles, bool &ok) {
+  Eigen::Index m = a.rows();
+  /// `a * b^dagger` is unitary (hence normal); its complex Schur form is
+  /// diagonal with unitary Schur vectors, giving an orthonormal eigenbasis.
+  Eigen::MatrixXcd x = a * b.adjoint();
+  Eigen::ComplexSchur<Eigen::MatrixXcd> schur(x);
+  vOut = schur.matrixU();
+  Eigen::VectorXcd d(m);
+  angles.resize(m);
+  for (Eigen::Index k = 0; k < m; ++k) {
+    double phi = std::arg(schur.matrixT()(k, k));
+    d(k) = std::exp(std::complex<double>(0.0, phi / 2.0));
+    /// quake `Rz(theta)` applies `exp(-i theta/2)` on the |0> branch; matching
+    /// the |0> branch phase `exp(i phi/2)` of `d` requires `theta = -phi`.
+    angles[k] = -phi;
+  }
+  Eigen::MatrixXcd dMat = d.asDiagonal();
+  wOut = dMat * vOut.adjoint() * b;
+  /// Verify `a = v d w` and `b = v d^dagger w` (always-on); clear `ok` on
+  /// failure so the caller can leave the input IR unchanged.
+  if (!((vOut * dMat * wOut).isApprox(a, RECON_TOL) &&
+        (vOut * dMat.adjoint() * wOut).isApprox(b, RECON_TOL)))
+    ok = false;
+}
+
+/// Recursive Quantum Shannon Decomposition (QSD) for an arbitrary `n`-qubit
+/// (`2^n x 2^n`) unitary with `n >= 3`. One level of QSD splits the unitary,
+/// via a Cosine-Sine decomposition and two multiplexor demultiplexings, into
+/// four `(n-1)`-qubit unitaries and three uniformly-controlled rotations
+/// (Rz, Ry, Rz) acting on the most-significant qubit. The four sub-unitaries
+/// are synthesized recursively, with `TwoQubitOpKAK` and `OneQubitOpZYZ` as the
+/// base cases. Each factorization step is exact, so no global phase correction
+/// is needed at this level (the base cases track their own global phase).
+/// Refs: arXiv quant-ph/0404089, arXiv quant-ph/0406176.
+struct NQubitOpQSD : public Decomposer {
+  Eigen::MatrixXcd targetMatrix;
+  size_t numQubits;
+  /// `targetMatrix = (I (x) vL) * muxRz(muxRzLeft) * (I (x) wL) * muxRy(muxRy)
+  ///               * (I (x) vR) * muxRz(muxRzRight) * (I (x) wR)`
+  Eigen::MatrixXcd vL, wL, vR, wR;
+  std::vector<double> muxRzLeft, muxRy, muxRzRight;
+  /// The four `(n-1)`-qubit sub-unitary decomposers, built during `decompose()`
+  /// so the whole recursion tree is validated before any IR is emitted.
+  std::unique_ptr<Decomposer> childWr, childVr, childWl, childVl;
+
+  /// Build the decomposer for an `(n-1)`-qubit sub-unitary, dispatching to the
+  /// base cases (ZYZ for 1 qubit, KAK for 2) or recursing with QSD otherwise.
+  std::unique_ptr<Decomposer> makeChild(const Eigen::MatrixXcd &matrix) {
+    size_t childQubits = numQubits - 1;
+    if (childQubits == 1) {
+      Eigen::Matrix2cd m2 = matrix;
+      return std::make_unique<OneQubitOpZYZ>(m2);
+    }
+    if (childQubits == 2)
+      return std::make_unique<TwoQubitOpKAK>(matrix);
+    return std::make_unique<NQubitOpQSD>(matrix);
+  }
+
+  void decompose() override {
+    bool ok = true;
+    auto csd = cosineSineDecomposition(targetMatrix, ok);
+    demultiplex(csd.r0, csd.r1, vR, wR, muxRzRight, ok);
+    demultiplex(csd.l0, csd.l1, vL, wL, muxRzLeft, ok);
+    valid = valid && ok;
+    int m = static_cast<int>(targetMatrix.rows()) / 2;
+    muxRy.resize(m);
+    for (int k = 0; k < m; ++k)
+      muxRy[k] = 2.0 * std::atan2(csd.s(k), csd.c(k));
+    /// Only recurse once this level reconstructs cleanly: feeding the marginal
+    /// sub-blocks of a failed split into the children could trip their own
+    /// numerical checks. Validate the whole tree before emitting any IR.
+    if (valid) {
+      childWr = makeChild(wR);
+      childVr = makeChild(vR);
+      childWl = makeChild(wL);
+      childVl = makeChild(vL);
+      valid = childWr->isValid() && childVr->isValid() && childWl->isValid() &&
+              childVl->isValid();
+    }
+  }
+
+  /// Emit a uniformly-controlled rotation (multiplexed Rz or Ry) on `target`
+  /// controlled by `controls` (most-significant first), using the optimal
+  /// gray-code construction. For `k` controls this emits `2^k` rotations and
+  /// exactly `2^k` CNOTs -- the minimum for a uniformly-controlled rotation --
+  /// rather than the `2^{k+1}-2` CNOTs produced by a naive recursive split
+  /// (which inserts a redundant CNOT pair at every recursion boundary). The
+  /// per-state angles are mapped to the gray-code rotation angles through the
+  /// Walsh-Hadamard-like transform, and the CNOT after rotation `i` targets the
+  /// control flipped between gray(i) and gray(i+1). Refs: Möttönen et al.
+  /// (arXiv quant-ph/0407010), Shende-Bullock-Markov (arXiv quant-ph/0406176).
+  void emitMux(const std::vector<double> &angles, ArrayRef<Value> controls,
+               Value target, bool isRy, PatternRewriter &rewriter, Location loc,
+               FloatType floatTy) {
+    auto emitRot = [&](double angle) {
+      if (!isAboveThreshold(angle))
+        return;
+      auto a = cudaq::opt::factory::createFloatConstant(loc, rewriter, angle,
+                                                        floatTy);
+      if (isRy)
+        cudaq::quake::RyOp::create(rewriter, loc, a, ValueRange{}, target);
+      else
+        cudaq::quake::RzOp::create(rewriter, loc, a, ValueRange{}, target);
+    };
+    size_t k = controls.size();
+    // Base case: a plain (uncontrolled) rotation.
+    if (k == 0) {
+      emitRot(angles[0]);
+      return;
+    }
+    size_t n = angles.size(); // == 2^k
+    // Transform the desired per-state angles into the gray-code rotation
+    // angles: theta'_i = 2^{-k} * sum_j (-1)^{<gray(i), j>} * angles[j].
+    std::vector<double> theta(n, 0.0);
+    for (size_t i = 0; i < n; ++i) {
+      size_t gi = i ^ (i >> 1); // binary-reflected gray code of i
+      double acc = 0.0;
+      for (size_t j = 0; j < n; ++j) {
+        int sign = (llvm::popcount(gi & j) & 1) ? -1 : 1;
+        acc += sign * angles[j];
+      }
+      theta[i] = acc / static_cast<double>(n);
+    }
+    // Emit `R(theta'_i)` followed by a single CNOT whose control is the qubit
+    // flipped between gray(i) and gray(i+1). `controls` is most-significant
+    // first, so bit position `p` (0 == least significant) maps to
+    // `controls[k-1-p]`. The closing CNOT (i == n-1) flips the most-significant
+    // control, returning the accumulated control parity to the identity.
+    for (size_t i = 0; i < n; ++i) {
+      emitRot(theta[i]);
+      size_t flipBit = (i == n - 1) ? (k - 1) : llvm::countr_zero(i + 1);
+      Value ctrl = controls[k - 1 - flipBit];
+      cudaq::quake::XOp::create(rewriter, loc, ctrl, target);
+    }
+  }
+
+  void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
+                            PatternRewriter &rewriter,
+                            std::string funcName) override {
+    /// Emit using the children built (and validated) in `decompose()`.
+    childWr->emitDecomposedFuncOp(customOp, rewriter, funcName + "wr");
+    childVr->emitDecomposedFuncOp(customOp, rewriter, funcName + "vr");
+    childWl->emitDecomposedFuncOp(customOp, rewriter, funcName + "wl");
+    childVl->emitDecomposedFuncOp(customOp, rewriter, funcName + "vl");
+    auto parentModule = customOp->getParentOfType<ModuleOp>();
+    Location loc = customOp->getLoc();
+    auto targets = customOp.getTargets();
+    /// This decomposer emits a `numQubits`-qubit replacement function. The
+    /// arity is taken from `numQubits` (not from `customOp`) so that it stays
+    /// correct when QSD is invoked recursively on an `(n-1)`-qubit sub-unitary
+    /// of a larger parent operation.
+    SmallVector<Type> argTys(numQubits, targets[0].getType());
+    auto funcTy = FunctionType::get(parentModule.getContext(), argTys, {});
+    auto insPt = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+    auto func = func::FuncOp::create(rewriter, parentModule->getLoc(), funcName,
+                                     funcTy);
+    func.setPrivate();
+    auto *block = func.addEntryBlock();
+    rewriter.setInsertionPointToStart(block);
+    auto arguments = func.getArguments();
+    FloatType floatTy = rewriter.getF64Type();
+    /// `arguments[0]` is the most-significant qubit (the multiplexor target),
+    /// `arguments[1..n-1]` carry the `(n-1)`-qubit sub-unitaries and act as the
+    /// controls for the multiplexed rotations.
+    Value top = arguments[0];
+    SmallVector<Value> lower(arguments.begin() + 1, arguments.end());
+    auto applyChild = [&](std::string name) {
+      cudaq::quake::ApplyOp::create(
+          rewriter, loc, TypeRange{},
+          SymbolRefAttr::get(rewriter.getContext(), name), false, ValueRange{},
+          ValueRange(lower));
+    };
+    /// Operator notation is right-to-left, so the right-most factor is emitted
+    /// first.
+    applyChild(funcName + "wr");
+    emitMux(muxRzRight, lower, top, false, rewriter, loc, floatTy);
+    applyChild(funcName + "vr");
+    emitMux(muxRy, lower, top, true, rewriter, loc, floatTy);
+    applyChild(funcName + "wl");
+    emitMux(muxRzLeft, lower, top, false, rewriter, loc, floatTy);
+    applyChild(funcName + "vl");
+    func::ReturnOp::create(rewriter, loc);
+    rewriter.restoreInsertionPoint(insPt);
+  }
+
+  NQubitOpQSD(const Eigen::MatrixXcd &vec) {
+    targetMatrix = vec;
+    numQubits = static_cast<size_t>(std::llround(std::log2(vec.rows())));
+    decompose();
+  }
+};
+
 class CustomUnitaryPattern
     : public OpRewritePattern<cudaq::quake::CustomUnitaryConstantOp> {
 public:
@@ -472,18 +855,54 @@ public:
         customOp.emitWarning("The custom operation matrix must be unitary.");
         return failure();
       }
-      switch (dimension) {
-      case 2: {
+      /// If synthesis cannot reproduce the matrix within tolerance, leave the
+      /// IR unchanged and emit a debug note. The pass stays composable: it does
+      /// not crash the compiler or signal a hard pass failure when it cannot
+      /// decompose an operation -- another pass or back-end may still handle
+      /// it.
+      auto bailOut = [&]() -> LogicalResult {
+        LLVM_DEBUG(llvm::dbgs()
+                   << "unitary-synthesis: reconstruction error exceeds "
+                      "tolerance; leaving custom op unchanged\n");
+        return failure();
+      };
+      if (dimension == 2) {
         auto zyz = OneQubitOpZYZ(unitary);
+        if (!zyz.isValid())
+          return bailOut();
         zyz.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      } break;
-      case 4: {
+      } else if (dimension == 4) {
         auto kak = TwoQubitOpKAK(unitary);
+        if (!kak.isValid())
+          return bailOut();
         kak.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      } break;
-      default:
-        customOp.emitWarning(
-            "Decomposition of only 1 and 2 qubit custom operations supported.");
+      } else if (dimension >= 8 && dimension <= 32 &&
+                 (dimension & (dimension - 1)) == 0) {
+        /// Recursive Quantum Shannon Decomposition for 3-5 qubit operations.
+        auto qsd = NQubitOpQSD(unitary);
+        if (!qsd.isValid()) {
+          /// In the advertised 3-5 qubit range but the reconstruction
+          /// self-check failed. Stay composable -- leave the op unchanged for
+          /// another pass/back-end -- but make the outcome visible instead of a
+          /// silent no-op in Release builds (where the debug note is compiled
+          /// out). This is a warning, not an error: no signalPassFailure.
+          customOp.emitWarning(
+              "unitary-synthesis: could not synthesize this custom operation "
+              "within the reconstruction tolerance; leaving it unchanged.");
+          return bailOut();
+        }
+        qsd.emitDecomposedFuncOp(customOp, rewriter, funcName);
+      } else if ((dimension & (dimension - 1)) == 0) {
+        /// Power-of-two but larger than 5 qubits (matrix dimension > 32).
+        /// Unsupported for now; stay composable and leave the op unchanged.
+        LLVM_DEBUG(llvm::dbgs()
+                   << "unitary-synthesis: matrix dimension " << dimension
+                   << " exceeds the supported 5-qubit cap (32); leaving "
+                      "custom op unchanged\n");
+        return failure();
+      } else {
+        customOp.emitWarning("Decomposition supports custom operations on a "
+                             "power-of-two matrix dimension only.");
         return failure();
       }
     }

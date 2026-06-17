@@ -18,8 +18,11 @@ namespace cudaq_internal::device_call {
 
 // Function table metadata used by host dispatch.
 //
-// Each entry in `entries` must be a CUDAQ_DISPATCH_GRAPH_LAUNCH entry whose
-// `graph_exec` follows the GraphIOContext signaling contract:
+// Entries may be CUDAQ_DISPATCH_HOST_CALL plain C++ handlers or
+// CUDAQ_DISPATCH_GRAPH_LAUNCH handlers. HOST_CALL entries run synchronously on
+// the host dispatcher thread and do not require a mailbox. GRAPH_LAUNCH entries
+// must provide a `graph_exec` that follows the GraphIOContext signaling
+// contract:
 //
 //   - The kernel reads its request from `io_ctx->rx_slot` (where `io_ctx` is
 //     obtained by dereferencing `mailbox[worker_id]` in device code).
@@ -33,14 +36,15 @@ namespace cudaq_internal::device_call {
 //     only via `cudaStreamSynchronize` (legacy in-place mode) will cause
 //     every device_call to time out.
 //
-// `mailbox` is the host pointer for a pinned, mapped allocation
-// (cudaHostAlloc with cudaHostAllocMapped) sized for `count * sizeof(void*)`.
+// If any GRAPH_LAUNCH entries are present, `mailbox` is the host pointer for a
+// pinned, mapped allocation (cudaHostAlloc with cudaHostAllocMapped) sized for
+// the graph-launch entry count. It may be null for HOST_CALL-only tables.
 // The DeviceCallService implementation should capture the device alias for
 // that allocation when it creates each graph_exec, but pass the host pointer
 // here. CUDA-Q gives this host pointer to the dispatcher; before each graph
 // launch, the dispatcher writes the per-launch GraphIOContext device pointer
 // into mailbox[worker_id]. The graph observes that value through the captured
-// device alias. The mailbox is required for host dispatch.
+// device alias. The mailbox is required for host-dispatch graph-launch entries.
 struct DeviceCallHostDispatchTable {
   cudaq_function_entry_t *entries = nullptr;
   std::uint32_t count = 0;
@@ -52,8 +56,8 @@ enum class DeviceCallDispatchMode { Gpu, Host };
 
 struct DeviceCallDispatchTable {
   // Selects which channel type CUDA-Q should create for this session. GPU
-  // dispatch uses a device function table; host dispatch uses graph-launch
-  // entries.
+  // dispatch uses a device function table; host dispatch uses host-call or
+  // graph-launch entries.
   DeviceCallDispatchMode mode = DeviceCallDispatchMode::Gpu;
 
   // Function table exported by the service. The session owns its lifetime and
@@ -141,8 +145,8 @@ public:
     return nullptr;
   }
 
-  // Host-dispatch graph table setup. Services that only support GPU dispatch
-  // may return failure.
+  // Host-dispatch table setup. Services that only support GPU dispatch may
+  // return failure.
   virtual int
   getHostDispatchTable([[maybe_unused]] DeviceCallHostDispatchTable &table) {
     return 1;
