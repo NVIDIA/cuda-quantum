@@ -261,7 +261,6 @@ public:
   getCompileTarget(const sample_policy &policy) override {
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), targetConfig, backendConfig, emulate);
-    target->warnNamedMeasurements = !policy.warnedNamedMeasurements;
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
@@ -457,8 +456,6 @@ public:
     // observe) one time each.
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
-      // Avoid emitting the warning again during execution
-      context.warnedNamedMeasurements = policy.warnedNamedMeasurements;
       context.hasConditionalsOnMeasureResults =
           codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
@@ -521,9 +518,6 @@ public:
       cudaq::ExecutionContext context("sample", localShots);
       context.hasConditionalsOnMeasureResults =
           codes[i].hasConditionalsOnMeasureResults;
-      // Any warning would have been emitted during JIT compilation. Silence
-      // further warnings.
-      context.warnedNamedMeasurements = true;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);

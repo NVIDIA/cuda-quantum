@@ -16,6 +16,7 @@ add_library(${LIBRARY_NAME}
     realtime.cpp
     target_control.cpp
     algorithms/draw.cpp
+    algorithms/encoding.cpp
     algorithms/evolve.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp

@@ -405,6 +405,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.walkingReturnNode = False
         self.controlNegations = []
         self.pushPointerValue = False
+        # Constant ``cudaq.qvector(N)`` sizes for compile-time checks.
+        self.staticVeqSizes = {}
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
@@ -413,6 +415,44 @@ class PyASTBridge(ast.NodeVisitor):
         """Return True if `name` is 'cudaq' or a known alias for the cudaq
         module (e.g. from ``import cudaq as cq``)."""
         return name in self.cudaqAliases
+
+    def cudaqContribCallAttr(self, node):
+        """Return the ``contrib`` attribute name for ``cudaq.contrib.<name>(...)``."""
+        if not isinstance(node.func, ast.Attribute):
+            return None
+        inner = node.func.value
+        if not (isinstance(inner, ast.Attribute) and inner.attr == 'contrib' and
+                isinstance(inner.value, ast.Name) and
+                self.isCudaqName(inner.value.id)):
+            return None
+        return node.func.attr
+
+    def _staticQvectorSizeFromAst(self, node):
+        """Return a constant ``N`` from ``cudaq.qvector(N)`` if statically known."""
+        if not isinstance(node, ast.Call) or len(node.args) != 1:
+            return None
+        func = node.func
+        if not (isinstance(func, ast.Attribute) and func.attr == 'qvector' and
+                isinstance(func.value, ast.Name) and
+                self.isCudaqName(func.value.id)):
+            return None
+        size_node = node.args[0]
+        if (isinstance(size_node, ast.Constant) and
+                isinstance(size_node.value, int)):
+            return size_node.value
+        return None
+
+    def _recordStaticVeqSize(self, target, value_ast):
+        """Track ``var = cudaq.qvector(N)`` for later compile-time checks."""
+        if not isinstance(target, ast.Name):
+            return
+        q_size = self._staticQvectorSizeFromAst(value_ast)
+        if q_size is None and isinstance(value_ast, ast.Name):
+            q_size = self.staticVeqSizes.get(value_ast.id)
+        if q_size is not None:
+            self.staticVeqSizes[target.id] = q_size
+        else:
+            self.staticVeqSizes.pop(target.id, None)
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -1663,6 +1703,75 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             qec.DetectorOp(values)
 
+    def _lowerAngularEncode(self, node):
+        """Lower ``cudaq.contrib.angular_encode(q, angles, rotation='Y')`` to
+        per-qubit ``rx``/``ry``/``rz`` gates."""
+        rotation_gates = {'X': 'Rx', 'Y': 'Ry', 'Z': 'Rz'}
+        rotation = 'Y'
+        for kw in node.keywords:
+            if kw.arg != 'rotation':
+                self.emitFatalError(
+                    f"cudaq.contrib.angular_encode: unknown keyword '{kw.arg}'",
+                    node)
+            try:
+                rotation = ast.literal_eval(kw.value)
+            except (ValueError, SyntaxError):
+                rotation = None
+            if not isinstance(rotation, str):
+                self.emitFatalError(
+                    "cudaq.contrib.angular_encode: rotation must be a string "
+                    "literal", node)
+        rotation_key = rotation.upper()
+        if rotation_key not in rotation_gates:
+            self.emitFatalError(
+                f"cudaq.contrib.angular_encode: unsupported rotation "
+                f"'{rotation}' (expected 'X', 'Y', or 'Z')", node)
+        op_ctor = getattr(quake, f'{rotation_gates[rotation_key]}Op')
+
+        if len(node.args) != 2:
+            self.emitFatalError(
+                "cudaq.contrib.angular_encode expects (q, angles)", node)
+
+        q, angles = self.__groupValues(node.args, [1, 1])
+        if not quake.VeqType.isinstance(q.type):
+            self.emitFatalError(
+                "cudaq.contrib.angular_encode: first argument must be a "
+                "cudaq.qvector or qview", node)
+        if not cc.StdvecType.isinstance(angles.type):
+            self.emitFatalError(
+                "cudaq.contrib.angular_encode: angles must be a list[float]",
+                node)
+
+        if isinstance(node.args[1], ast.List):
+            q_size = self._staticQvectorSizeFromAst(node.args[0])
+            if q_size is None and isinstance(node.args[0], ast.Name):
+                q_size = self.staticVeqSizes.get(node.args[0].id)
+            if (q_size is not None and len(node.args[1].elts) != q_size):
+                self.emitFatalError(
+                    "cudaq.contrib.angular_encode: number of angles must "
+                    "match the number of qubits", node)
+
+        float_ty = self.getFloatType()
+        angle_ele_ty = cc.StdvecType.getElementType(angles.type)
+        angle_arr_ty = cc.ArrayType.get(angle_ele_ty)
+        angle_ptr_ty = cc.PointerType.get(angle_ele_ty)
+        angle_arr_ptr_ty = cc.PointerType.get(angle_arr_ty)
+        angles_ptr = cc.StdvecDataOp(angle_arr_ptr_ty, angles).result
+        ptr_attr = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
+
+        veq_size = quake.VeqSizeOp(self.getIntegerType(), q).result
+
+        def body_builder(iter_val):
+            q_ref = quake.ExtractRefOp(self.getRefType(), q, -1,
+                                       index=iter_val).result
+            angle_addr = cc.ComputePtrOp(angle_ptr_ty, angles_ptr, [iter_val],
+                                         ptr_attr).result
+            angle = cc.LoadOp(angle_addr).result
+            angle = self.changeOperandToType(float_ty, angle)
+            op_ctor([], [angle], [], [q_ref])
+
+        self.createInvariantForLoop(body_builder, veq_size)
+
     def __get_root_value(self, pyVal):
         """Strips any attribute and subscript expressions from the node to get
         the root node that the expression accesses.
@@ -2317,6 +2426,7 @@ class PyASTBridge(ast.NodeVisitor):
             # tuple, but it may not be correct to do so.)
             self.emitFatalError(
                 "CUDA-Q does not allow multiple targets in assignment", node)
+        self._recordStaticVeqSize(node.targets[0], node.value)
         self.__deconstructAssignment(node.targets[0],
                                      node.value,
                                      process=process_assignment)
@@ -3423,6 +3533,10 @@ class PyASTBridge(ast.NodeVisitor):
                 # __isSupportedVectorFunction.
                 self.emitFatalError(f'unsupported function {node.func.attr}',
                                     node)
+
+            contrib_attr = self.cudaqContribCallAttr(node)
+            if contrib_attr == 'angular_encode':
+                return self._lowerAngularEncode(node)
 
             if isinstance(node.func.value, ast.Name):
 

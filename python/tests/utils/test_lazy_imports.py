@@ -31,7 +31,8 @@ import sys
 
 for mod in ['cudaq.dynamics', 'cudaq.dynamics.schedule',
             'cudaq.dynamics.integrators', 'cudaq.kernels.uccsd',
-            'cudaq.domains.chemistry', 'cudaq.dbg.ast']:
+            'cudaq.domains.chemistry', 'cudaq.dbg.ast',
+            'cudaq.contrib.encoding']:
     assert mod not in sys.modules, f'{mod} was eagerly imported'
 """)
 
@@ -46,6 +47,8 @@ assert callable(cudaq.evolve)
 assert callable(cudaq.evolve_async)
 assert cudaq.Schedule is not None
 assert cudaq.IntermediateResultSave is not None
+assert callable(cudaq.amplitude_encode)
+assert callable(cudaq.angular_encode)
 
 # _LAZY_SUBMODULES
 assert hasattr(cudaq.chemistry, '__name__')
@@ -77,9 +80,24 @@ import cudaq
 
 d = dir(cudaq)
 for name in ['evolve', 'evolve_async', 'Schedule',
-             'IntermediateResultSave', 'chemistry', 'uccsd', 'ast',
+             'IntermediateResultSave', 'amplitude_encode', 'angular_encode',
+             'chemistry', 'uccsd', 'ast',
              'RungeKuttaIntegrator', 'ScipyZvodeIntegrator']:
     assert name in d, f'{name} missing from dir(cudaq)'
+""")
+
+
+def test_contrib_encoding_not_eagerly_imported():
+    """Verify that encoding helpers are not imported at `import cudaq.contrib`
+    time."""
+    _run_in_subprocess("""
+import cudaq.contrib
+import sys
+
+assert 'cudaq.contrib.encoding' not in sys.modules
+assert callable(cudaq.contrib.amplitude_encode)
+assert callable(cudaq.contrib.angular_encode)
+assert 'cudaq.contrib.encoding' in sys.modules
 """)
 
 
