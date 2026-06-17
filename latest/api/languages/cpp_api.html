@@ -27,6 +27,8 @@
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script src="../../_static/filter.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -559,6 +561,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../using/realtime.html">   Realtime</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/realtime/installation.html">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -885,6 +888,10 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -5535,12 +5542,6 @@
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext23warnedNamedMeasurementsE">
-<span class="target" id="classcudaq_1_1ExecutionContext_1a48a76b343e31be61ee708b10e5a9ffa9"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">warnedNamedMeasurements</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext23warnedNamedMeasurementsE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Flag to indicate that a warning about named measurement registers in sampling context has already been emitted. </p>
-</dd></dl>
-
-<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE">
 <span class="target" id="classcudaq_1_1ExecutionContext_1ae3f00ca492659c5715faa185edecff1e"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">msm_probabilities</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Probability of occurrence of each error mechanism (column) in Measurement Syndrome Matrix (0-1 range). </p>
@@ -8695,6 +8696,235 @@ Usage: <div class="highlight-cpp notranslate"><div class="highlight"><pre><span>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The full system unitary as a <a class="reference internal" href="#classcudaq_1_1complex__matrix"><span class="std std-ref">complex_matrix</span></a>. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKdEENSt7complexIdEE">
+<span class="target" id="encoding_8h_1acb5a7f742451d0bcfa25f3df23759c52"></span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_encode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKdEENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Map classical features to a normalized quantum state by amplitude encoding. </p>
+<p>Amplitude encoding represents a classical feature vector as the amplitudes of a pure state in the computational basis. Given a length- <span class="math notranslate nohighlight">\(d\)</span> vector <span class="math notranslate nohighlight">\(\mathbf{x} = (x_0, \ldots, x_{d-1})\)</span> (real or complex), the procedure is:</p>
+<p><ol class="loweralpha simple">
+<li><p><strong>Pad</strong> to length <span class="math notranslate nohighlight">\(N = 2^n\)</span> for the smallest <span class="math notranslate nohighlight">\(n\)</span> with <span class="math notranslate nohighlight">\(2^n \ge
+d\)</span>. The padded vector <span class="math notranslate nohighlight">\(\mathbf{x}'\)</span> satisfies <span class="math notranslate nohighlight">\(x'_i = x_i\)</span> for <span class="math notranslate nohighlight">\(i &lt; d\)</span> and <span class="math notranslate nohighlight">\(x'_i = \texttt{pad}\)</span> for <span class="math notranslate nohighlight">\(d \le i &lt; N\)</span>.</p></li>
+<li><p><strong>Normalize</strong> with the Euclidean (L2) norm (must be non-zero). Coefficients are <span class="math notranslate nohighlight">\(α_i = x'_i / \|\mathbf{x}'\|_2\)</span>.</p></li>
+<li><p><strong>Form the state</strong> in the <span class="math notranslate nohighlight">\(n\)</span>-qubit computational basis: <span class="math notranslate nohighlight">\(|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle\)</span>, where <span class="math notranslate nohighlight">\(|i\rangle\)</span> is the basis <code class="docutils literal notranslate"><span class="pre">ket</span></code> with index <span class="math notranslate nohighlight">\(i\)</span> in binary.</p></li>
+</ol>
+</p>
+<p>The returned <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1state"><span class="std std-ref"><span class="pre">cudaq::state</span></span></a></code> stores <span class="math notranslate nohighlight">\(α_i\)</span> in little-endian index order (consistent with <code class="docutils literal notranslate"><span class="pre">qvector(state)</span></code>). Real inputs are promoted to complex amplitudes with zero imaginary part before padding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Classical features as a 1D real or complex vector. </p></li>
+<li><p><strong>pad</strong> – Value used when padding to the nearest <code class="docutils literal notranslate"><span class="pre">2^n</span></code> (default <code class="docutils literal notranslate"><span class="pre">0</span></code>). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Throws<span class="colon">:</span></dt>
+<dd class="field-even"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – if <code class="docutils literal notranslate"><span class="pre">data</span></code> is empty or has zero norm after padding. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKfEENSt7complexIdEE">
+<span class="target" id="encoding_8h_1a594aad88a6938b14a45281ed37c7db71"></span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_encode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKfEENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Map classical features to a normalized quantum state by amplitude encoding.   </p>
+<p>Amplitude encoding represents a classical feature vector as the amplitudes of a pure state in the computational basis. Given a length- <span class="math notranslate nohighlight">\(d\)</span> vector <span class="math notranslate nohighlight">\(\mathbf{x} = (x_0, \ldots, x_{d-1})\)</span> (real or complex), the procedure is:</p>
+<p><ol class="loweralpha simple">
+<li><p><strong>Pad</strong> to length <span class="math notranslate nohighlight">\(N = 2^n\)</span> for the smallest <span class="math notranslate nohighlight">\(n\)</span> with <span class="math notranslate nohighlight">\(2^n \ge
+d\)</span>. The padded vector <span class="math notranslate nohighlight">\(\mathbf{x}'\)</span> satisfies <span class="math notranslate nohighlight">\(x'_i = x_i\)</span> for <span class="math notranslate nohighlight">\(i &lt; d\)</span> and <span class="math notranslate nohighlight">\(x'_i = \texttt{pad}\)</span> for <span class="math notranslate nohighlight">\(d \le i &lt; N\)</span>.</p></li>
+<li><p><strong>Normalize</strong> with the Euclidean (L2) norm (must be non-zero). Coefficients are <span class="math notranslate nohighlight">\(α_i = x'_i / \|\mathbf{x}'\|_2\)</span>.</p></li>
+<li><p><strong>Form the state</strong> in the <span class="math notranslate nohighlight">\(n\)</span>-qubit computational basis: <span class="math notranslate nohighlight">\(|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle\)</span>, where <span class="math notranslate nohighlight">\(|i\rangle\)</span> is the basis <code class="docutils literal notranslate"><span class="pre">ket</span></code> with index <span class="math notranslate nohighlight">\(i\)</span> in binary.</p></li>
+</ol>
+</p>
+<p>The returned <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1state"><span class="std std-ref"><span class="pre">cudaq::state</span></span></a></code> stores <span class="math notranslate nohighlight">\(α_i\)</span> in little-endian index order (consistent with <code class="docutils literal notranslate"><span class="pre">qvector(state)</span></code>). Real inputs are promoted to complex amplitudes with zero imaginary part before padding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Classical features as a 1D real or complex vector. </p></li>
+<li><p><strong>pad</strong> – Value used when padding to the nearest <code class="docutils literal notranslate"><span class="pre">2^n</span></code> (default <code class="docutils literal notranslate"><span class="pre">0</span></code>). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Throws<span class="colon">:</span></dt>
+<dd class="field-even"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – if <code class="docutils literal notranslate"><span class="pre">data</span></code> is empty or has zero norm after padding.   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIdEEEENSt7complexIdEE">
+<span class="target" id="encoding_8h_1ae8d18bd79fdf8087d0ef700929c22589"></span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_encode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIdEEEENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Map classical features to a normalized quantum state by amplitude encoding.   </p>
+<p>Amplitude encoding represents a classical feature vector as the amplitudes of a pure state in the computational basis. Given a length- <span class="math notranslate nohighlight">\(d\)</span> vector <span class="math notranslate nohighlight">\(\mathbf{x} = (x_0, \ldots, x_{d-1})\)</span> (real or complex), the procedure is:</p>
+<p><ol class="loweralpha simple">
+<li><p><strong>Pad</strong> to length <span class="math notranslate nohighlight">\(N = 2^n\)</span> for the smallest <span class="math notranslate nohighlight">\(n\)</span> with <span class="math notranslate nohighlight">\(2^n \ge
+d\)</span>. The padded vector <span class="math notranslate nohighlight">\(\mathbf{x}'\)</span> satisfies <span class="math notranslate nohighlight">\(x'_i = x_i\)</span> for <span class="math notranslate nohighlight">\(i &lt; d\)</span> and <span class="math notranslate nohighlight">\(x'_i = \texttt{pad}\)</span> for <span class="math notranslate nohighlight">\(d \le i &lt; N\)</span>.</p></li>
+<li><p><strong>Normalize</strong> with the Euclidean (L2) norm (must be non-zero). Coefficients are <span class="math notranslate nohighlight">\(α_i = x'_i / \|\mathbf{x}'\|_2\)</span>.</p></li>
+<li><p><strong>Form the state</strong> in the <span class="math notranslate nohighlight">\(n\)</span>-qubit computational basis: <span class="math notranslate nohighlight">\(|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle\)</span>, where <span class="math notranslate nohighlight">\(|i\rangle\)</span> is the basis <code class="docutils literal notranslate"><span class="pre">ket</span></code> with index <span class="math notranslate nohighlight">\(i\)</span> in binary.</p></li>
+</ol>
+</p>
+<p>The returned <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1state"><span class="std std-ref"><span class="pre">cudaq::state</span></span></a></code> stores <span class="math notranslate nohighlight">\(α_i\)</span> in little-endian index order (consistent with <code class="docutils literal notranslate"><span class="pre">qvector(state)</span></code>). Real inputs are promoted to complex amplitudes with zero imaginary part before padding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Classical features as a 1D real or complex vector. </p></li>
+<li><p><strong>pad</strong> – Value used when padding to the nearest <code class="docutils literal notranslate"><span class="pre">2^n</span></code> (default <code class="docutils literal notranslate"><span class="pre">0</span></code>). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Throws<span class="colon">:</span></dt>
+<dd class="field-even"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – if <code class="docutils literal notranslate"><span class="pre">data</span></code> is empty or has zero norm after padding.   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIfEEEENSt7complexIdEE">
+<span class="target" id="encoding_8h_1abcc7c654e4c874ed04a07edcda98ddac"></span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_encode</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIfEEEENSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Map classical features to a normalized quantum state by amplitude encoding.   </p>
+<p>Amplitude encoding represents a classical feature vector as the amplitudes of a pure state in the computational basis. Given a length- <span class="math notranslate nohighlight">\(d\)</span> vector <span class="math notranslate nohighlight">\(\mathbf{x} = (x_0, \ldots, x_{d-1})\)</span> (real or complex), the procedure is:</p>
+<p><ol class="loweralpha simple">
+<li><p><strong>Pad</strong> to length <span class="math notranslate nohighlight">\(N = 2^n\)</span> for the smallest <span class="math notranslate nohighlight">\(n\)</span> with <span class="math notranslate nohighlight">\(2^n \ge
+d\)</span>. The padded vector <span class="math notranslate nohighlight">\(\mathbf{x}'\)</span> satisfies <span class="math notranslate nohighlight">\(x'_i = x_i\)</span> for <span class="math notranslate nohighlight">\(i &lt; d\)</span> and <span class="math notranslate nohighlight">\(x'_i = \texttt{pad}\)</span> for <span class="math notranslate nohighlight">\(d \le i &lt; N\)</span>.</p></li>
+<li><p><strong>Normalize</strong> with the Euclidean (L2) norm (must be non-zero). Coefficients are <span class="math notranslate nohighlight">\(α_i = x'_i / \|\mathbf{x}'\|_2\)</span>.</p></li>
+<li><p><strong>Form the state</strong> in the <span class="math notranslate nohighlight">\(n\)</span>-qubit computational basis: <span class="math notranslate nohighlight">\(|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle\)</span>, where <span class="math notranslate nohighlight">\(|i\rangle\)</span> is the basis <code class="docutils literal notranslate"><span class="pre">ket</span></code> with index <span class="math notranslate nohighlight">\(i\)</span> in binary.</p></li>
+</ol>
+</p>
+<p>The returned <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1state"><span class="std std-ref"><span class="pre">cudaq::state</span></span></a></code> stores <span class="math notranslate nohighlight">\(α_i\)</span> in little-endian index order (consistent with <code class="docutils literal notranslate"><span class="pre">qvector(state)</span></code>). Real inputs are promoted to complex amplitudes with zero imaginary part before padding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Classical features as a 1D real or complex vector. </p></li>
+<li><p><strong>pad</strong> – Value used when padding to the nearest <code class="docutils literal notranslate"><span class="pre">2^n</span></code> (default <code class="docutils literal notranslate"><span class="pre">0</span></code>). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Throws<span class="colon">:</span></dt>
+<dd class="field-even"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – if <code class="docutils literal notranslate"><span class="pre">data</span></code> is empty or has zero norm after padding.   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib16amplitude_encodeERK5stateNSt7complexIdEE">
+<span class="target" id="encoding_8h_1a27a3b8872b53c3400e0dfb6977fd3072"></span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">amplitude_encode</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq5stateE" title="cudaq::state"><span class="n"><span class="pre">state</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">data</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">pad</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq7contrib16amplitude_encodeERK5stateNSt7complexIdEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Map classical features to a normalized quantum state by amplitude encoding.   </p>
+<p>Amplitude encoding represents a classical feature vector as the amplitudes of a pure state in the computational basis. Given a length- <span class="math notranslate nohighlight">\(d\)</span> vector <span class="math notranslate nohighlight">\(\mathbf{x} = (x_0, \ldots, x_{d-1})\)</span> (real or complex), the procedure is:</p>
+<p><ol class="loweralpha simple">
+<li><p><strong>Pad</strong> to length <span class="math notranslate nohighlight">\(N = 2^n\)</span> for the smallest <span class="math notranslate nohighlight">\(n\)</span> with <span class="math notranslate nohighlight">\(2^n \ge
+d\)</span>. The padded vector <span class="math notranslate nohighlight">\(\mathbf{x}'\)</span> satisfies <span class="math notranslate nohighlight">\(x'_i = x_i\)</span> for <span class="math notranslate nohighlight">\(i &lt; d\)</span> and <span class="math notranslate nohighlight">\(x'_i = \texttt{pad}\)</span> for <span class="math notranslate nohighlight">\(d \le i &lt; N\)</span>.</p></li>
+<li><p><strong>Normalize</strong> with the Euclidean (L2) norm (must be non-zero). Coefficients are <span class="math notranslate nohighlight">\(α_i = x'_i / \|\mathbf{x}'\|_2\)</span>.</p></li>
+<li><p><strong>Form the state</strong> in the <span class="math notranslate nohighlight">\(n\)</span>-qubit computational basis: <span class="math notranslate nohighlight">\(|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle\)</span>, where <span class="math notranslate nohighlight">\(|i\rangle\)</span> is the basis <code class="docutils literal notranslate"><span class="pre">ket</span></code> with index <span class="math notranslate nohighlight">\(i\)</span> in binary.</p></li>
+</ol>
+</p>
+<p>The returned <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1state"><span class="std std-ref"><span class="pre">cudaq::state</span></span></a></code> stores <span class="math notranslate nohighlight">\(α_i\)</span> in little-endian index order (consistent with <code class="docutils literal notranslate"><span class="pre">qvector(state)</span></code>). Real inputs are promoted to complex amplitudes with zero imaginary part before padding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Classical features as a 1D real or complex vector. </p></li>
+<li><p><strong>pad</strong> – Value used when padding to the nearest <code class="docutils literal notranslate"><span class="pre">2^n</span></code> (default <code class="docutils literal notranslate"><span class="pre">0</span></code>). </p></li>
+</ul>
+</dd>
+<dt class="field-even">Throws<span class="colon">:</span></dt>
+<dd class="field-even"><p><span><span class="cpp-expr sig sig-inline cpp"><span class="n">std</span><span class="p">::</span><span class="n">invalid_argument</span></span></span> – if <code class="docutils literal notranslate"><span class="pre">data</span></code> is empty or has zero norm after padding.   </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp enum-class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib12RotationAxisE">
+<span class="target" id="kernels_8h_1aa50ed783011ed428ff650199b06a597b"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">RotationAxis</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7contrib12RotationAxisE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Pauli axis for <code class="docutils literal notranslate"><span class="pre">cudaq::contrib::angular_encode</span></code> rotations <span class="math notranslate nohighlight">\(R_P(\theta) = e^{-i \theta P / 2}\)</span>. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib12RotationAxis1XE">
+<span class="target" id="kernels_8h_1aa50ed783011ed428ff650199b06a597ba02129bb861061d1a052c592e2dc6b383"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">X</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7contrib12RotationAxis1XE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib12RotationAxis1YE">
+<span class="target" id="kernels_8h_1aa50ed783011ed428ff650199b06a597ba57cec4137b614c87cb4e24a3d003a3e0"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Y</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7contrib12RotationAxis1YE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq7contrib12RotationAxis1ZE">
+<span class="target" id="kernels_8h_1aa50ed783011ed428ff650199b06a597ba21c2e59531c8710156d34a3c30ac81d5"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Z</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq7contrib12RotationAxis1ZE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueR10QuakeValue12RotationAxis">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Kernel</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="kernels_8h_1a15b7e9d2e26c3b4e0b3a695bec557daa"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">angular_encode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueR10QuakeValue12RotationAxis" title="cudaq::contrib::angular_encode::Kernel"><span class="n"><span class="pre">Kernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">q</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">angles</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxisE" title="cudaq::contrib::RotationAxis"><span class="n"><span class="pre">RotationAxis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rotation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxisE" title="cudaq::contrib::RotationAxis"><span class="n"><span class="pre">RotationAxis</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxis1YE" title="cudaq::contrib::RotationAxis::Y"><span class="n"><span class="pre">Y</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueR10QuakeValue12RotationAxis" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Encode classical features as single-qubit rotation gates. </p>
+<p>Angular (rotation) encoding maps a classical angle vector <span class="math notranslate nohighlight">\(\boldsymbol{\theta} = (\theta_0, \ldots, \theta_{n-1})\)</span> to an <span class="math notranslate nohighlight">\(n\)</span>-qubit product state by applying one parameterized rotation per qubit. Starting from <span class="math notranslate nohighlight">\(|0\rangle^{\otimes n}\)</span>, the encoded state is  <div class="math notranslate nohighlight">
+\[
+  |\psi\rangle
+  = \bigotimes_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle
+  = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle_i,
+\]</div>
+ where the product applies <span class="math notranslate nohighlight">\(R_{\mathrm{axis}}(\theta_i)\)</span> on qubit <span class="math notranslate nohighlight">\(i\)</span> and leaves other qubits unchanged. CUDA-Q uses <span class="math notranslate nohighlight">\(R_P(\theta) = e^{-i \theta P / 2}\)</span> for <span class="math notranslate nohighlight">\(P \in \{X, Y, Z\}\)</span>, implemented as <code class="docutils literal notranslate"><span class="pre">rx</span></code>, <code class="docutils literal notranslate"><span class="pre">ry</span></code>, or <code class="docutils literal notranslate"><span class="pre">rz</span></code> for <code class="docutils literal notranslate"><span class="pre">RotationAxis::X</span></code>, <code class="docutils literal notranslate"><span class="pre">Y</span></code>, or <code class="docutils literal notranslate"><span class="pre">Z</span></code> respectively. For example, <code class="docutils literal notranslate"><span class="pre">RotationAxis::Y</span></code> gives  <span class="math notranslate nohighlight">\(R_Y(\theta_i)|0\rangle = \cos(\theta_i/2)|0\rangle +
+\sin(\theta_i/2)|1\rangle\)</span> on qubit <span class="math notranslate nohighlight">\(i\)</span>.</p>
+<p>For use with <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1kernel__builder"><span class="std std-ref"><span class="pre">cudaq::kernel_builder</span></span></a></code> only (not <code class="docutils literal notranslate"><span class="pre">__qpu__</span></code> kernels).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – The kernel builder recording the circuit. </p></li>
+<li><p><strong>q</strong> – A <code class="docutils literal notranslate"><span class="pre">qvector</span></code> register to encode into. </p></li>
+<li><p><strong>angles</strong> – Rotation angles <span class="math notranslate nohighlight">\(\theta_i\)</span> as a <code class="docutils literal notranslate"><span class="pre">std::vector&lt;double&gt;</span></code> kernel argument. </p></li>
+<li><p><strong>rotation</strong> – Rotation axis (default <code class="docutils literal notranslate"><span class="pre">RotationAxis::Y</span></code>). </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueNSt4spanIKdEE12RotationAxis">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Kernel</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="kernels_8h_1ac4401520e24bf845af56294f93edadee"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">angular_encode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueNSt4spanIKdEE12RotationAxis" title="cudaq::contrib::angular_encode::Kernel"><span class="n"><span class="pre">Kernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">q</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">span</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">angles</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxisE" title="cudaq::contrib::RotationAxis"><span class="n"><span class="pre">RotationAxis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rotation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxisE" title="cudaq::contrib::RotationAxis"><span class="n"><span class="pre">RotationAxis</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxis1YE" title="cudaq::contrib::RotationAxis::Y"><span class="n"><span class="pre">Y</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueNSt4spanIKdEE12RotationAxis" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Encode classical features as single-qubit rotation gates.   </p>
+<p>Angular (rotation) encoding maps a classical angle vector <span class="math notranslate nohighlight">\(\boldsymbol{\theta} = (\theta_0, \ldots, \theta_{n-1})\)</span> to an <span class="math notranslate nohighlight">\(n\)</span>-qubit product state by applying one parameterized rotation per qubit. Starting from <span class="math notranslate nohighlight">\(|0\rangle^{\otimes n}\)</span>, the encoded state is  <div class="math notranslate nohighlight">
+\[
+  |\psi\rangle
+  = \bigotimes_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle
+  = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle_i,
+\]</div>
+ where the product applies <span class="math notranslate nohighlight">\(R_{\mathrm{axis}}(\theta_i)\)</span> on qubit <span class="math notranslate nohighlight">\(i\)</span> and leaves other qubits unchanged. CUDA-Q uses <span class="math notranslate nohighlight">\(R_P(\theta) = e^{-i \theta P / 2}\)</span> for <span class="math notranslate nohighlight">\(P \in \{X, Y, Z\}\)</span>, implemented as <code class="docutils literal notranslate"><span class="pre">rx</span></code>, <code class="docutils literal notranslate"><span class="pre">ry</span></code>, or <code class="docutils literal notranslate"><span class="pre">rz</span></code> for <code class="docutils literal notranslate"><span class="pre">RotationAxis::X</span></code>, <code class="docutils literal notranslate"><span class="pre">Y</span></code>, or <code class="docutils literal notranslate"><span class="pre">Z</span></code> respectively. For example, <code class="docutils literal notranslate"><span class="pre">RotationAxis::Y</span></code> gives  <span class="math notranslate nohighlight">\(R_Y(\theta_i)|0\rangle = \cos(\theta_i/2)|0\rangle +
+\sin(\theta_i/2)|1\rangle\)</span> on qubit <span class="math notranslate nohighlight">\(i\)</span>.</p>
+<p>For use with <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1kernel__builder"><span class="std std-ref"><span class="pre">cudaq::kernel_builder</span></span></a></code> only (not <code class="docutils literal notranslate"><span class="pre">__qpu__</span></code> kernels).</p>
+<p>
+Overload for a fixed list of angles known at kernel-build time. When <code class="docutils literal notranslate"><span class="pre">q</span></code> has a compile-time size, the length of <code class="docutils literal notranslate"><span class="pre">angles</span></code> must match the number of qubits. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – The kernel builder recording the circuit. </p></li>
+<li><p><strong>q</strong> – A <code class="docutils literal notranslate"><span class="pre">qvector</span></code> register to encode into. </p></li>
+<li><p><strong>angles</strong> – Rotation angles <span class="math notranslate nohighlight">\(\theta_i\)</span> as a <code class="docutils literal notranslate"><span class="pre">std::vector&lt;double&gt;</span></code> kernel argument. </p></li>
+<li><p><strong>rotation</strong> – Rotation axis (default <code class="docutils literal notranslate"><span class="pre">RotationAxis::Y</span></code>).  </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueRKNSt6vectorIdEE12RotationAxis">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Kernel</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="kernels_8h_1a0d96ac8b22eda6f35e7b17da14492acc"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contribE" title="cudaq::contrib"><span class="n"><span class="pre">contrib</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">angular_encode</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueRKNSt6vectorIdEE12RotationAxis" title="cudaq::contrib::angular_encode::Kernel"><span class="n"><span class="pre">Kernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">q</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">angles</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxisE" title="cudaq::contrib::RotationAxis"><span class="n"><span class="pre">RotationAxis</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">rotation</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxisE" title="cudaq::contrib::RotationAxis"><span class="n"><span class="pre">RotationAxis</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7contrib12RotationAxis1YE" title="cudaq::contrib::RotationAxis::Y"><span class="n"><span class="pre">Y</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueRKNSt6vectorIdEE12RotationAxis" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Encode classical features as single-qubit rotation gates.   </p>
+<p>Angular (rotation) encoding maps a classical angle vector <span class="math notranslate nohighlight">\(\boldsymbol{\theta} = (\theta_0, \ldots, \theta_{n-1})\)</span> to an <span class="math notranslate nohighlight">\(n\)</span>-qubit product state by applying one parameterized rotation per qubit. Starting from <span class="math notranslate nohighlight">\(|0\rangle^{\otimes n}\)</span>, the encoded state is  <div class="math notranslate nohighlight">
+\[
+  |\psi\rangle
+  = \bigotimes_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle
+  = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle_i,
+\]</div>
+ where the product applies <span class="math notranslate nohighlight">\(R_{\mathrm{axis}}(\theta_i)\)</span> on qubit <span class="math notranslate nohighlight">\(i\)</span> and leaves other qubits unchanged. CUDA-Q uses <span class="math notranslate nohighlight">\(R_P(\theta) = e^{-i \theta P / 2}\)</span> for <span class="math notranslate nohighlight">\(P \in \{X, Y, Z\}\)</span>, implemented as <code class="docutils literal notranslate"><span class="pre">rx</span></code>, <code class="docutils literal notranslate"><span class="pre">ry</span></code>, or <code class="docutils literal notranslate"><span class="pre">rz</span></code> for <code class="docutils literal notranslate"><span class="pre">RotationAxis::X</span></code>, <code class="docutils literal notranslate"><span class="pre">Y</span></code>, or <code class="docutils literal notranslate"><span class="pre">Z</span></code> respectively. For example, <code class="docutils literal notranslate"><span class="pre">RotationAxis::Y</span></code> gives  <span class="math notranslate nohighlight">\(R_Y(\theta_i)|0\rangle = \cos(\theta_i/2)|0\rangle +
+\sin(\theta_i/2)|1\rangle\)</span> on qubit <span class="math notranslate nohighlight">\(i\)</span>.</p>
+<p>For use with <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1kernel__builder"><span class="std std-ref"><span class="pre">cudaq::kernel_builder</span></span></a></code> only (not <code class="docutils literal notranslate"><span class="pre">__qpu__</span></code> kernels).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – The kernel builder recording the circuit. </p></li>
+<li><p><strong>q</strong> – A <code class="docutils literal notranslate"><span class="pre">qvector</span></code> register to encode into. </p></li>
+<li><p><strong>angles</strong> – Rotation angles <span class="math notranslate nohighlight">\(\theta_i\)</span> as a <code class="docutils literal notranslate"><span class="pre">std::vector&lt;double&gt;</span></code> kernel argument. </p></li>
+<li><p><strong>rotation</strong> – Rotation axis (default <code class="docutils literal notranslate"><span class="pre">RotationAxis::Y</span></code>).   </p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

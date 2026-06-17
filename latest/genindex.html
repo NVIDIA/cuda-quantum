@@ -556,6 +556,7 @@
 <li class="toctree-l1"><a class="reference internal" href="using/realtime.html">   Realtime</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="using/realtime/installation.html">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/realtime/installation.html#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/realtime/installation.html#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -884,6 +885,10 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
@@ -1148,12 +1153,16 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State.amplitude">amplitude (cudaq.State attribute)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.contrib.amplitude_encode">amplitude_encode() (in module cudaq.contrib)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.AmplitudeDampingChannel">AmplitudeDampingChannel (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.State.amplitudes">amplitudes (cudaq.State attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.contrib.angular_encode">angular_encode() (in module cudaq.contrib)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.KrausChannel.append">append (cudaq.KrausChannel attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernel.argument_count">argument_count (cudaq.PyKernel attribute)</a>
@@ -1423,9 +1432,21 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contribE">cudaq::contrib (C++ type)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIdEEEENSt7complexIdEE">cudaq::contrib::amplitude_encode (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIfEEEENSt7complexIdEE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKdEENSt7complexIdEE">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKfEENSt7complexIdEE">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib16amplitude_encodeERK5stateNSt7complexIdEE">[4]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueNSt4spanIKdEE12RotationAxis">cudaq::contrib::angular_encode (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueR10QuakeValue12RotationAxis">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueRKNSt6vectorIdEE12RotationAxis">[2]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args">cudaq::contrib::draw (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq7contrib16get_unitary_cmatE14complex_matrixRR13QuantumKernelDpRR4Args">cudaq::contrib::get_unitary_cmat (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib12RotationAxisE">cudaq::contrib::RotationAxis (C++ enum)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib12RotationAxis1XE">cudaq::contrib::RotationAxis::X (C++ enumerator)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib12RotationAxis1YE">cudaq::contrib::RotationAxis::Y (C++ enumerator)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contrib12RotationAxis1ZE">cudaq::contrib::RotationAxis::Z (C++ enumerator)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq9CusvStateE">cudaq::CusvState (C++ class)</a>
 </li>
@@ -1526,8 +1547,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext4spinE">cudaq::ExecutionContext::spin (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext15totalIterationsE">cudaq::ExecutionContext::totalIterations (C++ member)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext23warnedNamedMeasurementsE">cudaq::ExecutionContext::warnedNamedMeasurements (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15ExecutionResultE">cudaq::ExecutionResult (C++ struct)</a>
 </li>
@@ -1931,12 +1950,12 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iterator14const_iteratorEPK10product_opI9HandlerTyENSt6size_tE">cudaq::product_op::const_iterator::const_iterator (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10product_op14const_iteratorneERK14const_iterator">cudaq::product_op::const_iterator::operator!= (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10product_op14const_iteratormlEv">cudaq::product_op::const_iterator::operator* (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratorppEi">cudaq::product_op::const_iterator::operator++ (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratorppEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratormmEi">cudaq::product_op::const_iterator::operator-- (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratormmEv">[1]</a>

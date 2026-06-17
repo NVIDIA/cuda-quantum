@@ -854,6 +854,9 @@ latest
 -   [Realtime](../realtime.html){.reference .internal}
     -   [Installation](#){.current .reference .internal}
         -   [Prerequisites](#prerequisites){.reference .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](#setup){.reference .internal}
         -   [Latency Measurement](#latency-measurement){.reference
             .internal}
@@ -1473,6 +1476,12 @@ latest
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
                 .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq-contrib){.reference
+            .internal}
+            -   [Quantum
+                Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
             .internal}
@@ -1850,6 +1859,13 @@ Spark](https://www.nvidia.com/en-us/products/workstations/dgx-spark/){.reference
 ::: {#prerequisites .section}
 ## Prerequisites[¶](#prerequisites "Permalink to this heading"){.headerlink}
 
+The network transport bridge for [`cudaq-realtime`{.code .docutils
+.literal .notranslate}]{.pre} is provided by the NVQLink reference
+architecture, based on the Holoscan Sensor Bridge FPGA IP. Users may
+also implement their own transport layer and make it accessible to
+[`cudaq-realtime`{.code .docutils .literal .notranslate}]{.pre} as a
+bridge implementation.
+
 ::: {.tab-set .docutils}
 Using Holoscan Sensor Bridge
 
@@ -1878,6 +1894,46 @@ Using Custom Networking Layer
 :::
 :::
 
+::: {#hsb-fpga-ip-core-and-rfsoc-bit-file .section}
+[]{#realtime-hsb-fpga-artifacts}
+
+## HSB FPGA IP core and RFSoC bit-file[¶](#hsb-fpga-ip-core-and-rfsoc-bit-file "Permalink to this heading"){.headerlink}
+
+We offer two artifacts to developers seeking to use
+[`cudaq-realtime`{.code .docutils .literal .notranslate}]{.pre} with
+their FPGA systems:
+
+1.  The open-source HSB FPGA IP core, [`nv_hsb_ip`{.docutils .literal
+    .notranslate}]{.pre}, can be incorporated in a developer's FPGA
+    design to enable that design to define an NVQLink-connected device.
+    This core is available as RTL in the [HSB FPGA IP core
+    source](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/nv_hsb_ip){.reference
+    .external}.
+
+2.  The RFSoC PYNQ example is a fully packaged example for the Real
+    Digital RFSoC 4x2 evaluation board, using Vivado part
+    [`xczu48dr-ffvg1517-2-e`{.docutils .literal .notranslate}]{.pre}.
+    Use the [RFSoC PYNQ
+    source](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/pynq){.reference
+    .external} if you want to build or modify the design in Vivado. Use
+    the pre-built [`nvqlink_rfsoc_v2603.bit`{.docutils .literal
+    .notranslate}]{.pre} bit-file in the [HSB 2.6.0-EA artifact
+    directory](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/){.reference
+    .external} if you want to program the supported board without
+    rebuilding it.
+
+When building the RFSoC project from source, use the released
+[`fpga`{.docutils .literal .notranslate}]{.pre} tree from the Holoscan
+Sensor Bridge repository, including both [`fpga/pynq`{.docutils .literal
+.notranslate}]{.pre} and the sibling [`fpga/nv_hsb_ip`{.docutils
+.literal .notranslate}]{.pre} directory. Do not mix
+[`nv_hsb_ip`{.docutils .literal .notranslate}]{.pre} or RFSoC PYNQ files
+from an older HSB release with the packaged RFSoC example. For another
+RFSoC part or board, update the Vivado part and constraints in
+[`fpga/pynq/rfsoc-pynq/build/build.tcl`{.docutils .literal
+.notranslate}]{.pre} and rebuild the bit-file.
+:::
+
 ::: {#setup .section}
 ## Setup[¶](#setup "Permalink to this heading"){.headerlink}
 
@@ -1896,10 +1952,11 @@ Using Holoscan Sensor Bridge
 -   Follow the instructions given by the installer for post-installation
     steps to set environment variables.
 
--   Load HSB IP bit-file to the FPGA. The bit-file for supported FPGA
-    vendors can be found
-    [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/){.reference
-    .external}.
+-   Program the FPGA with HSB. See [[HSB FPGA IP core and RFSoC
+    bit-file]{.std .std-ref}](#realtime-hsb-fpga-artifacts){.reference
+    .internal} for the reusable [`nv_hsb_ip`{.docutils .literal
+    .notranslate}]{.pre} RTL source, the RFSoC PYNQ source example, and
+    the pre-built RFSoC bit-file.
 
 ::: {.admonition .note}
 Note
@@ -2015,9 +2072,9 @@ something similar to the following:
 Using Custom Networking Layer
 
 ::: {.tab-content .docutils}
-To measure the latency with a custom networking implementation, a
-stimulus (data generation) tool must the implemented that sends data to
-CUDA-Q realtime according to the custom networking protocol.
+To measure latency with a custom networking implementation, implement a
+stimulus (data generation) tool that sends data to CUDA-Q Realtime
+according to the custom networking protocol.
 
 For example, in the HSB-based implementation, we use the
 [`ptp_timestamp`{.code .docutils .literal .notranslate}]{.pre} field in

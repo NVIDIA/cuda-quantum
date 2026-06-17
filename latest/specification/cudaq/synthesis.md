@@ -873,6 +873,9 @@ latest
         .internal}
         -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](../../using/realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
@@ -1497,6 +1500,12 @@ latest
                 .internal}
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq-contrib){.reference
+            .internal}
+            -   [Quantum
+                Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference

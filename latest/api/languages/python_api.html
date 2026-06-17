@@ -27,6 +27,8 @@
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script src="../../_static/filter.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -559,6 +561,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../using/realtime.html">   Realtime</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/realtime/installation.html">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -885,6 +888,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#quantum-embeddings">Quantum Embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1694,6 +1701,121 @@ that need a structured DEM can parse it with
 </dl>
 </dd></dl>
 
+</section>
+<section id="cudaq-contrib">
+<h2><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code><a class="headerlink" href="#cudaq-contrib" title="Permalink to this heading">¶</a></h2>
+<section id="quantum-embeddings">
+<h3>Quantum Embeddings<a class="headerlink" href="#quantum-embeddings" title="Permalink to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.contrib.amplitude_encode">
+<span class="sig-prename descclassname"><span class="pre">cudaq.contrib.</span></span><span class="sig-name descname"><span class="pre">amplitude_encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><span class="pre">numpy.ndarray</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">State</span></a></span></span><a class="headerlink" href="#cudaq.contrib.amplitude_encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map classical features to a normalized quantum state by amplitude encoding.</p>
+<p>Amplitude encoding represents a classical feature vector as the amplitudes
+of a pure state in the computational basis. Given a length-<span class="math notranslate nohighlight">\(d\)</span> vector
+<span class="math notranslate nohighlight">\(\mathbf{x} = (x_0, \ldots, x_{d-1})\)</span> (real or complex), the
+procedure is:</p>
+<ol class="arabic simple">
+<li><p><strong>Pad</strong> to length <span class="math notranslate nohighlight">\(N = 2^n\)</span> for the smallest <span class="math notranslate nohighlight">\(n\)</span> with
+<span class="math notranslate nohighlight">\(N \ge d\)</span>.
+The padded vector <span class="math notranslate nohighlight">\(\mathbf{x}'\)</span> satisfies <span class="math notranslate nohighlight">\(x'_i = x_i\)</span> for
+<span class="math notranslate nohighlight">\(i &lt; d\)</span> and <span class="math notranslate nohighlight">\(x'_i = \texttt{pad}\)</span> for <span class="math notranslate nohighlight">\(d \le i &lt; N\)</span>.</p></li>
+<li><p><strong>Normalize</strong> with the Euclidean (L2) norm (must be non-zero).
+Coefficients are <span class="math notranslate nohighlight">\(α_i = x'_i / \|\mathbf{x}'\|_2\)</span>.</p></li>
+<li><p><strong>Form the state</strong> in the <span class="math notranslate nohighlight">\(n\)</span>-qubit computational basis:
+<span class="math notranslate nohighlight">\(|\psi⟩ = \sum_{i=0}^{N-1} α_i |i⟩\)</span>, where
+<span class="math notranslate nohighlight">\(|i⟩\)</span> is the basis <code class="docutils literal notranslate"><span class="pre">ket</span></code> with index <span class="math notranslate nohighlight">\(i\)</span> in binary.</p></li>
+</ol>
+<p>The returned <code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code> stores <span class="math notranslate nohighlight">\(α_i\)</span> in little-endian index
+order (consistent with <code class="docutils literal notranslate"><span class="pre">cudaq.State</span></code> / <code class="docutils literal notranslate"><span class="pre">qvector(state)</span></code>). Real inputs are
+promoted to complex amplitudes with zero imaginary part before padding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Classical features as a list, NumPy/CuPy array, or existing
+<code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code> (re-normalized after any padding).</p></li>
+<li><p><strong>pad</strong> – Value used to pad when <code class="docutils literal notranslate"><span class="pre">len(data)</span></code> is not a power of two (default
+<code class="docutils literal notranslate"><span class="pre">0</span></code> for zero-padding to the nearest <code class="docutils literal notranslate"><span class="pre">2^n</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Normalized state vector suitable for simulation and</dt><dd><p><code class="docutils literal notranslate"><span class="pre">cudaq.State.from_data</span></code> workflows.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">data</span></code> is empty, has zero norm after padding, or is not
+    a 1D vector.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">data</span></code> has an unsupported type.</p></li>
+</ul>
+</dd>
+</dl>
+<p>See <code class="docutils literal notranslate"><span class="pre">cudaq.contrib.examples</span></code> for complete examples.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.contrib.angular_encode">
+<span class="sig-prename descclassname"><span class="pre">cudaq.contrib.</span></span><span class="sig-name descname"><span class="pre">angular_encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel_or_q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_or_angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Y'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.contrib.angular_encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode classical features as single-qubit rotation gates inside a kernel.</p>
+<p>Angular (rotation) encoding maps a classical angle vector
+(<span class="math notranslate nohighlight">\(θ_0\)</span>, <span class="math notranslate nohighlight">\(\ldots\)</span>, <span class="math notranslate nohighlight">\(θ_{n-1}\)</span>) to an
+<span class="math notranslate nohighlight">\(n\)</span>-qubit product state by applying one parameterized rotation per
+qubit. Starting from the <span class="math notranslate nohighlight">\(n\)</span>-fold product of <span class="math notranslate nohighlight">\(|0⟩\)</span>, the
+encoded state is</p>
+<div class="math notranslate nohighlight">
+\[|ψ⟩
+= \prod_{i=0}^{n-1} R_{\mathrm{axis}}(θ_i)\,|0⟩_i,\]</div>
+<p>where the product applies <span class="math notranslate nohighlight">\(R_{\mathrm{axis}}(θ_i)\)</span> on qubit
+<span class="math notranslate nohighlight">\(i\)</span> and leaves other qubits unchanged. CUDA-Q uses the standard Pauli
+rotation convention</p>
+<div class="math notranslate nohighlight">
+\[R_P(θ) = e^{-i θ P / 2}, \quad P \in \{X, Y, Z\},\]</div>
+<p>implemented as <code class="docutils literal notranslate"><span class="pre">rx(θ)</span></code>, <code class="docutils literal notranslate"><span class="pre">ry(θ)</span></code>, or <code class="docutils literal notranslate"><span class="pre">rz(θ)</span></code> when
+<code class="docutils literal notranslate"><span class="pre">rotation</span></code> is <code class="docutils literal notranslate"><span class="pre">'X'</span></code>, <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'Z'</span></code> respectively (default <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>).</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">rotation='Y'</span></code> on qubit <span class="math notranslate nohighlight">\(i\)</span> gives
+<span class="math notranslate nohighlight">\(R_Y(θ_i)|0⟩ = \cos(θ_i/2)|0⟩ +
+\sin(θ_i/2)|1⟩\)</span>.</p>
+<p>The number of angles must match the number of qubits in <code class="docutils literal notranslate"><span class="pre">q</span></code> when the
+register size is known at compile time.</p>
+<p>Two call patterns are supported:</p>
+<ul class="simple">
+<li><p><strong>Kernel language</strong> (inside <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code>): intercepted by the
+compiler; host calls with <code class="docutils literal notranslate"><span class="pre">(q,</span> <span class="pre">angles)</span></code> raise <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code>.</p></li>
+<li><p><strong>Builder</strong> (<code class="docutils literal notranslate"><span class="pre">cudaq.make_kernel()</span></code>): call
+<code class="docutils literal notranslate"><span class="pre">angular_encode(kernel,</span> <span class="pre">qubits,</span> <span class="pre">angles,</span> <span class="pre">rotation='Y')</span></code> to append
+<code class="docutils literal notranslate"><span class="pre">rx</span></code>/<code class="docutils literal notranslate"><span class="pre">ry</span></code>/<code class="docutils literal notranslate"><span class="pre">rz</span></code> gates to the circuit under construction.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel_or_q</strong> – In builder mode, the <code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code> from
+<code class="docutils literal notranslate"><span class="pre">cudaq.make_kernel()</span></code>. In kernel language, the <code class="docutils literal notranslate"><span class="pre">q</span></code> register
+(handled by the compiler, not this Python function).</p></li>
+<li><p><strong>q_or_angles</strong> – In builder mode, the <code class="docutils literal notranslate"><span class="pre">qalloc</span></code> register. In kernel language,
+the <code class="docutils literal notranslate"><span class="pre">angles</span></code> list.</p></li>
+<li><p><strong>angles</strong> – Builder mode only — <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> or a kernel <code class="docutils literal notranslate"><span class="pre">list[float]</span></code>
+argument (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code>).</p></li>
+<li><p><strong>rotation</strong> – Rotation axis: <code class="docutils literal notranslate"><span class="pre">'X'</span></code>, <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'Z'</span></code> (default <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>;
+case-insensitive in builder mode).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><strong>RuntimeError</strong></a> – Kernel-language host misuse with <code class="docutils literal notranslate"><span class="pre">(q,</span> <span class="pre">angles)</span></code>.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – Invalid <code class="docutils literal notranslate"><span class="pre">rotation</span></code> or angle/qubit count mismatch (builder).</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – Invalid builder arguments.</p></li>
+</ul>
+</dd>
+</dl>
+<p>See <code class="docutils literal notranslate"><span class="pre">cudaq.contrib.examples</span></code> for complete examples.</p>
+</dd></dl>
+
+</section>
 </section>
 <section id="quantum-error-correction">
 <h2>Quantum Error Correction<a class="headerlink" href="#quantum-error-correction" title="Permalink to this heading">¶</a></h2>

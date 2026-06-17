@@ -559,6 +559,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../realtime.html">   Realtime</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -887,6 +888,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
@@ -1065,6 +1070,8 @@ The binaries are available for <code class="code docutils literal notranslate"><
 - <a class="reference external" href="https://www.nvidia.com/en-us/products/workstations/dgx-spark/">NVIDIA DGX Spark</a></p>
 <section id="prerequisites">
 <h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading">¶</a></h2>
+<p>The network transport bridge for <code class="code docutils literal notranslate"><span class="pre">cudaq-realtime</span></code> is provided by the NVQLink reference architecture, based on the Holoscan Sensor Bridge FPGA IP.
+Users may also implement their own transport layer and make it accessible to <code class="code docutils literal notranslate"><span class="pre">cudaq-realtime</span></code> as a bridge implementation.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Using Holoscan Sensor Bridge</label><div class="tab-content docutils">
 <ul class="simple">
@@ -1083,6 +1090,20 @@ The binaries are available for <code class="code docutils literal notranslate"><
 </div>
 </div>
 </section>
+<section id="hsb-fpga-ip-core-and-rfsoc-bit-file">
+<span id="realtime-hsb-fpga-artifacts"></span><h2>HSB FPGA IP core and RFSoC bit-file<a class="headerlink" href="#hsb-fpga-ip-core-and-rfsoc-bit-file" title="Permalink to this heading">¶</a></h2>
+<p>We offer two artifacts to developers seeking to use <code class="code docutils literal notranslate"><span class="pre">cudaq-realtime</span></code> with their FPGA systems:</p>
+<ol class="arabic simple">
+<li><p>The open-source HSB FPGA IP core, <code class="docutils literal notranslate"><span class="pre">nv_hsb_ip</span></code>, can be incorporated in a developer’s FPGA design to enable that design to define an NVQLink-connected device.
+This core is available as RTL in the <a class="reference external" href="https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/nv_hsb_ip">HSB FPGA IP core source</a>.</p></li>
+<li><p>The RFSoC PYNQ example is a fully packaged example for the Real Digital RFSoC 4x2 evaluation board, using Vivado part <code class="docutils literal notranslate"><span class="pre">xczu48dr-ffvg1517-2-e</span></code>.
+Use the <a class="reference external" href="https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/pynq">RFSoC PYNQ source</a> if you want to build or modify the design in Vivado.
+Use the pre-built <code class="docutils literal notranslate"><span class="pre">nvqlink_rfsoc_v2603.bit</span></code> bit-file in the <a class="reference external" href="https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/">HSB 2.6.0-EA artifact directory</a> if you want to program the supported board without rebuilding it.</p></li>
+</ol>
+<p>When building the RFSoC project from source, use the released <code class="docutils literal notranslate"><span class="pre">fpga</span></code> tree from the Holoscan Sensor Bridge repository, including both <code class="docutils literal notranslate"><span class="pre">fpga/pynq</span></code> and the sibling <code class="docutils literal notranslate"><span class="pre">fpga/nv_hsb_ip</span></code> directory.
+Do not mix <code class="docutils literal notranslate"><span class="pre">nv_hsb_ip</span></code> or RFSoC PYNQ files from an older HSB release with the packaged RFSoC example.
+For another RFSoC part or board, update the Vivado part and constraints in <code class="docutils literal notranslate"><span class="pre">fpga/pynq/rfsoc-pynq/build/build.tcl</span></code> and rebuild the bit-file.</p>
+</section>
 <section id="setup">
 <h2>Setup<a class="headerlink" href="#setup" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
@@ -1094,8 +1115,8 @@ The binaries are available for <code class="code docutils literal notranslate"><
 </div>
 </li>
 <li><p>Follow the instructions given by the installer for post-installation steps to set environment variables.</p></li>
-<li><p>Load HSB IP bit-file to the FPGA.
-The bit-file for supported FPGA vendors can be found <a class="reference external" href="https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/">here</a>.</p></li>
+<li><p>Program the FPGA with HSB.
+See <a class="reference internal" href="#realtime-hsb-fpga-artifacts"><span class="std std-ref">HSB FPGA IP core and RFSoC bit-file</span></a> for the reusable <code class="docutils literal notranslate"><span class="pre">nv_hsb_ip</span></code> RTL source, the RFSoC PYNQ source example, and the pre-built RFSoC bit-file.</p></li>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -1164,7 +1185,7 @@ print out something similar to the following:</p>
 </div>
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">Using Custom Networking Layer</label><div class="tab-content docutils">
-<p>To measure the latency with a custom networking implementation, a stimulus (data generation) tool must the implemented that sends data to CUDA-Q realtime according to the custom networking protocol.</p>
+<p>To measure latency with a custom networking implementation, implement a stimulus (data generation) tool that sends data to CUDA-Q Realtime according to the custom networking protocol.</p>
 <p>For example, in the HSB-based implementation, we use the <code class="code docutils literal notranslate"><span class="pre">ptp_timestamp</span></code> field in the <code class="code docutils literal notranslate"><span class="pre">RPCHeader</span></code> / <code class="code docutils literal notranslate"><span class="pre">RPCResponse</span></code> (see the message protocol documentation) to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA) stores the ‘send’ timestamp in the <code class="code docutils literal notranslate"><span class="pre">RPCHeader</span></code> (incoming message), which will be echoed by the GPU in the outgoing <code class="code docutils literal notranslate"><span class="pre">RPCResponse</span></code> after processing it (e.g., with the RPC handler). Using the Integrated Logic Analyzer timestamp when the FPGA receives the response from the GPU, we can compute the round-trip latency.
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hololink_fpga_playback.cpp">This file</a> contains an example of such a data generation tool.</p>
 </div>

@@ -855,6 +855,9 @@ latest
     -   [Installation](installation.html){.reference .internal}
         -   [Prerequisites](installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](installation.html#setup){.reference .internal}
         -   [Latency
             Measurement](installation.html#latency-measurement){.reference
@@ -1457,6 +1460,12 @@ latest
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
                 .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq-contrib){.reference
+            .internal}
+            -   [Quantum
+                Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
             .internal}
@@ -1833,8 +1842,7 @@ an FPGA) to GPU-based decoders.
 
 **Repository**: [[`nvidia-holoscan`{.docutils .literal
 .notranslate}]{.pre}/[`holoscan-sensor-bridge`{.docutils .literal
-.notranslate}]{.pre} ([`nvqlink`{.docutils .literal .notranslate}]{.pre}
-branch)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink){.reference
+.notranslate}]{.pre}](https://github.com/nvidia-holoscan/holoscan-sensor-bridge){.reference
 .external}
 
 HSB handles:
@@ -2334,7 +2342,7 @@ Magic values (little-endian 32-bit):
 :::
 
 Both structs are 24 bytes, packed with no padding. See
-[`cudaq_realtime_message_protocol.bs`{.docutils .literal
+[`cudaq_realtime_message_protocol.md`{.docutils .literal
 .notranslate}]{.pre} for [`request_id`{.docutils .literal
 .notranslate}]{.pre} and [`ptp_timestamp`{.docutils .literal
 .notranslate}]{.pre} semantics.
@@ -3213,7 +3221,7 @@ Adapted from [`test_realtime_decoding.cu`{.docutils .literal
 [`cudaMemcpy`{.docutils .literal .notranslate}]{.pre}):
 
 Note: this host-side snippet emulates what the external device/FPGA
-would do when populating RX slots in a HSB deployment.
+would do when populating RX slots in an HSB deployment.
 
 ::: {.highlight-cpp .notranslate}
 ::: highlight
@@ -3242,7 +3250,7 @@ would do when populating RX slots in a HSB deployment.
 ## Reading the Response[¶](#reading-the-response "Permalink to this heading"){.headerlink}
 
 Note: this host-side snippet emulates what the external device/FPGA
-would do when consuming TX slots in a HSB deployment.
+would do when consuming TX slots in an HSB deployment.
 
 ::: {.highlight-cpp .notranslate}
 ::: highlight

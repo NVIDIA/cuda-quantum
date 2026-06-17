@@ -873,6 +873,9 @@ latest
         .internal}
         -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](../../using/realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
@@ -1501,6 +1504,10 @@ latest
                 .internal}
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](#cudaq-contrib){.reference .internal}
+            -   [Quantum Embeddings](#quantum-embeddings){.reference
                 .internal}
         -   [Quantum Error
             Correction](#quantum-error-correction){.reference .internal}
@@ -2779,6 +2786,211 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         structured DEM can parse it with
         [`stim.DetectorErrorModel(text)`{.code .docutils .literal
         .notranslate}]{.pre}.
+:::
+
+::: {#cudaq-contrib .section}
+## [`cudaq.contrib`{.docutils .literal .notranslate}]{.pre}[¶](#cudaq-contrib "Permalink to this heading"){.headerlink}
+
+::: {#quantum-embeddings .section}
+### Quantum Embeddings[¶](#quantum-embeddings "Permalink to this heading"){.headerlink}
+
+[[cudaq.contrib.]{.pre}]{.sig-prename .descclassname}[[amplitude_encode]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[data]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.4)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.n}*, *[[\*]{.pre}]{.o}*, *[[pad]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.contrib.amplitude_encode "Permalink to this definition"){.headerlink}
+
+:   Map classical features to a normalized quantum state by amplitude
+    encoding.
+
+    Amplitude encoding represents a classical feature vector as the
+    amplitudes of a pure state in the computational basis. Given a
+    length-[\\(d\\)]{.math .notranslate .nohighlight} vector
+    [\\(\\mathbf{x} = (x_0, \\ldots, x\_{d-1})\\)]{.math .notranslate
+    .nohighlight} (real or complex), the procedure is:
+
+    1.  **Pad** to length [\\(N = 2\^n\\)]{.math .notranslate
+        .nohighlight} for the smallest [\\(n\\)]{.math .notranslate
+        .nohighlight} with [\\(N \\ge d\\)]{.math .notranslate
+        .nohighlight}. The padded vector [\\(\\mathbf{x}\'\\)]{.math
+        .notranslate .nohighlight} satisfies [\\(x\'\_i = x_i\\)]{.math
+        .notranslate .nohighlight} for [\\(i \< d\\)]{.math .notranslate
+        .nohighlight} and [\\(x\'\_i = \\texttt{pad}\\)]{.math
+        .notranslate .nohighlight} for [\\(d \\le i \< N\\)]{.math
+        .notranslate .nohighlight}.
+
+    2.  **Normalize** with the Euclidean (L2) norm (must be non-zero).
+        Coefficients are [\\(α_i = x\'\_i /
+        \\\|\\mathbf{x}\'\\\|\_2\\)]{.math .notranslate .nohighlight}.
+
+    3.  **Form the state** in the [\\(n\\)]{.math .notranslate
+        .nohighlight}-qubit computational basis: [\\(\|\\psi⟩ =
+        \\sum\_{i=0}\^{N-1} α_i \|i⟩\\)]{.math .notranslate
+        .nohighlight}, where [\\(\|i⟩\\)]{.math .notranslate
+        .nohighlight} is the basis [`ket`{.docutils .literal
+        .notranslate}]{.pre} with index [\\(i\\)]{.math .notranslate
+        .nohighlight} in binary.
+
+    The returned [`State`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre} stores [\\(α_i\\)]{.math .notranslate
+    .nohighlight} in little-endian index order (consistent with
+    [`cudaq.State`{.docutils .literal .notranslate}]{.pre} /
+    [`qvector(state)`{.docutils .literal .notranslate}]{.pre}). Real
+    inputs are promoted to complex amplitudes with zero imaginary part
+    before padding.
+
+    Parameters[:]{.colon}
+
+    :   -   **data** -- Classical features as a list, NumPy/CuPy array,
+            or existing [`State`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre} (re-normalized after any padding).
+
+        -   **pad** -- Value used to pad when [`len(data)`{.docutils
+            .literal .notranslate}]{.pre} is not a power of two (default
+            [`0`{.docutils .literal .notranslate}]{.pre} for
+            zero-padding to the nearest [`2^n`{.docutils .literal
+            .notranslate}]{.pre}).
+
+    Returns[:]{.colon}
+
+    :   
+
+        Normalized state vector suitable for simulation and
+
+        :   [`cudaq.State.from_data`{.docutils .literal
+            .notranslate}]{.pre} workflows.
+
+    Return type[:]{.colon}
+
+    :   [`State`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}
+
+    Raises[:]{.colon}
+
+    :   -   [**ValueError**](https://docs.python.org/3/library/exceptions.html#ValueError "(in Python v3.14)"){.reference
+            .external} -- If [`data`{.docutils .literal
+            .notranslate}]{.pre} is empty, has zero norm after padding,
+            or is not a 1D vector.
+
+        -   [**TypeError**](https://docs.python.org/3/library/exceptions.html#TypeError "(in Python v3.14)"){.reference
+            .external} -- If [`data`{.docutils .literal
+            .notranslate}]{.pre} has an unsupported type.
+
+    See [`cudaq.contrib.examples`{.docutils .literal
+    .notranslate}]{.pre} for complete examples.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.contrib.]{.pre}]{.sig-prename .descclassname}[[angular_encode]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel_or_q]{.pre}]{.n}*, *[[q_or_angles]{.pre}]{.n}*, *[[angles]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*]{.pre}]{.o}*, *[[rotation]{.pre}]{.n}[[=]{.pre}]{.o}[[\'Y\']{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.contrib.angular_encode "Permalink to this definition"){.headerlink}
+
+:   Encode classical features as single-qubit rotation gates inside a
+    kernel.
+
+    Angular (rotation) encoding maps a classical angle vector
+    ([\\(θ_0\\)]{.math .notranslate .nohighlight}, [\\(\\ldots\\)]{.math
+    .notranslate .nohighlight}, [\\(θ\_{n-1}\\)]{.math .notranslate
+    .nohighlight}) to an [\\(n\\)]{.math .notranslate
+    .nohighlight}-qubit product state by applying one parameterized
+    rotation per qubit. Starting from the [\\(n\\)]{.math .notranslate
+    .nohighlight}-fold product of [\\(\|0⟩\\)]{.math .notranslate
+    .nohighlight}, the encoded state is
+
+    ::: {.math .notranslate .nohighlight}
+    \\\[\|ψ⟩ = \\prod\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(θ_i)\\,\|0⟩\_i,\\\]
+    :::
+
+    where the product applies [\\(R\_{\\mathrm{axis}}(θ_i)\\)]{.math
+    .notranslate .nohighlight} on qubit [\\(i\\)]{.math .notranslate
+    .nohighlight} and leaves other qubits unchanged. CUDA-Q uses the
+    standard Pauli rotation convention
+
+    ::: {.math .notranslate .nohighlight}
+    \\\[R_P(θ) = e\^{-i θ P / 2}, \\quad P \\in \\{X, Y, Z\\},\\\]
+    :::
+
+    implemented as [`rx(θ)`{.docutils .literal .notranslate}]{.pre},
+    [`ry(θ)`{.docutils .literal .notranslate}]{.pre}, or
+    [`rz(θ)`{.docutils .literal .notranslate}]{.pre} when
+    [`rotation`{.docutils .literal .notranslate}]{.pre} is
+    [`'X'`{.docutils .literal .notranslate}]{.pre}, [`'Y'`{.docutils
+    .literal .notranslate}]{.pre}, or [`'Z'`{.docutils .literal
+    .notranslate}]{.pre} respectively (default [`'Y'`{.docutils .literal
+    .notranslate}]{.pre}).
+
+    For example, [`rotation='Y'`{.docutils .literal .notranslate}]{.pre}
+    on qubit [\\(i\\)]{.math .notranslate .nohighlight} gives
+    [\\(R_Y(θ_i)\|0⟩ = \\cos(θ_i/2)\|0⟩ + \\sin(θ_i/2)\|1⟩\\)]{.math
+    .notranslate .nohighlight}.
+
+    The number of angles must match the number of qubits in
+    [`q`{.docutils .literal .notranslate}]{.pre} when the register size
+    is known at compile time.
+
+    Two call patterns are supported:
+
+    -   **Kernel language** (inside [`@cudaq.kernel`{.docutils .literal
+        .notranslate}]{.pre}): intercepted by the compiler; host calls
+        with [`(q,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+        .literal .notranslate}[`angles)`{.docutils .literal
+        .notranslate}]{.pre} raise [`RuntimeError`{.docutils .literal
+        .notranslate}]{.pre}.
+
+    -   **Builder** ([`cudaq.make_kernel()`{.docutils .literal
+        .notranslate}]{.pre}): call [`angular_encode(kernel,`{.docutils
+        .literal .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`qubits,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`angles,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`rotation='Y')`{.docutils .literal
+        .notranslate}]{.pre} to append [`rx`{.docutils .literal
+        .notranslate}]{.pre}/[`ry`{.docutils .literal
+        .notranslate}]{.pre}/[`rz`{.docutils .literal
+        .notranslate}]{.pre} gates to the circuit under construction.
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel_or_q** -- In builder mode, the [`Kernel`{.xref .py
+            .py-class .docutils .literal .notranslate}]{.pre} from
+            [`cudaq.make_kernel()`{.docutils .literal
+            .notranslate}]{.pre}. In kernel language, the [`q`{.docutils
+            .literal .notranslate}]{.pre} register (handled by the
+            compiler, not this Python function).
+
+        -   **q_or_angles** -- In builder mode, the [`qalloc`{.docutils
+            .literal .notranslate}]{.pre} register. In kernel language,
+            the [`angles`{.docutils .literal .notranslate}]{.pre} list.
+
+        -   **angles** -- Builder mode only --- [`list[float]`{.docutils
+            .literal .notranslate}]{.pre} or a kernel
+            [`list[float]`{.docutils .literal .notranslate}]{.pre}
+            argument ([`QuakeValue`{.xref .py .py-class .docutils
+            .literal .notranslate}]{.pre}).
+
+        -   **rotation** -- Rotation axis: [`'X'`{.docutils .literal
+            .notranslate}]{.pre}, [`'Y'`{.docutils .literal
+            .notranslate}]{.pre}, or [`'Z'`{.docutils .literal
+            .notranslate}]{.pre} (default [`'Y'`{.docutils .literal
+            .notranslate}]{.pre}; case-insensitive in builder mode).
+
+    Raises[:]{.colon}
+
+    :   -   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- Kernel-language host misuse with
+            [`(q,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+            .literal .notranslate}[`angles)`{.docutils .literal
+            .notranslate}]{.pre}.
+
+        -   [**ValueError**](https://docs.python.org/3/library/exceptions.html#ValueError "(in Python v3.14)"){.reference
+            .external} -- Invalid [`rotation`{.docutils .literal
+            .notranslate}]{.pre} or angle/qubit count mismatch
+            (builder).
+
+        -   [**TypeError**](https://docs.python.org/3/library/exceptions.html#TypeError "(in Python v3.14)"){.reference
+            .external} -- Invalid builder arguments.
+
+    See [`cudaq.contrib.examples`{.docutils .literal
+    .notranslate}]{.pre} for complete examples.
+:::
 :::
 
 ::: {#quantum-error-correction .section}

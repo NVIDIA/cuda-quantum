@@ -862,6 +862,9 @@ latest
         .internal}
         -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](../../using/realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
@@ -1512,6 +1515,12 @@ latest
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
                 .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq-contrib){.reference
+            .internal}
+            -   [Quantum
+                Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
             .internal}
@@ -1893,14 +1902,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![6fce51c9e364454f95a31f54923fa3e3](../../_images/gate-fuse.png)
+![a8661de692d7490993682bb97d97da1d](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![a586eb9444ec45ce8f71d624ee97b8c9](../../_images/gatefusion.png)
+![ab135c52287d461da83a8f0bbc63812c](../../_images/gatefusion.png)
 :::
 :::
 :::

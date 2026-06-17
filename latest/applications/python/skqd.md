@@ -847,6 +847,9 @@ latest
         .internal}
         -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](../../using/realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
@@ -1496,6 +1499,12 @@ latest
                 .internal}
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq-contrib){.reference
+            .internal}
+            -   [Quantum
+                Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -2406,7 +2415,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![4c69217630084cf58be3f45e090af2c0](../../_images/speedup.png){.no-scaled-link
+![3c9b0a4575ff4708951a87c8bf09e209](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2420,9 +2429,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![4c9864d95af04648a2a8c00a95ba1cf9](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![a526b4fec1eb48769558ca8b9052bd6a](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![53ffc9d356f34fd0ac9fd8768ca1d3ea](../../_images/efficiency.jpeg){.no-scaled-link
+![e9bc9fb7a8364ecaae934893dd87b061](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

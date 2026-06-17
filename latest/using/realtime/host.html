@@ -559,6 +559,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../realtime.html">   Realtime</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="installation.html#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="installation.html#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -887,6 +888,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
@@ -1072,7 +1077,7 @@ direct GPU memory access from external devices (FPGAs, sensors) over Ethernet
 using RDMA (Remote Direct Memory Access) via ConnectX NIC’s. In the context of
 quantum error correction, HSB is one example of a transport mechanism that
 connects the quantum control system (typically an FPGA) to GPU-based decoders.</p>
-<p><strong>Repository</strong>: <a class="reference external" href="https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink"><code class="docutils literal notranslate"><span class="pre">nvidia-holoscan</span></code>/<code class="docutils literal notranslate"><span class="pre">holoscan-sensor-bridge</span></code> (<code class="docutils literal notranslate"><span class="pre">nvqlink</span></code> branch)</a></p>
+<p><strong>Repository</strong>: <a class="reference external" href="https://github.com/nvidia-holoscan/holoscan-sensor-bridge"><code class="docutils literal notranslate"><span class="pre">nvidia-holoscan</span></code>/<code class="docutils literal notranslate"><span class="pre">holoscan-sensor-bridge</span></code></a></p>
 <p>HSB handles:</p>
 <ul class="simple">
 <li><p><strong>RX (Receive)</strong>: RX kernel receives data from the FPGA directly
@@ -1441,7 +1446,7 @@ Messaging Protocol.</p>
 <span class="p">};</span>
 </pre></div>
 </div>
-<p>Both structs are 24 bytes, packed with no padding. See <code class="docutils literal notranslate"><span class="pre">cudaq_realtime_message_protocol.bs</span></code>
+<p>Both structs are 24 bytes, packed with no padding. See <code class="docutils literal notranslate"><span class="pre">cudaq_realtime_message_protocol.md</span></code>
 for <code class="docutils literal notranslate"><span class="pre">request_id</span></code> and <code class="docutils literal notranslate"><span class="pre">ptp_timestamp</span></code> semantics.</p>
 <p>Payload conventions:</p>
 <ul class="simple">
@@ -2005,7 +2010,7 @@ calls from within handlers.</p>
 <code class="docutils literal notranslate"><span class="pre">setup_mock_decode_function_table</span></code>, that performs equivalent setup via
 <code class="docutils literal notranslate"><span class="pre">cudaMemcpy</span></code>):</p>
 <p>Note: this host-side snippet emulates what the external device/FPGA would do
-when populating RX slots in a HSB deployment.</p>
+when populating RX slots in an HSB deployment.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">/// @brief Write detection events to RX buffer in RPC format.</span>
 <span class="kt">void</span><span class="w"> </span><span class="nf">write_rpc_request</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">slot</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">measurements</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">slot_data</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">const_cast</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">rx_data_host_</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">slot</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">slot_size_</span><span class="p">;</span>
@@ -2029,7 +2034,7 @@ when populating RX slots in a HSB deployment.</p>
 <section id="reading-the-response">
 <h2>Reading the Response<a class="headerlink" href="#reading-the-response" title="Permalink to this heading">¶</a></h2>
 <p>Note: this host-side snippet emulates what the external device/FPGA would do
-when consuming TX slots in a HSB deployment.</p>
+when consuming TX slots in an HSB deployment.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">/// @brief Read response from TX buffer.</span>
 <span class="c1">/// Responses are written by the dispatch kernel to the TX ring buffer; read from tx_data, not rx_data.</span>
 <span class="kt">bool</span><span class="w"> </span><span class="nf">read_rpc_response</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">slot</span><span class="p">,</span><span class="w"> </span><span class="kt">uint8_t</span><span class="o">&amp;</span><span class="w"> </span><span class="n">correction</span><span class="p">,</span>

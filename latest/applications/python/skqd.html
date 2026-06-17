@@ -562,6 +562,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../using/realtime.html">   Realtime</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/realtime/installation.html">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -888,6 +889,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1415,12 +1420,12 @@ Generating Krylov state U^11...
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code></p>
 <p>This substantial acceleration comes from: - <strong>Parallel Pauli string evaluation</strong> across thousands of basis states simultaneously - <strong>Vectorized matrix element computation</strong> leveraging CUDA cores - <strong>GPU-optimized sparse linear algebra</strong> via cuSPARSE library for eigenvalue solving</p>
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
-<p><img alt="4c69217630084cf58be3f45e090af2c0" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
+<p><img alt="3c9b0a4575ff4708951a87c8bf09e209" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
 </section>
 <section id="Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">
 <h2>Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node<a class="headerlink" href="#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node" title="Permalink to this heading">¶</a></h2>
 <p>The plots below were generated using <code class="docutils literal notranslate"><span class="pre">distributed_eigsh()</span></code> with the Hamiltonian of an active site of a GPCR (G protein-coupled receptor) molecule. This demonstrates scaling behavior on a problem with a much larger computational subspace than the 22-qubit demo above.</p>
-<div style="display: flex; gap: 10px;"><p><img alt="4c9864d95af04648a2a8c00a95ba1cf9" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="53ffc9d356f34fd0ac9fd8768ca1d3ea" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
+<div style="display: flex; gap: 10px;"><p><img alt="a526b4fec1eb48769558ca8b9052bd6a" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="e9bc9fb7a8364ecaae934893dd87b061" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
 </div><section id="Saving-Hamiltonian-Data">
 <h3>Saving Hamiltonian Data<a class="headerlink" href="#Saving-Hamiltonian-Data" title="Permalink to this heading">¶</a></h3>
 <p>To run the multi-GPU solver, we first save the Hamiltonian data (pauli words, coefficients) and the sampled basis states so they can be loaded by each MPI rank.</p>
