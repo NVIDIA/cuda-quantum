@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "algorithms/encoding.h"
 #include "algorithms/get_state.h"
 #include "algorithms/observe.h"
 #include "algorithms/optimizer.h"
