@@ -29,6 +29,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/observe_result_tester.cpp
   integration/noise_tester.cpp
   integration/get_state_tester.cpp
+  integration/encoding_tester.cpp
   integration/measure_reset_tester.cpp
   integration/mps_to_host_tester.cpp
   qir/NVQIRTester.cpp  

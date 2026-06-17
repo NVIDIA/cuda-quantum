@@ -221,6 +221,46 @@ CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
   }
 }
 
+CUDAQ_TEST(KernelsTester, checkAngularEncodeRy) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(3);
+  const std::vector<double> angles{0.1, 0.2, 0.3};
+  cudaq::contrib::angular_encode(kernel, q, angles);
+  const std::string code = kernel.to_quake();
+  EXPECT_NE(code.find("quake.ry"), std::string::npos);
+  EXPECT_NE(code.find("1.000000e-01"), std::string::npos);
+  EXPECT_NE(code.find("2.000000e-01"), std::string::npos);
+  EXPECT_NE(code.find("3.000000e-01"), std::string::npos);
+}
+
+CUDAQ_TEST(KernelsTester, checkAngularEncodeRx) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(2);
+  const std::vector<double> angles{0.5, 1.0};
+  cudaq::contrib::angular_encode(kernel, q, angles,
+                                 cudaq::contrib::RotationAxis::X);
+  const std::string code = kernel.to_quake();
+  EXPECT_NE(code.find("quake.rx"), std::string::npos);
+  EXPECT_NE(code.find("5.000000e-01"), std::string::npos);
+  EXPECT_NE(code.find("1.000000e+00"), std::string::npos);
+}
+
+CUDAQ_TEST(KernelsTester, checkAngularEncodeParametric) {
+  auto [kernel, angles] = cudaq::make_kernel<std::vector<double>>();
+  auto q = kernel.qalloc(2);
+  cudaq::contrib::angular_encode(kernel, q, angles);
+  const std::string code = kernel.to_quake();
+  EXPECT_NE(code.find("quake.ry"), std::string::npos);
+}
+
+CUDAQ_TEST(KernelsTester, checkAngularEncodeMismatch) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc(2);
+  const std::vector<double> angles{0.1, 0.2, 0.3};
+  EXPECT_THROW(cudaq::contrib::angular_encode(kernel, q, angles),
+               std::runtime_error);
+}
+
 CUDAQ_TEST(KernelsTester, checkSampleBug2937) {
   constexpr int qubit_count = 20;
   auto kernel = cudaq::make_kernel();
