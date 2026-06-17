@@ -11,12 +11,15 @@
 #include "cudaq/Support/Device.h"
 #include "cudaq/Support/Handle.h"
 #include "cudaq/Support/Placement.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ScopedPrinter.h"
 #include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MAPPINGFUNC
@@ -48,6 +51,30 @@ std::optional<PlacementStrategy> parsePlacementStrategy(llvm::StringRef name) {
       .Default(std::nullopt);
 }
 
+/// A symmetric weighted interaction graph over virtual qubits. Each entry
+/// counts the two-qubit gates acting on a pair of virtual qubits. It is stored
+/// as a dense `n x n` matrix so the placer can query any pair in O(1).
+class VirtualInteractionGraph {
+public:
+  explicit VirtualInteractionGraph(unsigned numQubits)
+      : counts(numQubits, SmallVector<unsigned>(numQubits, 0)) {}
+
+  /// Record one two-qubit interaction between virtual qubits `v0` and `v1`.
+  /// Self-interactions are ignored.
+  void addInteraction(unsigned v0, unsigned v1) {
+    if (v0 == v1)
+      return;
+    ++counts[v0][v1];
+    ++counts[v1][v0];
+  }
+
+  /// The number of recorded interactions between virtual qubits `u` and `v`.
+  unsigned count(unsigned u, unsigned v) const { return counts[u][v]; }
+
+private:
+  SmallVector<SmallVector<unsigned>> counts;
+};
+
 /// Builds a deterministic topology-aware initial layout by assigning highly
 /// interacting virtual qubits to central physical qubits first. The greedy
 /// growth and its tie-breaks make the layout a deterministic function of the
@@ -55,11 +82,11 @@ std::optional<PlacementStrategy> parsePlacementStrategy(llvm::StringRef name) {
 class GreedyInitialPlacer {
 public:
   GreedyInitialPlacer(const cudaq::Device &device,
-                      ArrayRef<SmallVector<unsigned>> interactions,
+                      const VirtualInteractionGraph &interactions,
                       ArrayRef<bool> userVirtualQubits)
       : device(device), interactions(interactions),
         userVirtualQubits(userVirtualQubits), n(device.getNumQubits()),
-        vrToPhy(n, 0), placedVirtual(n, false), usedPhysical(n, false) {}
+        vrToPhy(n, 0), placedVirtual(n, false) {}
 
   /// Produce the `vrToPhy` seed layout.
   SmallVector<unsigned> run() {
@@ -74,19 +101,15 @@ public:
     }
 
     computeCentrality();
+    initWorklists();
 
     // Seed the highest-degree virtual qubit onto the most central physical
     // qubit, then grow the layout around it.
     place(chooseSeedVirtual(), bestFreePhysical());
 
-    unsigned remaining = 0;
-    for (unsigned u = 0; u < n; ++u)
-      if (userVirtualQubits[u] && !placedVirtual[u])
-        ++remaining;
-    while (remaining > 0) {
+    while (!unplacedUserVirtuals.empty()) {
       unsigned v = chooseNextVirtual();
       place(v, bestPhysicalFor(v));
-      --remaining;
     }
 
     assignRemainingVirtuals();
@@ -100,7 +123,7 @@ private:
     weightedDegree.assign(n, 0);
     for (unsigned u = 0; u < n; ++u) {
       for (unsigned v = 0; v < n; ++v)
-        weightedDegree[u] += interactions[u][v];
+        weightedDegree[u] += interactions.count(u, v);
       if (weightedDegree[u] > 0)
         hasInteraction = true;
     }
@@ -120,9 +143,22 @@ private:
     }
   }
 
-  /// More central first: lower distance-sum, then higher degree, then lower
-  /// index.
-  bool physBetter(unsigned a, unsigned b) const {
+  /// Seed the worklists for the placement walk: every physical is free and
+  /// every user virtual is unplaced, both in ascending order.
+  void initWorklists() {
+    freePhysicals.reserve(n);
+    for (unsigned p = 0; p < n; ++p)
+      freePhysicals.push_back(p);
+    for (unsigned u = 0; u < n; ++u)
+      if (userVirtualQubits[u])
+        unplacedUserVirtuals.push_back(u);
+  }
+
+  /// True when physical qubit `a` is more central than `b` and should be
+  /// preferred. The primary key is the total distance to every other qubit
+  /// (smaller is more central). Ties break toward the higher connectivity
+  /// degree, then toward the lower index so the layout stays deterministic.
+  bool isMoreCentralPhysical(unsigned a, unsigned b) const {
     if (distanceSum[a] != distanceSum[b])
       return distanceSum[a] < distanceSum[b];
     if (physDegree[a] != physDegree[b])
@@ -133,8 +169,8 @@ private:
   /// The most central physical qubit not yet used.
   unsigned bestFreePhysical() const {
     unsigned best = n;
-    for (unsigned p = 0; p < n; ++p)
-      if (!usedPhysical[p] && (best == n || physBetter(p, best)))
+    for (unsigned p : freePhysicals)
+      if (best == n || isMoreCentralPhysical(p, best))
         best = p;
     return best;
   }
@@ -143,61 +179,56 @@ private:
   /// index.
   unsigned chooseSeedVirtual() const {
     unsigned seed = n;
-    for (unsigned u = 0; u < n; ++u)
-      if (userVirtualQubits[u] &&
-          (seed == n || weightedDegree[u] > weightedDegree[seed]))
+    for (unsigned u : unplacedUserVirtuals)
+      if (seed == n || weightedDegree[u] > weightedDegree[seed])
         seed = u;
     return seed;
   }
 
-  /// The unplaced virtual qubit most connected to the placed ones, falling back
-  /// to weighted degree for disconnected components.
+  /// The unplaced virtual qubit most connected to the placed set. Ties break by
+  /// total weighted degree, then by lower virtual index for determinism. The
+  /// disconnected case (no interaction with the placed set) reduces to highest
+  /// weighted degree, then lower index, since weighted degree is always at least
+  /// the placed weight.
   unsigned chooseNextVirtual() const {
     unsigned pick = n;
-    unsigned pickWeight = 0;
-    for (unsigned u = 0; u < n; ++u) {
-      if (!userVirtualQubits[u] || placedVirtual[u])
-        continue;
+    unsigned pickPlacedWeight = 0;
+    unsigned pickDegree = 0;
+    for (unsigned u : unplacedUserVirtuals) {
       unsigned placedWeight = 0;
-      for (unsigned v = 0; v < n; ++v)
-        if (placedVirtual[v])
-          placedWeight += interactions[u][v];
-      if (pick == n || placedWeight > pickWeight) {
+      for (unsigned v : placedVirtuals)
+        placedWeight += interactions.count(u, v);
+      unsigned degree = weightedDegree[u];
+      bool better = pick == n || placedWeight > pickPlacedWeight ||
+                    (placedWeight == pickPlacedWeight && degree > pickDegree) ||
+                    (placedWeight == pickPlacedWeight && degree == pickDegree &&
+                     u < pick);
+      if (better) {
         pick = u;
-        pickWeight = placedWeight;
+        pickPlacedWeight = placedWeight;
+        pickDegree = degree;
       }
     }
-    if (pickWeight == 0) {
-      pick = n;
-      unsigned pickDegree = 0;
-      for (unsigned u = 0; u < n; ++u) {
-        if (!userVirtualQubits[u] || placedVirtual[u])
-          continue;
-        if (pick == n || weightedDegree[u] > pickDegree) {
-          pick = u;
-          pickDegree = weightedDegree[u];
-        }
-      }
-    }
+    assert(pick != n && "chooseNextVirtual called with no unplaced user qubits");
     return pick;
   }
 
   /// The free physical qubit minimizing weighted distance from `v` to its
-  /// placed partners, breaking ties by centrality.
+  /// placed partners, breaking ties by centrality. When `v` has no interaction
+  /// with any placed qubit every cost is zero, so this returns the most central
+  /// free physical, exactly as `bestFreePhysical` would.
   unsigned bestPhysicalFor(unsigned v) const {
     using Qubit = cudaq::Device::Qubit;
     unsigned bestPhy = n;
     unsigned bestCost = 0;
-    for (unsigned p = 0; p < n; ++p) {
-      if (usedPhysical[p])
-        continue;
+    for (unsigned p : freePhysicals) {
       unsigned cost = 0;
-      for (unsigned w = 0; w < n; ++w)
-        if (placedVirtual[w] && interactions[v][w] > 0)
-          cost += interactions[v][w] *
+      for (unsigned w : placedVirtuals)
+        if (interactions.count(v, w) > 0)
+          cost += interactions.count(v, w) *
                   device.getDistance(Qubit(p), Qubit(vrToPhy[w]));
       bool better = bestPhy == n || cost < bestCost ||
-                    (cost == bestCost && physBetter(p, bestPhy));
+                    (cost == bestCost && isMoreCentralPhysical(p, bestPhy));
       if (better) {
         bestPhy = p;
         bestCost = cost;
@@ -206,28 +237,30 @@ private:
     return bestPhy;
   }
 
-  /// Map virtual `v` onto physical `p` and mark both as taken.
+  /// Map virtual `v` onto physical `p`, marking `v` placed and `p` taken. The
+  /// sorted worklists keep their order across the erases.
   void place(unsigned v, unsigned p) {
     vrToPhy[v] = p;
     placedVirtual[v] = true;
-    usedPhysical[p] = true;
+    placedVirtuals.push_back(v);
+    freePhysicals.erase(llvm::lower_bound(freePhysicals, p));
+    if (auto it = llvm::lower_bound(unplacedUserVirtuals, v);
+        it != unplacedUserVirtuals.end() && *it == v)
+      unplacedUserVirtuals.erase(it);
   }
 
   /// Assign any still-unplaced virtuals (non-user qubits) to the remaining free
-  /// physicals in order.
+  /// physicals, pairing them in ascending order. `freePhysicals` stays sorted,
+  /// so this reproduces the ascending virtual to ascending physical pairing.
   void assignRemainingVirtuals() {
-    unsigned nextPhy = 0;
-    for (unsigned v = 0; v < n; ++v) {
-      if (placedVirtual[v])
-        continue;
-      while (nextPhy < n && usedPhysical[nextPhy])
-        ++nextPhy;
-      place(v, nextPhy);
-    }
+    unsigned next = 0;
+    for (unsigned v = 0; v < n; ++v)
+      if (!placedVirtual[v])
+        vrToPhy[v] = freePhysicals[next++];
   }
 
   const cudaq::Device &device;
-  ArrayRef<SmallVector<unsigned>> interactions;
+  const VirtualInteractionGraph &interactions;
   ArrayRef<bool> userVirtualQubits;
   const unsigned n;
 
@@ -237,8 +270,15 @@ private:
   SmallVector<unsigned> physDegree;
 
   SmallVector<bool> placedVirtual;
-  SmallVector<bool> usedPhysical;
   SmallVector<unsigned> vrToPhy;
+
+  // Worklists maintained by `place`, so the selection helpers iterate only the
+  // relevant qubits instead of rescanning the full device. `freePhysicals` and
+  // `unplacedUserVirtuals` stay sorted ascending, while `placedVirtuals` is in
+  // placement order.
+  SmallVector<unsigned> freePhysicals;
+  SmallVector<unsigned> placedVirtuals;
+  SmallVector<unsigned> unplacedUserVirtuals;
 };
 
 /// Greedy initial placement over the circuit interaction graph. Returns a
@@ -246,9 +286,50 @@ private:
 /// seed).
 SmallVector<unsigned>
 interactionPlacement(const cudaq::Device &device,
-                     ArrayRef<SmallVector<unsigned>> interactions,
+                     const VirtualInteractionGraph &interactions,
                      ArrayRef<bool> userVirtualQubits) {
   return GreedyInitialPlacer(device, interactions, userVirtualQubits).run();
+}
+
+/// Generate the seed layouts to try, in deterministic order. Each seed only
+/// proposes a starting vrToPhy. The router decides the rest. `interactions` is
+/// required for the greedy strategies and ignored for identity.
+SmallVector<SmallVector<unsigned>>
+buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
+                    const cudaq::Device &device,
+                    const std::optional<VirtualInteractionGraph> &interactions,
+                    ArrayRef<bool> userVirtualQubits) {
+  auto identitySeed = [&]() {
+    SmallVector<unsigned> seed(numV);
+    for (unsigned v = 0; v < numV; ++v)
+      seed[v] = v;
+    return seed;
+  };
+  auto greedySeed = [&]() {
+    assert(interactions.has_value() &&
+           "greedy placement requires collected interactions");
+    return interactionPlacement(device, *interactions, userVirtualQubits);
+  };
+
+  SmallVector<SmallVector<unsigned>> seeds;
+  switch (strategy) {
+  case PlacementStrategy::Auto: {
+    seeds.push_back(identitySeed());
+    // Greedy degenerates to identity when there are no interactions to place,
+    // so routing it again would just repeat the identity pass.
+    SmallVector<unsigned> greedy = greedySeed();
+    if (greedy != seeds.front())
+      seeds.push_back(std::move(greedy));
+    break;
+  }
+  case PlacementStrategy::Identity:
+    seeds.push_back(identitySeed());
+    break;
+  case PlacementStrategy::Greedy:
+    seeds.push_back(greedySeed());
+    break;
+  }
+  return seeds;
 }
 
 //===----------------------------------------------------------------------===//
@@ -326,6 +407,26 @@ struct RoutingResult {
   unsigned swapCount = 0;
 };
 
+/// Look up a wire without letting DenseMap default a missing entry to virtual
+/// qubit 0.
+std::optional<cudaq::Placement::VirtualQ> lookupVirtualQ(
+    const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
+    Value wire) {
+  auto it = wireToVirtualQ.find(wire);
+  if (it == wireToVirtualQ.end())
+    return std::nullopt;
+  return it->second;
+}
+
+cudaq::Placement::VirtualQ requireVirtualQ(
+    const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
+    Value wire) {
+  if (auto virtualQ = lookupVirtualQ(wireToVirtualQ, wire))
+    return *virtualQ;
+  llvm::report_fatal_error(
+      "mapper invariant violated: quantum wire has no virtual qubit");
+}
+
 /// Build the routing problem from `block`. The nodes are the routable
 /// operations that `isSupportedMappingOperation` accepts, other than the source
 /// borrows. Edges and source successors are captured in MLIR use-list order so
@@ -343,7 +444,7 @@ RoutingProblem buildRoutingProblem(
     RoutingProblem::Node node;
     node.op = &op;
     for (auto wire : cudaq::quake::getQuantumOperands(&op))
-      node.qubits.push_back(wireToVirtualQ.lookup(wire));
+      node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
     node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
     node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
     // A two-qubit gate the router has to make adjacent: a unitary on two wires,
@@ -353,21 +454,43 @@ RoutingProblem buildRoutingProblem(
     problem.nodes.push_back(std::move(node));
   }
 
-  // Record successor edges in use-list order, keeping the routable users only.
-  // A user is listed once per result wire it consumes, so a node's visit count
-  // reaches its wire-operand count exactly when all of its inputs are ready.
-  auto recordUsers = [&](Operation *producer,
-                         SmallVectorImpl<RoutingProblem::NodeRef> &out) {
-    for (Operation *user : producer->getUsers())
-      if (auto it = nodeIndex.find(user); it != nodeIndex.end())
+  // Record successor edges by walking the uses of each quantum result wire. A
+  // consumer is listed once per result wire it consumes, so a node's visit
+  // count reaches its wire-operand count exactly when all of its inputs are
+  // ready. Walking wire uses directly, rather than `Operation::getUsers`, makes
+  // that multiplicity explicit and ignores classical results such as
+  // measurement bits.
+  auto recordWireUsers = [&](Value wire,
+                             SmallVectorImpl<RoutingProblem::NodeRef> &out) {
+    for (OpOperand &use : wire.getUses())
+      if (auto it = nodeIndex.find(use.getOwner()); it != nodeIndex.end())
         out.push_back(it->second);
   };
   for (auto &node : problem.nodes)
-    recordUsers(node.op, node.successors);
+    for (Value wire : cudaq::quake::getQuantumResults(node.op))
+      recordWireUsers(wire, node.successors);
   for (auto borrow : sources)
-    recordUsers(borrow.getOperation(), problem.sourceUsers);
+    recordWireUsers(borrow.getResult(), problem.sourceUsers);
 
   return problem;
+}
+
+/// Only unitary gates take part in the reverse-traversal pass. See
+/// `buildReverseProblem` for why measurements, sinks, and returns drop out.
+bool shouldIncludeInReverse(const RoutingProblem::Node &node) {
+  return node.isUnitary;
+}
+
+/// Copy the routing-relevant fields of a forward unitary node into its reverse
+/// counterpart. Successor and source-user edges are filled in afterwards, once
+/// every included node has been assigned a reverse handle.
+RoutingProblem::Node makeReverseNode(const RoutingProblem::Node &node) {
+  RoutingProblem::Node rev;
+  rev.op = node.op;
+  rev.qubits = node.qubits;
+  rev.isUnitary = true;
+  rev.isTwoQ = node.isTwoQ;
+  return rev;
 }
 
 /// Build the transposed problem over the unitary gates only, for the SABRE
@@ -383,24 +506,19 @@ RoutingProblem buildReverseProblem(const RoutingProblem &forward) {
   SmallVector<RoutingProblem::NodeRef> fwdToRev(forward.nodes.size());
   for (unsigned i = 0, end = forward.nodes.size(); i < end; ++i) {
     const RoutingProblem::Node &node = forward.nodes[i];
-    if (!node.isUnitary)
+    if (!shouldIncludeInReverse(node))
       continue;
     fwdToRev[i] = RoutingProblem::NodeRef(reverse.nodes.size());
-    RoutingProblem::Node rev;
-    rev.op = node.op;
-    rev.qubits = node.qubits;
-    rev.isUnitary = true;
-    rev.isTwoQ = node.isTwoQ;
-    reverse.nodes.push_back(std::move(rev));
+    reverse.nodes.push_back(makeReverseNode(node));
   }
 
   for (unsigned i = 0, end = forward.nodes.size(); i < end; ++i) {
     const RoutingProblem::Node &node = forward.nodes[i];
-    if (!node.isUnitary)
+    if (!shouldIncludeInReverse(node))
       continue;
     unsigned unitarySuccessors = 0;
     for (RoutingProblem::NodeRef s : node.successors) {
-      if (!forward[s].isUnitary)
+      if (!shouldIncludeInReverse(forward[s]))
         continue;
       ++unitarySuccessors;
       // Processing the consumer in reverse makes this producer ready.
@@ -451,11 +569,14 @@ public:
   SabreRouter(const cudaq::Device &device, const RoutingProblem &problem,
               cudaq::Placement &placement, unsigned extendedLayerSize,
               float extendedLayerWeight, float decayDelta,
-              unsigned roundsDecayReset)
+              unsigned roundsDecayReset, unsigned minStallSwapBudget,
+              unsigned stallSwapBudgetPerQubit)
       : device(device), problem(problem), placement(placement),
         extendedLayerSize(extendedLayerSize),
         extendedLayerWeight(extendedLayerWeight), decayDelta(decayDelta),
         roundsDecayReset(roundsDecayReset),
+        minStallSwapBudget(minStallSwapBudget),
+        stallSwapBudgetPerQubit(stallSwapBudgetPerQubit),
         phyDecay(device.getNumQubits(), 1.0), allowMeasurementMapping(false) {}
 
   /// Main entry point into SabreRouter routing algorithm. Walks the DAG without
@@ -481,6 +602,28 @@ private:
 
   Swap chooseSwap();
 
+  /// Record a swap between two physical qubits: apply it to the placement and
+  /// append it to the trace.
+  void addSwap(cudaq::Placement::DeviceQ q0, cudaq::Placement::DeviceQ q1);
+
+  /// Bring the closest front-layer two-qubit gate together along a shortest
+  /// path, ignoring the heuristic. This is the action the release valve takes
+  /// to guarantee forward progress.
+  void forceClosestGate();
+
+  /// Undo the swaps inserted since the last routed gate: revert the placement,
+  /// drop the recorded events, and restore the swap count.
+  void rewindEpisode(SmallVectorImpl<Swap> &episodeSwaps);
+
+  /// Release valve for a stalled front layer. SABRE's decay only softly
+  /// discourages the local minima the heuristic can fall into, so a stuck
+  /// front layer would otherwise loop forever. Discard the current episode's
+  /// swaps and force the closest gate together so the walk always makes
+  /// progress. The decay state is left as is. It is a soft heuristic and resets
+  /// on its own cycle. This follows the release-valve idea from Qiskit and
+  /// LightSABRE (arXiv:2409.08368).
+  void applyReleaseValve(SmallVectorImpl<Swap> &episodeSwaps);
+
 private:
   const cudaq::Device &device;
   const RoutingProblem &problem;
@@ -491,6 +634,10 @@ private:
   const float extendedLayerWeight;
   const float decayDelta;
   const unsigned roundsDecayReset;
+  // Release-valve stall budget: force a gate once this many consecutive swaps
+  // route nothing. See `route` for how the floor and per-qubit terms combine.
+  const unsigned minStallSwapBudget;
+  const unsigned stallSwapBudgetPerQubit;
 
   // Internal data. The layers hold handles into `problem.nodes`.
   SmallVector<NodeRef> frontLayer;
@@ -686,6 +833,51 @@ SabreRouter::Swap SabreRouter::chooseSwap() {
   return candidates[minIdx];
 }
 
+void SabreRouter::addSwap(cudaq::Placement::DeviceQ q0,
+                          cudaq::Placement::DeviceQ q1) {
+  placement.swap(q0, q1);
+  result.trace.push_back(RoutingEvent::swap(q0, q1));
+  ++result.swapCount;
+}
+
+void SabreRouter::forceClosestGate() {
+  NodeRef closest;
+  unsigned bestDist = ~0u;
+  for (NodeRef n : frontLayer) {
+    const RoutingProblem::Node &node = problem[n];
+    if (!node.isTwoQ)
+      continue;
+    unsigned d = device.getDistance(placement.getPhy(node.qubits[0]),
+                                    placement.getPhy(node.qubits[1]));
+    if (d < bestDist) {
+      bestDist = d;
+      closest = n;
+    }
+  }
+  assert(closest.isValid() &&
+         "a stalled front layer must hold a 2-qubit gate");
+  const RoutingProblem::Node &node = problem[closest];
+  cudaq::Device::Path path = device.getShortestPath(
+      placement.getPhy(node.qubits[0]), placement.getPhy(node.qubits[1]));
+  // Move one qubit along the path until it is adjacent to the other.
+  for (unsigned i = 0; i + 2 < path.size(); ++i)
+    addSwap(path[i], path[i + 1]);
+}
+
+void SabreRouter::rewindEpisode(SmallVectorImpl<Swap> &episodeSwaps) {
+  for (unsigned i = episodeSwaps.size(); i-- > 0;)
+    placement.swap(episodeSwaps[i].first, episodeSwaps[i].second);
+  result.trace.pop_back_n(episodeSwaps.size());
+  result.swapCount -= episodeSwaps.size();
+  episodeSwaps.clear();
+}
+
+void SabreRouter::applyReleaseValve(SmallVectorImpl<Swap> &episodeSwaps) {
+  rewindEpisode(episodeSwaps);
+  forceClosestGate();
+  involvedPhy.clear();
+}
+
 RoutingResult SabreRouter::route() {
 #ifndef NDEBUG
   constexpr char logLineComment[] =
@@ -712,53 +904,18 @@ RoutingResult SabreRouter::route() {
   // The source ops can always be mapped.
   visitSuccessors(problem.sourceUsers, frontLayer);
 
-  auto addSwap = [&](cudaq::Placement::DeviceQ q0,
-                     cudaq::Placement::DeviceQ q1) {
-    placement.swap(q0, q1);
-    result.trace.push_back(RoutingEvent::swap(q0, q1));
-    ++result.swapCount;
-  };
-
-  // Release valve: bring the closest front-layer gate together along a shortest
-  // path, ignoring the heuristic. SABRE's decay only softly discourages the
-  // local minima the heuristic can fall into, so a stuck front layer would
-  // otherwise loop forever; forcing the gate guarantees progress. This follows
-  // the release-valve idea from Qiskit/LightSABRE (arXiv:2409.08368).
-  auto forceClosestGate = [&]() {
-    NodeRef closest;
-    unsigned bestDist = ~0u;
-    for (NodeRef n : frontLayer) {
-      const RoutingProblem::Node &node = problem[n];
-      if (!node.isTwoQ)
-        continue;
-      unsigned d = device.getDistance(placement.getPhy(node.qubits[0]),
-                                      placement.getPhy(node.qubits[1]));
-      if (d < bestDist) {
-        bestDist = d;
-        closest = n;
-      }
-    }
-    assert(closest.isValid() &&
-           "a stalled front layer must hold a 2-qubit gate");
-    const RoutingProblem::Node &node = problem[closest];
-    cudaq::Device::Path path = device.getShortestPath(
-        placement.getPhy(node.qubits[0]), placement.getPhy(node.qubits[1]));
-    // Move one qubit along the path until it is adjacent to the other.
-    for (unsigned i = 0; i + 2 < path.size(); ++i)
-      addSwap(path[i], path[i + 1]);
-  };
-
   // SABRE's cost function is a heuristic. If it emits a long run of swaps
   // without making any front-layer gate executable, discard that local episode
-  // and force one gate along a shortest path. This budget is deliberately
-  // loose: bringing one front-layer gate adjacent costs at most the device
-  // diameter, and the qubit count upper-bounds the diameter of a connected
-  // device. The multiplier gives the heuristic several times that worst-case
-  // direct-routing cost to explore and recover before the release valve fires.
-  // The floor keeps a usable budget on small devices, where the scaled term
-  // would otherwise be too tight.
-  constexpr unsigned minStallSwapBudget = 64;
-  constexpr unsigned stallSwapBudgetPerQubit = 4;
+  // and force one gate along a shortest path. This is the release valve from
+  // LightSABRE (arXiv:2409.08368), triggered by the swap budget computed here.
+  // The budget is deliberately loose: bringing one front-layer gate adjacent
+  // costs at most the device diameter, and the qubit count upper-bounds the
+  // diameter of a connected device. The per-qubit multiplier gives the
+  // heuristic several times that worst-case direct-routing cost to explore and
+  // recover before the valve fires. The floor keeps a usable budget on small
+  // devices, where the scaled term would otherwise be too tight. Both terms are
+  // pass options (`minStallSwapBudget`, `stallSwapBudgetPerQubit`) defaulting to
+  // 64 and 4.
   const unsigned stallSwapLimit = std::max(
       minStallSwapBudget, stallSwapBudgetPerQubit * device.getNumQubits());
   std::size_t numSwapSearches = 0;
@@ -791,18 +948,8 @@ RoutingResult SabreRouter::route() {
     LLVM_DEBUG(logger.getOStream() << "\n";);
 
     if (swapsSinceRouted >= stallSwapLimit) {
-      // Unwind the heuristic swaps back to the last routed gate, then force the
-      // closest gate together so the walk always makes progress. The decay
-      // state is left as is; it is a soft heuristic and resets on its own
-      // cycle.
-      for (unsigned i = episodeSwaps.size(); i-- > 0;)
-        placement.swap(episodeSwaps[i].first, episodeSwaps[i].second);
-      result.trace.pop_back_n(episodeSwaps.size());
-      result.swapCount -= episodeSwaps.size();
-      episodeSwaps.clear();
-      forceClosestGate();
+      applyReleaseValve(episodeSwaps);
       swapsSinceRouted = 0;
-      involvedPhy.clear();
       continue;
     }
 
@@ -857,11 +1004,15 @@ public:
   RoutingSearchStrategy(const cudaq::Device &device,
                         const RoutingProblem &problem, bool refine,
                         unsigned extendedLayerSize, float extendedLayerWeight,
-                        float decayDelta, unsigned roundsDecayReset)
+                        float decayDelta, unsigned roundsDecayReset,
+                        unsigned minStallSwapBudget,
+                        unsigned stallSwapBudgetPerQubit)
       : device(device), problem(problem), refine(refine),
         extendedLayerSize(extendedLayerSize),
         extendedLayerWeight(extendedLayerWeight), decayDelta(decayDelta),
         roundsDecayReset(roundsDecayReset),
+        minStallSwapBudget(minStallSwapBudget),
+        stallSwapBudgetPerQubit(stallSwapBudgetPerQubit),
         reverseProblem(refine ? buildReverseProblem(problem)
                               : RoutingProblem{}) {}
 
@@ -886,25 +1037,8 @@ public:
       }
     };
 
-    for (ArrayRef<unsigned> seed : seeds) {
-      cudaq::Placement finalPlace(numV, numPhy);
-      consider(routeSeed(seed, numV, numPhy, finalPlace), finalPlace);
-      if (!refine)
-        continue;
-      // Forward is done. Alternate backward/forward for the remaining
-      // traversals, keeping every forward result as a candidate.
-      SmallVector<unsigned> current(seed.begin(), seed.end());
-      cudaq::Placement currentFinal = finalPlace;
-      for (unsigned t = 2; t <= numTraversals; ++t) {
-        if (t % 2 == 0) {
-          current = reverseRefine(currentFinal, numV);
-        } else {
-          cudaq::Placement nextFinal(numV, numPhy);
-          consider(routeSeed(current, numV, numPhy, nextFinal), nextFinal);
-          currentFinal = nextFinal;
-        }
-      }
-    }
+    for (ArrayRef<unsigned> seed : seeds)
+      routeAndRefineSeed(seed, numV, numPhy, consider);
     return best;
   }
 
@@ -912,6 +1046,37 @@ private:
   /// Fewer routed swaps wins. Ties keep the earlier candidate.
   static bool isBetter(const RoutingResult &a, const RoutingResult &b) {
     return a.swapCount < b.swapCount;
+  }
+
+  /// Route one seed and, when refining, run the SABRE reverse-traversal passes
+  /// over it. Every forward route is offered to `consider` as a candidate.
+  /// Reverse routes only refine the layout into the next seed and are never
+  /// candidates themselves.
+  void routeAndRefineSeed(
+      ArrayRef<unsigned> seed, unsigned numV, unsigned numPhy,
+      llvm::function_ref<void(RoutingResult, const cudaq::Placement &)>
+          consider) {
+    // Traversal 1 (forward): route the seed as given. A candidate.
+    cudaq::Placement finalPlace(numV, numPhy);
+    consider(routeSeed(seed, numV, numPhy, finalPlace), finalPlace);
+    if (!refine)
+      return;
+
+    // The remaining traversals alternate reverse and forward. A reverse pass
+    // only refines the current layout into the next seed. The forward pass that
+    // follows routes that seed and is the actual candidate.
+    SmallVector<unsigned> current(seed.begin(), seed.end());
+    cudaq::Placement currentFinal = finalPlace;
+    for (unsigned t = 2; t <= numTraversals; ++t) {
+      bool isReversePass = (t % 2 == 0);
+      if (isReversePass) {
+        current = reverseRefine(currentFinal, numV);
+      } else {
+        cudaq::Placement nextFinal(numV, numPhy);
+        consider(routeSeed(current, numV, numPhy, nextFinal), nextFinal);
+        currentFinal = nextFinal;
+      }
+    }
   }
 
   /// Forward-route a seed layout. Returns its result and final placement.
@@ -922,7 +1087,8 @@ private:
       layout.map(cudaq::Placement::VirtualQ(v),
                  cudaq::Placement::DeviceQ(seed[v]));
     SabreRouter router(device, problem, layout, extendedLayerSize,
-                       extendedLayerWeight, decayDelta, roundsDecayReset);
+                       extendedLayerWeight, decayDelta, roundsDecayReset,
+                       minStallSwapBudget, stallSwapBudgetPerQubit);
     RoutingResult result = router.route();
     finalOut = layout;
     return result;
@@ -934,7 +1100,8 @@ private:
                                       unsigned numV) {
     cudaq::Placement layout = startFinal;
     SabreRouter router(device, reverseProblem, layout, extendedLayerSize,
-                       extendedLayerWeight, decayDelta, roundsDecayReset);
+                       extendedLayerWeight, decayDelta, roundsDecayReset,
+                       minStallSwapBudget, stallSwapBudgetPerQubit);
     router.route();
     SmallVector<unsigned> refined(numV);
     for (unsigned v = 0; v < numV; ++v)
@@ -949,6 +1116,8 @@ private:
   float extendedLayerWeight;
   float decayDelta;
   unsigned roundsDecayReset;
+  unsigned minStallSwapBudget;
+  unsigned stallSwapBudgetPerQubit;
   RoutingProblem reverseProblem;
 };
 
@@ -978,7 +1147,8 @@ public:
     // device range.
     for (auto borrowWire : sources) {
       Value wire = borrowWire.getResult();
-      unsigned phy = result.initialLayout[wireToVirtualQ[wire].index];
+      unsigned phy =
+          result.initialLayout[requireVirtualQ(wireToVirtualQ, wire).index];
       borrowWire.setIdentity(phy);
       phyToWire[phy] = wire;
     }
@@ -1186,6 +1356,107 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
   }
 };
 
+//===----------------------------------------------------------------------===//
+// Measurement preconditions
+//===----------------------------------------------------------------------===//
+
+/// Walk back through pointer arithmetic and casts to the `cc.alloca` a pointer
+/// ultimately refers to, or null. Mirrors the helper in AddMetadata.
+cudaq::cc::AllocaOp seekAllocaFrom(Value v);
+cudaq::cc::AllocaOp seekAllocaFrom(Operation *op) {
+  if (!op)
+    return {};
+  if (auto alloca = dyn_cast<cudaq::cc::AllocaOp>(op))
+    return alloca;
+  if (auto cp = dyn_cast<cudaq::cc::ComputePtrOp>(op))
+    return seekAllocaFrom(cp.getBase());
+  if (auto castOp = dyn_cast<cudaq::cc::CastOp>(op))
+    if (isa<cudaq::cc::PointerType>(castOp.getOperand().getType()))
+      return seekAllocaFrom(castOp.getValue());
+  return {};
+}
+cudaq::cc::AllocaOp seekAllocaFrom(Value v) {
+  if (!v)
+    return {};
+  return seekAllocaFrom(v.getDefiningOp());
+}
+
+/// Return true if a measurement-derived classical value reaches control flow,
+/// quantum work, or a call. This mirrors AddMetadata's measurement-dependence
+/// check, including simple store/load forwarding through allocas.
+bool measurementFeedsControlOrQuantum(Operation *meas) {
+  SmallVector<Operation *> worklist;
+  llvm::SmallPtrSet<Operation *, 16> seen;
+  auto enqueue = [&](Operation *op) {
+    if (op && seen.insert(op).second)
+      worklist.push_back(op);
+  };
+  auto enqueueUsers = [&](Value v) {
+    for (Operation *user : v.getUsers())
+      enqueue(user);
+  };
+  for (Value result : meas->getResults())
+    if (!isa<cudaq::quake::WireType>(result.getType()))
+      enqueueUsers(result);
+  while (!worklist.empty()) {
+    Operation *op = worklist.pop_back_val();
+    if (isa<cudaq::cc::IfOp, cudaq::cc::ConditionOp, cf::CondBranchOp,
+            cudaq::quake::OperatorInterface, cudaq::quake::MeasurementInterface,
+            cudaq::quake::ApplyOp, CallOpInterface>(op))
+      return true;
+    // A store has no SSA result, so follow the value through memory: a later
+    // load from the same alloca can carry the measurement into control flow.
+    if (auto storeOp = dyn_cast<cudaq::cc::StoreOp>(op)) {
+      if (auto alloca = seekAllocaFrom(storeOp.getPtrvalue()))
+        enqueue(alloca.getOperation());
+      continue;
+    }
+    for (Value result : op->getResults())
+      enqueueUsers(result);
+  }
+  return false;
+}
+
+/// A measurement the mapper cannot support, paired with a diagnostic message.
+struct UnsupportedMeasurement {
+  Operation *op;
+  const char *message;
+};
+
+/// The first measurement in `func` whose results are used in a way the mapper
+/// cannot support, or nullopt when every measurement is a terminal readout.
+/// Because the mapper defers measurements to the end of the circuit, it only
+/// supports measured wires that flow to a terminal consumer (`return_wire` or
+/// `sink`) and measurement results that do not feed control flow, quantum
+/// dataflow, or calls.
+std::optional<UnsupportedMeasurement>
+findUnsupportedMeasurement(func::FuncOp func) {
+  std::optional<UnsupportedMeasurement> found;
+  func.walk([&](cudaq::quake::MeasurementInterface meas) {
+    Operation *measOp = meas.getOperation();
+    // A measured wire may only flow to a terminal wire consumer. Anything else
+    // is a mid-circuit measurement the deferral cannot preserve.
+    for (Value result : measOp->getResults()) {
+      if (!isa<cudaq::quake::WireType>(result.getType()))
+        continue;
+      for (Operation *user : result.getUsers())
+        if (!isa<cudaq::quake::ReturnWireOp, cudaq::quake::SinkOp>(user)) {
+          found = {measOp, "unsupported mid-circuit measurement: a measured "
+                           "wire is used by a later operation"};
+          return WalkResult::interrupt();
+        }
+    }
+    if (measurementFeedsControlOrQuantum(measOp)) {
+      found = {measOp, "unsupported measurement-controlled operation: a "
+                       "measurement result feeds control flow, a quantum "
+                       "operation, or a call"};
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+  return found;
+}
+
 struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   using MappingFuncBase::MappingFuncBase;
 
@@ -1339,11 +1610,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     bool collectInteractions = placementStrategy != PlacementStrategy::Identity;
 
     // Two-qubit interaction data for placement, collected during the scan.
-    SmallVector<SmallVector<unsigned>> interactions;
+    std::optional<VirtualInteractionGraph> interactions;
     SmallVector<bool> userVirtualQubits;
     if (collectInteractions) {
-      interactions.assign(deviceNumQubits,
-                          SmallVector<unsigned>(deviceNumQubits, 0));
+      interactions.emplace(deviceNumQubits);
       userVirtualQubits.assign(deviceNumQubits, false);
     }
 
@@ -1391,6 +1661,27 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           return;
         }
 
+        // Get the wire operands and their virtual qubits. If a supported op
+        // consumes an untracked wire, some earlier unsupported operation must
+        // have produced it. Do not let DenseMap default that to virtual qubit 0.
+        auto wireOperands = cudaq::quake::getQuantumOperands(&op);
+        SmallVector<cudaq::Placement::VirtualQ, 2> virtualOperands;
+        virtualOperands.reserve(wireOperands.size());
+        for (Value wire : wireOperands) {
+          auto virtualQ = lookupVirtualQ(wireToVirtualQ, wire);
+          if (!virtualQ) {
+            if (nonComposable) {
+              op.emitOpError("has a quantum operand that is not tracked by "
+                             "the mapper");
+              signalPassFailure();
+            }
+            LLVM_DEBUG(llvm::dbgs()
+                       << "untracked quantum operand in mapper\n");
+            return;
+          }
+          virtualOperands.push_back(*virtualQ);
+        }
+
         // Since `quake.return_wire` operations do not generate new wires, we
         // don't need to further analyze.
         if (auto rop = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
@@ -1398,9 +1689,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           continue;
         }
 
-        // Get the wire operands and check if the operators uses at most two
-        // qubits. N.B: Measurements do not have this restriction.
-        auto wireOperands = cudaq::quake::getQuantumOperands(&op);
+        // Check if the operator uses at most two qubits. N.B: Measurements do
+        // not have this restriction.
         if (!op.hasTrait<cudaq::QuantumMeasure>() && wireOperands.size() > 2) {
           if (nonComposable) {
             func.emitError("Cannot map a kernel with operators that use more "
@@ -1411,32 +1701,46 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           return;
         }
 
-        // Save which qubits are measured
+        // Save which qubits are measured.
         if (isa<cudaq::quake::MeasurementInterface>(op))
-          for (const auto &wire : wireOperands)
-            userQubitsMeasured.push_back(wireToVirtualQ[wire].index);
+          for (auto virtualQ : virtualOperands)
+            userQubitsMeasured.push_back(virtualQ.index);
 
         // Record two-qubit interactions for placement.
         if (collectInteractions &&
             !isa<cudaq::quake::MeasurementInterface>(op) &&
             wireOperands.size() == 2) {
-          unsigned v0 = wireToVirtualQ[wireOperands[0]].index;
-          unsigned v1 = wireToVirtualQ[wireOperands[1]].index;
-          if (v0 != v1) {
-            interactions[v0][v1] += 1;
-            interactions[v1][v0] += 1;
-          }
+          unsigned v0 = virtualOperands[0].index;
+          unsigned v1 = virtualOperands[1].index;
+          interactions->addInteraction(v0, v1);
         }
 
         // Map the result wires to the appropriate virtual qubits.
-        for (auto &&[wire, newWire] : llvm::zip_equal(
-                 wireOperands, cudaq::quake::getQuantumResults(&op))) {
-          // Don't use wireToVirtualQ[a] = wireToVirtualQ[b]. It will work
-          // *most* of the time but cause memory corruption other times because
-          // DenseMap references can be invalidated upon insertion of new pairs.
-          wireToVirtualQ.insert({newWire, wireToVirtualQ[wire]});
-          finalQubitWire[wireToVirtualQ[wire].index] = newWire;
+        auto wireResults = cudaq::quake::getQuantumResults(&op);
+        if (!wireResults.empty() && wireResults.size() != wireOperands.size()) {
+          if (nonComposable) {
+            op.emitOpError("has a different number of quantum operands and "
+                           "quantum results");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs()
+                     << "quantum operand/result arity mismatch\n");
+          return;
         }
+        for (auto &&[index, newWire] : llvm::enumerate(wireResults)) {
+          cudaq::Placement::VirtualQ virtualQ = virtualOperands[index];
+          wireToVirtualQ.insert({newWire, virtualQ});
+          finalQubitWire[virtualQ.index] = newWire;
+        }
+      } else if (!cudaq::quake::getQuantumOperands(&op).empty() ||
+                 !cudaq::quake::getQuantumResults(&op).empty()) {
+        if (nonComposable) {
+          op.emitOpError("is not supported by the mapper");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs()
+                   << "unsupported quantum operation in mapper\n");
+        return;
       }
     }
 
@@ -1448,6 +1752,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         signalPassFailure();
       }
       LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
+      return;
+    }
+
+    // Measurement deferral is only safe for terminal readout. Reject
+    // unsupported mid-circuit/adaptive uses before mutating IR.
+    if (auto unsupported = findUnsupportedMeasurement(func)) {
+      if (nonComposable) {
+        unsupported->op->emitOpError(unsupported->message);
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs()
+                 << "unsupported measurement use; skipping mapping\n");
       return;
     }
 
@@ -1480,8 +1796,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                                                finalQubitWire[i].getLoc(),
                                                resTy, measureOp.getMeasOut());
 
-          wireToVirtualQ.insert(
-              {measureOp.getWires()[0], wireToVirtualQ[finalQubitWire[i]]});
+          wireToVirtualQ.insert({measureOp.getWires()[0],
+                                 requireVirtualQ(wireToVirtualQ,
+                                                 finalQubitWire[i])});
 
           userQubitsMeasured.push_back(i);
         }
@@ -1512,36 +1829,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     const unsigned numV = sources.size();
     const unsigned numPhy = deviceInstance->getNumQubits();
 
-    // Generate the seed layouts to try, in deterministic order. Each seed only
-    // proposes a starting vrToPhy. The router decides the rest.
-    SmallVector<SmallVector<unsigned>> seeds;
-    auto identitySeed = [&]() {
-      SmallVector<unsigned> seed(numV);
-      for (unsigned v = 0; v < numV; ++v)
-        seed[v] = v;
-      return seed;
-    };
-    auto greedySeed = [&]() {
-      return interactionPlacement(*deviceInstance, interactions,
-                                  userVirtualQubits);
-    };
-    switch (placementStrategy) {
-    case PlacementStrategy::Auto: {
-      seeds.push_back(identitySeed());
-      // Greedy degenerates to identity when there are no interactions to place;
-      // routing it again would just repeat the identity pass.
-      SmallVector<unsigned> greedy = greedySeed();
-      if (greedy != seeds.front())
-        seeds.push_back(std::move(greedy));
-      break;
-    }
-    case PlacementStrategy::Identity:
-      seeds.push_back(identitySeed());
-      break;
-    case PlacementStrategy::Greedy:
-      seeds.push_back(greedySeed());
-      break;
-    }
+    SmallVector<SmallVector<unsigned>> seeds = buildPlacementSeeds(
+        placementStrategy, numV, *deviceInstance, interactions,
+        userVirtualQubits);
 
     // Build the routing problem once (it does not depend on the layout), then
     // search over the seeds for the result with the fewest swaps.
@@ -1549,7 +1839,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         buildRoutingProblem(block, sources, wireToVirtualQ);
     RoutingSearchStrategy search(
         *deviceInstance, problem, searchStrategy == SearchStrategy::Sabre,
-        extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset);
+        extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset,
+        minStallSwapBudget, stallSwapBudgetPerQubit);
     RoutingSearchStrategy::Selection selection =
         search.run(seeds, numV, numPhy);
     RoutingResult &best = selection.result;
@@ -1655,6 +1946,8 @@ struct MappingPipelineOptions
   DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight);
   DECLARE_SUB_OPTION(MappingFuncOptions, decayDelta);
   DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset);
+  DECLARE_SUB_OPTION(MappingFuncOptions, minStallSwapBudget);
+  DECLARE_SUB_OPTION(MappingFuncOptions, stallSwapBudgetPerQubit);
   DECLARE_SUB_OPTION(MappingFuncOptions, placement);
   DECLARE_SUB_OPTION(MappingFuncOptions, search);
   PassOptions::Option<bool> nonComposable{*this, "raise-fatal-errors"};
@@ -1684,6 +1977,8 @@ void registerMappingPipeline() {
         setIt(funcOpts.extendedLayerWeight, opt.extendedLayerWeight);
         setIt(funcOpts.decayDelta, opt.decayDelta);
         setIt(funcOpts.roundsDecayReset, opt.roundsDecayReset);
+        setIt(funcOpts.minStallSwapBudget, opt.minStallSwapBudget);
+        setIt(funcOpts.stallSwapBudgetPerQubit, opt.stallSwapBudgetPerQubit);
         setIt(funcOpts.placement, opt.placement);
         setIt(funcOpts.search, opt.search);
         setIt(funcOpts.nonComposable, opt.nonComposable);

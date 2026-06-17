@@ -956,6 +956,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "Decay delta">,
     Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
            "Number of rounds before decay is reset">,
+    Option<"minStallSwapBudget", "minStallSwapBudget", "unsigned",
+           /*default=*/"64",
+           "Release valve floor: minimum number of consecutive swaps that route "
+           "no gate before a stuck front layer is force-routed along a shortest "
+           "path (advanced)">,
+    Option<"stallSwapBudgetPerQubit", "stallSwapBudgetPerQubit", "unsigned",
+           /*default=*/"4",
+           "Release valve scaling: per-device-qubit stall budget. The budget "
+           "used is max(minStallSwapBudget, stallSwapBudgetPerQubit * numQubits) "
+           "(advanced)">,
     Option<"placement", "placement", "std::string",
            /*default=*/"\"auto\"",
            "Initial placement strategy: auto (propose identity and greedy "
