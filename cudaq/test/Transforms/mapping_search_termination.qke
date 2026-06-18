@@ -13,10 +13,10 @@
 // SABRE: on this circuit the forced route uses 5 swaps where the unrestricted
 // heuristic uses 3. CircuitCheck confirms both outputs are correct mappings.
 
-// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none minStallSwapBudget=1 stallSwapBudgetPerQubit=0' %s | FileCheck --check-prefix=VALVE %s
-// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none minStallSwapBudget=1 stallSwapBudgetPerQubit=0' %s | CircuitCheck --up-to-mapping %s
-// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none minStallSwapBudget=16 stallSwapBudgetPerQubit=0' %s | FileCheck --check-prefix=NOVALVE %s
-// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none minStallSwapBudget=16 stallSwapBudgetPerQubit=0' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=1 stall-swap-budget-per-qubit=0' %s | FileCheck --check-prefix=VALVE %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=1 stall-swap-budget-per-qubit=0' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=16 stall-swap-budget-per-qubit=0' %s | FileCheck --check-prefix=NOVALVE %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=16 stall-swap-budget-per-qubit=0' %s | CircuitCheck --up-to-mapping %s
 
 quake.wire_set @wires[2147483647]
 func.func @release_valve() {

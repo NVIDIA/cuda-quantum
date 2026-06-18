@@ -86,12 +86,13 @@ func.func @test_04() {
 quake.wire_set @wires_05[10]
 
 // A measurement result feeding control flow through a store/load is the
-// adaptive/feed-forward shape CUDA-Q lowering produces, and is unsupported.
+// adaptive/feed-forward shape CUDA-Q lowering produces, and is unsupported. The
+// feedback diagnostic is reported on the function, not the measurement op.
+// expected-error @+1 {{unsupported measurement-dependent behavior}}
 func.func @test_05() {
   %0 = quake.borrow_wire @wires_05[0] : !quake.wire
   %1 = quake.borrow_wire @wires_05[1] : !quake.wire
   %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  // expected-error @+1 {{unsupported measurement-controlled operation}}
   %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
   %b = quake.discriminate %meas : (!quake.measure) -> i1
   %slot = cc.alloca i1

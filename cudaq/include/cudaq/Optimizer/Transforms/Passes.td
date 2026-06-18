@@ -948,24 +948,24 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
       "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), "
       "file(/path/to/file), bypass">,
-    Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
+    Option<"extendedLayerSize", "extended-layer-size", "unsigned",
            /*default=*/"20", "Extended layer size">,
-    Option<"extendedLayerWeight", "extendedLayerWeight", "float",
+    Option<"extendedLayerWeight", "extended-layer-weight", "float",
            /*default=*/"0.5", "Extended layer weight">,
-    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5",
+    Option<"decayDelta", "decay-delta", "float", /*default=*/"0.5",
            "Decay delta">,
-    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
+    Option<"roundsDecayReset", "rounds-decay-reset", "unsigned", /*default=*/"5",
            "Number of rounds before decay is reset">,
-    Option<"minStallSwapBudget", "minStallSwapBudget", "unsigned",
+    Option<"minStallSwapBudget", "min-stall-swap-budget", "unsigned",
            /*default=*/"64",
            "Release valve floor: minimum number of consecutive swaps that route "
            "no gate before a stuck front layer is force-routed along a shortest "
            "path (advanced)">,
-    Option<"stallSwapBudgetPerQubit", "stallSwapBudgetPerQubit", "unsigned",
+    Option<"stallSwapBudgetPerQubit", "stall-swap-budget-per-qubit", "unsigned",
            /*default=*/"4",
            "Release valve scaling: per-device-qubit stall budget. The budget "
-           "used is max(minStallSwapBudget, stallSwapBudgetPerQubit * numQubits) "
-           "(advanced)">,
+           "used is max(min-stall-swap-budget, stall-swap-budget-per-qubit * "
+           "numQubits) (advanced)">,
     Option<"placement", "placement", "std::string",
            /*default=*/"\"auto\"",
            "Initial placement strategy: auto (propose identity and greedy "
