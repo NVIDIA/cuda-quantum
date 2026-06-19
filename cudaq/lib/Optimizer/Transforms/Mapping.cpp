@@ -204,8 +204,8 @@ private:
   /// The unplaced virtual qubit most connected to the placed set. Ties break by
   /// total weighted degree, then by lower virtual index for determinism. The
   /// disconnected case (no interaction with the placed set) reduces to highest
-  /// weighted degree, then lower index, since weighted degree is always at least
-  /// the placed weight.
+  /// weighted degree, then lower index, since weighted degree is always at
+  /// least the placed weight.
   unsigned chooseNextVirtual() const {
     unsigned pick = n;
     CandidateScore best;
@@ -219,7 +219,8 @@ private:
         best = score;
       }
     }
-    assert(pick != n && "chooseNextVirtual called with no unplaced user qubits");
+    assert(pick != n &&
+           "chooseNextVirtual called with no unplaced user qubits");
     return pick;
   }
 
@@ -842,8 +843,7 @@ void SabreRouter::forceClosestGate() {
       closest = n;
     }
   }
-  assert(closest.isValid() &&
-         "a stalled front layer must hold a 2-qubit gate");
+  assert(closest.isValid() && "a stalled front layer must hold a 2-qubit gate");
   const RoutingProblem::Node &node = problem[closest];
   cudaq::Device::Path path = device.getShortestPath(
       placement.getPhy(node.qubits[0]), placement.getPhy(node.qubits[1]));
@@ -1670,8 +1670,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           op.emitOpError("is not supported by the mapper");
           signalPassFailure();
         }
-        LLVM_DEBUG(llvm::dbgs()
-                   << "unsupported quantum operation in mapper\n");
+        LLVM_DEBUG(llvm::dbgs() << "unsupported quantum operation in mapper\n");
         return;
       }
     }
@@ -1687,11 +1686,13 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // Measurement deferral is only safe for terminal readout. Reject unsupported
-    // mid-circuit/adaptive uses before mutating IR, even in composable mode.
+    // Measurement deferral is only safe for terminal readout. Reject
+    // unsupported mid-circuit/adaptive uses before mutating IR, even in
+    // composable mode.
     if (Operation *measOp = findNonTerminalMeasuredWireUse(func)) {
-      measOp->emitOpError("unsupported mid-circuit measurement: a measured wire "
-                          "is used by a later operation");
+      measOp->emitOpError(
+          "unsupported mid-circuit measurement: a measured wire "
+          "is used by a later operation");
       signalPassFailure();
       return;
     }
@@ -1704,9 +1705,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     auto measIt = measInfo.find(func);
     assert(measIt != measInfo.end() && "missing measurement analysis for func");
     if (measIt->second.hasConditionalsOnMeasure) {
-      func.emitOpError("unsupported measurement-dependent behavior: "
-                       "measurement-dependent control flow, quantum operations, "
-                       "calls, or resets cannot be preserved by qubit mapping");
+      func.emitOpError(
+          "unsupported measurement-dependent behavior: "
+          "measurement-dependent control flow, quantum operations, "
+          "calls, or resets cannot be preserved by qubit mapping");
       signalPassFailure();
       return;
     }
@@ -1740,9 +1742,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                                                finalQubitWire[i].getLoc(),
                                                resTy, measureOp.getMeasOut());
 
-          wireToVirtualQ.insert({measureOp.getWires()[0],
-                                 requireVirtualQ(wireToVirtualQ,
-                                                 finalQubitWire[i])});
+          wireToVirtualQ.insert(
+              {measureOp.getWires()[0],
+               requireVirtualQ(wireToVirtualQ, finalQubitWire[i])});
 
           userQubitsMeasured.push_back(i);
         }
@@ -1773,9 +1775,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     const unsigned numV = sources.size();
     const unsigned numPhy = deviceInstance->getNumQubits();
 
-    SmallVector<SmallVector<unsigned>> seeds = buildPlacementSeeds(
-        placementStrategy, numV, *deviceInstance, interactions,
-        userVirtualQubits);
+    SmallVector<SmallVector<unsigned>> seeds =
+        buildPlacementSeeds(placementStrategy, numV, *deviceInstance,
+                            interactions, userVirtualQubits);
 
     // Build the routing problem once (it does not depend on the layout), then
     // search over the seeds for the result with the fewest swaps.
@@ -1891,7 +1893,8 @@ struct MappingPipelineOptions
   DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight,
                      "extended-layer-weight");
   DECLARE_SUB_OPTION(MappingFuncOptions, decayDelta, "decay-delta");
-  DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset, "rounds-decay-reset");
+  DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset,
+                     "rounds-decay-reset");
   DECLARE_SUB_OPTION(MappingFuncOptions, minStallSwapBudget,
                      "min-stall-swap-budget");
   DECLARE_SUB_OPTION(MappingFuncOptions, stallSwapBudgetPerQubit,
