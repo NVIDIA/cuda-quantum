@@ -1461,16 +1461,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // FIXME: Add the ability to handle multiple blocks.
-    if (blocks.size() > 1) {
-      if (nonComposable) {
-        func.emitError("The mapper cannot handle multiple blocks");
-        signalPassFailure();
-      }
-      LLVM_DEBUG(llvm::dbgs() << "NYI: mapping with multiple blocks");
-      return;
-    }
-
     // Verify that the function contains wiresets and return if it does not.
     // Also populate the highest identity borrow up as long as we're traversing
     // them.
@@ -1506,6 +1496,44 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
       LLVM_DEBUG(llvm::dbgs()
                  << "no borrow_wire ops found in " << func.getName() << '\n');
+      return;
+    }
+
+    // Measurement deferral is only safe for terminal readout. Reject
+    // unsupported mid-circuit/adaptive uses before mutating IR, even in
+    // composable mode. This must precede the multi-block limitation below, so
+    // CFG-shaped adaptive measurements cannot pass through unmapped.
+    if (Operation *measOp = findNonTerminalMeasuredWireUse(func)) {
+      measOp->emitOpError(
+          "unsupported mid-circuit measurement: a measured wire "
+          "is used by a later operation");
+      signalPassFailure();
+      return;
+    }
+    // Measurement-dependent behavior is the adaptive shape the mapper cannot
+    // preserve, so use AddMetadata's conservative measurement-dependence
+    // analysis.
+    const auto &measAnalysis =
+        getAnalysis<cudaq::quake::detail::QuakeFunctionAnalysis>();
+    const auto &measInfo = measAnalysis.getAnalysisInfo();
+    auto measIt = measInfo.find(func);
+    assert(measIt != measInfo.end() && "missing measurement analysis for func");
+    if (measIt->second.hasConditionalsOnMeasure) {
+      func.emitOpError(
+          "unsupported measurement-dependent behavior: "
+          "measurement-dependent control flow, quantum operations, "
+          "calls, or resets cannot be preserved by qubit mapping");
+      signalPassFailure();
+      return;
+    }
+
+    // FIXME: Add the ability to handle multiple blocks.
+    if (blocks.size() > 1) {
+      if (nonComposable) {
+        func.emitError("The mapper cannot handle multiple blocks");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "NYI: mapping with multiple blocks");
       return;
     }
 
@@ -1683,33 +1711,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         signalPassFailure();
       }
       LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
-      return;
-    }
-
-    // Measurement deferral is only safe for terminal readout. Reject
-    // unsupported mid-circuit/adaptive uses before mutating IR, even in
-    // composable mode.
-    if (Operation *measOp = findNonTerminalMeasuredWireUse(func)) {
-      measOp->emitOpError(
-          "unsupported mid-circuit measurement: a measured wire "
-          "is used by a later operation");
-      signalPassFailure();
-      return;
-    }
-    // Measurement-dependent behavior is the adaptive shape the mapper cannot
-    // preserve, so use AddMetadata's conservative measurement-dependence
-    // analysis.
-    const auto &measAnalysis =
-        getAnalysis<cudaq::quake::detail::QuakeFunctionAnalysis>();
-    const auto &measInfo = measAnalysis.getAnalysisInfo();
-    auto measIt = measInfo.find(func);
-    assert(measIt != measInfo.end() && "missing measurement analysis for func");
-    if (measIt->second.hasConditionalsOnMeasure) {
-      func.emitOpError(
-          "unsupported measurement-dependent behavior: "
-          "measurement-dependent control flow, quantum operations, "
-          "calls, or resets cannot be preserved by qubit mapping");
-      signalPassFailure();
       return;
     }
 
