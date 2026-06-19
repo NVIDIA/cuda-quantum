@@ -101,7 +101,7 @@ public:
                       ArrayRef<bool> userVirtualQubits)
       : device(device), interactions(interactions),
         userVirtualQubits(userVirtualQubits), n(device.getNumQubits()),
-        vrToPhy(n, 0), placedVirtual(n, false) {}
+        placedVirtual(n, false), vrToPhy(n, 0) {}
 
   /// Produce the `vrToPhy` seed layout.
   SmallVector<unsigned> run() {
