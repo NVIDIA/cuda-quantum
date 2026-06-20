@@ -1,0 +1,13 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: mklq-metal
+description: "Experimental MKL-Q Apple Silicon Metal target with resident fp32 Metal single-target/two-target/probability-fill kernels, cost-gated resident marginal or full-register probability fills for partial-register sampling, a measured-qubit probability-reduction kernel, a resident measurement-collapse path, and MKL-Q fp64 CPU-oracle fallback while broader Metal kernels are being built."
+config:
+  nvqir-simulation-backend: mklq_metal
+  preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64", "-D MKLQ_METAL_EXPERIMENTAL_CPU_ORACLE"]

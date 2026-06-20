@@ -16,6 +16,8 @@
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <cstdint>
+#include <limits>
 #include <nanobind/ndarray.h>
 
 using namespace cudaq;
@@ -71,6 +73,41 @@ getCupyComplexTypeInfo(const std::string &typeStr) {
 
   throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
                            ". Supported types are: <c16 and <c8.");
+}
+
+static std::size_t getLinearStateIndexDimension(const state &state) {
+  if (state.get_num_tensors() == 1) {
+    auto tensor = state.get_tensor();
+    if (tensor.extents.size() == 1)
+      return tensor.extents[0];
+  }
+
+  const auto numQubits = state.get_num_qubits();
+  if (numQubits >= std::numeric_limits<std::size_t>::digits)
+    throw std::runtime_error("state index dimension exceeds size_t range.");
+  return std::size_t{1} << numQubits;
+}
+
+static std::size_t normalizePythonStateIndex(std::int64_t idx,
+                                             std::size_t dimension,
+                                             const char *context) {
+  if (idx < 0) {
+    const auto distanceFromEnd =
+        static_cast<std::uint64_t>(-(idx + 1)) + 1;
+    if (distanceFromEnd > dimension)
+      throw std::runtime_error(fmt::format(
+          "{} index out of range: {} for dimension {}.", context, idx,
+          dimension));
+    return dimension - static_cast<std::size_t>(distanceFromEnd);
+  }
+
+  const auto positiveIndex = static_cast<std::uint64_t>(idx);
+  if (positiveIndex >= dimension)
+    throw std::runtime_error(fmt::format(
+        "{} index out of range: {} for dimension {}.", context, idx,
+        dimension));
+
+  return static_cast<std::size_t>(positiveIndex);
 }
 
 namespace {
@@ -153,6 +190,11 @@ static nanobind::object
 canonicalizeCupyArrayToNumpy(nanobind::handle cupyArray) {
   return nanobind::module_::import_("cupy").attr("asnumpy")(
       nanobind::borrow<nanobind::object>(cupyArray));
+}
+
+static nanobind::object canonicalizeNumpyArray(nanobind::handle numpyArray) {
+  return nanobind::module_::import_("numpy").attr("ascontiguousarray")(
+      nanobind::borrow<nanobind::object>(numpyArray));
 }
 
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
@@ -317,6 +359,9 @@ static cudaq::state createStateFromPyBuffer(nanobind::object data,
 
   if (!isHostData && shouldCanonicalizeCupyArray(info, holder.getTarget().name))
     return createStateFromPyBuffer(canonicalizeCupyArrayToNumpy(data), holder);
+
+  if (isHostData && !isCContiguous(info.shape, info.strides, info.itemsize))
+    return createStateFromPyBuffer(canonicalizeNumpyArray(data), holder);
 
   if (!isHostData) {
     if (holder.getTarget().name == "dynamics") {
@@ -647,11 +692,9 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           "Return all the tensors that comprise this state representation.")
       .def(
           "__getitem__",
-          [](state &s, int idx) {
-            // Support Pythonic negative index
-            if (idx < 0)
-              idx += (1 << s.get_num_qubits());
-            return s[idx];
+          [](state &s, std::int64_t idx) {
+            const auto dimension = getLinearStateIndexDimension(s);
+            return s[normalizePythonStateIndex(idx, dimension, "state")];
           },
           R"#(Return the `index`-th element of the state vector.
 
@@ -665,16 +708,20 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
   value = state[0])#")
       .def(
           "__getitem__",
-          [](state &s, std::vector<int> idx) {
+          [](state &s, std::vector<std::int64_t> idx) {
             if (idx.size() != 2)
               throw std::runtime_error("Density matrix needs 2 indices; " +
                                        std::to_string(idx.size()) +
                                        " provided.");
-            for (auto &val : idx)
-              // Support Pythonic negative index
-              if (val < 0)
-                val += (1 << s.get_num_qubits());
-            return s(idx[0], idx[1]);
+            const auto tensor = s.get_tensor();
+            if (tensor.extents.size() != 2)
+              throw std::runtime_error(
+                  "Density matrix indexing requires rank-2 tensor data.");
+            const auto row = normalizePythonStateIndex(
+                idx[0], tensor.extents[0], "density matrix row");
+            const auto column = normalizePythonStateIndex(
+                idx[1], tensor.extents[1], "density matrix column");
+            return s(row, column);
           },
           R"#(Return the element of the density matrix at the provided
 index pair.

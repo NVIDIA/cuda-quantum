@@ -10,6 +10,7 @@
 #include "common/EigenDense.h"
 #include "cudaq/simulators.h"
 #include <iostream>
+#include <limits>
 
 namespace {
 /// Create a shared pointer that calls destroyState at destruction.
@@ -67,10 +68,26 @@ state::operator()(const std::initializer_list<std::size_t> &indices,
 }
 
 std::complex<double> state::operator[](std::size_t idx) const {
-  std::size_t numQubits = internal->getNumQubits();
   std::size_t numElements = internal->getNumElements();
+  const auto throwOutOfRange = [&]() {
+    throw std::runtime_error("state index out of range: " +
+                             std::to_string(idx) + " for dimension " +
+                             std::to_string(numElements) + ".");
+  };
+  const auto isArrayLike = internal->isArrayLike();
 
-  if (!internal->isArrayLike()) {
+  if (isArrayLike) {
+    if (idx >= numElements)
+      throwOutOfRange();
+  } else {
+    std::size_t numQubits = internal->getNumQubits();
+    if (numQubits >= std::numeric_limits<std::size_t>::digits)
+      throw std::runtime_error("state index dimension exceeds size_t range.");
+    const auto dimension = 1ULL << numQubits;
+    if (idx >= dimension)
+      throw std::runtime_error("state index out of range: " +
+                               std::to_string(idx) + " for dimension " +
+                               std::to_string(dimension) + ".");
     // Use amplitude accessor if linear indexing is not supported, e.g., tensor
     // network state.
     std::vector<int> basisState(numQubits, 0);
@@ -91,6 +108,7 @@ std::complex<double> state::operator[](std::size_t idx) const {
     return internal->getAmplitude(basisState);
   }
 
+  std::size_t numQubits = internal->getNumQubits();
   std::size_t newIdx = 0;
   if (std::log2(numElements) / numQubits > 1) {
     newIdx = idx;

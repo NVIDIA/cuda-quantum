@@ -1,11 +1,18 @@
 cff-version: 1.2.0
-title: 'CUDA-Q'
-message: 'If you use this software, please cite it as below.'
+title: "MKL-Q"
+message: "If you use MKL-Q, please cite this repository and acknowledge CUDA-Q as the upstream project."
 authors:
-  - name: "The CUDA-Q development team"
+  - family-names: "Wu"
+    given-names: "Linsen"
 license: Apache-2.0
-license-url: "https://github.com/NVIDIA/cuda-quantum/blob/main/LICENSE"
-repository-code: "https://github.com/NVIDIA/cuda-quantum"
+repository-code: "https://github.com/wuls968/MKL-Q"
 type: software
-url: "https://github.com/NVIDIA/cuda-quantum"
-# doi: 
+url: "https://github.com/wuls968/MKL-Q"
+abstract: "CUDA-Q-compatible Apple Silicon simulator fork with MKL-Q CPU and experimental Metal targets."
+references:
+  - type: software
+    title: "CUDA-Q"
+    authors:
+      - name: "The CUDA-Q development team"
+    repository-code: "https://github.com/NVIDIA/cuda-quantum"
+    license: Apache-2.0

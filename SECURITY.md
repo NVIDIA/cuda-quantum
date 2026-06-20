@@ -1,34 +1,20 @@
 # Security
 
-NVIDIA is dedicated to the security and trust of our software products and
-services, including all source code repositories managed through our
-organization.
+Please do not report security vulnerabilities through public GitHub issues.
 
-If you need to report a security issue, please use the appropriate contact points
-outlined below. **Please do not report security vulnerabilities through GitHub.**
+For the first source-only public version of MKL-Q, report potential security
+issues privately to the repository maintainer through GitHub's private
+vulnerability reporting feature if it is enabled. If private reporting is not
+enabled for the repository, contact the maintainer through the GitHub profile
+listed on the repository owner account.
 
-## Reporting Potential Security Vulnerability in an NVIDIA Product
+When reporting a security issue, include:
 
-To report a potential security vulnerability in any NVIDIA product:
+- affected commit or branch;
+- platform and compiler details;
+- minimal reproduction steps;
+- potential impact;
+- whether the issue is specific to MKL-Q or also appears in upstream CUDA-Q.
 
-- Web: [Security Vulnerability Submission Form](https://www.nvidia.com/object/submit-security-vulnerability.html)
-- E-Mail: <psirt@nvidia.com>
-  - We encourage you to use the following PGP key for secure email communication:
-    [NVIDIA public PGP Key for communication](https://www.nvidia.com/en-us/security/pgp-key)
-  - Please include the following information:
-  - Product/Driver name and version/branch that contains the vulnerability
-  - Type of vulnerability (code execution, denial of service, buffer overflow, etc.)
-  - Instructions to reproduce the vulnerability
-  - Proof-of-concept or exploit code
-  - Potential impact of the vulnerability, including how an attacker could
-    exploit the vulnerability
-
-While NVIDIA currently does not have a bug bounty program, we do offer
-acknowledgement when an externally reported security issue is addressed under
-our coordinated vulnerability disclosure policy. Please visit our
-[Product Security Incident Response Team (PSIRT)](https://www.nvidia.com/en-us/security/psirt-policies/)
-policies page for more information.
-
-## NVIDIA Product Security
-
-For all security-related concerns, please visit [NVIDIA's Product Security portal](https://www.nvidia.com/en-us/security).
+For vulnerabilities in upstream CUDA-Q or NVIDIA products, use the upstream
+project's official security reporting process instead.

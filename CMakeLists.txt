@@ -172,6 +172,34 @@ if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
   set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
 endif()
 
+if (CMAKE_OSX_ARCHITECTURES)
+  set(_cudaq_mklq_target_architectures "${CMAKE_OSX_ARCHITECTURES}")
+elseif (CMAKE_SYSTEM_PROCESSOR)
+  set(_cudaq_mklq_target_architectures "${CMAKE_SYSTEM_PROCESSOR}")
+else()
+  set(_cudaq_mklq_target_architectures "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+endif()
+
+set(CUDAQ_MKLQ_APPLE_SILICON_TARGET OFF)
+if (APPLE AND _cudaq_mklq_target_architectures MATCHES "^(arm64|aarch64)(;(arm64|aarch64))*$")
+  set(CUDAQ_MKLQ_APPLE_SILICON_TARGET ON)
+endif()
+
+# Enable MKL-Q Apple Silicon simulator targets only on Apple Silicon by default.
+if (NOT DEFINED CUDAQ_ENABLE_MKLQ_BACKEND)
+  if (CUDAQ_MKLQ_APPLE_SILICON_TARGET AND _cudaq_backend_default)
+    set(CUDAQ_ENABLE_MKLQ_BACKEND ON CACHE BOOL "Enable building the MKL-Q Apple Silicon simulator targets.")
+  else()
+    set(CUDAQ_ENABLE_MKLQ_BACKEND OFF CACHE BOOL "Enable building the MKL-Q Apple Silicon simulator targets.")
+  endif()
+elseif (CUDAQ_ENABLE_MKLQ_BACKEND AND NOT CUDAQ_MKLQ_APPLE_SILICON_TARGET)
+  message(FATAL_ERROR
+    "CUDAQ_ENABLE_MKLQ_BACKEND=ON requires a macOS arm64/aarch64 target "
+    "architecture. Effective target architecture(s): "
+    "'${_cudaq_mklq_target_architectures}'.")
+endif()
+unset(_cudaq_mklq_target_architectures)
+
 # =============================================================================
 # CUDAQ_EXTERNAL_PROJECTS
 # -----------------------------------------------------------------------------
@@ -431,6 +459,15 @@ else()
   #    the first versions of this setting did not appropriately link all libraries to the dylibs.
   add_link_options("-Wl,-flat_namespace")
   add_link_options("-Wl,-undefined,dynamic_lookup")
+
+  if(CMAKE_LINKER MATCHES "/(anaconda|miniconda|conda|mambaforge|micromamba)[^/]*/bin/ld$"
+     AND EXISTS "/usr/bin/ld"
+     AND NOT LLVM_USE_LINKER)
+    # Conda can put an old Darwin ld before Apple's toolchain on PATH. Clang's
+    # driver follows PATH during link steps, so keep macOS builds on the system
+    # linker that matches the active SDK.
+    add_link_options("-B/usr/bin")
+  endif()
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
@@ -611,6 +648,13 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 include(TableGen)
 include(AddLLVM)
 include(AddMLIR)
+
+if(APPLE AND LLVM_LINKER_SUPPORTS_NO_WARN_DUPLICATE_LIBRARIES)
+  # LLVM's linker flag probe can succeed with a different Darwin linker than the
+  # one CMake later drives through clang. Keep add_llvm_executable() targets
+  # buildable with Apple's /usr/bin/ld on macOS.
+  set(LLVM_LINKER_SUPPORTS_NO_WARN_DUPLICATE_LIBRARIES OFF CACHE INTERNAL "" FORCE)
+endif()
 
 # Add LLVM, Clang and MLIR headers to the include path
 include_directories(SYSTEM

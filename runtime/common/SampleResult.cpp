@@ -295,7 +295,17 @@ sample_result::retrieve_result(const std::string &registerName) {
 
 std::vector<std::string>
 sample_result::sequential_data(const std::string_view registerName) const {
-  return retrieve_result(registerName.data()).getSequentialData();
+  const auto &result = retrieve_result(registerName.data());
+  if (!result.sequentialData.empty() || result.counts.empty())
+    return result.getSequentialData();
+
+  std::vector<std::string> expanded;
+  expanded.reserve(std::accumulate(
+      result.counts.begin(), result.counts.end(), std::size_t{0},
+      [](std::size_t total, const auto &entry) { return total + entry.second; }));
+  for (const auto &[bits, count] : result.counts)
+    expanded.insert(expanded.end(), count, bits);
+  return expanded;
 }
 
 CountsDictionary::iterator sample_result::begin() {

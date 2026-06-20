@@ -1,0 +1,87 @@
+name: MKL-Q public hygiene
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  hygiene:
+    name: Source-only repository checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Reject local and generated artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '(^|/)(__pycache__|\.pytest_cache)(/|$)|\.pyc$|\.DS_Store$|^build(-python)?/|^benchmarks/mklq/results/|^docs/superpowers/'; then
+            echo "Generated, local, or agent-internal files are tracked."
+            exit 1
+          fi
+
+      - name: Check MKL-Q public metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'MKL-Q' README.md
+          grep -q 'mklq-cpu' README.md
+          grep -q 'mklq-metal' README.md
+          grep -q 'source-only' README.md
+          grep -q 'cudaq' README.md
+          python3 - <<'PY'
+          from pathlib import Path
+
+          banned = [
+              "cuda-quantum" + "@nvidia.com",
+              "github.com/NVIDIA/cuda-quantum" + "/actions",
+              "nv-" + "slack",
+              "ops-" + "bot",
+              "copy-pr-" + "bot",
+          ]
+          paths = [
+              Path("README.md"),
+              Path("CITATION.cff"),
+              Path("Contributing.md"),
+              Path("SECURITY.md"),
+          ]
+          paths.extend(path for path in Path(".github").rglob("*") if path.is_file())
+          failures = []
+          for path in paths:
+              text = path.read_text(encoding="utf-8", errors="replace")
+              for token in banned:
+                  if token in text:
+                      failures.append(f"{path}: contains {token}")
+          if failures:
+              raise SystemExit("\n".join(failures))
+          PY
+
+      - name: Parse benchmark summaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report_dir = Path("benchmarks/mklq/reports")
+          summaries = sorted(report_dir.glob("*.summary.json"))
+          if not summaries:
+              raise SystemExit("No sanitized MKL-Q benchmark summaries found.")
+          for path in summaries:
+              with path.open("r", encoding="utf-8") as handle:
+                  json.load(handle)
+          print(f"Parsed {len(summaries)} benchmark summary file(s).")
+          PY
+
+      - name: Compile public benchmark helpers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            benchmarks/mklq/bench_mklq_targets.py \
+            benchmarks/mklq/bench_probability_kernels.py

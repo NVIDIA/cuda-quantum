@@ -111,6 +111,18 @@ protected:
   /// @brief Internal result
   cudaq::sample_result internalResult = {};
 
+  /// @brief Whether this simulator may omit per-shot sequential data for
+  /// non-explicit sampling results. The default preserves CUDA-Q's existing
+  /// public `sample_result::sequential_data()` behavior.
+  virtual bool canOmitSequentialDataForNonExplicitSampling() const {
+    return false;
+  }
+
+#if defined(MKLQ_ENABLE_TEST_ACCESSORS)
+  mutable std::size_t countsOnlyNamedRegisterRemaps = 0;
+  mutable std::size_t sequentialNamedRegisterRemaps = 0;
+#endif
+
   /// @brief Reference to the current circuit name.
   std::string currentCircuitName = "";
 
@@ -527,13 +539,15 @@ public:
     const std::vector<std::size_t> controls;
     const std::vector<std::size_t> targets;
     const std::vector<ScalarType> parameters;
+    const bool isBuiltInOperation;
     GateApplicationTask(const std::string &name,
                         const std::vector<std::complex<ScalarType>> &m,
                         const std::vector<std::size_t> &c,
                         const std::vector<std::size_t> &t,
-                        const std::vector<ScalarType> &params)
+                        const std::vector<ScalarType> &params,
+                        bool builtInOperation = false)
         : operationName(name), matrix(m), controls(c), targets(t),
-          parameters(params) {}
+          parameters(params), isBuiltInOperation(builtInOperation) {}
   };
 
 protected:
@@ -780,8 +794,13 @@ protected:
     CUDAQ_INFO("Sampling the current state, with measure qubits = {}",
                sampleQubits);
 
+    const bool includeSequentialData =
+        executionContext->explicitMeasurements ||
+        !canOmitSequentialDataForNonExplicitSampling();
+
     // Ask the subtype to sample the current state
-    auto execResult = sample(sampleQubits, getNumShotsToExec());
+    auto execResult =
+        sample(sampleQubits, getNumShotsToExec(), includeSequentialData);
 
     // Warn if there are named measurement registers beyond `__global__`
     if (warnAboutNamedMeasurements && registerNameToMeasuredQubit.size() > 1) {
@@ -821,7 +840,17 @@ protected:
           b.reserve(qubits.size());
           for (auto &qb : qubits)
             b += bits[qubitLocMap[qb]];
-          tmp.appendResult(b, count);
+          if (includeSequentialData) {
+            tmp.appendResult(b, count);
+#if defined(MKLQ_ENABLE_TEST_ACCESSORS)
+            ++sequentialNamedRegisterRemaps;
+#endif
+          } else {
+            tmp.counts[b] += count;
+#if defined(MKLQ_ENABLE_TEST_ACCESSORS)
+            ++countsOnlyNamedRegisterRemaps;
+#endif
+          }
         }
 
         internalResult.append(tmp);
@@ -837,7 +866,8 @@ protected:
                    const std::vector<std::complex<ScalarType>> &matrix,
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
-                   const std::vector<ScalarType> &params) {
+                   const std::vector<ScalarType> &params,
+                   bool isBuiltInOperation = false) {
     if (cudaq::isInTracerMode()) {
       std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
       for (auto &c : controls)
@@ -871,7 +901,8 @@ protected:
       cudaq::log("{}: matrix={}, controls={}, targets={}, params={}", name,
                  matrix, controls, targets, params);
 
-    gateQueue.emplace(name, matrix, controls, targets, params);
+    gateQueue.emplace(name, matrix, controls, targets, params,
+                      isBuiltInOperation);
   }
 
   /// @brief Provide a base-class method that can be invoked
@@ -1281,7 +1312,8 @@ public:
       flushAnySamplingTasks();
     QuantumOperation gate;
     CUDAQ_INFO(gateToString(gate.name(), controls, angles, targets));
-    enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
+    enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles,
+                true);
   }
 
 #define CIRCUIT_SIMULATOR_ONE_QUBIT(NAME)                                      \
@@ -1377,7 +1409,7 @@ public:
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
         {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
     enqueueGate("swap", matrix, ctrlBits,
-                std::vector<std::size_t>{srcIdx, tgtIdx}, {});
+                std::vector<std::size_t>{srcIdx, tgtIdx}, {}, true);
   }
 
   bool mz(const std::size_t qubitIdx) override { return mz(qubitIdx, ""); }

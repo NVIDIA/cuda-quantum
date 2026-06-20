@@ -41,6 +41,9 @@ install(TARGETS ${LIBRARY_NAME}
         INCLUDES DESTINATION include/nvqir)
 
 add_subdirectory(qpp)
+if(CUDAQ_ENABLE_MKLQ_BACKEND AND CUDAQ_MKLQ_APPLE_SILICON_TARGET)
+  add_subdirectory(mklq)
+endif()
 add_subdirectory(stim)
 
 if (cuStateVec_FOUND)

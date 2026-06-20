@@ -49,6 +49,26 @@ target_link_libraries(cudaq-mlir-runtime
     fmt::fmt-header-only
 )
 
+set(CUDAQ_MLIR_RUNTIME_LINK_LIBS
+  CCDialect
+  QECDialect
+  QuakeDialect
+  OptCodeGen
+  OptTransforms
+  MLIRTranslateLib
+  MLIRIR
+  MLIRParser
+  MLIRPass
+  MLIRSupport
+  MLIROptLib
+  MLIRExecutionEngine
+  MLIRTransforms
+  MLIRTargetLLVMIRExport
+  MLIRLLVMCommonConversion
+  MLIRLLVMToLLVMIRTranslation
+  MLIRFuncInlinerExtension
+)
+
 if(APPLE)
   add_dependencies(cudaq-mlir-runtime OptCodeGen OptTransforms OptimBuilder cudaq-qir-verifier)
   target_link_libraries(cudaq-mlir-runtime PRIVATE
@@ -59,23 +79,7 @@ if(APPLE)
 else()
   target_link_libraries(cudaq-mlir-runtime
     PRIVATE
-      CCDialect
-      QECDialect
-      QuakeDialect
-      OptCodeGen
-      OptTransforms
-      MLIRTranslateLib
-      MLIRIR
-      MLIRParser
-      MLIRPass
-      MLIRSupport
-      MLIROptLib
-      MLIRExecutionEngine
-      MLIRTransforms
-      MLIRTargetLLVMIRExport
-      MLIRLLVMCommonConversion
-      MLIRLLVMToLLVMIRTranslation
-      MLIRFuncInlinerExtension
+      ${CUDAQ_MLIR_RUNTIME_LINK_LIBS}
   )
 endif()
 

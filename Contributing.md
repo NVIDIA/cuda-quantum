@@ -1,116 +1,57 @@
 # Contributing
 
-Thank you for your interest in contributing to CUDA-Q! Based on the type of
-contribution, it will fall into three categories:
+Thank you for your interest in MKL-Q. This repository is a CUDA-Q-compatible
+Apple Silicon fork, so contributions should preserve CUDA-Q API compatibility
+unless a change is explicitly scoped to an MKL-Q target.
 
-1. Report a bug, feature request, or documentation issue:
+## Before Opening A Pull Request
 
-    File an [issue][cuda_quantum_issues] describing what you encountered or what
-    you want to see changed. The NVIDIA team will evaluate the issues and triage
-    them, scheduling them for a release. If you believe the issue needs priority
-    attention comment on the issue to notify the team.
+- Open an issue for non-trivial backend, build, or public API changes.
+- Keep changes reviewable: separate backend work, benchmark evidence, docs, and
+  repository configuration into separate commits or pull requests where
+  practical.
+- Do not commit build products, raw local benchmark JSON, caches, `.DS_Store`,
+  secrets, tokens, or local machine paths.
+- Keep `cudaq` as the Python namespace and `nvq++` as the compiler entry point
+  for compatibility.
 
-1. Share your work built upon CUDA-Q:
+## Local Checks
 
-    We would love to hear more about your work! Please share with us on
-    [NVIDIA/cudaq GitHub
-    Discussions](https://github.com/NVIDIA/cuda-quantum/discussions) or consider
-    contributing to our [examples](./docs/sphinx/examples/)! We also take any
-    CUDA-Q related questions on this forum.
+Run the smallest relevant checks first. For MKL-Q backend changes, these are the
+usual gates:
 
-1. Implement a feature or bug-fix:
+```bash
+ctest --test-dir build-python -R "(mklq_(cpu|metal)_MKLQ|backend_target_setter_check|TargetConfigTester)" --output-on-failure
 
-    Please file an [issue][cuda_quantum_issues] on the repository and express
-    your interest in contributing to its implementation. Someone from the CUDA-Q
-    team will respond on the issue to discuss how to best proceed with the
-    suggestion. For more information regarding contributing to the code base,
-    see also [Developing.md](./Developing.md).
+PYTHONPATH="$(pwd)/build-python/python" \
+python3 -m pytest \
+  python/tests/backends/test_mklq_nvqpp_smoke.py \
+  python/tests/backends/test_mklq_benchmark_harness.py \
+  python/tests/backends/test_mklq_python_api.py \
+  python/tests/builder/test_mklq_targets.py \
+  -q
+```
 
-[cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues
+Before publishing source changes, also run:
 
-When you contribute code to this repository, whether be it an example, bug fix,
-or feature, make sure that you can contribute your work under the used
-[open-source license](./LICENSE), that is make sure no license and/or patent
-conflict is introduced by your pull-request. To confirm this, you will need to
-[sign off on your commits](#commit-sign-off) as described below. Thanks in advance
-for your patience as we review your contributions; we do appreciate them!
+```bash
+git diff --check
+```
 
 ## Commit Sign-off
 
-We require that all contributors "sign-off" on their commits. This certifies
-that the contribution is your original work, or you have rights to submit it
-under the same license, or a compatible license. Any contribution which contains
-commits that are not signed off will not be accepted.
-
-To sign off on a commit you simply use the `--signoff` (or `-s`) option when
-committing your changes:
+Contributors should sign off commits to certify that they have the right to
+submit the contribution under the Apache License 2.0:
 
 ```bash
-git commit -s -m "Add cool feature."
+git commit -s -m "feat: add mklq improvement"
 ```
 
-### Automated Checks with Pre-commit
+This uses the Developer Certificate of Origin:
+<https://developercertificate.org/>.
 
-Before submitting a pull request, we recommend running automated checks locally
-to catch formatting and linting issues early:
+## Upstream Contributions
 
-```bash
-# One-time setup
-pip install pre-commit
-pre-commit install
-
-# Run all checks (same as CI)
-pre-commit run --all-files --hook-stage pre-push
-```
-
-All pre-commit checks that run in CI can be run locally. This helps reduce
-CI churn from formatting issues. See [Developing.md](Developing.md) for detailed
-pre-commit usage and troubleshooting.
-
----
-
-This will append the following to your commit message:
-
-```txt
-Signed-off-by: Your Name <your@email.com>
-```
-
-By signing off on your commits you attest to the [Developer Certificate of Origin
-(DCO)](https://developercertificate.org/). Full text of the DCO:
-
-```txt
-Developer Certificate of Origin
-Version 1.1
-
-Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
-
-Everyone is permitted to copy and distribute verbatim copies of this
-license document, but changing it is not allowed.
-
-
-Developer's Certificate of Origin 1.1
-
-By making a contribution to this project, I certify that:
-
-(a) The contribution was created in whole or in part by me and I
-    have the right to submit it under the open source license
-    indicated in the file; or
-
-(b) The contribution is based upon previous work that, to the best
-    of my knowledge, is covered under an appropriate open source
-    license and I have the right under that license to submit that
-    work with modifications, whether created in whole or in part
-    by me, under the same open source license (unless I am
-    permitted to submit under a different license), as indicated
-    in the file; or
-
-(c) The contribution was provided directly to me by some other
-    person who certified (a), (b) or (c) and I have not modified
-    it.
-
-(d) I understand and agree that this project and the contribution
-    are public and that a record of the contribution (including all
-    personal information I submit with it, including my sign-off) is
-    maintained indefinitely and may be redistributed consistent with
-    this project or the open source license(s) involved.
-```
+If a change is generally useful to CUDA-Q rather than specific to MKL-Q, consider
+whether it should be proposed upstream to `NVIDIA/cuda-quantum`. MKL-Q keeps
+upstream history and compatibility so that such patches remain practical.

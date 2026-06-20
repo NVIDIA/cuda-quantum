@@ -1,0 +1,205 @@
+{
+  "schema_version": "mklq-benchmark-summary-v1",
+  "evidence_kind": "local_tuning_evidence",
+  "summary_id": "local-metal-y-cy-resident-isolated-q20-2026-06-19",
+  "raw_results": [
+    {
+      "path": "benchmarks/mklq/results/local-metal-y-cy-resident-isolated-q20-2026-06-19.json",
+      "sha256": "84891e8f907c38295a4975b1d0b0c493c2658b9b36b29975c539b93fcdfff9bb",
+      "tracked": false,
+      "status_rows": {
+        "ok": 6
+      }
+    }
+  ],
+  "machine": {
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "machine": "arm64",
+    "processor": "arm",
+    "cpu_brand": "Apple M5",
+    "logical_cores": 10,
+    "memory_bytes": 17179869184,
+    "macos_version": "26.5.1",
+    "python": "3.12.2"
+  },
+  "environment": {
+    "OMP_NUM_THREADS": "10",
+    "OMP_PROC_BIND": "close",
+    "OMP_DYNAMIC": "false",
+    "PYTHONPATH": "build-python/python",
+    "DYLD_LIBRARY_PATH": null,
+    "VECLIB_MAXIMUM_THREADS": null
+  },
+  "config": {
+    "command": [
+      "benchmarks/mklq/bench_mklq_targets.py",
+      "--isolate-rows",
+      "--targets",
+      "qpp-cpu,mklq-cpu,mklq-metal",
+      "--cases",
+      "y-state,cy-state",
+      "--qubits",
+      "20",
+      "--shots",
+      "1024",
+      "--repeats",
+      "2",
+      "--warmups",
+      "1",
+      "--layers",
+      "8",
+      "--output",
+      "benchmarks/mklq/results/local-metal-y-cy-resident-isolated-q20-2026-06-19.json"
+    ],
+    "targets": [
+      "qpp-cpu",
+      "mklq-cpu",
+      "mklq-metal"
+    ],
+    "cases": [
+      "y-state",
+      "cy-state"
+    ],
+    "qubits": [
+      20
+    ],
+    "shots": 1024,
+    "repeats": 2,
+    "warmups": 1,
+    "layers": 8,
+    "isolate_rows": true
+  },
+  "rows": [
+    {
+      "target": "qpp-cpu",
+      "case": "y-state",
+      "qubits": 20,
+      "shots": 1024,
+      "status": "ok",
+      "estimated_state_bytes": 16777216,
+      "elapsed_seconds_median": 5.069386833500175,
+      "elapsed_seconds_min": 5.029783958001644,
+      "elapsed_seconds_max": 5.108989708998706,
+      "state_prep_gate_count": 40,
+      "y_gate_count": 160,
+      "gate_count": 200,
+      "layers": 8,
+      "y_gate_state_throughput_per_second": 31.562002517280273,
+      "process_max_rss_bytes_cumulative": 198279168,
+      "curated_path_label": "qpp_cpu_reference",
+      "path_label_source": "curated_summary_label"
+    },
+    {
+      "target": "qpp-cpu",
+      "case": "cy-state",
+      "qubits": 20,
+      "shots": 1024,
+      "status": "ok",
+      "estimated_state_bytes": 16777216,
+      "elapsed_seconds_median": 4.910278125498735,
+      "elapsed_seconds_min": 4.901920459000394,
+      "elapsed_seconds_max": 4.918635791997076,
+      "state_prep_gate_count": 40,
+      "cy_gate_count": 152,
+      "gate_count": 192,
+      "layers": 8,
+      "cy_gate_state_throughput_per_second": 30.955476678739338,
+      "process_max_rss_bytes_cumulative": 200343552,
+      "curated_path_label": "qpp_cpu_reference",
+      "path_label_source": "curated_summary_label"
+    },
+    {
+      "target": "mklq-cpu",
+      "case": "y-state",
+      "qubits": 20,
+      "shots": 1024,
+      "status": "ok",
+      "estimated_state_bytes": 16777216,
+      "elapsed_seconds_median": 0.04239083349966677,
+      "elapsed_seconds_min": 0.041987417003838345,
+      "elapsed_seconds_max": 0.04279424999549519,
+      "state_prep_gate_count": 40,
+      "y_gate_count": 160,
+      "gate_count": 200,
+      "layers": 8,
+      "y_gate_state_throughput_per_second": 3774.4008973368677,
+      "process_max_rss_bytes_cumulative": 198115328,
+      "curated_path_label": "mklq_cpu_y_structured_fast_path",
+      "path_label_source": "inferred_from_runtime_tests_and_code_inspection"
+    },
+    {
+      "target": "mklq-cpu",
+      "case": "cy-state",
+      "qubits": 20,
+      "shots": 1024,
+      "status": "ok",
+      "estimated_state_bytes": 16777216,
+      "elapsed_seconds_median": 0.05307406299834838,
+      "elapsed_seconds_min": 0.0528742919996148,
+      "elapsed_seconds_max": 0.053273833997081965,
+      "state_prep_gate_count": 40,
+      "cy_gate_count": 152,
+      "gate_count": 192,
+      "layers": 8,
+      "cy_gate_state_throughput_per_second": 2863.9224399445375,
+      "process_max_rss_bytes_cumulative": 199770112,
+      "curated_path_label": "mklq_cpu_controlled_y_structured_fast_path",
+      "path_label_source": "inferred_from_runtime_tests_and_code_inspection"
+    },
+    {
+      "target": "mklq-metal",
+      "case": "y-state",
+      "qubits": 20,
+      "shots": 1024,
+      "status": "ok",
+      "estimated_state_bytes": 16777216,
+      "elapsed_seconds_median": 0.09025897899846314,
+      "elapsed_seconds_min": 0.08046650000324007,
+      "elapsed_seconds_max": 0.1000514579936862,
+      "state_prep_gate_count": 40,
+      "y_gate_count": 160,
+      "gate_count": 200,
+      "layers": 8,
+      "y_gate_state_throughput_per_second": 1772.676821468636,
+      "process_max_rss_bytes_cumulative": 246120448,
+      "curated_path_label": "mklq_metal_resident_y_gate_path",
+      "path_label_source": "inferred_from_runtime_tests_and_code_inspection"
+    },
+    {
+      "target": "mklq-metal",
+      "case": "cy-state",
+      "qubits": 20,
+      "shots": 1024,
+      "status": "ok",
+      "estimated_state_bytes": 16777216,
+      "elapsed_seconds_median": 0.09229137500369688,
+      "elapsed_seconds_min": 0.08338337500754278,
+      "elapsed_seconds_max": 0.10119937499985099,
+      "state_prep_gate_count": 40,
+      "cy_gate_count": 152,
+      "gate_count": 192,
+      "layers": 8,
+      "cy_gate_state_throughput_per_second": 1646.9578007036018,
+      "process_max_rss_bytes_cumulative": 251691008,
+      "curated_path_label": "mklq_metal_resident_controlled_y_gate_path",
+      "path_label_source": "inferred_from_runtime_tests_and_code_inspection"
+    }
+  ],
+  "comparison": {
+    "same_day_cross_target_ratio": {
+      "qpp_cpu_over_mklq_metal_y_state_q20": 56.16490336752528,
+      "qpp_cpu_over_mklq_metal_cy_state_q20": 53.20408462114737,
+      "mklq_metal_over_mklq_cpu_y_state_q20": 2.1292098207781796,
+      "mklq_metal_over_mklq_cpu_cy_state_q20": 1.7389167097791045
+    }
+  },
+  "interpretation": {
+    "summary": "On this local Apple M5 dirty-worktree run, q20 mklq-metal completed resident Y/CY update rows with 0.09025897899846314 s median for y-state and 0.09229137500369688 s median for cy-state.",
+    "metal_path_scope": "resident fp32 Metal gate update followed by host readback for cudaq.get_state",
+    "do_not_treat_as_clean_release_provenance": true,
+    "dirty_worktree": true,
+    "raw_json_files_are_ignored": true,
+    "curated_path_labels_are_not_raw_benchmark_fields": true,
+    "performance_claim_scope": "local Apple M5 tuning evidence only; rerun on a clean worktree before release claims"
+  }
+}

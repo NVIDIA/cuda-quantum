@@ -1,73 +1,109 @@
-# Welcome to the CUDA-Q repository
+# MKL-Q
 
-<img align="right" width="200"
-src="https://developer.nvidia.com/sites/default/files/akamai/nvidia-cuquantum-icon.svg"
-/>
+MKL-Q is a CUDA-Q-compatible Apple Silicon fork focused on local simulator
+performance for macOS ARM64. It keeps the CUDA-Q C++ and Python public API
+surface, including the `cudaq` Python namespace and the `nvq++` compiler, while
+adding MKL-Q targets for Apple Silicon development.
 
-<img align="left"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/deployments.yml/badge.svg?event=workflow_dispatch&branch=main"
-/>
+This repository is source-only for the first public version. It does not publish
+PyPI wheels, binary packages, or GitHub releases yet.
 
-<img align="left"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/publishing.yml/badge.svg?branch=main"
-/>
+## Targets
 
-<img align="left"
-src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/documentation.yml/badge.svg?branch=main"
-/> <br/>
+- `mklq-cpu`: stable Apple Silicon CPU simulator target. It uses a native fp64
+  state-vector backend with focused fast paths for common gates, measurement,
+  and sampling.
+- `mklq-metal`: experimental Apple GPU target. It uses a mixed Metal/CPU path
+  for supported operations and falls back to the MKL-Q CPU oracle when needed.
+  It is not the default target.
 
-<a href="https://zenodo.org/badge/latestdoi/614026597"><img align="left"
-src="https://zenodo.org/badge/614026597.svg" alt="DOI"></a><br/>
+The upstream CUDA-Q targets, including `qpp-cpu` and density-matrix CPU targets,
+remain available so that MKL-Q can keep CUDA-Q compatibility and upstream sync
+ability.
 
-The CUDA-Q Platform for hybrid quantum-classical computers enables integration
-and programming of quantum processing units (QPUs), GPUs, and CPUs in one
-system. This repository contains the source code for all C++ and Python tools
-provided by the CUDA-Q toolkit, including the `nvq++` compiler, the CUDA-Q
-runtime, as well as a selection of integrated CPU and GPU backends for rapid
-application development and testing.
+## Build
 
-## Getting Started
+MKL-Q is intended to be built from source on Apple Silicon macOS. The local
+install prefix used during development is `/Users/a0000/.cudaq-mklq`; override
+it through CMake if you need a different prefix.
 
-To learn more about how to work with CUDA-Q, please take a look at the [CUDA-Q
-Documentation][cuda_quantum_docs]. The page also contains [installation
-instructions][official_install] for officially released packages.
+```bash
+git clone --recursive https://github.com/wuls968/MKL-Q.git
+cd MKL-Q
 
-If you would like to install the latest iteration under development in this
-repository and/or add your own modifications, take a look at the [latest
-packages][github_packages] deployed on the GitHub Container Registry. For more
-information about building CUDA-Q from source, see [these
-instructions](./Building.md).
+cmake -S . -B build-python -D CUDAQ_ENABLE_MKLQ_BACKEND=ON \
+  -D CMAKE_INSTALL_PREFIX="${HOME}/.cudaq-mklq"
+cmake --build build-python --target install -j 6
+```
 
-[cuda_quantum_docs]: https://nvidia.github.io/cuda-quantum/latest
-[official_install]: https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html#install-cuda-q
-[github_packages]:
-    https://github.com/orgs/NVIDIA/packages?repo_name=cuda-quantum
+If you use a fork or a different GitHub owner, replace the clone URL with your
+repository URL.
 
-## Contributing
+## Python Smoke Test
 
-There are many ways in which you can get involved with CUDA-Q. If you are
-interested in developing quantum applications with CUDA-Q, this repository is a
-great place to get started! For more information about contributing to the
-CUDA-Q platform, please take a look at [Contributing.md](./Contributing.md).
+```bash
+PYTHONPATH="${HOME}/.cudaq-mklq" python3 - <<'PY'
+import cudaq
 
-## License
+@cudaq.kernel
+def bell():
+    q = cudaq.qvector(2)
+    h(q[0])
+    x.ctrl(q[0], q[1])
+    mz(q)
 
-The code in this repository is licensed under [Apache License 2.0](./LICENSE).
+for target in ("mklq-cpu", "mklq-metal"):
+    cudaq.set_target(target)
+    counts = cudaq.sample(bell, shots_count=100)
+    print(target, counts)
+PY
+```
 
-Contributing a pull request to this repository requires accepting the
-Contributor License Agreement (CLA) declaring that you have the right to, and
-actually do, grant us the rights to use your contribution. A CLA-bot will
-automatically determine whether you need to provide a CLA and decorate the PR
-appropriately. Simply follow the instructions provided by the bot. You will only
-need to do this once.
+## C++ Smoke Test
 
-## Feedback
+```bash
+cat > /tmp/mklq_bell.cpp <<'CPP'
+#include <cudaq.h>
 
-Please let us know your feedback and ideas for the CUDA-Q platform in the
-[Discussions][cuda_quantum_discussions] tab of this repository, or file an
-[issue][cuda_quantum_issues]. To report security concerns or [Code of
-Conduct](./Code_of_Conduct.md) violations, please reach out to
-[cuda-quantum@nvidia.com](mailto:cuda-quantum@nvidia.com).
+struct bell {
+  void operator()() __qpu__ {
+    cudaq::qvector q(2);
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+    mz(q);
+  }
+};
 
-[cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
-[cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues
+int main() {
+  auto counts = cudaq::sample(100, bell{});
+  counts.dump();
+}
+CPP
+
+"${HOME}/.cudaq-mklq/bin/nvq++" --target mklq-cpu /tmp/mklq_bell.cpp -o /tmp/mklq_bell_cpu
+/tmp/mklq_bell_cpu
+
+"${HOME}/.cudaq-mklq/bin/nvq++" --target mklq-metal /tmp/mklq_bell.cpp -o /tmp/mklq_bell_metal
+/tmp/mklq_bell_metal
+```
+
+## Validation
+
+The current bootstrap validation record is summarized in
+[`docs/mklq/validation.md`](docs/mklq/validation.md). The development roadmap
+and known backend limits are summarized in
+[`docs/mklq/roadmap.md`](docs/mklq/roadmap.md).
+
+Sanitized local benchmark evidence is kept under `benchmarks/mklq/reports/`.
+Raw local benchmark payloads under `benchmarks/mklq/results/` are intentionally
+ignored.
+
+## Upstream And License
+
+MKL-Q is derived from NVIDIA CUDA-Q and keeps CUDA-Q API compatibility where
+possible. The upstream project is available at
+<https://github.com/NVIDIA/cuda-quantum>.
+
+This repository is licensed under the Apache License 2.0. See
+[`LICENSE`](LICENSE) and [`NOTICE`](NOTICE) for upstream attribution and MKL-Q
+modification notices.

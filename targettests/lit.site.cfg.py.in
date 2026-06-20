@@ -12,7 +12,7 @@ import sys
 
 # Helper function to convert cmake variable boolean definitions to True/False.
 def cmake_boolvar_to_bool(s):
-  return s == "1"
+  return str(s).upper() in ("1", "ON", "TRUE", "YES")
 
 config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
 config.llvm_shlib_dir = lit_config.substitute(path(r"@SHLIBDIR@"))
@@ -106,6 +106,17 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
 
+config.cudaq_backends_mklq = "@CUDAQ_ENABLE_MKLQ_BACKEND@"
+config.cudaq_mklq_apple_silicon_target = "@CUDAQ_MKLQ_APPLE_SILICON_TARGET@"
+if cmake_boolvar_to_bool(config.cudaq_mklq_apple_silicon_target):
+  config.available_features.add('mklq-apple-silicon-target')
+
+if cmake_boolvar_to_bool(config.cudaq_backends_mklq):
+  config.available_features.add('mklq-backend')
+  config.substitutions.append(('%mklq_avail', 'true'))
+else:
+  config.substitutions.append(('%mklq_avail', 'false'))
+
 config.cudaq_stim_backend_disabled = "@CUDAQ_ENABLE_ASSERTIONS@"
 if cmake_boolvar_to_bool(config.cudaq_stim_backend_disabled):
   config.substitutions.append(('%stim_avail', 'false'))
@@ -118,4 +129,3 @@ lit.llvm.initialize(lit_config, config)
 
 # Let the main config do the real work.
 lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/targettests/lit.cfg.py")
-

@@ -1,22 +1,32 @@
-name: 🚀 Feature Request
-description: Suggest an idea for this project 💡!
-labels: [enhancement]
-
+name: Feature request
+description: Suggest an MKL-Q improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
 body:
-  - type: markdown
-    attributes:
-      value: Thank you for helping us improve CUDA-Q.
-
-  - type: checkboxes
-    attributes:
-      label: Required prerequisites
-      description: Make sure you've completed the following steps before submitting your feature request -- thank you!
-      options:
-        - label: Search the [issue tracker](https://github.com/NVIDIA/cuda-quantum/issues) to check if your feature has already been mentioned or rejected in other issues.
-          required: true
-
   - type: textarea
+    id: problem
     attributes:
-      label: Describe the feature
+      label: Problem
+      description: What Apple Silicon or CUDA-Q-compatible workflow should this improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Describe the target behavior, API, or backend capability.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - mklq-cpu
+        - mklq-metal
+        - Python API
+        - nvq++ / target config
+        - Benchmarks
+        - Documentation
     validations:
       required: true

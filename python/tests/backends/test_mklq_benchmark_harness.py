@@ -1,0 +1,1126 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+import argparse
+import importlib.util
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+
+def _load_benchmark_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    spec = importlib.util.spec_from_file_location("bench_mklq_targets", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_probability_benchmark_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_probability_kernels.py"
+    spec = importlib.util.spec_from_file_location("bench_probability_kernels",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_mklq_benchmark_dry_run_writes_schema(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+    env["OMP_NUM_THREADS"] = "3"
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "qpp-cpu,mklq-cpu",
+        "--cases",
+        "gate-state,sample-ghz",
+        "--qubits",
+        "2,3",
+        "--shots",
+        "8",
+        "--repeats",
+        "1",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["schema_version"] == "mklq-benchmark-v1"
+    assert report["machine"]["platform"]
+    assert report["provenance"]["cwd"]
+    assert report["provenance"]["git"]["commit"]
+    assert report["provenance"]["environment"]["OMP_NUM_THREADS"] == "3"
+    assert "mklq-metal" in report["target_notes"]
+    assert "mixed-path" in report["target_notes"]["mklq-metal"]
+    assert "resident" in report["target_notes"]["mklq-metal"]
+    assert "probability-fill" in report["target_notes"]["mklq-metal"]
+    assert "marginal probability" in report["target_notes"]["mklq-metal"]
+    assert "measurement-collapse" in report["target_notes"]["mklq-metal"]
+    assert "CPU-oracle fallback" in report["target_notes"]["mklq-metal"]
+    assert "host-side" in report["target_notes"]["mklq-metal"]
+    assert "mklq_metal" in report["target_notes"]["mklq-metal"]
+    assert report["config"]["targets"] == ["qpp-cpu", "mklq-cpu"]
+    assert report["config"]["cases"] == ["gate-state", "sample-ghz"]
+
+    rows = report["results"]
+    assert len(rows) == 8
+    assert {row["status"] for row in rows} == {"planned"}
+    assert {row["target"] for row in rows} == {"qpp-cpu", "mklq-cpu"}
+    assert {row["case"] for row in rows} == {"gate-state", "sample-ghz"}
+    assert {row["qubits"] for row in rows} == {2, 3}
+
+    for row in rows:
+        assert row["shots"] == 8
+        assert row["repeats"] == 1
+        assert row["estimated_state_bytes"] == 16 * (1 << row["qubits"])
+        assert row["metrics"] == {}
+
+
+def test_mklq_benchmark_default_targets_are_apple_silicon_gated():
+    module = _load_benchmark_module()
+
+    assert module.default_targets_for_platform("Darwin", "arm64") == [
+        "qpp-cpu", "mklq-cpu", "mklq-metal"
+    ]
+    assert module.default_targets_for_platform("Darwin", "x86_64") == [
+        "qpp-cpu"
+    ]
+    assert module.default_targets_for_platform("Linux", "aarch64") == [
+        "qpp-cpu"
+    ]
+
+
+def test_mklq_benchmark_returns_nonzero_on_row_error(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "error.json"
+
+    result = subprocess.run([
+        sys.executable,
+        str(script),
+        "--targets",
+        "not-a-target",
+        "--cases",
+        "gate-state",
+        "--qubits",
+        "1",
+        "--repeats",
+        "1",
+        "--warmups",
+        "1",
+        "--layers",
+        "1",
+        "--output",
+        str(output),
+    ],
+                            capture_output=True,
+                            text=True)
+
+    assert result.returncode == 1
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["runtime"]["cudaq_module_file"]
+    assert "PYTHONPATH" in report["provenance"]["environment"]
+    assert report["results"][0]["status"] == "error"
+    assert "not-a-target" in report["results"][0]["error"]
+
+    allowed = subprocess.run([
+        sys.executable,
+        str(script),
+        "--allow-errors",
+        "--targets",
+        "not-a-target",
+        "--cases",
+        "gate-state",
+        "--qubits",
+        "1",
+        "--repeats",
+        "1",
+        "--warmups",
+        "1",
+        "--layers",
+        "1",
+        "--output",
+        str(output),
+    ],
+                             capture_output=True,
+                             text=True)
+
+    assert allowed.returncode == 0
+
+
+def test_mklq_benchmark_dry_run_records_row_isolation_flag(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-isolated.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--isolate-rows",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "sample-ghz",
+        "--qubits",
+        "3",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["isolate_rows"] is True
+    assert len(report["results"]) == 1
+    assert report["results"][0]["status"] == "planned"
+
+
+def test_mklq_benchmark_dry_run_accepts_single_qubit_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-single-qubit.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "single-qubit-state",
+        "--qubits",
+        "3",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["single-qubit-state"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "single-qubit-state"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 3)
+
+
+def test_mklq_benchmark_dry_run_accepts_single_gate_cases(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-single-gate.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "h-state,y-state,rx-state,ry-state,rz-state",
+        "--qubits",
+        "3",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == [
+        "h-state",
+        "y-state",
+        "rx-state",
+        "ry-state",
+        "rz-state",
+    ]
+    rows = report["results"]
+    assert len(rows) == 5
+    assert {row["status"] for row in rows} == {"planned"}
+    assert {row["case"] for row in rows} == {
+        "h-state",
+        "y-state",
+        "rx-state",
+        "ry-state",
+        "rz-state",
+    }
+    assert {row["estimated_state_bytes"] for row in rows} == {16 * (1 << 3)}
+
+
+def test_mklq_benchmark_single_gate_cases_record_gate_specific_metrics(
+        monkeypatch):
+    module = _load_benchmark_module()
+
+    class FakeKernel:
+
+        def __init__(self):
+            self.operations = []
+
+        def qalloc(self, qubits):
+            return list(range(qubits))
+
+        def h(self, target):
+            self.operations.append(("h", target))
+
+        def y(self, target):
+            self.operations.append(("y", target))
+
+        def rx(self, theta, target):
+            self.operations.append(("rx", theta, target))
+
+        def ry(self, theta, target):
+            self.operations.append(("ry", theta, target))
+
+        def rz(self, theta, target):
+            self.operations.append(("rz", theta, target))
+
+    class FakeCudaq:
+
+        def __init__(self):
+            self.kernels = []
+
+        def reset_target(self):
+            pass
+
+        def set_target(self, target):
+            assert target == "mklq-cpu"
+
+        def set_random_seed(self, seed):
+            assert seed == 13
+
+        def make_kernel(self):
+            kernel = FakeKernel()
+            self.kernels.append(kernel)
+            return kernel
+
+        def get_state(self, kernel):
+            return object()
+
+    def fake_timed_repeats(action, repeats):
+        assert repeats == 1
+        action()
+        return [0.25]
+
+    monkeypatch.setattr(module, "timed_repeats", fake_timed_repeats)
+    monkeypatch.setattr(module, "process_max_rss_bytes", lambda: 4096)
+
+    cases = {
+        "h-state": ("h_gate_count", "h_gate_state_throughput_per_second"),
+        "y-state": ("y_gate_count", "y_gate_state_throughput_per_second"),
+        "rx-state": ("rx_gate_count", "rx_gate_state_throughput_per_second"),
+        "ry-state": ("ry_gate_count", "ry_gate_state_throughput_per_second"),
+        "rz-state": ("rz_gate_count", "rz_gate_state_throughput_per_second"),
+    }
+
+    for case, (count_key, throughput_key) in cases.items():
+        fake_cudaq = FakeCudaq()
+        row = module.run_case(fake_cudaq,
+                              "mklq-cpu",
+                              case,
+                              qubits=3,
+                              shots=16,
+                              repeats=1,
+                              warmups=0,
+                              layers=2)
+
+        assert row["status"] == "ok"
+        metrics = row["metrics"]
+        assert metrics["state_prep_gate_count"] == 6
+        assert metrics[count_key] == 6
+        assert metrics["gate_count"] == 12
+        assert metrics["layers"] == 2
+        assert metrics[throughput_key] == 24
+        assert metrics["process_max_rss_bytes_cumulative"] == 4096
+        assert len(fake_cudaq.kernels) == 1
+
+
+def test_mklq_benchmark_dry_run_accepts_controlled_gate_cases(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-controlled-rotation.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "ch-state,cy-state,crx-state,cry-state,crz-state",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == [
+        "ch-state",
+        "cy-state",
+        "crx-state",
+        "cry-state",
+        "crz-state",
+    ]
+    rows = report["results"]
+    assert len(rows) == 5
+    assert {row["status"] for row in rows} == {"planned"}
+    assert {row["case"] for row in rows} == {
+        "ch-state",
+        "cy-state",
+        "crx-state",
+        "cry-state",
+        "crz-state",
+    }
+    assert {row["estimated_state_bytes"] for row in rows} == {16 * (1 << 4)}
+
+
+def test_mklq_benchmark_controlled_gate_cases_record_gate_metrics(
+        monkeypatch):
+    module = _load_benchmark_module()
+
+    class FakeKernel:
+
+        def __init__(self):
+            self.operations = []
+
+        def qalloc(self, qubits):
+            return list(range(qubits))
+
+        def ry(self, theta, target):
+            self.operations.append(("ry", theta, target))
+
+        def rz(self, theta, target):
+            self.operations.append(("rz", theta, target))
+
+        def ch(self, control, target):
+            self.operations.append(("ch", control, target))
+
+        def cy(self, control, target):
+            self.operations.append(("cy", control, target))
+
+        def crx(self, theta, control, target):
+            self.operations.append(("crx", theta, control, target))
+
+        def cry(self, theta, control, target):
+            self.operations.append(("cry", theta, control, target))
+
+        def crz(self, theta, control, target):
+            self.operations.append(("crz", theta, control, target))
+
+    class FakeCudaq:
+
+        def __init__(self):
+            self.kernels = []
+
+        def reset_target(self):
+            pass
+
+        def set_target(self, target):
+            assert target == "mklq-cpu"
+
+        def set_random_seed(self, seed):
+            assert seed == 13
+
+        def make_kernel(self):
+            kernel = FakeKernel()
+            self.kernels.append(kernel)
+            return kernel
+
+        def get_state(self, kernel):
+            return object()
+
+    def fake_timed_repeats(action, repeats):
+        assert repeats == 1
+        action()
+        return [0.5]
+
+    monkeypatch.setattr(module, "timed_repeats", fake_timed_repeats)
+    monkeypatch.setattr(module, "process_max_rss_bytes", lambda: 8192)
+
+    cases = {
+        "ch-state": ("ch_gate_count", "ch_gate_state_throughput_per_second"),
+        "cy-state": ("cy_gate_count", "cy_gate_state_throughput_per_second"),
+        "crx-state": ("crx_gate_count", "crx_gate_state_throughput_per_second"),
+        "cry-state": ("cry_gate_count", "cry_gate_state_throughput_per_second"),
+        "crz-state": ("crz_gate_count", "crz_gate_state_throughput_per_second"),
+    }
+
+    for case, (count_key, throughput_key) in cases.items():
+        fake_cudaq = FakeCudaq()
+        row = module.run_case(fake_cudaq,
+                              "mklq-cpu",
+                              case,
+                              qubits=4,
+                              shots=16,
+                              repeats=1,
+                              warmups=0,
+                              layers=2)
+
+        assert row["status"] == "ok"
+        metrics = row["metrics"]
+        assert metrics["state_prep_gate_count"] == 8
+        assert metrics[count_key] == 6
+        assert metrics["gate_count"] == 14
+        assert metrics["layers"] == 2
+        assert metrics[throughput_key] == 12
+        assert metrics["process_max_rss_bytes_cumulative"] == 8192
+        assert len(fake_cudaq.kernels) == 1
+
+
+def test_mklq_benchmark_dry_run_accepts_controlled_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-controlled.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "controlled-state",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["controlled-state"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "controlled-state"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 4)
+
+
+def test_mklq_benchmark_dry_run_accepts_cz_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-cz.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "cz-state",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["cz-state"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "cz-state"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 4)
+
+
+def test_mklq_benchmark_dry_run_accepts_two_qubit_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-two-qubit.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "two-qubit-state",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["two-qubit-state"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "two-qubit-state"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 4)
+
+
+def test_mklq_benchmark_dry_run_accepts_sample_full_register_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-sample-full-register.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "sample-full-register",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["sample-full-register"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "sample-full-register"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 4)
+
+
+def test_mklq_benchmark_dry_run_accepts_sample_basis_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-sample-basis.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "sample-basis",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["sample-basis"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "sample-basis"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 4)
+
+
+def test_mklq_benchmark_dry_run_accepts_sample_partial_register_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-sample-partial-register.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-metal",
+        "--cases",
+        "sample-partial-register",
+        "--qubits",
+        "5",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["sample-partial-register"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "sample-partial-register"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 5)
+
+
+def test_mklq_benchmark_dry_run_expands_shot_counts(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-shot-counts.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-metal",
+        "--cases",
+        "sample-full-register,sample-partial-register",
+        "--qubits",
+        "5",
+        "--shot-counts",
+        "16,64,256",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["shot_counts"] == [16, 64, 256]
+    rows = report["results"]
+    assert len(rows) == 6
+    assert {row["shots"] for row in rows} == {16, 64, 256}
+    assert {row["case"] for row in rows} == {
+        "sample-full-register",
+        "sample-partial-register",
+    }
+
+
+def test_mklq_benchmark_rejects_invalid_shot_counts(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "invalid-shot-counts.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    result = subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-metal",
+        "--cases",
+        "sample-full-register",
+        "--qubits",
+        "5",
+        "--shot-counts",
+        "0,16",
+        "--output",
+        str(output),
+    ],
+                            capture_output=True,
+                            text=True,
+                            env=env)
+
+    assert result.returncode != 0
+    assert "expected positive integer" in result.stderr
+    assert not output.exists()
+
+
+def test_mklq_probability_microbenchmark_dry_run_writes_schema(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_probability_kernels.py"
+    output = tmp_path / "probability-dry-run.json"
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--variants",
+        "scalar-norm,scalar-split",
+        "--qubits",
+        "4,5",
+        "--repeats",
+        "2",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["schema_version"] == "mklq-probability-benchmark-v1"
+    assert report["config"]["variants"] == ["scalar-norm", "scalar-split"]
+    assert report["config"]["qubits"] == [4, 5]
+    assert report["config"]["dry_run"] is True
+    rows = report["results"]
+    assert len(rows) == 4
+    assert {row["status"] for row in rows} == {"planned"}
+    assert {row["variant"] for row in rows} == {"scalar-norm", "scalar-split"}
+    assert {row["qubits"] for row in rows} == {4, 5}
+
+
+def test_mklq_probability_microbenchmark_defaults_cover_runtime_vdsp_path():
+    module = _load_probability_benchmark_module()
+
+    assert "accelerate-interleaved" in module.DEFAULT_VARIANTS
+
+
+def test_mklq_probability_microbenchmark_records_non_dry_run_schema(monkeypatch):
+    module = _load_probability_benchmark_module()
+    binary = Path("/tmp/fake-mklq-probability-binary")
+    compile_metadata = {
+        "compiler": "/usr/bin/clang++",
+        "command": ["/usr/bin/clang++", "probability_kernels.cpp"],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": "",
+        "openmp_enabled": True,
+        "accelerate_enabled": True,
+        "binary": str(binary),
+    }
+
+    def fake_compile(args):
+        assert args.variants == ["openmp-split"]
+        return binary, compile_metadata
+
+    def fake_run(command, capture_output=False, text=False, **kwargs):
+        if command[0] != str(binary):
+            return subprocess.CompletedProcess(command,
+                                               returncode=0,
+                                               stdout="",
+                                               stderr="")
+        payload = {
+            "results": [{
+                "variant": "openmp-split",
+                "qubits": 4,
+                "dimension": 16,
+                "status": "ok",
+                "metrics": {
+                    "elapsed_seconds_min": 1.0e-6,
+                    "elapsed_seconds_median": 2.0e-6,
+                    "elapsed_seconds_max": 3.0e-6,
+                    "state_amplitudes_per_second": 8.0e6,
+                    "max_abs_diff_vs_scalar_norm": 0.0,
+                    "probability_checksum": 1.0,
+                    "openmp_threads": 4,
+                },
+            }]
+        }
+        return subprocess.CompletedProcess(command,
+                                           returncode=0,
+                                           stdout=json.dumps(payload),
+                                           stderr="")
+
+    monkeypatch.setattr(module, "compile_binary", fake_compile)
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    args = argparse.Namespace(variants=["openmp-split"],
+                              qubits=[4],
+                              repeats=2,
+                              warmups=1,
+                              seed=13,
+                              dry_run=False,
+                              binary=None)
+
+    report = module.build_report(args)
+
+    assert report["schema_version"] == "mklq-probability-benchmark-v1"
+    assert report["config"]["dry_run"] is False
+    assert report["compile"] == compile_metadata
+    assert report["execution"]["returncode"] == 0
+    assert report["execution"]["command"][0] == str(binary)
+    row = report["results"][0]
+    assert row["status"] == "ok"
+    assert row["repeats"] == 2
+    assert row["metrics"]["openmp_threads"] == 4
+    assert row["metrics"]["max_abs_diff_vs_scalar_norm"] == 0.0
+
+
+def test_mklq_benchmark_isolated_row_error_is_reported(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "isolated-error.json"
+
+    result = subprocess.run([
+        sys.executable,
+        str(script),
+        "--isolate-rows",
+        "--targets",
+        "not-a-target",
+        "--cases",
+        "gate-state",
+        "--qubits",
+        "1",
+        "--repeats",
+        "1",
+        "--warmups",
+        "1",
+        "--layers",
+        "1",
+        "--output",
+        str(output),
+    ],
+                            capture_output=True,
+                            text=True)
+
+    assert result.returncode == 1
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["isolate_rows"] is True
+    row = report["results"][0]
+    assert row["status"] == "error"
+    assert "not-a-target" in row["error"]
+    assert row["isolated_process"]["returncode"] == 0
+    assert "stdout" in row["isolated_process"]
+    assert "stderr" in row["isolated_process"]
+    assert row["isolated_process"]["runtime"]["cudaq_module_file"]
+
+
+def test_mklq_benchmark_isolated_malformed_json_returns_error(monkeypatch):
+    module = _load_benchmark_module()
+
+    def fake_run(command, capture_output, text):
+        output = Path(command[command.index("--output") + 1])
+        output.write_text("{not-json", encoding="utf-8")
+        return subprocess.CompletedProcess(command,
+                                           returncode=0,
+                                           stdout="child stdout",
+                                           stderr="child stderr")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    args = argparse.Namespace(shots=8, repeats=1, warmups=1, layers=1)
+
+    row = module.run_isolated_case(args, "mklq-cpu", "gate-state", 1)
+
+    assert row["status"] == "error"
+    assert "invalid isolated benchmark JSON" in row["error"]
+    assert row["isolated_process"]["returncode"] == 0
+    assert row["isolated_process"]["stdout"] == "child stdout"
+    assert row["isolated_process"]["stderr"] == "child stderr"
+
+
+def test_mklq_benchmark_summary_records_sanitized_sampling_evidence():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "local_tuning_evidence"
+    assert summary["raw_results"][0]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-current-sampling-fullprob-gated-q20-2026-06-19.json")
+    assert summary["raw_results"][0]["sha256"] == (
+        "8ca6a4f7a7aea1670aa572ea6897a125ea4ff0a9e0d1d93502c1158e81ba33b3")
+    assert summary["raw_results"][1]["sha256"] == (
+        "9c15c0c1d566f0270294b157b7ef2d6834bedf421009e10263903547496f10b1")
+    assert summary["machine"]["cpu_brand"] == "Apple M5"
+    assert summary["machine"]["logical_cores"] == 10
+    assert summary["machine"]["memory_bytes"] == 17179869184
+    assert summary["machine"]["macos_version"] == "26.5.1"
+    assert summary["config"]["targets"] == ["qpp-cpu", "mklq-cpu",
+                                             "mklq-metal"]
+    assert summary["config"]["cases"] == [
+        "sample-full-register", "sample-partial-register"
+    ]
+    assert summary["config"]["qubits"] == [20]
+    assert summary["config"]["shots"] == 1024
+    assert summary["config"]["repeats"] == 2
+    assert summary["config"]["warmups"] == 1
+    assert summary["config"]["layers"] == 4
+
+    rows = {
+        (row["target"], row["case"]): row
+        for row in summary["rows"]
+    }
+    assert rows[("mklq-metal", "sample-partial-register")][
+        "elapsed_seconds_median"] == 0.022011521003150847
+    assert rows[("mklq-metal", "sample-partial-register")][
+        "sample_path"] == "resident_full_register_probability_fill_host_fold"
+    assert rows[("mklq-metal", "sample-full-register")][
+        "elapsed_seconds_median"] == 0.03705766650091391
+    assert summary["comparison"]["pre_gate_probe"][
+        "mklq_metal_sample_partial_register_q20_seconds"] == 0.2556968749995576
+
+
+def test_mklq_benchmark_summary_records_counts_only_sampling_shot_scaling():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-counts-only-sampling-shot-scaling-q20-2026-06-19.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "local_tuning_evidence"
+    assert summary["summary_id"] == (
+        "local-counts-only-sampling-shot-scaling-q20-2026-06-19")
+    assert summary["raw_results"][0]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-counts-only-sampling-shot-scaling-q20-2026-06-19.json")
+    assert summary["raw_results"][0]["sha256"] == (
+        "ef9846673b461e3abc6d359933408be58e1f745d8b68738b757a76339f9b5092")
+    assert summary["raw_results"][0]["status_rows"] == {"ok": 24}
+    assert summary["machine"]["cpu_brand"] == "Apple M5"
+    assert summary["config"]["targets"] == ["qpp-cpu", "mklq-cpu",
+                                             "mklq-metal"]
+    assert summary["config"]["cases"] == [
+        "sample-full-register", "sample-partial-register"
+    ]
+    assert summary["config"]["qubits"] == [20]
+    assert summary["config"]["shot_counts"] == [256, 1024, 8192, 65536]
+    assert summary["config"]["repeats"] == 2
+    assert summary["config"]["warmups"] == 1
+    assert summary["config"]["layers"] == 8
+
+    rows = {
+        (row["target"], row["case"], row["shots"]): row
+        for row in summary["rows"]
+    }
+    assert len(rows) == 24
+    assert rows[("mklq-cpu", "sample-full-register", 65536)][
+        "sample_path"] == "mklq_counts_only_backend_sample"
+    assert rows[("mklq-cpu", "sample-partial-register", 65536)][
+        "sample_path"] == "mklq_counts_only_backend_sample"
+    assert rows[("mklq-metal", "sample-full-register", 65536)][
+        "sample_path"] == "mklq_metal_mixed_path_host_counts"
+    assert rows[("mklq-metal", "sample-partial-register", 65536)][
+        "sample_path"] == "mklq_metal_mixed_path_host_counts"
+    assert summary["interpretation"]["standard_sample_counts_only_path"]
+    assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]
+
+
+def test_mklq_benchmark_summary_records_y_cy_fastpath_evidence():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-y-cy-fastpath-isolated-q20-2026-06-19.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "local_tuning_evidence"
+    assert summary["raw_results"][0]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-y-cy-fastpath-isolated-q20-2026-06-19.json")
+    assert summary["raw_results"][0]["sha256"] == (
+        "93bce3b77fccce0ce48611fbccc2a88d81e31b8a34f4885ff9235750178701fa")
+    assert summary["machine"]["cpu_brand"] == "Apple M5"
+    assert summary["config"]["targets"] == ["qpp-cpu", "mklq-cpu"]
+    assert summary["config"]["cases"] == ["y-state", "cy-state"]
+    assert summary["config"]["qubits"] == [20]
+
+    rows = {
+        (row["target"], row["case"]): row
+        for row in summary["rows"]
+    }
+    assert rows[("mklq-cpu", "y-state")][
+        "y_gate_state_throughput_per_second"] == 3322.8671668028323
+    assert rows[("mklq-cpu", "cy-state")][
+        "cy_gate_state_throughput_per_second"] == 1765.9796294202324
+    assert summary["comparison"]["same_day_cross_target_ratio"][
+        "qpp_cpu_over_mklq_cpu_y_state_q20"] == 167.37794366574514
+    assert summary["comparison"]["same_day_cross_target_ratio"][
+        "qpp_cpu_over_mklq_cpu_cy_state_q20"] == 103.84948452737598
+    assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]
+
+
+def test_mklq_benchmark_summary_records_metal_y_cy_resident_evidence():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-metal-y-cy-resident-isolated-q20-2026-06-19.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "local_tuning_evidence"
+    assert summary["raw_results"][0]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-metal-y-cy-resident-isolated-q20-2026-06-19.json")
+    assert summary["raw_results"][0]["sha256"] == (
+        "84891e8f907c38295a4975b1d0b0c493c2658b9b36b29975c539b93fcdfff9bb")
+    assert summary["machine"]["cpu_brand"] == "Apple M5"
+    assert summary["config"]["targets"] == ["qpp-cpu", "mklq-cpu",
+                                             "mklq-metal"]
+    assert summary["config"]["cases"] == ["y-state", "cy-state"]
+    assert summary["config"]["qubits"] == [20]
+    assert summary["config"]["layers"] == 8
+
+    rows = {
+        (row["target"], row["case"]): row
+        for row in summary["rows"]
+    }
+    assert rows[("mklq-metal", "y-state")][
+        "curated_path_label"] == "mklq_metal_resident_y_gate_path"
+    assert rows[("mklq-metal", "cy-state")][
+        "curated_path_label"] == (
+            "mklq_metal_resident_controlled_y_gate_path")
+    assert rows[("mklq-metal", "y-state")]["path_label_source"] == (
+        "inferred_from_runtime_tests_and_code_inspection")
+    assert rows[("mklq-metal", "cy-state")]["path_label_source"] == (
+        "inferred_from_runtime_tests_and_code_inspection")
+    assert rows[("mklq-metal", "y-state")][
+        "y_gate_state_throughput_per_second"] > 0.0
+    assert rows[("mklq-metal", "cy-state")][
+        "cy_gate_state_throughput_per_second"] > 0.0
+    assert summary["interpretation"]["metal_path_scope"] == (
+        "resident fp32 Metal gate update followed by host readback for "
+        "cudaq.get_state")
+    assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]

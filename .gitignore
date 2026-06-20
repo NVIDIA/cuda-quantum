@@ -58,6 +58,8 @@ compile_commands.json
 **/*.dat
 **/.antlr
 __pycache__/
+*.pyc
+.pytest_cache/
 
 # IDE files
 .vscode/*
@@ -88,6 +90,8 @@ _version.py
 
 # Generated files
 python/tests/mlir/generated
+benchmarks/mklq/results/*.json
+benchmarks/mklq/results/*.jsonl
 
 # third party integrations
 simulators/
@@ -95,6 +99,7 @@ apps/
 
 # macOS
 .DS_Store
+.ldid*
 
 # JetBrains IDE files
 .idea

@@ -156,3 +156,63 @@ add_test(
     ${CMAKE_BINARY_DIR}/bin/nvq++
     ${CMAKE_SOURCE_DIR}/docs/sphinx/targets/cpp
 )
+
+if (CUDAQ_ENABLE_MKLQ_BACKEND AND CUDAQ_MKLQ_APPLE_SILICON_TARGET AND
+    EXISTS "${CMAKE_SOURCE_DIR}/runtime/nvqir/mklq/MklqCpuCircuitSimulator.cpp")
+  function(sign_mklq_backend_test target)
+    if(APPLE)
+      add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND /usr/bin/codesign --force --sign - $<TARGET_FILE:${target}>
+        COMMENT "Ad-hoc signing ${target} for macOS test launch")
+    endif()
+  endfunction()
+
+  if(APPLE)
+    enable_language(OBJCXX)
+    find_library(MKLQ_TEST_METAL_FRAMEWORK Metal REQUIRED)
+    find_library(MKLQ_TEST_FOUNDATION_FRAMEWORK Foundation REQUIRED)
+    set(MKLQ_METAL_RUNTIME_TEST_SOURCE
+      ${CMAKE_SOURCE_DIR}/runtime/nvqir/mklq/MklqMetalRuntime.mm)
+  else()
+    set(MKLQ_METAL_RUNTIME_TEST_SOURCE
+      ${CMAKE_SOURCE_DIR}/runtime/nvqir/mklq/MklqMetalRuntimeFallback.cpp)
+  endif()
+
+  add_backend_unittest_executable(test_mklq_cpu_backend
+    BACKEND mklq_cpu
+    SOURCES ${CUDAQ_GTEST_MAIN} MKLQCpuTester.cpp
+    INCLUDES
+      ../..
+      ${CMAKE_SOURCE_DIR}/runtime
+      ${CMAKE_SOURCE_DIR}/runtime/nvqir/mklq
+  )
+  target_compile_definitions(test_mklq_cpu_backend
+    PRIVATE
+      CUDAQ_SIMULATION_SCALAR_FP64
+      MKLQ_APPLE_SILICON_CPU_BASELINE
+      MKLQ_ENABLE_TEST_ACCESSORS)
+  sign_mklq_backend_test(test_mklq_cpu_backend)
+  gtest_discover_tests(test_mklq_cpu_backend DISCOVERY_TIMEOUT 120)
+
+  add_backend_unittest_executable(test_mklq_metal_backend
+    BACKEND mklq_metal
+    SOURCES ${CUDAQ_GTEST_MAIN} MKLQMetalTester.cpp
+      ${MKLQ_METAL_RUNTIME_TEST_SOURCE}
+    INCLUDES
+      ../..
+      ${CMAKE_SOURCE_DIR}/runtime
+      ${CMAKE_SOURCE_DIR}/runtime/nvqir/mklq
+  )
+  target_compile_definitions(test_mklq_metal_backend
+    PRIVATE
+      CUDAQ_SIMULATION_SCALAR_FP64
+      MKLQ_ENABLE_METAL_RUNTIME
+      MKLQ_ENABLE_TEST_ACCESSORS
+      MKLQ_METAL_EXPERIMENTAL_CPU_ORACLE)
+  if(APPLE)
+    target_link_libraries(test_mklq_metal_backend
+      PRIVATE ${MKLQ_TEST_METAL_FRAMEWORK} ${MKLQ_TEST_FOUNDATION_FRAMEWORK})
+  endif()
+  sign_mklq_backend_test(test_mklq_metal_backend)
+  gtest_discover_tests(test_mklq_metal_backend DISCOVERY_TIMEOUT 120)
+endif()

@@ -38,6 +38,9 @@ def test_qudit():
     state = cudaq.get_state(kernel)
     state.dump()
     assert 4 == state.__len__()
+    assert state[3] == 1
+    with pytest.raises(RuntimeError, match="state index out of range"):
+        state[4]
 
 
 def test_compilation_unsupported():
