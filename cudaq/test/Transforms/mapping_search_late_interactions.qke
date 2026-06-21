@@ -7,14 +7,15 @@
 // ========================================================================== //
 
 // An early cluster (q1-q2-q3) and a heavy late pair (q0-q4) pull a fixed seed in
-// different directions. The default search routes both seeds, refines them, and
-// keeps the best, so its swap count is at most either fixed seed's. Here it
+// different directions. SABRE search routes both seeds, refines them, and keeps
+// the best, so its swap count is at most either fixed seed's. Here it
 // reaches a swap-free layout.
 
 // RUN: cudaq-opt '--qubit-mapping=device=path(5) placement=identity search=none' %s | FileCheck --check-prefix=IDENT %s
 // RUN: cudaq-opt '--qubit-mapping=device=path(5) placement=greedy search=none' %s | FileCheck --check-prefix=GREEDY %s
 // RUN: cudaq-opt '--qubit-mapping=device=path(5)' %s | FileCheck --check-prefix=DEFAULT %s
-// RUN: cudaq-opt '--qubit-mapping=device=path(5)' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(5) placement=auto search=sabre' %s | FileCheck --check-prefix=SABRE %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(5) placement=auto search=sabre' %s | CircuitCheck --up-to-mapping %s
 
 quake.wire_set @wires[2147483647]
 
@@ -45,4 +46,7 @@ func.func @late_interactions() {
 // GREEDY-COUNT-2: quake.swap
 // GREEDY-NOT: quake.swap
 
+// DEFAULT-COUNT-3: quake.swap
 // DEFAULT-NOT: quake.swap
+
+// SABRE-NOT: quake.swap

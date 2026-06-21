@@ -6,14 +6,16 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// Placement seeds and selection. Identity and greedy are proposed as starting
-// layouts, and the default `auto` keeps whichever seed routes with fewer swaps.
+// Placement seeds and selection. Identity and greedy can be proposed as
+// starting layouts, and `placement=auto` keeps whichever seed routes with fewer
+// swaps. The default remains the legacy identity seed with single forward route.
 
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=identity search=none' %s | FileCheck --check-prefix=IDENT52 %s
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=greedy search=none' %s | FileCheck --check-prefix=GREEDY52 %s
-// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) search=none' %s | FileCheck --check-prefix=GREEDY52 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=auto search=none' %s | FileCheck --check-prefix=GREEDY52 %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) search=none' %s | FileCheck --check-prefix=IDENT52 %s
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,0) placement=greedy search=none' %s | FileCheck --check-prefix=GREEDY50 %s
-// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) search=none' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=auto search=none' %s | CircuitCheck --up-to-mapping %s
 
 quake.wire_set @wires[2147483647]
 

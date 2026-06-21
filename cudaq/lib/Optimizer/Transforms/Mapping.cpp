@@ -1572,10 +1572,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         return;
       }
       func.emitWarning("unknown qubit-mapping placement strategy '" +
-                       this->placement + "'; using 'auto'");
+                       this->placement + "'; using 'identity'");
     }
     PlacementStrategy placementStrategy =
-        parsedPlacement.value_or(PlacementStrategy::Auto);
+        parsedPlacement.value_or(PlacementStrategy::Identity);
 
     std::optional<SearchStrategy> parsedSearch =
         parseSearchStrategy(this->search);
@@ -1587,10 +1587,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         return;
       }
       func.emitWarning("unknown qubit-mapping search strategy '" +
-                       this->search + "'; using 'sabre'");
+                       this->search + "'; using 'none'");
     }
-    SearchStrategy searchStrategy =
-        parsedSearch.value_or(SearchStrategy::Sabre);
+    SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
     bool collectInteractions = placementStrategy != PlacementStrategy::Identity;
 

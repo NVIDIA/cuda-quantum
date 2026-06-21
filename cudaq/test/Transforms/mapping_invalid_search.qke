@@ -24,4 +24,4 @@ func.func @bad_search() {
   return
 }
 
-// WARN: warning: unknown qubit-mapping search strategy 'bogus'; using 'sabre'
+// WARN: warning: unknown qubit-mapping search strategy 'bogus'; using 'none'
