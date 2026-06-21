@@ -84,4 +84,6 @@ jobs:
           set -euo pipefail
           python3 -m py_compile \
             benchmarks/mklq/bench_mklq_targets.py \
-            benchmarks/mklq/bench_probability_kernels.py
+            benchmarks/mklq/bench_probability_kernels.py \
+            benchmarks/mklq/make_summary.py \
+            benchmarks/mklq/summarize_reports.py

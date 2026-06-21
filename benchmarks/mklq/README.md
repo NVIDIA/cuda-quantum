@@ -147,6 +147,21 @@ from the local baseline so they are not read as performance evidence.
 
 ## Tracked Accepted Local Benchmark Evidence
 
+To regenerate the clean CPU summary from ignored local raw results, run:
+
+```bash
+python3 benchmarks/mklq/make_summary.py \
+  --raw benchmarks/mklq/results/local-clean-cpu-gate-y-cy-q20-2026-06-21.json \
+  --raw benchmarks/mklq/results/local-clean-cpu-sampling-q20-2026-06-21.json \
+  --summary-id local-clean-cpu-q20-2026-06-21 \
+  --evidence-kind clean_local_benchmark_evidence \
+  --ratio-group clean_worktree_cross_target_ratio \
+  --performance-scope 'local Apple M5 q20 CPU target comparison only; not a cross-machine release benchmark' \
+  --summary-text 'Clean-worktree local run comparing qpp-cpu and mklq-cpu for q20 Y/CY state updates plus full/partial-register sampling at 1024 and 65536 shots.' \
+  --runtime-note 'The CUDA-Q Python runtime came from /Users/a0000/.cudaq-mklq and reports f98433b6; source HEAD 4b112725 adds docs/benchmark evidence tooling on top of the same backend code.' \
+  --output benchmarks/mklq/reports/local-clean-cpu-q20-2026-06-21.summary.json
+```
+
 For a compact table across all tracked sanitized summaries, run:
 
 ```bash

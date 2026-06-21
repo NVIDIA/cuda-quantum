@@ -48,6 +48,167 @@ def _load_summary_renderer_module():
     return module
 
 
+def _load_summary_generator_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "make_summary.py"
+    spec = importlib.util.spec_from_file_location("make_summary", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def _raw_benchmark_report(dirty=False, cases=None, results=None):
+    cases = cases or ["y-state"]
+    results = results or []
+    return {
+        "schema_version": "mklq-benchmark-v1",
+        "machine": {
+            "cpu_brand": "Apple M5",
+            "logical_cores": 10,
+            "memory_bytes": 17179869184,
+            "macos_version": "26.5.1",
+        },
+        "provenance": {
+            "git": {
+                "branch": "main",
+                "commit": "abc123",
+                "dirty": dirty,
+                "root": "/repo",
+                "status_short": [" M file"] if dirty else [],
+            },
+            "environment": {
+                "OMP_NUM_THREADS": "10",
+                "OMP_PROC_BIND": "close",
+            },
+        },
+        "config": {
+            "targets": ["qpp-cpu", "mklq-cpu"],
+            "cases": cases,
+            "qubits": [20],
+            "shots": 1024,
+            "shot_counts": sorted({
+                row.get("shots", 1024)
+                for row in results
+            } or {1024}),
+            "repeats": 2,
+            "warmups": 1,
+            "layers": 8,
+            "isolate_rows": True,
+            "command": ["bench_mklq_targets.py", "--isolate-rows"],
+        },
+        "results": results,
+    }
+
+
+def _benchmark_row(target, case, elapsed, shots=1024):
+    return {
+        "target": target,
+        "case": case,
+        "qubits": 20,
+        "shots": shots,
+        "status": "ok",
+        "estimated_state_bytes": 16777216,
+        "repeats": 2,
+        "warmups": 1,
+        "isolated_process": {
+            "runtime": {
+                "cudaq_module_file": "/tmp/cudaq/__init__.py",
+                "cudaq_version": "test-version",
+                "module_from_build_tree": False,
+                "python_prefix": "/tmp/python",
+            }
+        },
+        "metrics": {
+            "elapsed_seconds_median": elapsed,
+            "elapsed_seconds_min": elapsed,
+            "elapsed_seconds_max": elapsed,
+            "process_max_rss_bytes_cumulative": 1234,
+        },
+    }
+
+
+def test_mklq_summary_generator_builds_sanitized_summary(tmp_path):
+    module = _load_summary_generator_module()
+    gate_rows = [
+        _benchmark_row("qpp-cpu", "y-state", 10.0),
+        _benchmark_row("mklq-cpu", "y-state", 2.0),
+    ]
+    sampling_rows = [
+        _benchmark_row("qpp-cpu", "sample-full-register", 8.0, shots=1024),
+        _benchmark_row("mklq-cpu", "sample-full-register", 1.0, shots=1024),
+        _benchmark_row("qpp-cpu", "sample-full-register", 30.0, shots=65536),
+        _benchmark_row("mklq-cpu", "sample-full-register", 3.0, shots=65536),
+    ]
+    gate_path = tmp_path / "gate.json"
+    sampling_path = tmp_path / "sampling.json"
+    gate_path.write_text(json.dumps(
+        _raw_benchmark_report(cases=["y-state"], results=gate_rows)),
+                         encoding="utf-8")
+    sampling_path.write_text(json.dumps(
+        _raw_benchmark_report(cases=["sample-full-register"],
+                              results=sampling_rows)),
+                             encoding="utf-8")
+
+    summary = module.build_summary(
+        raw_paths=[gate_path, sampling_path],
+        summary_id="local-clean-test",
+        evidence_kind="clean_local_benchmark_evidence",
+        reference_target="qpp-cpu",
+        candidate_target="mklq-cpu",
+        ratio_group="clean_worktree_cross_target_ratio",
+        performance_scope="local test only",
+        summary_text="Synthetic clean benchmark summary.",
+        runtime_note="synthetic runtime note",
+    )
+
+    assert summary["schema_version"] == module.SUMMARY_SCHEMA_VERSION
+    assert summary["evidence_kind"] == "clean_local_benchmark_evidence"
+    assert summary["git"]["dirty"] is False
+    assert summary["interpretation"]["clean_worktree"] is True
+    assert summary["interpretation"]["runtime_build_note"] == (
+        "synthetic runtime note")
+    assert summary["raw_results"][0]["status_rows"] == {"ok": 2}
+    assert summary["raw_results"][0]["sha256"] == module.sha256_file(
+        gate_path)
+    assert summary["raw_results"][1]["status_rows"] == {"ok": 4}
+    assert summary["config"]["targets"] == ["qpp-cpu", "mklq-cpu"]
+    assert summary["config"]["cases"] == [
+        "y-state", "sample-full-register"
+    ]
+    assert summary["config"]["shot_counts"] == [1024, 65536]
+
+    assert len(summary["rows"]) == 6
+    assert "isolated_process" not in summary["rows"][0]
+    ratios = summary["comparison"]["clean_worktree_cross_target_ratio"]
+    assert ratios["qpp_cpu_over_mklq_cpu_y_state_q20"] == 5.0
+    assert ratios[
+        "qpp_cpu_over_mklq_cpu_sample_full_register_q20_65536_shots"
+    ] == 10.0
+    elapsed = summary["comparison"]["mklq_cpu_elapsed_seconds_median"]
+    assert elapsed["sample_full_register_q20_1024_shots"] == 1.0
+
+
+def test_mklq_summary_generator_rejects_dirty_by_default(tmp_path):
+    module = _load_summary_generator_module()
+    raw_path = tmp_path / "dirty.json"
+    raw_path.write_text(json.dumps(
+        _raw_benchmark_report(dirty=True,
+                              results=[_benchmark_row("qpp-cpu", "y-state",
+                                                      1.0)])),
+                        encoding="utf-8")
+
+    with pytest.raises(ValueError, match="dirty git worktree"):
+        module.build_summary(raw_paths=[raw_path],
+                             summary_id="dirty",
+                             evidence_kind="clean_local_benchmark_evidence",
+                             reference_target="qpp-cpu",
+                             candidate_target="mklq-cpu",
+                             ratio_group=None,
+                             performance_scope="local",
+                             summary_text="dirty")
+
+
 def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
     module = _load_summary_renderer_module()
     common = {
