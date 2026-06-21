@@ -14,6 +14,10 @@ unless a change is explicitly scoped to an MKL-Q target.
   secrets, tokens, or local machine paths.
 - Keep `cudaq` as the Python namespace and `nvq++` as the compiler entry point
   for compatibility.
+- Follow the MKL-Q-specific workflow in
+  [`docs/mklq/developer-workflow.md`](docs/mklq/developer-workflow.md) for
+  branch setup, upstream sync, correctness gates, benchmark evidence, and push
+  checks.
 
 ## Local Checks
 
