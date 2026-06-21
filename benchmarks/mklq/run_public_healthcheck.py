@@ -243,6 +243,7 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("docs/mklq/architecture.md", "Public Compatibility Boundary"),
         ("docs/mklq/testing-matrix.md", "Gate Summary"),
         ("docs/mklq/testing-matrix.md", "Capability Coverage"),
+        ("docs/mklq/testing-matrix.md", "every operation stays on Metal"),
         ("docs/mklq/upstream-sync.md", "Post-merge Gates"),
         ("docs/mklq/release-policy.md", "source-only"),
         ("docs/mklq/public-release-checklist.md", "GitHub Verification"),

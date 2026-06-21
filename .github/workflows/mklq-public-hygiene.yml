@@ -76,7 +76,7 @@ jobs:
           grep -q 'Gate Summary' docs/mklq/testing-matrix.md
           grep -q 'Capability Coverage' docs/mklq/testing-matrix.md
           grep -q 'Known Coverage Gaps' docs/mklq/testing-matrix.md
-          grep -q 'No full Metal-native guarantee' docs/mklq/testing-matrix.md
+          grep -q 'every operation stays on Metal' docs/mklq/testing-matrix.md
           grep -q 'check_metal_evidence.py' docs/mklq/testing-matrix.md
           grep -q 'check_performance_evidence.py' docs/mklq/testing-matrix.md
           grep -q 'run_public_healthcheck.py' docs/mklq/testing-matrix.md
