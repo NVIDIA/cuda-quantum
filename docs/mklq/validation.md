@@ -17,11 +17,11 @@ boundary and evidence limits.
 
 Latest local validation refresh: 2026-06-21.
 
-The install-prefix build, one-command correctness gate, and clean CPU benchmark
-gate were run against source commit
-`8946ad33679f60d7c22dc55415fc60b048ef614c` before this documentation-only
-validation note was committed. This refresh does not change runtime, target,
-build, benchmark, or test code.
+The install-prefix build and one-command correctness gate were last run against
+source commit `8946ad33679f60d7c22dc55415fc60b048ef614c` before the validation
+note was committed. The clean CPU benchmark summary was refreshed separately
+against `a18e6ab919bd76dffd497a50889efdbe407e218a` after adding `cz-state` to
+the clean evidence gate.
 
 Raw wrapper output was written to ignored local path
 `benchmarks/mklq/results/local-correctness-gate-2026-06-21.json` and is not
@@ -33,8 +33,8 @@ tracked as public evidence.
 - `python_target_smoke`: `49 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
-- Clean CPU benchmark gate: passed, with 12 q20 `qpp-cpu`/`mklq-cpu` rows and
-  12 rows reporting `status == "ok"`.
+- Clean CPU benchmark gate: passed, with 14 q20 `qpp-cpu`/`mklq-cpu` rows and
+  14 rows reporting `status == "ok"`.
 
 ## Install-prefix Gate
 
@@ -184,8 +184,9 @@ Current tracked summaries include:
 - `local-counts-only-sampling-shot-scaling-q20-2026-06-19.summary.json`
 
 The clean-worktree local benchmark summary was refreshed against
-`8946ad33679f60d7c22dc55415fc60b048ef614c` on 2026-06-21. These files include
-one clean-worktree local benchmark summary plus older dirty-worktree tuning
-summaries. Interpret each file through its `evidence_kind` and `interpretation`
-fields. Do not treat any local summary as cross-machine performance
-certification.
+`a18e6ab919bd76dffd497a50889efdbe407e218a` on 2026-06-21. The clean summary now
+includes `y-state`, `cy-state`, `cz-state`, full-register sampling, and
+partial-register sampling rows. These files include one clean-worktree local
+benchmark summary plus older dirty-worktree tuning summaries. Interpret each
+file through its `evidence_kind` and `interpretation` fields. Do not treat any
+local summary as cross-machine performance certification.

@@ -133,8 +133,9 @@ The latest public local validation evidence is recorded in
 - `python_target_smoke`: `49 passed`;
 - `nvqpp_smoke`: `2 passed`;
 - `target_config_ctest`: `63/63 passed`.
-- clean CPU benchmark gate: passed with 12 q20 `qpp-cpu`/`mklq-cpu` rows and
-  12 rows reporting `status == "ok"`.
+- clean CPU benchmark gate: passed with 14 q20 `qpp-cpu`/`mklq-cpu` rows,
+  including `cz-state`, and 14 rows reporting `status == "ok"` against
+  `a18e6ab919bd76dffd497a50889efdbe407e218a`.
 
 This evidence is local Apple Silicon evidence. It is useful for source bootstrap
 confidence, but it is not hosted CI, release certification, or cross-machine
