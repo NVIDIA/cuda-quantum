@@ -405,6 +405,16 @@ public:
       assert(func && "global must be a FuncOp");
       auto &variant = variantIter->second;
 
+      // A forward-declared kernel has no body to specialize. Attempting to
+      // clone the empty region and read its entry block crashes the compiler
+      // (issue #4268). Do not fail the pass here: this pass cannot assume it
+      // has full program information, and the body may still be supplied later
+      // in the pipeline (e.g. at JIT time). Leave the quake.apply ops in place;
+      // any that survive to codegen are diagnosed by ApplyOpTrap, the point at
+      // which a lingering apply is unambiguously unlowerable.
+      if (func.getBody().empty())
+        continue;
+
       if (variant.needsControlVariant)
         createControlVariantOf(func);
       if (variant.needsAdjointVariant) {

@@ -1,0 +1,27 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+
+// Specializing the adjoint (or control) variant of a forward-declared
+// (body-less) kernel must not crash while cloning the empty function body, and
+// must not fail the pass: a pass cannot assume it has full program information,
+// and the body may still be supplied later in the pipeline. The quake.apply is
+// left untouched for a later stage to resolve or diagnose.
+// See: https://github.com/NVIDIA/cuda-quantum/issues/4268
+
+module {
+  func.func private @test(!quake.ref)
+
+  // CHECK-LABEL: func.func @do_apply
+  // CHECK: quake.apply <adj> @test
+  func.func @do_apply(%arg : !quake.ref) {
+    quake.apply <adj> @test %arg : (!quake.ref) -> ()
+    return
+  }
+}
