@@ -84,6 +84,16 @@ Sanitized local benchmark summaries are tracked under
 `benchmarks/mklq/reports/`. Raw local benchmark JSON under
 `benchmarks/mklq/results/` is intentionally ignored.
 
+The compact public index for the tracked summaries is
+[`benchmark-evidence.md`](benchmark-evidence.md). Regenerate it with:
+
+```bash
+python3 benchmarks/mklq/summarize_reports.py \
+  --reports benchmarks/mklq/reports \
+  --format markdown \
+  --output docs/mklq/benchmark-evidence.md
+```
+
 Current tracked summaries include:
 
 - `local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json`

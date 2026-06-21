@@ -14,6 +14,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def _load_benchmark_module():
     repo_root = Path(__file__).resolve().parents[3]
@@ -34,6 +36,95 @@ def _load_probability_benchmark_module():
     assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
+
+
+def _load_summary_renderer_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "summarize_reports.py"
+    spec = importlib.util.spec_from_file_location("summarize_reports", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
+    module = _load_summary_renderer_module()
+    common = {
+        "schema_version": module.SUMMARY_SCHEMA_VERSION,
+        "evidence_kind": "local_tuning_evidence",
+        "machine": {
+            "cpu_brand": "Apple M5",
+            "logical_cores": 10,
+            "memory_bytes": 17179869184,
+            "macos_version": "26.5.1",
+        },
+        "config": {
+            "targets": ["qpp-cpu", "mklq-cpu"],
+            "cases": ["sample-full-register"],
+            "qubits": [20],
+            "shots": 1024,
+            "repeats": 2,
+            "warmups": 1,
+            "layers": 8,
+            "isolate_rows": True,
+        },
+        "rows": [{
+            "status": "ok"
+        }, {
+            "status": "error"
+        }],
+        "raw_results": [{
+            "path": "benchmarks/mklq/results/local-a.json",
+            "sha256": "abcdef1234567890abcdef1234567890abcdef1234567890",
+        }],
+        "comparison": {
+            "same_day_ratio": {
+                "qpp_cpu_over_mklq_cpu": 2.5
+            },
+            "probe_seconds": 0.125,
+        },
+        "interpretation": {
+            "do_not_treat_as_clean_release_provenance": True
+        },
+    }
+
+    z_summary = dict(common)
+    z_summary["summary_id"] = "z-summary"
+    a_summary = dict(common)
+    a_summary["summary_id"] = "a-summary"
+
+    z_path = tmp_path / "z.summary.json"
+    a_path = tmp_path / "a.summary.json"
+    z_path.write_text(json.dumps(z_summary), encoding="utf-8")
+    a_path.write_text(json.dumps(a_summary), encoding="utf-8")
+
+    digests = module.load_digests([z_path, a_path])
+    assert [digest["summary_id"] for digest in digests] == [
+        "a-summary", "z-summary"
+    ]
+
+    markdown = module.render_markdown(digests)
+    assert markdown.index("a-summary") < markdown.index("z-summary")
+    assert "local tuning evidence" in markdown
+    assert "Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1" in markdown
+    assert (
+        "shots=1024; repeats=2; warmups=1; layers=8; isolate_rows=true"
+        in markdown)
+    assert "error=1, ok=1" in markdown
+    assert "sha256=abcdef123456" in markdown
+    assert "`same_day_ratio.qpp_cpu_over_mklq_cpu` | 2.50x" in markdown
+    assert "`probe_seconds` | 0.125 s" in markdown
+
+
+def test_mklq_summary_renderer_rejects_unexpected_schema(tmp_path):
+    module = _load_summary_renderer_module()
+    summary_path = tmp_path / "bad.summary.json"
+    summary_path.write_text(json.dumps({"schema_version": "other"}),
+                            encoding="utf-8")
+
+    with pytest.raises(ValueError, match="expected"):
+        module.load_summary(summary_path)
 
 
 def test_mklq_benchmark_dry_run_writes_schema(tmp_path):

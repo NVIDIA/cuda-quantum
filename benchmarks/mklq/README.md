@@ -147,6 +147,18 @@ from the local baseline so they are not read as performance evidence.
 
 ## Tracked Accepted Local Benchmark Evidence
 
+For a compact table across all tracked sanitized summaries, run:
+
+```bash
+python3 benchmarks/mklq/summarize_reports.py \
+  --reports benchmarks/mklq/reports \
+  --format markdown \
+  --output docs/mklq/benchmark-evidence.md
+```
+
+The generated public index is tracked at
+`docs/mklq/benchmark-evidence.md`.
+
 - `reports/local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json`:
   tracked sanitized summary for the ignored raw result
   `results/local-current-sampling-fullprob-gated-q20-2026-06-19.json`

@@ -95,6 +95,8 @@ and known backend limits are summarized in
 [`docs/mklq/roadmap.md`](docs/mklq/roadmap.md).
 
 Sanitized local benchmark evidence is kept under `benchmarks/mklq/reports/`.
+The public benchmark evidence index is summarized in
+[`docs/mklq/benchmark-evidence.md`](docs/mklq/benchmark-evidence.md).
 Raw local benchmark payloads under `benchmarks/mklq/results/` are intentionally
 ignored.
 
