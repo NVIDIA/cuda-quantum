@@ -124,6 +124,13 @@ The public benchmark evidence index is summarized in
 Raw local benchmark payloads under `benchmarks/mklq/results/` are intentionally
 ignored.
 
+To verify that tracked clean CPU benchmark summaries still satisfy the public
+evidence floor without running new benchmarks:
+
+```bash
+python3 benchmarks/mklq/check_performance_evidence.py
+```
+
 For a fast local public-maintenance gate, run:
 
 ```bash

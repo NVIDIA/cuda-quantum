@@ -143,9 +143,11 @@ Before pushing a public branch, run:
 python3 benchmarks/mklq/run_public_healthcheck.py
 git diff --check
 git ls-files .github/workflows | sort
+python3 benchmarks/mklq/check_performance_evidence.py
 python3 -m py_compile \
   benchmarks/mklq/bench_mklq_targets.py \
   benchmarks/mklq/bench_probability_kernels.py \
+  benchmarks/mklq/check_performance_evidence.py \
   benchmarks/mklq/make_summary.py \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \

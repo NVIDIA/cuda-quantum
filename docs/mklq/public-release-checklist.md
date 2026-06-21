@@ -157,9 +157,11 @@ The underlying lightweight checks include:
 
 ```bash
 git diff --check
+python3 benchmarks/mklq/check_performance_evidence.py
 python3 -m py_compile \
   benchmarks/mklq/bench_mklq_targets.py \
   benchmarks/mklq/bench_probability_kernels.py \
+  benchmarks/mklq/check_performance_evidence.py \
   benchmarks/mklq/make_summary.py \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
@@ -173,6 +175,7 @@ Expected:
 - [ ] Banned upstream workflow/contact tokens are absent from public metadata
   and `.github`.
 - [ ] Sanitized benchmark summaries parse as JSON.
+- [ ] `check_performance_evidence.py` passes for tracked clean CPU summaries.
 - [ ] Public benchmark helper scripts compile.
 - [ ] `run_public_healthcheck.py` passes in default mode.
 - [ ] `run_public_healthcheck.py --full --require-clean` passes before

@@ -91,6 +91,18 @@ def _load_public_healthcheck_module():
     return module
 
 
+def _load_performance_evidence_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / (
+        "check_performance_evidence.py")
+    spec = importlib.util.spec_from_file_location("check_performance_evidence",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _raw_benchmark_report(dirty=False, cases=None, results=None):
     cases = cases or ["y-state"]
     results = results or []
@@ -488,6 +500,7 @@ def test_mklq_public_healthcheck_plan_lists_escalating_gates(tmp_path):
         "tracked_artifacts",
         "public_metadata",
         "benchmark_summary_parse",
+        "performance_evidence_guard",
         "benchmark_helper_py_compile",
         "markdown_links",
         "benchmark_evidence_regeneration",
@@ -593,6 +606,142 @@ def test_mklq_public_healthcheck_compares_benchmark_evidence(monkeypatch,
     result = module.run_benchmark_evidence_check(config)
     assert result["status"] == "failed"
     assert "differs" in result["message"]
+
+
+def _performance_summary(module,
+                         *,
+                         ratio=20.0,
+                         dirty=False,
+                         performance_scope=None,
+                         missing_label=None):
+    required = list(module.DEFAULT_REQUIRED_RATIOS)
+    ratios = {
+        module.ratio_key("qpp-cpu", "mklq-cpu", label): ratio
+        for label in required
+    }
+    elapsed = {label: 0.01 for label in required}
+    if missing_label:
+        ratios.pop(module.ratio_key("qpp-cpu", "mklq-cpu", missing_label))
+    return {
+        "schema_version": module.SUMMARY_SCHEMA_VERSION,
+        "evidence_kind": module.DEFAULT_EVIDENCE_KIND,
+        "summary_id": "local-clean-cpu-test",
+        "git": {
+            "commit": "abc123",
+            "dirty": dirty,
+        },
+        "config": {
+            "targets": ["qpp-cpu", "mklq-cpu"],
+            "qubits": [20],
+            "repeats": 2,
+            "warmups": 1,
+            "isolate_rows": True,
+        },
+        "raw_results": [{
+            "path": "benchmarks/mklq/results/local-clean.json",
+            "sha256": "a" * 64,
+            "status_rows": {
+                "ok": 12,
+            },
+            "tracked": False,
+        }],
+        "rows": [{
+            "target": "mklq-cpu",
+            "case": "y-state",
+            "qubits": 20,
+            "shots": 1024,
+            "status": "ok",
+        }],
+        "comparison": {
+            module.DEFAULT_RATIO_GROUP: ratios,
+            module.DEFAULT_CANDIDATE_ELAPSED_GROUP: elapsed,
+        },
+        "interpretation": {
+            "clean_worktree": not dirty,
+            "raw_json_files_are_ignored": True,
+            "performance_claim_scope": performance_scope or (
+                "local evidence only; not cross-machine performance "
+                "certification"),
+        },
+    }
+
+
+def test_mklq_performance_evidence_guard_accepts_clean_cpu_summary():
+    module = _load_performance_evidence_module()
+    result = module.check_summary(
+        _performance_summary(module),
+        required_ratios=list(module.DEFAULT_REQUIRED_RATIOS),
+        min_speedup=10.0,
+        ratio_group=module.DEFAULT_RATIO_GROUP,
+        candidate_elapsed_group=module.DEFAULT_CANDIDATE_ELAPSED_GROUP,
+        reference_target="qpp-cpu",
+        candidate_target="mklq-cpu",
+    )
+
+    assert result["status"] == "passed"
+    assert result["checked_ratio_count"] == len(module.DEFAULT_REQUIRED_RATIOS)
+    assert result["min_checked_speedup"] == 20.0
+
+
+def test_mklq_performance_evidence_guard_rejects_weak_or_dirty_summary():
+    module = _load_performance_evidence_module()
+
+    weak = module.check_summary(
+        _performance_summary(module, ratio=2.0),
+        required_ratios=list(module.DEFAULT_REQUIRED_RATIOS),
+        min_speedup=10.0,
+        ratio_group=module.DEFAULT_RATIO_GROUP,
+        candidate_elapsed_group=module.DEFAULT_CANDIDATE_ELAPSED_GROUP,
+        reference_target="qpp-cpu",
+        candidate_target="mklq-cpu",
+    )
+    assert weak["status"] == "failed"
+    assert "below min_speedup" in "\n".join(weak["failures"])
+
+    dirty = module.check_summary(
+        _performance_summary(module, dirty=True),
+        required_ratios=list(module.DEFAULT_REQUIRED_RATIOS),
+        min_speedup=10.0,
+        ratio_group=module.DEFAULT_RATIO_GROUP,
+        candidate_elapsed_group=module.DEFAULT_CANDIDATE_ELAPSED_GROUP,
+        reference_target="qpp-cpu",
+        candidate_target="mklq-cpu",
+    )
+    assert dirty["status"] == "failed"
+    assert "git.dirty is not false" in dirty["failures"]
+
+
+def test_mklq_performance_evidence_guard_reports_missing_ratio(tmp_path):
+    module = _load_performance_evidence_module()
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    summary_path = reports / "local-clean-cpu-test.summary.json"
+    summary_path.write_text(json.dumps(
+        _performance_summary(module,
+                             missing_label="sample_full_register_q20_65536_shots")),
+                            encoding="utf-8")
+
+    report = module.build_report(
+        root=tmp_path,
+        reports=reports,
+        pattern="*.summary.json",
+        summary_ids=set(),
+        required_ratios=list(module.DEFAULT_REQUIRED_RATIOS),
+        min_speedup=10.0,
+        ratio_group=module.DEFAULT_RATIO_GROUP,
+        candidate_elapsed_group=module.DEFAULT_CANDIDATE_ELAPSED_GROUP,
+        reference_target="qpp-cpu",
+        candidate_target="mklq-cpu",
+    )
+
+    assert report["summary"] == {
+        "status": "failed",
+        "passed": 0,
+        "failed": 1,
+        "checked": 1,
+    }
+    assert "missing finite ratio" in "\n".join(
+        report["summaries"][0]["failures"])
 
 
 def test_mklq_public_healthcheck_writes_json_report(monkeypatch, tmp_path):

@@ -33,6 +33,7 @@ TRACKED_ARTIFACT_PATTERN = re.compile(
 BENCHMARK_HELPERS = (
     "benchmarks/mklq/bench_mklq_targets.py",
     "benchmarks/mklq/bench_probability_kernels.py",
+    "benchmarks/mklq/check_performance_evidence.py",
     "benchmarks/mklq/make_summary.py",
     "benchmarks/mklq/run_clean_cpu_benchmark.py",
     "benchmarks/mklq/run_correctness_gate.py",
@@ -205,13 +206,18 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("docs/mklq/upstream-sync.md", "Post-merge Gates"),
         ("docs/mklq/release-policy.md", "source-only"),
         ("docs/mklq/public-release-checklist.md", "GitHub Verification"),
+        ("docs/mklq/public-release-checklist.md", "check_performance_evidence.py"),
         ("docs/mklq/developer-workflow.md", "Public Hygiene"),
+        ("docs/mklq/developer-workflow.md", "check_performance_evidence.py"),
         ("docs/mklq/maintainer-runbook.md", "Routine Health Check"),
+        ("docs/mklq/maintainer-runbook.md", "check_performance_evidence.py"),
         ("docs/mklq/issue-labels.md", "Label Taxonomy"),
         ("docs/mklq/branch-protection.md", "Source-only repository checks"),
         ("docs/mklq/public-readiness.md", "Public Readiness"),
         ("docs/mklq/validation.md", "not a release certification"),
         ("docs/mklq/benchmark-evidence.md", "cross-machine performance certification"),
+        ("benchmarks/mklq/README.md", "Performance Evidence Guard"),
+        ("docs/mklq/testing-matrix.md", "check_performance_evidence.py"),
         (".github/pull_request_template.md", "Compatibility Boundary"),
         (".github/pull_request_template.md", "Benchmark Evidence"),
         (".github/labels.yml", "backend:cpu"),
@@ -282,6 +288,21 @@ def run_benchmark_summary_parse(config: HealthcheckConfig) -> dict[str, Any]:
             json.load(handle)
         parsed.append(command_path(config.repo_root, path))
     return passed({"summary_count": len(parsed), "summaries": parsed})
+
+
+def run_performance_evidence_check(config: HealthcheckConfig) -> dict[str, Any]:
+    script = config.repo_root / "benchmarks" / "mklq" / (
+        "check_performance_evidence.py")
+    command = [
+        config.python_executable,
+        str(script),
+        "--reports",
+        "benchmarks/mklq/reports",
+    ]
+    result = run_command(config, command)
+    if result["returncode"] != 0:
+        return failed("performance evidence guard failed", result)
+    return passed(result)
 
 
 def run_py_compile(config: HealthcheckConfig) -> dict[str, Any]:
@@ -418,6 +439,9 @@ def build_steps(config: HealthcheckConfig) -> list[Step]:
              run_public_metadata_check),
         Step("benchmark_summary_parse", "Parse sanitized benchmark summary JSON.",
              run_benchmark_summary_parse),
+        Step("performance_evidence_guard",
+             "Check accepted clean CPU benchmark evidence ratios.",
+             run_performance_evidence_check),
         Step("benchmark_helper_py_compile", "Compile public benchmark helper scripts.",
              run_py_compile),
         Step("markdown_links", "Check local markdown links in public MKL-Q docs.",

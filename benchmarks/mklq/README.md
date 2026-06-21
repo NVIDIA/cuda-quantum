@@ -163,10 +163,10 @@ python3 benchmarks/mklq/run_public_healthcheck.py
 ```
 
 The default mode checks Git remotes and shallow state, tracked artifact hygiene,
-public metadata and banned tokens, sanitized benchmark summary JSON, helper
-syntax, local markdown links, regenerated benchmark-evidence consistency, and
-the benchmark harness tests. It writes an ignored JSON report under
-`benchmarks/mklq/results/`.
+public metadata and banned tokens, sanitized benchmark summary JSON, the static
+clean CPU performance evidence guard, helper syntax, local markdown links,
+regenerated benchmark-evidence consistency, and the benchmark harness tests. It
+writes an ignored JSON report under `benchmarks/mklq/results/`.
 
 Before describing a commit as public-ready, run the heavier local gate:
 
@@ -184,6 +184,20 @@ python3 benchmarks/mklq/run_public_healthcheck.py \
   --require-clean \
   --refresh-clean-cpu-benchmark
 ```
+
+## Performance Evidence Guard
+
+Use the static guard when a change touches tracked sanitized benchmark summaries
+or public performance wording:
+
+```bash
+python3 benchmarks/mklq/check_performance_evidence.py
+```
+
+The guard does not run benchmarks. It verifies that the accepted clean q20 CPU
+summary is clean-worktree evidence, points raw payloads at ignored
+`benchmarks/mklq/results/` files, rejects cross-machine claims, and keeps the
+tracked `qpp-cpu` over `mklq-cpu` ratios above the local evidence floor.
 
 ## Tracked Accepted Local Benchmark Evidence
 
