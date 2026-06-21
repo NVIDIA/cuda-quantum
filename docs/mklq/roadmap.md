@@ -4,6 +4,10 @@ MKL-Q starts as a CUDA-Q-compatible Apple Silicon fork. The first public version
 keeps the CUDA-Q API surface and adds MKL-Q targets without renaming the whole
 project or removing upstream backends.
 
+The current architecture boundary is documented in
+[`architecture.md`](architecture.md). Use that page as the target/backend
+contract when planning backend work.
+
 ## Current Backend Status
 
 - `mklq-cpu` is the stable MKL-Q target. It uses a native fp64 state-vector

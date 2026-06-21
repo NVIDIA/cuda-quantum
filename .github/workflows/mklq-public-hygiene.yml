@@ -34,12 +34,17 @@ jobs:
           grep -q 'source-only' README.md
           grep -q 'cudaq' README.md
           test -f docs/mklq/known-limitations.md
+          test -f docs/mklq/architecture.md
           test -f docs/mklq/public-release-checklist.md
           test -f docs/mklq/developer-workflow.md
           test -f .github/pull_request_template.md
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
           grep -q 'mklq-metal' docs/mklq/known-limitations.md
           grep -q 'source-only' docs/mklq/known-limitations.md
+          grep -q 'Public Compatibility Boundary' docs/mklq/architecture.md
+          grep -q 'CPU Backend' docs/mklq/architecture.md
+          grep -q 'Metal Backend' docs/mklq/architecture.md
+          grep -q 'not cross-machine performance certification' docs/mklq/architecture.md
           grep -q 'source-only' docs/mklq/public-release-checklist.md
           grep -q 'Correctness Gate' docs/mklq/public-release-checklist.md
           grep -q 'GitHub Verification' docs/mklq/public-release-checklist.md
@@ -68,6 +73,7 @@ jobs:
               Path("Contributing.md"),
               Path("SECURITY.md"),
               Path("docs/mklq/known-limitations.md"),
+              Path("docs/mklq/architecture.md"),
               Path("docs/mklq/public-release-checklist.md"),
               Path("docs/mklq/developer-workflow.md"),
               Path(".github/pull_request_template.md"),

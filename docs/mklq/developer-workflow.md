@@ -70,6 +70,10 @@ Keep changes reviewable:
 - Repository config: keep GitHub workflows lightweight unless a heavier CI job
   has a clear maintenance owner and cost.
 
+Use [`architecture.md`](architecture.md) as the source of truth for the current
+target layering, CPU oracle role, Metal fallback boundary, and benchmark
+evidence boundary.
+
 ## Local Build
 
 Use the source build path documented in the README:

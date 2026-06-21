@@ -93,6 +93,9 @@ The current bootstrap validation record is summarized in
 [`docs/mklq/validation.md`](docs/mklq/validation.md). The development roadmap
 and known backend limits are summarized in
 [`docs/mklq/roadmap.md`](docs/mklq/roadmap.md).
+The architecture boundary for the CUDA-Q fork, MKL-Q targets, CPU oracle, and
+experimental Metal path is described in
+[`docs/mklq/architecture.md`](docs/mklq/architecture.md).
 The public support boundary and current non-goals are listed in
 [`docs/mklq/known-limitations.md`](docs/mklq/known-limitations.md).
 The source-only public release checklist is tracked in
