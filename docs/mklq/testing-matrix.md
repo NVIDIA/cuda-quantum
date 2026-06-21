@@ -11,6 +11,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Gate | Command | Proves | Does Not Prove |
 | --- | --- | --- | --- |
 | Public hygiene | `.github/workflows/mklq-public-hygiene.yml` or the equivalent local commands in `developer-workflow.md` | Public metadata, ignored-artifact policy, sanitized benchmark JSON parsing, benchmark helper syntax | CUDA-Q build, Apple Silicon runtime behavior, Metal device behavior, release readiness |
+| Public health check | `python3 benchmarks/mklq/run_public_healthcheck.py` | Local public hygiene, benchmark summary parseability, helper syntax, markdown links, benchmark evidence regeneration consistency, benchmark harness tests | CUDA-Q build or backend correctness unless `--full` is used; benchmark refresh unless `--refresh-clean-cpu-benchmark` is used |
 | One-command correctness | `python3 benchmarks/mklq/run_correctness_gate.py --install-prefix "${HOME}/.cudaq-mklq" --build-dir build-python` | Python target smoke, CPU fixtures, Metal fixtures, `nvq++` smoke, selected build-tree `ctest` tests | Full upstream CUDA-Q test suite, cross-machine performance, packaging |
 | Build-tree Python smoke | `PYTHONPATH="$(pwd)/build-python/python" python3 -m pytest ... -q` | Source-tree Python API behavior against the build products | Installed prefix behavior unless paths are changed |
 | Install-prefix Python smoke | `PYTHONPATH="${HOME}/.cudaq-mklq" python3 -m pytest ... -q` | Installed Python package target behavior | C++ `nvq++` behavior unless the nvq++ smoke also runs |
@@ -34,6 +35,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | `unittests/nvqpp/backends/MKLQCpuTester.cpp` | CPU backend implementation tests | Backend edge cases, sampling internals, probability fills, built-in fast paths, custom operation fallback behavior |
 | `unittests/nvqpp/backends/MKLQMetalTester.cpp` | Metal runtime and mixed-path simulator tests | Metal device detection, resident gate kernels, probability fills, marginal paths, measurement/collapse/reset paths, fallback/error behavior |
 | `benchmarks/mklq/run_correctness_gate.py` | Correctness gate wrapper | Aggregates Python smoke, `nvq++` smoke, and selected `ctest` into ignored JSON |
+| `benchmarks/mklq/run_public_healthcheck.py` | Public maintenance health check | Aggregates local public hygiene checks, summary parse, helper compile, markdown link checks, benchmark evidence regeneration comparison, optional build/correctness/benchmark gates |
 | `benchmarks/mklq/bench_mklq_targets.py` | Target benchmark harness | Local timing rows for gate/state/sampling cases and target notes |
 | `benchmarks/mklq/bench_probability_kernels.py` | Probability microbenchmark | Local dense probability kernel experiment data and schema |
 | `benchmarks/mklq/make_summary.py` | Summary sanitizer | Converts raw local benchmark JSON to public summary JSON |
@@ -53,7 +55,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Metal probability/sampling paths | `MKLQMetalTester.cpp`, `bench_mklq_targets.py`, sanitized summaries | Full-register probability fill, marginal probability, sampling path labels | Sample draw/count accumulation remains host-side |
 | Metal measurement/reset | `test_mklq_metal_correctness_fixtures.py`, `MKLQMetalTester.cpp`, `mklq_runtime_smoke.cpp` | Resident measured-qubit reduction, collapse, reset, mid-circuit behavior | Fixture coverage is finite and tolerance-based |
 | Benchmark tooling | `test_mklq_benchmark_harness.py`, benchmark helper `py_compile`, summary JSON parse | Benchmark case/schema/report changes | Does not prove runtime speed unless real benchmark rows run |
-| Public release hygiene | `.github/workflows/mklq-public-hygiene.yml`, `public-release-checklist.md` | Public metadata, docs, tracked artifact policy | Does not build or run Apple Silicon backend tests |
+| Public release hygiene | `.github/workflows/mklq-public-hygiene.yml`, `run_public_healthcheck.py`, `public-release-checklist.md` | Public metadata, docs, tracked artifact policy, local healthcheck composition | Does not build or run Apple Silicon backend tests unless `run_public_healthcheck.py --full --require-clean` is used locally |
 
 ## Minimum Test Selection By Change Type
 
@@ -67,7 +69,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Metal resident gate path | A new or updated `MKLQMetalTester` case plus `test_mklq_metal_correctness_fixtures.py` |
 | Metal measurement/reset | `MKLQMetalTester.cpp`, `test_mklq_metal_correctness_fixtures.py`, `mklq_runtime_smoke.cpp` if C++ behavior changes |
 | Benchmark harness or summary | `test_mklq_benchmark_harness.py`, helper `py_compile`, summary JSON parse |
-| Public release milestone | Full `public-release-checklist.md`, one-command correctness gate, clean benchmark evidence if performance claims changed |
+| Public release milestone | Full `public-release-checklist.md`, `run_public_healthcheck.py --full --require-clean`, clean benchmark evidence if performance claims changed |
 | Release artifact proposal | `docs/mklq/release-policy.md`, public release checklist, one-command correctness gate, packaging-specific fresh-environment smoke tests |
 | Upstream CUDA-Q sync | `docs/mklq/upstream-sync.md`, public hygiene, one-command correctness gate when runtime or target files changed |
 

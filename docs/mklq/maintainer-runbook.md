@@ -43,6 +43,7 @@ git log --oneline --decorate -5
 git ls-files .github | sort
 gh repo view wuls968/MKL-Q --json nameWithOwner,isFork,parent,defaultBranchRef,url
 gh run list --repo wuls968/MKL-Q --branch main --limit 5
+python3 benchmarks/mklq/run_public_healthcheck.py
 ```
 
 Expected state:
@@ -56,6 +57,17 @@ Expected state:
 - `main` branch protection matches [`branch-protection.md`](branch-protection.md).
 - [`public-readiness.md`](public-readiness.md) matches the current public GitHub
   repository state before describing the repository as ready.
+- `run_public_healthcheck.py` passes in default mode before routine public
+  metadata or benchmark-tooling pushes.
+
+For a heavier local pre-publication gate, run:
+
+```bash
+python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
+```
+
+Use `--refresh-clean-cpu-benchmark` only when intentionally replacing tracked
+clean benchmark evidence from a clean worktree.
 
 ## Issue Triage
 
@@ -121,6 +133,7 @@ change touches shared behavior.
 | Backend runtime behavior | `cmake --build build-python --target install -j 6` and one-command correctness gate |
 | Benchmark tooling | Benchmark helper `py_compile`, harness tests, summary JSON parse |
 | Benchmark evidence | Correctness gate first, clean-worktree benchmark run, sanitized summaries only |
+| Public health check tooling | `test_mklq_benchmark_harness.py`, `python3 benchmarks/mklq/run_public_healthcheck.py` |
 | Upstream sync | `upstream-sync.md` post-merge gates |
 | Release artifact proposal | `release-policy.md`, public release checklist, correctness gate, packaging-specific fresh-environment tests |
 

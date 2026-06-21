@@ -140,6 +140,7 @@ evidence, not release certification.
 Before pushing a public branch, run:
 
 ```bash
+python3 benchmarks/mklq/run_public_healthcheck.py
 git diff --check
 git ls-files .github/workflows | sort
 python3 -m py_compile \
@@ -148,6 +149,7 @@ python3 -m py_compile \
   benchmarks/mklq/make_summary.py \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
+  benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_reports.py
 ```
 

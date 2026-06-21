@@ -143,6 +143,19 @@ Expected:
 Run the same classes of checks as `.github/workflows/mklq-public-hygiene.yml`:
 
 ```bash
+python3 benchmarks/mklq/run_public_healthcheck.py
+```
+
+For pre-publication local evidence that also rebuilds and reruns backend
+correctness:
+
+```bash
+python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
+```
+
+The underlying lightweight checks include:
+
+```bash
 git diff --check
 python3 -m py_compile \
   benchmarks/mklq/bench_mklq_targets.py \
@@ -150,6 +163,7 @@ python3 -m py_compile \
   benchmarks/mklq/make_summary.py \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
+  benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_reports.py
 ```
 
@@ -160,6 +174,9 @@ Expected:
   and `.github`.
 - [ ] Sanitized benchmark summaries parse as JSON.
 - [ ] Public benchmark helper scripts compile.
+- [ ] `run_public_healthcheck.py` passes in default mode.
+- [ ] `run_public_healthcheck.py --full --require-clean` passes before
+  describing the commit as public-ready.
 
 ## Push And GitHub Verification
 

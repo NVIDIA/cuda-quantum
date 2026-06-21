@@ -124,6 +124,19 @@ The public benchmark evidence index is summarized in
 Raw local benchmark payloads under `benchmarks/mklq/results/` are intentionally
 ignored.
 
+For a fast local public-maintenance gate, run:
+
+```bash
+python3 benchmarks/mklq/run_public_healthcheck.py
+```
+
+For a heavier pre-publication local gate that also builds and runs correctness
+checks, use:
+
+```bash
+python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
+```
+
 ## Upstream And License
 
 MKL-Q is derived from NVIDIA CUDA-Q and keeps CUDA-Q API compatibility where

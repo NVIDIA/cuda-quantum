@@ -154,6 +154,37 @@ The gate writes ignored local JSON under `benchmarks/mklq/results/`. When
 preserving rejected tuning runs, label them clearly and keep them separate from
 the local baseline so they are not read as performance evidence.
 
+## Public Health Check
+
+Use the public health check as the default local pre-push maintenance command:
+
+```bash
+python3 benchmarks/mklq/run_public_healthcheck.py
+```
+
+The default mode checks Git remotes and shallow state, tracked artifact hygiene,
+public metadata and banned tokens, sanitized benchmark summary JSON, helper
+syntax, local markdown links, regenerated benchmark-evidence consistency, and
+the benchmark harness tests. It writes an ignored JSON report under
+`benchmarks/mklq/results/`.
+
+Before describing a commit as public-ready, run the heavier local gate:
+
+```bash
+python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
+```
+
+`--full` adds the install-prefix build and one-command correctness gate. It does
+not refresh benchmark evidence. To intentionally refresh clean CPU benchmark
+evidence, run from a clean worktree:
+
+```bash
+python3 benchmarks/mklq/run_public_healthcheck.py \
+  --full \
+  --require-clean \
+  --refresh-clean-cpu-benchmark
+```
+
 ## Tracked Accepted Local Benchmark Evidence
 
 To rerun the clean CPU benchmark gate, regenerate the sanitized summary, and

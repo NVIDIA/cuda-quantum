@@ -80,6 +80,17 @@ def _load_correctness_gate_module():
     return module
 
 
+def _load_public_healthcheck_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "run_public_healthcheck.py"
+    spec = importlib.util.spec_from_file_location("run_public_healthcheck",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _raw_benchmark_report(dirty=False, cases=None, results=None):
     cases = cases or ["y-state"]
     results = results or []
@@ -431,6 +442,180 @@ def test_mklq_correctness_gate_writes_json_summary(monkeypatch, tmp_path):
     assert calls[1]["env"]["CUDAQ_NVQPP"] == "/tmp/cudaq-runtime/bin/nvq++"
     assert all(step["returncode"] == 0 for step in written["steps"])
     assert all(step["stdout_tail"] == "ok\n" for step in written["steps"])
+
+
+def _public_healthcheck_config(module,
+                               tmp_path,
+                               *,
+                               full=False,
+                               include_harness_tests=True,
+                               refresh_clean_cpu_benchmark=False,
+                               plan_only=False):
+    return module.HealthcheckConfig(
+        repo_root=tmp_path,
+        install_prefix=tmp_path / "install",
+        build_dir=tmp_path / "build-python",
+        python_executable=sys.executable,
+        pythonpath=str(tmp_path / "install"),
+        nvqpp=tmp_path / "install" / "bin" / "nvq++",
+        stamp="2026-06-21",
+        output=tmp_path / "results" / "public-healthcheck.json",
+        jobs=3,
+        timeout_seconds=123,
+        tail_chars=80,
+        require_clean=False,
+        full=full,
+        include_harness_tests=include_harness_tests,
+        refresh_clean_cpu_benchmark=refresh_clean_cpu_benchmark,
+        plan_only=plan_only,
+    )
+
+
+def test_mklq_public_healthcheck_plan_lists_escalating_gates(tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module,
+                                        tmp_path,
+                                        full=True,
+                                        refresh_clean_cpu_benchmark=True,
+                                        plan_only=True)
+
+    report = module.run_healthcheck(config)
+
+    assert report["schema_version"] == module.SCHEMA_VERSION
+    assert report["summary"]["status"] == "planned"
+    assert [step["name"] for step in report["steps"]] == [
+        "git_repository",
+        "tracked_artifacts",
+        "public_metadata",
+        "benchmark_summary_parse",
+        "benchmark_helper_py_compile",
+        "markdown_links",
+        "benchmark_evidence_regeneration",
+        "benchmark_harness_tests",
+        "install_prefix_build",
+        "correctness_gate",
+        "clean_cpu_benchmark",
+    ]
+    assert not config.output.exists()
+
+
+def test_mklq_public_healthcheck_rejects_tracked_artifacts(monkeypatch,
+                                                          tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path)
+
+    monkeypatch.setattr(
+        module, "command_output",
+        lambda root, args: "README.md\nbuild/generated.o\nbenchmarks/mklq/results/raw.json"
+    )
+
+    result = module.run_tracked_artifact_check(config)
+
+    assert result["status"] == "failed"
+    assert result["details"]["bad_paths"] == [
+        "build/generated.o", "benchmarks/mklq/results/raw.json"
+    ]
+
+
+def test_mklq_public_healthcheck_can_require_clean_worktree(monkeypatch,
+                                                            tmp_path):
+    module = _load_public_healthcheck_module()
+    base = _public_healthcheck_config(module, tmp_path)
+    config = module.HealthcheckConfig(**{
+        **base.__dict__,
+        "require_clean": True,
+    })
+
+    def fake_command_output(root, args):
+        if args == ["git", "status", "--short", "--branch"]:
+            return "## main\n M README.md\n?? scratch.txt"
+        if args == ["git", "remote", "-v"]:
+            return "\n".join([
+                "origin\thttps://github.com/wuls968/MKL-Q.git (fetch)",
+                "origin\thttps://github.com/wuls968/MKL-Q.git (push)",
+                "upstream\thttps://github.com/NVIDIA/cuda-quantum.git (fetch)",
+            ])
+        if args == ["git", "rev-parse", "--is-shallow-repository"]:
+            return "false"
+        if args == ["git", "ls-files", ".github/workflows"]:
+            return ".github/workflows/mklq-public-hygiene.yml"
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+
+    result = module.run_git_repository_check(config)
+
+    assert result["status"] == "failed"
+    assert "working tree is dirty" in result["message"]
+
+
+def test_mklq_public_healthcheck_checks_metadata_tokens(monkeypatch, tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path)
+    readme = tmp_path / "README.md"
+    readme.write_text("MKL-Q source-only mklq-cpu", encoding="utf-8")
+
+    monkeypatch.setattr(module, "public_metadata_requirements",
+                        lambda: [("README.md", "MKL-Q")])
+    monkeypatch.setattr(module, "public_metadata_paths", lambda root: [readme])
+
+    assert module.run_public_metadata_check(config)["status"] == "passed"
+
+    readme.write_text(module.banned_tokens()[0], encoding="utf-8")
+
+    result = module.run_public_metadata_check(config)
+    assert result["status"] == "failed"
+    assert "banned_token_failures" in result["details"]
+
+
+def test_mklq_public_healthcheck_compares_benchmark_evidence(monkeypatch,
+                                                             tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path)
+    expected = tmp_path / "docs" / "mklq" / "benchmark-evidence.md"
+    expected.parent.mkdir(parents=True)
+    expected.write_text("expected evidence\n", encoding="utf-8")
+
+    def fake_run_command(config, command, env_overlay=None):
+        Path(command[-1]).write_text("expected evidence\n", encoding="utf-8")
+        return {"returncode": 0, "command": command}
+
+    monkeypatch.setattr(module, "run_command", fake_run_command)
+
+    assert module.run_benchmark_evidence_check(config)["status"] == "passed"
+
+    def fake_stale_run_command(config, command, env_overlay=None):
+        Path(command[-1]).write_text("stale evidence\n", encoding="utf-8")
+        return {"returncode": 0, "command": command}
+
+    monkeypatch.setattr(module, "run_command", fake_stale_run_command)
+
+    result = module.run_benchmark_evidence_check(config)
+    assert result["status"] == "failed"
+    assert "differs" in result["message"]
+
+
+def test_mklq_public_healthcheck_writes_json_report(monkeypatch, tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path)
+
+    monkeypatch.setattr(
+        module, "build_steps",
+        lambda config: [
+            module.Step("ok", "passing synthetic step",
+                        lambda config: module.passed({"value": 1})),
+            module.Step("bad", "failing synthetic step",
+                        lambda config: module.failed("synthetic failure")),
+        ])
+
+    report = module.run_healthcheck(config)
+    written = json.loads(config.output.read_text(encoding="utf-8"))
+
+    assert report["summary"] == {"status": "failed", "passed": 1, "failed": 1}
+    assert written["summary"] == report["summary"]
+    assert [step["name"] for step in written["steps"]] == ["ok", "bad"]
+    assert written["steps"][0]["details"] == {"value": 1}
+    assert written["steps"][1]["message"] == "synthetic failure"
 
 
 def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):

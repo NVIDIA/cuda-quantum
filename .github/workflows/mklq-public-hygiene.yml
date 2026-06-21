@@ -47,6 +47,7 @@ jobs:
           test -f docs/mklq/public-readiness.md
           test -f .github/branch-protection-main.json
           test -f .github/pull_request_template.md
+          test -f benchmarks/mklq/run_public_healthcheck.py
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
           grep -q 'mklq-metal' docs/mklq/known-limitations.md
           grep -q 'source-only' docs/mklq/known-limitations.md
@@ -58,6 +59,7 @@ jobs:
           grep -q 'Capability Coverage' docs/mklq/testing-matrix.md
           grep -q 'Known Coverage Gaps' docs/mklq/testing-matrix.md
           grep -q 'No full Metal-native guarantee' docs/mklq/testing-matrix.md
+          grep -q 'run_public_healthcheck.py' docs/mklq/testing-matrix.md
           grep -q 'Preflight' docs/mklq/upstream-sync.md
           grep -q 'Conflict Rules' docs/mklq/upstream-sync.md
           grep -q 'Post-merge Gates' docs/mklq/upstream-sync.md
@@ -69,12 +71,15 @@ jobs:
           grep -q 'source-only' docs/mklq/public-release-checklist.md
           grep -q 'Correctness Gate' docs/mklq/public-release-checklist.md
           grep -q 'GitHub Verification' docs/mklq/public-release-checklist.md
+          grep -q 'run_public_healthcheck.py' docs/mklq/public-release-checklist.md
           grep -q 'Upstream Sync' docs/mklq/developer-workflow.md
           grep -q 'Correctness Gates' docs/mklq/developer-workflow.md
           grep -q 'Benchmark Evidence' docs/mklq/developer-workflow.md
           grep -q 'Public Hygiene' docs/mklq/developer-workflow.md
+          grep -q 'run_public_healthcheck.py' docs/mklq/developer-workflow.md
           grep -q 'Maintainer Principles' docs/mklq/maintainer-runbook.md
           grep -q 'Routine Health Check' docs/mklq/maintainer-runbook.md
+          grep -q 'run_public_healthcheck.py' docs/mklq/maintainer-runbook.md
           grep -q 'Issue Triage' docs/mklq/maintainer-runbook.md
           grep -q 'Pull Request Intake' docs/mklq/maintainer-runbook.md
           grep -q 'Release And Artifact Requests' docs/mklq/maintainer-runbook.md
@@ -158,4 +163,5 @@ jobs:
             benchmarks/mklq/make_summary.py \
             benchmarks/mklq/run_clean_cpu_benchmark.py \
             benchmarks/mklq/run_correctness_gate.py \
+            benchmarks/mklq/run_public_healthcheck.py \
             benchmarks/mklq/summarize_reports.py
