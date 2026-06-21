@@ -108,6 +108,9 @@ The source-only public release checklist is tracked in
 [`docs/mklq/public-release-checklist.md`](docs/mklq/public-release-checklist.md).
 Contributor and fork maintenance workflow notes are tracked in
 [`docs/mklq/developer-workflow.md`](docs/mklq/developer-workflow.md).
+Maintainer operations, issue triage, PR gates, recovery steps, and validation
+cadence are tracked in
+[`docs/mklq/maintainer-runbook.md`](docs/mklq/maintainer-runbook.md).
 
 Sanitized local benchmark evidence is kept under `benchmarks/mklq/reports/`.
 The public benchmark evidence index is summarized in

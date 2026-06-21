@@ -56,6 +56,8 @@
       experimental.
 - [ ] Public release checklist impact was considered:
       `docs/mklq/public-release-checklist.md`.
+- [ ] Maintainer runbook impact was considered:
+      `docs/mklq/maintainer-runbook.md`.
 
 ## Reviewer Notes
 

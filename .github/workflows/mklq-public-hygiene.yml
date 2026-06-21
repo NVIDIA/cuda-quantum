@@ -40,6 +40,7 @@ jobs:
           test -f docs/mklq/release-policy.md
           test -f docs/mklq/public-release-checklist.md
           test -f docs/mklq/developer-workflow.md
+          test -f docs/mklq/maintainer-runbook.md
           test -f .github/pull_request_template.md
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
           grep -q 'mklq-metal' docs/mklq/known-limitations.md
@@ -67,6 +68,12 @@ jobs:
           grep -q 'Correctness Gates' docs/mklq/developer-workflow.md
           grep -q 'Benchmark Evidence' docs/mklq/developer-workflow.md
           grep -q 'Public Hygiene' docs/mklq/developer-workflow.md
+          grep -q 'Maintainer Principles' docs/mklq/maintainer-runbook.md
+          grep -q 'Routine Health Check' docs/mklq/maintainer-runbook.md
+          grep -q 'Issue Triage' docs/mklq/maintainer-runbook.md
+          grep -q 'Pull Request Intake' docs/mklq/maintainer-runbook.md
+          grep -q 'Release And Artifact Requests' docs/mklq/maintainer-runbook.md
+          grep -q 'Recovery' docs/mklq/maintainer-runbook.md
           grep -q 'Compatibility Boundary' .github/pull_request_template.md
           grep -q 'Benchmark Evidence' .github/pull_request_template.md
           grep -q 'Public Hygiene' .github/pull_request_template.md
@@ -90,15 +97,9 @@ jobs:
               Path("CITATION.cff"),
               Path("Contributing.md"),
               Path("SECURITY.md"),
-              Path("docs/mklq/known-limitations.md"),
-              Path("docs/mklq/architecture.md"),
-              Path("docs/mklq/testing-matrix.md"),
-              Path("docs/mklq/upstream-sync.md"),
-              Path("docs/mklq/release-policy.md"),
-              Path("docs/mklq/public-release-checklist.md"),
-              Path("docs/mklq/developer-workflow.md"),
               Path(".github/pull_request_template.md"),
           ]
+          paths.extend(Path("docs/mklq").glob("*.md"))
           paths.extend(path for path in Path(".github").rglob("*") if path.is_file())
           failures = []
           for path in paths:
