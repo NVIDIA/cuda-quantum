@@ -24,8 +24,8 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Artifact | Scope | Evidence |
 | --- | --- | --- |
 | `python/tests/backends/test_mklq_python_api.py` | Python API smoke for `mklq-cpu` and `mklq-metal` | `cudaq.set_target`, `cudaq.sample`, `cudaq.get_state`, `cudaq.observe`, observe lists, shots observe, decorator-kernel `cudaq.run`, mid-circuit feedback/reset |
-| `python/tests/backends/test_mklq_cpu_correctness_fixtures.py` | CPU circuit correctness fixtures | Bell, GHZ, sampling support, QFT-like fixtures, deterministic Clifford behavior, parameterized state and observable comparisons against `qpp-cpu` |
-| `python/tests/backends/test_mklq_metal_correctness_fixtures.py` | Experimental Metal mixed-path fixtures | Resident single-target, controlled single-target, two-target, deterministic sampling, resident measurement feedback, resident reset after measurement, qpp-cpu tolerance comparisons |
+| `python/tests/backends/test_mklq_cpu_correctness_fixtures.py` | CPU circuit correctness fixtures | Bell, GHZ, sampling support, QFT-like fixtures, deterministic and seeded Clifford behavior, parameterized state and observable comparisons against `qpp-cpu` |
+| `python/tests/backends/test_mklq_metal_correctness_fixtures.py` | Experimental Metal mixed-path fixtures | Resident single-target, controlled single-target, two-target, QFT-like, seeded Clifford, deterministic sampling, resident measurement feedback, resident reset after measurement, qpp-cpu tolerance comparisons |
 | `python/tests/backends/test_mklq_nvqpp_smoke.py` | Installed or build-tree `nvq++` smoke | `nvq++ --target mklq-cpu`, `nvq++ --target mklq-metal`, target markers, runtime smoke output |
 | `python/tests/builder/test_mklq_targets.py` | Builder-level and target behavior | Target presence, precision tolerance, bit order, sampling boundary cases, OpenMP-sized state comparisons, CPU hot paths, state import/export error handling |
 | `python/tests/backends/test_mklq_benchmark_harness.py` | Benchmark and report tooling | Dry-run schemas, case expansion, row isolation, summary generation, sanitized evidence fields, probability microbenchmark schemas |

@@ -117,6 +117,43 @@ def _deterministic_clifford_kernel():
     return kernel
 
 
+def _seeded_clifford_kernel(qubit_count, seed):
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(qubit_count)
+
+    for layer in range(3 * qubit_count):
+        target = (seed + 2 * layer) % qubit_count
+        selector = (seed + 5 * layer) % 6
+        if selector == 0:
+            kernel.h(qubits[target])
+        elif selector == 1:
+            kernel.s(qubits[target])
+        elif selector == 2:
+            kernel.sdg(qubits[target])
+        elif selector == 3:
+            kernel.x(qubits[target])
+        elif selector == 4:
+            kernel.y(qubits[target])
+        else:
+            kernel.z(qubits[target])
+
+        control = (target + 1 + layer) % qubit_count
+        if control == target:
+            control = (control + 1) % qubit_count
+        other = (target + 2 + seed + layer) % qubit_count
+        while other in {target, control}:
+            other = (other + 1) % qubit_count
+
+        if layer % 3 == 0:
+            kernel.cx(qubits[control], qubits[target])
+        elif layer % 3 == 1:
+            kernel.cz(qubits[control], qubits[target])
+        else:
+            kernel.swap(qubits[target], qubits[other])
+
+    return kernel
+
+
 def _parameterized_fixture_kernel():
     kernel, theta, phi = cudaq.make_kernel(float, float)
     qubits = kernel.qalloc(4)
@@ -168,6 +205,11 @@ def test_mklq_cpu_qft_like_fixture_matches_qpp(qubit_count):
 
 def test_mklq_cpu_deterministic_clifford_fixture_matches_qpp():
     _assert_matches_qpp(_deterministic_clifford_kernel())
+
+
+@pytest.mark.parametrize("seed", [7, 19, 31])
+def test_mklq_cpu_seeded_clifford_fixture_matches_qpp(seed):
+    _assert_matches_qpp(_seeded_clifford_kernel(6, seed))
 
 
 def test_mklq_cpu_parameterized_fixture_matches_qpp_state():

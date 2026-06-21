@@ -89,6 +89,62 @@ def _two_target_resident_kernel():
     return kernel
 
 
+def _qft_like_resident_kernel(qubit_count):
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(qubit_count)
+
+    kernel.x(qubits[0])
+    kernel.x(qubits[qubit_count - 1])
+
+    for target in range(qubit_count):
+        kernel.h(qubits[target])
+        for control in range(target + 1, qubit_count):
+            angle = np.pi / float(1 << (control - target + 1))
+            kernel.crz(angle, qubits[control], qubits[target])
+
+    for index in range(qubit_count // 2):
+        kernel.swap(qubits[index], qubits[qubit_count - index - 1])
+
+    return kernel
+
+
+def _seeded_clifford_resident_kernel(qubit_count, seed):
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(qubit_count)
+
+    for layer in range(2 * qubit_count + 1):
+        target = (seed + 3 * layer) % qubit_count
+        selector = (seed + 7 * layer) % 5
+        if selector == 0:
+            kernel.h(qubits[target])
+        elif selector == 1:
+            kernel.x(qubits[target])
+        elif selector == 2:
+            kernel.y(qubits[target])
+        elif selector == 3:
+            kernel.z(qubits[target])
+        else:
+            kernel.s(qubits[target])
+
+        control = (target + layer + 1) % qubit_count
+        if control == target:
+            control = (control + 1) % qubit_count
+        other = (target + seed + layer + 2) % qubit_count
+        while other in {target, control}:
+            other = (other + 1) % qubit_count
+
+        if layer % 4 == 0:
+            kernel.cx(qubits[control], qubits[target])
+        elif layer % 4 == 1:
+            kernel.cy(qubits[control], qubits[target])
+        elif layer % 4 == 2:
+            kernel.cz(qubits[control], qubits[target])
+        else:
+            kernel.swap(qubits[target], qubits[other])
+
+    return kernel
+
+
 def _deterministic_sample_kernel():
     kernel = cudaq.make_kernel()
     qubits = kernel.qalloc(3)
@@ -131,6 +187,16 @@ def test_mklq_metal_controlled_resident_fixture_matches_qpp():
 
 def test_mklq_metal_two_target_resident_fixture_matches_qpp():
     _assert_metal_matches_qpp(_two_target_resident_kernel())
+
+
+@pytest.mark.parametrize("qubit_count", [4, 5])
+def test_mklq_metal_qft_like_fixture_matches_qpp(qubit_count):
+    _assert_metal_matches_qpp(_qft_like_resident_kernel(qubit_count))
+
+
+@pytest.mark.parametrize("seed", [5, 17])
+def test_mklq_metal_seeded_clifford_fixture_matches_qpp(seed):
+    _assert_metal_matches_qpp(_seeded_clifford_resident_kernel(5, seed))
 
 
 def test_mklq_metal_deterministic_sampling_uses_supported_gate_set():
