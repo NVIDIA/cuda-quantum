@@ -67,5 +67,6 @@ Do not tighten branch protection if any of these are true:
 ## Related Docs
 
 - [`maintainer-runbook.md`](maintainer-runbook.md)
+- [`public-readiness.md`](public-readiness.md)
 - [`public-release-checklist.md`](public-release-checklist.md)
 - [`release-policy.md`](release-policy.md)

@@ -115,6 +115,8 @@ The issue label taxonomy used for public triage is tracked in
 [`docs/mklq/issue-labels.md`](docs/mklq/issue-labels.md).
 The intended `main` branch protection policy is tracked in
 [`docs/mklq/branch-protection.md`](docs/mklq/branch-protection.md).
+The current public repository readiness snapshot is tracked in
+[`docs/mklq/public-readiness.md`](docs/mklq/public-readiness.md).
 
 Sanitized local benchmark evidence is kept under `benchmarks/mklq/reports/`.
 The public benchmark evidence index is summarized in

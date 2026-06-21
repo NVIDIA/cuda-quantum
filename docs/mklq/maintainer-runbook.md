@@ -15,6 +15,8 @@ Use this page with:
 - [`issue-labels.md`](issue-labels.md) for public GitHub triage labels.
 - [`branch-protection.md`](branch-protection.md) for the public `main` branch
   protection policy.
+- [`public-readiness.md`](public-readiness.md) for the current public repository
+  readiness snapshot.
 
 ## Maintainer Principles
 
@@ -52,6 +54,8 @@ Expected state:
 - `.github/workflows/` contains only intentionally reviewed MKL-Q workflows.
 - The latest pushed commit has a completed `MKL-Q public hygiene` run.
 - `main` branch protection matches [`branch-protection.md`](branch-protection.md).
+- [`public-readiness.md`](public-readiness.md) matches the current public GitHub
+  repository state before describing the repository as ready.
 
 ## Issue Triage
 

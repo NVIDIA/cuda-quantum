@@ -58,6 +58,8 @@ Check:
   `.github/labels.yml`.
 - [ ] `docs/mklq/branch-protection.md` is linked from the README and matches
   `.github/branch-protection-main.json`.
+- [ ] `docs/mklq/public-readiness.md` is linked from the README and records the
+  current public repository readiness snapshot.
 - [ ] GitHub About metadata describes MKL-Q, uses Apache-2.0, and avoids stale
   NVIDIA workflow or badge links.
 
@@ -179,6 +181,7 @@ Expected:
 - [ ] The latest MKL-Q public hygiene workflow completes with `success`.
 - [ ] `main` branch protection is enabled and requires
   `Source-only repository checks`.
+- [ ] `docs/mklq/public-readiness.md` is current for the pushed commit.
 
 ## Stop Conditions
 

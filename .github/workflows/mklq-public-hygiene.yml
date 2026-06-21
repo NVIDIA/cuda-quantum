@@ -44,6 +44,7 @@ jobs:
           test -f docs/mklq/issue-labels.md
           test -f .github/labels.yml
           test -f docs/mklq/branch-protection.md
+          test -f docs/mklq/public-readiness.md
           test -f .github/branch-protection-main.json
           test -f .github/pull_request_template.md
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
@@ -85,6 +86,11 @@ jobs:
           grep -q 'release-policy' .github/labels.yml
           grep -q 'needs-repro' .github/ISSUE_TEMPLATE/bug_report.yaml
           grep -q 'Source-only repository checks' docs/mklq/branch-protection.md
+          grep -q 'Public Readiness' docs/mklq/public-readiness.md
+          grep -q 'source-only' docs/mklq/public-readiness.md
+          grep -q 'Branch Protection' docs/mklq/public-readiness.md
+          grep -q 'No Tags Or Releases' docs/mklq/public-readiness.md
+          grep -q 'not a release certification' docs/mklq/public-readiness.md
           grep -q 'allow_force_pushes' .github/branch-protection-main.json
           grep -q 'allow_deletions' .github/branch-protection-main.json
           grep -q 'Compatibility Boundary' .github/pull_request_template.md
