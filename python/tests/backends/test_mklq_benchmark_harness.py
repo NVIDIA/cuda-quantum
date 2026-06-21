@@ -106,7 +106,7 @@ def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
 
     markdown = module.render_markdown(digests)
     assert markdown.index("a-summary") < markdown.index("z-summary")
-    assert "local tuning evidence" in markdown
+    assert "local benchmark evidence" in markdown
     assert "Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1" in markdown
     assert (
         "shots=1024; repeats=2; warmups=1; layers=8; isolate_rows=true"
@@ -1042,6 +1042,56 @@ def test_mklq_benchmark_isolated_malformed_json_returns_error(monkeypatch):
     assert row["isolated_process"]["returncode"] == 0
     assert row["isolated_process"]["stdout"] == "child stdout"
     assert row["isolated_process"]["stderr"] == "child stderr"
+
+
+def test_mklq_benchmark_summary_records_clean_cpu_evidence():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-clean-cpu-q20-2026-06-21.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "clean_local_benchmark_evidence"
+    assert summary["summary_id"] == "local-clean-cpu-q20-2026-06-21"
+    assert summary["git"]["commit"] == (
+        "4b112725f557f537d314d7554879cca39d6b14d5")
+    assert summary["git"]["dirty"] is False
+    assert summary["interpretation"]["clean_worktree"] is True
+    assert summary["raw_results"][0]["sha256"] == (
+        "ebc3d0671c1c3009fce77c2b6d54e25e7589778e0adf40a2cc83f2f546aa7ce9")
+    assert summary["raw_results"][0]["status_rows"] == {"ok": 4}
+    assert summary["raw_results"][1]["sha256"] == (
+        "8bac8a02ec19503c569ac2e953fe633e85aa43e78a80418ff8a1b6334772ca1e")
+    assert summary["raw_results"][1]["status_rows"] == {"ok": 8}
+    assert summary["machine"]["cpu_brand"] == "Apple M5"
+    assert summary["config"]["targets"] == ["qpp-cpu", "mklq-cpu"]
+    assert summary["config"]["cases"] == [
+        "y-state", "cy-state", "sample-full-register",
+        "sample-partial-register"
+    ]
+    assert summary["config"]["qubits"] == [20]
+    assert summary["config"]["shot_counts"] == [1024, 65536]
+    assert summary["config"]["repeats"] == 2
+    assert summary["config"]["warmups"] == 1
+    assert summary["config"]["layers"] == 8
+
+    rows = {
+        (row["target"], row["case"], row["shots"]): row
+        for row in summary["rows"]
+    }
+    assert len(rows) == 12
+    assert rows[("mklq-cpu", "y-state", 1024)][
+        "elapsed_seconds_median"] == 0.053900624508969486
+    assert rows[("mklq-cpu", "sample-partial-register", 65536)][
+        "elapsed_seconds_median"] == 0.011505229005706497
+    ratios = summary["comparison"]["clean_worktree_cross_target_ratio"]
+    assert ratios["qpp_cpu_over_mklq_cpu_y_state_q20"] == pytest.approx(
+        96.80846823274014)
+    assert ratios[
+        "qpp_cpu_over_mklq_cpu_sample_partial_register_q20_65536_shots"
+    ] == pytest.approx(99.64972043797643)
 
 
 def test_mklq_benchmark_summary_records_sanitized_sampling_evidence():

@@ -96,10 +96,13 @@ python3 benchmarks/mklq/summarize_reports.py \
 
 Current tracked summaries include:
 
+- `local-clean-cpu-q20-2026-06-21.summary.json`
 - `local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json`
 - `local-y-cy-fastpath-isolated-q20-2026-06-19.summary.json`
 - `local-metal-y-cy-resident-isolated-q20-2026-06-19.summary.json`
 - `local-counts-only-sampling-shot-scaling-q20-2026-06-19.summary.json`
 
-These files are dirty-worktree local tuning evidence. Do not treat them as clean
-release provenance.
+These files now include one clean-worktree local benchmark summary plus older
+dirty-worktree tuning summaries. Interpret each file through its
+`evidence_kind` and `interpretation` fields. Do not treat any local summary as
+cross-machine performance certification.

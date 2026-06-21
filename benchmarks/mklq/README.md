@@ -159,6 +159,24 @@ python3 benchmarks/mklq/summarize_reports.py \
 The generated public index is tracked at
 `docs/mklq/benchmark-evidence.md`.
 
+- `reports/local-clean-cpu-q20-2026-06-21.summary.json`: tracked sanitized
+  summary for ignored raw results
+  `results/local-clean-cpu-gate-y-cy-q20-2026-06-21.json`
+  (`sha256: ebc3d0671c1c3009fce77c2b6d54e25e7589778e0adf40a2cc83f2f546aa7ce9`)
+  and `results/local-clean-cpu-sampling-q20-2026-06-21.json`
+  (`sha256: 8bac8a02ec19503c569ac2e953fe633e85aa43e78a80418ff8a1b6334772ca1e`).
+  This run was collected from a clean worktree at
+  `4b112725f557f537d314d7554879cca39d6b14d5` with `qpp-cpu` and `mklq-cpu`
+  rows for `y-state`, `cy-state`, `sample-full-register`, and
+  `sample-partial-register` at q20 with `OMP_NUM_THREADS=10`,
+  `OMP_PROC_BIND=close`, `OMP_DYNAMIC=false`, `VECLIB_MAXIMUM_THREADS=1`,
+  `repeats=2`, `warmups=1`, and `layers=8` on Apple M5, 10 logical cores,
+  16 GB RAM, macOS 26.5.1. All 12 rows completed with `status == "ok"`.
+  In this local run, q20 median elapsed ratios for `qpp-cpu` over `mklq-cpu`
+  were 96.81x for `y-state`, 97.24x for `cy-state`, 62.32x for
+  `sample-full-register` at 65536 shots, and 99.65x for
+  `sample-partial-register` at 65536 shots. Treat this as local clean-worktree
+  CPU evidence, not as cross-machine performance certification.
 - `reports/local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json`:
   tracked sanitized summary for the ignored raw result
   `results/local-current-sampling-fullprob-gated-q20-2026-06-19.json`

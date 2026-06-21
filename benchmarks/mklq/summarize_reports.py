@@ -177,9 +177,10 @@ def render_markdown(digests: list[dict[str, Any]]) -> str:
         "This file is generated from sanitized benchmark summaries under "
         "`benchmarks/mklq/reports/`.",
         "",
-        "Caveat: these entries are local tuning evidence from development "
-        "runs. They are not clean release provenance or a general performance "
-        "certification.",
+        "Caveat: these entries are local benchmark evidence from development "
+        "or release-prep runs. Interpret each entry through its "
+        "`evidence_kind` and `interpretation` fields; none is a cross-machine "
+        "performance certification.",
         "",
         "## Evidence Inventory",
         "",
@@ -250,8 +251,9 @@ def build_payload(digests: list[dict[str, Any]]) -> dict[str, Any]:
         "reports": digests,
         "comparison_signals": comparison_signals(digests),
         "caveat": (
-            "These entries are local tuning evidence, not clean release "
-            "provenance or general performance certification."),
+            "These entries are local benchmark evidence from development or "
+            "release-prep runs, not cross-machine performance "
+            "certification."),
     }
 
 
