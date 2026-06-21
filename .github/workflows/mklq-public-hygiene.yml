@@ -34,9 +34,13 @@ jobs:
           grep -q 'source-only' README.md
           grep -q 'cudaq' README.md
           test -f docs/mklq/known-limitations.md
+          test -f docs/mklq/public-release-checklist.md
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
           grep -q 'mklq-metal' docs/mklq/known-limitations.md
           grep -q 'source-only' docs/mklq/known-limitations.md
+          grep -q 'source-only' docs/mklq/public-release-checklist.md
+          grep -q 'Correctness Gate' docs/mklq/public-release-checklist.md
+          grep -q 'GitHub Verification' docs/mklq/public-release-checklist.md
           grep -q 'not a release certification' docs/mklq/validation.md
           python3 - <<'PY'
           from pathlib import Path
@@ -54,6 +58,7 @@ jobs:
               Path("Contributing.md"),
               Path("SECURITY.md"),
               Path("docs/mklq/known-limitations.md"),
+              Path("docs/mklq/public-release-checklist.md"),
           ]
           paths.extend(path for path in Path(".github").rglob("*") if path.is_file())
           failures = []

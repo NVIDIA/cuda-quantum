@@ -95,6 +95,8 @@ and known backend limits are summarized in
 [`docs/mklq/roadmap.md`](docs/mklq/roadmap.md).
 The public support boundary and current non-goals are listed in
 [`docs/mklq/known-limitations.md`](docs/mklq/known-limitations.md).
+The source-only public release checklist is tracked in
+[`docs/mklq/public-release-checklist.md`](docs/mklq/public-release-checklist.md).
 
 Sanitized local benchmark evidence is kept under `benchmarks/mklq/reports/`.
 The public benchmark evidence index is summarized in

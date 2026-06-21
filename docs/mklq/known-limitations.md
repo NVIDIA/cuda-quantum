@@ -4,6 +4,9 @@ This page describes the current public support boundary for MKL-Q. It is meant
 to help users understand what the source tree can reasonably prove today and
 what remains experimental.
 
+Use [`public-release-checklist.md`](public-release-checklist.md) before treating
+the current branch as public-release ready.
+
 ## Release Shape
 
 - MKL-Q is currently source-only. It does not publish wheels, PyPI packages,
