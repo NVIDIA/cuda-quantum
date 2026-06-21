@@ -21,6 +21,8 @@
 - [ ] Keeps upstream CUDA-Q compatibility unless the change is explicitly scoped
       to MKL-Q target behavior.
 - [ ] If this syncs upstream CUDA-Q, `docs/mklq/upstream-sync.md` was followed.
+- [ ] If this changes release behavior, `docs/mklq/release-policy.md` was
+      followed.
 
 ## Validation
 

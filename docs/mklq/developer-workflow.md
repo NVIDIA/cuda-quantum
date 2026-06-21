@@ -173,7 +173,8 @@ git push origin HEAD
 ```
 
 Do not force push `main`. Do not create tags, GitHub Releases, wheels, or PyPI
-packages unless that publishing work has its own reviewed release plan.
+packages unless that publishing work has its own reviewed release plan and
+passes [`release-policy.md`](release-policy.md).
 
 ## Pull Request Review
 

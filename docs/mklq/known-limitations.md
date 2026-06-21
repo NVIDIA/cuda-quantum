@@ -5,7 +5,9 @@ to help users understand what the source tree can reasonably prove today and
 what remains experimental.
 
 Use [`public-release-checklist.md`](public-release-checklist.md) before treating
-the current branch as public-release ready.
+the current branch as public-release ready. Use
+[`release-policy.md`](release-policy.md) before creating any tag, GitHub
+Release, wheel, PyPI package, installer, or signed artifact.
 
 ## Release Shape
 

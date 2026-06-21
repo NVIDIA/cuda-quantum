@@ -10,6 +10,8 @@ or GitHub Release procedure.
 - [ ] Keep the first public version source-only.
 - [ ] Do not create tags, GitHub Releases, wheels, PyPI packages, installers,
   or signed artifacts as part of this checklist.
+- [ ] `docs/mklq/release-policy.md` confirms the current branch is source-only
+  and has no release artifacts.
 - [ ] Keep the public API surface compatible with CUDA-Q: Python users import
   `cudaq`, and C++ users compile with `nvq++`.
 - [ ] Keep `mklq-cpu` as the stable local target and `mklq-metal` as an
@@ -48,6 +50,8 @@ Check:
   the current support boundary.
 - [ ] `docs/mklq/testing-matrix.md` is linked from the README and explains
   which local gates prove which target/backend behavior.
+- [ ] `docs/mklq/release-policy.md` is linked from the README and explains
+  current source-only release boundaries.
 - [ ] GitHub About metadata describes MKL-Q, uses Apache-2.0, and avoids stale
   NVIDIA workflow or badge links.
 
@@ -65,6 +69,8 @@ Expected:
 
 - [ ] No tracked `build/`, `build-python/`, `__pycache__/`, `.pytest_cache/`,
   `.DS_Store`, local signing objects, or raw `benchmarks/mklq/results/*.json`.
+- [ ] No tracked `dist/`, `wheelhouse/`, wheel, installer, signed artifact, or
+  release archive files.
 - [ ] No `docs/superpowers/` or agent-internal paths are tracked.
 - [ ] `.github/workflows/` contains only the lightweight MKL-Q public hygiene
   workflow unless a new workflow has been intentionally reviewed.

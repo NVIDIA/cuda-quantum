@@ -29,8 +29,9 @@ The public support boundary, non-goals, and evidence limits are tracked in
 - Keep `mklq-metal` experimental until core supported paths no longer depend on
   CPU fallback and benchmark/correctness gates justify broader claims.
 - Add clean CI evidence after the source-only repository is public.
-- Decide later whether to publish wheels or GitHub Releases; neither is part of
-  the first public source-only version.
+- Decide later whether to publish wheels or GitHub Releases through
+  [`release-policy.md`](release-policy.md); neither is part of the first public
+  source-only version.
 - Before any public release-style milestone, rerun
   [`public-release-checklist.md`](public-release-checklist.md).
 
