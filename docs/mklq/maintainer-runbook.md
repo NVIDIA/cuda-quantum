@@ -44,6 +44,7 @@ git ls-files .github | sort
 gh repo view wuls968/MKL-Q --json nameWithOwner,isFork,parent,defaultBranchRef,url
 gh run list --repo wuls968/MKL-Q --branch main --limit 5
 python3 benchmarks/mklq/check_performance_evidence.py
+python3 benchmarks/mklq/check_metal_evidence.py
 python3 benchmarks/mklq/run_public_healthcheck.py
 ```
 
@@ -60,6 +61,8 @@ Expected state:
   repository state before describing the repository as ready.
 - `check_performance_evidence.py` passes before changing tracked sanitized
   clean CPU evidence or public performance wording.
+- `check_metal_evidence.py` passes before changing tracked `mklq-metal`
+  evidence or experimental Metal wording.
 - `run_public_healthcheck.py` passes in default mode before routine public
   metadata or benchmark-tooling pushes.
 
@@ -135,7 +138,7 @@ change touches shared behavior.
 | `nvq++` or target config | `test_mklq_nvqpp_smoke.py`, TargetConfig `ctest`, target YAML checks |
 | Backend runtime behavior | `cmake --build build-python --target install -j 6` and one-command correctness gate |
 | Benchmark tooling | Benchmark helper `py_compile`, harness tests, summary JSON parse |
-| Benchmark evidence | Correctness gate first, clean-worktree benchmark run, sanitized summaries only, `check_performance_evidence.py` |
+| Benchmark evidence | Correctness gate first, clean-worktree benchmark run, sanitized summaries only, `check_performance_evidence.py`, `check_metal_evidence.py` when Metal summaries are touched |
 | Public health check tooling | `test_mklq_benchmark_harness.py`, `python3 benchmarks/mklq/run_public_healthcheck.py` |
 | Upstream sync | `upstream-sync.md` post-merge gates |
 | Release artifact proposal | `release-policy.md`, public release checklist, correctness gate, packaging-specific fresh-environment tests |

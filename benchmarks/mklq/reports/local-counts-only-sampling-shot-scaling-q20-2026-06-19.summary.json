@@ -65,6 +65,8 @@
   "evidence_kind": "local_tuning_evidence",
   "interpretation": {
     "do_not_treat_as_clean_release_provenance": true,
+    "raw_json_files_are_ignored": true,
+    "performance_claim_scope": "local Apple M5 tuning evidence only; standard sample counts-only rows are not release or cross-machine certification",
     "metal_path_scope": "mixed-path Metal probability fill with host-side sample draw/count accumulation",
     "scope": "standard non-explicit cudaq.sample rows exercise backend counts-only aggregation; public sequential_data compatibility may expand counts on demand outside this benchmark",
     "sequential_data_accessor_not_invoked": true,

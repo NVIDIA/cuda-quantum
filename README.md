@@ -144,6 +144,13 @@ evidence floor without running new benchmarks:
 python3 benchmarks/mklq/check_performance_evidence.py
 ```
 
+To verify that tracked experimental Metal summaries keep the mixed-path,
+not-release-ready evidence boundary:
+
+```bash
+python3 benchmarks/mklq/check_metal_evidence.py
+```
+
 For a fast local public-maintenance gate, run:
 
 ```bash

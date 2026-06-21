@@ -158,9 +158,11 @@ The underlying lightweight checks include:
 ```bash
 git diff --check
 python3 benchmarks/mklq/check_performance_evidence.py
+python3 benchmarks/mklq/check_metal_evidence.py
 python3 -m py_compile \
   benchmarks/mklq/bench_mklq_targets.py \
   benchmarks/mklq/bench_probability_kernels.py \
+  benchmarks/mklq/check_metal_evidence.py \
   benchmarks/mklq/check_performance_evidence.py \
   benchmarks/mklq/make_summary.py \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
@@ -183,6 +185,8 @@ Expected:
   and `.github`.
 - [ ] Sanitized benchmark summaries parse as JSON.
 - [ ] `check_performance_evidence.py` passes for tracked clean CPU summaries.
+- [ ] `check_metal_evidence.py` passes for tracked experimental Metal
+      summaries.
 - [ ] Public benchmark helper and Python example scripts compile.
 - [ ] `run_public_healthcheck.py` passes in default mode.
 - [ ] `run_public_healthcheck.py --full --require-clean` passes before

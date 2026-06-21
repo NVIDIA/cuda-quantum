@@ -113,6 +113,17 @@ def _load_performance_evidence_module():
     return module
 
 
+def _load_metal_evidence_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "check_metal_evidence.py"
+    spec = importlib.util.spec_from_file_location("check_metal_evidence",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _raw_benchmark_report(dirty=False, cases=None, results=None):
     cases = cases or ["y-state"]
     results = results or []
@@ -579,6 +590,7 @@ def test_mklq_public_healthcheck_plan_lists_escalating_gates(tmp_path):
         "public_metadata",
         "benchmark_summary_parse",
         "performance_evidence_guard",
+        "metal_evidence_guard",
         "benchmark_helper_py_compile",
         "example_source_files",
         "markdown_links",
@@ -958,6 +970,164 @@ def test_mklq_performance_evidence_guard_reports_missing_ratio(tmp_path):
     }
     assert "missing finite ratio" in "\n".join(
         report["summaries"][0]["failures"])
+
+
+def _metal_evidence_summary(module,
+                            *,
+                            evidence_kind=None,
+                            performance_scope=None,
+                            metal_scope=None,
+                            release_flag=True,
+                            raw_ignored=True):
+    return {
+        "schema_version": module.SUMMARY_SCHEMA_VERSION,
+        "evidence_kind": evidence_kind or module.DEFAULT_EVIDENCE_KIND,
+        "summary_id": "local-metal-test",
+        "git": {
+            "commit": "abc123",
+            "dirty": True,
+        },
+        "config": {
+            "targets": ["qpp-cpu", "mklq-cpu", "mklq-metal"],
+            "qubits": [20],
+            "repeats": 2,
+            "warmups": 1,
+            "isolate_rows": True,
+        },
+        "raw_results": [{
+            "path": "benchmarks/mklq/results/local-metal.json",
+            "sha256": "b" * 64,
+            "status_rows": {
+                "ok": 6,
+            },
+            "tracked": False,
+        }],
+        "rows": [{
+            "target": "mklq-metal",
+            "case": "qft-like-state",
+            "qubits": 20,
+            "shots": 1024,
+            "status": "ok",
+        }],
+        "comparison": {
+            "same_day_cross_target_ratio": {
+                "qpp_cpu_over_mklq_metal_qft_like_state_q20": 42.0,
+            },
+            "mklq_metal_elapsed_seconds_median": {
+                "qft_like_state_q20": 0.25,
+            },
+        },
+        "interpretation": {
+            "clean_worktree": False,
+            "raw_json_files_are_ignored": raw_ignored,
+            "do_not_treat_as_clean_release_provenance": release_flag,
+            "curated_path_labels_are_not_raw_benchmark_fields": True,
+            "metal_path_scope": metal_scope or (
+                "experimental mklq-metal mixed-path state-vector update "
+                "followed by host readback for cudaq.get_state"),
+            "performance_claim_scope": performance_scope or (
+                "local Apple M5 tuning evidence only; mklq-metal is "
+                "experimental mixed-path and this is not release or "
+                "cross-machine certification"),
+            "summary": "Synthetic local Metal tuning evidence.",
+        },
+    }
+
+
+def test_mklq_metal_evidence_guard_accepts_current_summaries():
+    module = _load_metal_evidence_module()
+    repo_root = Path(__file__).resolve().parents[3]
+
+    report = module.build_report(
+        root=repo_root,
+        reports=repo_root / "benchmarks" / "mklq" / "reports",
+        pattern="*.summary.json",
+        summary_ids=set(),
+    )
+
+    assert report["summary"]["status"] == "passed"
+    assert report["summary"]["checked"] >= 2
+    checked_ids = {
+        summary["summary_id"]
+        for summary in report["summaries"]
+    }
+    assert "local-metal-y-cy-resident-isolated-q20-2026-06-19" in checked_ids
+    assert "local-metal-composite-mixed-path-q20-2026-06-21" in checked_ids
+
+
+def test_mklq_metal_evidence_guard_rejects_clean_or_full_native_claims(
+        tmp_path):
+    module = _load_metal_evidence_module()
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    bad = _metal_evidence_summary(
+        module,
+        evidence_kind="clean_local_benchmark_evidence",
+        performance_scope="release-ready full Metal-native default-ready data",
+        metal_scope="full Metal-native backend execution",
+        release_flag=False,
+        raw_ignored=False,
+    )
+    (reports / "local-metal-bad.summary.json").write_text(json.dumps(bad),
+                                                          encoding="utf-8")
+
+    report = module.build_report(
+        root=tmp_path,
+        reports=reports,
+        pattern="*.summary.json",
+        summary_ids=set(),
+    )
+
+    assert report["summary"] == {
+        "status": "failed",
+        "passed": 0,
+        "failed": 1,
+        "checked": 1,
+    }
+    failures = "\n".join(report["summaries"][0]["failures"])
+    assert "unexpected evidence_kind" in failures
+    assert "do_not_treat_as_clean_release_provenance" in failures
+    assert "raw JSON files are not marked ignored" in failures
+    assert "forbidden Metal claim" in failures
+
+
+def test_mklq_public_healthcheck_runs_metal_evidence_guard(monkeypatch,
+                                                           tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path)
+    calls = []
+
+    def fake_run_command(config, command, env_overlay=None):
+        calls.append(command)
+        return {
+            "returncode": 0,
+            "command": command,
+            "stdout_tail": "{}",
+            "stderr_tail": "",
+        }
+
+    monkeypatch.setattr(module, "run_command", fake_run_command)
+
+    result = module.run_metal_evidence_check(config)
+
+    assert result["status"] == "passed"
+    assert calls[0][1].endswith("benchmarks/mklq/check_metal_evidence.py")
+    assert "--reports" in calls[0]
+
+
+def test_mklq_public_healthcheck_plan_includes_metal_evidence_guard(tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module,
+                                        tmp_path,
+                                        include_harness_tests=False,
+                                        plan_only=True)
+
+    steps = [step.name for step in module.build_steps(config)]
+
+    assert steps.index("performance_evidence_guard") < steps.index(
+        "metal_evidence_guard")
+    assert steps.index("metal_evidence_guard") < steps.index(
+        "benchmark_helper_py_compile")
 
 
 def test_mklq_public_healthcheck_writes_json_report(monkeypatch, tmp_path):

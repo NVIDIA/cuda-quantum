@@ -193,6 +193,7 @@
     "do_not_treat_as_clean_release_provenance": true,
     "dirty_worktree": true,
     "raw_json_files_are_ignored": true,
+    "metal_path_scope": "cost-gated resident full-register probability fill plus host marginal fold",
     "performance_claim_scope": "local Apple M5 tuning evidence only; rerun on a clean worktree before release claims"
   }
 }

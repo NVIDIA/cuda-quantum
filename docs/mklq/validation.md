@@ -20,7 +20,9 @@ Latest local validation refresh: 2026-06-21.
 The install-prefix build, full public healthcheck, one-command correctness
 gate, and public example smoke gate were last run against source commit
 `90b1ebe20b281411880e7704df5b4120692e4686` before this validation note was
-committed. The clean CPU benchmark summary was refreshed separately against
+committed. The static public-healthcheck composition was then extended with the
+experimental Metal evidence boundary guard. The clean CPU benchmark summary was
+refreshed separately against
 `34f4b260d1c657ad626c526eed4e6b9d3a441be4` after adding QFT-like and seeded
 Clifford composite rows to the clean evidence gate.
 
@@ -31,11 +33,11 @@ Raw wrapper output was written to ignored local paths
 not tracked as public evidence.
 
 - Install-prefix build: passed.
-- Full public healthcheck: passed, with 13 steps passed and 0 failed.
+- Full public healthcheck: passed, with 14 steps passed and 0 failed.
 - One-command correctness gate: passed, with 3 steps passed, 0 failed, and 0
   skipped.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
-- `benchmark_harness_tests`: `54 passed`.
+- `benchmark_harness_tests`: `58 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
@@ -158,12 +160,12 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
 ```
 
-Result: `13/13` steps passed in the latest local refresh. This includes Git
+Result: `14/14` steps passed in the latest local refresh. This includes Git
 repository hygiene, tracked-artifact checks, public metadata checks, sanitized
-benchmark summary parsing, the performance evidence guard, helper
-`py_compile`, markdown links, benchmark evidence regeneration, benchmark
-harness tests, install-prefix build, the one-command correctness gate, and the
-public example smoke gate.
+benchmark summary parsing, the clean CPU performance evidence guard, the Metal
+evidence boundary guard, helper `py_compile`, markdown links, benchmark
+evidence regeneration, benchmark harness tests, install-prefix build, the
+one-command correctness gate, and the public example smoke gate.
 
 ## Benchmark Evidence
 

@@ -129,10 +129,10 @@ The latest public local validation evidence is recorded in
 - source commit used for the latest runtime validation gate:
   `90b1ebe20b281411880e7704df5b4120692e4686`;
 - install-prefix build: passed;
-- full public healthcheck: passed with 13/13 steps passed;
+- full public healthcheck: passed with 14/14 steps passed;
 - one-command correctness gate: passed;
 - public example smoke gate: passed with 30/30 steps passed;
-- benchmark harness tests: `54 passed`;
+- benchmark harness tests: `58 passed`;
 - standalone install-prefix Python subset: `35 passed`;
 - `python_target_smoke`: `56 passed`;
 - `nvqpp_smoke`: `2 passed`;
@@ -145,6 +145,11 @@ The latest public local validation evidence is recorded in
 This evidence is local Apple Silicon evidence. It is useful for source bootstrap
 confidence, but it is not hosted CI, release certification, or cross-machine
 performance certification.
+
+The current public healthcheck also includes the static
+`check_metal_evidence.py` guard for tracked `mklq-metal` summaries. That guard
+checks local tuning provenance, ignored raw payload paths, successful Metal
+rows, and wording that keeps the experimental mixed-path/host boundary clear.
 
 ## No Tags Or Releases
 

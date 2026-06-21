@@ -169,9 +169,10 @@ python3 benchmarks/mklq/run_public_healthcheck.py
 
 The default mode checks Git remotes and shallow state, tracked artifact hygiene,
 public metadata and banned tokens, sanitized benchmark summary JSON, the static
-clean CPU performance evidence guard, helper syntax, local markdown links,
-regenerated benchmark-evidence consistency, and the benchmark harness tests. It
-writes an ignored JSON report under `benchmarks/mklq/results/`.
+clean CPU performance evidence guard, the static experimental Metal evidence
+boundary guard, helper syntax, local markdown links, regenerated
+benchmark-evidence consistency, and the benchmark harness tests. It writes an
+ignored JSON report under `benchmarks/mklq/results/`.
 
 Before describing a commit as public-ready, run the heavier local gate:
 
@@ -203,6 +204,21 @@ The guard does not run benchmarks. It verifies that the accepted clean q20 CPU
 summary is clean-worktree evidence, points raw payloads at ignored
 `benchmarks/mklq/results/` files, rejects cross-machine claims, and keeps the
 tracked `qpp-cpu` over `mklq-cpu` ratios above the local evidence floor.
+
+## Metal Evidence Guard
+
+Use the static Metal guard when a change touches tracked `mklq-metal` summaries
+or public wording about the experimental Metal path:
+
+```bash
+python3 benchmarks/mklq/check_metal_evidence.py
+```
+
+The guard does not run benchmarks. It verifies that tracked Metal summaries are
+local tuning evidence, keep raw payloads under ignored
+`benchmarks/mklq/results/` paths, include successful `mklq-metal` rows, and
+state the mixed-path/resident/host-readback boundary instead of implying
+default-ready, release-ready, or full Metal-native execution.
 
 ## Tracked Accepted Local Benchmark Evidence
 
