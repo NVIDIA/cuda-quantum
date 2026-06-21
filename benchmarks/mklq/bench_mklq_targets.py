@@ -38,6 +38,74 @@ TARGET_NOTES = {
     "mklq-metal":
         "Experimental mixed-path target: mklq_metal uses resident fp32 Metal single-target/two-target/probability-fill kernels, cost-gated resident full-register and marginal probability kernels for sampling, a measured-qubit probability-reduction kernel, and a resident measurement-collapse path with MKL-Q fp64 CPU-oracle fallback for unsupported paths; sample draw/count accumulation remains host-side, not full Metal GPU backend evidence.",
 }
+METAL_EVIDENCE_BOUNDARY = (
+    "benchmark harness static case-map label only; not a runtime counter, "
+    "release sign-off, or proof that every operation stayed on Metal")
+METAL_SINGLE_GATE_SCOPE = (
+    "resident fp32 Metal single-target gate update followed by host readback "
+    "for cudaq.get_state")
+METAL_CONTROLLED_GATE_SCOPE = (
+    "resident fp32 Metal controlled gate update followed by host readback for "
+    "cudaq.get_state")
+METAL_TWO_QUBIT_SCOPE = (
+    "resident fp32 Metal two-target gate update followed by host readback for "
+    "cudaq.get_state")
+METAL_COMPOSITE_SCOPE = (
+    "experimental mklq-metal mixed-path composite state-vector update followed "
+    "by host readback for cudaq.get_state")
+METAL_SAMPLING_SCOPE = (
+    "mixed-path Metal probability fill with host-side sample draw/count "
+    "accumulation")
+METAL_SPARSE_SAMPLING_SCOPE = (
+    "mixed-path sparse or deterministic sampling with host-side count "
+    "accumulation")
+METAL_PATH_CASES = {
+    "gate-state": ("mklq_metal_mixed_gate_state_host_readback",
+                   METAL_COMPOSITE_SCOPE),
+    "single-qubit-state":
+        ("mklq_metal_resident_single_gate_state_host_readback",
+         METAL_SINGLE_GATE_SCOPE),
+    "h-state": ("mklq_metal_resident_single_gate_state_host_readback",
+                METAL_SINGLE_GATE_SCOPE),
+    "y-state": ("mklq_metal_resident_single_gate_state_host_readback",
+                METAL_SINGLE_GATE_SCOPE),
+    "rx-state": ("mklq_metal_resident_single_gate_state_host_readback",
+                 METAL_SINGLE_GATE_SCOPE),
+    "ry-state": ("mklq_metal_resident_single_gate_state_host_readback",
+                 METAL_SINGLE_GATE_SCOPE),
+    "rz-state": ("mklq_metal_resident_single_gate_state_host_readback",
+                 METAL_SINGLE_GATE_SCOPE),
+    "controlled-state":
+        ("mklq_metal_mixed_controlled_gate_state_host_readback",
+         METAL_CONTROLLED_GATE_SCOPE),
+    "ch-state": ("mklq_metal_resident_controlled_gate_state_host_readback",
+                 METAL_CONTROLLED_GATE_SCOPE),
+    "cy-state": ("mklq_metal_resident_controlled_gate_state_host_readback",
+                 METAL_CONTROLLED_GATE_SCOPE),
+    "crx-state": ("mklq_metal_resident_controlled_gate_state_host_readback",
+                  METAL_CONTROLLED_GATE_SCOPE),
+    "cry-state": ("mklq_metal_resident_controlled_gate_state_host_readback",
+                  METAL_CONTROLLED_GATE_SCOPE),
+    "crz-state": ("mklq_metal_resident_controlled_gate_state_host_readback",
+                  METAL_CONTROLLED_GATE_SCOPE),
+    "cz-state": ("mklq_metal_resident_controlled_gate_state_host_readback",
+                 METAL_CONTROLLED_GATE_SCOPE),
+    "two-qubit-state": ("mklq_metal_resident_two_gate_state_host_readback",
+                        METAL_TWO_QUBIT_SCOPE),
+    "qft-like-state": ("mklq_metal_mixed_composite_state_host_readback",
+                       METAL_COMPOSITE_SCOPE),
+    "seeded-clifford-state":
+        ("mklq_metal_mixed_composite_state_host_readback",
+         METAL_COMPOSITE_SCOPE),
+    "sample-basis": ("mklq_metal_sparse_sampling_host_counts",
+                     METAL_SPARSE_SAMPLING_SCOPE),
+    "sample-ghz": ("mklq_metal_sparse_sampling_host_counts",
+                   METAL_SPARSE_SAMPLING_SCOPE),
+    "sample-full-register": ("mklq_metal_mixed_sampling_host_counts",
+                             METAL_SAMPLING_SCOPE),
+    "sample-partial-register": ("mklq_metal_mixed_sampling_host_counts",
+                                METAL_SAMPLING_SCOPE),
+}
 
 
 def default_targets_for_platform(system: str | None = None,
@@ -47,6 +115,23 @@ def default_targets_for_platform(system: str | None = None,
   if system == "Darwin" and machine in {"arm64", "aarch64"}:
     return list(APPLE_SILICON_TARGETS)
   return list(PORTABLE_DEFAULT_TARGETS)
+
+
+def metal_path_metrics(target: str, case: str) -> dict[str, Any]:
+  if target != "mklq-metal":
+    return {}
+  label, scope = METAL_PATH_CASES.get(
+      case, ("mklq_metal_experimental_mixed_path", METAL_COMPOSITE_SCOPE))
+  return {
+      "metal_path_label": label,
+      "metal_path_scope": scope,
+      "metal_path_label_source": "benchmark_harness_static_case_map",
+      "metal_evidence_boundary": METAL_EVIDENCE_BOUNDARY,
+      "metal_full_native": False,
+      "metal_runtime_counter": False,
+  }
+
+
 SINGLE_GATE_STATE_CASES = {
     "h-state": ("h", "h_gate_count", "h_gate_state_throughput_per_second"),
     "y-state": ("y", "y_gate_count", "y_gate_state_throughput_per_second"),
@@ -559,7 +644,7 @@ def result_template(target: str, case: str, qubits: int, shots: int,
       "repeats": repeats,
       "estimated_state_bytes": estimated_state_bytes(qubits),
       "status": "planned",
-      "metrics": {},
+      "metrics": metal_path_metrics(target, case),
   }
 
 
@@ -789,6 +874,7 @@ def run_case(cudaq: Any, target: str, case: str, qubits: int, shots: int,
     else:
       raise ValueError(f"unsupported benchmark case: {case}")
 
+    metrics.update(metal_path_metrics(target, case))
     metrics["process_max_rss_bytes_cumulative"] = process_max_rss_bytes()
     row["metrics"] = metrics
   except Exception as exc:

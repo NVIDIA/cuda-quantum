@@ -17,7 +17,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Install-prefix Python smoke | `PYTHONPATH="${HOME}/.cudaq-mklq" python3 -m pytest ... -q` | Installed Python package target behavior | C++ `nvq++` behavior unless the nvq++ smoke also runs |
 | TargetConfig `ctest` | `ctest --test-dir build-python -R "(mklq_(cpu|metal)_MKLQ|backend_target_setter_check|TargetConfigTester)" --output-on-failure` | MKL-Q backend gtests, target config tests, target setter checks selected by the regex | Every CUDA-Q target test |
 | Benchmark dry run | `python3 benchmarks/mklq/bench_mklq_targets.py --dry-run ...` | Benchmark planning, schema, case expansion, row metadata | Runtime performance |
-| Clean CPU benchmark | `python3 benchmarks/mklq/run_clean_cpu_benchmark.py --pythonpath "${HOME}/.cudaq-mklq" --stamp YYYY-MM-DD` | Clean-worktree local qpp-cpu vs mklq-cpu benchmark evidence and sanitized report regeneration | Release certification or results on another machine |
+| Clean CPU benchmark | `python3 benchmarks/mklq/run_clean_cpu_benchmark.py --pythonpath "${HOME}/.cudaq-mklq" --stamp YYYY-MM-DD` | Clean-worktree local qpp-cpu vs mklq-cpu benchmark evidence and sanitized report regeneration | Release sign-off or results on another machine |
 
 ## Test Artifacts
 
@@ -39,7 +39,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | `benchmarks/mklq/check_metal_evidence.py` | Static Metal evidence guard | Checks tracked `mklq-metal` sanitized summaries for local tuning provenance, ignored raw payload paths, successful Metal rows, and mixed-path/resident/host-readback wording |
 | `benchmarks/mklq/run_public_healthcheck.py` | Public maintenance health check | Aggregates local public hygiene checks, summary parse, helper compile, markdown link checks, benchmark evidence regeneration comparison, optional build/correctness/benchmark gates |
 | `examples/mklq/` | Public getting-started examples | Python and C++ Bell/GHZ, parameterized rotation, controlled-phase kickback, and deterministic Clifford-chain examples for `mklq-cpu` and `mklq-metal`; Python examples and `verify_examples.py` are syntax-checked by public healthcheck, and `--full` runs the examples locally |
-| `benchmarks/mklq/bench_mklq_targets.py` | Target benchmark harness | Local timing rows for gate/state/sampling cases, QFT-like composite rows, seeded Clifford stress rows, and target notes |
+| `benchmarks/mklq/bench_mklq_targets.py` | Target benchmark harness | Local timing rows for gate/state/sampling cases, QFT-like composite rows, seeded Clifford stress rows, target notes, and static `mklq-metal` path-boundary labels |
 | `benchmarks/mklq/bench_probability_kernels.py` | Probability microbenchmark | Local dense probability kernel experiment data and schema |
 | `benchmarks/mklq/make_summary.py` | Summary sanitizer | Converts raw local benchmark JSON to public summary JSON |
 | `benchmarks/mklq/summarize_reports.py` | Public evidence index renderer | Builds `docs/mklq/benchmark-evidence.md` from sanitized summaries |
@@ -55,7 +55,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | CPU state-vector correctness | `test_mklq_cpu_correctness_fixtures.py`, `test_mklq_targets.py`, `MKLQCpuTester.cpp` | CPU gate semantics, sampling, state import/export, error handling, hot paths | Broader noise and full CUDA-Q backend parity are not covered |
 | CPU performance-sensitive paths | `MKLQCpuTester.cpp`, `bench_mklq_targets.py`, clean CPU benchmark summaries | Single-qubit, controlled single-qubit, selected two-qubit, QFT-like composite, seeded Clifford, probability, sampling fast paths | Benchmark evidence is local machine evidence only |
 | Metal resident gate paths | `test_mklq_metal_correctness_fixtures.py`, `MKLQMetalTester.cpp` | Resident single-target/two-target/control gate kernels | Does not prove full GPU residency for every operation |
-| Metal probability/sampling paths | `MKLQMetalTester.cpp`, `bench_mklq_targets.py`, sanitized summaries | Full-register probability fill, marginal probability, sampling path labels | Sample draw/count accumulation remains host-side |
+| Metal probability/sampling paths | `MKLQMetalTester.cpp`, `bench_mklq_targets.py`, sanitized summaries | Full-register probability fill, marginal probability, sampling path labels, and static harness path-boundary labels | Sample draw/count accumulation remains host-side; static labels are not runtime counters |
 | Metal measurement/reset | `test_mklq_metal_correctness_fixtures.py`, `MKLQMetalTester.cpp`, `mklq_runtime_smoke.cpp` | Resident measured-qubit reduction, collapse, reset, mid-circuit behavior | Fixture coverage is finite and tolerance-based |
 | Benchmark tooling | `test_mklq_benchmark_harness.py`, benchmark helper `py_compile`, summary JSON parse, `check_performance_evidence.py`, `check_metal_evidence.py` | Benchmark case/schema/report changes, tracked clean CPU evidence quality, and tracked experimental Metal evidence boundary quality | Does not prove current runtime speed unless real benchmark rows run |
 | Public release hygiene | `.github/workflows/mklq-public-hygiene.yml`, `run_public_healthcheck.py`, `public-release-checklist.md` | Public metadata, docs, tracked artifact policy, example file presence, local healthcheck composition, static clean CPU evidence guard, static Metal evidence boundary guard | Does not build or run Apple Silicon backend tests unless `run_public_healthcheck.py --full --require-clean` is used locally |
@@ -84,7 +84,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 - No claim of complete upstream CUDA-Q backend parity.
 - No broad noise-model validation for MKL-Q targets.
 - No distributed simulation, multi-GPU, or remote QPU validation.
-- No full Metal-native guarantee for `mklq-metal`; unsupported paths may fall
+- No guarantee that every operation stays on Metal for `mklq-metal`; unsupported paths may fall
   back to the MKL-Q fp64 CPU oracle.
 - No cross-machine performance certification from tracked benchmark summaries.
 

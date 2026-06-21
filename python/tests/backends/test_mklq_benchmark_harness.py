@@ -258,13 +258,19 @@ def test_mklq_summary_generator_builds_sanitized_summary(tmp_path):
 def test_mklq_summary_generator_accepts_extra_interpretation_fields(tmp_path):
     module = _load_summary_generator_module()
     raw_path = tmp_path / "metal.json"
+    metal_row = _benchmark_row("mklq-metal", "qft-like-state", 2.0)
+    metal_row["metrics"].update({
+        "metal_path_label": "mklq_metal_mixed_composite_state_host_readback",
+        "metal_path_label_source": "benchmark_harness_static_case_map",
+        "metal_full_native": False,
+        "metal_runtime_counter": False,
+    })
     raw_path.write_text(json.dumps(
         _raw_benchmark_report(cases=["qft-like-state"],
                               results=[
                                   _benchmark_row("qpp-cpu", "qft-like-state",
                                                  10.0),
-                                  _benchmark_row("mklq-metal",
-                                                 "qft-like-state", 2.0),
+                                  metal_row,
                               ])),
                         encoding="utf-8")
 
@@ -294,6 +300,15 @@ def test_mklq_summary_generator_accepts_extra_interpretation_fields(tmp_path):
     assert ratios["qpp_cpu_over_mklq_metal_qft_like_state_q20"] == 5.0
     elapsed = summary["comparison"]["mklq_metal_elapsed_seconds_median"]
     assert elapsed["qft_like_state_q20"] == 2.0
+    metal_summary_row = [
+        row for row in summary["rows"] if row["target"] == "mklq-metal"
+    ][0]
+    assert metal_summary_row["metal_path_label"] == (
+        "mklq_metal_mixed_composite_state_host_readback")
+    assert metal_summary_row["metal_path_label_source"] == (
+        "benchmark_harness_static_case_map")
+    assert metal_summary_row["metal_full_native"] is False
+    assert metal_summary_row["metal_runtime_counter"] is False
 
 
 def test_mklq_summary_generator_rejects_dirty_by_default(tmp_path):
@@ -1441,6 +1456,54 @@ def test_mklq_benchmark_dry_run_accepts_single_qubit_case(tmp_path):
     assert rows[0]["estimated_state_bytes"] == 16 * (1 << 3)
 
 
+def test_mklq_benchmark_dry_run_records_metal_path_metadata(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-metal-paths.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-metal",
+        "--cases",
+        "y-state,cy-state,qft-like-state,sample-full-register",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    rows = {
+        row["case"]: row
+        for row in report["results"]
+    }
+
+    assert rows["y-state"]["metrics"]["metal_path_label"] == (
+        "mklq_metal_resident_single_gate_state_host_readback")
+    assert rows["cy-state"]["metrics"]["metal_path_label"] == (
+        "mklq_metal_resident_controlled_gate_state_host_readback")
+    assert rows["qft-like-state"]["metrics"]["metal_path_label"] == (
+        "mklq_metal_mixed_composite_state_host_readback")
+    assert rows["sample-full-register"]["metrics"]["metal_path_label"] == (
+        "mklq_metal_mixed_sampling_host_counts")
+    for row in rows.values():
+        metrics = row["metrics"]
+        assert metrics["metal_path_label_source"] == (
+            "benchmark_harness_static_case_map")
+        assert metrics["metal_full_native"] is False
+        assert metrics["metal_runtime_counter"] is False
+        assert "not a runtime counter" in metrics["metal_evidence_boundary"]
+
+
 def test_mklq_benchmark_dry_run_accepts_single_gate_cases(tmp_path):
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
@@ -1572,6 +1635,69 @@ def test_mklq_benchmark_single_gate_cases_record_gate_specific_metrics(
         assert metrics[throughput_key] == 24
         assert metrics["process_max_rss_bytes_cumulative"] == 4096
         assert len(fake_cudaq.kernels) == 1
+
+
+def test_mklq_benchmark_run_case_records_metal_path_metrics(monkeypatch):
+    module = _load_benchmark_module()
+
+    class FakeKernel:
+
+        def qalloc(self, qubits):
+            return list(range(qubits))
+
+        def ry(self, theta, target):
+            pass
+
+        def rz(self, theta, target):
+            pass
+
+        def y(self, target):
+            pass
+
+    class FakeCudaq:
+
+        def reset_target(self):
+            pass
+
+        def set_target(self, target):
+            assert target == "mklq-metal"
+
+        def set_random_seed(self, seed):
+            assert seed == 13
+
+        def make_kernel(self):
+            return FakeKernel()
+
+        def get_state(self, kernel):
+            return object()
+
+    def fake_timed_repeats(action, repeats):
+        action()
+        return [0.25]
+
+    monkeypatch.setattr(module, "timed_repeats", fake_timed_repeats)
+    monkeypatch.setattr(module, "process_max_rss_bytes", lambda: 4096)
+
+    row = module.run_case(FakeCudaq(),
+                          "mklq-metal",
+                          "y-state",
+                          qubits=3,
+                          shots=16,
+                          repeats=1,
+                          warmups=0,
+                          layers=2)
+
+    assert row["status"] == "ok"
+    metrics = row["metrics"]
+    assert metrics["metal_path_label"] == (
+        "mklq_metal_resident_single_gate_state_host_readback")
+    assert metrics["metal_path_scope"] == (
+        "resident fp32 Metal single-target gate update followed by host "
+        "readback for cudaq.get_state")
+    assert metrics["metal_path_label_source"] == (
+        "benchmark_harness_static_case_map")
+    assert metrics["metal_full_native"] is False
+    assert metrics["metal_runtime_counter"] is False
 
 
 def test_mklq_benchmark_dry_run_accepts_controlled_gate_cases(tmp_path):

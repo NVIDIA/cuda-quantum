@@ -22,6 +22,11 @@ MKL-Q fp64 CPU oracle after synchronizing host state, and sample draw/count
 accumulation remains host-side.
 Treat `mklq-metal` benchmark rows as mixed-path evidence, not full Metal GPU
 backend performance.
+New benchmark rows for `mklq-metal` include conservative `metal_path_label`,
+`metal_path_scope`, `metal_path_label_source`, `metal_runtime_counter`, and
+`metal_full_native` metrics. These labels come from the benchmark harness static
+case map; they describe the benchmark case boundary and are not runtime
+counters or release sign-off.
 
 ## Dry Run
 
@@ -92,6 +97,8 @@ The JSON report includes:
   warmups
 - per-row measurements: elapsed time, throughput/latency, estimated state bytes,
   and cumulative process max RSS
+- for `mklq-metal` rows, conservative static path labels that state the
+  mixed-path/resident/host boundary without implying all-Metal execution
 
 `single-qubit-state`, `h-state`, `y-state`, `rx-state`, `ry-state`,
 `rz-state`,
@@ -218,7 +225,7 @@ The guard does not run benchmarks. It verifies that tracked Metal summaries are
 local tuning evidence, keep raw payloads under ignored
 `benchmarks/mklq/results/` paths, include successful `mklq-metal` rows, and
 state the mixed-path/resident/host-readback boundary instead of implying
-default-ready, release-ready, or full Metal-native execution.
+default status, release status, or all-Metal execution.
 
 ## Tracked Accepted Local Benchmark Evidence
 

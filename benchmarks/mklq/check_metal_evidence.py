@@ -186,6 +186,18 @@ def check_summary(summary: dict[str, Any]) -> dict[str, Any]:
     non_ok = [row for row in metal_rows if row.get("status") != "ok"]
     if non_ok:
         failures.append(f"{METAL_TARGET} rows contain non-ok benchmark status")
+    for index, row in enumerate(metal_rows):
+        if row.get("metal_full_native") is True:
+            failures.append(f"{METAL_TARGET} row {index} claims full Metal-native")
+        failures.extend(
+            forbidden_claim_failures({
+                f"{METAL_TARGET} row {index} metal_path_label":
+                    str(row.get("metal_path_label", "")),
+                f"{METAL_TARGET} row {index} metal_path_scope":
+                    str(row.get("metal_path_scope", "")),
+                f"{METAL_TARGET} row {index} metal_evidence_boundary":
+                    str(row.get("metal_evidence_boundary", "")),
+            }))
 
     status = "passed" if not failures else "failed"
     return {
