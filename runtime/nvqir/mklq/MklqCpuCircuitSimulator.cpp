@@ -537,6 +537,14 @@ protected:
     return ((value & ~lowMask) << 1) | (value & lowMask);
   }
 
+  static std::size_t indexWithTwoZeroBits(std::size_t block,
+                                          std::size_t firstBit,
+                                          std::size_t secondBit) {
+    const auto first = std::min(firstBit, secondBit);
+    const auto second = std::max(firstBit, secondBit);
+    return insertZeroBit(insertZeroBit(block, first), second);
+  }
+
   void applySingleQubitGate(const std::vector<complexd> &matrix,
                             const std::vector<std::size_t> &controls,
                             std::size_t target, std::string_view operationName,
@@ -794,9 +802,7 @@ protected:
   std::size_t
   indexWithTwoZeroTargetBits(std::size_t block,
                              const std::vector<std::size_t> &targets) const {
-    const auto first = std::min(targets[0], targets[1]);
-    const auto second = std::max(targets[0], targets[1]);
-    return insertZeroBit(insertZeroBit(block, first), second);
+    return indexWithTwoZeroBits(block, targets[0], targets[1]);
   }
 
   void applyTwoQubitGate(const std::vector<complexd> &matrix,
@@ -899,6 +905,28 @@ protected:
   void applyZPhaseGate(const std::vector<std::size_t> &controls,
                        std::size_t target) {
     const auto mask = qubitMask(target);
+    if (controls.size() == 1) {
+      const auto control = controls[0];
+      const auto phaseMask = mask | qubitMask(control);
+      const auto blockCount = stateDimension >> 2;
+
+#if defined(_OPENMP)
+      const auto threadCount = parallelThreadCount();
+#pragma omp parallel for num_threads(                                          \
+        threadCount) if (threadCount > 1 &&                                    \
+                             stateDimension >= parallelStateThreshold)
+#endif
+      for (std::size_t block = 0; block < blockCount; ++block) {
+        const auto basis =
+            indexWithTwoZeroBits(block, target, control) | phaseMask;
+        state[basis] = -state[basis];
+      }
+
+#if defined(MKLQ_ENABLE_TEST_ACCESSORS)
+      ++phaseApplications;
+#endif
+      return;
+    }
 
 #if defined(_OPENMP)
     const auto threadCount = parallelThreadCount();
