@@ -36,6 +36,7 @@ jobs:
           test -f docs/mklq/known-limitations.md
           test -f docs/mklq/public-release-checklist.md
           test -f docs/mklq/developer-workflow.md
+          test -f .github/pull_request_template.md
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
           grep -q 'mklq-metal' docs/mklq/known-limitations.md
           grep -q 'source-only' docs/mklq/known-limitations.md
@@ -46,6 +47,10 @@ jobs:
           grep -q 'Correctness Gates' docs/mklq/developer-workflow.md
           grep -q 'Benchmark Evidence' docs/mklq/developer-workflow.md
           grep -q 'Public Hygiene' docs/mklq/developer-workflow.md
+          grep -q 'Compatibility Boundary' .github/pull_request_template.md
+          grep -q 'Benchmark Evidence' .github/pull_request_template.md
+          grep -q 'Public Hygiene' .github/pull_request_template.md
+          grep -q 'mklq-metal' .github/pull_request_template.md
           grep -q 'not a release certification' docs/mklq/validation.md
           python3 - <<'PY'
           from pathlib import Path
@@ -65,6 +70,7 @@ jobs:
               Path("docs/mklq/known-limitations.md"),
               Path("docs/mklq/public-release-checklist.md"),
               Path("docs/mklq/developer-workflow.md"),
+              Path(".github/pull_request_template.md"),
           ]
           paths.extend(path for path in Path(".github").rglob("*") if path.is_file())
           failures = []
