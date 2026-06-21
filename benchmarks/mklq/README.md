@@ -141,9 +141,18 @@ By default, the script exits nonzero if any benchmark row has `status != "ok"`.
 Use `--allow-errors` only when collecting partial data from experimental
 targets.
 
-Use larger qubit counts and repeats only after correctness gates are green.
-When preserving rejected tuning runs, label them clearly and keep them separate
-from the local baseline so they are not read as performance evidence.
+Use larger qubit counts and repeats only after correctness gates are green. To
+run the local aggregate correctness gate before collecting benchmark evidence:
+
+```bash
+python3 benchmarks/mklq/run_correctness_gate.py \
+  --install-prefix "${HOME}/.cudaq-mklq" \
+  --build-dir build-python
+```
+
+The gate writes ignored local JSON under `benchmarks/mklq/results/`. When
+preserving rejected tuning runs, label them clearly and keep them separate from
+the local baseline so they are not read as performance evidence.
 
 ## Tracked Accepted Local Benchmark Evidence
 

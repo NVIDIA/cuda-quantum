@@ -87,4 +87,5 @@ jobs:
             benchmarks/mklq/bench_probability_kernels.py \
             benchmarks/mklq/make_summary.py \
             benchmarks/mklq/run_clean_cpu_benchmark.py \
+            benchmarks/mklq/run_correctness_gate.py \
             benchmarks/mklq/summarize_reports.py

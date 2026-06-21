@@ -70,6 +70,39 @@ PYTHONPATH=/Users/a0000/Documents/MKL-Q/tpls/llvm/llvm/utils/lit \
 
 Result: 2 selected MKL-Q TargetConfig tests passed.
 
+## One-command Correctness Gate
+
+Use the local correctness gate wrapper to run the install-prefix Python smoke
+tests, the `nvq++` smoke tests, and the build-tree TargetConfig `ctest` gate in
+one command:
+
+```bash
+python3 benchmarks/mklq/run_correctness_gate.py \
+  --install-prefix "${HOME}/.cudaq-mklq" \
+  --build-dir build-python
+```
+
+The default JSON output path is ignored by Git:
+`benchmarks/mklq/results/local-correctness-gate-<date>.json`. Use
+`--plan-only` to inspect the exact commands and environment without running the
+gate:
+
+```bash
+python3 benchmarks/mklq/run_correctness_gate.py \
+  --install-prefix "${HOME}/.cudaq-mklq" \
+  --build-dir build-python \
+  --plan-only
+```
+
+For build-tree-only experiments, override the runtime paths explicitly:
+
+```bash
+python3 benchmarks/mklq/run_correctness_gate.py \
+  --pythonpath /Users/a0000/Documents/MKL-Q/build-python/python \
+  --nvqpp /Users/a0000/Documents/MKL-Q/build-python/bin/nvq++ \
+  --build-dir build-python
+```
+
 ## Repository Hygiene Gate
 
 ```bash

@@ -69,6 +69,17 @@ def _load_clean_benchmark_gate_module():
     return module
 
 
+def _load_correctness_gate_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "run_correctness_gate.py"
+    spec = importlib.util.spec_from_file_location("run_correctness_gate",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _raw_benchmark_report(dirty=False, cases=None, results=None):
     cases = cases or ["y-state"]
     results = results or []
@@ -324,6 +335,98 @@ def test_mklq_clean_cpu_gate_skip_benchmark_runs_summary_only(monkeypatch,
     assert calls[1][0] == module.build_plan(config)["commands"]["evidence"]
     assert calls[0][1]["OMP_NUM_THREADS"] == "10"
     assert calls[0][2] == tmp_path
+
+
+def _correctness_gate_config(module, tmp_path):
+    return module.CorrectnessGateConfig(
+        repo_root=tmp_path,
+        pythonpath="/tmp/cudaq-runtime",
+        nvqpp=Path("/tmp/cudaq-runtime/bin/nvq++"),
+        build_dir=tmp_path / "build-python",
+        output=tmp_path / "correctness-gate.json",
+        stamp="2026-06-21",
+        python_executable="/usr/bin/python3",
+        timeout_seconds=123,
+        tail_chars=80,
+        skip_python=False,
+        skip_nvqpp=False,
+        skip_ctest=False,
+    )
+
+
+def test_mklq_correctness_gate_plan_lists_expected_steps(tmp_path):
+    module = _load_correctness_gate_module()
+    config = _correctness_gate_config(module, tmp_path)
+
+    plan = module.build_plan(config)
+
+    assert plan["schema_version"] == "mklq-correctness-gate-v1"
+    assert plan["environment"] == {
+        "PYTHONPATH": "/tmp/cudaq-runtime",
+        "CUDAQ_NVQPP": "/tmp/cudaq-runtime/bin/nvq++",
+    }
+    assert [step["name"] for step in plan["steps"]] == [
+        "python_target_smoke",
+        "nvqpp_smoke",
+        "target_config_ctest",
+    ]
+    assert "python/tests/backends/test_mklq_python_api.py" in plan["steps"][0][
+        "command"]
+    assert "python/tests/builder/test_mklq_targets.py" in plan["steps"][0][
+        "command"]
+    assert "python/tests/backends/test_mklq_nvqpp_smoke.py" in plan["steps"][
+        1]["command"]
+    assert plan["steps"][2]["command"][0] == "ctest"
+    assert plan["steps"][2]["command"][plan["steps"][2]["command"].index("-R") +
+                                      1] == module.TARGET_CONFIG_REGEX
+
+
+def test_mklq_correctness_gate_writes_json_summary(monkeypatch, tmp_path):
+    module = _load_correctness_gate_module()
+    config = _correctness_gate_config(module, tmp_path)
+    calls = []
+
+    def fake_run(command, cwd, env, capture_output, text, timeout):
+        calls.append({
+            "command": command,
+            "cwd": cwd,
+            "env": env,
+            "capture_output": capture_output,
+            "text": text,
+            "timeout": timeout,
+        })
+        return subprocess.CompletedProcess(command,
+                                           0,
+                                           stdout="ok\n",
+                                           stderr="")
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+    monkeypatch.setattr(module, "git_snapshot",
+                        lambda root: {
+                            "root": str(root),
+                            "branch": "test",
+                            "commit": "abc123",
+                            "dirty": False,
+                            "status_short": [],
+                        })
+
+    report = module.run_gate(config, plan_only=False)
+    written = json.loads(config.output.read_text(encoding="utf-8"))
+
+    assert report["summary"] == {
+        "status": "passed",
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0,
+    }
+    assert written["summary"] == report["summary"]
+    assert [call["command"] for call in calls] == [
+        step["command"] for step in module.build_plan(config)["steps"]
+    ]
+    assert calls[0]["env"]["PYTHONPATH"] == "/tmp/cudaq-runtime"
+    assert calls[1]["env"]["CUDAQ_NVQPP"] == "/tmp/cudaq-runtime/bin/nvq++"
+    assert all(step["returncode"] == 0 for step in written["steps"])
+    assert all(step["stdout_tail"] == "ok\n" for step in written["steps"])
 
 
 def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
