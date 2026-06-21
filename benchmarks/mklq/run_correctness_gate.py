@@ -93,6 +93,7 @@ def step_plan(config: CorrectnessGateConfig) -> list[dict[str, Any]]:
                 "pytest",
                 "python/tests/backends/test_mklq_python_api.py",
                 "python/tests/backends/test_mklq_cpu_correctness_fixtures.py",
+                "python/tests/backends/test_mklq_metal_correctness_fixtures.py",
                 "python/tests/builder/test_mklq_targets.py",
                 "-q",
             ],
