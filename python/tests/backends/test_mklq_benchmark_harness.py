@@ -1441,14 +1441,14 @@ def test_mklq_benchmark_summary_records_clean_cpu_evidence():
     assert summary["evidence_kind"] == "clean_local_benchmark_evidence"
     assert summary["summary_id"] == "local-clean-cpu-q20-2026-06-21"
     assert summary["git"]["commit"] == (
-        "4b112725f557f537d314d7554879cca39d6b14d5")
+        "8946ad33679f60d7c22dc55415fc60b048ef614c")
     assert summary["git"]["dirty"] is False
     assert summary["interpretation"]["clean_worktree"] is True
     assert summary["raw_results"][0]["sha256"] == (
-        "ebc3d0671c1c3009fce77c2b6d54e25e7589778e0adf40a2cc83f2f546aa7ce9")
+        "fe2c7b1f755924fc8ba8034e8c1cf0743dd11f6a0d965487578f76e0b5d9ce75")
     assert summary["raw_results"][0]["status_rows"] == {"ok": 4}
     assert summary["raw_results"][1]["sha256"] == (
-        "8bac8a02ec19503c569ac2e953fe633e85aa43e78a80418ff8a1b6334772ca1e")
+        "98e06439cb50fdc1dac435ce2bccb50ca570c1086603533964f0ea5b0342123c")
     assert summary["raw_results"][1]["status_rows"] == {"ok": 8}
     assert summary["machine"]["cpu_brand"] == "Apple M5"
     assert summary["config"]["targets"] == ["qpp-cpu", "mklq-cpu"]
@@ -1468,15 +1468,15 @@ def test_mklq_benchmark_summary_records_clean_cpu_evidence():
     }
     assert len(rows) == 12
     assert rows[("mklq-cpu", "y-state", 1024)][
-        "elapsed_seconds_median"] == 0.053900624508969486
+        "elapsed_seconds_median"] == 0.04293774999678135
     assert rows[("mklq-cpu", "sample-partial-register", 65536)][
-        "elapsed_seconds_median"] == 0.011505229005706497
+        "elapsed_seconds_median"] == 0.01156941699446179
     ratios = summary["comparison"]["clean_worktree_cross_target_ratio"]
     assert ratios["qpp_cpu_over_mklq_cpu_y_state_q20"] == pytest.approx(
-        96.80846823274014)
+        119.15527130259608)
     assert ratios[
         "qpp_cpu_over_mklq_cpu_sample_partial_register_q20_65536_shots"
-    ] == pytest.approx(99.64972043797643)
+    ] == pytest.approx(95.36529407930513)
 
 
 def test_mklq_benchmark_summary_records_sanitized_sampling_evidence():

@@ -127,12 +127,14 @@ The latest public local validation evidence is recorded in
 
 - latest validation refresh date: 2026-06-21;
 - source commit used for the latest runtime validation gate:
-  `9dbbfde78ec9ead9d6602c0016ba69e2a3eea305`;
+  `8946ad33679f60d7c22dc55415fc60b048ef614c`;
 - install-prefix build: passed;
 - one-command correctness gate: passed;
 - `python_target_smoke`: `49 passed`;
 - `nvqpp_smoke`: `2 passed`;
 - `target_config_ctest`: `63/63 passed`.
+- clean CPU benchmark gate: passed with 12 q20 `qpp-cpu`/`mklq-cpu` rows and
+  12 rows reporting `status == "ok"`.
 
 This evidence is local Apple Silicon evidence. It is useful for source bootstrap
 confidence, but it is not hosted CI, release certification, or cross-machine

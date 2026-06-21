@@ -17,10 +17,11 @@ boundary and evidence limits.
 
 Latest local validation refresh: 2026-06-21.
 
-The install-prefix build and one-command correctness gate were run against
-source commit `9dbbfde78ec9ead9d6602c0016ba69e2a3eea305` before this
-documentation-only validation note was committed. This refresh does not change
-runtime, target, build, benchmark, or test code.
+The install-prefix build, one-command correctness gate, and clean CPU benchmark
+gate were run against source commit
+`8946ad33679f60d7c22dc55415fc60b048ef614c` before this documentation-only
+validation note was committed. This refresh does not change runtime, target,
+build, benchmark, or test code.
 
 Raw wrapper output was written to ignored local path
 `benchmarks/mklq/results/local-correctness-gate-2026-06-21.json` and is not
@@ -32,6 +33,8 @@ tracked as public evidence.
 - `python_target_smoke`: `49 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
+- Clean CPU benchmark gate: passed, with 12 q20 `qpp-cpu`/`mklq-cpu` rows and
+  12 rows reporting `status == "ok"`.
 
 ## Install-prefix Gate
 
@@ -105,8 +108,9 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-Latest local result: passed on 2026-06-21 with 3 wrapper steps passed, 0 failed,
-and 0 skipped. The step-level results were:
+Latest local result: passed on 2026-06-21 against
+`8946ad33679f60d7c22dc55415fc60b048ef614c` with 3 wrapper steps passed, 0
+failed, and 0 skipped. The step-level results were:
 
 - `python_target_smoke`: `49 passed`.
 - `nvqpp_smoke`: `2 passed`.
@@ -179,7 +183,9 @@ Current tracked summaries include:
 - `local-metal-y-cy-resident-isolated-q20-2026-06-19.summary.json`
 - `local-counts-only-sampling-shot-scaling-q20-2026-06-19.summary.json`
 
-These files now include one clean-worktree local benchmark summary plus older
-dirty-worktree tuning summaries. Interpret each file through its
-`evidence_kind` and `interpretation` fields. Do not treat any local summary as
-cross-machine performance certification.
+The clean-worktree local benchmark summary was refreshed against
+`8946ad33679f60d7c22dc55415fc60b048ef614c` on 2026-06-21. These files include
+one clean-worktree local benchmark summary plus older dirty-worktree tuning
+summaries. Interpret each file through its `evidence_kind` and `interpretation`
+fields. Do not treat any local summary as cross-machine performance
+certification.
