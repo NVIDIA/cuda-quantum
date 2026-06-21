@@ -21,8 +21,8 @@ The install-prefix build, full public healthcheck, one-command correctness
 gate, and public example smoke gate were last run against source commit
 `90b1ebe20b281411880e7704df5b4120692e4686` before this validation note was
 committed. The clean CPU benchmark summary was refreshed separately against
-`a18e6ab919bd76dffd497a50889efdbe407e218a` after adding `cz-state` to the clean
-evidence gate.
+`34f4b260d1c657ad626c526eed4e6b9d3a441be4` after adding QFT-like and seeded
+Clifford composite rows to the clean evidence gate.
 
 Raw wrapper output was written to ignored local paths
 `benchmarks/mklq/results/public-healthcheck-full-2026-06-21.json` and
@@ -35,13 +35,13 @@ not tracked as public evidence.
 - One-command correctness gate: passed, with 3 steps passed, 0 failed, and 0
   skipped.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
-- `benchmark_harness_tests`: `49 passed`.
+- `benchmark_harness_tests`: `52 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
-- Clean CPU benchmark gate: passed, with 14 q20 `qpp-cpu`/`mklq-cpu` rows and
-  14 rows reporting `status == "ok"`.
+- Clean CPU benchmark gate: passed, with 18 q20 `qpp-cpu`/`mklq-cpu` rows and
+  18 rows reporting `status == "ok"`.
 
 ## Install-prefix Gate
 
@@ -200,9 +200,10 @@ Current tracked summaries include:
 - `local-counts-only-sampling-shot-scaling-q20-2026-06-19.summary.json`
 
 The clean-worktree local benchmark summary was refreshed against
-`a18e6ab919bd76dffd497a50889efdbe407e218a` on 2026-06-21. The clean summary now
-includes `y-state`, `cy-state`, `cz-state`, full-register sampling, and
-partial-register sampling rows. These files include one clean-worktree local
-benchmark summary plus older dirty-worktree tuning summaries. Interpret each
-file through its `evidence_kind` and `interpretation` fields. Do not treat any
-local summary as cross-machine performance certification.
+`34f4b260d1c657ad626c526eed4e6b9d3a441be4` on 2026-06-21. The clean summary now
+includes `y-state`, `cy-state`, `cz-state`, `qft-like-state`,
+`seeded-clifford-state`, full-register sampling, and partial-register sampling
+rows. These files include one clean-worktree local benchmark summary plus older
+dirty-worktree tuning summaries. Interpret each file through its
+`evidence_kind` and `interpretation` fields. Do not treat any local summary as
+cross-machine performance certification.

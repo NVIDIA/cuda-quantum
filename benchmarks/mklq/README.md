@@ -245,21 +245,25 @@ The generated public index is tracked at
 - `reports/local-clean-cpu-q20-2026-06-21.summary.json`: tracked sanitized
   summary for ignored raw results
   `results/local-clean-cpu-gate-y-cy-cz-q20-2026-06-21.json`
-  (`sha256: 88d80b8aaa2d7e7339405646fe840fc96b7a22e3becb14aaadf63484aba31f6c`)
+  (`sha256: 2b438094b63bf0dda2a06be2785b75ca54fdb2c8b2fa74d6ba212b6fea832ef0`),
+  `results/local-clean-cpu-composite-qft-like-seeded-clifford-q20-2026-06-21.json`
+  (`sha256: b07b3ba92b83c0db12ad560ab650e3be035f543fb690dcb5ff946852e6eb423f`),
   and `results/local-clean-cpu-sampling-q20-2026-06-21.json`
-  (`sha256: 9cf9e40148dc338a8b60d1f6a2ae2cc03c0d299a0864b2a7e34372956fab51f4`).
+  (`sha256: 167b5c4adef8fa0da682e05c841f0475da0570bc50483739b71b8d6fcab2716a`).
   This run was collected from a clean worktree at
-  `a18e6ab919bd76dffd497a50889efdbe407e218a` with `qpp-cpu` and `mklq-cpu`
-  rows for `y-state`, `cy-state`, `cz-state`, `sample-full-register`, and
+  `34f4b260d1c657ad626c526eed4e6b9d3a441be4` with `qpp-cpu` and
+  `mklq-cpu` rows for `y-state`, `cy-state`, `cz-state`, `qft-like-state`,
+  `seeded-clifford-state`, `sample-full-register`, and
   `sample-partial-register` at q20 with `OMP_NUM_THREADS=10`,
   `OMP_PROC_BIND=close`, `OMP_DYNAMIC=false`, `VECLIB_MAXIMUM_THREADS=1`,
   `repeats=2`, `warmups=1`, and `layers=8` on Apple M5, 10 logical cores,
-  16 GB RAM, macOS 26.5.1. All 14 rows completed with `status == "ok"`.
+  16 GB RAM, macOS 26.5.1. All 18 rows completed with `status == "ok"`.
   In this local run, q20 median elapsed ratios for `qpp-cpu` over `mklq-cpu`
-  were 121.13x for `y-state`, 99.69x for `cy-state`, 122.79x for `cz-state`,
-  97.21x for `sample-full-register` at 1024 shots, 69.99x for
-  `sample-full-register` at 65536 shots, 107.11x for
-  `sample-partial-register` at 1024 shots, and 84.47x for
+  were 120.44x for `y-state`, 99.08x for `cy-state`, 121.47x for `cz-state`,
+  54.63x for `qft-like-state`, 97.56x for `seeded-clifford-state`,
+  139.93x for `sample-full-register` at 1024 shots, 106.66x for
+  `sample-full-register` at 65536 shots, 166.86x for
+  `sample-partial-register` at 1024 shots, and 120.60x for
   `sample-partial-register` at 65536 shots. Treat this as local
   clean-worktree CPU evidence, not as cross-machine performance certification.
 - `reports/local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json`:

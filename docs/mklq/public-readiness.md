@@ -132,14 +132,15 @@ The latest public local validation evidence is recorded in
 - full public healthcheck: passed with 13/13 steps passed;
 - one-command correctness gate: passed;
 - public example smoke gate: passed with 30/30 steps passed;
-- benchmark harness tests: `49 passed`;
+- benchmark harness tests: `52 passed`;
 - standalone install-prefix Python subset: `35 passed`;
 - `python_target_smoke`: `56 passed`;
 - `nvqpp_smoke`: `2 passed`;
 - `target_config_ctest`: `63/63 passed`.
-- clean CPU benchmark gate: passed with 14 q20 `qpp-cpu`/`mklq-cpu` rows,
-  including `cz-state`, and 14 rows reporting `status == "ok"` against
-  `a18e6ab919bd76dffd497a50889efdbe407e218a`.
+- clean CPU benchmark gate: passed with 18 q20 `qpp-cpu`/`mklq-cpu` rows,
+  including `cz-state`, `qft-like-state`, and `seeded-clifford-state`, with
+  18 rows reporting `status == "ok"` against
+  `34f4b260d1c657ad626c526eed4e6b9d3a441be4`.
 
 This evidence is local Apple Silicon evidence. It is useful for source bootstrap
 confidence, but it is not hosted CI, release certification, or cross-machine
