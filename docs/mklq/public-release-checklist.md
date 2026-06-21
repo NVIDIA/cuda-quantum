@@ -54,6 +54,8 @@ Check:
   current source-only release boundaries.
 - [ ] `docs/mklq/maintainer-runbook.md` is linked from the README and explains
   maintainer triage, validation, and recovery boundaries.
+- [ ] `docs/mklq/issue-labels.md` is linked from the README and matches
+  `.github/labels.yml`.
 - [ ] GitHub About metadata describes MKL-Q, uses Apache-2.0, and avoids stale
   NVIDIA workflow or badge links.
 

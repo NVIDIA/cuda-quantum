@@ -1,0 +1,36 @@
+# MKL-Q issue label taxonomy.
+#
+# This file documents the labels expected on the public GitHub repository. It is
+# not consumed by automation yet; maintainers apply it with GitHub CLI or API.
+
+- name: backend:cpu
+  color: "1d76db"
+  description: MKL-Q CPU backend correctness, runtime behavior, or performance.
+
+- name: backend:metal
+  color: "a371f7"
+  description: Experimental MKL-Q Metal backend or mixed Metal/CPU behavior.
+
+- name: build
+  color: "bfd4f2"
+  description: CMake, toolchain, install prefix, or source build problems.
+
+- name: performance
+  color: "f9d0c4"
+  description: Local benchmark evidence, performance regressions, or tuning.
+
+- name: docs
+  color: "0075ca"
+  description: Documentation, public metadata, runbooks, or examples.
+
+- name: upstream-sync
+  color: "fbca04"
+  description: Syncing, merging, or reviewing NVIDIA CUDA-Q upstream changes.
+
+- name: release-policy
+  color: "d93f0b"
+  description: Source-only policy, release artifacts, tags, wheels, or PyPI.
+
+- name: needs-repro
+  color: "d876e3"
+  description: Needs a minimal reproducer, environment details, or gate output.

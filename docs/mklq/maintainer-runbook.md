@@ -12,6 +12,7 @@ Use this page with:
 - [`upstream-sync.md`](upstream-sync.md) for pulling CUDA-Q upstream changes.
 - [`release-policy.md`](release-policy.md) before any tag, GitHub Release,
   wheel, PyPI package, installer, or signed artifact.
+- [`issue-labels.md`](issue-labels.md) for public GitHub triage labels.
 
 ## Maintainer Principles
 
@@ -77,6 +78,9 @@ Ask for the minimum useful reproduction data:
 Do not treat a local performance report as cross-machine certification. Route
 performance claims through sanitized benchmark summaries under
 `benchmarks/mklq/reports/`.
+
+Use [`issue-labels.md`](issue-labels.md) to apply area labels. Remove
+`needs-repro` only after the issue has enough information to reproduce or route.
 
 ## Pull Request Intake
 

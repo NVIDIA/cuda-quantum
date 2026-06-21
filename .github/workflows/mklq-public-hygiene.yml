@@ -41,6 +41,8 @@ jobs:
           test -f docs/mklq/public-release-checklist.md
           test -f docs/mklq/developer-workflow.md
           test -f docs/mklq/maintainer-runbook.md
+          test -f docs/mklq/issue-labels.md
+          test -f .github/labels.yml
           test -f .github/pull_request_template.md
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
           grep -q 'mklq-metal' docs/mklq/known-limitations.md
@@ -74,6 +76,12 @@ jobs:
           grep -q 'Pull Request Intake' docs/mklq/maintainer-runbook.md
           grep -q 'Release And Artifact Requests' docs/mklq/maintainer-runbook.md
           grep -q 'Recovery' docs/mklq/maintainer-runbook.md
+          grep -q 'Label Taxonomy' docs/mklq/issue-labels.md
+          grep -q 'needs-repro' docs/mklq/issue-labels.md
+          grep -q 'backend:cpu' .github/labels.yml
+          grep -q 'backend:metal' .github/labels.yml
+          grep -q 'release-policy' .github/labels.yml
+          grep -q 'needs-repro' .github/ISSUE_TEMPLATE/bug_report.yaml
           grep -q 'Compatibility Boundary' .github/pull_request_template.md
           grep -q 'Benchmark Evidence' .github/pull_request_template.md
           grep -q 'Public Hygiene' .github/pull_request_template.md

@@ -58,6 +58,8 @@
       `docs/mklq/public-release-checklist.md`.
 - [ ] Maintainer runbook impact was considered:
       `docs/mklq/maintainer-runbook.md`.
+- [ ] Issue label taxonomy impact was considered:
+      `docs/mklq/issue-labels.md`.
 
 ## Reviewer Notes
 
