@@ -19,7 +19,7 @@ Latest local validation refresh: 2026-06-21.
 
 The install-prefix build, full public healthcheck, one-command correctness
 gate, and public example smoke gate were last run against source commit
-`c03ec0eea8298a869466bba1daf9101b8eec59a4` before this validation note was
+`90b1ebe20b281411880e7704df5b4120692e4686` before this validation note was
 committed. The clean CPU benchmark summary was refreshed separately against
 `a18e6ab919bd76dffd497a50889efdbe407e218a` after adding `cz-state` to the clean
 evidence gate.
@@ -37,7 +37,7 @@ not tracked as public evidence.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
 - `benchmark_harness_tests`: `49 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
-- `python_target_smoke`: `49 passed`.
+- `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
 - Clean CPU benchmark gate: passed, with 14 q20 `qpp-cpu`/`mklq-cpu` rows and
@@ -120,10 +120,10 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 ```
 
 Latest local result: passed on 2026-06-21 against
-`c03ec0eea8298a869466bba1daf9101b8eec59a4` with 3 wrapper steps passed, 0
+`90b1ebe20b281411880e7704df5b4120692e4686` with 3 wrapper steps passed, 0
 failed, and 0 skipped. The step-level results were:
 
-- `python_target_smoke`: `49 passed`.
+- `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
 
