@@ -1,0 +1,247 @@
+{
+  "comparison": {
+    "mklq_metal_elapsed_seconds_median": {
+      "qft_like_state_q20": 1.2168069164908957,
+      "seeded_clifford_state_q20": 0.1892540624976391
+    },
+    "same_day_cross_target_ratio": {
+      "qpp_cpu_over_mklq_metal_qft_like_state_q20": 56.00286085980034,
+      "qpp_cpu_over_mklq_metal_seeded_clifford_state_q20": 70.49686868502366
+    }
+  },
+  "config": {
+    "cases": [
+      "qft-like-state",
+      "seeded-clifford-state"
+    ],
+    "commands": [
+      [
+        "benchmarks/mklq/bench_mklq_targets.py",
+        "--isolate-rows",
+        "--targets",
+        "qpp-cpu,mklq-cpu,mklq-metal",
+        "--cases",
+        "qft-like-state,seeded-clifford-state",
+        "--qubits",
+        "20",
+        "--shots",
+        "1024",
+        "--repeats",
+        "2",
+        "--warmups",
+        "1",
+        "--layers",
+        "8",
+        "--output",
+        "benchmarks/mklq/results/local-metal-composite-mixed-path-q20-2026-06-21.json"
+      ]
+    ],
+    "isolate_rows": true,
+    "layers": 8,
+    "qubits": [
+      20
+    ],
+    "repeats": 2,
+    "shot_counts": [
+      1024
+    ],
+    "shots": 1024,
+    "targets": [
+      "qpp-cpu",
+      "mklq-cpu",
+      "mklq-metal"
+    ],
+    "warmups": 1
+  },
+  "environment": {
+    "DYLD_LIBRARY_PATH": null,
+    "MKL_NUM_THREADS": null,
+    "OMP_DYNAMIC": "false",
+    "OMP_NUM_THREADS": "10",
+    "OMP_PLACES": null,
+    "OMP_PROC_BIND": "close",
+    "PYTHONPATH": "/Users/a0000/.cudaq-mklq",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "evidence_kind": "local_tuning_evidence",
+  "git": {
+    "branch": "codex/mklq-metal-composite-evidence",
+    "commit": "b132e6c685c47132e729f2d91b6b24e061d69511",
+    "dirty": true,
+    "root": "/Users/a0000/Documents/MKL-Q",
+    "status_short": [
+      "M benchmarks/mklq/make_summary.py",
+      " M python/tests/backends/test_mklq_benchmark_harness.py"
+    ]
+  },
+  "interpretation": {
+    "clean_worktree": false,
+    "curated_path_labels_are_not_raw_benchmark_fields": true,
+    "do_not_treat_as_clean_release_provenance": true,
+    "metal_path_scope": "experimental mklq-metal mixed-path composite state-vector update followed by host readback for cudaq.get_state",
+    "performance_claim_scope": "local Apple M5 tuning evidence only; mklq-metal is experimental mixed-path and this is not release or cross-machine certification",
+    "raw_json_files_are_ignored": true,
+    "runtime_build_note": "Generated from bench_mklq_targets.py with isolate-rows; mklq-metal remains a mixed-path target with host readback for cudaq.get_state.",
+    "summary": "Local q20 composite benchmark comparing qpp-cpu, mklq-cpu, and experimental mklq-metal for QFT-like and seeded Clifford state-vector rows."
+  },
+  "machine": {
+    "cpu_brand": "Apple M5",
+    "logical_cores": 10,
+    "machine": "arm64",
+    "macos_version": "26.5.1",
+    "memory_bytes": 17179869184,
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "processor": "arm",
+    "python": "3.12.2",
+    "python_executable": "/opt/anaconda3/bin/python3"
+  },
+  "raw_results": [
+    {
+      "path": "benchmarks/mklq/results/local-metal-composite-mixed-path-q20-2026-06-21.json",
+      "sha256": "ef58b59222218df43d39212fb1d0fb824d7228516305f89af7a2f043101a70a9",
+      "status_rows": {
+        "ok": 6
+      },
+      "tracked": false
+    }
+  ],
+  "rows": [
+    {
+      "case": "qft-like-state",
+      "elapsed_seconds_max": 76.60090349998791,
+      "elapsed_seconds_median": 68.14466843748232,
+      "elapsed_seconds_min": 59.68843337497674,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 1762,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 250118144,
+      "qft_crz_gate_count": 1520,
+      "qft_h_gate_count": 160,
+      "qft_like_gate_count": 1760,
+      "qft_like_state_throughput_per_second": 25.82740572895544,
+      "qft_swap_gate_count": 80,
+      "qubits": 20,
+      "repeats": 2,
+      "shots": 1024,
+      "state_prep_gate_count": 2,
+      "status": "ok",
+      "target": "qpp-cpu",
+      "warmups": 1
+    },
+    {
+      "case": "seeded-clifford-state",
+      "elapsed_seconds_max": 13.548481500009075,
+      "elapsed_seconds_median": 13.341818792003323,
+      "elapsed_seconds_min": 13.135156083997572,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 320,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 202670080,
+      "qubits": 20,
+      "repeats": 2,
+      "seeded_clifford_gate_count": 320,
+      "seeded_clifford_seed": 17,
+      "seeded_clifford_single_gate_count": 160,
+      "seeded_clifford_state_throughput_per_second": 23.984735888617987,
+      "seeded_clifford_two_qubit_gate_count": 160,
+      "shots": 1024,
+      "status": "ok",
+      "target": "qpp-cpu",
+      "warmups": 1
+    },
+    {
+      "case": "qft-like-state",
+      "elapsed_seconds_max": 1.3859039589879103,
+      "elapsed_seconds_median": 1.3378143339941744,
+      "elapsed_seconds_min": 1.2897247090004385,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 1762,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 244465664,
+      "qft_crz_gate_count": 1520,
+      "qft_h_gate_count": 160,
+      "qft_like_gate_count": 1760,
+      "qft_like_state_throughput_per_second": 1315.5786683383405,
+      "qft_swap_gate_count": 80,
+      "qubits": 20,
+      "repeats": 2,
+      "shots": 1024,
+      "state_prep_gate_count": 2,
+      "status": "ok",
+      "target": "mklq-cpu",
+      "warmups": 1
+    },
+    {
+      "case": "seeded-clifford-state",
+      "elapsed_seconds_max": 0.12964166700839996,
+      "elapsed_seconds_median": 0.1257811460091034,
+      "elapsed_seconds_min": 0.12192062500980683,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 320,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 203554816,
+      "qubits": 20,
+      "repeats": 2,
+      "seeded_clifford_gate_count": 320,
+      "seeded_clifford_seed": 17,
+      "seeded_clifford_single_gate_count": 160,
+      "seeded_clifford_state_throughput_per_second": 2544.101482243134,
+      "seeded_clifford_two_qubit_gate_count": 160,
+      "shots": 1024,
+      "status": "ok",
+      "target": "mklq-cpu",
+      "warmups": 1
+    },
+    {
+      "case": "qft-like-state",
+      "elapsed_seconds_max": 1.2439484579954296,
+      "elapsed_seconds_median": 1.2168069164908957,
+      "elapsed_seconds_min": 1.1896653749863617,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 1762,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 285442048,
+      "qft_crz_gate_count": 1520,
+      "qft_h_gate_count": 160,
+      "qft_like_gate_count": 1760,
+      "qft_like_state_throughput_per_second": 1446.4086094083018,
+      "qft_swap_gate_count": 80,
+      "qubits": 20,
+      "repeats": 2,
+      "shots": 1024,
+      "state_prep_gate_count": 2,
+      "status": "ok",
+      "target": "mklq-metal",
+      "warmups": 1
+    },
+    {
+      "case": "seeded-clifford-state",
+      "elapsed_seconds_max": 0.19622462501865812,
+      "elapsed_seconds_median": 0.1892540624976391,
+      "elapsed_seconds_min": 0.18228349997662008,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 320,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 240451584,
+      "qubits": 20,
+      "repeats": 2,
+      "seeded_clifford_gate_count": 320,
+      "seeded_clifford_seed": 17,
+      "seeded_clifford_single_gate_count": 160,
+      "seeded_clifford_state_throughput_per_second": 1690.8487763848764,
+      "seeded_clifford_two_qubit_gate_count": 160,
+      "shots": 1024,
+      "status": "ok",
+      "target": "mklq-metal",
+      "warmups": 1
+    }
+  ],
+  "runtime": {
+    "cudaq_module_file": "/Users/a0000/.cudaq-mklq/cudaq/__init__.py",
+    "cudaq_version": "CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum f98433b6f9edce3e78ff17770314d44ff878e93d)",
+    "module_from_build_tree": false,
+    "python_prefix": "/opt/anaconda3"
+  },
+  "schema_version": "mklq-benchmark-summary-v1",
+  "summary_id": "local-metal-composite-mixed-path-q20-2026-06-21"
+}

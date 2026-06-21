@@ -244,6 +244,47 @@ def test_mklq_summary_generator_builds_sanitized_summary(tmp_path):
     assert elapsed["sample_full_register_q20_1024_shots"] == 1.0
 
 
+def test_mklq_summary_generator_accepts_extra_interpretation_fields(tmp_path):
+    module = _load_summary_generator_module()
+    raw_path = tmp_path / "metal.json"
+    raw_path.write_text(json.dumps(
+        _raw_benchmark_report(cases=["qft-like-state"],
+                              results=[
+                                  _benchmark_row("qpp-cpu", "qft-like-state",
+                                                 10.0),
+                                  _benchmark_row("mklq-metal",
+                                                 "qft-like-state", 2.0),
+                              ])),
+                        encoding="utf-8")
+
+    summary = module.build_summary(
+        raw_paths=[raw_path],
+        summary_id="local-metal-composite-test",
+        evidence_kind="local_tuning_evidence",
+        reference_target="qpp-cpu",
+        candidate_target="mklq-metal",
+        ratio_group="same_day_cross_target_ratio",
+        performance_scope="local tuning evidence only",
+        summary_text="Synthetic Metal composite summary.",
+        extra_interpretation={
+            "do_not_treat_as_clean_release_provenance": True,
+            "metal_path_scope": (
+                "mixed-path Metal state update followed by host readback"),
+            "notes": ["generated", "bounded"],
+        },
+    )
+
+    assert summary["interpretation"][
+        "do_not_treat_as_clean_release_provenance"] is True
+    assert summary["interpretation"]["metal_path_scope"] == (
+        "mixed-path Metal state update followed by host readback")
+    assert summary["interpretation"]["notes"] == ["generated", "bounded"]
+    ratios = summary["comparison"]["same_day_cross_target_ratio"]
+    assert ratios["qpp_cpu_over_mklq_metal_qft_like_state_q20"] == 5.0
+    elapsed = summary["comparison"]["mklq_metal_elapsed_seconds_median"]
+    assert elapsed["qft_like_state_q20"] == 2.0
+
+
 def test_mklq_summary_generator_rejects_dirty_by_default(tmp_path):
     module = _load_summary_generator_module()
     raw_path = tmp_path / "dirty.json"
@@ -2396,3 +2437,54 @@ def test_mklq_benchmark_summary_records_metal_y_cy_resident_evidence():
         "resident fp32 Metal gate update followed by host readback for "
         "cudaq.get_state")
     assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]
+
+
+def test_mklq_benchmark_summary_records_metal_composite_evidence():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-metal-composite-mixed-path-q20-2026-06-21.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "local_tuning_evidence"
+    assert summary["summary_id"] == (
+        "local-metal-composite-mixed-path-q20-2026-06-21")
+    assert summary["raw_results"][0]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-metal-composite-mixed-path-q20-2026-06-21.json")
+    assert summary["raw_results"][0]["status_rows"] == {"ok": 6}
+    assert summary["machine"]["cpu_brand"] == "Apple M5"
+    assert summary["config"]["targets"] == [
+        "qpp-cpu",
+        "mklq-cpu",
+        "mklq-metal",
+    ]
+    assert summary["config"]["cases"] == [
+        "qft-like-state",
+        "seeded-clifford-state",
+    ]
+    assert summary["config"]["qubits"] == [20]
+    assert summary["config"]["layers"] == 8
+
+    rows = {
+        (row["target"], row["case"]): row
+        for row in summary["rows"]
+    }
+    assert rows[("mklq-metal", "qft-like-state")]["status"] == "ok"
+    assert rows[("mklq-metal", "seeded-clifford-state")]["status"] == "ok"
+    assert rows[("mklq-metal", "qft-like-state")][
+        "elapsed_seconds_median"] > 0.0
+    assert rows[("mklq-metal", "seeded-clifford-state")][
+        "elapsed_seconds_median"] > 0.0
+    ratios = summary["comparison"]["same_day_cross_target_ratio"]
+    assert ratios["qpp_cpu_over_mklq_metal_qft_like_state_q20"] > 0.0
+    assert ratios[
+        "qpp_cpu_over_mklq_metal_seeded_clifford_state_q20"] > 0.0
+    assert summary["interpretation"]["metal_path_scope"] == (
+        "experimental mklq-metal mixed-path composite state-vector update "
+        "followed by host readback for cudaq.get_state")
+    assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]
+    assert summary["interpretation"][
+        "curated_path_labels_are_not_raw_benchmark_fields"] is True

@@ -329,6 +329,24 @@ The generated public index is tracked at
   0.09229137500369688 s for `cy-state`. The summary's path labels are curated
   labels inferred from runtime tests and code inspection; the raw benchmark
   JSON does not currently emit resident-path counters.
+- `reports/local-metal-composite-mixed-path-q20-2026-06-21.summary.json`:
+  tracked sanitized summary for the ignored raw result
+  `results/local-metal-composite-mixed-path-q20-2026-06-21.json`
+  (`sha256: ef58b59222218df43d39212fb1d0fb824d7228516305f89af7a2f043101a70a9`).
+  Isolated `qpp-cpu`, `mklq-cpu`, and `mklq-metal` rows for
+  `qft-like-state` and `seeded-clifford-state` at q20 with
+  `OMP_NUM_THREADS=10`, `OMP_PROC_BIND=close`, `OMP_DYNAMIC=false`,
+  `VECLIB_MAXIMUM_THREADS=1`, `shots=1024`, `repeats=2`, `warmups=1`, and
+  `layers=8` on Apple M5, 10 logical cores, 16 GB RAM, macOS 26.5.1. All six
+  rows completed with `status == "ok"`. Treat this as local dirty-worktree
+  tuning evidence for experimental `mklq-metal` mixed-path composite
+  state-vector updates followed by host readback, not as clean-release
+  provenance. In this run, q20 `mklq-metal` median elapsed time was
+  1.2168069164908957 s for `qft-like-state` and 0.1892540624976391 s for
+  `seeded-clifford-state`; the same-day `qpp-cpu` over `mklq-metal` ratios were
+  56.00x and 70.50x. The `mklq-metal` row was slightly faster than `mklq-cpu`
+  for `qft-like-state` and slower for `seeded-clifford-state`, so do not read
+  this as a general Metal-is-always-faster claim.
 
 ## Untracked Local Benchmark Notes
 

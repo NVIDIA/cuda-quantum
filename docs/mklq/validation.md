@@ -35,7 +35,7 @@ not tracked as public evidence.
 - One-command correctness gate: passed, with 3 steps passed, 0 failed, and 0
   skipped.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
-- `benchmark_harness_tests`: `52 passed`.
+- `benchmark_harness_tests`: `54 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
@@ -196,6 +196,7 @@ Current tracked summaries include:
 - `local-clean-cpu-q20-2026-06-21.summary.json`
 - `local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json`
 - `local-y-cy-fastpath-isolated-q20-2026-06-19.summary.json`
+- `local-metal-composite-mixed-path-q20-2026-06-21.summary.json`
 - `local-metal-y-cy-resident-isolated-q20-2026-06-19.summary.json`
 - `local-counts-only-sampling-shot-scaling-q20-2026-06-19.summary.json`
 
@@ -207,3 +208,9 @@ rows. These files include one clean-worktree local benchmark summary plus older
 dirty-worktree tuning summaries. Interpret each file through its
 `evidence_kind` and `interpretation` fields. Do not treat any local summary as
 cross-machine performance certification.
+
+The Metal composite summary is local tuning evidence only. It records q20
+`qft-like-state` and `seeded-clifford-state` rows for `qpp-cpu`, `mklq-cpu`, and
+experimental `mklq-metal`; all six rows completed with `status == "ok"`. The
+summary keeps the Metal scope as mixed-path state-vector updates followed by
+host readback, not full Metal-native execution.

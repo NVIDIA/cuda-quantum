@@ -285,6 +285,7 @@ def build_summary(raw_paths: list[Path],
                   performance_scope: str,
                   summary_text: str,
                   runtime_note: str | None = None,
+                  extra_interpretation: dict[str, Any] | None = None,
                   allow_dirty: bool = False,
                   allow_errors: bool = False) -> dict[str, Any]:
     reports = [load_raw_report(path) for path in raw_paths]
@@ -302,6 +303,8 @@ def build_summary(raw_paths: list[Path],
     }
     if runtime_note:
         interpretation["runtime_build_note"] = runtime_note
+    if extra_interpretation:
+        interpretation.update(extra_interpretation)
 
     return {
         "schema_version": SUMMARY_SCHEMA_VERSION,
@@ -339,6 +342,25 @@ def write_json(payload: dict[str, Any], output: Path | None) -> None:
     output.write_text(rendered, encoding="utf-8")
 
 
+def parse_interpretation_field(value: str) -> tuple[str, Any]:
+    if "=" not in value:
+        raise argparse.ArgumentTypeError(
+            "expected KEY=VALUE for interpretation field")
+    key, raw = value.split("=", 1)
+    key = key.strip()
+    if not key:
+        raise argparse.ArgumentTypeError("interpretation field key is empty")
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError:
+        parsed = raw
+    return key, parsed
+
+
+def interpretation_fields(entries: list[tuple[str, Any]]) -> dict[str, Any]:
+    return {key: value for key, value in entries}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Create sanitized MKL-Q benchmark summary JSON.")
@@ -369,6 +391,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--runtime-note",
                         default=None,
                         help="Optional interpretation.runtime_build_note text.")
+    parser.add_argument("--interpretation-field",
+                        action="append",
+                        type=parse_interpretation_field,
+                        default=[],
+                        help=("Extra interpretation field as KEY=VALUE. VALUE "
+                              "is parsed as JSON when possible. May be repeated."))
     parser.add_argument("--output",
                         type=Path,
                         help="Output summary JSON path. Defaults to stdout.")
@@ -392,6 +420,8 @@ def main() -> int:
                             performance_scope=args.performance_scope,
                             summary_text=args.summary_text,
                             runtime_note=args.runtime_note,
+                            extra_interpretation=interpretation_fields(
+                                args.interpretation_field),
                             allow_dirty=args.allow_dirty,
                             allow_errors=args.allow_errors)
     write_json(summary, args.output)

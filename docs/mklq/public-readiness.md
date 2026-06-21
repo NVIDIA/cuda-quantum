@@ -132,7 +132,7 @@ The latest public local validation evidence is recorded in
 - full public healthcheck: passed with 13/13 steps passed;
 - one-command correctness gate: passed;
 - public example smoke gate: passed with 30/30 steps passed;
-- benchmark harness tests: `52 passed`;
+- benchmark harness tests: `54 passed`;
 - standalone install-prefix Python subset: `35 passed`;
 - `python_target_smoke`: `56 passed`;
 - `nvqpp_smoke`: `2 passed`;
