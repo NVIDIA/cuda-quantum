@@ -96,6 +96,9 @@ Use layered evidence:
    CPU oracle with tolerance appropriate for fp32 resident paths.
 5. `nvq++` smoke tests prove C++ target selection and runtime execution.
 
+The detailed test-to-capability map is tracked in
+[`testing-matrix.md`](testing-matrix.md).
+
 The one-command gate is:
 
 ```bash

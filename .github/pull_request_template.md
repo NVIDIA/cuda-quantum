@@ -32,6 +32,8 @@
       or `python/tests/backends/test_mklq_nvqpp_smoke.py`
 - [ ] Focused `ctest` selection:
       `(mklq_(cpu|metal)_MKLQ|backend_target_setter_check|TargetConfigTester)`
+- [ ] Testing matrix impact was considered:
+      `docs/mklq/testing-matrix.md`
 - [ ] Not run; reason:
 
 ## Benchmark Evidence

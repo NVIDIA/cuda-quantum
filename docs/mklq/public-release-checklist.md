@@ -44,6 +44,8 @@ Check:
   `NOTICE` do not misdirect users to NVIDIA-only project contacts or workflows.
 - [ ] `docs/mklq/known-limitations.md` is linked from the README and explains
   the current support boundary.
+- [ ] `docs/mklq/testing-matrix.md` is linked from the README and explains
+  which local gates prove which target/backend behavior.
 - [ ] GitHub About metadata describes MKL-Q, uses Apache-2.0, and avoids stale
   NVIDIA workflow or badge links.
 

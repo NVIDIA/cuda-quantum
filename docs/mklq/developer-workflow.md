@@ -73,6 +73,8 @@ Keep changes reviewable:
 Use [`architecture.md`](architecture.md) as the source of truth for the current
 target layering, CPU oracle role, Metal fallback boundary, and benchmark
 evidence boundary.
+Use [`testing-matrix.md`](testing-matrix.md) to choose the minimum gate that
+actually proves a backend, target, benchmark, or docs change.
 
 ## Local Build
 

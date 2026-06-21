@@ -35,6 +35,7 @@ jobs:
           grep -q 'cudaq' README.md
           test -f docs/mklq/known-limitations.md
           test -f docs/mklq/architecture.md
+          test -f docs/mklq/testing-matrix.md
           test -f docs/mklq/public-release-checklist.md
           test -f docs/mklq/developer-workflow.md
           test -f .github/pull_request_template.md
@@ -45,6 +46,10 @@ jobs:
           grep -q 'CPU Backend' docs/mklq/architecture.md
           grep -q 'Metal Backend' docs/mklq/architecture.md
           grep -q 'not cross-machine performance certification' docs/mklq/architecture.md
+          grep -q 'Gate Summary' docs/mklq/testing-matrix.md
+          grep -q 'Capability Coverage' docs/mklq/testing-matrix.md
+          grep -q 'Known Coverage Gaps' docs/mklq/testing-matrix.md
+          grep -q 'No full Metal-native guarantee' docs/mklq/testing-matrix.md
           grep -q 'source-only' docs/mklq/public-release-checklist.md
           grep -q 'Correctness Gate' docs/mklq/public-release-checklist.md
           grep -q 'GitHub Verification' docs/mklq/public-release-checklist.md
@@ -55,6 +60,7 @@ jobs:
           grep -q 'Compatibility Boundary' .github/pull_request_template.md
           grep -q 'Benchmark Evidence' .github/pull_request_template.md
           grep -q 'Public Hygiene' .github/pull_request_template.md
+          grep -q 'testing-matrix.md' .github/pull_request_template.md
           grep -q 'mklq-metal' .github/pull_request_template.md
           grep -q 'not a release certification' docs/mklq/validation.md
           python3 - <<'PY'
@@ -74,6 +80,7 @@ jobs:
               Path("SECURITY.md"),
               Path("docs/mklq/known-limitations.md"),
               Path("docs/mklq/architecture.md"),
+              Path("docs/mklq/testing-matrix.md"),
               Path("docs/mklq/public-release-checklist.md"),
               Path("docs/mklq/developer-workflow.md"),
               Path(".github/pull_request_template.md"),
