@@ -19,14 +19,14 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_GATE_CASES = "y-state,cy-state"
+DEFAULT_GATE_CASES = "y-state,cy-state,cz-state"
 DEFAULT_SAMPLING_CASES = "sample-full-register,sample-partial-register"
 DEFAULT_TARGETS = "qpp-cpu,mklq-cpu"
 DEFAULT_PERFORMANCE_SCOPE = (
     "local Apple M5 q20 CPU target comparison only; not a cross-machine "
     "release benchmark")
 DEFAULT_SUMMARY_TEXT = (
-    "Clean-worktree local run comparing qpp-cpu and mklq-cpu for q20 Y/CY "
+    "Clean-worktree local run comparing qpp-cpu and mklq-cpu for q20 Y/CY/CZ "
     "state updates plus full/partial-register sampling at 1024 and 65536 "
     "shots.")
 DEFAULT_RUNTIME_NOTE = (
@@ -93,14 +93,27 @@ def fixed_env(config: GateConfig) -> dict[str, str]:
 
 def output_paths(config: GateConfig) -> dict[str, Path]:
     q_label = f"q{config.qubits}"
+    gate_label = case_label(config.gate_cases)
     return {
         "gate_raw": config.results_dir /
-        f"local-clean-cpu-gate-y-cy-{q_label}-{config.stamp}.json",
+        f"local-clean-cpu-gate-{gate_label}-{q_label}-{config.stamp}.json",
         "sampling_raw": config.results_dir /
         f"local-clean-cpu-sampling-{q_label}-{config.stamp}.json",
         "summary": config.reports_dir / f"{config.summary_id}.summary.json",
         "evidence": config.evidence_output,
     }
+
+
+def case_label(cases: str) -> str:
+    labels: list[str] = []
+    for case in cases.split(","):
+        label = case.strip()
+        if not label:
+            continue
+        if label.endswith("-state"):
+            label = label[:-len("-state")]
+        labels.append(label.replace("_", "-"))
+    return "-".join(labels) if labels else "gate"
 
 
 def command_path(config: GateConfig, path: Path) -> str:

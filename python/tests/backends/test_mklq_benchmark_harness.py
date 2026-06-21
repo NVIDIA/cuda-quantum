@@ -271,7 +271,7 @@ def test_mklq_clean_cpu_gate_plan_uses_fixed_environment(tmp_path):
         reports_dir=tmp_path / "reports",
         evidence_output=tmp_path / "benchmark-evidence.md",
         targets="qpp-cpu,mklq-cpu",
-        gate_cases="y-state,cy-state",
+        gate_cases="y-state,cy-state,cz-state",
         sampling_cases="sample-full-register,sample-partial-register",
         summary_id="local-clean-cpu-q20-2026-06-21",
         evidence_kind="clean_local_benchmark_evidence",
@@ -294,7 +294,7 @@ def test_mklq_clean_cpu_gate_plan_uses_fixed_environment(tmp_path):
         "PYTHONPATH": "/tmp/cudaq-runtime",
     }
     assert plan["paths"]["gate_raw"].endswith(
-        "local-clean-cpu-gate-y-cy-q20-2026-06-21.json")
+        "local-clean-cpu-gate-y-cy-cz-q20-2026-06-21.json")
     assert plan["paths"]["sampling_raw"].endswith(
         "local-clean-cpu-sampling-q20-2026-06-21.json")
     assert plan["paths"]["summary"].endswith(
@@ -302,7 +302,7 @@ def test_mklq_clean_cpu_gate_plan_uses_fixed_environment(tmp_path):
     gate_command = plan["commands"]["gate_raw"]
     assert "--isolate-rows" in gate_command
     assert gate_command[gate_command.index("--cases") + 1] == (
-        "y-state,cy-state")
+        "y-state,cy-state,cz-state")
     assert gate_command[gate_command.index("--targets") + 1] == (
         "qpp-cpu,mklq-cpu")
     sampling_command = plan["commands"]["sampling_raw"]
