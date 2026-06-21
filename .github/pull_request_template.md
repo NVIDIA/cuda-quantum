@@ -46,6 +46,10 @@
 - [ ] Sanitized summaries were updated under `benchmarks/mklq/reports/`.
 - [ ] `docs/mklq/benchmark-evidence.md` was updated.
 - [ ] Benchmark interpretation states machine scope and limitations.
+- [ ] `python3 benchmarks/mklq/check_performance_evidence.py` passes if tracked
+      clean CPU summaries or CPU performance wording changed.
+- [ ] `python3 benchmarks/mklq/check_metal_evidence.py` passes if tracked
+      `mklq-metal` summaries or experimental Metal wording changed.
 
 ## Public Hygiene
 

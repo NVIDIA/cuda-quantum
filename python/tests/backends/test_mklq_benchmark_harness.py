@@ -673,6 +673,15 @@ def test_mklq_public_healthcheck_checks_metadata_tokens(monkeypatch, tmp_path):
     assert "banned_token_failures" in result["details"]
 
 
+def test_mklq_public_healthcheck_requires_metal_guard_in_pr_template():
+    module = _load_public_healthcheck_module()
+
+    requirements = set(module.public_metadata_requirements())
+
+    assert (".github/pull_request_template.md",
+            "check_metal_evidence.py") in requirements
+
+
 def test_mklq_public_healthcheck_checks_example_sources(tmp_path):
     module = _load_public_healthcheck_module()
     config = _public_healthcheck_config(module, tmp_path)

@@ -126,6 +126,8 @@ jobs:
           grep -q 'allow_deletions' .github/branch-protection-main.json
           grep -q 'Compatibility Boundary' .github/pull_request_template.md
           grep -q 'Benchmark Evidence' .github/pull_request_template.md
+          grep -q 'check_metal_evidence.py' .github/pull_request_template.md
+          grep -q 'check_performance_evidence.py' .github/pull_request_template.md
           grep -q 'Public Hygiene' .github/pull_request_template.md
           grep -q 'testing-matrix.md' .github/pull_request_template.md
           grep -q 'upstream-sync.md' .github/pull_request_template.md

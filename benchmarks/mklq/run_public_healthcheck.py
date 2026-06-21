@@ -265,6 +265,8 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("docs/mklq/testing-matrix.md", "check_metal_evidence.py"),
         (".github/pull_request_template.md", "Compatibility Boundary"),
         (".github/pull_request_template.md", "Benchmark Evidence"),
+        (".github/pull_request_template.md", "check_performance_evidence.py"),
+        (".github/pull_request_template.md", "check_metal_evidence.py"),
         (".github/labels.yml", "backend:cpu"),
         (".github/labels.yml", "backend:metal"),
         (".github/ISSUE_TEMPLATE/bug_report.yaml", "needs-repro"),
