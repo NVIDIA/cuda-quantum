@@ -82,6 +82,9 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
+The Python smoke step includes the MKL-Q API smoke tests, the CPU correctness
+fixture suite, and the builder-level MKL-Q target tests.
+
 The default JSON output path is ignored by Git:
 `benchmarks/mklq/results/local-correctness-gate-<date>.json`. Use
 `--plan-only` to inspect the exact commands and environment without running the

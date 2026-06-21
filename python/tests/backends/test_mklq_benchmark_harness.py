@@ -372,6 +372,8 @@ def test_mklq_correctness_gate_plan_lists_expected_steps(tmp_path):
     ]
     assert "python/tests/backends/test_mklq_python_api.py" in plan["steps"][0][
         "command"]
+    assert "python/tests/backends/test_mklq_cpu_correctness_fixtures.py" in plan[
+        "steps"][0]["command"]
     assert "python/tests/builder/test_mklq_targets.py" in plan["steps"][0][
         "command"]
     assert "python/tests/backends/test_mklq_nvqpp_smoke.py" in plan["steps"][
