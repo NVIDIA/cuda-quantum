@@ -68,6 +68,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Metal measurement/reset | `MKLQMetalTester.cpp`, `test_mklq_metal_correctness_fixtures.py`, `mklq_runtime_smoke.cpp` if C++ behavior changes |
 | Benchmark harness or summary | `test_mklq_benchmark_harness.py`, helper `py_compile`, summary JSON parse |
 | Public release milestone | Full `public-release-checklist.md`, one-command correctness gate, clean benchmark evidence if performance claims changed |
+| Upstream CUDA-Q sync | `docs/mklq/upstream-sync.md`, public hygiene, one-command correctness gate when runtime or target files changed |
 
 ## Known Coverage Gaps
 

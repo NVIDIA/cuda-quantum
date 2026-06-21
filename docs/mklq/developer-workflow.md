@@ -43,14 +43,11 @@ https://github.com/NVIDIA/cuda-quantum.git
 
 ## Upstream Sync
 
-Do not hard-rewrite MKL-Q onto a renamed tree. Sync from upstream as a normal
-fork:
+Do not hard-rewrite MKL-Q onto a renamed tree. Follow the dedicated upstream
+sync procedure:
 
-```bash
-git fetch upstream main
-git switch main
-git pull --ff-only origin main
-git merge --no-ff upstream/main
+```text
+docs/mklq/upstream-sync.md
 ```
 
 After an upstream sync, run the public hygiene gate and the smallest relevant

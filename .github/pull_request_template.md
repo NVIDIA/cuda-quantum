@@ -20,6 +20,7 @@
 - [ ] Does not describe local benchmark evidence as release certification.
 - [ ] Keeps upstream CUDA-Q compatibility unless the change is explicitly scoped
       to MKL-Q target behavior.
+- [ ] If this syncs upstream CUDA-Q, `docs/mklq/upstream-sync.md` was followed.
 
 ## Validation
 

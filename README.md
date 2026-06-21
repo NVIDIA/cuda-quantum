@@ -98,6 +98,8 @@ experimental Metal path is described in
 [`docs/mklq/architecture.md`](docs/mklq/architecture.md).
 The test and benchmark coverage map is tracked in
 [`docs/mklq/testing-matrix.md`](docs/mklq/testing-matrix.md).
+The upstream CUDA-Q sync procedure is tracked in
+[`docs/mklq/upstream-sync.md`](docs/mklq/upstream-sync.md).
 The public support boundary and current non-goals are listed in
 [`docs/mklq/known-limitations.md`](docs/mklq/known-limitations.md).
 The source-only public release checklist is tracked in

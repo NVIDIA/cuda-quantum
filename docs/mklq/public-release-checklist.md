@@ -33,6 +33,8 @@ Expected:
 - [ ] `upstream` points to `https://github.com/NVIDIA/cuda-quantum.git`.
 - [ ] The repository is not shallow before public publication.
 - [ ] The latest commits are MKL-Q commits on top of upstream CUDA-Q history.
+- [ ] If upstream CUDA-Q was synced, `docs/mklq/upstream-sync.md` was followed
+  and the sync gates are recorded in the change summary.
 
 ## Public Metadata
 
