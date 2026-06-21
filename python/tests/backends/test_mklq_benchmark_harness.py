@@ -282,6 +282,7 @@ def test_mklq_clean_cpu_gate_plan_uses_fixed_environment(tmp_path):
         evidence_output=tmp_path / "benchmark-evidence.md",
         targets="qpp-cpu,mklq-cpu",
         gate_cases="y-state,cy-state,cz-state",
+        composite_cases="qft-like-state,seeded-clifford-state",
         sampling_cases="sample-full-register,sample-partial-register",
         summary_id="local-clean-cpu-q20-2026-06-21",
         evidence_kind="clean_local_benchmark_evidence",
@@ -305,6 +306,9 @@ def test_mklq_clean_cpu_gate_plan_uses_fixed_environment(tmp_path):
     }
     assert plan["paths"]["gate_raw"].endswith(
         "local-clean-cpu-gate-y-cy-cz-q20-2026-06-21.json")
+    assert plan["paths"]["composite_raw"].endswith(
+        "local-clean-cpu-composite-qft-like-seeded-clifford-q20-2026-06-21.json"
+    )
     assert plan["paths"]["sampling_raw"].endswith(
         "local-clean-cpu-sampling-q20-2026-06-21.json")
     assert plan["paths"]["summary"].endswith(
@@ -315,10 +319,15 @@ def test_mklq_clean_cpu_gate_plan_uses_fixed_environment(tmp_path):
         "y-state,cy-state,cz-state")
     assert gate_command[gate_command.index("--targets") + 1] == (
         "qpp-cpu,mklq-cpu")
+    composite_command = plan["commands"]["composite_raw"]
+    assert composite_command[composite_command.index("--cases") + 1] == (
+        "qft-like-state,seeded-clifford-state")
+    assert composite_command[composite_command.index("--layers") + 1] == "8"
     sampling_command = plan["commands"]["sampling_raw"]
     assert sampling_command[sampling_command.index("--shot-counts") +
                             1] == "1024,65536"
     summary_command = plan["commands"]["summary"]
+    assert summary_command.count("--raw") == 3
     assert "--allow-dirty" not in summary_command
     assert summary_command[summary_command.index("--ratio-group") + 1] == (
         "clean_worktree_cross_target_ratio")
@@ -343,6 +352,7 @@ def test_mklq_clean_cpu_gate_skip_benchmark_runs_summary_only(monkeypatch,
         evidence_output=tmp_path / "benchmark-evidence.md",
         targets="qpp-cpu,mklq-cpu",
         gate_cases="y-state,cy-state",
+        composite_cases="qft-like-state,seeded-clifford-state",
         sampling_cases="sample-full-register,sample-partial-register",
         summary_id="local-clean-cpu-q20-2026-06-21",
         evidence_kind="clean_local_benchmark_evidence",
@@ -830,6 +840,9 @@ def _performance_summary(module,
 
 def test_mklq_performance_evidence_guard_accepts_clean_cpu_summary():
     module = _load_performance_evidence_module()
+    assert "qft_like_state_q20" in module.DEFAULT_REQUIRED_RATIOS
+    assert "seeded_clifford_state_q20" in module.DEFAULT_REQUIRED_RATIOS
+
     result = module.check_summary(
         _performance_summary(module),
         required_ratios=list(module.DEFAULT_REQUIRED_RATIOS),

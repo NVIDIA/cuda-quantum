@@ -27,6 +27,8 @@ DEFAULT_REQUIRED_RATIOS = (
     "y_state_q20",
     "cy_state_q20",
     "cz_state_q20",
+    "qft_like_state_q20",
+    "seeded_clifford_state_q20",
     "sample_full_register_q20_1024_shots",
     "sample_full_register_q20_65536_shots",
     "sample_partial_register_q20_1024_shots",
