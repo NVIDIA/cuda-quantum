@@ -152,7 +152,9 @@ python3 -m py_compile \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
   benchmarks/mklq/run_public_healthcheck.py \
-  benchmarks/mklq/summarize_reports.py
+  benchmarks/mklq/summarize_reports.py \
+  examples/mklq/python/bell.py \
+  examples/mklq/python/ghz.py
 ```
 
 Expected workflow state:

@@ -87,6 +87,12 @@ CPP
 /tmp/mklq_bell_metal
 ```
 
+## Examples
+
+Runnable Python and C++ Bell/GHZ examples are tracked under
+[`examples/mklq`](examples/mklq/). They use the same `cudaq` Python namespace and
+`nvq++ --target mklq-cpu|mklq-metal` interface as the smoke tests above.
+
 ## Validation
 
 The current bootstrap validation record is summarized in

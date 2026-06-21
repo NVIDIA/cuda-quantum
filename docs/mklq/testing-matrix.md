@@ -37,6 +37,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | `benchmarks/mklq/run_correctness_gate.py` | Correctness gate wrapper | Aggregates Python smoke, `nvq++` smoke, and selected `ctest` into ignored JSON |
 | `benchmarks/mklq/check_performance_evidence.py` | Static performance evidence guard | Checks tracked clean CPU sanitized summaries for clean-worktree provenance, ignored raw payload paths, cross-machine disclaimer, required q20 ratios, and positive candidate medians |
 | `benchmarks/mklq/run_public_healthcheck.py` | Public maintenance health check | Aggregates local public hygiene checks, summary parse, helper compile, markdown link checks, benchmark evidence regeneration comparison, optional build/correctness/benchmark gates |
+| `examples/mklq/` | Public getting-started examples | Python and C++ Bell/GHZ source examples for `mklq-cpu` and `mklq-metal`; Python examples are syntax-checked by public healthcheck |
 | `benchmarks/mklq/bench_mklq_targets.py` | Target benchmark harness | Local timing rows for gate/state/sampling cases and target notes |
 | `benchmarks/mklq/bench_probability_kernels.py` | Probability microbenchmark | Local dense probability kernel experiment data and schema |
 | `benchmarks/mklq/make_summary.py` | Summary sanitizer | Converts raw local benchmark JSON to public summary JSON |
@@ -56,13 +57,14 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Metal probability/sampling paths | `MKLQMetalTester.cpp`, `bench_mklq_targets.py`, sanitized summaries | Full-register probability fill, marginal probability, sampling path labels | Sample draw/count accumulation remains host-side |
 | Metal measurement/reset | `test_mklq_metal_correctness_fixtures.py`, `MKLQMetalTester.cpp`, `mklq_runtime_smoke.cpp` | Resident measured-qubit reduction, collapse, reset, mid-circuit behavior | Fixture coverage is finite and tolerance-based |
 | Benchmark tooling | `test_mklq_benchmark_harness.py`, benchmark helper `py_compile`, summary JSON parse, `check_performance_evidence.py` | Benchmark case/schema/report changes and tracked clean CPU evidence quality | Does not prove current runtime speed unless real benchmark rows run |
-| Public release hygiene | `.github/workflows/mklq-public-hygiene.yml`, `run_public_healthcheck.py`, `public-release-checklist.md` | Public metadata, docs, tracked artifact policy, local healthcheck composition, static clean CPU evidence guard | Does not build or run Apple Silicon backend tests unless `run_public_healthcheck.py --full --require-clean` is used locally |
+| Public release hygiene | `.github/workflows/mklq-public-hygiene.yml`, `run_public_healthcheck.py`, `public-release-checklist.md` | Public metadata, docs, tracked artifact policy, example file presence, local healthcheck composition, static clean CPU evidence guard | Does not build or run Apple Silicon backend tests unless `run_public_healthcheck.py --full --require-clean` is used locally |
 
 ## Minimum Test Selection By Change Type
 
 | Change Type | Minimum Local Evidence |
 | --- | --- |
 | Docs-only public metadata | `git diff --check`, public hygiene metadata checks, banned-token scan |
+| Public examples | Example source files, `examples/mklq/README.md`, `run_public_healthcheck.py`, Python example `py_compile`; local `nvq++` smoke if C++ example behavior changes |
 | Target YAML or target marker | `targettests/TargetConfig/mklq_targets.config`, `test_mklq_targets.py`, `test_mklq_nvqpp_smoke.py` |
 | Python target selection | `python/tests/backends/test_mklq_python_api.py`, `python/tests/builder/test_mklq_targets.py` |
 | CPU gate semantics | A new or updated CPU fixture plus `test_mklq_cpu_correctness_fixtures.py` and relevant `MKLQCpuTester` case |
@@ -95,6 +97,7 @@ Update this file when adding, removing, renaming, or materially changing:
 - TargetConfig lit tests;
 - benchmark cases, schemas, or summaries;
 - public release or hygiene gates.
+- public examples or example commands.
 
 If a backend change creates a new supported behavior, add the test first or in
 the same commit as the behavior. If a test only proves metadata or planning,

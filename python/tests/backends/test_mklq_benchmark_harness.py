@@ -519,6 +519,7 @@ def test_mklq_public_healthcheck_plan_lists_escalating_gates(tmp_path):
         "benchmark_summary_parse",
         "performance_evidence_guard",
         "benchmark_helper_py_compile",
+        "example_source_files",
         "markdown_links",
         "benchmark_evidence_regeneration",
         "benchmark_harness_tests",
@@ -596,6 +597,23 @@ def test_mklq_public_healthcheck_checks_metadata_tokens(monkeypatch, tmp_path):
     result = module.run_public_metadata_check(config)
     assert result["status"] == "failed"
     assert "banned_token_failures" in result["details"]
+
+
+def test_mklq_public_healthcheck_checks_example_sources(tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path)
+    for relative_path in module.EXAMPLE_SOURCE_FILES:
+        path = tmp_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("example\n", encoding="utf-8")
+
+    assert module.run_example_source_check(config)["status"] == "passed"
+
+    (tmp_path / "examples" / "mklq" / "cpp" / "ghz.cpp").unlink()
+
+    result = module.run_example_source_check(config)
+    assert result["status"] == "failed"
+    assert "examples/mklq/cpp/ghz.cpp" in result["details"]["missing"]
 
 
 def test_mklq_public_healthcheck_compares_benchmark_evidence(monkeypatch,

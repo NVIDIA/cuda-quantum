@@ -47,8 +47,17 @@ jobs:
           test -f docs/mklq/public-readiness.md
           test -f .github/branch-protection-main.json
           test -f .github/pull_request_template.md
+          test -f examples/mklq/README.md
+          test -f examples/mklq/python/bell.py
+          test -f examples/mklq/python/ghz.py
+          test -f examples/mklq/cpp/bell.cpp
+          test -f examples/mklq/cpp/ghz.cpp
           test -f benchmarks/mklq/check_performance_evidence.py
           test -f benchmarks/mklq/run_public_healthcheck.py
+          grep -q 'examples/mklq' README.md
+          grep -q 'mklq-cpu' examples/mklq/README.md
+          grep -q 'mklq-metal' examples/mklq/README.md
+          grep -q 'nvq++' examples/mklq/README.md
           grep -q 'mklq-cpu' docs/mklq/known-limitations.md
           grep -q 'mklq-metal' docs/mklq/known-limitations.md
           grep -q 'source-only' docs/mklq/known-limitations.md
@@ -127,6 +136,7 @@ jobs:
               Path("Contributing.md"),
               Path("SECURITY.md"),
               Path(".github/pull_request_template.md"),
+              Path("examples/mklq/README.md"),
           ]
           paths.extend(Path("docs/mklq").glob("*.md"))
           paths.extend(path for path in Path(".github").rglob("*") if path.is_file())
@@ -164,7 +174,7 @@ jobs:
           set -euo pipefail
           python3 benchmarks/mklq/check_performance_evidence.py
 
-      - name: Compile public benchmark helpers
+      - name: Compile public Python helpers and examples
         shell: bash
         run: |
           set -euo pipefail
@@ -176,4 +186,6 @@ jobs:
             benchmarks/mklq/run_clean_cpu_benchmark.py \
             benchmarks/mklq/run_correctness_gate.py \
             benchmarks/mklq/run_public_healthcheck.py \
-            benchmarks/mklq/summarize_reports.py
+            benchmarks/mklq/summarize_reports.py \
+            examples/mklq/python/bell.py \
+            examples/mklq/python/ghz.py

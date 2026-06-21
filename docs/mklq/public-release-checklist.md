@@ -166,17 +166,20 @@ python3 -m py_compile \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
   benchmarks/mklq/run_public_healthcheck.py \
-  benchmarks/mklq/summarize_reports.py
+  benchmarks/mklq/summarize_reports.py \
+  examples/mklq/python/bell.py \
+  examples/mklq/python/ghz.py
 ```
 
 Expected:
 
 - [ ] Public metadata keywords are present.
+- [ ] Public example files exist under `examples/mklq/`.
 - [ ] Banned upstream workflow/contact tokens are absent from public metadata
   and `.github`.
 - [ ] Sanitized benchmark summaries parse as JSON.
 - [ ] `check_performance_evidence.py` passes for tracked clean CPU summaries.
-- [ ] Public benchmark helper scripts compile.
+- [ ] Public benchmark helper and Python example scripts compile.
 - [ ] `run_public_healthcheck.py` passes in default mode.
 - [ ] `run_public_healthcheck.py --full --require-clean` passes before
   describing the commit as public-ready.

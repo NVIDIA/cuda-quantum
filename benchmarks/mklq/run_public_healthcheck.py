@@ -41,9 +41,27 @@ BENCHMARK_HELPERS = (
     "benchmarks/mklq/summarize_reports.py",
 )
 
+EXAMPLE_PYTHON_FILES = (
+    "examples/mklq/python/bell.py",
+    "examples/mklq/python/ghz.py",
+)
+
+EXAMPLE_SOURCE_FILES = (
+    "examples/mklq/README.md",
+    *EXAMPLE_PYTHON_FILES,
+    "examples/mklq/cpp/bell.cpp",
+    "examples/mklq/cpp/ghz.cpp",
+)
+
+PY_COMPILE_FILES = (
+    *BENCHMARK_HELPERS,
+    *EXAMPLE_PYTHON_FILES,
+)
+
 PUBLIC_MARKDOWN_FILES = (
     "README.md",
     "benchmarks/mklq/README.md",
+    "examples/mklq/README.md",
 )
 
 
@@ -208,6 +226,10 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("README.md", "mklq-metal"),
         ("README.md", "source-only"),
         ("README.md", "cudaq"),
+        ("README.md", "examples/mklq"),
+        ("examples/mklq/README.md", "mklq-cpu"),
+        ("examples/mklq/README.md", "mklq-metal"),
+        ("examples/mklq/README.md", "nvq++"),
         ("docs/mklq/known-limitations.md", "mklq-cpu"),
         ("docs/mklq/known-limitations.md", "mklq-metal"),
         ("docs/mklq/architecture.md", "Public Compatibility Boundary"),
@@ -254,6 +276,7 @@ def public_metadata_paths(root: Path) -> list[Path]:
         root / "SECURITY.md",
         root / ".github" / "pull_request_template.md",
         root / "benchmarks" / "mklq" / "README.md",
+        root / "examples" / "mklq" / "README.md",
     ]
     paths.extend((root / "docs" / "mklq").glob("*.md"))
     paths.extend(path for path in (root / ".github").rglob("*") if path.is_file())
@@ -316,11 +339,24 @@ def run_performance_evidence_check(config: HealthcheckConfig) -> dict[str, Any]:
 
 
 def run_py_compile(config: HealthcheckConfig) -> dict[str, Any]:
-    command = [config.python_executable, "-m", "py_compile", *BENCHMARK_HELPERS]
+    command = [config.python_executable, "-m", "py_compile", *PY_COMPILE_FILES]
     result = run_command(config, command)
     if result["returncode"] != 0:
-        return failed("benchmark helper py_compile failed", result)
+        return failed("public Python py_compile failed", result)
     return passed(result)
+
+
+def run_example_source_check(config: HealthcheckConfig) -> dict[str, Any]:
+    missing = [
+        path for path in EXAMPLE_SOURCE_FILES
+        if not (config.repo_root / path).is_file()
+    ]
+    details = {
+        "required_examples": list(EXAMPLE_SOURCE_FILES),
+        "missing": missing,
+    }
+    return failed("public MKL-Q example files are missing",
+                  details) if missing else passed(details)
 
 
 def markdown_files(root: Path) -> list[Path]:
@@ -452,8 +488,11 @@ def build_steps(config: HealthcheckConfig) -> list[Step]:
         Step("performance_evidence_guard",
              "Check accepted clean CPU benchmark evidence ratios.",
              run_performance_evidence_check),
-        Step("benchmark_helper_py_compile", "Compile public benchmark helper scripts.",
+        Step("benchmark_helper_py_compile",
+             "Compile public benchmark helper and example scripts.",
              run_py_compile),
+        Step("example_source_files", "Check public MKL-Q example source files.",
+             run_example_source_check),
         Step("markdown_links", "Check local markdown links in public MKL-Q docs.",
              run_markdown_link_check),
         Step("benchmark_evidence_regeneration",
