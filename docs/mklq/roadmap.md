@@ -15,6 +15,9 @@ project or removing upstream backends.
 - Standard non-explicit `cudaq.sample` can use MKL-Q counts-only aggregation.
   Explicit-measurement sampling keeps sequential-shot behavior for compatibility.
 
+The public support boundary, non-goals, and evidence limits are tracked in
+[`known-limitations.md`](known-limitations.md).
+
 ## Near-term Work
 
 - Keep `mklq-cpu` as the correctness and performance baseline.

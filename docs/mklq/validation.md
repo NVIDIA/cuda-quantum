@@ -2,6 +2,8 @@
 
 This page records the current local validation gate for the MKL-Q public
 bootstrap. It is not a release certification and does not replace clean CI.
+See [`known-limitations.md`](known-limitations.md) for the current support
+boundary and evidence limits.
 
 ## Machine
 
