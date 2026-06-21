@@ -29,7 +29,7 @@ backend performance.
 python3 benchmarks/mklq/bench_mklq_targets.py \
   --dry-run \
   --targets qpp-cpu,mklq-cpu,mklq-metal \
-  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state \
+  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,qft-like-state,seeded-clifford-state \
   --qubits 4,8,12 \
   --shot-counts 256,1024,8192 \
   --output /tmp/mklq-benchmark-plan.json
@@ -43,7 +43,7 @@ Use the built Python tree when running from the repository:
 PYTHONPATH="$(pwd)/build-python/python" \
 python3 benchmarks/mklq/bench_mklq_targets.py \
   --targets qpp-cpu,mklq-cpu,mklq-metal \
-  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state \
+  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,qft-like-state,seeded-clifford-state \
   --qubits 4 \
   --shots 32 \
   --repeats 1 \
@@ -70,7 +70,7 @@ PYTHONPATH="$(pwd)/build-python/python" \
 python3 benchmarks/mklq/bench_mklq_targets.py \
   --isolate-rows \
   --targets mklq-cpu \
-  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state \
+  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,qft-like-state,seeded-clifford-state \
   --qubits 15,16,17,18,19,20 \
   --shots 1024 \
   --repeats 2 \
@@ -113,7 +113,12 @@ non-uniform state, then applies CZ-only layers; use it as evidence for the CZ
 phase fast path, not as a general claim about every controlled single-qubit
 gate. The `two-qubit-state` case initializes a non-uniform state, then applies
 SWAP layers; use it as evidence for this hot path, not as a general claim about
-every custom 4x4 gate.
+every custom 4x4 gate. The `qft-like-state` case prepares a nonzero basis state
+and applies layered H/CRZ/SWAP blocks shaped like the QFT fixtures; its
+gate-specific throughput excludes the two state-preparation X gates. The
+`seeded-clifford-state` case applies a deterministic seed-17 mixture of
+single-qubit Clifford gates and CX/CY/CZ/SWAP operations; use it as an
+end-to-end mixed-gate stress row, not as evidence for one isolated primitive.
 `sample-basis` targets deterministic sparse full-register sampling from the
 allocated `|0...0>` basis state. `sample-ghz` targets sparse full-register
 sampling with two nonzero outcomes, while

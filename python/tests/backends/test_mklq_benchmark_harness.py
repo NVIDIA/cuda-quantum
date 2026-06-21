@@ -1582,6 +1582,226 @@ def test_mklq_benchmark_dry_run_accepts_two_qubit_case(tmp_path):
     assert rows[0]["estimated_state_bytes"] == 16 * (1 << 4)
 
 
+def test_mklq_benchmark_dry_run_accepts_composite_state_cases(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-composite-state.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-cpu",
+        "--cases",
+        "qft-like-state,seeded-clifford-state",
+        "--qubits",
+        "4",
+        "--layers",
+        "2",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == [
+        "qft-like-state",
+        "seeded-clifford-state",
+    ]
+    rows = report["results"]
+    assert len(rows) == 2
+    assert {row["status"] for row in rows} == {"planned"}
+    assert {row["case"] for row in rows} == {
+        "qft-like-state",
+        "seeded-clifford-state",
+    }
+    assert {row["estimated_state_bytes"] for row in rows} == {16 * (1 << 4)}
+
+
+def test_mklq_benchmark_qft_like_case_records_composite_metrics(monkeypatch):
+    module = _load_benchmark_module()
+
+    class FakeKernel:
+
+        def __init__(self):
+            self.operations = []
+
+        def qalloc(self, qubits):
+            return list(range(qubits))
+
+        def x(self, target):
+            self.operations.append(("x", target))
+
+        def h(self, target):
+            self.operations.append(("h", target))
+
+        def crz(self, theta, control, target):
+            self.operations.append(("crz", theta, control, target))
+
+        def swap(self, left, right):
+            self.operations.append(("swap", left, right))
+
+    class FakeCudaq:
+
+        def __init__(self):
+            self.kernels = []
+
+        def reset_target(self):
+            pass
+
+        def set_target(self, target):
+            assert target == "mklq-cpu"
+
+        def set_random_seed(self, seed):
+            assert seed == 13
+
+        def make_kernel(self):
+            kernel = FakeKernel()
+            self.kernels.append(kernel)
+            return kernel
+
+        def get_state(self, kernel):
+            return object()
+
+    def fake_timed_repeats(action, repeats):
+        assert repeats == 1
+        action()
+        return [0.5]
+
+    monkeypatch.setattr(module, "timed_repeats", fake_timed_repeats)
+    monkeypatch.setattr(module, "process_max_rss_bytes", lambda: 16384)
+
+    fake_cudaq = FakeCudaq()
+    row = module.run_case(fake_cudaq,
+                          "mklq-cpu",
+                          "qft-like-state",
+                          qubits=4,
+                          shots=16,
+                          repeats=1,
+                          warmups=0,
+                          layers=2)
+
+    assert row["status"] == "ok"
+    metrics = row["metrics"]
+    assert metrics["state_prep_gate_count"] == 2
+    assert metrics["qft_h_gate_count"] == 8
+    assert metrics["qft_crz_gate_count"] == 12
+    assert metrics["qft_swap_gate_count"] == 4
+    assert metrics["qft_like_gate_count"] == 24
+    assert metrics["gate_count"] == 26
+    assert metrics["layers"] == 2
+    assert metrics["qft_like_state_throughput_per_second"] == 48
+    assert metrics["process_max_rss_bytes_cumulative"] == 16384
+    operations = fake_cudaq.kernels[0].operations
+    assert operations.count(("x", 0)) == 1
+    assert operations.count(("x", 3)) == 1
+    assert sum(1 for op in operations if op[0] == "crz") == 12
+
+
+def test_mklq_benchmark_seeded_clifford_case_records_composite_metrics(
+        monkeypatch):
+    module = _load_benchmark_module()
+
+    class FakeKernel:
+
+        def __init__(self):
+            self.operations = []
+
+        def qalloc(self, qubits):
+            return list(range(qubits))
+
+        def h(self, target):
+            self.operations.append(("h", target))
+
+        def s(self, target):
+            self.operations.append(("s", target))
+
+        def sdg(self, target):
+            self.operations.append(("sdg", target))
+
+        def x(self, target):
+            self.operations.append(("x", target))
+
+        def y(self, target):
+            self.operations.append(("y", target))
+
+        def z(self, target):
+            self.operations.append(("z", target))
+
+        def cx(self, control, target):
+            self.operations.append(("cx", control, target))
+
+        def cy(self, control, target):
+            self.operations.append(("cy", control, target))
+
+        def cz(self, control, target):
+            self.operations.append(("cz", control, target))
+
+        def swap(self, left, right):
+            self.operations.append(("swap", left, right))
+
+    class FakeCudaq:
+
+        def __init__(self):
+            self.kernels = []
+
+        def reset_target(self):
+            pass
+
+        def set_target(self, target):
+            assert target == "mklq-cpu"
+
+        def set_random_seed(self, seed):
+            assert seed == 13
+
+        def make_kernel(self):
+            kernel = FakeKernel()
+            self.kernels.append(kernel)
+            return kernel
+
+        def get_state(self, kernel):
+            return object()
+
+    def fake_timed_repeats(action, repeats):
+        assert repeats == 1
+        action()
+        return [0.25]
+
+    monkeypatch.setattr(module, "timed_repeats", fake_timed_repeats)
+    monkeypatch.setattr(module, "process_max_rss_bytes", lambda: 32768)
+
+    fake_cudaq = FakeCudaq()
+    row = module.run_case(fake_cudaq,
+                          "mklq-cpu",
+                          "seeded-clifford-state",
+                          qubits=4,
+                          shots=16,
+                          repeats=1,
+                          warmups=0,
+                          layers=2)
+
+    assert row["status"] == "ok"
+    metrics = row["metrics"]
+    assert metrics["seeded_clifford_single_gate_count"] == 8
+    assert metrics["seeded_clifford_two_qubit_gate_count"] == 8
+    assert metrics["seeded_clifford_gate_count"] == 16
+    assert metrics["seeded_clifford_seed"] == 17
+    assert metrics["gate_count"] == 16
+    assert metrics["layers"] == 2
+    assert metrics["seeded_clifford_state_throughput_per_second"] == 64
+    assert metrics["process_max_rss_bytes_cumulative"] == 32768
+    operations = fake_cudaq.kernels[0].operations
+    assert len(operations) == 16
+    assert sum(1 for op in operations if op[0] in {"cx", "cy", "cz",
+                                                   "swap"}) == 8
+
+
 def test_mklq_benchmark_dry_run_accepts_sample_full_register_case(tmp_path):
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"

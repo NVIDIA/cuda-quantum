@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import platform
 import resource
@@ -83,8 +84,11 @@ DEFAULT_CASES = (
     "crz-state",
     "cz-state",
     "two-qubit-state",
+    "qft-like-state",
+    "seeded-clifford-state",
 )
 DEFAULT_QUBITS = (4, 8, 12)
+SEEDED_CLIFFORD_SEED = 17
 PROVENANCE_ENV_KEYS = (
     "OMP_NUM_THREADS",
     "OMP_PROC_BIND",
@@ -385,6 +389,93 @@ def build_two_qubit_state_kernel(cudaq: Any, qubits: int,
   return kernel, gate_count
 
 
+def build_qft_like_state_kernel(
+    cudaq: Any, qubits: int, layers: int) -> tuple[Any, int, int, int, int, int]:
+  if qubits < 2:
+    raise ValueError("qft-like benchmarks require at least 2 qubits")
+
+  kernel = cudaq.make_kernel()
+  q = kernel.qalloc(qubits)
+  state_prep_gate_count = 0
+  h_gate_count = 0
+  crz_gate_count = 0
+  swap_gate_count = 0
+
+  kernel.x(q[0])
+  kernel.x(q[qubits - 1])
+  state_prep_gate_count += 2
+
+  for _ in range(layers):
+    for target in range(qubits):
+      kernel.h(q[target])
+      h_gate_count += 1
+      for control in range(target + 1, qubits):
+        angle = math.pi / float(1 << (control - target + 1))
+        kernel.crz(angle, q[control], q[target])
+        crz_gate_count += 1
+
+    for index in range(qubits // 2):
+      kernel.swap(q[index], q[qubits - index - 1])
+      swap_gate_count += 1
+
+  qft_like_gate_count = h_gate_count + crz_gate_count + swap_gate_count
+  return (kernel, state_prep_gate_count + qft_like_gate_count,
+          state_prep_gate_count, h_gate_count, crz_gate_count, swap_gate_count)
+
+
+def build_seeded_clifford_state_kernel(
+    cudaq: Any,
+    qubits: int,
+    layers: int,
+    seed: int = SEEDED_CLIFFORD_SEED) -> tuple[Any, int, int, int]:
+  if qubits < 3:
+    raise ValueError("seeded Clifford benchmarks require at least 3 qubits")
+
+  kernel = cudaq.make_kernel()
+  q = kernel.qalloc(qubits)
+  single_gate_count = 0
+  two_qubit_gate_count = 0
+
+  for layer in range(layers):
+    for step in range(qubits):
+      sequence_index = layer * qubits + step
+      target = (seed + layer + step) % qubits
+      selector = (seed + 7 * sequence_index) % 6
+      if selector == 0:
+        kernel.h(q[target])
+      elif selector == 1:
+        kernel.s(q[target])
+      elif selector == 2:
+        kernel.sdg(q[target])
+      elif selector == 3:
+        kernel.x(q[target])
+      elif selector == 4:
+        kernel.y(q[target])
+      else:
+        kernel.z(q[target])
+      single_gate_count += 1
+
+      control = (target + layer + step + 1) % qubits
+      if control == target:
+        control = (control + 1) % qubits
+      other = (target + seed + layer + step + 2) % qubits
+      while other in {target, control}:
+        other = (other + 1) % qubits
+
+      if sequence_index % 4 == 0:
+        kernel.cx(q[control], q[target])
+      elif sequence_index % 4 == 1:
+        kernel.cy(q[control], q[target])
+      elif sequence_index % 4 == 2:
+        kernel.cz(q[control], q[target])
+      else:
+        kernel.swap(q[target], q[other])
+      two_qubit_gate_count += 1
+
+  return (kernel, single_gate_count + two_qubit_gate_count, single_gate_count,
+          two_qubit_gate_count)
+
+
 def build_sample_full_register_kernel(cudaq: Any,
                                       qubits: int) -> tuple[Any, int]:
   kernel = cudaq.make_kernel()
@@ -592,6 +683,46 @@ def run_case(cudaq: Any, target: str, case: str, qubits: int, shots: int,
           "gate_count": gate_count,
           "layers": layers,
           "two_qubit_gate_state_throughput_per_second": gate_count / median
+          if median > 0 else None,
+      })
+    elif case == "qft-like-state":
+      (kernel, gate_count, state_prep_gate_count, h_gate_count, crz_gate_count,
+       swap_gate_count) = build_qft_like_state_kernel(cudaq, qubits, layers)
+      qft_like_gate_count = h_gate_count + crz_gate_count + swap_gate_count
+      action = lambda: cudaq.get_state(kernel)
+      for _ in range(warmups):
+        action()
+      timings = timed_repeats(action, repeats)
+      metrics = summarize_timings(timings)
+      median = metrics["elapsed_seconds_median"]
+      metrics.update({
+          "gate_count": gate_count,
+          "state_prep_gate_count": state_prep_gate_count,
+          "qft_h_gate_count": h_gate_count,
+          "qft_crz_gate_count": crz_gate_count,
+          "qft_swap_gate_count": swap_gate_count,
+          "qft_like_gate_count": qft_like_gate_count,
+          "layers": layers,
+          "qft_like_state_throughput_per_second": qft_like_gate_count / median
+          if median > 0 else None,
+      })
+    elif case == "seeded-clifford-state":
+      kernel, gate_count, single_gate_count, two_qubit_gate_count = (
+          build_seeded_clifford_state_kernel(cudaq, qubits, layers))
+      action = lambda: cudaq.get_state(kernel)
+      for _ in range(warmups):
+        action()
+      timings = timed_repeats(action, repeats)
+      metrics = summarize_timings(timings)
+      median = metrics["elapsed_seconds_median"]
+      metrics.update({
+          "gate_count": gate_count,
+          "seeded_clifford_single_gate_count": single_gate_count,
+          "seeded_clifford_two_qubit_gate_count": two_qubit_gate_count,
+          "seeded_clifford_gate_count": gate_count,
+          "seeded_clifford_seed": SEEDED_CLIFFORD_SEED,
+          "layers": layers,
+          "seeded_clifford_state_throughput_per_second": gate_count / median
           if median > 0 else None,
       })
     elif case == "sample-ghz":
@@ -849,7 +980,8 @@ def make_parser() -> argparse.ArgumentParser:
                             "sample-partial-register,single-qubit-state,"
                             "h-state,y-state,rx-state,ry-state,rz-state,"
                             "controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,"
-                            "cz-state,two-qubit-state."))
+                            "cz-state,two-qubit-state,qft-like-state,"
+                            "seeded-clifford-state."))
   parser.add_argument("--qubits",
                       type=parse_qubits,
                       default=list(DEFAULT_QUBITS),
@@ -877,7 +1009,8 @@ def make_parser() -> argparse.ArgumentParser:
                       help=("Layer count for gate-state and "
                             "single-qubit-state/h-state/rx-state/ry-state/"
                             "rz-state/y-state/controlled-state/ch-state/cy-state/crx-state/cry-state/"
-                            "crz-state/cz-state/two-qubit-state "
+                            "crz-state/cz-state/two-qubit-state/"
+                            "qft-like-state/seeded-clifford-state "
                             "benchmarks."))
   parser.add_argument("--output",
                       help="JSON output path. Defaults to stdout.")
