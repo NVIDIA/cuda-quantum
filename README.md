@@ -89,8 +89,10 @@ CPP
 
 ## Examples
 
-Runnable Python and C++ Bell/GHZ examples are tracked under
-[`examples/mklq`](examples/mklq/). They use the same `cudaq` Python namespace and
+Runnable Python and C++ examples are tracked under
+[`examples/mklq`](examples/mklq/). They cover Bell/GHZ entanglement,
+parameterized rotations, controlled-phase kickback, and a deterministic
+Clifford-chain fixture through the same `cudaq` Python namespace and
 `nvq++ --target mklq-cpu|mklq-metal` interface as the smoke tests above.
 To verify all public examples locally, run:
 

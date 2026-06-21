@@ -43,7 +43,10 @@ BENCHMARK_HELPERS = (
 
 EXAMPLE_PYTHON_FILES = (
     "examples/mklq/python/bell.py",
+    "examples/mklq/python/clifford_chain.py",
     "examples/mklq/python/ghz.py",
+    "examples/mklq/python/parametric.py",
+    "examples/mklq/python/phase_kickback.py",
     "examples/mklq/verify_examples.py",
 )
 
@@ -51,7 +54,10 @@ EXAMPLE_SOURCE_FILES = (
     "examples/mklq/README.md",
     *EXAMPLE_PYTHON_FILES,
     "examples/mklq/cpp/bell.cpp",
+    "examples/mklq/cpp/clifford_chain.cpp",
     "examples/mklq/cpp/ghz.cpp",
+    "examples/mklq/cpp/parametric.cpp",
+    "examples/mklq/cpp/phase_kickback.cpp",
 )
 
 PY_COMPILE_FILES = (

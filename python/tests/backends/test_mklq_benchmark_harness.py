@@ -613,6 +613,9 @@ def test_mklq_public_healthcheck_checks_metadata_tokens(monkeypatch, tmp_path):
 def test_mklq_public_healthcheck_checks_example_sources(tmp_path):
     module = _load_public_healthcheck_module()
     config = _public_healthcheck_config(module, tmp_path)
+    assert "examples/mklq/python/parametric.py" in module.EXAMPLE_SOURCE_FILES
+    assert "examples/mklq/cpp/phase_kickback.cpp" in module.EXAMPLE_SOURCE_FILES
+    assert "examples/mklq/cpp/clifford_chain.cpp" in module.EXAMPLE_SOURCE_FILES
     for relative_path in module.EXAMPLE_SOURCE_FILES:
         path = tmp_path / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -629,6 +632,13 @@ def test_mklq_public_healthcheck_checks_example_sources(tmp_path):
 
 def test_mklq_example_verifier_plans_and_checks_bitstrings(tmp_path):
     module = _load_example_verifier_module()
+    assert module.DEFAULT_EXAMPLES == (
+        "bell",
+        "ghz",
+        "parametric",
+        "phase_kickback",
+        "clifford_chain",
+    )
     config = module.ExampleConfig(
         repo_root=tmp_path,
         install_prefix=tmp_path / "install",
@@ -663,6 +673,46 @@ def test_mklq_example_verifier_plans_and_checks_bitstrings(tmp_path):
     bad = module.validate_counts("bell", "{ 00:3 01:2 }")
     assert bad["counts_ok"] is False
     assert bad["unexpected_bitstrings"] == ["01"]
+    assert module.validate_counts("parametric", "{ 111:5 }")[
+        "counts_ok"] is True
+    assert module.validate_counts("phase_kickback", "{ 11:5 }")[
+        "counts_ok"] is True
+    assert module.validate_counts("clifford_chain", "{ 1111:5 }")[
+        "counts_ok"] is True
+    clifford_bad = module.validate_counts("clifford_chain", "{ 1011:5 }")
+    assert clifford_bad["counts_ok"] is False
+    assert clifford_bad["unexpected_bitstrings"] == ["1011"]
+
+
+def test_mklq_example_verifier_default_plan_covers_public_fixtures(tmp_path):
+    module = _load_example_verifier_module()
+    config = module.ExampleConfig(
+        repo_root=tmp_path,
+        install_prefix=tmp_path / "install",
+        pythonpath=str(tmp_path / "install"),
+        nvqpp=tmp_path / "install" / "bin" / "nvq++",
+        python_executable=sys.executable,
+        targets=list(module.DEFAULT_TARGETS),
+        examples=list(module.DEFAULT_EXAMPLES),
+        shots=5,
+        output=tmp_path / "example-smoke.json",
+        timeout_seconds=10,
+        plan_only=True,
+        skip_python=False,
+        skip_cpp=False,
+    )
+
+    report = module.run_examples(config)
+
+    assert report["summary"] == {
+        "status": "planned",
+        "planned": 30,
+        "failed": 0,
+    }
+    planned_names = {step["name"] for step in report["steps"]}
+    assert "python_parametric_mklq_cpu" in planned_names
+    assert "cpp_run_phase_kickback_mklq_metal" in planned_names
+    assert "cpp_compile_clifford_chain_mklq_cpu" in planned_names
 
 
 def test_mklq_public_healthcheck_invokes_example_verifier(monkeypatch,

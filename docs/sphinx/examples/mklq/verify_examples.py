@@ -17,10 +17,19 @@ from typing import Any
 
 SCHEMA_VERSION = "mklq-example-verification-v1"
 DEFAULT_TARGETS = ("mklq-cpu", "mklq-metal")
-DEFAULT_EXAMPLES = ("bell", "ghz")
+DEFAULT_EXAMPLES = (
+    "bell",
+    "ghz",
+    "parametric",
+    "phase_kickback",
+    "clifford_chain",
+)
 EXPECTED_BITSTRINGS = {
     "bell": {"00", "11"},
     "ghz": {"000", "111"},
+    "parametric": {"111"},
+    "phase_kickback": {"11"},
+    "clifford_chain": {"1111"},
 }
 COUNT_RE = re.compile(r"([01]+)\s*:\s*\d+")
 

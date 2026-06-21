@@ -168,7 +168,10 @@ python3 -m py_compile \
   benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_reports.py \
   examples/mklq/python/bell.py \
+  examples/mklq/python/clifford_chain.py \
   examples/mklq/python/ghz.py \
+  examples/mklq/python/parametric.py \
+  examples/mklq/python/phase_kickback.py \
   examples/mklq/verify_examples.py
 ```
 
