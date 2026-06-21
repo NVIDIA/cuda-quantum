@@ -17,19 +17,24 @@ boundary and evidence limits.
 
 Latest local validation refresh: 2026-06-21.
 
-The install-prefix build and one-command correctness gate were last run against
-source commit `8946ad33679f60d7c22dc55415fc60b048ef614c` before the validation
-note was committed. The clean CPU benchmark summary was refreshed separately
-against `a18e6ab919bd76dffd497a50889efdbe407e218a` after adding `cz-state` to
-the clean evidence gate.
+The install-prefix build, full public healthcheck, and one-command correctness
+gate were last run against source commit
+`a25715eaa49881fce78cb89fd7838418d683ed46` before this validation note was
+committed. The clean CPU benchmark summary was refreshed separately against
+`a18e6ab919bd76dffd497a50889efdbe407e218a` after adding `cz-state` to the clean
+evidence gate.
 
-Raw wrapper output was written to ignored local path
-`benchmarks/mklq/results/local-correctness-gate-2026-06-21.json` and is not
-tracked as public evidence.
+Raw wrapper output was written to ignored local paths
+`benchmarks/mklq/results/public-healthcheck-full-2026-06-21.json` and
+`benchmarks/mklq/results/local-correctness-gate-2026-06-21.json`; these raw
+payloads are not tracked as public evidence.
 
 - Install-prefix build: passed.
+- Full public healthcheck: passed, with 11 steps passed and 0 failed.
 - One-command correctness gate: passed, with 3 steps passed, 0 failed, and 0
   skipped.
+- `benchmark_harness_tests`: `45 passed`.
+- Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `49 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
@@ -53,7 +58,7 @@ python3 -m pytest \
   -q
 ```
 
-Result: `35 passed`.
+Result: `35 passed in 3.41s` in the latest local refresh.
 
 ```bash
 CUDAQ_NVQPP=/Users/a0000/.cudaq-mklq/bin/nvq++ \
@@ -71,7 +76,7 @@ ctest --test-dir build-python \
   --output-on-failure
 ```
 
-Result: `63/63 passed`.
+Result in the latest correctness refresh: `63/63 passed`.
 
 ```bash
 PYTHONPATH=/Users/a0000/Documents/MKL-Q/build-python/python \
@@ -83,7 +88,9 @@ python3 -m pytest \
   -q
 ```
 
-Result: `63 passed`.
+Historical bootstrap result: `63 passed`. This build-tree Python bundle is not
+part of the latest full public healthcheck; the install-prefix correctness
+wrapper is the current public readiness gate.
 
 ```bash
 PYTHONPATH=/Users/a0000/Documents/MKL-Q/tpls/llvm/llvm/utils/lit \
@@ -94,7 +101,9 @@ PYTHONPATH=/Users/a0000/Documents/MKL-Q/tpls/llvm/llvm/utils/lit \
   /Users/a0000/Documents/MKL-Q/build-python/targettests/TargetConfig
 ```
 
-Result: 2 selected MKL-Q TargetConfig tests passed.
+Historical bootstrap result: 2 selected MKL-Q TargetConfig tests passed. The
+latest correctness refresh uses the broader TargetConfig `ctest` selection
+above.
 
 ## One-command Correctness Gate
 
@@ -109,7 +118,7 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 ```
 
 Latest local result: passed on 2026-06-21 against
-`8946ad33679f60d7c22dc55415fc60b048ef614c` with 3 wrapper steps passed, 0
+`a25715eaa49881fce78cb89fd7838418d683ed46` with 3 wrapper steps passed, 0
 failed, and 0 skipped. The step-level results were:
 
 - `python_target_smoke`: `49 passed`.
@@ -144,10 +153,14 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 ## Repository Hygiene Gate
 
 ```bash
-git diff --check
+python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
 ```
 
-Result: no whitespace errors at the time of the bootstrap gate.
+Result: `11/11` steps passed in the latest local refresh. This includes Git
+repository hygiene, tracked-artifact checks, public metadata checks, sanitized
+benchmark summary parsing, the performance evidence guard, helper
+`py_compile`, markdown links, benchmark evidence regeneration, benchmark
+harness tests, install-prefix build, and the one-command correctness gate.
 
 ## Benchmark Evidence
 

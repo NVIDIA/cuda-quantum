@@ -127,9 +127,12 @@ The latest public local validation evidence is recorded in
 
 - latest validation refresh date: 2026-06-21;
 - source commit used for the latest runtime validation gate:
-  `8946ad33679f60d7c22dc55415fc60b048ef614c`;
+  `a25715eaa49881fce78cb89fd7838418d683ed46`;
 - install-prefix build: passed;
+- full public healthcheck: passed with 11/11 steps passed;
 - one-command correctness gate: passed;
+- benchmark harness tests: `45 passed`;
+- standalone install-prefix Python subset: `35 passed`;
 - `python_target_smoke`: `49 passed`;
 - `nvqpp_smoke`: `2 passed`;
 - `target_config_ctest`: `63/63 passed`.
