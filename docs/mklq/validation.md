@@ -17,23 +17,25 @@ boundary and evidence limits.
 
 Latest local validation refresh: 2026-06-21.
 
-The install-prefix build, full public healthcheck, and one-command correctness
-gate were last run against source commit
-`a25715eaa49881fce78cb89fd7838418d683ed46` before this validation note was
+The install-prefix build, full public healthcheck, one-command correctness
+gate, and public example smoke gate were last run against source commit
+`4b2f77a629fd3ff6ae3f7dde26643a6a39da3ea3` before this validation note was
 committed. The clean CPU benchmark summary was refreshed separately against
 `a18e6ab919bd76dffd497a50889efdbe407e218a` after adding `cz-state` to the clean
 evidence gate.
 
 Raw wrapper output was written to ignored local paths
 `benchmarks/mklq/results/public-healthcheck-full-2026-06-21.json` and
-`benchmarks/mklq/results/local-correctness-gate-2026-06-21.json`; these raw
-payloads are not tracked as public evidence.
+`benchmarks/mklq/results/local-correctness-gate-2026-06-21.json`, and
+`benchmarks/mklq/results/example-smoke-2026-06-21.json`; these raw payloads are
+not tracked as public evidence.
 
 - Install-prefix build: passed.
-- Full public healthcheck: passed, with 11 steps passed and 0 failed.
+- Full public healthcheck: passed, with 13 steps passed and 0 failed.
 - One-command correctness gate: passed, with 3 steps passed, 0 failed, and 0
   skipped.
-- `benchmark_harness_tests`: `45 passed`.
+- Public example smoke gate: passed, with 12 steps passed and 0 failed.
+- `benchmark_harness_tests`: `48 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `49 passed`.
 - `nvqpp_smoke`: `2 passed`.
@@ -118,7 +120,7 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 ```
 
 Latest local result: passed on 2026-06-21 against
-`a25715eaa49881fce78cb89fd7838418d683ed46` with 3 wrapper steps passed, 0
+`4b2f77a629fd3ff6ae3f7dde26643a6a39da3ea3` with 3 wrapper steps passed, 0
 failed, and 0 skipped. The step-level results were:
 
 - `python_target_smoke`: `49 passed`.
@@ -156,11 +158,12 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
 ```
 
-Result: `11/11` steps passed in the latest local refresh. This includes Git
+Result: `13/13` steps passed in the latest local refresh. This includes Git
 repository hygiene, tracked-artifact checks, public metadata checks, sanitized
 benchmark summary parsing, the performance evidence guard, helper
 `py_compile`, markdown links, benchmark evidence regeneration, benchmark
-harness tests, install-prefix build, and the one-command correctness gate.
+harness tests, install-prefix build, the one-command correctness gate, and the
+public example smoke gate.
 
 ## Benchmark Evidence
 
