@@ -147,19 +147,28 @@ from the local baseline so they are not read as performance evidence.
 
 ## Tracked Accepted Local Benchmark Evidence
 
-To regenerate the clean CPU summary from ignored local raw results, run:
+To rerun the clean CPU benchmark gate, regenerate the sanitized summary, and
+refresh the public evidence index, run:
 
 ```bash
-python3 benchmarks/mklq/make_summary.py \
-  --raw benchmarks/mklq/results/local-clean-cpu-gate-y-cy-q20-2026-06-21.json \
-  --raw benchmarks/mklq/results/local-clean-cpu-sampling-q20-2026-06-21.json \
-  --summary-id local-clean-cpu-q20-2026-06-21 \
-  --evidence-kind clean_local_benchmark_evidence \
-  --ratio-group clean_worktree_cross_target_ratio \
-  --performance-scope 'local Apple M5 q20 CPU target comparison only; not a cross-machine release benchmark' \
-  --summary-text 'Clean-worktree local run comparing qpp-cpu and mklq-cpu for q20 Y/CY state updates plus full/partial-register sampling at 1024 and 65536 shots.' \
-  --runtime-note 'The CUDA-Q Python runtime came from /Users/a0000/.cudaq-mklq and reports f98433b6; source HEAD 4b112725 adds docs/benchmark evidence tooling on top of the same backend code.' \
-  --output benchmarks/mklq/reports/local-clean-cpu-q20-2026-06-21.summary.json
+python3 benchmarks/mklq/run_clean_cpu_benchmark.py \
+  --pythonpath "${HOME}/.cudaq-mklq" \
+  --stamp 2026-06-21
+```
+
+The gate writes ignored raw JSON under `benchmarks/mklq/results/`, writes the
+sanitized summary under `benchmarks/mklq/reports/`, and refreshes
+`docs/mklq/benchmark-evidence.md`. It refuses to collect clean evidence from a
+dirty worktree unless `--allow-dirty` is passed explicitly.
+
+If the raw JSON already exists and you only need to regenerate the sanitized
+summary and public evidence index, run:
+
+```bash
+python3 benchmarks/mklq/run_clean_cpu_benchmark.py \
+  --pythonpath "${HOME}/.cudaq-mklq" \
+  --stamp 2026-06-21 \
+  --skip-benchmark
 ```
 
 For a compact table across all tracked sanitized summaries, run:

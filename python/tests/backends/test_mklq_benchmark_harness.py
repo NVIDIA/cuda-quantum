@@ -58,6 +58,17 @@ def _load_summary_generator_module():
     return module
 
 
+def _load_clean_benchmark_gate_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "run_clean_cpu_benchmark.py"
+    spec = importlib.util.spec_from_file_location("run_clean_cpu_benchmark",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _raw_benchmark_report(dirty=False, cases=None, results=None):
     cases = cases or ["y-state"]
     results = results or []
@@ -207,6 +218,112 @@ def test_mklq_summary_generator_rejects_dirty_by_default(tmp_path):
                              ratio_group=None,
                              performance_scope="local",
                              summary_text="dirty")
+
+
+def test_mklq_clean_cpu_gate_plan_uses_fixed_environment(tmp_path):
+    module = _load_clean_benchmark_gate_module()
+    config = module.GateConfig(
+        repo_root=tmp_path,
+        pythonpath="/tmp/cudaq-runtime",
+        stamp="2026-06-21",
+        qubits=20,
+        threads=10,
+        repeats=2,
+        warmups=1,
+        layers=8,
+        shots=1024,
+        shot_counts="1024,65536",
+        results_dir=tmp_path / "results",
+        reports_dir=tmp_path / "reports",
+        evidence_output=tmp_path / "benchmark-evidence.md",
+        targets="qpp-cpu,mklq-cpu",
+        gate_cases="y-state,cy-state",
+        sampling_cases="sample-full-register,sample-partial-register",
+        summary_id="local-clean-cpu-q20-2026-06-21",
+        evidence_kind="clean_local_benchmark_evidence",
+        ratio_group="clean_worktree_cross_target_ratio",
+        performance_scope="local test only",
+        summary_text="Synthetic clean benchmark gate.",
+        runtime_note="synthetic runtime note",
+        allow_dirty=False,
+        skip_benchmark=False,
+        refresh_evidence=True,
+    )
+
+    plan = module.build_plan(config)
+
+    assert plan["environment"] == {
+        "OMP_NUM_THREADS": "10",
+        "OMP_PROC_BIND": "close",
+        "OMP_DYNAMIC": "false",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "PYTHONPATH": "/tmp/cudaq-runtime",
+    }
+    assert plan["paths"]["gate_raw"].endswith(
+        "local-clean-cpu-gate-y-cy-q20-2026-06-21.json")
+    assert plan["paths"]["sampling_raw"].endswith(
+        "local-clean-cpu-sampling-q20-2026-06-21.json")
+    assert plan["paths"]["summary"].endswith(
+        "local-clean-cpu-q20-2026-06-21.summary.json")
+    gate_command = plan["commands"]["gate_raw"]
+    assert "--isolate-rows" in gate_command
+    assert gate_command[gate_command.index("--cases") + 1] == (
+        "y-state,cy-state")
+    assert gate_command[gate_command.index("--targets") + 1] == (
+        "qpp-cpu,mklq-cpu")
+    sampling_command = plan["commands"]["sampling_raw"]
+    assert sampling_command[sampling_command.index("--shot-counts") +
+                            1] == "1024,65536"
+    summary_command = plan["commands"]["summary"]
+    assert "--allow-dirty" not in summary_command
+    assert summary_command[summary_command.index("--ratio-group") + 1] == (
+        "clean_worktree_cross_target_ratio")
+
+
+def test_mklq_clean_cpu_gate_skip_benchmark_runs_summary_only(monkeypatch,
+                                                              tmp_path):
+    module = _load_clean_benchmark_gate_module()
+    config = module.GateConfig(
+        repo_root=tmp_path,
+        pythonpath="/tmp/cudaq-runtime",
+        stamp="2026-06-21",
+        qubits=20,
+        threads=10,
+        repeats=2,
+        warmups=1,
+        layers=8,
+        shots=1024,
+        shot_counts="1024,65536",
+        results_dir=tmp_path / "results",
+        reports_dir=tmp_path / "reports",
+        evidence_output=tmp_path / "benchmark-evidence.md",
+        targets="qpp-cpu,mklq-cpu",
+        gate_cases="y-state,cy-state",
+        sampling_cases="sample-full-register,sample-partial-register",
+        summary_id="local-clean-cpu-q20-2026-06-21",
+        evidence_kind="clean_local_benchmark_evidence",
+        ratio_group="clean_worktree_cross_target_ratio",
+        performance_scope="local test only",
+        summary_text="Synthetic clean benchmark gate.",
+        runtime_note="synthetic runtime note",
+        allow_dirty=False,
+        skip_benchmark=True,
+        refresh_evidence=True,
+    )
+    calls = []
+
+    def fake_run_command(command, env_overlay, cwd):
+        calls.append((command, env_overlay, cwd))
+
+    monkeypatch.setattr(module, "run_command", fake_run_command)
+
+    module.run_gate(config, plan_only=False)
+
+    assert len(calls) == 2
+    assert calls[0][0] == module.build_plan(config)["commands"]["summary"]
+    assert calls[1][0] == module.build_plan(config)["commands"]["evidence"]
+    assert calls[0][1]["OMP_NUM_THREADS"] == "10"
+    assert calls[0][2] == tmp_path
 
 
 def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
