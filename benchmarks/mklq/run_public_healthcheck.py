@@ -44,6 +44,7 @@ BENCHMARK_HELPERS = (
 EXAMPLE_PYTHON_FILES = (
     "examples/mklq/python/bell.py",
     "examples/mklq/python/ghz.py",
+    "examples/mklq/verify_examples.py",
 )
 
 EXAMPLE_SOURCE_FILES = (
@@ -460,6 +461,27 @@ def run_correctness_gate(config: HealthcheckConfig) -> dict[str, Any]:
         "one-command correctness gate failed", result)
 
 
+def run_example_smoke(config: HealthcheckConfig) -> dict[str, Any]:
+    script = config.repo_root / "examples" / "mklq" / "verify_examples.py"
+    command = [
+        config.python_executable,
+        str(script),
+        "--install-prefix",
+        str(config.install_prefix),
+        "--pythonpath",
+        config.pythonpath,
+        "--nvqpp",
+        str(config.nvqpp),
+        "--shots",
+        "20",
+        "--timeout-seconds",
+        str(config.timeout_seconds),
+    ]
+    result = run_command(config, command)
+    return passed(result) if result["returncode"] == 0 else failed(
+        "public MKL-Q example smoke failed", result)
+
+
 def run_clean_cpu_benchmark(config: HealthcheckConfig) -> dict[str, Any]:
     script = config.repo_root / "benchmarks" / "mklq" / "run_clean_cpu_benchmark.py"
     command = [
@@ -511,6 +533,10 @@ def build_steps(config: HealthcheckConfig) -> list[Step]:
             Step("correctness_gate",
                  "Run Python target, nvq++, and TargetConfig correctness gates.",
                  run_correctness_gate))
+        steps.append(
+            Step("example_smoke",
+                 "Run Python and C++ public MKL-Q examples.",
+                 run_example_smoke))
     if config.refresh_clean_cpu_benchmark:
         steps.append(
             Step("clean_cpu_benchmark",

@@ -91,6 +91,16 @@ def _load_public_healthcheck_module():
     return module
 
 
+def _load_example_verifier_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "examples" / "mklq" / "verify_examples.py"
+    spec = importlib.util.spec_from_file_location("verify_examples", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _load_performance_evidence_module():
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "benchmarks" / "mklq" / (
@@ -525,6 +535,7 @@ def test_mklq_public_healthcheck_plan_lists_escalating_gates(tmp_path):
         "benchmark_harness_tests",
         "install_prefix_build",
         "correctness_gate",
+        "example_smoke",
         "clean_cpu_benchmark",
     ]
     assert not config.output.exists()
@@ -614,6 +625,72 @@ def test_mklq_public_healthcheck_checks_example_sources(tmp_path):
     result = module.run_example_source_check(config)
     assert result["status"] == "failed"
     assert "examples/mklq/cpp/ghz.cpp" in result["details"]["missing"]
+
+
+def test_mklq_example_verifier_plans_and_checks_bitstrings(tmp_path):
+    module = _load_example_verifier_module()
+    config = module.ExampleConfig(
+        repo_root=tmp_path,
+        install_prefix=tmp_path / "install",
+        pythonpath=str(tmp_path / "install"),
+        nvqpp=tmp_path / "install" / "bin" / "nvq++",
+        python_executable=sys.executable,
+        targets=["mklq-cpu"],
+        examples=["bell"],
+        shots=5,
+        output=tmp_path / "example-smoke.json",
+        timeout_seconds=10,
+        plan_only=True,
+        skip_python=False,
+        skip_cpp=False,
+    )
+
+    report = module.run_examples(config)
+
+    assert report["schema_version"] == module.SCHEMA_VERSION
+    assert report["summary"] == {
+        "status": "planned",
+        "planned": 3,
+        "failed": 0,
+    }
+    assert [step["name"] for step in report["steps"]] == [
+        "python_bell_mklq_cpu",
+        "cpp_compile_bell_mklq_cpu",
+        "cpp_run_bell_mklq_cpu",
+    ]
+    assert module.validate_counts("bell", "mklq-cpu: { 00:3 11:2 }")[
+        "counts_ok"] is True
+    bad = module.validate_counts("bell", "{ 00:3 01:2 }")
+    assert bad["counts_ok"] is False
+    assert bad["unexpected_bitstrings"] == ["01"]
+
+
+def test_mklq_public_healthcheck_invokes_example_verifier(monkeypatch,
+                                                          tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path, full=True)
+    calls = []
+
+    def fake_run_command(config, command, env_overlay=None):
+        calls.append(command)
+        return {
+            "returncode": 0,
+            "command": command,
+            "stdout_tail": "{}",
+            "stderr_tail": "",
+        }
+
+    monkeypatch.setattr(module, "run_command", fake_run_command)
+
+    result = module.run_example_smoke(config)
+
+    assert result["status"] == "passed"
+    command = calls[0]
+    assert command[1].endswith("examples/mklq/verify_examples.py")
+    assert "--install-prefix" in command
+    assert "--pythonpath" in command
+    assert "--nvqpp" in command
+    assert "--shots" in command
 
 
 def test_mklq_public_healthcheck_compares_benchmark_evidence(monkeypatch,

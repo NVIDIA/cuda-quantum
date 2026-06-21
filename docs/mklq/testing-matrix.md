@@ -37,7 +37,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | `benchmarks/mklq/run_correctness_gate.py` | Correctness gate wrapper | Aggregates Python smoke, `nvq++` smoke, and selected `ctest` into ignored JSON |
 | `benchmarks/mklq/check_performance_evidence.py` | Static performance evidence guard | Checks tracked clean CPU sanitized summaries for clean-worktree provenance, ignored raw payload paths, cross-machine disclaimer, required q20 ratios, and positive candidate medians |
 | `benchmarks/mklq/run_public_healthcheck.py` | Public maintenance health check | Aggregates local public hygiene checks, summary parse, helper compile, markdown link checks, benchmark evidence regeneration comparison, optional build/correctness/benchmark gates |
-| `examples/mklq/` | Public getting-started examples | Python and C++ Bell/GHZ source examples for `mklq-cpu` and `mklq-metal`; Python examples are syntax-checked by public healthcheck |
+| `examples/mklq/` | Public getting-started examples | Python and C++ Bell/GHZ source examples for `mklq-cpu` and `mklq-metal`; Python examples and `verify_examples.py` are syntax-checked by public healthcheck, and `--full` runs the examples locally |
 | `benchmarks/mklq/bench_mklq_targets.py` | Target benchmark harness | Local timing rows for gate/state/sampling cases and target notes |
 | `benchmarks/mklq/bench_probability_kernels.py` | Probability microbenchmark | Local dense probability kernel experiment data and schema |
 | `benchmarks/mklq/make_summary.py` | Summary sanitizer | Converts raw local benchmark JSON to public summary JSON |
@@ -64,7 +64,7 @@ measurement/reset, benchmark scripts, or public release metadata.
 | Change Type | Minimum Local Evidence |
 | --- | --- |
 | Docs-only public metadata | `git diff --check`, public hygiene metadata checks, banned-token scan |
-| Public examples | Example source files, `examples/mklq/README.md`, `run_public_healthcheck.py`, Python example `py_compile`; local `nvq++` smoke if C++ example behavior changes |
+| Public examples | Example source files, `examples/mklq/README.md`, `run_public_healthcheck.py`, Python example `py_compile`, `examples/mklq/verify_examples.py`; local `nvq++` smoke if C++ example behavior changes |
 | Target YAML or target marker | `targettests/TargetConfig/mklq_targets.config`, `test_mklq_targets.py`, `test_mklq_nvqpp_smoke.py` |
 | Python target selection | `python/tests/backends/test_mklq_python_api.py`, `python/tests/builder/test_mklq_targets.py` |
 | CPU gate semantics | A new or updated CPU fixture plus `test_mklq_cpu_correctness_fixtures.py` and relevant `MKLQCpuTester` case |

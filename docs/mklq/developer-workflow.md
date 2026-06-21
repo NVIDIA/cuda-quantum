@@ -154,7 +154,8 @@ python3 -m py_compile \
   benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_reports.py \
   examples/mklq/python/bell.py \
-  examples/mklq/python/ghz.py
+  examples/mklq/python/ghz.py \
+  examples/mklq/verify_examples.py
 ```
 
 Expected workflow state:

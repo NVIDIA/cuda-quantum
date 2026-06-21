@@ -15,6 +15,19 @@ python3 examples/mklq/python/ghz.py --target mklq-cpu --target mklq-metal
 
 Use `--shots N` to change the sample count.
 
+## One-command Verification
+
+Run all Python and C++ examples for both public MKL-Q targets:
+
+```bash
+PYTHONPATH="${HOME}/.cudaq-mklq" \
+python3 examples/mklq/verify_examples.py \
+  --install-prefix "${HOME}/.cudaq-mklq"
+```
+
+The verifier writes ignored JSON under `benchmarks/mklq/results/` and checks
+that each example only reports the expected Bell or GHZ bitstrings.
+
 ## C++
 
 ```bash
