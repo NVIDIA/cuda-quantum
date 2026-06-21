@@ -13,13 +13,34 @@ boundary and evidence limits.
 - OS: macOS 26.5.1
 - Install prefix used for the public bootstrap gate: `/Users/a0000/.cudaq-mklq`
 
+## Current Evidence Snapshot
+
+Latest local validation refresh: 2026-06-21.
+
+The install-prefix build and one-command correctness gate were run against
+source commit `9dbbfde78ec9ead9d6602c0016ba69e2a3eea305` before this
+documentation-only validation note was committed. This refresh does not change
+runtime, target, build, benchmark, or test code.
+
+Raw wrapper output was written to ignored local path
+`benchmarks/mklq/results/local-correctness-gate-2026-06-21.json` and is not
+tracked as public evidence.
+
+- Install-prefix build: passed.
+- One-command correctness gate: passed, with 3 steps passed, 0 failed, and 0
+  skipped.
+- `python_target_smoke`: `49 passed`.
+- `nvqpp_smoke`: `2 passed`.
+- `target_config_ctest`: `63/63 passed`.
+
 ## Install-prefix Gate
 
 ```bash
 cmake --build build-python --target install -j 6
 ```
 
-Result: passed, installing to `/Users/a0000/.cudaq-mklq`.
+Result: passed in the latest local refresh, installing to
+`/Users/a0000/.cudaq-mklq`.
 
 ```bash
 PYTHONPATH=/Users/a0000/.cudaq-mklq \
@@ -83,6 +104,13 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --install-prefix "${HOME}/.cudaq-mklq" \
   --build-dir build-python
 ```
+
+Latest local result: passed on 2026-06-21 with 3 wrapper steps passed, 0 failed,
+and 0 skipped. The step-level results were:
+
+- `python_target_smoke`: `49 passed`.
+- `nvqpp_smoke`: `2 passed`.
+- `target_config_ctest`: `63/63 passed`.
 
 The Python smoke step includes the MKL-Q API smoke tests, the CPU correctness
 fixture suite, the limited experimental Metal correctness fixture suite, and

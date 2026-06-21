@@ -116,8 +116,8 @@ Run source hygiene first:
 
 ```bash
 git diff --check
-if git ls-files | grep -E '(^|/)(__pycache__|\.pytest_cache)(/|$)|\.pyc$|\.DS_Store$|^build(-python)?/|^benchmarks/mklq/results/|^docs/superpowers/'; then
-  echo "Generated, local, or agent-internal files are tracked."
+if git ls-files | grep -E '(^|/)(__pycache__|\.pytest_cache)(/|$)|\.pyc$|\.DS_Store$|^build(-python)?/|^benchmarks/mklq/results/|^docs/superpowers/|^(dist|wheelhouse)/|\.(whl|dmg|pkg|zip)$|\.tar\.gz$'; then
+  echo "Generated, local, release, or agent-internal files are tracked."
   exit 1
 fi
 ```
