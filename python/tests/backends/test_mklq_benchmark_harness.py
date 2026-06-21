@@ -483,6 +483,23 @@ def _public_healthcheck_config(module,
     )
 
 
+def test_mklq_public_healthcheck_default_output_uses_mode_label():
+    module = _load_public_healthcheck_module()
+
+    assert module.output_default("2026-06-21") == Path(
+        "benchmarks/mklq/results/public-healthcheck-2026-06-21.json")
+    assert module.output_default("2026-06-21", full=True) == Path(
+        "benchmarks/mklq/results/public-healthcheck-full-2026-06-21.json")
+    assert module.output_default(
+        "2026-06-21", refresh_clean_cpu_benchmark=True) == Path(
+            "benchmarks/mklq/results/"
+            "public-healthcheck-refresh-clean-cpu-2026-06-21.json")
+    assert module.output_default(
+        "2026-06-21", full=True, refresh_clean_cpu_benchmark=True) == Path(
+            "benchmarks/mklq/results/"
+            "public-healthcheck-full-refresh-clean-cpu-2026-06-21.json")
+
+
 def test_mklq_public_healthcheck_plan_lists_escalating_gates(tmp_path):
     module = _load_public_healthcheck_module()
     config = _public_healthcheck_config(module,

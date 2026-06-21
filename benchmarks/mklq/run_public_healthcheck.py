@@ -100,8 +100,18 @@ def command_path(root: Path, path: Path) -> str:
         return path.as_posix()
 
 
-def output_default(stamp: str) -> Path:
-    return Path("benchmarks/mklq/results") / f"public-healthcheck-{stamp}.json"
+def output_default(stamp: str,
+                   *,
+                   full: bool = False,
+                   refresh_clean_cpu_benchmark: bool = False) -> Path:
+    modes: list[str] = []
+    if full:
+        modes.append("full")
+    if refresh_clean_cpu_benchmark:
+        modes.append("refresh-clean-cpu")
+    mode_label = f"-{'-'.join(modes)}" if modes else ""
+    return Path("benchmarks/mklq/results") / (
+        f"public-healthcheck{mode_label}-{stamp}.json")
 
 
 def output_tail(value: str | bytes | None, tail_chars: int) -> str:
@@ -548,7 +558,10 @@ def make_config(args: argparse.Namespace) -> HealthcheckConfig:
     install_prefix = args.install_prefix.expanduser()
     pythonpath = args.pythonpath or str(install_prefix)
     nvqpp = args.nvqpp or install_prefix / "bin" / "nvq++"
-    output = args.output or output_default(stamp)
+    output = args.output or output_default(
+        stamp,
+        full=args.full,
+        refresh_clean_cpu_benchmark=args.refresh_clean_cpu_benchmark)
     return HealthcheckConfig(
         repo_root=root,
         install_prefix=resolve_path(root, install_prefix),
