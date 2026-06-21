@@ -13,6 +13,8 @@ Use this page with:
 - [`release-policy.md`](release-policy.md) before any tag, GitHub Release,
   wheel, PyPI package, installer, or signed artifact.
 - [`issue-labels.md`](issue-labels.md) for public GitHub triage labels.
+- [`branch-protection.md`](branch-protection.md) for the public `main` branch
+  protection policy.
 
 ## Maintainer Principles
 
@@ -49,6 +51,7 @@ Expected state:
 - The repository is not shallow.
 - `.github/workflows/` contains only intentionally reviewed MKL-Q workflows.
 - The latest pushed commit has a completed `MKL-Q public hygiene` run.
+- `main` branch protection matches [`branch-protection.md`](branch-protection.md).
 
 ## Issue Triage
 
@@ -120,7 +123,8 @@ change touches shared behavior.
 ## Direct-to-main Maintainer Flow
 
 Use direct `main` pushes only for maintainer-owned batches that have already
-passed their local gates.
+passed their local gates. The current branch protection policy keeps
+administrator enforcement disabled so this recovery path remains available.
 
 ```bash
 git status --short --branch

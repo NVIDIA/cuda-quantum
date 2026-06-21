@@ -60,6 +60,8 @@
       `docs/mklq/maintainer-runbook.md`.
 - [ ] Issue label taxonomy impact was considered:
       `docs/mklq/issue-labels.md`.
+- [ ] Branch protection impact was considered:
+      `docs/mklq/branch-protection.md`.
 
 ## Reviewer Notes
 

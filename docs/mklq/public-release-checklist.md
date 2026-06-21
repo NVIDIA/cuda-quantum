@@ -56,6 +56,8 @@ Check:
   maintainer triage, validation, and recovery boundaries.
 - [ ] `docs/mklq/issue-labels.md` is linked from the README and matches
   `.github/labels.yml`.
+- [ ] `docs/mklq/branch-protection.md` is linked from the README and matches
+  `.github/branch-protection-main.json`.
 - [ ] GitHub About metadata describes MKL-Q, uses Apache-2.0, and avoids stale
   NVIDIA workflow or badge links.
 
@@ -175,6 +177,8 @@ Expected:
 - [ ] The default branch is `main`.
 - [ ] Only intended MKL-Q lightweight workflows run.
 - [ ] The latest MKL-Q public hygiene workflow completes with `success`.
+- [ ] `main` branch protection is enabled and requires
+  `Source-only repository checks`.
 
 ## Stop Conditions
 
