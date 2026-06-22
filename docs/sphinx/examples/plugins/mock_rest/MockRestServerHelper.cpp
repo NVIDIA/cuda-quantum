@@ -14,6 +14,7 @@ namespace cudaq {
 
 class MockRestServerHelper : public ServerHelper {
   std::string url = "http://localhost:62454";
+  std::string value = "0";
 
 public:
   const std::string name() const override { return "mock_rest"; }
@@ -23,6 +24,12 @@ public:
     parseConfigForCommonParams(backendConfig);
     if (auto iter = backendConfig.find("url"); iter != backendConfig.end())
       url = iter->second;
+    if (auto iter = backendConfig.find("shots");
+        iter != backendConfig.end() && !iter->second.empty())
+      setShots(std::stoul(iter->second));
+    if (auto iter = backendConfig.find("value");
+        iter != backendConfig.end() && !iter->second.empty())
+      value = iter->second;
   }
 
   RestHeaders getHeaders() override { return {}; }
@@ -36,6 +43,7 @@ public:
       task["kernel"] = circuitCode.name;
       task["code"] = circuitCode.code;
       task["shots"] = shots;
+      task["value"] = value;
       tasks.push_back(std::move(task));
     }
 
@@ -65,12 +73,7 @@ public:
   sample_result processResults(ServerMessage &postJobResponse,
                                std::string &jobId) override {
     CountsDictionary counts;
-    if (postJobResponse.contains("counts")) {
-      for (auto &[bits, count] : postJobResponse["counts"].items())
-        counts[bits] = count.get<std::size_t>();
-    } else {
-      counts["0"] = shots;
-    }
+    counts[postJobResponse.value("value", value)] = shots;
 
     return sample_result(ExecutionResult(counts));
   }

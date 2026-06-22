@@ -22,3 +22,8 @@ target-arguments:
     type: string
     platform-arg: url
     help-string: "Specify the mock REST service URL."
+  - key: value
+    required: false
+    type: string
+    platform-arg: value
+    help-string: "Specify the bitstring value echoed by the mock REST service."
