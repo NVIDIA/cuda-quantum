@@ -284,7 +284,8 @@ def test_return_m2d_two_rounds():
     # observable 0 = m2 (the last measurement)
     assert m2o.shape == (1, 3)
     obs_dense = m2o.toarray()
-    assert obs_dense[0, 0] == 0 and obs_dense[0, 1] == 0 and obs_dense[0, 2] == 1
+    assert obs_dense[0, 0] == 0 and obs_dense[0, 1] == 0 and obs_dense[0,
+                                                                       2] == 1
 
 
 def test_return_m2d_type_is_scipy_sparse():
