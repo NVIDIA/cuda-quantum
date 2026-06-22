@@ -207,6 +207,8 @@ def check_branch_protection(config: AuditConfig) -> dict[str, Any]:
         failures.append("force pushes are not disabled")
     if (protection.get("allow_deletions") or {}).get("enabled") is not False:
         failures.append("branch deletion is not disabled")
+    if (protection.get("enforce_admins") or {}).get("enabled") is not True:
+        failures.append("administrator enforcement is not enabled")
     details = {"branch": branch, "protection": protection}
     return failed("branch_protection", "; ".join(failures),
                   details) if failures else passed("branch_protection", details)

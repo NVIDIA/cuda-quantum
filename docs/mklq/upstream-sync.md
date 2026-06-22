@@ -175,19 +175,19 @@ After local gates pass:
 
 ```bash
 git status --short --branch
-git push origin HEAD
+git push -u origin HEAD
 gh run list --repo wuls968/MKL-Q --branch "$(git branch --show-current)" --limit 5
 ```
 
-For a branch-based review, open a pull request and use the PR template. For a
-maintainer direct-to-main sync, fast-forward or merge only after the same gates
-pass locally, then confirm the remote workflow result:
+Open a pull request and use the PR template. After the required hygiene check
+passes for the branch, merge through GitHub and then confirm `main`:
 
 ```bash
+gh pr create --repo wuls968/MKL-Q --base main --head codex/upstream-sync-YYYYMMDD
+gh pr checks --repo wuls968/MKL-Q --watch
+gh pr merge --repo wuls968/MKL-Q --squash --delete-branch
 git switch main
 git pull --ff-only origin main
-git merge --ff-only codex/upstream-sync-YYYYMMDD
-git push origin main
 gh run watch <run-id> --repo wuls968/MKL-Q --exit-status
 ```
 

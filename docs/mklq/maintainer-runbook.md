@@ -145,11 +145,12 @@ change touches shared behavior.
 | Upstream sync | `upstream-sync.md` post-merge gates |
 | Release artifact proposal | `release-policy.md`, public release checklist, correctness gate, packaging-specific fresh-environment tests |
 
-## Direct-to-main Maintainer Flow
+## PR-first Maintainer Flow
 
-Use direct `main` pushes only for maintainer-owned batches that have already
-passed their local gates. The current branch protection policy keeps
-administrator enforcement disabled so this recovery path remains available.
+Use a branch and pull request for maintainer-owned batches. The current branch
+protection policy enforces `Source-only repository checks` for administrators,
+so routine `main` updates should merge only after the GitHub hygiene job passes
+for the proposed commit.
 
 ```bash
 git status --short --branch
@@ -164,18 +165,20 @@ git status --short --branch
 git add <files>
 git diff --cached --check
 git commit -m "docs: update mklq maintainer docs"
-
+git push -u origin codex/<short-topic>
+gh pr create --repo wuls968/MKL-Q --base main --head codex/<short-topic> \
+  --title "<short title>" --body-file .github/pull_request_template.md
+gh run list --repo wuls968/MKL-Q --branch codex/<short-topic> \
+  --workflow "MKL-Q public hygiene" --limit 1
+gh pr merge --repo wuls968/MKL-Q --squash --delete-branch
 git switch main
 git pull --ff-only origin main
-git merge --ff-only codex/<short-topic>
-
-# rerun the relevant gates on main
-git push origin main
-gh run list --repo wuls968/MKL-Q --branch main --workflow "MKL-Q public hygiene" --limit 1
 ```
 
-Do not force push `main`. If remote `main` moved, inspect the delta before
-merging.
+Do not force push `main`. If branch protection or a bad pushed commit blocks
+recovery, make a documented temporary protection change through GitHub
+settings/API, land a revert or recovery commit, confirm the hygiene workflow,
+and restore the recorded protection policy in the same maintenance window.
 
 ## Backend Runtime Changes
 
@@ -282,7 +285,10 @@ git diff --check
 git push origin main
 ```
 
-Prefer a revert commit over rewriting public `main`.
+This direct recovery push requires a documented temporary branch-protection
+change because administrator enforcement is enabled. Prefer a revert commit
+over rewriting public `main`, and restore the recorded protection policy after
+the hygiene workflow passes again.
 
 If a backend change breaks correctness, keep the failure evidence, revert or fix
 on a focused branch, and rerun the one-command correctness gate before pushing.

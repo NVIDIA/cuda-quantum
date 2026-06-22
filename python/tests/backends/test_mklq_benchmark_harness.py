@@ -1728,6 +1728,9 @@ def test_mklq_public_readiness_audit_builds_passing_report(monkeypatch,
                 "allow_deletions": {
                     "enabled": False,
                 },
+                "enforce_admins": {
+                    "enabled": True,
+                },
             })
         if command[:3] == ["gh", "run", "list"]:
             return json.dumps([{
@@ -1802,6 +1805,9 @@ def test_mklq_public_readiness_audit_rejects_release_tags_and_unprotected_main(
                 "allow_deletions": {
                     "enabled": True,
                 },
+                "enforce_admins": {
+                    "enabled": False,
+                },
             })
         if command[:3] == ["gh", "run", "list"]:
             return json.dumps([{
@@ -1821,6 +1827,7 @@ def test_mklq_public_readiness_audit_rejects_release_tags_and_unprotected_main(
 
     assert report["summary"]["status"] == "failed"
     assert "branch is not protected" in failures
+    assert "administrator enforcement is not enabled" in failures
     assert "release tags exist" in failures
 
 

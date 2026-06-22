@@ -114,7 +114,8 @@ The public `main` branch is intended to be protected with:
 - strict status checks enabled;
 - force pushes disabled;
 - branch deletion disabled;
-- administrator enforcement disabled for documented maintainer recovery;
+- administrator enforcement enabled, so maintainers use the same required
+  status check path as external contributors;
 - no required pull-request review policy yet;
 - no branch push restrictions yet.
 
@@ -230,8 +231,8 @@ Do not describe the public repository as ready if any of these are true:
 - the worktree is dirty before collecting clean evidence;
 - `origin/main` does not match the intended public commit;
 - the latest GitHub Actions result is failing, missing, or still pending;
-- branch protection is missing or no longer requires `Source-only repository
-  checks`;
+- branch protection is missing, no longer requires `Source-only repository
+  checks`, or no longer enforces administrators;
 - raw benchmark JSON, build output, caches, `.DS_Store`, signing artifacts,
   tokens, secrets, or `docs/superpowers/` are tracked;
 - release tags, GitHub Releases, wheels, installers, or package artifacts were

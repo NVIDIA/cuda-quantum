@@ -260,6 +260,8 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("docs/mklq/maintainer-runbook.md", "check_metal_evidence.py"),
         ("docs/mklq/issue-labels.md", "Label Taxonomy"),
         ("docs/mklq/branch-protection.md", "Source-only repository checks"),
+        ("docs/mklq/branch-protection.md", "administrator enforcement enabled"),
+        (".github/branch-protection-main.json", "\"enforce_admins\": true"),
         ("docs/mklq/public-readiness.md", "Public Readiness"),
         ("docs/mklq/public-readiness.md", "run_public_readiness_audit.py"),
         ("docs/mklq/validation.md", "not a release certification"),

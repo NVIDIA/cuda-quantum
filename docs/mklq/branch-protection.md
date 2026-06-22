@@ -5,7 +5,7 @@ machine-readable reference is
 [`../../.github/branch-protection-main.json`](../../.github/branch-protection-main.json).
 
 The goal is to protect public history and require the lightweight MKL-Q hygiene
-check for pull request merges without blocking maintainer emergency recovery.
+check before `main` advances, including maintainer-owned changes.
 
 ## Current Policy
 
@@ -13,8 +13,8 @@ The public `main` branch should be protected with:
 
 - required status check: `Source-only repository checks`;
 - strict status checks, so pull requests are tested against current `main`;
-- administrator enforcement disabled, so the repository owner can still perform
-  documented maintainer recovery;
+- administrator enforcement enabled, so maintainers use the same required
+  status check path as external contributors;
 - force pushes disabled;
 - branch deletion disabled;
 - pull request reviews not required by policy yet;
@@ -45,14 +45,16 @@ gh api repos/wuls968/MKL-Q/branches/main/protection --jq '{
 }'
 ```
 
-## Maintainer Bypass Boundary
+## Maintainer Recovery Boundary
 
-Administrator enforcement is intentionally disabled for now. This keeps
-maintainer direct-to-main and emergency revert workflows usable while still
-documenting the expected public gate.
+Administrator enforcement is intentionally enabled. Routine work should land
+through a branch or pull request after the `Source-only repository checks` job
+passes for the proposed commit.
 
-If MKL-Q gains regular external contributors, revisit this policy before
-requiring reviews, requiring pull requests, or enforcing admins.
+If a pushed commit or branch protection change blocks recovery, use the GitHub
+settings/API to make a documented temporary protection change, land the revert
+or recovery commit, verify the hygiene workflow, and restore this policy in the
+same maintenance window. Prefer a revert commit over rewriting public `main`.
 
 ## Stop Conditions
 
@@ -60,7 +62,8 @@ Do not tighten branch protection if any of these are true:
 
 - the required check name does not match the GitHub Actions job name;
 - the latest `MKL-Q public hygiene` run is failing or unknown;
-- the repository owner cannot perform documented recovery;
+- the repository owner cannot perform documented recovery through GitHub
+  settings/API;
 - release or packaging work would need a different protected branch model;
 - the policy would block upstream sync recovery without a reviewed alternative.
 

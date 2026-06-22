@@ -73,7 +73,7 @@ evidence boundary.
 Use [`testing-matrix.md`](testing-matrix.md) to choose the minimum gate that
 actually proves a backend, target, benchmark, or docs change.
 Use [`maintainer-runbook.md`](maintainer-runbook.md) for issue triage, PR intake,
-direct-to-main maintainer flow, release stop conditions, and recovery steps.
+PR-first maintainer flow, release stop conditions, and recovery steps.
 
 ## Local Build
 

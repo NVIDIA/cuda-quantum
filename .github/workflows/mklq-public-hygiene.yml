@@ -124,6 +124,8 @@ jobs:
           grep -q 'release-policy' .github/labels.yml
           grep -q 'needs-repro' .github/ISSUE_TEMPLATE/bug_report.yaml
           grep -q 'Source-only repository checks' docs/mklq/branch-protection.md
+          grep -q 'administrator enforcement enabled' docs/mklq/branch-protection.md
+          grep -q '"enforce_admins": true' .github/branch-protection-main.json
           grep -q 'Public Readiness' docs/mklq/public-readiness.md
           grep -q 'run_public_readiness_audit.py' docs/mklq/public-readiness.md
           grep -q 'source-only' docs/mklq/public-readiness.md

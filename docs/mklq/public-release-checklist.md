@@ -200,7 +200,12 @@ Expected:
 After local gates pass:
 
 ```bash
-git push origin main
+git push -u origin HEAD
+gh pr create --repo wuls968/MKL-Q --base main --head "$(git branch --show-current)"
+gh pr checks --repo wuls968/MKL-Q --watch
+gh pr merge --repo wuls968/MKL-Q --squash --delete-branch
+git switch main
+git pull --ff-only origin main
 git ls-remote origin refs/heads/main
 gh repo view wuls968/MKL-Q --json nameWithOwner,isFork,parent,defaultBranchRef,url
 gh run list --repo wuls968/MKL-Q --branch main --limit 5
@@ -216,6 +221,7 @@ Expected:
 - [ ] The latest MKL-Q public hygiene workflow completes with `success`.
 - [ ] `main` branch protection is enabled and requires
   `Source-only repository checks`.
+- [ ] `main` branch protection enforces the required check for administrators.
 - [ ] `run_public_readiness_audit.py` passes for the pushed commit.
 - [ ] `docs/mklq/public-readiness.md` is current for the pushed commit.
 
