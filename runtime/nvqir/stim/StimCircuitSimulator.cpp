@@ -209,6 +209,33 @@ protected:
     getExecutionContext()->result = result;
   }
 
+  /// @brief Populate the m2d fields in @p ctx from `recordedCircuit`.
+  /// @brief Populate the m2d fields in @p ctx from `recordedCircuit`.
+  /// Rows = detectors, cols = measurements; all non-zero entries have value 1.
+  void computeM2DIntoContext(cudaq::ExecutionContext &ctx) {
+    auto flat = recordedCircuit.flattened();
+    auto stats = flat.compute_stats();
+    ctx.m2d.num_measurements = stats.num_measurements;
+    ctx.m2d.rows.resize(stats.num_detectors);
+
+    std::size_t meas_so_far = 0;
+    std::size_t det_so_far = 0;
+    flat.for_each_operation([&](const stim::CircuitInstruction &op) {
+      auto n = op.count_measurement_results();
+      if (n > 0) {
+        meas_so_far += n;
+      } else if (op.gate_type == stim::GateType::DETECTOR) {
+        for (const auto &t : op.targets) {
+          if (t.is_measurement_record_target()) {
+            auto lookback = static_cast<std::size_t>(-t.rec_offset());
+            ctx.m2d.rows[det_so_far].push_back(meas_so_far - lookback);
+          }
+        }
+        ++det_so_far;
+      }
+    });
+  }
+
   /// @brief Compute the detector error model from the accumulated
   /// `recordedCircuit` and return it as `.dem` text.
   std::string generateDem() override {
@@ -221,6 +248,11 @@ protected:
             /*approximate_disjoint_errors_threshold=*/0,
             /*ignore_decomposition_failures=*/false,
             /*block_decomposition_from_introducing_remnant_edges=*/false);
+
+    auto *ctx = getExecutionContext();
+    if (ctx && ctx->compute_m2d)
+      computeM2DIntoContext(*ctx);
+
     return dem.str();
   }
 

@@ -10,22 +10,43 @@
 
 #include "cudaq/platform.h"
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace cudaq {
+
 class noise_model;
+
+/// @brief Sparse binary matrix mapping detectors (rows) to measurements
+/// (columns). Returned as an optional second output of `dem_from_kernel`
+/// when `return_m2d=True` is requested.
+///
+/// `rows[d]` lists the chronological measurement indices that contribute to
+/// detector `d` (i.e. are XOR-ed together to form its syndrome bit).
+/// `num_measurements` gives the total column count (shape is
+/// `rows.size() × num_measurements`).
+struct M2DSparseMatrix {
+  std::size_t num_measurements = 0;
+  std::vector<std::vector<std::size_t>> rows;
+};
+
 } // namespace cudaq
 
 namespace cudaq::detail {
 
 /// @brief Type-erased core of `dem_from_kernel`.
+///
+/// @param m2d_out  Optional output for the m2d matrix. Pass `nullptr`
+///                 (default) to skip the computation.
 std::string runDemFromKernel(const std::string &kernelName,
                              cudaq::quantum_platform &platform,
                              const cudaq::noise_model *noise,
                              const std::function<void()> &wrappedKernel,
-                             const std::string &plugin_name = "stim");
+                             const std::string &plugin_name = "stim",
+                             cudaq::M2DSparseMatrix *m2d_out = nullptr);
 
 } // namespace cudaq::detail
 

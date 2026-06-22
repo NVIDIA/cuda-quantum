@@ -158,6 +158,17 @@ public:
 
   /// @brief Slot for the detector error model, as `.dem` text.
   std::string dem_text;
+
+  /// @brief When true, the DEM execution also populates `m2d` below.
+  bool compute_m2d = false;
+
+  /// @brief Sparse m2d matrix data; populated when `compute_m2d` is true.
+  /// See `cudaq::M2DSparseMatrix` for the public-facing type.
+  struct M2DData {
+    std::size_t num_measurements = 0;
+    std::vector<std::vector<std::size_t>>
+        rows; // rows[d] = measurement indices for detector d
+  } m2d;
   /// @endcond
 };
 

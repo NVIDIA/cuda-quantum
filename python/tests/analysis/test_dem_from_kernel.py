@@ -246,5 +246,70 @@ def test_conditional_feedback_rejected():
         cudaq.dem_from_kernel(kernel)
 
 
+def test_return_m2d_no_detectors():
+    """Kernel with no detectors yields an empty m2d matrix."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        mz(q)
+
+    dem_text, m2d = cudaq.dem_from_kernel(kernel, return_m2d=True)
+    assert m2d.shape == (0, 1)
+    assert m2d.nnz == 0
+
+
+def test_return_m2d_two_rounds():
+    """Two-round memory experiment: verify m2d shape and detector/measurement mapping."""
+
+    @cudaq.kernel
+    def kernel(n_rounds: int):
+        q = cudaq.qubit()
+        m = mz(q)
+        for _ in range(n_rounds):
+            m_new = mz(q)
+            cudaq.detector(m_new, m)
+            m = m_new
+        cudaq.logical_observable(m)
+
+    dem_text, m2d = cudaq.dem_from_kernel(kernel, 2, return_m2d=True)
+    # 3 measurements (m0, m1, m2) and 2 detectors (det0, det1)
+    assert m2d.shape == (2, 3)
+    dense = m2d.toarray()
+    # det0 = m0 XOR m1, det1 = m1 XOR m2
+    assert dense[0, 0] == 1 and dense[0, 1] == 1 and dense[0, 2] == 0
+    assert dense[1, 0] == 0 and dense[1, 1] == 1 and dense[1, 2] == 1
+
+
+def test_return_m2d_type_is_scipy_sparse():
+    """return_m2d=True yields a scipy CSR sparse matrix."""
+    sp = pytest.importorskip("scipy.sparse")
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        m = mz(q)
+        cudaq.detector(m)
+
+    dem_text, m2d = cudaq.dem_from_kernel(kernel, return_m2d=True)
+    assert isinstance(dem_text, str)
+    assert sp.issparse(m2d)
+    assert m2d.shape == (1, 1)
+    assert m2d[0, 0] == 1
+
+
+def test_return_m2d_false_still_returns_string():
+    """Explicit return_m2d=False preserves the original string-only return."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        m = mz(q)
+        cudaq.detector(m)
+
+    result = cudaq.dem_from_kernel(kernel, return_m2d=False)
+    assert isinstance(result, str)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

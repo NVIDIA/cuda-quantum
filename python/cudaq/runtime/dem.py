@@ -6,6 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import numpy as np
+import scipy.sparse as sp
+
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
@@ -22,7 +25,7 @@ def _detail_check_conditionals_on_measure(kernel):
 
 
 @trace.traced
-def dem_from_kernel(kernel, *args, noise_model=None):
+def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
     Runs `kernel` under the internal `"dem"` execution context, captures
@@ -36,11 +39,20 @@ def dem_from_kernel(kernel, *args, noise_model=None):
       *arguments: Concrete argument values forwarded to the kernel invocation.
       noise_model (:class:`NoiseModel`, optional): Noise model layered on
           top of any `apply_noise` ops already present in the kernel.
+      return_m2d (bool, optional): When True, also return the sparse
+          measurements-to-detectors (m2d) matrix alongside the DEM text.
+          Defaults to False.
 
     Returns:
-      UTF-8 string in Stim's standard `.dem` file format. Consumers
-      that need a structured DEM can parse it with
-      `stim.DetectorErrorModel(text)`.
+      If `return_m2d` is False (default): a UTF-8 string in Stim's standard
+      `.dem` file format. Consumers that need a structured DEM can parse it
+      with `stim.DetectorErrorModel(text)`.
+
+      If `return_m2d` is True: a tuple ``(dem_text, m2d)`` where ``m2d`` is
+      a ``scipy.sparse.csr_matrix`` of shape
+      ``(num_detectors, num_measurements)`` with binary entries. Entry
+      ``m2d[d, m] == 1`` means raw measurement ``m`` (chronological index)
+      contributes to detector ``d``.
     """
     _detail_check_conditionals_on_measure(kernel)
 
@@ -49,5 +61,19 @@ def dem_from_kernel(kernel, *args, noise_model=None):
     else:
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
-    return cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
-                                              noise_model, *processedArgs)
+    result = cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
+                                                noise_model, return_m2d,
+                                                *processedArgs)
+
+    if not return_m2d:
+        return result
+
+    dem_text, num_measurements, rows = result
+    num_detectors = len(rows)
+    det_idx = [d for d, ms in enumerate(rows) for _ in ms]
+    meas_idx = [m for ms in rows for m in ms]
+    m2d = sp.csr_matrix(
+        (np.ones(len(det_idx), dtype=np.uint8), (det_idx, meas_idx)),
+        shape=(num_detectors, num_measurements),
+    )
+    return dem_text, m2d
