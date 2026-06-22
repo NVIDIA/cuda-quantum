@@ -45,7 +45,7 @@ python3 -m cudaq_example_trace_qpu --install-nvqpp
 For C++-only workflows, install the plugin root directly:
 
 ```sh
-cudaq-install-plugin build/external/trace-qpu   # visible to nvq++
+cudaq-install-plugin build/external/trace-qpu     # visible to nvq++
 ```
 
 During development, you can still register the build output directly:
