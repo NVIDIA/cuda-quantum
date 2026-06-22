@@ -13,6 +13,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,7 @@ EXPECTED_UPSTREAM = "https://github.com/NVIDIA/cuda-quantum.git"
 REQUIRED_STATUS_CHECK = "Source-only repository checks"
 LOCK_NAMES = ("index.lock", "HEAD.lock", "config.lock", "packed-refs.lock",
               "shallow.lock")
+LOCK_RECHECK_DELAY_SECONDS = 0.25
 TRACKED_ARTIFACT_PATTERN = re.compile(
     r"(^|/)(__pycache__|\.pytest_cache)(/|$)|"
     r"\.pyc$|\.DS_Store$|^build(-python)?/|"
@@ -104,6 +106,18 @@ def has_fetch_remote(remotes: list[str], name: str, url: str) -> bool:
     return any(line.startswith(prefix) for line in remotes)
 
 
+def git_lock_files(directory: Path, repo_root: Path) -> list[dict[str, Any]]:
+    locks = []
+    for name in LOCK_NAMES:
+        path = directory / name
+        if path.exists():
+            locks.append({
+                "path": path.relative_to(repo_root).as_posix(),
+                "size_bytes": path.stat().st_size,
+            })
+    return locks
+
+
 def check_git_worktree(config: PreflightConfig) -> dict[str, Any]:
     status = command_output(config.repo_root,
                             ["git", "status", "--short", "--branch"])
@@ -137,15 +151,19 @@ def check_git_worktree(config: PreflightConfig) -> dict[str, Any]:
 
 def check_git_locks(config: PreflightConfig) -> dict[str, Any]:
     directory = git_dir(config)
-    locks = []
-    for name in LOCK_NAMES:
-        path = directory / name
-        if path.exists():
-            locks.append({
-                "path": path.relative_to(config.repo_root).as_posix(),
-                "size_bytes": path.stat().st_size,
-            })
-    details = {"git_dir": directory.as_posix(), "lock_files": locks}
+    locks = git_lock_files(directory, config.repo_root)
+    rechecks = 0
+    if locks:
+        time.sleep(LOCK_RECHECK_DELAY_SECONDS)
+        rechecks += 1
+        locks = git_lock_files(directory, config.repo_root)
+
+    details = {
+        "git_dir": directory.as_posix(),
+        "lock_files": locks,
+        "rechecks": rechecks,
+        "recheck_delay_seconds": LOCK_RECHECK_DELAY_SECONDS,
+    }
     return failed("git_locks", "git lock files are present",
                   details) if locks else passed("git_locks", details)
 

@@ -181,7 +181,9 @@ The audit checks the local Git worktree state, stale Git lock files, expected
 `origin` and `upstream` remotes, shallow-clone state, tracked generated or raw
 local artifacts, ignored local artifact summaries, and the public `main` branch
 protection settings. Add `--require-clean` when the branch should have no
-uncommitted changes, or `--skip-github` for offline local-only checks.
+uncommitted changes, or `--skip-github` for offline local-only checks. A
+short-lived Git lock is rechecked once before the audit reports it as a stale
+lock failure.
 
 ## Public Health Check
 

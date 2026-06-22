@@ -1942,6 +1942,53 @@ def test_mklq_preflight_audit_builds_passing_report(monkeypatch, tmp_path):
     assert any(call[:2] == ["gh", "api"] for call in calls)
 
 
+def test_mklq_preflight_audit_retries_transient_git_locks(monkeypatch,
+                                                          tmp_path):
+    module = _load_preflight_audit_module()
+    config = _preflight_config(module, tmp_path, check_github=False)
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    lock = git_dir / "index.lock"
+    lock.write_text("transient lock", encoding="utf-8")
+    checks = 0
+
+    def fake_command_output(cwd, command):
+        if command == ["git", "status", "--short", "--branch"]:
+            return "## codex/topic...origin/codex/topic"
+        if command == ["git", "rev-parse", "--is-shallow-repository"]:
+            return "false"
+        if command == ["git", "rev-parse", "--git-dir"]:
+            return ".git"
+        if command == ["git", "remote", "-v"]:
+            return "\n".join([
+                "origin\thttps://github.com/wuls968/MKL-Q.git (fetch)",
+                "upstream\thttps://github.com/NVIDIA/cuda-quantum.git (fetch)",
+            ])
+        if command == ["git", "ls-files"]:
+            return "README.md"
+        if command == ["git", "status", "--ignored", "--short"]:
+            return ""
+        raise AssertionError(command)
+
+    def fake_sleep(_seconds):
+        nonlocal checks
+        checks += 1
+        lock.unlink()
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+    monkeypatch.setattr(module.time, "sleep", fake_sleep)
+
+    report = module.build_report(config)
+    lock_check = {
+        check["name"]: check for check in report["checks"]
+    }["git_locks"]
+
+    assert report["summary"]["status"] == "passed"
+    assert lock_check["details"]["lock_files"] == []
+    assert lock_check["details"]["rechecks"] == 1
+    assert checks == 1
+
+
 def test_mklq_preflight_audit_rejects_locks_raw_artifacts_and_bad_protection(
         monkeypatch, tmp_path):
     module = _load_preflight_audit_module()
