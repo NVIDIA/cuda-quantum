@@ -162,9 +162,12 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-The gate writes ignored local JSON under `benchmarks/mklq/results/`. When
-preserving rejected tuning runs, label them clearly and keep them separate from
-the local baseline so they are not read as performance evidence.
+The gate also runs the Metal runtime counter probe by default and writes both
+ignored local JSON outputs under `benchmarks/mklq/results/`. Use
+`--skip-metal-counter-probe` only when you intentionally want a correctness
+gate without build-tree Metal counter evidence. When preserving rejected tuning
+runs, label them clearly and keep them separate from the local baseline so they
+are not read as performance evidence.
 
 ## Public Health Check
 

@@ -34,8 +34,9 @@ not tracked as public evidence.
 
 - Install-prefix build: passed.
 - Full public healthcheck: passed, with 14 steps passed and 0 failed.
-- One-command correctness gate: passed, with 3 steps passed, 0 failed, and 0
-  skipped.
+- One-command correctness gate: historical 2026-06-21 result passed with 3
+  steps passed, 0 failed, and 0 skipped. The current wrapper also includes the
+  Metal runtime counter probe by default.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
 - `benchmark_harness_tests`: `58 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
@@ -112,8 +113,8 @@ above.
 ## One-command Correctness Gate
 
 Use the local correctness gate wrapper to run the install-prefix Python smoke
-tests, the `nvq++` smoke tests, and the build-tree TargetConfig `ctest` gate in
-one command:
+tests, the `nvq++` smoke tests, the build-tree TargetConfig `ctest` gate, and
+the Metal runtime counter probe in one command:
 
 ```bash
 python3 benchmarks/mklq/run_correctness_gate.py \
@@ -121,9 +122,10 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-Latest local result: passed on 2026-06-21 against
+Historical local result: passed on 2026-06-21 against
 `90b1ebe20b281411880e7704df5b4120692e4686` with 3 wrapper steps passed, 0
-failed, and 0 skipped. The step-level results were:
+failed, and 0 skipped before the Metal runtime counter probe was added to the
+wrapper default. The step-level results were:
 
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
@@ -134,9 +136,12 @@ fixture suite, the limited experimental Metal correctness fixture suite, and
 the builder-level MKL-Q target tests.
 
 The default JSON output path is ignored by Git:
-`benchmarks/mklq/results/local-correctness-gate-<date>.json`. Use
-`--plan-only` to inspect the exact commands and environment without running the
-gate:
+`benchmarks/mklq/results/local-correctness-gate-<date>.json`. The default
+Metal runtime counter probe output path is also ignored by Git:
+`benchmarks/mklq/results/local-metal-runtime-counter-probe-<date>.counter.json`.
+Use `--skip-metal-counter-probe` only when that build-tree counter evidence is
+intentionally out of scope. Use `--plan-only` to inspect the exact commands and
+environment without running the gate:
 
 ```bash
 python3 benchmarks/mklq/run_correctness_gate.py \
@@ -160,12 +165,14 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
 ```
 
-Result: `14/14` steps passed in the latest local refresh. This includes Git
+Historical 2026-06-21 result: `14/14` steps passed. This includes Git
 repository hygiene, tracked-artifact checks, public metadata checks, sanitized
 benchmark summary parsing, the clean CPU performance evidence guard, the Metal
 evidence boundary guard, helper `py_compile`, markdown links, benchmark
 evidence regeneration, benchmark harness tests, install-prefix build, the
-one-command correctness gate, and the public example smoke gate.
+one-command correctness gate, and the public example smoke gate. Current
+`--full` runs also execute the correctness gate's Metal runtime counter probe
+unless `--skip-metal-counter-probe` is passed to that wrapper directly.
 
 ## Benchmark Evidence
 

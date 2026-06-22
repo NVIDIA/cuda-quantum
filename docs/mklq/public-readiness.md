@@ -101,8 +101,9 @@ The public GitHub configuration is intentionally lightweight:
   API payload.
 
 The lightweight workflow checks source-only repository hygiene, public metadata,
-tracked benchmark summary parseability, and benchmark helper syntax. It does not
-build CUDA-Q or run Apple Silicon backend correctness tests.
+tracked benchmark summary parseability, bounded Metal runtime counter probe
+parseability, and benchmark helper syntax. It does not build CUDA-Q or run
+Apple Silicon backend correctness tests.
 
 ## Branch Protection
 
@@ -125,7 +126,8 @@ payload is `.github/branch-protection-main.json`.
 The latest public local validation evidence is recorded in
 [`validation.md`](validation.md):
 
-- latest validation refresh date: 2026-06-21;
+- latest validation refresh date: 2026-06-21, before the correctness wrapper
+  gained the default Metal runtime counter probe step;
 - source commit used for the latest runtime validation gate:
   `90b1ebe20b281411880e7704df5b4120692e4686`;
 - install-prefix build: passed;

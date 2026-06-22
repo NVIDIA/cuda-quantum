@@ -41,6 +41,7 @@ class CorrectnessGateConfig:
     skip_python: bool
     skip_nvqpp: bool
     skip_ctest: bool
+    skip_metal_counter_probe: bool
 
 
 def repo_root() -> Path:
@@ -78,6 +79,11 @@ def fixed_env(config: CorrectnessGateConfig) -> dict[str, str]:
 def output_default(stamp: str) -> Path:
     return Path("benchmarks/mklq/results") / (
         f"local-correctness-gate-{stamp}.json")
+
+
+def metal_counter_output_default(stamp: str) -> Path:
+    return Path("benchmarks/mklq/results") / (
+        f"local-metal-runtime-counter-probe-{stamp}.counter.json")
 
 
 def step_plan(config: CorrectnessGateConfig) -> list[dict[str, Any]]:
@@ -132,6 +138,22 @@ def step_plan(config: CorrectnessGateConfig) -> list[dict[str, Any]]:
                 fixed_env(config),
         })
 
+    if not config.skip_metal_counter_probe:
+        steps.append({
+            "name":
+                "metal_runtime_counter_probe",
+            "command": [
+                config.python_executable,
+                "benchmarks/mklq/run_metal_runtime_counter_probe.py",
+                "--build-dir",
+                command_path(config, config.build_dir),
+                "--output",
+                metal_counter_output_default(config.stamp).as_posix(),
+            ],
+            "env":
+                fixed_env(config),
+        })
+
     return steps
 
 
@@ -143,6 +165,8 @@ def skipped_steps(config: CorrectnessGateConfig) -> list[str]:
         skipped.append("nvqpp_smoke")
     if config.skip_ctest:
         skipped.append("target_config_ctest")
+    if config.skip_metal_counter_probe:
+        skipped.append("metal_runtime_counter_probe")
     return skipped
 
 
@@ -181,6 +205,10 @@ def build_plan(config: CorrectnessGateConfig) -> dict[str, Any]:
             "python_executable": config.python_executable,
             "timeout_seconds": config.timeout_seconds,
             "tail_chars": config.tail_chars,
+            "skip_python": config.skip_python,
+            "skip_nvqpp": config.skip_nvqpp,
+            "skip_ctest": config.skip_ctest,
+            "skip_metal_counter_probe": config.skip_metal_counter_probe,
         },
         "environment": fixed_env(config),
         "skipped_steps": skipped_steps(config),
@@ -289,6 +317,7 @@ def make_config(args: argparse.Namespace) -> CorrectnessGateConfig:
         skip_python=args.skip_python,
         skip_nvqpp=args.skip_nvqpp,
         skip_ctest=args.skip_ctest,
+        skip_metal_counter_probe=args.skip_metal_counter_probe,
     )
 
 
@@ -334,6 +363,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-ctest",
                         action="store_true",
                         help="Skip TargetConfig ctest.")
+    parser.add_argument("--skip-metal-counter-probe",
+                        action="store_true",
+                        help="Skip Metal runtime counter ctest probe.")
     parser.add_argument("--plan-only",
                         action="store_true",
                         help="Print the planned gate as JSON without running it.")

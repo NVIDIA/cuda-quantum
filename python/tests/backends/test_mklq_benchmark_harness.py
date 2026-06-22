@@ -473,6 +473,7 @@ def _correctness_gate_config(module, tmp_path):
         skip_python=False,
         skip_nvqpp=False,
         skip_ctest=False,
+        skip_metal_counter_probe=False,
     )
 
 
@@ -491,6 +492,7 @@ def test_mklq_correctness_gate_plan_lists_expected_steps(tmp_path):
         "python_target_smoke",
         "nvqpp_smoke",
         "target_config_ctest",
+        "metal_runtime_counter_probe",
     ]
     assert "python/tests/backends/test_mklq_python_api.py" in plan["steps"][0][
         "command"]
@@ -505,6 +507,33 @@ def test_mklq_correctness_gate_plan_lists_expected_steps(tmp_path):
     assert plan["steps"][2]["command"][0] == "ctest"
     assert plan["steps"][2]["command"][plan["steps"][2]["command"].index("-R") +
                                       1] == module.TARGET_CONFIG_REGEX
+    assert plan["steps"][3]["command"][:2] == [
+        "/usr/bin/python3",
+        "benchmarks/mklq/run_metal_runtime_counter_probe.py",
+    ]
+    assert "--output" in plan["steps"][3]["command"]
+    assert (plan["steps"][3]["command"][plan["steps"][3]["command"].index(
+        "--output") + 1] ==
+            "benchmarks/mklq/results/local-metal-runtime-counter-probe-2026-06-21.counter.json"
+            )
+
+
+def test_mklq_correctness_gate_can_skip_metal_counter_probe(tmp_path):
+    module = _load_correctness_gate_module()
+    base = _correctness_gate_config(module, tmp_path)
+    config = module.CorrectnessGateConfig(**{
+        **base.__dict__,
+        "skip_metal_counter_probe": True,
+    })
+
+    plan = module.build_plan(config)
+
+    assert [step["name"] for step in plan["steps"]] == [
+        "python_target_smoke",
+        "nvqpp_smoke",
+        "target_config_ctest",
+    ]
+    assert plan["skipped_steps"] == ["metal_runtime_counter_probe"]
 
 
 def test_mklq_correctness_gate_writes_json_summary(monkeypatch, tmp_path):
@@ -541,7 +570,7 @@ def test_mklq_correctness_gate_writes_json_summary(monkeypatch, tmp_path):
 
     assert report["summary"] == {
         "status": "passed",
-        "passed": 3,
+        "passed": 4,
         "failed": 0,
         "skipped": 0,
     }
