@@ -1155,6 +1155,7 @@ def test_mklq_metal_evidence_guard_accepts_current_summaries():
     assert "local-metal-y-cy-resident-isolated-q20-2026-06-19" in checked_ids
     assert "local-metal-composite-mixed-path-q20-2026-06-21" in checked_ids
     assert "local-metal-path-labels-q20-2026-06-22" in checked_ids
+    assert "local-metal-three-qubit-resident-q20-2026-06-22" in checked_ids
 
 
 def test_mklq_metal_evidence_guard_rejects_clean_or_full_native_claims(
@@ -2343,6 +2344,45 @@ def test_mklq_benchmark_dry_run_accepts_single_qubit_case(tmp_path):
     assert rows[0]["estimated_state_bytes"] == 16 * (1 << 3)
 
 
+def test_mklq_benchmark_dry_run_accepts_three_qubit_case(tmp_path):
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
+    output = tmp_path / "dry-run-three-qubit.json"
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+
+    subprocess.run([
+        sys.executable,
+        str(script),
+        "--dry-run",
+        "--targets",
+        "mklq-metal",
+        "--cases",
+        "three-qubit-state",
+        "--qubits",
+        "4",
+        "--output",
+        str(output),
+    ],
+                   check=True,
+                   capture_output=True,
+                   text=True,
+                   env=env)
+
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["config"]["cases"] == ["three-qubit-state"]
+    rows = report["results"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == "planned"
+    assert rows[0]["case"] == "three-qubit-state"
+    assert rows[0]["estimated_state_bytes"] == 16 * (1 << 4)
+    metrics = rows[0]["metrics"]
+    assert metrics["metal_path_label"] == (
+        "mklq_metal_resident_three_gate_state_host_readback")
+    assert "three-target" in metrics["metal_path_scope"]
+    assert metrics["metal_runtime_counter"] is False
+
+
 def test_mklq_benchmark_dry_run_records_metal_path_metadata(tmp_path):
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "benchmarks" / "mklq" / "bench_mklq_targets.py"
@@ -2357,7 +2397,7 @@ def test_mklq_benchmark_dry_run_records_metal_path_metadata(tmp_path):
         "--targets",
         "mklq-metal",
         "--cases",
-        "y-state,cy-state,qft-like-state,sample-full-register",
+        "y-state,cy-state,three-qubit-state,qft-like-state,sample-full-register",
         "--qubits",
         "4",
         "--output",
@@ -2378,6 +2418,8 @@ def test_mklq_benchmark_dry_run_records_metal_path_metadata(tmp_path):
         "mklq_metal_resident_single_gate_state_host_readback")
     assert rows["cy-state"]["metrics"]["metal_path_label"] == (
         "mklq_metal_resident_controlled_gate_state_host_readback")
+    assert rows["three-qubit-state"]["metrics"]["metal_path_label"] == (
+        "mklq_metal_resident_three_gate_state_host_readback")
     assert rows["qft-like-state"]["metrics"]["metal_path_label"] == (
         "mklq_metal_mixed_composite_state_host_readback")
     assert rows["sample-full-register"]["metrics"]["metal_path_label"] == (
@@ -2585,6 +2627,89 @@ def test_mklq_benchmark_run_case_records_metal_path_metrics(monkeypatch):
         "benchmark_harness_static_case_map")
     assert metrics["metal_full_native"] is False
     assert metrics["metal_runtime_counter"] is False
+
+
+def test_mklq_benchmark_three_qubit_case_records_gate_metrics(monkeypatch):
+    module = _load_benchmark_module()
+
+    class FakeKernel:
+
+        def __init__(self):
+            self.operations = []
+
+        def qalloc(self, qubits):
+            return list(range(qubits))
+
+        def ry(self, theta, target):
+            self.operations.append(("ry", theta, target))
+
+        def rz(self, theta, target):
+            self.operations.append(("rz", theta, target))
+
+        def __getattr__(self, name):
+
+            def apply_custom(target0, target1, target2):
+                self.operations.append((name, target0, target1, target2))
+
+            return apply_custom
+
+    class FakeCudaq:
+
+        def __init__(self):
+            self.kernels = []
+            self.registered_operations = {}
+
+        def reset_target(self):
+            pass
+
+        def set_target(self, target):
+            assert target == "mklq-metal"
+
+        def set_random_seed(self, seed):
+            assert seed == 13
+
+        def make_kernel(self):
+            kernel = FakeKernel()
+            self.kernels.append(kernel)
+            return kernel
+
+        def register_operation(self, name, matrix):
+            self.registered_operations[name] = matrix
+
+        def get_state(self, kernel):
+            return object()
+
+    def fake_timed_repeats(action, repeats):
+        action()
+        return [0.5]
+
+    monkeypatch.setattr(module, "timed_repeats", fake_timed_repeats)
+    monkeypatch.setattr(module, "process_max_rss_bytes", lambda: 8192)
+
+    fake_cudaq = FakeCudaq()
+    row = module.run_case(fake_cudaq,
+                          "mklq-metal",
+                          "three-qubit-state",
+                          qubits=4,
+                          shots=16,
+                          repeats=1,
+                          warmups=0,
+                          layers=2)
+
+    assert row["status"] == "ok"
+    metrics = row["metrics"]
+    assert metrics["state_prep_gate_count"] == 8
+    assert metrics["three_qubit_gate_count"] == 4
+    assert metrics["gate_count"] == 12
+    assert metrics["three_qubit_gate_state_throughput_per_second"] == 8
+    assert metrics["metal_path_label"] == (
+        "mklq_metal_resident_three_gate_state_host_readback")
+    assert metrics["process_max_rss_bytes_cumulative"] == 8192
+    assert fake_cudaq.registered_operations[
+        module.THREE_QUBIT_OPERATION_NAME] == module.three_qubit_flip_all_matrix()
+    operations = fake_cudaq.kernels[0].operations
+    assert sum(1 for operation in operations
+               if operation[0] == module.THREE_QUBIT_OPERATION_NAME) == 4
 
 
 def test_mklq_benchmark_dry_run_accepts_controlled_gate_cases(tmp_path):
@@ -3748,3 +3873,55 @@ def test_mklq_benchmark_summary_records_metal_composite_evidence():
     assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]
     assert summary["interpretation"][
         "curated_path_labels_are_not_raw_benchmark_fields"] is True
+
+
+def test_mklq_benchmark_summary_records_metal_three_qubit_evidence():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-metal-three-qubit-resident-q20-2026-06-22.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "local_tuning_evidence"
+    assert summary["summary_id"] == (
+        "local-metal-three-qubit-resident-q20-2026-06-22")
+    assert summary["raw_results"][0]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-metal-three-qubit-resident-q20-2026-06-22.json")
+    assert summary["raw_results"][0]["sha256"] == (
+        "daed4c1deb2d2cc470428e6000cc15267776b132f37356335078b3e0ab39ebbe")
+    assert summary["raw_results"][0]["status_rows"] == {"ok": 3}
+    assert summary["config"]["targets"] == [
+        "qpp-cpu",
+        "mklq-cpu",
+        "mklq-metal",
+    ]
+    assert summary["config"]["cases"] == ["three-qubit-state"]
+    assert summary["config"]["qubits"] == [20]
+    assert summary["config"]["layers"] == 8
+
+    rows = {
+        row["target"]: row
+        for row in summary["rows"]
+    }
+    assert rows["qpp-cpu"]["status"] == "ok"
+    assert rows["mklq-cpu"]["status"] == "ok"
+    assert rows["mklq-metal"]["status"] == "ok"
+    assert rows["mklq-metal"]["three_qubit_gate_count"] == 144
+    assert rows["mklq-metal"]["state_prep_gate_count"] == 40
+    assert rows["mklq-metal"]["metal_path_label"] == (
+        "mklq_metal_resident_three_gate_state_host_readback")
+    assert rows["mklq-metal"]["metal_path_scope"] == (
+        "resident fp32 Metal three-target gate update followed by host "
+        "readback for cudaq.get_state")
+    assert rows["mklq-metal"]["metal_runtime_counter"] is False
+    assert rows["mklq-metal"]["metal_full_native"] is False
+    assert rows["mklq-metal"]["elapsed_seconds_median"] > 0.0
+    ratios = summary["comparison"]["same_day_cross_target_ratio"]
+    assert ratios[
+        "qpp_cpu_over_mklq_metal_three_qubit_state_q20"] > 0.0
+    assert summary["interpretation"]["metal_path_labels_are_static_case_map"]
+    assert summary["interpretation"]["metal_runtime_counter"] is False
+    assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]

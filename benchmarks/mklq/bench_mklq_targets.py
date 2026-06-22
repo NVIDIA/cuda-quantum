@@ -36,7 +36,7 @@ APPLE_SILICON_TARGETS = ("qpp-cpu", "mklq-cpu", "mklq-metal")
 PORTABLE_DEFAULT_TARGETS = ("qpp-cpu",)
 TARGET_NOTES = {
     "mklq-metal":
-        "Experimental mixed-path target: mklq_metal uses resident fp32 Metal single-target/two-target/probability-fill kernels, cost-gated resident full-register and marginal probability kernels for sampling, a measured-qubit probability-reduction kernel, and a resident measurement-collapse path with MKL-Q fp64 CPU-oracle fallback for unsupported paths; sample draw/count accumulation remains host-side, not full Metal GPU backend evidence.",
+        "Experimental mixed-path target: mklq_metal uses resident fp32 Metal single-target/two-target/three-target/probability-fill kernels, cost-gated resident full-register and marginal probability kernels for sampling, a measured-qubit probability-reduction kernel, and a resident measurement-collapse path with MKL-Q fp64 CPU-oracle fallback for unsupported paths; sample draw/count accumulation remains host-side, not full Metal GPU backend evidence.",
 }
 METAL_EVIDENCE_BOUNDARY = (
     "benchmark harness static case-map label only; not a runtime counter, "
@@ -49,6 +49,9 @@ METAL_CONTROLLED_GATE_SCOPE = (
     "cudaq.get_state")
 METAL_TWO_QUBIT_SCOPE = (
     "resident fp32 Metal two-target gate update followed by host readback for "
+    "cudaq.get_state")
+METAL_THREE_QUBIT_SCOPE = (
+    "resident fp32 Metal three-target gate update followed by host readback for "
     "cudaq.get_state")
 METAL_COMPOSITE_SCOPE = (
     "experimental mklq-metal mixed-path composite state-vector update followed "
@@ -92,6 +95,8 @@ METAL_PATH_CASES = {
                  METAL_CONTROLLED_GATE_SCOPE),
     "two-qubit-state": ("mklq_metal_resident_two_gate_state_host_readback",
                         METAL_TWO_QUBIT_SCOPE),
+    "three-qubit-state": ("mklq_metal_resident_three_gate_state_host_readback",
+                          METAL_THREE_QUBIT_SCOPE),
     "qft-like-state": ("mklq_metal_mixed_composite_state_host_readback",
                        METAL_COMPOSITE_SCOPE),
     "seeded-clifford-state":
@@ -169,11 +174,13 @@ DEFAULT_CASES = (
     "crz-state",
     "cz-state",
     "two-qubit-state",
+    "three-qubit-state",
     "qft-like-state",
     "seeded-clifford-state",
 )
 DEFAULT_QUBITS = (4, 8, 12)
 SEEDED_CLIFFORD_SEED = 17
+THREE_QUBIT_OPERATION_NAME = "mklq_bench_flip_all_3"
 PROVENANCE_ENV_KEYS = (
     "OMP_NUM_THREADS",
     "OMP_PROC_BIND",
@@ -474,6 +481,47 @@ def build_two_qubit_state_kernel(cudaq: Any, qubits: int,
   return kernel, gate_count
 
 
+def three_qubit_flip_all_matrix() -> list[list[int]]:
+  return [[1 if column == 7 - row else 0 for column in range(8)]
+          for row in range(8)]
+
+
+def build_three_qubit_state_kernel(
+    cudaq: Any, qubits: int,
+    layers: int) -> tuple[Any, int, int, int]:
+  if qubits < 3:
+    raise ValueError("three-qubit benchmarks require at least 3 qubits")
+  if not hasattr(cudaq, "register_operation"):
+    raise RuntimeError("cudaq.register_operation is required")
+
+  cudaq.register_operation(THREE_QUBIT_OPERATION_NAME,
+                           three_qubit_flip_all_matrix())
+
+  kernel = cudaq.make_kernel()
+  q = kernel.qalloc(qubits)
+  state_prep_gate_count = 0
+  three_qubit_gate_count = 0
+
+  for index in range(qubits):
+    theta = 0.043 + 0.0017 * index
+    kernel.ry(theta, q[index])
+    kernel.rz(-0.5 * theta, q[index])
+    state_prep_gate_count += 2
+
+  for layer in range(layers):
+    if layer % 2:
+      windows = range(qubits - 3, -1, -1)
+    else:
+      windows = range(0, qubits - 2)
+    for index in windows:
+      kernel.__getattr__(THREE_QUBIT_OPERATION_NAME)(q[index], q[index + 1],
+                                                     q[index + 2])
+      three_qubit_gate_count += 1
+
+  gate_count = state_prep_gate_count + three_qubit_gate_count
+  return (kernel, gate_count, state_prep_gate_count, three_qubit_gate_count)
+
+
 def build_qft_like_state_kernel(
     cudaq: Any, qubits: int, layers: int) -> tuple[Any, int, int, int, int, int]:
   if qubits < 2:
@@ -769,6 +817,23 @@ def run_case(cudaq: Any, target: str, case: str, qubits: int, shots: int,
           "layers": layers,
           "two_qubit_gate_state_throughput_per_second": gate_count / median
           if median > 0 else None,
+      })
+    elif case == "three-qubit-state":
+      kernel, gate_count, state_prep_gate_count, three_qubit_gate_count = (
+          build_three_qubit_state_kernel(cudaq, qubits, layers))
+      action = lambda: cudaq.get_state(kernel)
+      for _ in range(warmups):
+        action()
+      timings = timed_repeats(action, repeats)
+      metrics = summarize_timings(timings)
+      median = metrics["elapsed_seconds_median"]
+      metrics.update({
+          "gate_count": gate_count,
+          "state_prep_gate_count": state_prep_gate_count,
+          "three_qubit_gate_count": three_qubit_gate_count,
+          "layers": layers,
+          "three_qubit_gate_state_throughput_per_second":
+              three_qubit_gate_count / median if median > 0 else None,
       })
     elif case == "qft-like-state":
       (kernel, gate_count, state_prep_gate_count, h_gate_count, crz_gate_count,
@@ -1066,7 +1131,8 @@ def make_parser() -> argparse.ArgumentParser:
                             "sample-partial-register,single-qubit-state,"
                             "h-state,y-state,rx-state,ry-state,rz-state,"
                             "controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,"
-                            "cz-state,two-qubit-state,qft-like-state,"
+                            "cz-state,two-qubit-state,three-qubit-state,"
+                            "qft-like-state,"
                             "seeded-clifford-state."))
   parser.add_argument("--qubits",
                       type=parse_qubits,
@@ -1096,6 +1162,7 @@ def make_parser() -> argparse.ArgumentParser:
                             "single-qubit-state/h-state/rx-state/ry-state/"
                             "rz-state/y-state/controlled-state/ch-state/cy-state/crx-state/cry-state/"
                             "crz-state/cz-state/two-qubit-state/"
+                            "three-qubit-state/"
                             "qft-like-state/seeded-clifford-state "
                             "benchmarks."))
   parser.add_argument("--output",

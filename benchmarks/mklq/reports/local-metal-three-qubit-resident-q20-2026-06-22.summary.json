@@ -1,0 +1,179 @@
+{
+  "comparison": {
+    "mklq_metal_elapsed_seconds_median": {
+      "three_qubit_state_q20": 0.15560556251148228
+    },
+    "same_day_cross_target_ratio": {
+      "qpp_cpu_over_mklq_metal_three_qubit_state_q20": 54.67277786653864
+    }
+  },
+  "config": {
+    "cases": [
+      "three-qubit-state"
+    ],
+    "commands": [
+      [
+        "benchmarks/mklq/bench_mklq_targets.py",
+        "--isolate-rows",
+        "--targets",
+        "qpp-cpu,mklq-cpu,mklq-metal",
+        "--cases",
+        "three-qubit-state",
+        "--qubits",
+        "20",
+        "--shots",
+        "1024",
+        "--repeats",
+        "2",
+        "--warmups",
+        "1",
+        "--layers",
+        "8",
+        "--output",
+        "benchmarks/mklq/results/local-metal-three-qubit-resident-q20-2026-06-22.json"
+      ]
+    ],
+    "isolate_rows": true,
+    "layers": 8,
+    "qubits": [
+      20
+    ],
+    "repeats": 2,
+    "shot_counts": [
+      1024
+    ],
+    "shots": 1024,
+    "targets": [
+      "qpp-cpu",
+      "mklq-cpu",
+      "mklq-metal"
+    ],
+    "warmups": 1
+  },
+  "environment": {
+    "DYLD_LIBRARY_PATH": null,
+    "MKL_NUM_THREADS": null,
+    "OMP_DYNAMIC": "false",
+    "OMP_NUM_THREADS": "10",
+    "OMP_PLACES": null,
+    "OMP_PROC_BIND": "close",
+    "PYTHONPATH": "/Users/a0000/.cudaq-mklq",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "evidence_kind": "local_tuning_evidence",
+  "git": {
+    "branch": "codex/metal-three-qubit-benchmark-evidence",
+    "commit": "376f6ee01070b166a0f9327b1be29e1d95844b9c",
+    "dirty": true,
+    "root": "/Users/a0000/Documents/MKL-Q",
+    "status_short": [
+      "M benchmarks/mklq/bench_mklq_targets.py",
+      " M python/tests/backends/test_mklq_benchmark_harness.py"
+    ]
+  },
+  "interpretation": {
+    "clean_worktree": false,
+    "do_not_treat_as_clean_release_provenance": true,
+    "metal_path_labels_are_static_case_map": true,
+    "metal_path_scope": "resident fp32 Metal three-target gate update followed by host readback for cudaq.get_state",
+    "metal_runtime_counter": false,
+    "performance_claim_scope": "local Apple M5 three-target resident Metal tuning evidence only; mklq-metal is experimental mixed-path and this is not release or cross-machine certification",
+    "raw_json_files_are_ignored": true,
+    "runtime_build_note": "Collected after adding resident three-target Metal gate support; mklq-metal remains experimental and mixed-path.",
+    "summary": "Local q20 three-target resident Metal gate benchmark evidence."
+  },
+  "machine": {
+    "cpu_brand": "Apple M5",
+    "logical_cores": 10,
+    "machine": "arm64",
+    "macos_version": "26.5.1",
+    "memory_bytes": 17179869184,
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "processor": "arm",
+    "python": "3.12.2",
+    "python_executable": "/opt/anaconda3/bin/python3"
+  },
+  "raw_results": [
+    {
+      "path": "benchmarks/mklq/results/local-metal-three-qubit-resident-q20-2026-06-22.json",
+      "sha256": "daed4c1deb2d2cc470428e6000cc15267776b132f37356335078b3e0ab39ebbe",
+      "status_rows": {
+        "ok": 3
+      },
+      "tracked": false
+    }
+  ],
+  "rows": [
+    {
+      "case": "three-qubit-state",
+      "elapsed_seconds_max": 8.58604633298819,
+      "elapsed_seconds_median": 8.507388353988063,
+      "elapsed_seconds_min": 8.428730374987936,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 184,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 216891392,
+      "qubits": 20,
+      "repeats": 2,
+      "shots": 1024,
+      "state_prep_gate_count": 40,
+      "status": "ok",
+      "target": "qpp-cpu",
+      "three_qubit_gate_count": 144,
+      "three_qubit_gate_state_throughput_per_second": 16.926463681712168,
+      "warmups": 1
+    },
+    {
+      "case": "three-qubit-state",
+      "elapsed_seconds_max": 0.6346239999984391,
+      "elapsed_seconds_median": 0.6270587085018633,
+      "elapsed_seconds_min": 0.6194934170052875,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 184,
+      "layers": 8,
+      "process_max_rss_bytes_cumulative": 215842816,
+      "qubits": 20,
+      "repeats": 2,
+      "shots": 1024,
+      "state_prep_gate_count": 40,
+      "status": "ok",
+      "target": "mklq-cpu",
+      "three_qubit_gate_count": 144,
+      "three_qubit_gate_state_throughput_per_second": 229.64356933027446,
+      "warmups": 1
+    },
+    {
+      "case": "three-qubit-state",
+      "elapsed_seconds_max": 0.16020008400664665,
+      "elapsed_seconds_median": 0.15560556251148228,
+      "elapsed_seconds_min": 0.1510110410163179,
+      "estimated_state_bytes": 16777216,
+      "gate_count": 184,
+      "layers": 8,
+      "metal_evidence_boundary": "benchmark harness static case-map label only; not a runtime counter, release sign-off, or proof that every operation stayed on Metal",
+      "metal_full_native": false,
+      "metal_path_label": "mklq_metal_resident_three_gate_state_host_readback",
+      "metal_path_label_source": "benchmark_harness_static_case_map",
+      "metal_path_scope": "resident fp32 Metal three-target gate update followed by host readback for cudaq.get_state",
+      "metal_runtime_counter": false,
+      "process_max_rss_bytes_cumulative": 258850816,
+      "qubits": 20,
+      "repeats": 2,
+      "shots": 1024,
+      "state_prep_gate_count": 40,
+      "status": "ok",
+      "target": "mklq-metal",
+      "three_qubit_gate_count": 144,
+      "three_qubit_gate_state_throughput_per_second": 925.4167889362831,
+      "warmups": 1
+    }
+  ],
+  "runtime": {
+    "cudaq_module_file": "/Users/a0000/.cudaq-mklq/cudaq/__init__.py",
+    "cudaq_version": "CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum f98433b6f9edce3e78ff17770314d44ff878e93d)",
+    "module_from_build_tree": false,
+    "python_prefix": "/opt/anaconda3"
+  },
+  "schema_version": "mklq-benchmark-summary-v1",
+  "summary_id": "local-metal-three-qubit-resident-q20-2026-06-22"
+}

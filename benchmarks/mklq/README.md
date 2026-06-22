@@ -11,10 +11,11 @@ explicitly only after building them intentionally.
 `mklq-metal` is included as an experimental target name while the Metal backend
 is being built. It currently loads the MKL-Q `mklq_metal` mixed-path simulator:
 supported single-target and two-target updates, including controlled forms, can
-stay in a resident fp32 Metal state buffer across supported gate sequences, and
-dense full-register probability fills, cost-gated resident marginal probability
-fills, and measure/reset collapse paths can read or update that resident buffer
-directly.
+stay in a resident fp32 Metal state buffer across supported gate sequences.
+Generic three-target custom operations also have a resident fp32 Metal path for
+state-vector updates followed by host readback. Dense full-register probability
+fills, cost-gated resident marginal probability fills, and measure/reset
+collapse paths can read or update that resident buffer directly.
 Measurement probability uses a
 dedicated measured-qubit Metal reduction kernel with a small host partial-sum
 finish; branch collapse uses a Metal kernel. Unsupported paths fall back to the
@@ -34,7 +35,7 @@ counters or release sign-off.
 python3 benchmarks/mklq/bench_mklq_targets.py \
   --dry-run \
   --targets qpp-cpu,mklq-cpu,mklq-metal \
-  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,qft-like-state,seeded-clifford-state \
+  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,three-qubit-state,qft-like-state,seeded-clifford-state \
   --qubits 4,8,12 \
   --shot-counts 256,1024,8192 \
   --output /tmp/mklq-benchmark-plan.json
@@ -48,7 +49,7 @@ Use the built Python tree when running from the repository:
 PYTHONPATH="$(pwd)/build-python/python" \
 python3 benchmarks/mklq/bench_mklq_targets.py \
   --targets qpp-cpu,mklq-cpu,mklq-metal \
-  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,qft-like-state,seeded-clifford-state \
+  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,three-qubit-state,qft-like-state,seeded-clifford-state \
   --qubits 4 \
   --shots 32 \
   --repeats 1 \
@@ -75,7 +76,7 @@ PYTHONPATH="$(pwd)/build-python/python" \
 python3 benchmarks/mklq/bench_mklq_targets.py \
   --isolate-rows \
   --targets mklq-cpu \
-  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,qft-like-state,seeded-clifford-state \
+  --cases gate-state,sample-basis,sample-ghz,sample-full-register,sample-partial-register,single-qubit-state,h-state,y-state,rx-state,ry-state,rz-state,controlled-state,ch-state,cy-state,crx-state,cry-state,crz-state,cz-state,two-qubit-state,three-qubit-state,qft-like-state,seeded-clifford-state \
   --qubits 15,16,17,18,19,20 \
   --shots 1024 \
   --repeats 2 \
@@ -120,8 +121,12 @@ non-uniform state, then applies CZ-only layers; use it as evidence for the CZ
 phase fast path, not as a general claim about every controlled single-qubit
 gate. The `two-qubit-state` case initializes a non-uniform state, then applies
 SWAP layers; use it as evidence for this hot path, not as a general claim about
-every custom 4x4 gate. The `qft-like-state` case prepares a nonzero basis state
-and applies layered H/CRZ/SWAP blocks shaped like the QFT fixtures; its
+every custom 4x4 gate. The `three-qubit-state` case initializes a non-uniform
+state, then applies a registered custom 8x8 flip-all unitary over adjacent
+three-qubit windows; use it as evidence for the benchmark's custom
+three-target path, not as a claim about every possible 8x8 unitary. The
+`qft-like-state` case prepares a nonzero basis state and applies layered
+H/CRZ/SWAP blocks shaped like the QFT fixtures; its
 gate-specific throughput excludes the two state-preparation X gates. The
 `seeded-clifford-state` case applies a deterministic seed-17 mixture of
 single-qubit Clifford gates and CX/CY/CZ/SWAP operations; use it as an
@@ -435,6 +440,20 @@ The generated public index is tracked at
   56.00x and 70.50x. The `mklq-metal` row was slightly faster than `mklq-cpu`
   for `qft-like-state` and slower for `seeded-clifford-state`, so do not read
   this as a general Metal-is-always-faster claim.
+- `reports/local-metal-three-qubit-resident-q20-2026-06-22.summary.json`:
+  tracked sanitized summary for the ignored raw result
+  `results/local-metal-three-qubit-resident-q20-2026-06-22.json`
+  (`sha256: daed4c1deb2d2cc470428e6000cc15267776b132f37356335078b3e0ab39ebbe`).
+  Isolated `qpp-cpu`, `mklq-cpu`, and `mklq-metal` rows for
+  `three-qubit-state` at q20 with `OMP_NUM_THREADS=10`,
+  `OMP_PROC_BIND=close`, `OMP_DYNAMIC=false`, `VECLIB_MAXIMUM_THREADS=1`,
+  `shots=1024`, `repeats=2`, `warmups=1`, and `layers=8` on Apple M5,
+  10 logical cores, 16 GB RAM, macOS 26.5.1. All three rows completed with
+  `status == "ok"`. Treat this as local dirty-worktree tuning evidence for the
+  resident fp32 Metal three-target custom gate update followed by host readback,
+  not as clean-release provenance. In this run, q20 `mklq-metal` median elapsed
+  time was 0.15560556251148228 s for `three-qubit-state`; the same-day
+  `qpp-cpu` over `mklq-metal` ratio was 54.67x.
 
 ## Untracked Local Benchmark Notes
 
