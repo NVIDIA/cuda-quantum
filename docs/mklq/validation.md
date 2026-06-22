@@ -25,6 +25,11 @@ against
 `34f4b260d1c657ad626c526eed4e6b9d3a441be4` after adding QFT-like and seeded
 Clifford composite rows to the clean evidence gate.
 
+A focused benchmark-tooling refresh was run in the current worktree on
+2026-06-22 after strengthening the Metal runtime counter probe schema. It did
+not rerun the full install/build gate, but it did refresh the tracked bounded
+counter report.
+
 Raw wrapper output was written to ignored local paths
 `benchmarks/mklq/results/public-healthcheck-full-2026-06-22.json`,
 `benchmarks/mklq/results/local-correctness-gate-2026-06-22.json`,
@@ -37,12 +42,13 @@ output; these raw payloads are not tracked as public evidence.
 - One-command correctness gate: passed with 4 steps passed, 0 failed, and 0
   skipped, including the Metal runtime counter probe.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
-- `benchmark_harness_tests`: `67 passed`.
+- Current `benchmark_harness_tests`: `71 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
-- `metal_runtime_counter_probe`: 12 selected counter tests passed.
+- Current `metal_runtime_counter_probe`: 12 expected, 12 selected, 0 missing,
+  and 12 passed, with each counter ctest run independently.
 - Clean CPU benchmark gate: passed, with 18 q20 `qpp-cpu`/`mklq-cpu` rows and
   18 rows reporting `status == "ok"`.
 
@@ -122,14 +128,17 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-Latest local result: passed on 2026-06-22 against
+Latest broad local result: passed on 2026-06-22 against
 `997ec1f3c022d854d644257bc7dca990a17bd243` with 4 wrapper steps passed, 0
 failed, and 0 skipped. The step-level results were:
 
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
-- `metal_runtime_counter_probe`: 12 selected counter tests passed.
+- `metal_runtime_counter_probe`: 12 selected counter tests passed in that broad
+  gate snapshot. The current tracked counter report has since been refreshed to
+  record 12 expected, 12 selected, 0 missing, and 12 independently executed
+  passing counter ctests.
 
 The Python smoke step includes the MKL-Q API smoke tests, the CPU correctness
 fixture suite, the limited experimental Metal correctness fixture suite, and

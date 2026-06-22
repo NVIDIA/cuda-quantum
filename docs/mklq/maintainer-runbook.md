@@ -139,7 +139,7 @@ change touches shared behavior.
 | Python target behavior | Focused Python tests plus `testing-matrix.md` review |
 | `nvq++` or target config | `test_mklq_nvqpp_smoke.py`, TargetConfig `ctest`, target YAML checks |
 | Backend runtime behavior | `cmake --build build-python --target install -j 6` and one-command correctness gate |
-| Benchmark tooling | Benchmark helper `py_compile`, harness tests, summary JSON parse, Metal runtime counter probe parse |
+| Benchmark tooling | Benchmark helper `py_compile`, harness tests, summary JSON parse, Metal runtime counter probe parse including complete expected counter-test coverage |
 | Benchmark evidence | Correctness gate first, clean-worktree benchmark run, sanitized summaries only, `check_performance_evidence.py`, `check_metal_evidence.py` when Metal summaries are touched |
 | Public health check tooling | `test_mklq_benchmark_harness.py`, `python3 benchmarks/mklq/run_public_healthcheck.py` |
 | Upstream sync | `upstream-sync.md` post-merge gates |
@@ -237,8 +237,9 @@ Stop immediately if a release plan would:
 
 The default public workflow is lightweight. It checks public metadata, tracked
 artifact hygiene, sanitized benchmark summary parseability, bounded Metal
-runtime counter probe parseability, and benchmark helper syntax. It does not
-build CUDA-Q or run Apple Silicon backend correctness tests.
+runtime counter probe parseability with complete expected counter-test
+coverage, and benchmark helper syntax. It does not build CUDA-Q or run Apple
+Silicon backend correctness tests.
 
 Before adding a heavier workflow, define:
 

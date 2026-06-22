@@ -221,8 +221,24 @@ jobs:
               summary = payload.get("summary", {})
               if summary.get("status") != "passed":
                   raise SystemExit(f"{path}: summary is not passed")
+              expected = summary.get("expected")
+              selected_count = summary.get("selected")
+              if not isinstance(expected, int) or expected <= 0:
+                  raise SystemExit(f"{path}: expected count must be positive")
+              if selected_count != expected:
+                  raise SystemExit(f"{path}: selected count does not match expected")
+              if summary.get("missing") != 0:
+                  raise SystemExit(f"{path}: missing count is not zero")
               if summary.get("failed") != 0:
                   raise SystemExit(f"{path}: failed count is not zero")
+              expected_counter_tests = payload.get("expected_counter_tests")
+              if (
+                  not isinstance(expected_counter_tests, list)
+                  or len(expected_counter_tests) != expected
+              ):
+                  raise SystemExit(f"{path}: expected_counter_tests length mismatch")
+              if payload.get("missing_counter_tests") != []:
+                  raise SystemExit(f"{path}: missing_counter_tests must be empty")
               boundary = payload.get("boundary", {})
               if boundary.get("runtime_counter_evidence") is not True:
                   raise SystemExit(f"{path}: runtime_counter_evidence must be true")
@@ -231,8 +247,10 @@ jobs:
               if boundary.get("all_metal_execution_proof") is not False:
                   raise SystemExit(f"{path}: all_metal_execution_proof must be false")
               tests = payload.get("tests", [])
-              if len(tests) != summary.get("selected"):
+              if len(tests) != selected_count:
                   raise SystemExit(f"{path}: selected count does not match tests")
+              if [test.get("name") for test in tests] != expected_counter_tests:
+                  raise SystemExit(f"{path}: test names do not match expected list")
               for test in tests:
                   if test.get("status") != "passed":
                       raise SystemExit(f"{path}: a counter test did not pass")

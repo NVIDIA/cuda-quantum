@@ -384,6 +384,8 @@ def run_metal_runtime_counter_probe_parse(
     failures: list[str] = []
     parsed: list[str] = []
     selected_tests = 0
+    expected_tests = 0
+    missing_tests = 0
     for path in reports:
         relative = command_path(config.repo_root, path)
         try:
@@ -403,15 +405,34 @@ def run_metal_runtime_counter_probe_parse(
         if summary.get("status") != "passed":
             failures.append(f"{relative}: summary status is not passed")
         selected = summary.get("selected")
+        expected = summary.get("expected")
+        missing = summary.get("missing")
         passed_count = summary.get("passed")
         failed_count = summary.get("failed")
+        if not isinstance(expected, int) or expected <= 0:
+            failures.append(f"{relative}: expected test count must be positive")
+            expected = 0
         if not isinstance(selected, int) or selected <= 0:
             failures.append(f"{relative}: selected test count must be positive")
             selected = 0
+        if missing != 0:
+            failures.append(f"{relative}: missing counter test count must be zero")
+        if expected and selected != expected:
+            failures.append(f"{relative}: selected count does not match expected")
         if passed_count != selected:
             failures.append(f"{relative}: passed count does not match selected")
         if failed_count != 0:
             failures.append(f"{relative}: failed count must be zero")
+
+        expected_counter_tests = payload.get("expected_counter_tests")
+        missing_counter_tests = payload.get("missing_counter_tests")
+        if not isinstance(expected_counter_tests, list) or (
+                expected and len(expected_counter_tests) != expected):
+            failures.append(
+                f"{relative}: expected_counter_tests length does not match expected")
+            expected_counter_tests = []
+        if missing_counter_tests != []:
+            failures.append(f"{relative}: missing_counter_tests must be empty")
 
         boundary = payload.get("boundary", {})
         if boundary.get("runtime_counter_evidence") is not True:
@@ -427,6 +448,13 @@ def run_metal_runtime_counter_probe_parse(
             tests = []
         if selected and len(tests) != selected:
             failures.append(f"{relative}: test list length does not match selected")
+        if expected_counter_tests:
+            test_names = [
+                test.get("name") for test in tests if isinstance(test, dict)
+            ]
+            if test_names != expected_counter_tests:
+                failures.append(
+                    f"{relative}: test names do not match expected_counter_tests")
         for index, test in enumerate(tests):
             name = test.get("name", f"#{index}") if isinstance(test, dict) else f"#{index}"
             if not isinstance(test, dict):
@@ -438,12 +466,16 @@ def run_metal_runtime_counter_probe_parse(
                 failures.append(f"{relative}: test {name} contains raw stdout")
             if "stderr" in test:
                 failures.append(f"{relative}: test {name} contains raw stderr")
+        expected_tests += expected
         selected_tests += selected
+        missing_tests += missing if isinstance(missing, int) else 0
 
     details = {
         "counter_report_count": len(parsed),
         "counter_reports": parsed,
+        "expected_tests": expected_tests,
         "selected_tests": selected_tests,
+        "missing_tests": missing_tests,
         "failures": failures,
     }
     return failed("Metal runtime counter probe parse failed",

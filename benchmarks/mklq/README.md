@@ -248,12 +248,14 @@ python3 benchmarks/mklq/run_metal_runtime_counter_probe.py \
   --output benchmarks/mklq/reports/local-metal-runtime-counter-probe-YYYY-MM-DD.counter.json
 ```
 
-The probe runs selected `mklq_metal_MKLQMetalTester.*` ctests whose assertions
-check resident gate, probability, sampling, measurement, collapse, and reset
-counters. The tracked `.counter.json` report is bounded evidence: it records
-which counter tests passed and keeps `release_signoff` and
-`all_metal_execution_proof` false. It is not a benchmark result and it does not
-prove every `mklq-metal` operation stays on Metal.
+The probe requires the complete expected
+`mklq_metal_MKLQMetalTester.*` counter-test set to be present, runs each test
+through an exact ctest regex, and fails if any expected counter test is missing
+or failing. The tracked `.counter.json` report is bounded evidence: it records
+`expected`, `selected`, and `missing` counts, per-test pass/fail status, and
+keeps `release_signoff` and `all_metal_execution_proof` false. It is not a
+benchmark result and it does not prove every `mklq-metal` operation stays on
+Metal.
 
 ## Tracked Accepted Local Benchmark Evidence
 

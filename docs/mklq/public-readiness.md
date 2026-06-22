@@ -102,8 +102,8 @@ The public GitHub configuration is intentionally lightweight:
 
 The lightweight workflow checks source-only repository hygiene, public metadata,
 tracked benchmark summary parseability, bounded Metal runtime counter probe
-parseability, and benchmark helper syntax. It does not build CUDA-Q or run
-Apple Silicon backend correctness tests.
+parseability with complete expected counter-test coverage, and benchmark helper
+syntax. It does not build CUDA-Q or run Apple Silicon backend correctness tests.
 
 ## Branch Protection
 

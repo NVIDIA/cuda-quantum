@@ -80,7 +80,7 @@ def command_path(root: Path, path: Path) -> str:
 
 
 def select_counter_tests(ctest_listing: str) -> list[str]:
-    selected: list[str] = []
+    found: set[str] = set()
     suffixes = set(COUNTER_TEST_SUFFIXES)
     for line in ctest_listing.splitlines():
         match = TEST_LINE_RE.search(line)
@@ -91,8 +91,24 @@ def select_counter_tests(ctest_listing: str) -> list[str]:
             continue
         suffix = test_name.removeprefix(TEST_PREFIX)
         if suffix in suffixes:
-            selected.append(test_name)
-    return selected
+            found.add(test_name)
+    return [test_name for test_name in expected_counter_tests() if test_name in found]
+
+
+def expected_counter_tests() -> list[str]:
+    return [TEST_PREFIX + suffix for suffix in COUNTER_TEST_SUFFIXES]
+
+
+def missing_counter_tests(selected: list[str]) -> list[str]:
+    selected_set = set(selected)
+    return [
+        test_name for test_name in expected_counter_tests()
+        if test_name not in selected_set
+    ]
+
+
+def exact_ctest_regex(test_name: str) -> str:
+    return f"^{re.escape(test_name)}$"
 
 
 def build_report(repo_root: Path, build_dir: Path) -> dict[str, Any]:
@@ -108,31 +124,32 @@ def build_report(repo_root: Path, build_dir: Path) -> dict[str, Any]:
     ]
     listing = command_output(repo_root, listing_command)
     selected = select_counter_tests(listing)
+    missing = missing_counter_tests(selected)
 
-    run_result: dict[str, Any] | None = None
-    if selected:
+    tests: list[dict[str, Any]] = []
+    probe_commands: list[list[str]] = []
+    for test_name in selected:
         run_command_args = [
             "ctest",
             "--test-dir",
             str(build_dir),
             "-R",
-            "|".join(selected),
+            exact_ctest_regex(test_name),
             "--output-on-failure",
         ]
+        probe_commands.append(run_command_args)
         run_result = run_command(repo_root, run_command_args)
-        aggregate_passed = run_result["returncode"] == 0
-    else:
-        run_command_args = []
-        aggregate_passed = False
-
-    tests: list[dict[str, Any]] = []
-    for test_name in selected:
+        passed = run_result["returncode"] == 0
         item: dict[str, Any] = {
             "name": test_name,
-            "status": "passed" if aggregate_passed else "failed",
+            "status": "passed" if passed else "failed",
             "counter_source": "MetalStateVectorExecutor runtime counters",
+            "ctest_regex": exact_ctest_regex(test_name),
+            "returncode": run_result["returncode"],
         }
-        if run_result and not aggregate_passed:
+        if "elapsed_seconds" in run_result:
+            item["elapsed_seconds"] = run_result["elapsed_seconds"]
+        if not passed:
             item["failure_excerpt"] = {
                 "stdout_tail": output_tail(run_result.get("stdout")),
                 "stderr_tail": output_tail(run_result.get("stderr")),
@@ -141,7 +158,9 @@ def build_report(repo_root: Path, build_dir: Path) -> dict[str, Any]:
 
     passed_count = sum(1 for item in tests if item["status"] == "passed")
     failed_count = sum(1 for item in tests if item["status"] == "failed")
-    status = "passed" if selected and failed_count == 0 else "failed"
+    status = (
+        "passed" if selected and not missing and failed_count == 0 else
+        "failed")
 
     report: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -156,11 +175,13 @@ def build_report(repo_root: Path, build_dir: Path) -> dict[str, Any]:
             "repo_root": repo_root.as_posix(),
             "build_dir": command_path(repo_root, build_dir),
             "listing_command": listing_command,
-            "probe_command": run_command_args,
+            "probe_commands": probe_commands,
         },
         "summary": {
             "status": status,
+            "expected": len(COUNTER_TEST_SUFFIXES),
             "selected": len(selected),
+            "missing": len(missing),
             "passed": passed_count,
             "failed": failed_count,
         },
@@ -173,13 +194,14 @@ def build_report(repo_root: Path, build_dir: Path) -> dict[str, Any]:
             "all_metal_execution_proof": False,
             "raw_logs_truncated": True,
         },
+        "expected_counter_tests": expected_counter_tests(),
+        "missing_counter_tests": missing,
         "tests": tests,
     }
-    if run_result is not None:
-        execution: dict[str, Any] = {"returncode": run_result["returncode"]}
-        if "elapsed_seconds" in run_result:
-            execution["elapsed_seconds"] = run_result["elapsed_seconds"]
-        report["execution"] = execution
+    report["execution"] = {
+        "returncode": 0 if status == "passed" else 1,
+        "test_command_count": len(probe_commands),
+    }
     return report
 
 

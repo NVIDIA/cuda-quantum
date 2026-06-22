@@ -1227,15 +1227,18 @@ def test_mklq_metal_runtime_counter_probe_builds_bounded_report(monkeypatch,
                                                                 tmp_path):
     module = _load_metal_runtime_counter_probe_module()
     commands = []
+    expected_test_names = [
+        module.TEST_PREFIX + suffix for suffix in module.COUNTER_TEST_SUFFIXES
+    ]
 
     def fake_command_output(cwd, command):
         commands.append(command)
         if command[:3] == ["ctest", "--test-dir", str(tmp_path)]:
-            return """
-Test project /tmp/build
-  Test #787: mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence
-  Test #795: mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback
-"""
+            lines = ["Test project /tmp/build"]
+            lines.extend(
+                f"  Test #{787 + index}: {name}"
+                for index, name in enumerate(expected_test_names))
+            return "\n".join(lines)
         return "ignored"
 
     def fake_run_command(cwd, command):
@@ -1256,24 +1259,102 @@ Test project /tmp/build
     assert report["evidence_kind"] == "local_runtime_counter_probe"
     assert report["summary"] == {
         "status": "passed",
-        "selected": 2,
-        "passed": 2,
+        "selected": len(expected_test_names),
+        "expected": len(expected_test_names),
+        "missing": 0,
+        "passed": len(expected_test_names),
         "failed": 0,
     }
+    assert report["expected_counter_tests"] == expected_test_names
+    assert report["missing_counter_tests"] == []
     assert report["boundary"]["runtime_counter_evidence"] is True
     assert report["boundary"]["release_signoff"] is False
     assert report["boundary"]["all_metal_execution_proof"] is False
-    assert [test["status"] for test in report["tests"]] == [
-        "passed", "passed"
-    ]
+    assert [test["status"] for test in report["tests"]] == (
+        ["passed"] * len(expected_test_names))
     assert all("stdout" not in test for test in report["tests"])
-    assert commands[-1][:5] == [
+    run_commands = [command for command in commands if command[:1] == ["ctest"]
+                    and "--output-on-failure" in command]
+    assert len(run_commands) == len(expected_test_names)
+    assert run_commands[0][:5] == [
         "ctest",
         "--test-dir",
         str(tmp_path),
         "-R",
-        "mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence|mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback",
+        r"^mklq_metal_MKLQMetalTester\.MetalRuntimeKeepsResidentStateAcrossGateSequence$",
     ]
+
+
+def test_mklq_metal_runtime_counter_probe_fails_when_expected_tests_missing(
+        monkeypatch, tmp_path):
+    module = _load_metal_runtime_counter_probe_module()
+
+    def fake_command_output(cwd, command):
+        return """
+Test project /tmp/build
+  Test #787: mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence
+"""
+
+    def fake_run_command(cwd, command):
+        return {
+            "returncode": 0,
+            "stdout": "counter assertions passed",
+            "stderr": "",
+        }
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+    monkeypatch.setattr(module, "run_command", fake_run_command)
+
+    report = module.build_report(repo_root=tmp_path, build_dir=tmp_path)
+
+    assert report["summary"]["status"] == "failed"
+    assert report["summary"]["selected"] == 1
+    assert report["summary"]["expected"] == len(module.COUNTER_TEST_SUFFIXES)
+    assert report["summary"]["missing"] == len(module.COUNTER_TEST_SUFFIXES) - 1
+    assert (module.TEST_PREFIX +
+            "SimulatorSamplesDenseFullRegisterThroughMetalProbabilityFill"
+            in report["missing_counter_tests"])
+
+
+def test_mklq_metal_runtime_counter_probe_records_per_test_failures(
+        monkeypatch, tmp_path):
+    module = _load_metal_runtime_counter_probe_module()
+    expected_test_names = [
+        module.TEST_PREFIX + suffix for suffix in module.COUNTER_TEST_SUFFIXES
+    ]
+    failing_test = expected_test_names[1]
+    run_commands = []
+
+    def fake_command_output(cwd, command):
+        lines = ["Test project /tmp/build"]
+        lines.extend(
+            f"  Test #{787 + index}: {name}"
+            for index, name in enumerate(expected_test_names))
+        return "\n".join(lines)
+
+    def fake_run_command(cwd, command):
+        run_commands.append(command)
+        regex = command[command.index("-R") + 1]
+        return {
+            "returncode": 1 if failing_test.replace(".", r"\.") in regex else 0,
+            "stdout": f"{regex} stdout",
+            "stderr": f"{regex} stderr",
+        }
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+    monkeypatch.setattr(module, "run_command", fake_run_command)
+
+    report = module.build_report(repo_root=tmp_path, build_dir=tmp_path)
+
+    assert report["summary"]["status"] == "failed"
+    assert report["summary"]["passed"] == len(expected_test_names) - 1
+    assert report["summary"]["failed"] == 1
+    failed_tests = [
+        test for test in report["tests"] if test["status"] == "failed"
+    ]
+    assert [test["name"] for test in failed_tests] == [failing_test]
+    assert "failure_excerpt" in failed_tests[0]
+    assert len(run_commands) == len(expected_test_names)
 
 
 def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):
@@ -1282,12 +1363,18 @@ def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):
     report_dir = tmp_path / "benchmarks" / "mklq" / "reports"
     report_dir.mkdir(parents=True)
     counter_report = report_dir / "probe.counter.json"
+    expected_tests = [
+        "mklq_metal_MKLQMetalTester.CounterA",
+        "mklq_metal_MKLQMetalTester.CounterB",
+    ]
     counter_report.write_text(json.dumps({
         "schema_version": "mklq-metal-runtime-counter-probe-v1",
         "evidence_kind": "local_runtime_counter_probe",
         "summary": {
             "status": "passed",
+            "expected": 2,
             "selected": 2,
+            "missing": 0,
             "passed": 2,
             "failed": 0,
         },
@@ -1296,11 +1383,13 @@ def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):
             "release_signoff": False,
             "all_metal_execution_proof": False,
         },
+        "expected_counter_tests": expected_tests,
+        "missing_counter_tests": [],
         "tests": [{
-            "name": "mklq_metal_MKLQMetalTester.CounterA",
+            "name": expected_tests[0],
             "status": "passed",
         }, {
-            "name": "mklq_metal_MKLQMetalTester.CounterB",
+            "name": expected_tests[1],
             "status": "passed",
         }],
     }),
@@ -1310,14 +1399,18 @@ def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):
 
     assert result["status"] == "passed"
     assert result["details"]["counter_report_count"] == 1
+    assert result["details"]["expected_tests"] == 2
     assert result["details"]["selected_tests"] == 2
+    assert result["details"]["missing_tests"] == 0
 
     counter_report.write_text(json.dumps({
         "schema_version": "mklq-metal-runtime-counter-probe-v1",
         "evidence_kind": "local_runtime_counter_probe",
         "summary": {
             "status": "passed",
+            "expected": 2,
             "selected": 1,
+            "missing": 1,
             "passed": 1,
             "failed": 0,
         },
@@ -1326,8 +1419,10 @@ def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):
             "release_signoff": False,
             "all_metal_execution_proof": True,
         },
+        "expected_counter_tests": expected_tests,
+        "missing_counter_tests": [expected_tests[1]],
         "tests": [{
-            "name": "mklq_metal_MKLQMetalTester.CounterA",
+            "name": expected_tests[0],
             "status": "passed",
             "stdout": "raw log leak",
         }],
@@ -1338,6 +1433,8 @@ def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):
 
     assert result["status"] == "failed"
     assert "all_metal_execution_proof" in "\n".join(
+        result["details"]["failures"])
+    assert "missing counter test count" in "\n".join(
         result["details"]["failures"])
     assert "raw stdout" in "\n".join(result["details"]["failures"])
 
