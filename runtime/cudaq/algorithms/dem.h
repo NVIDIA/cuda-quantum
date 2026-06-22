@@ -66,8 +66,7 @@ std::string dem_from_kernel(QuantumKernel &&kernel,
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
 std::string dem_from_kernel(QuantumKernel &&kernel,
-                            const cudaq::noise_model *noise,
-                            Args &&...args) {
+                            const cudaq::noise_model *noise, Args &&...args) {
   return dem_from_kernel(std::forward<QuantumKernel>(kernel), noise,
                          /*decompose_errors=*/false,
                          std::forward<Args>(args)...);
