@@ -778,6 +778,47 @@ CUDAQ_TEST(MKLQMetalTester,
 }
 
 CUDAQ_TEST(MKLQMetalTester,
+           SimulatorKeepsBuiltInRzAndControlledRzResidentUntilReadback) {
+  constexpr double theta = 0.375;
+  constexpr double phi = -0.8125;
+  const std::vector<std::complex<double>> initial{
+      {0.25, 0.5}, {-0.125, 0.375}, {0.5, -0.25}, {-0.75, 0.125}};
+
+  auto rzPhase = [](double angle, bool oneBranch) {
+    const auto phase = oneBranch ? angle / 2.0 : -angle / 2.0;
+    return std::complex<double>{std::cos(phase), std::sin(phase)};
+  };
+
+  auto expected = initial;
+  for (std::size_t index = 0; index < expected.size(); ++index) {
+    const bool q0IsOne = (index & 1ULL) != 0;
+    const bool q1IsOne = (index & 2ULL) != 0;
+    expected[index] *= rzPhase(theta, q0IsOne);
+    if (q0IsOne)
+      expected[index] *= rzPhase(phi, q1IsOne);
+  }
+
+  MklqMetalCircuitSimulatorTester sim;
+  sim.setStateForTest(initial);
+  sim.rz(theta, 0);
+  sim.rz(phi, std::vector<std::size_t>{0}, 1);
+  sim.flushGateQueue();
+
+  EXPECT_EQ(sim.residentStateDownloadsForTest(), 0);
+  const auto state = sim.stateVectorForTest();
+
+  ASSERT_EQ(state.size(), expected.size());
+  for (std::size_t index = 0; index < state.size(); ++index)
+    expectNear(state[index], expected[index]);
+  EXPECT_EQ(sim.singleQubitApplicationsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 2 : 0);
+  EXPECT_EQ(sim.residentStateUploadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+  EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+}
+
+CUDAQ_TEST(MKLQMetalTester,
            SimulatorSamplesResidentDenseStateWithoutReadback) {
   constexpr std::size_t qubitCount = 7;
   constexpr std::size_t dimension = 1ULL << qubitCount;
