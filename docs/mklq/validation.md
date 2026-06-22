@@ -28,10 +28,10 @@ Clifford composite rows to the clean evidence gate.
 A focused Metal counter-evidence refresh was run in the current worktree on
 2026-06-22 after strengthening the Metal runtime counter probe schema and
 adding resident built-in Rx/Ry/Rz, controlled-Rx/Ry/Rz, and phase-family
-S/T/Sdg/Tdg fixtures, plus multi-control single-qubit resident and unsupported
-gate fallback/reupload fixtures. It did not rerun the full install/build/example
-gate, but it did rerun focused Metal ctests and the tracked bounded counter
-report.
+S/T/Sdg/Tdg fixtures, plus multi-control single-qubit resident, unsupported
+gate fallback/reupload, and Python custom three-target fallback correctness
+fixtures. It did not rerun the full install/build/example gate, but it did rerun
+focused Metal/Python fixtures and the tracked bounded counter report.
 
 Raw wrapper output was written to ignored local paths
 `benchmarks/mklq/results/public-healthcheck-full-2026-06-22.json`,
@@ -47,7 +47,7 @@ output; these raw payloads are not tracked as public evidence.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
 - Current `benchmark_harness_tests`: `71 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
-- `python_target_smoke`: `56 passed`.
+- `python_target_smoke`: `57 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - Current `target_config_ctest`: `69/69 passed`.
 - Current `metal_runtime_counter_probe`: 18 expected, 18 selected, 0 missing,
@@ -132,11 +132,11 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 ```
 
 Latest focused local result: passed on 2026-06-22 after the resident
-Rx/Ry/Rz, phase-family, multi-control, and unsupported fallback/reupload
-counter-fixture refresh. It reported 4 wrapper steps passed, 0 failed, and 0
-skipped. The step-level results were:
+Rx/Ry/Rz, phase-family, multi-control, unsupported fallback/reupload, and
+Python custom three-target fallback correctness refresh. It reported 4 wrapper
+steps passed, 0 failed, and 0 skipped. The step-level results were:
 
-- `python_target_smoke`: `56 passed`.
+- `python_target_smoke`: `57 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `69/69 passed`.
 - `metal_runtime_counter_probe`: 18 expected, 18 selected, 0 missing, and 18

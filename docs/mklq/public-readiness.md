@@ -136,14 +136,14 @@ The latest public local validation evidence is recorded in
 - public example smoke gate: passed with 30/30 steps passed;
 - current benchmark harness tests: `71 passed`;
 - standalone install-prefix Python subset: `35 passed`;
-- `python_target_smoke`: `56 passed`;
+- `python_target_smoke`: `57 passed`;
 - `nvqpp_smoke`: `2 passed`;
 - current focused `target_config_ctest`: `69/69 passed`;
 - current focused `metal_runtime_counter_probe`: 18 expected, 18 selected, 0
   missing, and 18 passed, including the resident built-in Rx/Ry/Rz,
   controlled-Rx/Ry/Rz, phase-family S/T/Sdg/Tdg, and multi-control
   single-qubit fixtures, plus the unsupported gate fallback/reupload boundary
-  fixture.
+  fixture and Python custom three-target fallback correctness fixture.
 - clean CPU benchmark gate: passed with 18 q20 `qpp-cpu`/`mklq-cpu` rows,
   including `cz-state`, `qft-like-state`, and `seeded-clifford-state`, with
   18 rows reporting `status == "ok"` against
