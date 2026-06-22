@@ -218,9 +218,9 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   if (backendPathVar) {
     // Back-compat: a colon-separated list of plugin roots, equivalent to
     // calling registerBackendPath() on each. Prefer the Python API
-    // `cudaq.register_backend_path(...)` going forward — per-package
-    // failures are attributable there, but here a malformed entry takes
-    // down the whole list.
+    // `cudaq.register_backend_path(...)` going forward for clearer
+    // per-package attribution; invalid CUDAQ_BACKEND_PATH entries are logged
+    // and skipped.
     std::string entry;
     std::stringstream ss(backendPathVar);
     while (std::getline(ss, entry, ':')) {
