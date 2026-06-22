@@ -8,6 +8,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/SampleResult.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -78,6 +79,43 @@ public:
     }
 
     return {nullptr, 0};
+  }
+
+  sample_result launchKernel(const sample_policy &policy,
+                             const AnyModule &module,
+                             KernelArgs args) override {
+    unifiedLaunchModule(module, args);
+    CountsDictionary counts{{"0", policy.options.shots}};
+    return sample_result(ExecutionResult(counts));
+  }
+
+  observe_result launchKernel(const observe_policy &policy,
+                              const AnyModule &module,
+                              KernelArgs args) override {
+    unifiedLaunchModule(module, args);
+    if (policy.options.shots > 0) {
+      CountsDictionary counts{
+          {"0", static_cast<std::size_t>(policy.options.shots)}};
+      return observe_result(1.0, policy.spin,
+                            sample_result(ExecutionResult(counts)));
+    }
+    return observe_result(1.0, policy.spin);
+  }
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const sample_policy &policy) override {
+    return getDefaultPythonCompileTarget(policy);
+  }
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const observe_policy &policy) override {
+    return getDefaultPythonCompileTarget(policy);
+  }
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const other_policies &policy,
+                   ExecutionContext *context) override {
+    return getDefaultPythonCompileTarget(policy, context);
   }
 };
 
