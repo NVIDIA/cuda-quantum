@@ -1,0 +1,40 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(canonicalize,distributed-device-call{realtime=1},cse,canonicalize)' %s | FileCheck %s
+
+// CHECK-LABEL:   func.func @enqueueSyndromesKernel
+// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
+// CHECK:           %[[FUNCTION:.*]] = arith.constant 2128133762 : i32
+// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
+func.func @enqueueSyndromesKernel(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  cc.device_call @enqueue_syndromes(%arg0) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @getCorrectionsKernel
+// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
+// CHECK:           %[[FUNCTION:.*]] = arith.constant -2010293343 : i32
+// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
+func.func @getCorrectionsKernel(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  cc.device_call @get_corrections(%arg0) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @resetDecoderKernel
+// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
+// CHECK:           %[[FUNCTION:.*]] = arith.constant -1753589297 : i32
+// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
+func.func @resetDecoderKernel(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  cc.device_call @reset_decoder(%arg0) : (i32) -> ()
+  return
+}
+
+func.func private @enqueue_syndromes(i32) attributes {"cudaq-devicecall"}
+func.func private @get_corrections(i32) attributes {"cudaq-devicecall"}
+func.func private @reset_decoder(i32) attributes {"cudaq-devicecall"}
