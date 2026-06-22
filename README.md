@@ -156,6 +156,7 @@ python3 benchmarks/mklq/check_metal_evidence.py
 For a fast local public-maintenance gate, run:
 
 ```bash
+python3 benchmarks/mklq/run_preflight_audit.py
 python3 benchmarks/mklq/run_public_healthcheck.py
 ```
 

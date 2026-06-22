@@ -43,6 +43,7 @@ git log --oneline --decorate -5
 git ls-files .github | sort
 gh repo view wuls968/MKL-Q --json nameWithOwner,isFork,parent,defaultBranchRef,url
 gh run list --repo wuls968/MKL-Q --branch main --limit 5
+python3 benchmarks/mklq/run_preflight_audit.py
 python3 benchmarks/mklq/run_public_readiness_audit.py
 python3 benchmarks/mklq/check_performance_evidence.py
 python3 benchmarks/mklq/check_metal_evidence.py
@@ -58,6 +59,7 @@ Expected state:
 - `.github/workflows/` contains only intentionally reviewed MKL-Q workflows.
 - The latest pushed commit has a completed `MKL-Q public hygiene` run.
 - `main` branch protection matches [`branch-protection.md`](branch-protection.md).
+- `run_preflight_audit.py` passes before opening or updating public PRs.
 - `run_public_readiness_audit.py` passes for the pushed public state.
 - [`public-readiness.md`](public-readiness.md) matches the current public GitHub
   repository state before describing the repository as ready.

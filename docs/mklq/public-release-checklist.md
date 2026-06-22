@@ -68,6 +68,7 @@ Check:
 Run:
 
 ```bash
+python3 benchmarks/mklq/run_preflight_audit.py --require-clean
 git status --ignored --short
 git ls-files .github | sort
 git diff --check
@@ -143,6 +144,7 @@ Expected:
 Run the same classes of checks as `.github/workflows/mklq-public-hygiene.yml`:
 
 ```bash
+python3 benchmarks/mklq/run_preflight_audit.py --require-clean
 python3 benchmarks/mklq/run_public_healthcheck.py
 ```
 
@@ -168,6 +170,7 @@ python3 -m py_compile \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
   benchmarks/mklq/run_metal_runtime_counter_probe.py \
+  benchmarks/mklq/run_preflight_audit.py \
   benchmarks/mklq/run_public_readiness_audit.py \
   benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_metal_runtime_counters.py \
@@ -190,6 +193,8 @@ Expected:
 - [ ] `check_performance_evidence.py` passes for tracked clean CPU summaries.
 - [ ] `check_metal_evidence.py` passes for tracked experimental Metal
       summaries.
+- [ ] `run_preflight_audit.py --require-clean` passes before final publication
+  or before describing the branch as public-ready.
 - [ ] Public benchmark helper and Python example scripts compile.
 - [ ] `run_public_healthcheck.py` passes in default mode.
 - [ ] `run_public_healthcheck.py --full --require-clean` passes before

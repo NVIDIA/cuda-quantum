@@ -63,6 +63,7 @@ jobs:
           test -f benchmarks/mklq/check_metal_evidence.py
           test -f benchmarks/mklq/check_performance_evidence.py
           test -f benchmarks/mklq/run_metal_runtime_counter_probe.py
+          test -f benchmarks/mklq/run_preflight_audit.py
           test -f benchmarks/mklq/run_public_readiness_audit.py
           test -f benchmarks/mklq/run_public_healthcheck.py
           test -f benchmarks/mklq/summarize_metal_runtime_counters.py
@@ -85,6 +86,7 @@ jobs:
           grep -q 'check_metal_evidence.py' docs/mklq/testing-matrix.md
           grep -q 'check_performance_evidence.py' docs/mklq/testing-matrix.md
           grep -q 'run_metal_runtime_counter_probe.py' docs/mklq/testing-matrix.md
+          grep -q 'run_preflight_audit.py' docs/mklq/testing-matrix.md
           grep -q 'summarize_metal_runtime_counters.py' docs/mklq/testing-matrix.md
           grep -q 'run_public_healthcheck.py' docs/mklq/testing-matrix.md
           grep -q 'Preflight' docs/mklq/upstream-sync.md
@@ -100,6 +102,7 @@ jobs:
           grep -q 'GitHub Verification' docs/mklq/public-release-checklist.md
           grep -q 'check_metal_evidence.py' docs/mklq/public-release-checklist.md
           grep -q 'check_performance_evidence.py' docs/mklq/public-release-checklist.md
+          grep -q 'run_preflight_audit.py' docs/mklq/public-release-checklist.md
           grep -q 'run_public_healthcheck.py' docs/mklq/public-release-checklist.md
           grep -q 'Upstream Sync' docs/mklq/developer-workflow.md
           grep -q 'Correctness Gates' docs/mklq/developer-workflow.md
@@ -107,11 +110,13 @@ jobs:
           grep -q 'Public Hygiene' docs/mklq/developer-workflow.md
           grep -q 'check_metal_evidence.py' docs/mklq/developer-workflow.md
           grep -q 'check_performance_evidence.py' docs/mklq/developer-workflow.md
+          grep -q 'run_preflight_audit.py' docs/mklq/developer-workflow.md
           grep -q 'run_public_healthcheck.py' docs/mklq/developer-workflow.md
           grep -q 'Maintainer Principles' docs/mklq/maintainer-runbook.md
           grep -q 'Routine Health Check' docs/mklq/maintainer-runbook.md
           grep -q 'check_metal_evidence.py' docs/mklq/maintainer-runbook.md
           grep -q 'check_performance_evidence.py' docs/mklq/maintainer-runbook.md
+          grep -q 'run_preflight_audit.py' docs/mklq/maintainer-runbook.md
           grep -q 'run_public_healthcheck.py' docs/mklq/maintainer-runbook.md
           grep -q 'Issue Triage' docs/mklq/maintainer-runbook.md
           grep -q 'Pull Request Intake' docs/mklq/maintainer-runbook.md
@@ -146,6 +151,7 @@ jobs:
           grep -q 'release-policy.md' .github/pull_request_template.md
           grep -q 'mklq-metal' .github/pull_request_template.md
           grep -q 'not a release certification' docs/mklq/validation.md
+          grep -q 'Preflight Audit' benchmarks/mklq/README.md
           grep -q 'Metal Runtime Counter Probe' benchmarks/mklq/README.md
           grep -q 'Metal Runtime Counter Summary' benchmarks/mklq/README.md
           python3 - <<'PY'
@@ -281,6 +287,7 @@ jobs:
             benchmarks/mklq/run_clean_cpu_benchmark.py \
             benchmarks/mklq/run_correctness_gate.py \
             benchmarks/mklq/run_metal_runtime_counter_probe.py \
+            benchmarks/mklq/run_preflight_audit.py \
             benchmarks/mklq/run_public_readiness_audit.py \
             benchmarks/mklq/run_public_healthcheck.py \
             benchmarks/mklq/summarize_metal_runtime_counters.py \

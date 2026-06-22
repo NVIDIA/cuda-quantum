@@ -169,11 +169,26 @@ gate without build-tree Metal counter evidence. When preserving rejected tuning
 runs, label them clearly and keep them separate from the local baseline so they
 are not read as performance evidence.
 
+## Preflight Audit
+
+Use the preflight audit before opening or updating a public pull request:
+
+```bash
+python3 benchmarks/mklq/run_preflight_audit.py
+```
+
+The audit checks the local Git worktree state, stale Git lock files, expected
+`origin` and `upstream` remotes, shallow-clone state, tracked generated or raw
+local artifacts, ignored local artifact summaries, and the public `main` branch
+protection settings. Add `--require-clean` when the branch should have no
+uncommitted changes, or `--skip-github` for offline local-only checks.
+
 ## Public Health Check
 
 Use the public health check as the default local pre-push maintenance command:
 
 ```bash
+python3 benchmarks/mklq/run_preflight_audit.py
 python3 benchmarks/mklq/run_public_healthcheck.py
 ```
 

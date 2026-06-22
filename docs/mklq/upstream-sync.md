@@ -129,11 +129,15 @@ Run public hygiene locally using the same classes of checks as
 python3 -m py_compile \
   benchmarks/mklq/bench_mklq_targets.py \
   benchmarks/mklq/bench_probability_kernels.py \
+  benchmarks/mklq/check_metal_evidence.py \
+  benchmarks/mklq/check_performance_evidence.py \
   benchmarks/mklq/make_summary.py \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
   benchmarks/mklq/run_metal_runtime_counter_probe.py \
+  benchmarks/mklq/run_preflight_audit.py \
   benchmarks/mklq/run_public_readiness_audit.py \
+  benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_metal_runtime_counters.py \
   benchmarks/mklq/summarize_reports.py
 ```

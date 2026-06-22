@@ -103,6 +103,17 @@ def _load_public_readiness_audit_module():
     return module
 
 
+def _load_preflight_audit_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / "run_preflight_audit.py"
+    spec = importlib.util.spec_from_file_location("run_preflight_audit",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _load_example_verifier_module():
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "examples" / "mklq" / "verify_examples.py"
@@ -1829,6 +1840,165 @@ def test_mklq_public_readiness_audit_rejects_release_tags_and_unprotected_main(
     assert "branch is not protected" in failures
     assert "administrator enforcement is not enabled" in failures
     assert "release tags exist" in failures
+
+
+def _preflight_config(module, tmp_path, *, require_clean=True, check_github=True):
+    return module.PreflightConfig(
+        repo_root=tmp_path,
+        repo="wuls968/MKL-Q",
+        output=tmp_path / "preflight.json",
+        require_clean=require_clean,
+        check_github=check_github,
+    )
+
+
+def _preflight_branch_protection(*, protected=True, strict=True,
+                                 enforce_admins=True,
+                                 allow_force_pushes=False,
+                                 allow_deletions=False,
+                                 contexts=None):
+    contexts = ["Source-only repository checks"] if contexts is None else contexts
+    return {
+        "branch": {
+            "name": "main",
+            "protected": protected,
+        },
+        "protection": {
+            "required_status_checks": {
+                "strict": strict,
+                "contexts": contexts,
+                "checks": [],
+            },
+            "allow_force_pushes": {
+                "enabled": allow_force_pushes,
+            },
+            "allow_deletions": {
+                "enabled": allow_deletions,
+            },
+            "enforce_admins": {
+                "enabled": enforce_admins,
+            },
+        },
+    }
+
+
+def test_mklq_preflight_audit_builds_passing_report(monkeypatch, tmp_path):
+    module = _load_preflight_audit_module()
+    config = _preflight_config(module, tmp_path)
+    (tmp_path / ".git").mkdir()
+    protection = _preflight_branch_protection()
+    calls = []
+
+    def fake_command_output(cwd, command):
+        calls.append(command)
+        if command == ["git", "status", "--short", "--branch"]:
+            return "## codex/topic...origin/codex/topic"
+        if command == ["git", "rev-parse", "--is-shallow-repository"]:
+            return "false"
+        if command == ["git", "rev-parse", "--git-dir"]:
+            return ".git"
+        if command == ["git", "remote", "-v"]:
+            return "\n".join([
+                "origin\thttps://github.com/wuls968/MKL-Q.git (fetch)",
+                "origin\thttps://github.com/wuls968/MKL-Q.git (push)",
+                "upstream\thttps://github.com/NVIDIA/cuda-quantum.git (fetch) [blob:none]",
+                "upstream\thttps://github.com/NVIDIA/cuda-quantum.git (push)",
+            ])
+        if command == ["git", "ls-files"]:
+            return "\n".join([
+                "README.md",
+                ".github/workflows/mklq-public-hygiene.yml",
+            ])
+        if command == ["git", "status", "--ignored", "--short"]:
+            return "\n".join([
+                "!! benchmarks/mklq/results/",
+                "!! build-python/",
+                "!! .DS_Store",
+            ])
+        if command == [
+                "gh", "api", "repos/wuls968/MKL-Q/branches/main"
+        ]:
+            return json.dumps(protection["branch"])
+        if command == [
+                "gh", "api", "repos/wuls968/MKL-Q/branches/main/protection"
+        ]:
+            return json.dumps(protection["protection"])
+        raise AssertionError(command)
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+
+    report = module.build_report(config)
+
+    assert report["schema_version"] == "mklq-preflight-audit-v1"
+    assert report["summary"] == {
+        "status": "passed",
+        "passed": 5,
+        "failed": 0,
+    }
+    checks = {check["name"]: check for check in report["checks"]}
+    assert checks["git_locks"]["details"]["lock_files"] == []
+    assert checks["ignored_local_artifacts"]["details"]["ignored_count"] == 3
+    assert checks["branch_protection"]["status"] == "passed"
+    assert any(call[:2] == ["gh", "api"] for call in calls)
+
+
+def test_mklq_preflight_audit_rejects_locks_raw_artifacts_and_bad_protection(
+        monkeypatch, tmp_path):
+    module = _load_preflight_audit_module()
+    config = _preflight_config(module, tmp_path)
+    git_dir = tmp_path / ".git"
+    git_dir.mkdir()
+    (git_dir / "index.lock").write_text("stale lock", encoding="utf-8")
+    protection = _preflight_branch_protection(
+        protected=False,
+        strict=False,
+        enforce_admins=False,
+        allow_force_pushes=True,
+        allow_deletions=True,
+        contexts=[],
+    )
+
+    def fake_command_output(cwd, command):
+        if command == ["git", "status", "--short", "--branch"]:
+            return "## main...origin/main\n M docs/mklq/validation.md"
+        if command == ["git", "rev-parse", "--is-shallow-repository"]:
+            return "false"
+        if command == ["git", "rev-parse", "--git-dir"]:
+            return ".git"
+        if command == ["git", "remote", "-v"]:
+            return "origin\thttps://github.com/wuls968/MKL-Q.git (fetch)"
+        if command == ["git", "ls-files"]:
+            return "\n".join([
+                "README.md",
+                "benchmarks/mklq/results/raw.json",
+                ".DS_Store",
+            ])
+        if command == ["git", "status", "--ignored", "--short"]:
+            return ""
+        if command == [
+                "gh", "api", "repos/wuls968/MKL-Q/branches/main"
+        ]:
+            return json.dumps(protection["branch"])
+        if command == [
+                "gh", "api", "repos/wuls968/MKL-Q/branches/main/protection"
+        ]:
+            return json.dumps(protection["protection"])
+        raise AssertionError(command)
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+
+    report = module.build_report(config)
+    failures = "\n".join(check.get("message", "") for check in report["checks"]
+                         if check["status"] == "failed")
+
+    assert report["summary"]["status"] == "failed"
+    assert "working tree is dirty" in failures
+    assert "git lock files are present" in failures
+    assert "generated or local artifacts are tracked" in failures
+    assert "upstream remote is missing" in failures
+    assert "branch is not protected" in failures
+    assert "required status check is missing" in failures
+    assert "administrator enforcement is not enabled" in failures
 
 
 def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):

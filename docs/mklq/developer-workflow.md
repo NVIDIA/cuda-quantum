@@ -145,6 +145,7 @@ evidence, not release certification.
 Before pushing a public branch, run:
 
 ```bash
+python3 benchmarks/mklq/run_preflight_audit.py
 python3 benchmarks/mklq/run_public_healthcheck.py
 git diff --check
 git ls-files .github/workflows | sort
@@ -159,6 +160,7 @@ python3 -m py_compile \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
   benchmarks/mklq/run_metal_runtime_counter_probe.py \
+  benchmarks/mklq/run_preflight_audit.py \
   benchmarks/mklq/run_public_readiness_audit.py \
   benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_metal_runtime_counters.py \
