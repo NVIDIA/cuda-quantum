@@ -62,6 +62,7 @@ jobs:
           test -f benchmarks/mklq/check_metal_evidence.py
           test -f benchmarks/mklq/check_performance_evidence.py
           test -f benchmarks/mklq/run_metal_runtime_counter_probe.py
+          test -f benchmarks/mklq/run_public_readiness_audit.py
           test -f benchmarks/mklq/run_public_healthcheck.py
           test -f benchmarks/mklq/reports/local-metal-runtime-counter-probe-2026-06-22.counter.json
           grep -q 'examples/mklq' README.md
@@ -121,6 +122,7 @@ jobs:
           grep -q 'needs-repro' .github/ISSUE_TEMPLATE/bug_report.yaml
           grep -q 'Source-only repository checks' docs/mklq/branch-protection.md
           grep -q 'Public Readiness' docs/mklq/public-readiness.md
+          grep -q 'run_public_readiness_audit.py' docs/mklq/public-readiness.md
           grep -q 'source-only' docs/mklq/public-readiness.md
           grep -q 'Branch Protection' docs/mklq/public-readiness.md
           grep -q 'No Tags Or Releases' docs/mklq/public-readiness.md
@@ -253,6 +255,7 @@ jobs:
             benchmarks/mklq/run_clean_cpu_benchmark.py \
             benchmarks/mklq/run_correctness_gate.py \
             benchmarks/mklq/run_metal_runtime_counter_probe.py \
+            benchmarks/mklq/run_public_readiness_audit.py \
             benchmarks/mklq/run_public_healthcheck.py \
             benchmarks/mklq/summarize_reports.py \
             examples/mklq/python/bell.py \

@@ -164,6 +164,13 @@ checks, use:
 python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
 ```
 
+To audit the public GitHub fork metadata, branch protection, latest hygiene
+workflow, and source-only tag/release boundary, run:
+
+```bash
+python3 benchmarks/mklq/run_public_readiness_audit.py
+```
+
 ## Upstream And License
 
 MKL-Q is derived from NVIDIA CUDA-Q and keeps CUDA-Q API compatibility where

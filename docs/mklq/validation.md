@@ -15,34 +15,34 @@ boundary and evidence limits.
 
 ## Current Evidence Snapshot
 
-Latest local validation refresh: 2026-06-21.
+Latest local validation refresh: 2026-06-22.
 
 The install-prefix build, full public healthcheck, one-command correctness
 gate, and public example smoke gate were last run against source commit
-`90b1ebe20b281411880e7704df5b4120692e4686` before this validation note was
-committed. The static public-healthcheck composition was then extended with the
-experimental Metal evidence boundary guard. The clean CPU benchmark summary was
-refreshed separately against
+`997ec1f3c022d854d644257bc7dca990a17bd243` before this readiness-audit helper
+update was committed. The clean CPU benchmark summary was refreshed separately
+against
 `34f4b260d1c657ad626c526eed4e6b9d3a441be4` after adding QFT-like and seeded
 Clifford composite rows to the clean evidence gate.
 
 Raw wrapper output was written to ignored local paths
-`benchmarks/mklq/results/public-healthcheck-full-2026-06-21.json` and
-`benchmarks/mklq/results/local-correctness-gate-2026-06-21.json`, and
-`benchmarks/mklq/results/example-smoke-2026-06-21.json`; these raw payloads are
-not tracked as public evidence.
+`benchmarks/mklq/results/public-healthcheck-full-2026-06-22.json`,
+`benchmarks/mklq/results/local-correctness-gate-2026-06-22.json`,
+`benchmarks/mklq/results/local-metal-runtime-counter-probe-2026-06-22.counter.json`,
+and the temporary example-smoke payload embedded in the full healthcheck
+output; these raw payloads are not tracked as public evidence.
 
 - Install-prefix build: passed.
-- Full public healthcheck: passed, with 14 steps passed and 0 failed.
-- One-command correctness gate: historical 2026-06-21 result passed with 3
-  steps passed, 0 failed, and 0 skipped. The current wrapper also includes the
-  Metal runtime counter probe by default.
+- Full public healthcheck: passed, with 15 steps passed and 0 failed.
+- One-command correctness gate: passed with 4 steps passed, 0 failed, and 0
+  skipped, including the Metal runtime counter probe.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
-- `benchmark_harness_tests`: `58 passed`.
+- `benchmark_harness_tests`: `67 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
+- `metal_runtime_counter_probe`: 12 selected counter tests passed.
 - Clean CPU benchmark gate: passed, with 18 q20 `qpp-cpu`/`mklq-cpu` rows and
   18 rows reporting `status == "ok"`.
 
@@ -122,14 +122,14 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-Historical local result: passed on 2026-06-21 against
-`90b1ebe20b281411880e7704df5b4120692e4686` with 3 wrapper steps passed, 0
-failed, and 0 skipped before the Metal runtime counter probe was added to the
-wrapper default. The step-level results were:
+Latest local result: passed on 2026-06-22 against
+`997ec1f3c022d854d644257bc7dca990a17bd243` with 4 wrapper steps passed, 0
+failed, and 0 skipped. The step-level results were:
 
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
 - `target_config_ctest`: `63/63 passed`.
+- `metal_runtime_counter_probe`: 12 selected counter tests passed.
 
 The Python smoke step includes the MKL-Q API smoke tests, the CPU correctness
 fixture suite, the limited experimental Metal correctness fixture suite, and
@@ -165,14 +165,13 @@ python3 benchmarks/mklq/run_correctness_gate.py \
 python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
 ```
 
-Historical 2026-06-21 result: `14/14` steps passed. This includes Git
+Latest 2026-06-22 result: `15/15` steps passed. This includes Git
 repository hygiene, tracked-artifact checks, public metadata checks, sanitized
 benchmark summary parsing, the clean CPU performance evidence guard, the Metal
-evidence boundary guard, helper `py_compile`, markdown links, benchmark
-evidence regeneration, benchmark harness tests, install-prefix build, the
-one-command correctness gate, and the public example smoke gate. Current
-`--full` runs also execute the correctness gate's Metal runtime counter probe
-unless `--skip-metal-counter-probe` is passed to that wrapper directly.
+evidence boundary guard, bounded Metal runtime counter evidence parsing, helper
+`py_compile`, markdown links, benchmark evidence regeneration, benchmark
+harness tests, install-prefix build, the one-command correctness gate, and the
+public example smoke gate.
 
 ## Benchmark Evidence
 

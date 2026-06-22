@@ -168,6 +168,7 @@ python3 -m py_compile \
   benchmarks/mklq/run_clean_cpu_benchmark.py \
   benchmarks/mklq/run_correctness_gate.py \
   benchmarks/mklq/run_metal_runtime_counter_probe.py \
+  benchmarks/mklq/run_public_readiness_audit.py \
   benchmarks/mklq/run_public_healthcheck.py \
   benchmarks/mklq/summarize_reports.py \
   examples/mklq/python/bell.py \
@@ -202,6 +203,7 @@ git push origin main
 git ls-remote origin refs/heads/main
 gh repo view wuls968/MKL-Q --json nameWithOwner,isFork,parent,defaultBranchRef,url
 gh run list --repo wuls968/MKL-Q --branch main --limit 5
+python3 benchmarks/mklq/run_public_readiness_audit.py
 ```
 
 Expected:
@@ -213,6 +215,7 @@ Expected:
 - [ ] The latest MKL-Q public hygiene workflow completes with `success`.
 - [ ] `main` branch protection is enabled and requires
   `Source-only repository checks`.
+- [ ] `run_public_readiness_audit.py` passes for the pushed commit.
 - [ ] `docs/mklq/public-readiness.md` is current for the pushed commit.
 
 ## Stop Conditions

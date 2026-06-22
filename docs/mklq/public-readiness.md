@@ -4,7 +4,7 @@ This page records the public repository readiness snapshot for MKL-Q. It is a
 source-only repository audit, not a release certification, package
 certification, Apple Silicon CI replacement, or performance certification.
 
-Snapshot date: 2026-06-21.
+Snapshot date: 2026-06-22.
 
 ## Scope
 
@@ -126,15 +126,15 @@ payload is `.github/branch-protection-main.json`.
 The latest public local validation evidence is recorded in
 [`validation.md`](validation.md):
 
-- latest validation refresh date: 2026-06-21, before the correctness wrapper
-  gained the default Metal runtime counter probe step;
-- source commit used for the latest runtime validation gate:
-  `90b1ebe20b281411880e7704df5b4120692e4686`;
+- latest validation refresh date: 2026-06-22;
+- source commit used for the latest clean-worktree runtime validation gate:
+  `997ec1f3c022d854d644257bc7dca990a17bd243`;
 - install-prefix build: passed;
-- full public healthcheck: passed with 14/14 steps passed;
-- one-command correctness gate: passed;
+- full public healthcheck: passed with 15/15 steps passed;
+- one-command correctness gate: passed with 4/4 steps passed, including
+  `metal_runtime_counter_probe`;
 - public example smoke gate: passed with 30/30 steps passed;
-- benchmark harness tests: `58 passed`;
+- benchmark harness tests: `67 passed`;
 - standalone install-prefix Python subset: `35 passed`;
 - `python_target_smoke`: `56 passed`;
 - `nvqpp_smoke`: `2 passed`;
@@ -193,6 +193,7 @@ certification.
 Use these commands for the public repository readiness audit:
 
 ```bash
+python3 benchmarks/mklq/run_public_readiness_audit.py
 git status --short --branch
 git rev-parse --is-shallow-repository
 git sparse-checkout list

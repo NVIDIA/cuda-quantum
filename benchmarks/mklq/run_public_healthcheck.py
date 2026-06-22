@@ -39,6 +39,7 @@ BENCHMARK_HELPERS = (
     "benchmarks/mklq/run_clean_cpu_benchmark.py",
     "benchmarks/mklq/run_correctness_gate.py",
     "benchmarks/mklq/run_metal_runtime_counter_probe.py",
+    "benchmarks/mklq/run_public_readiness_audit.py",
     "benchmarks/mklq/run_public_healthcheck.py",
     "benchmarks/mklq/summarize_reports.py",
 )
@@ -259,6 +260,7 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("docs/mklq/issue-labels.md", "Label Taxonomy"),
         ("docs/mklq/branch-protection.md", "Source-only repository checks"),
         ("docs/mklq/public-readiness.md", "Public Readiness"),
+        ("docs/mklq/public-readiness.md", "run_public_readiness_audit.py"),
         ("docs/mklq/validation.md", "not a release certification"),
         ("docs/mklq/benchmark-evidence.md", "cross-machine performance certification"),
         ("benchmarks/mklq/README.md", "Performance Evidence Guard"),

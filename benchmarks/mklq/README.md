@@ -191,6 +191,12 @@ Before describing a commit as public-ready, run the heavier local gate:
 python3 benchmarks/mklq/run_public_healthcheck.py --full --require-clean
 ```
 
+Then audit the pushed public fork state:
+
+```bash
+python3 benchmarks/mklq/run_public_readiness_audit.py
+```
+
 `--full` adds the install-prefix build and one-command correctness gate. It does
 not refresh benchmark evidence. To intentionally refresh clean CPU benchmark
 evidence, run from a clean worktree:

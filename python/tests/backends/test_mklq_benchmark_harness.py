@@ -91,6 +91,18 @@ def _load_public_healthcheck_module():
     return module
 
 
+def _load_public_readiness_audit_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / (
+        "run_public_readiness_audit.py")
+    spec = importlib.util.spec_from_file_location("run_public_readiness_audit",
+                                                  script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _load_example_verifier_module():
     repo_root = Path(__file__).resolve().parents[3]
     script = repo_root / "examples" / "mklq" / "verify_examples.py"
@@ -1392,6 +1404,193 @@ def test_mklq_public_healthcheck_writes_json_report(monkeypatch, tmp_path):
     assert [step["name"] for step in written["steps"]] == ["ok", "bad"]
     assert written["steps"][0]["details"] == {"value": 1}
     assert written["steps"][1]["message"] == "synthetic failure"
+
+
+def _readiness_repo_payload():
+    return {
+        "nameWithOwner": "wuls968/MKL-Q",
+        "isFork": True,
+        "parent": {
+            "name": "cuda-quantum",
+            "owner": {
+                "login": "NVIDIA",
+            },
+        },
+        "defaultBranchRef": {
+            "name": "main",
+        },
+        "description": (
+            "CUDA-Q-compatible Apple Silicon simulator fork with MKL-Q targets"
+        ),
+        "repositoryTopics": [{
+            "name": "accelerate",
+        }, {
+            "name": "apple-silicon",
+        }, {
+            "name": "cuda-quantum",
+        }, {
+            "name": "metal",
+        }, {
+            "name": "mklq",
+        }, {
+            "name": "quantum-computing",
+        }],
+        "licenseInfo": {
+            "key": "apache-2.0",
+        },
+        "visibility": "PUBLIC",
+        "url": "https://github.com/wuls968/MKL-Q",
+    }
+
+
+def test_mklq_public_readiness_audit_builds_passing_report(monkeypatch,
+                                                           tmp_path):
+    module = _load_public_readiness_audit_module()
+    config = module.AuditConfig(
+        repo_root=tmp_path,
+        repo="wuls968/MKL-Q",
+        workflow="MKL-Q public hygiene",
+        output=tmp_path / "readiness.json",
+    )
+    calls = []
+
+    def fake_command_output(cwd, command):
+        calls.append(command)
+        if command == ["git", "status", "--short", "--branch"]:
+            return "## main...origin/main"
+        if command == ["git", "rev-parse", "--is-shallow-repository"]:
+            return "false"
+        if command == ["git", "rev-parse", "HEAD"]:
+            return "abc123"
+        if command == ["git", "ls-remote", "origin", "refs/heads/main"]:
+            return "abc123\trefs/heads/main"
+        if command == ["git", "ls-remote", "--tags", "origin", "refs/tags/*"]:
+            return ""
+        if command == ["git", "ls-files"]:
+            return "\n".join([
+                "README.md",
+                ".github/workflows/mklq-public-hygiene.yml",
+                "docs/mklq/public-readiness.md",
+            ])
+        if command == ["git", "ls-files", ".github/workflows"]:
+            return ".github/workflows/mklq-public-hygiene.yml"
+        if command[:3] == ["gh", "repo", "view"]:
+            return json.dumps(_readiness_repo_payload())
+        if command[:3] == ["gh", "api", "repos/wuls968/MKL-Q/branches/main"]:
+            return json.dumps({
+                "name": "main",
+                "protected": True,
+                "commit": "abc123",
+            })
+        if command[:3] == [
+                "gh", "api",
+                "repos/wuls968/MKL-Q/branches/main/protection"
+        ]:
+            return json.dumps({
+                "required_status_checks": {
+                    "strict": True,
+                    "contexts": ["Source-only repository checks"],
+                },
+                "allow_force_pushes": {
+                    "enabled": False,
+                },
+                "allow_deletions": {
+                    "enabled": False,
+                },
+            })
+        if command[:3] == ["gh", "run", "list"]:
+            return json.dumps([{
+                "status": "completed",
+                "conclusion": "success",
+                "headSha": "abc123",
+                "url": "https://github.com/wuls968/MKL-Q/actions/runs/1",
+            }])
+        if command[:3] == ["gh", "release", "list"]:
+            return ""
+        raise AssertionError(command)
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+
+    report = module.build_report(config)
+
+    assert report["schema_version"] == "mklq-public-readiness-audit-v1"
+    assert report["summary"]["status"] == "passed"
+    assert report["summary"]["failed"] == 0
+    checks = {check["name"]: check for check in report["checks"]}
+    assert checks["github_repository"]["status"] == "passed"
+    assert checks["branch_protection"]["status"] == "passed"
+    assert checks["latest_public_hygiene"]["details"]["headSha"] == "abc123"
+    assert any(call[:3] == ["gh", "repo", "view"] for call in calls)
+
+
+def test_mklq_public_readiness_audit_rejects_release_tags_and_unprotected_main(
+        monkeypatch, tmp_path):
+    module = _load_public_readiness_audit_module()
+    config = module.AuditConfig(
+        repo_root=tmp_path,
+        repo="wuls968/MKL-Q",
+        workflow="MKL-Q public hygiene",
+        output=tmp_path / "readiness.json",
+    )
+
+    def fake_command_output(cwd, command):
+        if command == ["git", "status", "--short", "--branch"]:
+            return "## main...origin/main"
+        if command == ["git", "rev-parse", "--is-shallow-repository"]:
+            return "false"
+        if command == ["git", "rev-parse", "HEAD"]:
+            return "abc123"
+        if command == ["git", "ls-remote", "origin", "refs/heads/main"]:
+            return "abc123\trefs/heads/main"
+        if command == ["git", "ls-remote", "--tags", "origin", "refs/tags/*"]:
+            return "abc123\trefs/tags/v0.1.0"
+        if command == ["git", "ls-files"]:
+            return "README.md"
+        if command == ["git", "ls-files", ".github/workflows"]:
+            return ".github/workflows/mklq-public-hygiene.yml"
+        if command[:3] == ["gh", "repo", "view"]:
+            return json.dumps(_readiness_repo_payload())
+        if command[:3] == ["gh", "api", "repos/wuls968/MKL-Q/branches/main"]:
+            return json.dumps({
+                "name": "main",
+                "protected": False,
+                "commit": "abc123",
+            })
+        if command[:3] == [
+                "gh", "api",
+                "repos/wuls968/MKL-Q/branches/main/protection"
+        ]:
+            return json.dumps({
+                "required_status_checks": {
+                    "strict": False,
+                    "contexts": [],
+                },
+                "allow_force_pushes": {
+                    "enabled": True,
+                },
+                "allow_deletions": {
+                    "enabled": True,
+                },
+            })
+        if command[:3] == ["gh", "run", "list"]:
+            return json.dumps([{
+                "status": "completed",
+                "conclusion": "success",
+                "headSha": "abc123",
+            }])
+        if command[:3] == ["gh", "release", "list"]:
+            return ""
+        raise AssertionError(command)
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+
+    report = module.build_report(config)
+    failures = "\n".join(check.get("message", "") for check in report["checks"]
+                         if check["status"] == "failed")
+
+    assert report["summary"]["status"] == "failed"
+    assert "branch is not protected" in failures
+    assert "release tags exist" in failures
 
 
 def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
