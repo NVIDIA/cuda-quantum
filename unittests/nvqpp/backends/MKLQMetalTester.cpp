@@ -927,6 +927,48 @@ CUDAQ_TEST(MKLQMetalTester,
 }
 
 CUDAQ_TEST(MKLQMetalTester,
+           SimulatorKeepsBuiltInPhaseFamilyResidentUntilReadback) {
+  const auto pi = std::acos(-1.0);
+  const std::vector<std::complex<double>> initial{
+      {0.3125, -0.125}, {-0.25, 0.4375}, {0.625, 0.25}, {-0.5, -0.375}};
+
+  auto phaseMatrix = [](double angle) {
+    return std::array<std::complex<double>, 4>{
+        std::complex<double>{1.0, 0.0},
+        std::complex<double>{0.0, 0.0},
+        std::complex<double>{0.0, 0.0},
+        std::complex<double>{std::cos(angle), std::sin(angle)}};
+  };
+
+  auto expected = initial;
+  applyExpectedSingleQubitGate(expected, phaseMatrix(pi / 2.0), {}, 0);
+  applyExpectedSingleQubitGate(expected, phaseMatrix(pi / 4.0), {0}, 1);
+  applyExpectedSingleQubitGate(expected, phaseMatrix(-pi / 2.0), {}, 1);
+  applyExpectedSingleQubitGate(expected, phaseMatrix(-pi / 4.0), {1}, 0);
+
+  MklqMetalCircuitSimulatorTester sim;
+  sim.setStateForTest(initial);
+  sim.s(0);
+  sim.t(std::vector<std::size_t>{0}, 1);
+  sim.sdg(1);
+  sim.tdg(std::vector<std::size_t>{1}, 0);
+  sim.flushGateQueue();
+
+  EXPECT_EQ(sim.residentStateDownloadsForTest(), 0);
+  const auto state = sim.stateVectorForTest();
+
+  ASSERT_EQ(state.size(), expected.size());
+  for (std::size_t index = 0; index < state.size(); ++index)
+    expectNear(state[index], expected[index]);
+  EXPECT_EQ(sim.singleQubitApplicationsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 4 : 0);
+  EXPECT_EQ(sim.residentStateUploadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+  EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+}
+
+CUDAQ_TEST(MKLQMetalTester,
            SimulatorSamplesResidentDenseStateWithoutReadback) {
   constexpr std::size_t qubitCount = 7;
   constexpr std::size_t dimension = 1ULL << qubitCount;
