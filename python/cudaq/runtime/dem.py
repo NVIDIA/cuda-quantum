@@ -22,7 +22,7 @@ def _detail_check_conditionals_on_measure(kernel):
 
 
 @trace.traced
-def dem_from_kernel(kernel, *args, noise_model=None):
+def dem_from_kernel(kernel, *args, noise_model=None, decompose_errors=False):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
     Runs `kernel` under the internal `"dem"` execution context, captures
@@ -36,6 +36,9 @@ def dem_from_kernel(kernel, *args, noise_model=None):
       *arguments: Concrete argument values forwarded to the kernel invocation.
       noise_model (:class:`NoiseModel`, optional): Noise model layered on
           top of any `apply_noise` ops already present in the kernel.
+      decompose_errors (bool, optional): When ``True``, hyper-edge error
+          mechanisms are decomposed into graph-like pair edges by Stim's
+          error analyzer before the ``.dem`` text is returned.
 
     Returns:
       UTF-8 string in Stim's standard `.dem` file format. Consumers
@@ -50,4 +53,5 @@ def dem_from_kernel(kernel, *args, noise_model=None):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
-                                              noise_model, *processedArgs)
+                                              noise_model, decompose_errors,
+                                              *processedArgs)

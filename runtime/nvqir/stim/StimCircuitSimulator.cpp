@@ -212,10 +212,12 @@ protected:
   /// @brief Compute the detector error model from the accumulated
   /// `recordedCircuit` and return it as `.dem` text.
   std::string generateDem() override {
+    auto *ctx = getExecutionContext();
+    const bool decompose_errors = ctx ? ctx->dem_decompose_errors : false;
     stim::DetectorErrorModel dem =
         stim::ErrorAnalyzer::circuit_to_detector_error_model(
             recordedCircuit,
-            /*decompose_errors=*/false,
+            /*decompose_errors=*/decompose_errors,
             /*fold_loops=*/false,
             /*allow_gauge_detectors=*/false,
             /*approximate_disjoint_errors_threshold=*/0,

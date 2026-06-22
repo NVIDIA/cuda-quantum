@@ -22,19 +22,24 @@ using namespace cudaq;
 static std::string dem_from_kernel_impl(const std::string &kernelName,
                                         MlirModule kernelMod,
                                         std::optional<noise_model> noise,
+                                        bool decompose_errors,
                                         nanobind::args args) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
   const cudaq::noise_model *noisePtr = noise ? &(*noise) : nullptr;
-  return cudaq::detail::runDemFromKernel(kernelName, platform, noisePtr, [&]() {
-    [[maybe_unused]] auto result =
-        cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
-  });
+  return cudaq::detail::runDemFromKernel(
+      kernelName, platform, noisePtr,
+      [&]() {
+        [[maybe_unused]] auto result =
+            cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
+      },
+      decompose_errors);
 }
 
 void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
   mod.def("dem_from_kernel_impl", dem_from_kernel_impl, nanobind::arg(),
-          nanobind::arg(), nanobind::arg().none(), nanobind::arg(),
+          nanobind::arg(), nanobind::arg().none(),
+          nanobind::arg("decompose_errors") = false, nanobind::arg(),
           "See python documentation for dem_from_kernel.");
 }

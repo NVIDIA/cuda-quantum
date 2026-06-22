@@ -162,6 +162,11 @@ public:
 
   /// @brief Slot for the detector error model, as `.dem` text.
   std::string dem_text;
+
+  /// @brief When true, hyper-edge error mechanisms are decomposed into pairs of
+  /// two-detector edges by the Stim ErrorAnalyzer before the `.dem` text is
+  /// returned by `dem_from_kernel`. Defaults to false.
+  bool dem_decompose_errors = false;
   /// @endcond
 };
 

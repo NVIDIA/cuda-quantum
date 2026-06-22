@@ -246,5 +246,38 @@ def test_conditional_feedback_rejected():
         cudaq.dem_from_kernel(kernel)
 
 
+def test_decompose_errors_correlated_xx():
+    """decompose_errors=True splits four-detector hyperedges into pair edges."""
+
+    @cudaq.kernel
+    def kernel():
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.125, q0)
+        # pauli2 probabilities: IX,IY,IZ,XI,XX,XY,XZ,YI,YX,YY,YZ,ZI,ZX,ZY,ZZ
+        cudaq.apply_noise(cudaq.Pauli2, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0,
+                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, q0, q1)
+        m0 = mz(q0)
+        m1 = mz(q1)
+        cudaq.detector(m0)
+        cudaq.detector(m0)
+        cudaq.detector(m1)
+        cudaq.detector(m1)
+
+    noise = cudaq.NoiseModel()
+    dem_raw = cudaq.dem_from_kernel(kernel,
+                                    noise_model=noise,
+                                    decompose_errors=False)
+    dem_decomposed = cudaq.dem_from_kernel(kernel,
+                                           noise_model=noise,
+                                           decompose_errors=True)
+
+    assert "D0 D1 D2 D3" in dem_raw
+    assert "^" not in dem_raw
+    assert "D0 D1 D2 D3" not in dem_decomposed
+    assert "^" in dem_decomposed
+    assert "error(0.25) D0 D1 ^ D2 D3" in dem_decomposed
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
