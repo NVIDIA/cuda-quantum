@@ -34,6 +34,7 @@ COUNTER_TEST_SUFFIXES = (
     "SimulatorKeepsBuiltInRyAndControlledRyResidentUntilReadback",
     "SimulatorKeepsBuiltInRzAndControlledRzResidentUntilReadback",
     "SimulatorKeepsBuiltInPhaseFamilyResidentUntilReadback",
+    "SimulatorKeepsMultiControlSingleQubitResidentUntilReadback",
     "SimulatorSamplesResidentDenseStateWithoutReadback",
     "SimulatorSamplesLargeResidentPartialRegisterThroughFullProbability",
     "SimulatorSamplesSmallResidentPartialRegisterThroughMarginalProbability",

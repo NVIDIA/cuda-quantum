@@ -969,6 +969,50 @@ CUDAQ_TEST(MKLQMetalTester,
 }
 
 CUDAQ_TEST(MKLQMetalTester,
+           SimulatorKeepsMultiControlSingleQubitResidentUntilReadback) {
+  constexpr double theta = 0.53125;
+  const std::vector<std::complex<double>> initial{
+      {0.25, -0.125}, {-0.375, 0.5},  {0.625, -0.25}, {-0.125, -0.75},
+      {0.5, 0.375},   {-0.25, 0.125}, {0.75, -0.5},   {-0.625, 0.25}};
+  const std::array<std::complex<double>, 4> xMatrix{
+      std::complex<double>{0.0, 0.0}, std::complex<double>{1.0, 0.0},
+      std::complex<double>{1.0, 0.0}, std::complex<double>{0.0, 0.0}};
+
+  auto rzMatrix = [](double angle) {
+    const auto zeroPhase = -angle / 2.0;
+    const auto onePhase = angle / 2.0;
+    return std::array<std::complex<double>, 4>{
+        std::complex<double>{std::cos(zeroPhase), std::sin(zeroPhase)},
+        std::complex<double>{0.0, 0.0},
+        std::complex<double>{0.0, 0.0},
+        std::complex<double>{std::cos(onePhase), std::sin(onePhase)}};
+  };
+
+  auto expected = initial;
+  applyExpectedSingleQubitGate(expected, xMatrix, {0, 1}, 2);
+  applyExpectedSingleQubitGate(expected, rzMatrix(theta), {0, 2}, 1);
+
+  MklqMetalCircuitSimulatorTester sim;
+  sim.setStateForTest(initial);
+  sim.x(std::vector<std::size_t>{0, 1}, 2);
+  sim.rz(theta, std::vector<std::size_t>{0, 2}, 1);
+  sim.flushGateQueue();
+
+  EXPECT_EQ(sim.residentStateDownloadsForTest(), 0);
+  const auto state = sim.stateVectorForTest();
+
+  ASSERT_EQ(state.size(), expected.size());
+  for (std::size_t index = 0; index < state.size(); ++index)
+    expectNear(state[index], expected[index]);
+  EXPECT_EQ(sim.singleQubitApplicationsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 2 : 0);
+  EXPECT_EQ(sim.residentStateUploadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+  EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+}
+
+CUDAQ_TEST(MKLQMetalTester,
            SimulatorSamplesResidentDenseStateWithoutReadback) {
   constexpr std::size_t qubitCount = 7;
   constexpr std::size_t dimension = 1ULL << qubitCount;
