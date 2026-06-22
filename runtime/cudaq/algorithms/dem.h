@@ -21,8 +21,8 @@ namespace cudaq {
 class noise_model;
 
 /// @brief Sparse binary matrix mapping detectors (rows) to measurements
-/// (columns). Returned as an optional second output of `dem_from_kernel`
-/// when `return_m2d=True` is requested.
+/// (columns). Returned alongside `M2OSparseMatrix` when `return_m2d=True`
+/// is passed to `dem_from_kernel`.
 ///
 /// `rows[d]` lists the chronological measurement indices that contribute to
 /// detector `d` (i.e. are XOR-ed together to form its syndrome bit).
@@ -33,20 +33,36 @@ struct M2DSparseMatrix {
   std::vector<std::vector<std::size_t>> rows;
 };
 
+/// @brief Sparse binary matrix mapping observables (rows) to measurements
+/// (columns). Returned alongside `M2DSparseMatrix` when `return_m2d=True`
+/// is passed to `dem_from_kernel`.
+///
+/// `rows[k]` lists the chronological measurement indices that contribute to
+/// observable `k`. `num_measurements` gives the total column count (shape is
+/// `rows.size() × num_measurements`).
+struct M2OSparseMatrix {
+  std::size_t num_measurements = 0;
+  std::vector<std::vector<std::size_t>> rows;
+};
+
 } // namespace cudaq
 
 namespace cudaq::detail {
 
 /// @brief Type-erased core of `dem_from_kernel`.
 ///
-/// @param m2d_out  Optional output for the m2d matrix. Pass `nullptr`
-///                 (default) to skip the computation.
+/// @param m2d_out  Optional output for the m2d matrix.
+/// @param m2o_out  Optional output for the m2o matrix.
+///                 Pass `nullptr` (default) to skip either computation.
+///                 Both are computed in a single circuit pass; requesting
+///                 one automatically computes the other.
 std::string runDemFromKernel(const std::string &kernelName,
                              cudaq::quantum_platform &platform,
                              const cudaq::noise_model *noise,
                              const std::function<void()> &wrappedKernel,
                              const std::string &plugin_name = "stim",
-                             cudaq::M2DSparseMatrix *m2d_out = nullptr);
+                             cudaq::M2DSparseMatrix *m2d_out = nullptr,
+                             cudaq::M2OSparseMatrix *m2o_out = nullptr);
 
 } // namespace cudaq::detail
 

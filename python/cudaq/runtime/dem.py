@@ -48,11 +48,13 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
       `.dem` file format. Consumers that need a structured DEM can parse it
       with `stim.DetectorErrorModel(text)`.
 
-      If `return_m2d` is True: a tuple ``(dem_text, m2d)`` where ``m2d`` is
-      a ``scipy.sparse.csr_matrix`` of shape
-      ``(num_detectors, num_measurements)`` with binary entries. Entry
-      ``m2d[d, m] == 1`` means raw measurement ``m`` (chronological index)
-      contributes to detector ``d``.
+      If `return_m2d` is True: a tuple ``(dem_text, m2d, m2o)`` where both
+      matrices are ``scipy.sparse.csr_matrix`` with binary entries.
+      ``m2d`` has shape ``(num_detectors, num_measurements)``: entry
+      ``m2d[d, m] == 1`` means measurement ``m`` contributes to detector ``d``.
+      ``m2o`` has shape ``(num_observables, num_measurements)``: entry
+      ``m2o[k, m] == 1`` means measurement ``m`` contributes to observable ``k``.
+      Measurement indices are chronological.
     """
     _detail_check_conditionals_on_measure(kernel)
 
@@ -68,12 +70,16 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
     if not return_m2d:
         return result
 
-    dem_text, num_measurements, rows = result
-    num_detectors = len(rows)
-    det_idx = [d for d, ms in enumerate(rows) for _ in ms]
-    meas_idx = [m for ms in rows for m in ms]
-    m2d = sp.csr_matrix(
-        (np.ones(len(det_idx), dtype=np.uint8), (det_idx, meas_idx)),
-        shape=(num_detectors, num_measurements),
-    )
-    return dem_text, m2d
+    dem_text, num_measurements, det_rows, obs_rows = result
+
+    def _make_csr(rows, num_cols):
+        row_idx = [r for r, ms in enumerate(rows) for _ in ms]
+        col_idx = [m for ms in rows for m in ms]
+        return sp.csr_matrix(
+            (np.ones(len(row_idx), dtype=np.uint8), (row_idx, col_idx)),
+            shape=(len(rows), num_cols),
+        )
+
+    m2d = _make_csr(det_rows, num_measurements)
+    m2o = _make_csr(obs_rows, num_measurements)
+    return dem_text, m2d, m2o

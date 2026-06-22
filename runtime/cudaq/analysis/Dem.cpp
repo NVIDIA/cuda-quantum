@@ -23,7 +23,8 @@ std::string runDemFromKernel(const std::string &kernelName,
                              const cudaq::noise_model *noise,
                              const std::function<void()> &kernel,
                              const std::string &plugin_name,
-                             cudaq::M2DSparseMatrix *m2d_out) {
+                             cudaq::M2DSparseMatrix *m2d_out,
+                             cudaq::M2OSparseMatrix *m2o_out) {
 
   if (cudaq::kernelHasConditionalFeedback(kernelName))
     throw std::runtime_error(
@@ -36,8 +37,8 @@ std::string runDemFromKernel(const std::string &kernelName,
   ctx.asyncExec = false;
   if (noise)
     ctx.noiseModel = noise;
-  if (m2d_out)
-    ctx.compute_m2d = true;
+  if (m2d_out || m2o_out)
+    ctx.compute_m2 = true;
 
   // RAII: claim the thread-local analysis-simulator slot backed by the `stim`
   // plugin. The scope starts from a clean simulator and releases the override
@@ -47,8 +48,12 @@ std::string runDemFromKernel(const std::string &kernelName,
   platform.with_execution_context(ctx, kernel);
 
   if (m2d_out) {
-    m2d_out->num_measurements = ctx.m2d.num_measurements;
-    m2d_out->rows = std::move(ctx.m2d.rows);
+    m2d_out->num_measurements = ctx.m2.num_measurements;
+    m2d_out->rows = std::move(ctx.m2.det_rows);
+  }
+  if (m2o_out) {
+    m2o_out->num_measurements = ctx.m2.num_measurements;
+    m2o_out->rows = std::move(ctx.m2.obs_rows);
   }
 
   return std::move(ctx.dem_text);

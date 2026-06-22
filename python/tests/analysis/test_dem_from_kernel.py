@@ -247,20 +247,22 @@ def test_conditional_feedback_rejected():
 
 
 def test_return_m2d_no_detectors():
-    """Kernel with no detectors yields an empty m2d matrix."""
+    """Kernel with no detectors or observables yields empty m2d and m2o matrices."""
 
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
         mz(q)
 
-    dem_text, m2d = cudaq.dem_from_kernel(kernel, return_m2d=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel, return_m2d=True)
     assert m2d.shape == (0, 1)
     assert m2d.nnz == 0
+    assert m2o.shape == (0, 1)
+    assert m2o.nnz == 0
 
 
 def test_return_m2d_two_rounds():
-    """Two-round memory experiment: verify m2d shape and detector/measurement mapping."""
+    """Two-round memory experiment: verify m2d and m2o shapes and mappings."""
 
     @cudaq.kernel
     def kernel(n_rounds: int):
@@ -272,30 +274,38 @@ def test_return_m2d_two_rounds():
             m = m_new
         cudaq.logical_observable(m)
 
-    dem_text, m2d = cudaq.dem_from_kernel(kernel, 2, return_m2d=True)
-    # 3 measurements (m0, m1, m2) and 2 detectors (det0, det1)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel, 2, return_m2d=True)
+    # 3 measurements (m0, m1, m2), 2 detectors, 1 observable
     assert m2d.shape == (2, 3)
     dense = m2d.toarray()
     # det0 = m0 XOR m1, det1 = m1 XOR m2
     assert dense[0, 0] == 1 and dense[0, 1] == 1 and dense[0, 2] == 0
     assert dense[1, 0] == 0 and dense[1, 1] == 1 and dense[1, 2] == 1
+    # observable 0 = m2 (the last measurement)
+    assert m2o.shape == (1, 3)
+    obs_dense = m2o.toarray()
+    assert obs_dense[0, 0] == 0 and obs_dense[0, 1] == 0 and obs_dense[0, 2] == 1
 
 
 def test_return_m2d_type_is_scipy_sparse():
-    """return_m2d=True yields a scipy CSR sparse matrix."""
-    sp = pytest.importorskip("scipy.sparse")
+    """return_m2d=True yields scipy CSR sparse matrices for both m2d and m2o."""
+    import scipy.sparse as sp
 
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
         m = mz(q)
         cudaq.detector(m)
+        cudaq.logical_observable(m)
 
-    dem_text, m2d = cudaq.dem_from_kernel(kernel, return_m2d=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel, return_m2d=True)
     assert isinstance(dem_text, str)
     assert sp.issparse(m2d)
+    assert sp.issparse(m2o)
     assert m2d.shape == (1, 1)
     assert m2d[0, 0] == 1
+    assert m2o.shape == (1, 1)
+    assert m2o[0, 0] == 1
 
 
 def test_return_m2d_false_still_returns_string():

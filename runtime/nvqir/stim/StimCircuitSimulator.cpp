@@ -209,14 +209,14 @@ protected:
     getExecutionContext()->result = result;
   }
 
-  /// @brief Populate the m2d fields in @p ctx from `recordedCircuit`.
-  /// @brief Populate the m2d fields in @p ctx from `recordedCircuit`.
-  /// Rows = detectors, cols = measurements; all non-zero entries have value 1.
-  void computeM2DIntoContext(cudaq::ExecutionContext &ctx) {
+  /// @brief Populate the m2 fields in @p ctx from `recordedCircuit`.
+  /// Rows = detectors/observables, cols = measurements; non-zero entries are 1.
+  void computeM2IntoContext(cudaq::ExecutionContext &ctx) {
     auto flat = recordedCircuit.flattened();
     auto stats = flat.compute_stats();
-    ctx.m2d.num_measurements = stats.num_measurements;
-    ctx.m2d.rows.resize(stats.num_detectors);
+    ctx.m2.num_measurements = stats.num_measurements;
+    ctx.m2.det_rows.resize(stats.num_detectors);
+    ctx.m2.obs_rows.resize(stats.num_observables);
 
     std::size_t meas_so_far = 0;
     std::size_t det_so_far = 0;
@@ -228,10 +228,18 @@ protected:
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
-            ctx.m2d.rows[det_so_far].push_back(meas_so_far - lookback);
+            ctx.m2.det_rows[det_so_far].push_back(meas_so_far - lookback);
           }
         }
         ++det_so_far;
+      } else if (op.gate_type == stim::GateType::OBSERVABLE_INCLUDE) {
+        auto obs_idx = static_cast<std::size_t>(op.args[0]);
+        for (const auto &t : op.targets) {
+          if (t.is_measurement_record_target()) {
+            auto lookback = static_cast<std::size_t>(-t.rec_offset());
+            ctx.m2.obs_rows[obs_idx].push_back(meas_so_far - lookback);
+          }
+        }
       }
     });
   }
@@ -250,8 +258,8 @@ protected:
             /*block_decomposition_from_introducing_remnant_edges=*/false);
 
     auto *ctx = getExecutionContext();
-    if (ctx && ctx->compute_m2d)
-      computeM2DIntoContext(*ctx);
+    if (ctx && ctx->compute_m2)
+      computeM2IntoContext(*ctx);
 
     return dem.str();
   }
