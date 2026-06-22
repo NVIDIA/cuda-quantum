@@ -18,20 +18,20 @@ boundary and evidence limits.
 Latest local validation refresh: 2026-06-22.
 
 The install-prefix build, full public healthcheck, one-command correctness
-gate, and public example smoke gate were last run against source commit
-`997ec1f3c022d854d644257bc7dca990a17bd243` before this readiness-audit helper
-update was committed. The clean CPU benchmark summary was refreshed separately
-against
+gate, public example smoke gate, and standalone install-prefix Python subset
+were last run against source commit
+`a3533cad0b89268e08099e6714454d6559bd015d` after enforcing administrator
+branch protection and switching maintainer flow to PR-first. The clean CPU
+benchmark summary was refreshed separately against
 `34f4b260d1c657ad626c526eed4e6b9d3a441be4` after adding QFT-like and seeded
 Clifford composite rows to the clean evidence gate.
 
-A focused Metal counter-evidence refresh was run in the current worktree on
-2026-06-22 after strengthening the Metal runtime counter probe schema and
-adding resident built-in Rx/Ry/Rz, controlled-Rx/Ry/Rz, and phase-family
-S/T/Sdg/Tdg fixtures, plus multi-control single-qubit resident, unsupported
-gate fallback/reupload, and Python custom three-target fallback correctness
-fixtures. It did not rerun the full install/build/example gate, but it did rerun
-focused Metal/Python fixtures and the tracked bounded counter report.
+The current refresh includes the earlier Metal counter-evidence work:
+resident built-in Rx/Ry/Rz, controlled-Rx/Ry/Rz, phase-family S/T/Sdg/Tdg,
+multi-control single-qubit resident, unsupported gate fallback/reupload, and
+Python custom three-target fallback correctness fixtures. It also reran the
+full install/build/correctness/example gate after the repository-governance
+changes landed on `main`.
 
 Raw wrapper output was written to ignored local paths
 `benchmarks/mklq/results/public-healthcheck-full-2026-06-22.json`,
@@ -45,7 +45,7 @@ output; these raw payloads are not tracked as public evidence.
 - One-command correctness gate: passed with 4 steps passed, 0 failed, and 0
   skipped, including the Metal runtime counter probe.
 - Public example smoke gate: passed, with 30 steps passed and 0 failed.
-- Current `benchmark_harness_tests`: `71 passed`.
+- Current `benchmark_harness_tests`: `75 passed`.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `57 passed`.
 - `nvqpp_smoke`: `2 passed`.
@@ -72,7 +72,7 @@ python3 -m pytest \
   -q
 ```
 
-Result: `35 passed in 3.41s` in the latest local refresh.
+Result: `35 passed in 3.24s` in the latest local refresh.
 
 ```bash
 CUDAQ_NVQPP=/Users/a0000/.cudaq-mklq/bin/nvq++ \
@@ -131,10 +131,9 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-Latest focused local result: passed on 2026-06-22 after the resident
-Rx/Ry/Rz, phase-family, multi-control, unsupported fallback/reupload, and
-Python custom three-target fallback correctness refresh. It reported 4 wrapper
-steps passed, 0 failed, and 0 skipped. The step-level results were:
+Latest local result: passed on 2026-06-22 as part of the full public
+healthcheck against `a3533cad0b89268e08099e6714454d6559bd015d`. It reported 4
+wrapper steps passed, 0 failed, and 0 skipped. The step-level results were:
 
 - `python_target_smoke`: `57 passed`.
 - `nvqpp_smoke`: `2 passed`.
@@ -187,6 +186,10 @@ evidence boundary guard, bounded Metal runtime counter evidence parsing, helper
 harness tests, install-prefix build, the one-command correctness gate, and the
 public example smoke gate.
 
+This latest full result was collected after `main` advanced to
+`a3533cad0b89268e08099e6714454d6559bd015d`; the benchmark harness step reported
+`75 passed`, and the public example smoke step reported 30 passed and 0 failed.
+
 ## Benchmark Evidence
 
 Sanitized local benchmark summaries are tracked under
@@ -219,6 +222,7 @@ Current tracked summaries include:
 - `local-current-sampling-fullprob-gated-q20-2026-06-19.summary.json`
 - `local-y-cy-fastpath-isolated-q20-2026-06-19.summary.json`
 - `local-metal-composite-mixed-path-q20-2026-06-21.summary.json`
+- `local-metal-path-labels-q20-2026-06-22.summary.json`
 - `local-metal-y-cy-resident-isolated-q20-2026-06-19.summary.json`
 - `local-counts-only-sampling-shot-scaling-q20-2026-06-19.summary.json`
 
