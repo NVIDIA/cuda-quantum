@@ -1159,6 +1159,54 @@ CUDAQ_TEST(MKLQMetalTester,
 }
 
 CUDAQ_TEST(MKLQMetalTester,
+           SimulatorReuploadsResidentStateAfterUnsupportedGateFallback) {
+  constexpr double invSqrt2 = 0.70710678118654752440;
+  const std::vector<std::complex<double>> hGate{
+      {invSqrt2, 0.0}, {invSqrt2, 0.0}, {invSqrt2, 0.0}, {-invSqrt2, 0.0}};
+  const std::vector<std::complex<double>> xGate{{0.0, 0.0},
+                                                {1.0, 0.0},
+                                                {1.0, 0.0},
+                                                {0.0, 0.0}};
+  std::vector<std::complex<double>> identityThreeQubit(64, {0.0, 0.0});
+  for (std::size_t index = 0; index < 8; ++index)
+    identityThreeQubit[index * 8 + index] = {1.0, 0.0};
+
+  MklqMetalCircuitSimulatorTester sim;
+  std::vector<std::complex<double>> state(8, {0.0, 0.0});
+  state[0] = {1.0, 0.0};
+  sim.setStateForTest(std::move(state));
+
+  sim.applySingleQubitGateForTest(hGate, {}, 0);
+  ASSERT_EQ(sim.residentStateUploadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+  ASSERT_EQ(sim.residentStateDownloadsForTest(), 0);
+
+  sim.applyGateTaskForTest("identity3", identityThreeQubit, {}, {0, 1, 2});
+  EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+
+  sim.applySingleQubitGateForTest(xGate, {}, 1);
+  EXPECT_EQ(sim.residentStateUploadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 2 : 0);
+  EXPECT_EQ(sim.singleQubitApplicationsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 2 : 0);
+  EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+
+  const auto output = sim.stateVectorForTest();
+
+  ASSERT_EQ(output.size(), 8);
+  expectNear(output[0], {0.0, 0.0});
+  expectNear(output[1], {0.0, 0.0});
+  expectNear(output[2], {invSqrt2, 0.0});
+  expectNear(output[3], {invSqrt2, 0.0});
+  for (std::size_t index = 4; index < output.size(); ++index)
+    expectNear(output[index], {0.0, 0.0});
+  EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 2 : 0);
+}
+
+CUDAQ_TEST(MKLQMetalTester,
            SimulatorMeasuresAndResetsResidentStateWithoutReadback) {
   const std::vector<std::complex<double>> xGate{{0.0, 0.0},
                                                 {1.0, 0.0},
