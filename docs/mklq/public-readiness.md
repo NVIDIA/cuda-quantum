@@ -138,10 +138,10 @@ The latest public local validation evidence is recorded in
 - standalone install-prefix Python subset: `35 passed`;
 - `python_target_smoke`: `56 passed`;
 - `nvqpp_smoke`: `2 passed`;
-- current focused `target_config_ctest`: `64/64 passed`;
-- current focused `metal_runtime_counter_probe`: 13 expected, 13 selected, 0
-  missing, and 13 passed, including the resident built-in Rz/controlled-Rz
-  fixture.
+- current focused `target_config_ctest`: `66/66 passed`;
+- current focused `metal_runtime_counter_probe`: 15 expected, 15 selected, 0
+  missing, and 15 passed, including the resident built-in Rx/Ry/Rz and
+  controlled-Rx/Ry/Rz fixtures.
 - clean CPU benchmark gate: passed with 18 q20 `qpp-cpu`/`mklq-cpu` rows,
   including `cz-state`, `qft-like-state`, and `seeded-clifford-state`, with
   18 rows reporting `status == "ok"` against

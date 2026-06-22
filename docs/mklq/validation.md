@@ -27,10 +27,9 @@ Clifford composite rows to the clean evidence gate.
 
 A focused Metal counter-evidence refresh was run in the current worktree on
 2026-06-22 after strengthening the Metal runtime counter probe schema and
-adding a resident built-in Rz/controlled-Rz fixture. It did not rerun the full
-install/build/example gate, but it did rerun the one-command correctness gate,
-the public healthcheck without `--require-clean`, and the tracked bounded
-counter report.
+adding resident built-in Rx/Ry/Rz and controlled-Rx/Ry/Rz fixtures. It did not
+rerun the full install/build/example gate, but it did rerun focused Metal
+ctests and the tracked bounded counter report.
 
 Raw wrapper output was written to ignored local paths
 `benchmarks/mklq/results/public-healthcheck-full-2026-06-22.json`,
@@ -48,9 +47,9 @@ output; these raw payloads are not tracked as public evidence.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
-- Current `target_config_ctest`: `64/64 passed`.
-- Current `metal_runtime_counter_probe`: 13 expected, 13 selected, 0 missing,
-  and 13 passed, with each counter ctest run independently.
+- Current `target_config_ctest`: `66/66 passed`.
+- Current `metal_runtime_counter_probe`: 15 expected, 15 selected, 0 missing,
+  and 15 passed, with each counter ctest run independently.
 - Clean CPU benchmark gate: passed, with 18 q20 `qpp-cpu`/`mklq-cpu` rows and
   18 rows reporting `status == "ok"`.
 
@@ -89,7 +88,7 @@ ctest --test-dir build-python \
   --output-on-failure
 ```
 
-Result in the latest correctness refresh: `64/64 passed`.
+Result in the latest correctness refresh: `66/66 passed`.
 
 ```bash
 PYTHONPATH=/Users/a0000/Documents/MKL-Q/build-python/python \
@@ -130,17 +129,16 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-Latest focused local result: passed on 2026-06-22 in the current worktree at
-base commit `d42f103c4aeac10ae82b7d8a2f951827ec73c662` with local
-Rz/controlled-Rz counter-fixture changes still uncommitted. It reported 4
-wrapper steps passed, 0 failed, and 0 skipped. The step-level results were:
+Latest focused local result: passed on 2026-06-22 after the resident
+Rx/Ry/Rz counter-fixture refresh. It reported 4 wrapper steps passed, 0 failed,
+and 0 skipped. The step-level results were:
 
 - `python_target_smoke`: `56 passed`.
 - `nvqpp_smoke`: `2 passed`.
-- `target_config_ctest`: `64/64 passed`.
-- `metal_runtime_counter_probe`: 13 expected, 13 selected, 0 missing, and 13
+- `target_config_ctest`: `66/66 passed`.
+- `metal_runtime_counter_probe`: 15 expected, 15 selected, 0 missing, and 15
   independently executed passing counter ctests, including the resident
-  built-in Rz/controlled-Rz fixture.
+  built-in Rx/Ry/Rz and controlled-Rx/Ry/Rz fixtures.
 
 The Python smoke step includes the MKL-Q API smoke tests, the CPU correctness
 fixture suite, the limited experimental Metal correctness fixture suite, and

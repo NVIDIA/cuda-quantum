@@ -30,6 +30,8 @@ COUNTER_TEST_SUFFIXES = (
     "SimulatorKeepsSupportedGateSequenceResidentUntilReadback",
     "SimulatorKeepsYAndControlledYResidentUntilReadback",
     "SimulatorKeepsBuiltInYAndControlledYResidentUntilReadback",
+    "SimulatorKeepsBuiltInRxAndControlledRxResidentUntilReadback",
+    "SimulatorKeepsBuiltInRyAndControlledRyResidentUntilReadback",
     "SimulatorKeepsBuiltInRzAndControlledRzResidentUntilReadback",
     "SimulatorSamplesResidentDenseStateWithoutReadback",
     "SimulatorSamplesLargeResidentPartialRegisterThroughFullProbability",
