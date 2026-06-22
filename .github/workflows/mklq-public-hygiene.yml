@@ -45,6 +45,7 @@ jobs:
           test -f .github/labels.yml
           test -f docs/mklq/branch-protection.md
           test -f docs/mklq/public-readiness.md
+          test -f docs/mklq/metal-runtime-counters.md
           test -f .github/branch-protection-main.json
           test -f .github/pull_request_template.md
           test -f examples/mklq/README.md
@@ -64,6 +65,7 @@ jobs:
           test -f benchmarks/mklq/run_metal_runtime_counter_probe.py
           test -f benchmarks/mklq/run_public_readiness_audit.py
           test -f benchmarks/mklq/run_public_healthcheck.py
+          test -f benchmarks/mklq/summarize_metal_runtime_counters.py
           test -f benchmarks/mklq/reports/local-metal-runtime-counter-probe-2026-06-22.counter.json
           grep -q 'examples/mklq' README.md
           grep -q 'mklq-cpu' examples/mklq/README.md
@@ -83,6 +85,7 @@ jobs:
           grep -q 'check_metal_evidence.py' docs/mklq/testing-matrix.md
           grep -q 'check_performance_evidence.py' docs/mklq/testing-matrix.md
           grep -q 'run_metal_runtime_counter_probe.py' docs/mklq/testing-matrix.md
+          grep -q 'summarize_metal_runtime_counters.py' docs/mklq/testing-matrix.md
           grep -q 'run_public_healthcheck.py' docs/mklq/testing-matrix.md
           grep -q 'Preflight' docs/mklq/upstream-sync.md
           grep -q 'Conflict Rules' docs/mklq/upstream-sync.md
@@ -127,6 +130,8 @@ jobs:
           grep -q 'Branch Protection' docs/mklq/public-readiness.md
           grep -q 'No Tags Or Releases' docs/mklq/public-readiness.md
           grep -q 'not a release certification' docs/mklq/public-readiness.md
+          grep -q 'runtime counter evidence' docs/mklq/metal-runtime-counters.md
+          grep -q 'not release sign-off' docs/mklq/metal-runtime-counters.md
           grep -q 'allow_force_pushes' .github/branch-protection-main.json
           grep -q 'allow_deletions' .github/branch-protection-main.json
           grep -q 'Compatibility Boundary' .github/pull_request_template.md
@@ -140,6 +145,7 @@ jobs:
           grep -q 'mklq-metal' .github/pull_request_template.md
           grep -q 'not a release certification' docs/mklq/validation.md
           grep -q 'Metal Runtime Counter Probe' benchmarks/mklq/README.md
+          grep -q 'Metal Runtime Counter Summary' benchmarks/mklq/README.md
           python3 - <<'PY'
           from pathlib import Path
 
@@ -275,6 +281,7 @@ jobs:
             benchmarks/mklq/run_metal_runtime_counter_probe.py \
             benchmarks/mklq/run_public_readiness_audit.py \
             benchmarks/mklq/run_public_healthcheck.py \
+            benchmarks/mklq/summarize_metal_runtime_counters.py \
             benchmarks/mklq/summarize_reports.py \
             examples/mklq/python/bell.py \
             examples/mklq/python/clifford_chain.py \

@@ -73,6 +73,7 @@ The public MKL-Q support boundary is documented in:
 - [`validation.md`](validation.md)
 - [`testing-matrix.md`](testing-matrix.md)
 - [`benchmark-evidence.md`](benchmark-evidence.md)
+- [`metal-runtime-counters.md`](metal-runtime-counters.md)
 - [`known-limitations.md`](known-limitations.md)
 - [`roadmap.md`](roadmap.md)
 - [`upstream-sync.md`](upstream-sync.md)

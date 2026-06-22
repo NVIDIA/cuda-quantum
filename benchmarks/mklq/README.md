@@ -257,6 +257,23 @@ keeps `release_signoff` and `all_metal_execution_proof` false. It is not a
 benchmark result and it does not prove every `mklq-metal` operation stays on
 Metal.
 
+## Metal Runtime Counter Summary
+
+Use the summary renderer when the tracked `.counter.json` evidence changes and
+you need to refresh the public coverage table:
+
+```bash
+python3 benchmarks/mklq/summarize_metal_runtime_counters.py \
+  --reports benchmarks/mklq/reports \
+  --output docs/mklq/metal-runtime-counters.md
+```
+
+The generated summary groups counter tests into resident gate,
+probability/sampling, measurement/reset, and unsupported-gate fallback
+categories. It preserves the same boundary as the raw probe report: runtime
+counter evidence only, not release sign-off, not timing evidence, and not proof
+that every operation stayed on Metal.
+
 ## Tracked Accepted Local Benchmark Evidence
 
 To rerun the clean CPU benchmark gate, regenerate the sanitized summary, and

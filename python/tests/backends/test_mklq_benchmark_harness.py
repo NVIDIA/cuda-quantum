@@ -148,6 +148,18 @@ def _load_metal_runtime_counter_probe_module():
     return module
 
 
+def _load_metal_runtime_counter_summary_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / (
+        "summarize_metal_runtime_counters.py")
+    spec = importlib.util.spec_from_file_location(
+        "summarize_metal_runtime_counters", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _raw_benchmark_report(dirty=False, cases=None, results=None):
     cases = cases or ["y-state"]
     results = results or []
@@ -1355,6 +1367,128 @@ def test_mklq_metal_runtime_counter_probe_records_per_test_failures(
     assert [test["name"] for test in failed_tests] == [failing_test]
     assert "failure_excerpt" in failed_tests[0]
     assert len(run_commands) == len(expected_test_names)
+
+
+def _runtime_counter_summary_fixture():
+    tests = [
+        "mklq_metal_MKLQMetalTester.SimulatorKeepsSupportedGateSequenceResidentUntilReadback",
+        "mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback",
+        "mklq_metal_MKLQMetalTester.SimulatorMeasuresAndResetsResidentStateWithoutReadback",
+        "mklq_metal_MKLQMetalTester.SimulatorReuploadsResidentStateAfterUnsupportedGateFallback",
+    ]
+    return {
+        "schema_version": "mklq-metal-runtime-counter-probe-v1",
+        "evidence_kind": "local_runtime_counter_probe",
+        "created_at_utc": "2026-06-22T00:00:00+00:00",
+        "summary": {
+            "status": "passed",
+            "expected": len(tests),
+            "selected": len(tests),
+            "missing": 0,
+            "passed": len(tests),
+            "failed": 0,
+        },
+        "boundary": {
+            "runtime_counter_evidence": True,
+            "release_signoff": False,
+            "all_metal_execution_proof": False,
+            "raw_logs_truncated": True,
+        },
+        "expected_counter_tests": tests,
+        "missing_counter_tests": [],
+        "tests": [{
+            "name": name,
+            "status": "passed",
+        } for name in tests],
+    }
+
+
+def test_mklq_metal_runtime_counter_summary_groups_counter_coverage(tmp_path):
+    module = _load_metal_runtime_counter_summary_module()
+    report = tmp_path / "probe.counter.json"
+    report.write_text(json.dumps(_runtime_counter_summary_fixture()),
+                      encoding="utf-8")
+
+    summary = module.build_summary([report])
+
+    assert summary["schema_version"] == (
+        "mklq-metal-runtime-counter-summary-v1")
+    assert summary["summary"] == {
+        "status": "passed",
+        "report_count": 1,
+        "expected": 4,
+        "selected": 4,
+        "missing": 0,
+        "passed": 4,
+        "failed": 0,
+    }
+    assert summary["boundary"]["runtime_counter_evidence"] is True
+    assert summary["boundary"]["release_signoff"] is False
+    assert summary["boundary"]["all_metal_execution_proof"] is False
+    categories = {
+        category["category"]: category
+        for category in summary["categories"]
+    }
+    assert categories["resident_gate"]["passed"] == 1
+    assert categories["probability_sampling"]["passed"] == 1
+    assert categories["measurement_reset"]["passed"] == 1
+    assert categories["fallback_boundary"]["passed"] == 1
+
+
+def test_mklq_metal_runtime_counter_summary_renders_markdown(tmp_path):
+    module = _load_metal_runtime_counter_summary_module()
+    report = tmp_path / "probe.counter.json"
+    report.write_text(json.dumps(_runtime_counter_summary_fixture()),
+                      encoding="utf-8")
+
+    markdown = module.render_markdown(module.build_summary([report]))
+
+    assert "# MKL-Q Metal Runtime Counter Summary" in markdown
+    assert "fallback_boundary" in markdown
+    assert "runtime counter evidence" in markdown
+    assert "not release sign-off" in markdown
+    assert "not proof that every operation stayed on Metal" in markdown
+
+
+def test_mklq_metal_runtime_counter_summary_fails_unsafe_boundaries(tmp_path):
+    module = _load_metal_runtime_counter_summary_module()
+    payload = _runtime_counter_summary_fixture()
+    payload["boundary"]["runtime_counter_evidence"] = False
+    payload["boundary"]["release_signoff"] = True
+    payload["boundary"]["all_metal_execution_proof"] = True
+    report = tmp_path / "probe.counter.json"
+    report.write_text(json.dumps(payload), encoding="utf-8")
+
+    summary = module.build_summary([report])
+
+    assert summary["summary"]["status"] == "failed"
+    assert summary["boundary"]["runtime_counter_evidence"] is False
+    assert summary["boundary"]["release_signoff"] is True
+    assert summary["boundary"]["all_metal_execution_proof"] is True
+
+
+def test_mklq_metal_runtime_counter_summary_cli_writes_markdown(monkeypatch,
+                                                                 tmp_path):
+    module = _load_metal_runtime_counter_summary_module()
+    report = tmp_path / "probe.counter.json"
+    output = tmp_path / "summary.md"
+    report.write_text(json.dumps(_runtime_counter_summary_fixture()),
+                      encoding="utf-8")
+
+    monkeypatch.setattr(module.sys, "argv", [
+        "summarize_metal_runtime_counters.py",
+        "--reports",
+        str(tmp_path),
+        "--output",
+        str(output),
+    ])
+
+    exit_code = module.main()
+
+    assert exit_code == 0
+    assert output.exists()
+    assert "MKL-Q Metal Runtime Counter Summary" in output.read_text(
+        encoding="utf-8")
 
 
 def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):

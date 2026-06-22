@@ -134,6 +134,8 @@ The current public repository readiness snapshot is tracked in
 Sanitized local benchmark evidence is kept under `benchmarks/mklq/reports/`.
 The public benchmark evidence index is summarized in
 [`docs/mklq/benchmark-evidence.md`](docs/mklq/benchmark-evidence.md).
+Tracked Metal runtime counter coverage is summarized in
+[`docs/mklq/metal-runtime-counters.md`](docs/mklq/metal-runtime-counters.md).
 Raw local benchmark payloads under `benchmarks/mklq/results/` are intentionally
 ignored.
 

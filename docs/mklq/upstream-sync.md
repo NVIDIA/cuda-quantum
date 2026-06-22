@@ -134,6 +134,7 @@ python3 -m py_compile \
   benchmarks/mklq/run_correctness_gate.py \
   benchmarks/mklq/run_metal_runtime_counter_probe.py \
   benchmarks/mklq/run_public_readiness_audit.py \
+  benchmarks/mklq/summarize_metal_runtime_counters.py \
   benchmarks/mklq/summarize_reports.py
 ```
 

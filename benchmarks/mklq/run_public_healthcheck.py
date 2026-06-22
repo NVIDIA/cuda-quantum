@@ -41,6 +41,7 @@ BENCHMARK_HELPERS = (
     "benchmarks/mklq/run_metal_runtime_counter_probe.py",
     "benchmarks/mklq/run_public_readiness_audit.py",
     "benchmarks/mklq/run_public_healthcheck.py",
+    "benchmarks/mklq/summarize_metal_runtime_counters.py",
     "benchmarks/mklq/summarize_reports.py",
 )
 
@@ -266,9 +267,12 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("benchmarks/mklq/README.md", "Performance Evidence Guard"),
         ("benchmarks/mklq/README.md", "Metal Evidence Guard"),
         ("benchmarks/mklq/README.md", "Metal Runtime Counter Probe"),
+        ("benchmarks/mklq/README.md", "Metal Runtime Counter Summary"),
+        ("docs/mklq/metal-runtime-counters.md", "runtime counter evidence"),
         ("docs/mklq/testing-matrix.md", "check_performance_evidence.py"),
         ("docs/mklq/testing-matrix.md", "check_metal_evidence.py"),
         ("docs/mklq/testing-matrix.md", "run_metal_runtime_counter_probe.py"),
+        ("docs/mklq/testing-matrix.md", "summarize_metal_runtime_counters.py"),
         (".github/pull_request_template.md", "Compatibility Boundary"),
         (".github/pull_request_template.md", "Benchmark Evidence"),
         (".github/pull_request_template.md", "check_performance_evidence.py"),
