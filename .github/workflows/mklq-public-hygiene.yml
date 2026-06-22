@@ -61,7 +61,9 @@ jobs:
           test -f examples/mklq/cpp/phase_kickback.cpp
           test -f benchmarks/mklq/check_metal_evidence.py
           test -f benchmarks/mklq/check_performance_evidence.py
+          test -f benchmarks/mklq/run_metal_runtime_counter_probe.py
           test -f benchmarks/mklq/run_public_healthcheck.py
+          test -f benchmarks/mklq/reports/local-metal-runtime-counter-probe-2026-06-22.counter.json
           grep -q 'examples/mklq' README.md
           grep -q 'mklq-cpu' examples/mklq/README.md
           grep -q 'mklq-metal' examples/mklq/README.md
@@ -79,6 +81,7 @@ jobs:
           grep -q 'every operation stays on Metal' docs/mklq/testing-matrix.md
           grep -q 'check_metal_evidence.py' docs/mklq/testing-matrix.md
           grep -q 'check_performance_evidence.py' docs/mklq/testing-matrix.md
+          grep -q 'run_metal_runtime_counter_probe.py' docs/mklq/testing-matrix.md
           grep -q 'run_public_healthcheck.py' docs/mklq/testing-matrix.md
           grep -q 'Preflight' docs/mklq/upstream-sync.md
           grep -q 'Conflict Rules' docs/mklq/upstream-sync.md
@@ -134,6 +137,7 @@ jobs:
           grep -q 'release-policy.md' .github/pull_request_template.md
           grep -q 'mklq-metal' .github/pull_request_template.md
           grep -q 'not a release certification' docs/mklq/validation.md
+          grep -q 'Metal Runtime Counter Probe' benchmarks/mklq/README.md
           python3 - <<'PY'
           from pathlib import Path
 
@@ -194,6 +198,48 @@ jobs:
           set -euo pipefail
           python3 benchmarks/mklq/check_metal_evidence.py
 
+      - name: Parse Metal runtime counter probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          reports = sorted(Path("benchmarks/mklq/reports").glob("*.counter.json"))
+          if not reports:
+              raise SystemExit("No Metal runtime counter probe reports found.")
+          selected = 0
+          for path in reports:
+              payload = json.loads(path.read_text(encoding="utf-8"))
+              if payload.get("schema_version") != "mklq-metal-runtime-counter-probe-v1":
+                  raise SystemExit(f"{path}: unexpected schema_version")
+              if payload.get("evidence_kind") != "local_runtime_counter_probe":
+                  raise SystemExit(f"{path}: unexpected evidence_kind")
+              summary = payload.get("summary", {})
+              if summary.get("status") != "passed":
+                  raise SystemExit(f"{path}: summary is not passed")
+              if summary.get("failed") != 0:
+                  raise SystemExit(f"{path}: failed count is not zero")
+              boundary = payload.get("boundary", {})
+              if boundary.get("runtime_counter_evidence") is not True:
+                  raise SystemExit(f"{path}: runtime_counter_evidence must be true")
+              if boundary.get("release_signoff") is not False:
+                  raise SystemExit(f"{path}: release_signoff must be false")
+              if boundary.get("all_metal_execution_proof") is not False:
+                  raise SystemExit(f"{path}: all_metal_execution_proof must be false")
+              tests = payload.get("tests", [])
+              if len(tests) != summary.get("selected"):
+                  raise SystemExit(f"{path}: selected count does not match tests")
+              for test in tests:
+                  if test.get("status") != "passed":
+                      raise SystemExit(f"{path}: a counter test did not pass")
+                  if "stdout" in test or "stderr" in test:
+                      raise SystemExit(f"{path}: raw test log leaked")
+              selected += len(tests)
+          print(f"Parsed {len(reports)} counter report(s), {selected} test(s).")
+          PY
+
       - name: Compile public Python helpers and examples
         shell: bash
         run: |
@@ -206,6 +252,7 @@ jobs:
             benchmarks/mklq/make_summary.py \
             benchmarks/mklq/run_clean_cpu_benchmark.py \
             benchmarks/mklq/run_correctness_gate.py \
+            benchmarks/mklq/run_metal_runtime_counter_probe.py \
             benchmarks/mklq/run_public_healthcheck.py \
             benchmarks/mklq/summarize_reports.py \
             examples/mklq/python/bell.py \

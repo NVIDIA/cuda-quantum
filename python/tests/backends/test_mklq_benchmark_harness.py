@@ -124,6 +124,18 @@ def _load_metal_evidence_module():
     return module
 
 
+def _load_metal_runtime_counter_probe_module():
+    repo_root = Path(__file__).resolve().parents[3]
+    script = repo_root / "benchmarks" / "mklq" / (
+        "run_metal_runtime_counter_probe.py")
+    spec = importlib.util.spec_from_file_location(
+        "run_metal_runtime_counter_probe", script)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
 def _raw_benchmark_report(dirty=False, cases=None, results=None):
     cases = cases or ["y-state"]
     results = results or []
@@ -606,6 +618,7 @@ def test_mklq_public_healthcheck_plan_lists_escalating_gates(tmp_path):
         "benchmark_summary_parse",
         "performance_evidence_guard",
         "metal_evidence_guard",
+        "metal_runtime_counter_probe_parse",
         "benchmark_helper_py_compile",
         "example_source_files",
         "markdown_links",
@@ -1146,6 +1159,148 @@ def test_mklq_metal_evidence_guard_rejects_missing_declared_static_labels(
     assert "lacks metal_evidence_boundary" in failures
 
 
+def test_mklq_metal_runtime_counter_probe_selects_counter_tests():
+    module = _load_metal_runtime_counter_probe_module()
+    listing = """
+Test project /repo/build-python
+  Test #787: mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence
+  Test #789: mklq_metal_MKLQMetalTester.MetalRuntimeFillsResidentProbabilitiesWithoutStateReadback
+  Test #792: mklq_metal_MKLQMetalTester.SimulatorKeepsSupportedGateSequenceResidentUntilReadback
+  Test #795: mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback
+  Test #800: mklq_metal_MKLQMetalTester.SimulatorMeasuresAndResetsResidentStateWithoutReadback
+  Test #999: qpp_MKLQMetalTester.Unrelated
+"""
+
+    tests = module.select_counter_tests(listing)
+
+    assert tests == [
+        "mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence",
+        "mklq_metal_MKLQMetalTester.MetalRuntimeFillsResidentProbabilitiesWithoutStateReadback",
+        "mklq_metal_MKLQMetalTester.SimulatorKeepsSupportedGateSequenceResidentUntilReadback",
+        "mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback",
+        "mklq_metal_MKLQMetalTester.SimulatorMeasuresAndResetsResidentStateWithoutReadback",
+    ]
+
+
+def test_mklq_metal_runtime_counter_probe_builds_bounded_report(monkeypatch,
+                                                                tmp_path):
+    module = _load_metal_runtime_counter_probe_module()
+    commands = []
+
+    def fake_command_output(cwd, command):
+        commands.append(command)
+        if command[:3] == ["ctest", "--test-dir", str(tmp_path)]:
+            return """
+Test project /tmp/build
+  Test #787: mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence
+  Test #795: mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback
+"""
+        return "ignored"
+
+    def fake_run_command(cwd, command):
+        commands.append(command)
+        return {
+            "returncode": 0,
+            "stdout": "counter assertions passed",
+            "stderr": "",
+        }
+
+    monkeypatch.setattr(module, "command_output", fake_command_output)
+    monkeypatch.setattr(module, "run_command", fake_run_command)
+
+    report = module.build_report(repo_root=tmp_path, build_dir=tmp_path)
+
+    assert report["schema_version"] == (
+        "mklq-metal-runtime-counter-probe-v1")
+    assert report["evidence_kind"] == "local_runtime_counter_probe"
+    assert report["summary"] == {
+        "status": "passed",
+        "selected": 2,
+        "passed": 2,
+        "failed": 0,
+    }
+    assert report["boundary"]["runtime_counter_evidence"] is True
+    assert report["boundary"]["release_signoff"] is False
+    assert report["boundary"]["all_metal_execution_proof"] is False
+    assert [test["status"] for test in report["tests"]] == [
+        "passed", "passed"
+    ]
+    assert all("stdout" not in test for test in report["tests"])
+    assert commands[-1][:5] == [
+        "ctest",
+        "--test-dir",
+        str(tmp_path),
+        "-R",
+        "mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence|mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback",
+    ]
+
+
+def test_mklq_public_healthcheck_parses_metal_runtime_counter_probe(tmp_path):
+    module = _load_public_healthcheck_module()
+    config = _public_healthcheck_config(module, tmp_path)
+    report_dir = tmp_path / "benchmarks" / "mklq" / "reports"
+    report_dir.mkdir(parents=True)
+    counter_report = report_dir / "probe.counter.json"
+    counter_report.write_text(json.dumps({
+        "schema_version": "mklq-metal-runtime-counter-probe-v1",
+        "evidence_kind": "local_runtime_counter_probe",
+        "summary": {
+            "status": "passed",
+            "selected": 2,
+            "passed": 2,
+            "failed": 0,
+        },
+        "boundary": {
+            "runtime_counter_evidence": True,
+            "release_signoff": False,
+            "all_metal_execution_proof": False,
+        },
+        "tests": [{
+            "name": "mklq_metal_MKLQMetalTester.CounterA",
+            "status": "passed",
+        }, {
+            "name": "mklq_metal_MKLQMetalTester.CounterB",
+            "status": "passed",
+        }],
+    }),
+                              encoding="utf-8")
+
+    result = module.run_metal_runtime_counter_probe_parse(config)
+
+    assert result["status"] == "passed"
+    assert result["details"]["counter_report_count"] == 1
+    assert result["details"]["selected_tests"] == 2
+
+    counter_report.write_text(json.dumps({
+        "schema_version": "mklq-metal-runtime-counter-probe-v1",
+        "evidence_kind": "local_runtime_counter_probe",
+        "summary": {
+            "status": "passed",
+            "selected": 1,
+            "passed": 1,
+            "failed": 0,
+        },
+        "boundary": {
+            "runtime_counter_evidence": True,
+            "release_signoff": False,
+            "all_metal_execution_proof": True,
+        },
+        "tests": [{
+            "name": "mklq_metal_MKLQMetalTester.CounterA",
+            "status": "passed",
+            "stdout": "raw log leak",
+        }],
+    }),
+                              encoding="utf-8")
+
+    result = module.run_metal_runtime_counter_probe_parse(config)
+
+    assert result["status"] == "failed"
+    assert "all_metal_execution_proof" in "\n".join(
+        result["details"]["failures"])
+    assert "raw stdout" in "\n".join(result["details"]["failures"])
+
+
 def test_mklq_public_healthcheck_runs_metal_evidence_guard(monkeypatch,
                                                            tmp_path):
     module = _load_public_healthcheck_module()
@@ -1182,6 +1337,8 @@ def test_mklq_public_healthcheck_plan_includes_metal_evidence_guard(tmp_path):
     assert steps.index("performance_evidence_guard") < steps.index(
         "metal_evidence_guard")
     assert steps.index("metal_evidence_guard") < steps.index(
+        "metal_runtime_counter_probe_parse")
+    assert steps.index("metal_runtime_counter_probe_parse") < steps.index(
         "benchmark_helper_py_compile")
 
 

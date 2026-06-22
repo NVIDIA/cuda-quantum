@@ -177,9 +177,10 @@ python3 benchmarks/mklq/run_public_healthcheck.py
 The default mode checks Git remotes and shallow state, tracked artifact hygiene,
 public metadata and banned tokens, sanitized benchmark summary JSON, the static
 clean CPU performance evidence guard, the static experimental Metal evidence
-boundary guard, helper syntax, local markdown links, regenerated
-benchmark-evidence consistency, and the benchmark harness tests. It writes an
-ignored JSON report under `benchmarks/mklq/results/`.
+boundary guard, bounded Metal runtime counter probe JSON, helper syntax, local
+markdown links, regenerated benchmark-evidence consistency, and the benchmark
+harness tests. It writes an ignored JSON report under
+`benchmarks/mklq/results/`.
 
 Before describing a commit as public-ready, run the heavier local gate:
 
@@ -226,6 +227,24 @@ local tuning evidence, keep raw payloads under ignored
 `benchmarks/mklq/results/` paths, include successful `mklq-metal` rows, and
 state the mixed-path/resident/host-readback boundary instead of implying
 default status, release status, or all-Metal execution.
+
+## Metal Runtime Counter Probe
+
+Use the runtime counter probe when you need local build-tree evidence that the
+experimental Metal path actually exercised `MetalStateVectorExecutor` counters:
+
+```bash
+python3 benchmarks/mklq/run_metal_runtime_counter_probe.py \
+  --build-dir build-python \
+  --output benchmarks/mklq/reports/local-metal-runtime-counter-probe-YYYY-MM-DD.counter.json
+```
+
+The probe runs selected `mklq_metal_MKLQMetalTester.*` ctests whose assertions
+check resident gate, probability, sampling, measurement, collapse, and reset
+counters. The tracked `.counter.json` report is bounded evidence: it records
+which counter tests passed and keeps `release_signoff` and
+`all_metal_execution_proof` false. It is not a benchmark result and it does not
+prove every `mklq-metal` operation stays on Metal.
 
 ## Tracked Accepted Local Benchmark Evidence
 

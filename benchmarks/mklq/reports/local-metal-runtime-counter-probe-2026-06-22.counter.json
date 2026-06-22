@@ -1,0 +1,109 @@
+{
+  "boundary": {
+    "all_metal_execution_proof": false,
+    "raw_logs_truncated": true,
+    "release_signoff": false,
+    "runtime_counter_evidence": true,
+    "runtime_counter_source": "build-tree ctest cases that assert MetalStateVectorExecutor counters"
+  },
+  "created_at_utc": "2026-06-22T02:46:34.639475+00:00",
+  "evidence_kind": "local_runtime_counter_probe",
+  "execution": {
+    "elapsed_seconds": 27.476838167000096,
+    "returncode": 0
+  },
+  "machine": {
+    "machine": "arm64",
+    "platform": "macOS-26.5.1-arm64-arm-64bit",
+    "processor": "arm"
+  },
+  "schema_version": "mklq-metal-runtime-counter-probe-v1",
+  "source": {
+    "build_dir": "build-python",
+    "listing_command": [
+      "ctest",
+      "--test-dir",
+      "/Users/a0000/Documents/MKL-Q/build-python",
+      "-N",
+      "-R",
+      "mklq_metal_MKLQMetalTester"
+    ],
+    "probe_command": [
+      "ctest",
+      "--test-dir",
+      "/Users/a0000/Documents/MKL-Q/build-python",
+      "-R",
+      "mklq_metal_MKLQMetalTester.MetalRuntimeComputesAndCollapsesResidentQubitProbability|mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence|mklq_metal_MKLQMetalTester.MetalRuntimeFillsResidentProbabilitiesWithoutStateReadback|mklq_metal_MKLQMetalTester.SimulatorKeepsSupportedGateSequenceResidentUntilReadback|mklq_metal_MKLQMetalTester.SimulatorKeepsYAndControlledYResidentUntilReadback|mklq_metal_MKLQMetalTester.SimulatorKeepsBuiltInYAndControlledYResidentUntilReadback|mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback|mklq_metal_MKLQMetalTester.SimulatorSamplesLargeResidentPartialRegisterThroughFullProbability|mklq_metal_MKLQMetalTester.SimulatorSamplesSmallResidentPartialRegisterThroughMarginalProbability|mklq_metal_MKLQMetalTester.SimulatorMeasuresAndResetsResidentStateWithoutReadback|mklq_metal_MKLQMetalTester.SimulatorResetsResidentNonzeroTargetWithoutReadback|mklq_metal_MKLQMetalTester.SimulatorSamplesDenseFullRegisterThroughMetalProbabilityFill",
+      "--output-on-failure"
+    ],
+    "repo_root": "/Users/a0000/Documents/MKL-Q"
+  },
+  "summary": {
+    "failed": 0,
+    "passed": 12,
+    "selected": 12,
+    "status": "passed"
+  },
+  "tests": [
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.MetalRuntimeComputesAndCollapsesResidentQubitProbability",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.MetalRuntimeKeepsResidentStateAcrossGateSequence",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.MetalRuntimeFillsResidentProbabilitiesWithoutStateReadback",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorKeepsSupportedGateSequenceResidentUntilReadback",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorKeepsYAndControlledYResidentUntilReadback",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorKeepsBuiltInYAndControlledYResidentUntilReadback",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorSamplesResidentDenseStateWithoutReadback",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorSamplesLargeResidentPartialRegisterThroughFullProbability",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorSamplesSmallResidentPartialRegisterThroughMarginalProbability",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorMeasuresAndResetsResidentStateWithoutReadback",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorResetsResidentNonzeroTargetWithoutReadback",
+      "status": "passed"
+    },
+    {
+      "counter_source": "MetalStateVectorExecutor runtime counters",
+      "name": "mklq_metal_MKLQMetalTester.SimulatorSamplesDenseFullRegisterThroughMetalProbabilityFill",
+      "status": "passed"
+    }
+  ]
+}

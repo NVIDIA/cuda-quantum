@@ -38,6 +38,7 @@ BENCHMARK_HELPERS = (
     "benchmarks/mklq/make_summary.py",
     "benchmarks/mklq/run_clean_cpu_benchmark.py",
     "benchmarks/mklq/run_correctness_gate.py",
+    "benchmarks/mklq/run_metal_runtime_counter_probe.py",
     "benchmarks/mklq/run_public_healthcheck.py",
     "benchmarks/mklq/summarize_reports.py",
 )
@@ -262,8 +263,10 @@ def public_metadata_requirements() -> list[tuple[str, str]]:
         ("docs/mklq/benchmark-evidence.md", "cross-machine performance certification"),
         ("benchmarks/mklq/README.md", "Performance Evidence Guard"),
         ("benchmarks/mklq/README.md", "Metal Evidence Guard"),
+        ("benchmarks/mklq/README.md", "Metal Runtime Counter Probe"),
         ("docs/mklq/testing-matrix.md", "check_performance_evidence.py"),
         ("docs/mklq/testing-matrix.md", "check_metal_evidence.py"),
+        ("docs/mklq/testing-matrix.md", "run_metal_runtime_counter_probe.py"),
         (".github/pull_request_template.md", "Compatibility Boundary"),
         (".github/pull_request_template.md", "Benchmark Evidence"),
         (".github/pull_request_template.md", "check_performance_evidence.py"),
@@ -367,6 +370,82 @@ def run_metal_evidence_check(config: HealthcheckConfig) -> dict[str, Any]:
     if result["returncode"] != 0:
         return failed("Metal evidence guard failed", result)
     return passed(result)
+
+
+def run_metal_runtime_counter_probe_parse(
+        config: HealthcheckConfig) -> dict[str, Any]:
+    report_dir = config.repo_root / "benchmarks" / "mklq" / "reports"
+    reports = sorted(report_dir.glob("*.counter.json"))
+    if not reports:
+        return failed("no Metal runtime counter probe reports found")
+
+    failures: list[str] = []
+    parsed: list[str] = []
+    selected_tests = 0
+    for path in reports:
+        relative = command_path(config.repo_root, path)
+        try:
+            with path.open("r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except json.JSONDecodeError as exc:
+            failures.append(f"{relative}: invalid JSON: {exc}")
+            continue
+
+        parsed.append(relative)
+        if payload.get("schema_version") != "mklq-metal-runtime-counter-probe-v1":
+            failures.append(f"{relative}: unexpected schema_version")
+        if payload.get("evidence_kind") != "local_runtime_counter_probe":
+            failures.append(f"{relative}: unexpected evidence_kind")
+
+        summary = payload.get("summary", {})
+        if summary.get("status") != "passed":
+            failures.append(f"{relative}: summary status is not passed")
+        selected = summary.get("selected")
+        passed_count = summary.get("passed")
+        failed_count = summary.get("failed")
+        if not isinstance(selected, int) or selected <= 0:
+            failures.append(f"{relative}: selected test count must be positive")
+            selected = 0
+        if passed_count != selected:
+            failures.append(f"{relative}: passed count does not match selected")
+        if failed_count != 0:
+            failures.append(f"{relative}: failed count must be zero")
+
+        boundary = payload.get("boundary", {})
+        if boundary.get("runtime_counter_evidence") is not True:
+            failures.append(f"{relative}: runtime_counter_evidence must be true")
+        if boundary.get("release_signoff") is not False:
+            failures.append(f"{relative}: release_signoff must be false")
+        if boundary.get("all_metal_execution_proof") is not False:
+            failures.append(f"{relative}: all_metal_execution_proof must be false")
+
+        tests = payload.get("tests", [])
+        if not isinstance(tests, list) or not tests:
+            failures.append(f"{relative}: tests must be a non-empty list")
+            tests = []
+        if selected and len(tests) != selected:
+            failures.append(f"{relative}: test list length does not match selected")
+        for index, test in enumerate(tests):
+            name = test.get("name", f"#{index}") if isinstance(test, dict) else f"#{index}"
+            if not isinstance(test, dict):
+                failures.append(f"{relative}: test {name} is not an object")
+                continue
+            if test.get("status") != "passed":
+                failures.append(f"{relative}: test {name} status is not passed")
+            if "stdout" in test:
+                failures.append(f"{relative}: test {name} contains raw stdout")
+            if "stderr" in test:
+                failures.append(f"{relative}: test {name} contains raw stderr")
+        selected_tests += selected
+
+    details = {
+        "counter_report_count": len(parsed),
+        "counter_reports": parsed,
+        "selected_tests": selected_tests,
+        "failures": failures,
+    }
+    return failed("Metal runtime counter probe parse failed",
+                  details) if failures else passed(details)
 
 
 def run_py_compile(config: HealthcheckConfig) -> dict[str, Any]:
@@ -543,6 +622,9 @@ def build_steps(config: HealthcheckConfig) -> list[Step]:
         Step("metal_evidence_guard",
              "Check experimental Metal benchmark evidence boundaries.",
              run_metal_evidence_check),
+        Step("metal_runtime_counter_probe_parse",
+             "Parse bounded Metal runtime counter evidence.",
+             run_metal_runtime_counter_probe_parse),
         Step("benchmark_helper_py_compile",
              "Compile public benchmark helper and example scripts.",
              run_py_compile),
