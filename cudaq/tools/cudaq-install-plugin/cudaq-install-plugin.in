@@ -40,7 +40,9 @@ install_dir="$(
 )"
 
 function user_plugin_scope {
-	if [ -n "${XDG_DATA_HOME:-}" ]; then
+	if [ -n "${CUDAQ_PLUGIN_ROOT:-}" ]; then
+		echo "${CUDAQ_PLUGIN_ROOT}"
+	elif [ -n "${XDG_DATA_HOME:-}" ]; then
 		echo "${XDG_DATA_HOME}/cudaq/plugins"
 	else
 		if [ -z "${HOME:-}" ]; then
