@@ -10,6 +10,7 @@
 #include "common/FmtCore.h"
 #include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
+#include "cudaq/Support/Plugin.h"
 #include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -332,6 +333,20 @@ void LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
                     (error_msg ? std::string(error_msg) : "unknown")));
   }
   libHandles.emplace(pathStr, handle);
+
+  // If the library exports cudaqGetPluginInfo, call it to register any MLIR
+  // passes or other extensions provided by the plugin.
+  using PluginInfoFn = cudaq::PluginLibraryInfo (*)();
+  auto *getInfoFn =
+      reinterpret_cast<PluginInfoFn>(dlsym(handle, "cudaqGetPluginInfo"));
+  if (getInfoFn) {
+    auto info = getInfoFn();
+    if (info.RegisterCallbacks) {
+      CUDAQ_INFO("Registering MLIR extensions from plugin '{}'.",
+                 info.pluginName ? info.pluginName : pathStr.c_str());
+      info.RegisterCallbacks();
+    }
+  }
 }
 
 nvqir::CircuitSimulator *
@@ -476,6 +491,25 @@ void LinkedLibraryHolder::setTarget(
   const std::string targetConfigStr =
       cudaq::config::processRuntimeArgs(target.config, extraConfig);
   parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
+
+  if (!target.config.PluginLibraries.empty()) {
+    const auto pythonCAPIName =
+        fmt::format("libCUDAQuantumPythonCAPI.{}", libSuffix);
+    std::vector<std::filesystem::path> pythonCAPICandidates{
+        cudaqLibPath.parent_path() / "cudaq" / "mlir" / "_mlir_libs" /
+            pythonCAPIName,
+        cudaqLibPath.parent_path() / "python" / "cudaq" / "mlir" /
+            "_mlir_libs" / pythonCAPIName};
+    for (const auto &candidatePath : pythonCAPICandidates) {
+      if (!std::filesystem::exists(candidatePath))
+        continue;
+
+      CUDAQ_INFO("Loading CUDA-Q Python CAPI '{}' for plugin MLIR symbols.",
+                 candidatePath.string());
+      ensureLibLoaded(candidatePath);
+      break;
+    }
+  }
 
   for (const auto &pluginLibrary : target.config.PluginLibraries) {
     std::filesystem::path pluginLibraryPath(pluginLibrary);

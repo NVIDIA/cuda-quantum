@@ -50,7 +50,7 @@ set_target_properties(cudaq-example-qpu-trace_qpu
 target_include_directories(cudaq-example-qpu-trace_qpu
   PRIVATE ${PROJECT_SOURCE_DIR}/runtime)
 target_link_libraries(cudaq-example-qpu-trace_qpu
-  PRIVATE cudaq cudaq-common cudaq-logger MLIRFuncDialect MLIRIR MLIRPass)
+  PRIVATE cudaq cudaq-common cudaq-logger)
 
 if(NOT PYTHON_EXECUTABLE AND Python3_EXECUTABLE)
   set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
