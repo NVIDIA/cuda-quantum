@@ -263,7 +263,6 @@ public:
   getCompileTarget(const sample_policy &policy) override {
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), targetConfig, backendConfig, emulate);
-    target->warnNamedMeasurements = !policy.warnedNamedMeasurements;
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
@@ -300,10 +299,6 @@ public:
 
       compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
                                           std::move(context));
-      if constexpr (std::is_same_v<Policy, sample_policy>) {
-        if (compiler.hasWarnedNamedMeasurements())
-          policy.warnedNamedMeasurements = true;
-      }
     } else {
       compiled = std::get<CompiledModule>(module);
       kernelName = compiled->getName();
@@ -492,8 +487,6 @@ public:
     // observe) one time each.
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
-      // Avoid emitting the warning again during execution
-      context.warnedNamedMeasurements = policy.warnedNamedMeasurements;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
@@ -552,7 +545,6 @@ public:
     std::vector<cudaq::ExecutionResult> results;
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
-      // Avoid emitting the warning again during execution
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);

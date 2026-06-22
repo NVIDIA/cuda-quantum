@@ -14,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
@@ -49,6 +50,8 @@ constexpr std::uint32_t AddThemFunctionId =
     cudaq::realtime::fnv1a_hash("addThem");
 constexpr std::uint32_t GraphAddThemFunctionId =
     cudaq::realtime::fnv1a_hash("graphAddThem");
+constexpr std::uint32_t HostAddThemFunctionId =
+    cudaq::realtime::fnv1a_hash("hostAddThem");
 constexpr std::int32_t DeviceCallSuccessStatus =
     toAbiStatus(DeviceCallStatus::Success);
 constexpr std::int32_t DeviceCallInvalidArgumentStatus =
@@ -62,6 +65,56 @@ constexpr std::int32_t DeviceCallResponseTooLargeStatus =
 // a zero-length buffer is allowed to be null.
 constexpr bool isValidBuffer(const void *buffer, std::uint64_t length) {
   return length == 0 || buffer != nullptr;
+}
+
+void hostAddThemHandler(const void *rxSlot, void *txSlot,
+                        std::size_t slotSize) {
+  if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
+    return;
+
+  const auto *const request =
+      static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+  auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
+  auto *const result =
+      reinterpret_cast<std::int32_t *>(static_cast<std::uint8_t *>(txSlot) +
+                                       sizeof(cudaq::realtime::RPCResponse));
+
+  std::int32_t status = 0;
+  std::uint32_t resultLen = sizeof(std::int32_t);
+  if (request->magic != cudaq::realtime::RPC_MAGIC_REQUEST ||
+      request->arg_len != 2 * sizeof(std::int32_t) ||
+      slotSize < sizeof(cudaq::realtime::RPCResponse) + sizeof(std::int32_t)) {
+    status = 103;
+    resultLen = 0;
+  } else {
+    const auto *const args =
+        reinterpret_cast<const std::int32_t *>(request + 1);
+    *result = args[0] + args[1];
+  }
+
+  response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
+  response->request_id = request->request_id;
+  response->ptp_timestamp = request->ptp_timestamp;
+  response->status = status;
+  response->result_len = resultLen;
+}
+
+void fillHostCallAddEntry(cudaq_function_entry_t &entry) {
+  entry = {};
+  entry.handler.host_fn = hostAddThemHandler;
+  entry.function_id = HostAddThemFunctionId;
+  entry.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+  entry.schema.num_args = 2;
+  entry.schema.num_results = 1;
+  entry.schema.args[0].type_id = CUDAQ_TYPE_INT32;
+  entry.schema.args[0].size_bytes = sizeof(std::int32_t);
+  entry.schema.args[0].num_elements = 1;
+  entry.schema.args[1].type_id = CUDAQ_TYPE_INT32;
+  entry.schema.args[1].size_bytes = sizeof(std::int32_t);
+  entry.schema.args[1].num_elements = 1;
+  entry.schema.results[0].type_id = CUDAQ_TYPE_INT32;
+  entry.schema.results[0].size_bytes = sizeof(std::int32_t);
+  entry.schema.results[0].num_elements = 1;
 }
 
 std::int32_t dispatchUsingFrameLease(std::uint32_t deviceId,
@@ -102,8 +155,10 @@ std::int32_t dispatchUsingFrameLease(std::uint32_t deviceId,
 }
 
 enum class TestGpuTable { AddThem, AddThemOffset };
+enum class TestHostTable { GraphAddThem, HostAddThem, MixedAddThem };
 
 TestGpuTable selectedGpuTable = TestGpuTable::AddThem;
+TestHostTable selectedHostTable = TestHostTable::GraphAddThem;
 
 class TestRealtimeService : public DeviceCallService {
 public:
@@ -132,7 +187,7 @@ public:
     if (setupHostDispatch() != 0)
       return 1;
     table.entries = hostEntries.data();
-    table.count = static_cast<std::uint32_t>(hostEntries.size());
+    table.count = hostEntryCount;
     table.deviceId = 0;
     table.mailbox = h_mailbox;
     return 0;
@@ -145,6 +200,13 @@ public:
 
 private:
   int setupHostDispatch() {
+    if (selectedHostTable == TestHostTable::HostAddThem) {
+      teardownHostDispatch();
+      fillHostCallAddEntry(hostEntries[0]);
+      hostEntryCount = 1;
+      return 0;
+    }
+
     if (h_mailbox && graphExec)
       return 0;
 
@@ -163,6 +225,11 @@ private:
     }
 
     test::fillHostGraphAddEntry(hostEntries[0], graphExec);
+    hostEntryCount = 1;
+    if (selectedHostTable == TestHostTable::MixedAddThem) {
+      fillHostCallAddEntry(hostEntries[1]);
+      hostEntryCount = 2;
+    }
     return 0;
   }
 
@@ -179,13 +246,15 @@ private:
     h_mailbox = nullptr;
     d_mailbox = nullptr;
     hostEntries = {};
+    hostEntryCount = 0;
   }
 
   void **h_mailbox = nullptr;
   void **d_mailbox = nullptr;
   cudaGraph_t graph = nullptr;
   cudaGraphExec_t graphExec = nullptr;
-  std::array<cudaq_function_entry_t, 1> hostEntries{};
+  std::array<cudaq_function_entry_t, 2> hostEntries{};
+  std::uint32_t hostEntryCount = 0;
 };
 
 DeviceCallService *getTestRealtimeService() {
@@ -209,11 +278,16 @@ void initializeGpuRuntime(TestGpuTable table = TestGpuTable::AddThem) {
   cudaq_internal::device_call::initializeDeviceCallRuntime(1, argv);
 }
 
-void initializeHostRuntime() {
+void initializeHostRuntime(TestHostTable table) {
+  selectedHostTable = table;
   char program[] = "test_device_call_dispatch";
   char option[] = "--cudaq-device-call=host-dispatch";
   char *argv[] = {program, option};
   cudaq_internal::device_call::initializeDeviceCallRuntime(2, argv);
+}
+
+void initializeHostRuntime() {
+  initializeHostRuntime(TestHostTable::GraphAddThem);
 }
 
 void finalizeRuntime() {
@@ -364,6 +438,61 @@ TEST_F(HostGraphDispatchFrameTest, DispatchesGraphLaunchThroughFrameLease) {
 
   __cudaq_device_call_safely_release_realtime_frame(frame);
   frame = nullptr;
+}
+
+class HostCallDispatchFrameTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    ASSERT_NO_THROW(initializeHostRuntime(TestHostTable::HostAddThem));
+  }
+
+  void TearDown() override { ASSERT_NO_THROW(finalizeRuntime()); }
+};
+
+TEST_F(HostCallDispatchFrameTest, DispatchesHostCallThroughFrameLease) {
+  std::array<std::int32_t, 2> request{19, 23};
+  std::int32_t response = 0;
+  std::uint64_t responseLen = 0;
+
+  ASSERT_EQ(DeviceCallSuccessStatus,
+            dispatchUsingFrameLease(0, HostAddThemFunctionId, request.data(),
+                                    request.size() * sizeof(request[0]),
+                                    &response, sizeof(response), &responseLen));
+  EXPECT_EQ(sizeof(response), responseLen);
+  EXPECT_EQ(42, response);
+}
+
+class HostMixedDispatchFrameTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    ASSERT_NO_THROW(initializeHostRuntime(TestHostTable::MixedAddThem));
+  }
+
+  void TearDown() override { ASSERT_NO_THROW(finalizeRuntime()); }
+};
+
+TEST_F(HostMixedDispatchFrameTest, DispatchesHostCallAndGraphLaunchEntries) {
+  std::array<std::int32_t, 2> request{19, 23};
+
+  std::int32_t hostResponse = 0;
+  std::uint64_t hostResponseLen = 0;
+  ASSERT_EQ(DeviceCallSuccessStatus,
+            dispatchUsingFrameLease(0, HostAddThemFunctionId, request.data(),
+                                    request.size() * sizeof(request[0]),
+                                    &hostResponse, sizeof(hostResponse),
+                                    &hostResponseLen));
+  EXPECT_EQ(sizeof(hostResponse), hostResponseLen);
+  EXPECT_EQ(42, hostResponse);
+
+  std::int32_t graphResponse = 0;
+  std::uint64_t graphResponseLen = 0;
+  ASSERT_EQ(DeviceCallSuccessStatus,
+            dispatchUsingFrameLease(0, GraphAddThemFunctionId, request.data(),
+                                    request.size() * sizeof(request[0]),
+                                    &graphResponse, sizeof(graphResponse),
+                                    &graphResponseLen));
+  EXPECT_EQ(sizeof(graphResponse), graphResponseLen);
+  EXPECT_EQ(42, graphResponse);
 }
 
 class DeviceCallServicePluginTest : public ::testing::Test {
