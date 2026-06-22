@@ -215,27 +215,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     findAvailableTargets(targetPath, targets, simulationTargets);
   }
 
-  const char *backendPathVar = std::getenv("CUDAQ_BACKEND_PATH");
-  if (backendPathVar) {
-    // Back-compat: a colon-separated list of plugin roots, equivalent to
-    // calling registerBackendPath() on each. Prefer the Python API
-    // `cudaq.register_backend_path(...)` going forward for clearer
-    // per-package attribution; invalid CUDAQ_BACKEND_PATH entries are logged
-    // and skipped.
-    std::string entry;
-    std::stringstream ss(backendPathVar);
-    while (std::getline(ss, entry, ':')) {
-      if (entry.empty())
-        continue;
-      try {
-        cudaq::registerBackendPath(entry, targets, simulationTargets);
-      } catch (const std::exception &e) {
-        CUDAQ_INFO("CUDAQ_BACKEND_PATH entry '{}' skipped: {}", entry,
-                   e.what());
-      }
-    }
-  }
-
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
   // Load nvqir, cudaq, and the default execution manager. The em cannot
