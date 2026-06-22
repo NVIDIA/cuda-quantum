@@ -227,7 +227,7 @@ function list_simulators {
 		$(target_config_files_in_dir "${install_dir}/targets") \
 		$(plugin_target_config_files_in_scope "$(user_plugin_scope)") \
 		$(plugin_target_config_files_in_scope "${install_dir}/plugins"); do
-		if ! grep -q "library-mode-execution-manager" $file ; then
+		if ! grep -q "platform-qpu" $file && ! grep -q "library-mode-execution-manager" $file ; then
 			echo $(basename $file | cut -d "." -f 1)
 		fi
 	done
