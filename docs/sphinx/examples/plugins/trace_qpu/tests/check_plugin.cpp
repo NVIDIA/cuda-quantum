@@ -15,11 +15,11 @@
 // RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-trace-qpu-xdg cudaq-install-plugin --copy %cudaq_example_plugins_dir/trace-qpu
 // RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-trace-qpu-xdg cudaq-install-plugin --list | FileCheck %s --check-prefix=LIST
 // RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-trace-qpu-xdg nvq++ --list-targets | FileCheck %s --check-prefix=TARGETS
-// RUN: PYTHONPATH=%cudaq_target_dir/../python python3 -c "import cudaq; cudaq.register_backend_path('%cudaq_example_plugins_dir/trace-qpu'); cudaq.set_target('trace_qpu'); cudaq.reset_target()"
+// RUN: PYTHONPATH=%cudaq_target_dir/../python python3 -c "import cudaq; cudaq.register_backend_path('%cudaq_example_plugins_dir/trace-qpu'); cudaq.set_target('trace_qpu'); kernel = cudaq.make_kernel(); q = kernel.qalloc(1); kernel.h(q[0]); kernel.mz(q); result = cudaq.sample(kernel, shots_count=4); assert result.get_total_shots() == 4; cudaq.reset_target()"
 // RUN: rm -rf %t.python %t.pip-cache %t.python-xdg
 // RUN: env PIP_CACHE_DIR=%t.pip-cache python3 -m pip install --no-deps --no-build-isolation --target %t.python %cudaq_example_plugins_dir/trace-qpu
-// RUN: env PYTHONPATH=%t.python:%cudaq_target_dir/../python python3 -c "import cudaq; assert cudaq.has_target('trace_qpu'); cudaq.set_target('trace_qpu'); cudaq.reset_target()"
-// RUN: env PYTHONPATH=%t.python XDG_DATA_HOME=%t.python-xdg python3 -m cudaq_example_trace_qpu --install-nvqpp
+// RUN: env PYTHONPATH=%t.python:%cudaq_target_dir/../python python3 -c "import cudaq; assert cudaq.has_target('trace_qpu'); cudaq.set_target('trace_qpu'); kernel = cudaq.make_kernel(); q = kernel.qalloc(1); kernel.h(q[0]); kernel.mz(q); result = cudaq.sample(kernel, shots_count=4); assert result.get_total_shots() == 4; cudaq.reset_target()"
+// RUN: env PYTHONPATH=%t.python:%cudaq_target_dir/../python XDG_DATA_HOME=%t.python-xdg python3 -m cudaq_example_trace_qpu --install-nvqpp
 // RUN: test -L %t.python-xdg/cudaq/plugins/trace-qpu
 // RUN: env XDG_DATA_HOME=%t.python-xdg nvq++ --list-targets | FileCheck %s --check-prefix=TARGETS
 // clang-format on
