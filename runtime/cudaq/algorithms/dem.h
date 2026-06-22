@@ -62,13 +62,15 @@ std::string dem_from_kernel(QuantumKernel &&kernel,
 }
 
 /// @brief Convenience overload: noise model with default
-/// `decompose_errors=false` and no kernel arguments.
-template <typename QuantumKernel>
-  requires std::invocable<QuantumKernel &>
+/// `decompose_errors=false`, forwarding @p args to the kernel.
+template <typename QuantumKernel, typename... Args>
+  requires std::invocable<QuantumKernel &, Args...>
 std::string dem_from_kernel(QuantumKernel &&kernel,
-                            const cudaq::noise_model *noise) {
+                            const cudaq::noise_model *noise,
+                            Args &&...args) {
   return dem_from_kernel(std::forward<QuantumKernel>(kernel), noise,
-                         /*decompose_errors=*/false);
+                         /*decompose_errors=*/false,
+                         std::forward<Args>(args)...);
 }
 
 /// @brief Convenience overload for the no-noise case.
