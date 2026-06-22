@@ -70,6 +70,29 @@ def row_status_counts(rows: object) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def metal_path_labels(rows: object) -> list[dict[str, str]]:
+    if not isinstance(rows, list):
+        return []
+
+    labels: list[dict[str, str]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("target") != "mklq-metal":
+            continue
+        label = row.get("metal_path_label")
+        if not label:
+            continue
+        labels.append({
+            "case": str(row.get("case", "-")),
+            "shots": str(row.get("shots", "-")),
+            "label": str(label),
+            "scope": str(row.get("metal_path_scope", "-")),
+            "source": str(row.get("metal_path_label_source", "-")),
+        })
+    return labels
+
+
 def format_status_counts(counts: dict[str, int]) -> str:
     return ", ".join(f"{key}={value}" for key, value in counts.items()) or "-"
 
@@ -121,6 +144,7 @@ def digest_summary(path: Path) -> dict[str, Any]:
         "raw_results": format_raw_results(summary.get("raw_results")),
         "comparison": summary.get("comparison", {}),
         "interpretation": summary.get("interpretation", {}),
+        "metal_path_labels": metal_path_labels(rows),
     }
 
 
@@ -166,6 +190,24 @@ def comparison_signals(
                 "summary_id": str(digest["summary_id"]),
                 "metric": metric_name,
                 "value": format_metric_value(metric_name, value),
+            })
+    return signals
+
+
+def metal_path_label_signals(
+        digests: list[dict[str, Any]]) -> list[dict[str, str]]:
+    signals: list[dict[str, str]] = []
+    for digest in digests:
+        for label in digest.get("metal_path_labels", []):
+            if not isinstance(label, dict):
+                continue
+            signals.append({
+                "summary_id": str(digest["summary_id"]),
+                "case": str(label.get("case", "-")),
+                "shots": str(label.get("shots", "-")),
+                "label": str(label.get("label", "-")),
+                "scope": str(label.get("scope", "-")),
+                "source": str(label.get("source", "-")),
             })
     return signals
 
@@ -230,6 +272,35 @@ def render_markdown(digests: list[dict[str, Any]]) -> str:
     else:
         lines.append("No numeric comparison signals are recorded.")
 
+    path_labels = metal_path_label_signals(digests)
+    lines.extend([
+        "",
+        "## Metal Path Labels",
+        "",
+        "The rows below expose static benchmark case-map labels for "
+        "`mklq-metal`. They are not runtime counters or proof that every "
+        "operation stayed on Metal.",
+        "",
+    ])
+    if path_labels:
+        lines.extend([
+            "| Summary ID | Case | Shots | Label | Scope | Source |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ])
+        for label in path_labels:
+            lines.append(
+                "| {summary_id} | {case} | {shots} | `{label}` | {scope} | "
+                "{source} |".format(
+                    summary_id=markdown_escape(label["summary_id"]),
+                    case=markdown_escape(label["case"]),
+                    shots=markdown_escape(label["shots"]),
+                    label=markdown_escape(label["label"]),
+                    scope=markdown_escape(label["scope"]),
+                    source=markdown_escape(label["source"]),
+                ))
+    else:
+        lines.append("No row-level Metal path labels are recorded.")
+
     lines.extend([
         "",
         "Regenerate with:",
@@ -250,6 +321,7 @@ def build_payload(digests: list[dict[str, Any]]) -> dict[str, Any]:
         "source_schema_version": SUMMARY_SCHEMA_VERSION,
         "reports": digests,
         "comparison_signals": comparison_signals(digests),
+        "metal_path_labels": metal_path_label_signals(digests),
         "caveat": (
             "These entries are local benchmark evidence from development or "
             "release-prep runs, not cross-machine performance "

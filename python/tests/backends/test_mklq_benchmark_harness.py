@@ -1077,6 +1077,7 @@ def test_mklq_metal_evidence_guard_accepts_current_summaries():
     }
     assert "local-metal-y-cy-resident-isolated-q20-2026-06-19" in checked_ids
     assert "local-metal-composite-mixed-path-q20-2026-06-21" in checked_ids
+    assert "local-metal-path-labels-q20-2026-06-22" in checked_ids
 
 
 def test_mklq_metal_evidence_guard_rejects_clean_or_full_native_claims(
@@ -1113,6 +1114,36 @@ def test_mklq_metal_evidence_guard_rejects_clean_or_full_native_claims(
     assert "do_not_treat_as_clean_release_provenance" in failures
     assert "raw JSON files are not marked ignored" in failures
     assert "forbidden Metal claim" in failures
+
+
+def test_mklq_metal_evidence_guard_rejects_missing_declared_static_labels(
+        tmp_path):
+    module = _load_metal_evidence_module()
+    reports = tmp_path / "reports"
+    reports.mkdir()
+    bad = _metal_evidence_summary(module)
+    bad["interpretation"]["metal_path_labels_are_static_case_map"] = True
+    (reports / "local-metal-missing-labels.summary.json").write_text(
+        json.dumps(bad), encoding="utf-8")
+
+    report = module.build_report(
+        root=tmp_path,
+        reports=reports,
+        pattern="*.summary.json",
+        summary_ids=set(),
+    )
+
+    assert report["summary"] == {
+        "status": "failed",
+        "passed": 0,
+        "failed": 1,
+        "checked": 1,
+    }
+    failures = "\n".join(report["summaries"][0]["failures"])
+    assert "lacks metal_path_label" in failures
+    assert "unexpected metal_path_label_source" in failures
+    assert "lacks metal_path_scope" in failures
+    assert "lacks metal_evidence_boundary" in failures
 
 
 def test_mklq_public_healthcheck_runs_metal_evidence_guard(monkeypatch,
@@ -1199,7 +1230,16 @@ def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
             "isolate_rows": True,
         },
         "rows": [{
-            "status": "ok"
+            "status": "ok",
+            "target": "mklq-metal",
+            "case": "y-state",
+            "shots": 1024,
+            "metal_path_label":
+                "mklq_metal_resident_single_gate_state_host_readback",
+            "metal_path_scope":
+                "resident fp32 Metal single-target gate update followed by "
+                "host readback for cudaq.get_state",
+            "metal_path_label_source": "benchmark_harness_static_case_map",
         }, {
             "status": "error"
         }],
@@ -1244,6 +1284,9 @@ def test_mklq_summary_renderer_builds_stable_markdown(tmp_path):
     assert "sha256=abcdef123456" in markdown
     assert "`same_day_ratio.qpp_cpu_over_mklq_cpu` | 2.50x" in markdown
     assert "`probe_seconds` | 0.125 s" in markdown
+    assert "## Metal Path Labels" in markdown
+    assert "mklq_metal_resident_single_gate_state_host_readback" in markdown
+    assert "benchmark_harness_static_case_map" in markdown
 
 
 def test_mklq_summary_renderer_rejects_unexpected_schema(tmp_path):
@@ -2741,6 +2784,74 @@ def test_mklq_benchmark_summary_records_metal_y_cy_resident_evidence():
     assert summary["interpretation"]["metal_path_scope"] == (
         "resident fp32 Metal gate update followed by host readback for "
         "cudaq.get_state")
+    assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]
+
+
+def test_mklq_benchmark_summary_records_metal_static_path_labels():
+    repo_root = Path(__file__).resolve().parents[3]
+    summary_path = (
+        repo_root / "benchmarks" / "mklq" / "reports" /
+        "local-metal-path-labels-q20-2026-06-22.summary.json")
+
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
+    assert summary["schema_version"] == "mklq-benchmark-summary-v1"
+    assert summary["evidence_kind"] == "local_tuning_evidence"
+    assert summary["summary_id"] == "local-metal-path-labels-q20-2026-06-22"
+    assert summary["git"]["commit"] == (
+        "9a47901200f87ae9223bf232abb2b24767f8ac6f")
+    assert summary["git"]["dirty"] is False
+    assert summary["raw_results"][0]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-metal-path-labels-state-q20-2026-06-22.json")
+    assert summary["raw_results"][0]["sha256"] == (
+        "5c44e7772c4842de44e68cbe138a760d6b301432faa533fdf16081f42489356b")
+    assert summary["raw_results"][0]["status_rows"] == {"ok": 4}
+    assert summary["raw_results"][1]["path"] == (
+        "benchmarks/mklq/results/"
+        "local-metal-path-labels-sampling-q20-2026-06-22.json")
+    assert summary["raw_results"][1]["sha256"] == (
+        "0087e0be2ca97238d6d9928f4c5ac974aeacbba96d1abb004ce4109bebd88dfd")
+    assert summary["raw_results"][1]["status_rows"] == {"ok": 4}
+    assert summary["config"]["targets"] == ["mklq-metal"]
+    assert summary["config"]["cases"] == [
+        "y-state",
+        "cy-state",
+        "qft-like-state",
+        "seeded-clifford-state",
+        "sample-full-register",
+        "sample-partial-register",
+    ]
+    assert summary["config"]["qubits"] == [20]
+    assert summary["config"]["shot_counts"] == [1024, 65536]
+
+    rows = {
+        (row["case"], row["shots"]): row
+        for row in summary["rows"]
+    }
+    assert rows[("y-state", 1024)]["metal_path_label"] == (
+        "mklq_metal_resident_single_gate_state_host_readback")
+    assert rows[("cy-state", 1024)]["metal_path_label"] == (
+        "mklq_metal_resident_controlled_gate_state_host_readback")
+    assert rows[("qft-like-state", 1024)]["metal_path_label"] == (
+        "mklq_metal_mixed_composite_state_host_readback")
+    assert rows[("seeded-clifford-state", 1024)]["metal_path_label"] == (
+        "mklq_metal_mixed_composite_state_host_readback")
+    assert rows[("sample-full-register", 1024)]["metal_path_label"] == (
+        "mklq_metal_mixed_sampling_host_counts")
+    assert rows[("sample-partial-register", 65536)]["metal_path_label"] == (
+        "mklq_metal_mixed_sampling_host_counts")
+    for row in rows.values():
+        assert row["metal_path_label_source"] == (
+            "benchmark_harness_static_case_map")
+        assert row["metal_runtime_counter"] is False
+        assert row["metal_full_native"] is False
+        assert "not a runtime counter" in row["metal_evidence_boundary"]
+        assert row["elapsed_seconds_median"] > 0.0
+
+    assert summary["interpretation"]["clean_worktree"] is True
+    assert summary["interpretation"]["metal_path_labels_are_static_case_map"]
+    assert summary["interpretation"]["metal_runtime_counter"] is False
     assert summary["interpretation"]["do_not_treat_as_clean_release_provenance"]
 
 

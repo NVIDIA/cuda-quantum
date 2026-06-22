@@ -12,6 +12,7 @@ Caveat: these entries are local benchmark evidence from development or release-p
 | local-counts-only-sampling-shot-scaling-q20-2026-06-19 | local_tuning_evidence | Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1 | qpp-cpu, mklq-cpu, mklq-metal | sample-full-register, sample-partial-register | 20 | shot_counts=256, 1024, 8192, 65536; repeats=2; warmups=1; layers=8; isolate_rows=true | ok=24 | benchmarks/mklq/results/local-counts-only-sampling-shot-scaling-q20-2026-06-19.json sha256=ef9846673b46 |
 | local-current-sampling-fullprob-gated-q20-2026-06-19 | local_tuning_evidence | Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1 | qpp-cpu, mklq-cpu, mklq-metal | sample-full-register, sample-partial-register | 20 | shots=1024; repeats=2; warmups=1; layers=4; isolate_rows=true | ok=6 | benchmarks/mklq/results/local-current-sampling-fullprob-gated-q20-2026-06-19.json sha256=8ca6a4f7a7ae; benchmarks/mklq/results/local-current-sampling-shot-scaling-q20-2026-06-19.json sha256=9c15c0c1d566 |
 | local-metal-composite-mixed-path-q20-2026-06-21 | local_tuning_evidence | Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1 | qpp-cpu, mklq-cpu, mklq-metal | qft-like-state, seeded-clifford-state | 20 | shot_counts=1024; repeats=2; warmups=1; layers=8; isolate_rows=true | ok=6 | benchmarks/mklq/results/local-metal-composite-mixed-path-q20-2026-06-21.json sha256=ef58b5922221 |
+| local-metal-path-labels-q20-2026-06-22 | local_tuning_evidence | Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1 | mklq-metal | y-state, cy-state, qft-like-state, seeded-clifford-state, sample-full-register, sample-partial-register | 20 | shot_counts=1024, 65536; repeats=2; warmups=1; layers=8; isolate_rows=true | ok=8 | benchmarks/mklq/results/local-metal-path-labels-state-q20-2026-06-22.json sha256=5c44e7772c48; benchmarks/mklq/results/local-metal-path-labels-sampling-q20-2026-06-22.json sha256=0087e0be2ca9 |
 | local-metal-y-cy-resident-isolated-q20-2026-06-19 | local_tuning_evidence | Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1 | qpp-cpu, mklq-cpu, mklq-metal | y-state, cy-state | 20 | shots=1024; repeats=2; warmups=1; layers=8; isolate_rows=true | ok=6 | benchmarks/mklq/results/local-metal-y-cy-resident-isolated-q20-2026-06-19.json sha256=84891e8f907c |
 | local-y-cy-fastpath-isolated-q20-2026-06-19 | local_tuning_evidence | Apple M5, 10 logical cores, 16 GiB RAM, macOS 26.5.1 | qpp-cpu, mklq-cpu | y-state, cy-state | 20 | shots=1024; repeats=2; warmups=1; layers=8; isolate_rows=true | ok=4 | benchmarks/mklq/results/local-y-cy-fastpath-isolated-q20-2026-06-19.json sha256=93bce3b77fcc |
 
@@ -52,12 +53,35 @@ The values below are copied from each summary's bounded `comparison` object. Kee
 | local-metal-composite-mixed-path-q20-2026-06-21 | `mklq_metal_elapsed_seconds_median.seeded_clifford_state_q20` | 0.189254 s |
 | local-metal-composite-mixed-path-q20-2026-06-21 | `same_day_cross_target_ratio.qpp_cpu_over_mklq_metal_qft_like_state_q20` | 56.00x |
 | local-metal-composite-mixed-path-q20-2026-06-21 | `same_day_cross_target_ratio.qpp_cpu_over_mklq_metal_seeded_clifford_state_q20` | 70.50x |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.cy_state_q20` | 0.195022 s |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.qft_like_state_q20` | 1.33702 s |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.sample_full_register_q20_1024_shots` | 0.0299139 s |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.sample_full_register_q20_65536_shots` | 0.0317822 s |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.sample_partial_register_q20_1024_shots` | 0.059596 s |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.sample_partial_register_q20_65536_shots` | 0.0324173 s |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.seeded_clifford_state_q20` | 0.164919 s |
+| local-metal-path-labels-q20-2026-06-22 | `mklq_metal_elapsed_seconds_median.y_state_q20` | 0.14844 s |
 | local-metal-y-cy-resident-isolated-q20-2026-06-19 | `same_day_cross_target_ratio.mklq_metal_over_mklq_cpu_cy_state_q20` | 1.74x |
 | local-metal-y-cy-resident-isolated-q20-2026-06-19 | `same_day_cross_target_ratio.mklq_metal_over_mklq_cpu_y_state_q20` | 2.13x |
 | local-metal-y-cy-resident-isolated-q20-2026-06-19 | `same_day_cross_target_ratio.qpp_cpu_over_mklq_metal_cy_state_q20` | 53.20x |
 | local-metal-y-cy-resident-isolated-q20-2026-06-19 | `same_day_cross_target_ratio.qpp_cpu_over_mklq_metal_y_state_q20` | 56.16x |
 | local-y-cy-fastpath-isolated-q20-2026-06-19 | `same_day_cross_target_ratio.qpp_cpu_over_mklq_cpu_cy_state_q20` | 103.85x |
 | local-y-cy-fastpath-isolated-q20-2026-06-19 | `same_day_cross_target_ratio.qpp_cpu_over_mklq_cpu_y_state_q20` | 167.38x |
+
+## Metal Path Labels
+
+The rows below expose static benchmark case-map labels for `mklq-metal`. They are not runtime counters or proof that every operation stayed on Metal.
+
+| Summary ID | Case | Shots | Label | Scope | Source |
+| --- | --- | --- | --- | --- | --- |
+| local-metal-path-labels-q20-2026-06-22 | y-state | 1024 | `mklq_metal_resident_single_gate_state_host_readback` | resident fp32 Metal single-target gate update followed by host readback for cudaq.get_state | benchmark_harness_static_case_map |
+| local-metal-path-labels-q20-2026-06-22 | cy-state | 1024 | `mklq_metal_resident_controlled_gate_state_host_readback` | resident fp32 Metal controlled gate update followed by host readback for cudaq.get_state | benchmark_harness_static_case_map |
+| local-metal-path-labels-q20-2026-06-22 | qft-like-state | 1024 | `mklq_metal_mixed_composite_state_host_readback` | experimental mklq-metal mixed-path composite state-vector update followed by host readback for cudaq.get_state | benchmark_harness_static_case_map |
+| local-metal-path-labels-q20-2026-06-22 | seeded-clifford-state | 1024 | `mklq_metal_mixed_composite_state_host_readback` | experimental mklq-metal mixed-path composite state-vector update followed by host readback for cudaq.get_state | benchmark_harness_static_case_map |
+| local-metal-path-labels-q20-2026-06-22 | sample-full-register | 1024 | `mklq_metal_mixed_sampling_host_counts` | mixed-path Metal probability fill with host-side sample draw/count accumulation | benchmark_harness_static_case_map |
+| local-metal-path-labels-q20-2026-06-22 | sample-full-register | 65536 | `mklq_metal_mixed_sampling_host_counts` | mixed-path Metal probability fill with host-side sample draw/count accumulation | benchmark_harness_static_case_map |
+| local-metal-path-labels-q20-2026-06-22 | sample-partial-register | 1024 | `mklq_metal_mixed_sampling_host_counts` | mixed-path Metal probability fill with host-side sample draw/count accumulation | benchmark_harness_static_case_map |
+| local-metal-path-labels-q20-2026-06-22 | sample-partial-register | 65536 | `mklq_metal_mixed_sampling_host_counts` | mixed-path Metal probability fill with host-side sample draw/count accumulation | benchmark_harness_static_case_map |
 
 Regenerate with:
 

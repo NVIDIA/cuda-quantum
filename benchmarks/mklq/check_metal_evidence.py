@@ -138,6 +138,8 @@ def check_summary(summary: dict[str, Any]) -> dict[str, Any]:
         )
     if interpretation.get("raw_json_files_are_ignored") is not True:
         failures.append("raw JSON files are not marked ignored")
+    expects_static_path_labels = (
+        interpretation.get("metal_path_labels_are_static_case_map") is True)
 
     performance_scope = str(interpretation.get("performance_claim_scope", ""))
     if not performance_scope:
@@ -186,9 +188,44 @@ def check_summary(summary: dict[str, Any]) -> dict[str, Any]:
     non_ok = [row for row in metal_rows if row.get("status") != "ok"]
     if non_ok:
         failures.append(f"{METAL_TARGET} rows contain non-ok benchmark status")
+    labeled_row_count = 0
     for index, row in enumerate(metal_rows):
         if row.get("metal_full_native") is True:
             failures.append(f"{METAL_TARGET} row {index} claims full Metal-native")
+        has_static_path_fields = any(key in row for key in (
+            "metal_path_label",
+            "metal_path_label_source",
+            "metal_path_scope",
+            "metal_evidence_boundary",
+            "metal_runtime_counter",
+            "metal_full_native",
+        ))
+        if expects_static_path_labels or has_static_path_fields:
+            labeled_row_count += 1
+            if not row.get("metal_path_label"):
+                failures.append(f"{METAL_TARGET} row {index} lacks metal_path_label")
+            if row.get("metal_path_label_source") != (
+                    "benchmark_harness_static_case_map"):
+                failures.append(
+                    f"{METAL_TARGET} row {index} has unexpected metal_path_label_source"
+                )
+            row_scope = str(row.get("metal_path_scope", ""))
+            if not row_scope:
+                failures.append(f"{METAL_TARGET} row {index} lacks metal_path_scope")
+            elif not any(hint in row_scope.lower()
+                         for hint in REQUIRED_PATH_SCOPE_HINTS):
+                failures.append(
+                    f"{METAL_TARGET} row {index} metal_path_scope lacks path boundary"
+                )
+            if not row.get("metal_evidence_boundary"):
+                failures.append(
+                    f"{METAL_TARGET} row {index} lacks metal_evidence_boundary")
+            if row.get("metal_runtime_counter") is not False:
+                failures.append(
+                    f"{METAL_TARGET} row {index} must not claim a runtime counter")
+            if row.get("metal_full_native") is not False:
+                failures.append(
+                    f"{METAL_TARGET} row {index} must not claim all-Metal execution")
         failures.extend(
             forbidden_claim_failures({
                 f"{METAL_TARGET} row {index} metal_path_label":
@@ -198,6 +235,9 @@ def check_summary(summary: dict[str, Any]) -> dict[str, Any]:
                 f"{METAL_TARGET} row {index} metal_evidence_boundary":
                     str(row.get("metal_evidence_boundary", "")),
             }))
+    if expects_static_path_labels and labeled_row_count != len(metal_rows):
+        failures.append(
+            "static path-label summary does not label every mklq-metal row")
 
     status = "passed" if not failures else "failed"
     return {
@@ -205,6 +245,7 @@ def check_summary(summary: dict[str, Any]) -> dict[str, Any]:
         "summary_id": summary.get("summary_id"),
         "failures": failures,
         "metal_row_count": len(metal_rows),
+        "metal_static_path_labeled_row_count": labeled_row_count,
         "raw_result_count": len(raw_results),
     }
 
