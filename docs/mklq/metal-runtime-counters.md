@@ -61,7 +61,7 @@ Caveat: this is runtime counter evidence from selected build-tree ctest cases. I
 
 | Report | Created | Status | Expected | Selected | Missing | Passed | Failed |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| benchmarks/mklq/reports/local-metal-runtime-counter-probe-2026-06-22.counter.json | 2026-06-22T04:45:09.262416+00:00 | passed | 18 | 18 | 0 | 18 | 0 |
+| benchmarks/mklq/reports/local-metal-runtime-counter-probe-2026-06-22.counter.json | 2026-06-22T07:10:22.771671+00:00 | passed | 18 | 18 | 0 | 18 | 0 |
 
 Regenerate with:
 

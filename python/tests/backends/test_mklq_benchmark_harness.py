@@ -1291,10 +1291,14 @@ def test_mklq_metal_runtime_counter_probe_builds_bounded_report(monkeypatch,
     assert report["expected_counter_tests"] == expected_test_names
     assert report["missing_counter_tests"] == []
     assert report["boundary"]["runtime_counter_evidence"] is True
+    assert module.COUNTER_SOURCE in report["boundary"][
+        "runtime_counter_source"]
     assert report["boundary"]["release_signoff"] is False
     assert report["boundary"]["all_metal_execution_proof"] is False
     assert [test["status"] for test in report["tests"]] == (
         ["passed"] * len(expected_test_names))
+    assert all(test["counter_source"] == module.COUNTER_SOURCE
+               for test in report["tests"])
     assert all("stdout" not in test for test in report["tests"])
     run_commands = [command for command in commands if command[:1] == ["ctest"]
                     and "--output-on-failure" in command]

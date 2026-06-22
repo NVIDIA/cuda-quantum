@@ -22,6 +22,9 @@ from typing import Any
 
 SCHEMA_VERSION = "mklq-metal-runtime-counter-probe-v1"
 EVIDENCE_KIND = "local_runtime_counter_probe"
+COUNTER_SOURCE = (
+    "MetalStateVectorExecutor and MKL-Q simulator test-accessor runtime "
+    "counters")
 
 COUNTER_TEST_SUFFIXES = (
     "MetalRuntimeKeepsResidentStateAcrossGateSequence",
@@ -149,7 +152,7 @@ def build_report(repo_root: Path, build_dir: Path) -> dict[str, Any]:
         item: dict[str, Any] = {
             "name": test_name,
             "status": "passed" if passed else "failed",
-            "counter_source": "MetalStateVectorExecutor runtime counters",
+            "counter_source": COUNTER_SOURCE,
             "ctest_regex": exact_ctest_regex(test_name),
             "returncode": run_result["returncode"],
         }
@@ -193,9 +196,8 @@ def build_report(repo_root: Path, build_dir: Path) -> dict[str, Any]:
         },
         "boundary": {
             "runtime_counter_evidence": True,
-            "runtime_counter_source": (
-                "build-tree ctest cases that assert MetalStateVectorExecutor "
-                "counters"),
+            "runtime_counter_source":
+                f"build-tree ctest cases that assert {COUNTER_SOURCE}",
             "release_signoff": False,
             "all_metal_execution_proof": False,
             "raw_logs_truncated": True,

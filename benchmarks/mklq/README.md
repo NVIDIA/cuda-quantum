@@ -257,7 +257,8 @@ default status, release status, or all-Metal execution.
 ## Metal Runtime Counter Probe
 
 Use the runtime counter probe when you need local build-tree evidence that the
-experimental Metal path actually exercised `MetalStateVectorExecutor` counters:
+experimental Metal path actually exercised `MetalStateVectorExecutor` counters
+and MKL-Q simulator test-accessor counters:
 
 ```bash
 python3 benchmarks/mklq/run_metal_runtime_counter_probe.py \

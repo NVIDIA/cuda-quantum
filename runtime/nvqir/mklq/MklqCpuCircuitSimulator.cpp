@@ -226,6 +226,7 @@ protected:
   mutable std::size_t swapApplications = 0;
   mutable std::size_t denseDrawCountBuffers = 0;
   mutable std::size_t sparseDrawCountMaps = 0;
+  mutable std::size_t metalCpuFallbackApplications = 0;
 #endif
 
 #if defined(MKLQ_ENABLE_METAL_RUNTIME)
@@ -997,6 +998,10 @@ protected:
     }
 
 #if defined(MKLQ_ENABLE_METAL_RUNTIME)
+#if defined(MKLQ_ENABLE_TEST_ACCESSORS)
+    if (metalStateHostDirty || metalExecutor.hasResidentState(state.size()))
+      ++metalCpuFallbackApplications;
+#endif
     synchronizeHostStateFromMetal();
     invalidateMetalResidentState();
 #endif

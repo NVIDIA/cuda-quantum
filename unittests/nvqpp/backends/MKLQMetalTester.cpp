@@ -160,6 +160,14 @@ public:
 #endif
   }
 
+  std::size_t metalCpuFallbackApplicationsForTest() const {
+#if defined(MKLQ_ENABLE_TEST_ACCESSORS)
+    return metalCpuFallbackApplications;
+#else
+    return 0;
+#endif
+  }
+
   std::size_t bitStringConversionsForTest() const {
     return bitStringConversions;
   }
@@ -1180,9 +1188,12 @@ CUDAQ_TEST(MKLQMetalTester,
   ASSERT_EQ(sim.residentStateUploadsForTest(),
             sim.metalRuntimeAvailableForTest() ? 1 : 0);
   ASSERT_EQ(sim.residentStateDownloadsForTest(), 0);
+  ASSERT_EQ(sim.metalCpuFallbackApplicationsForTest(), 0);
 
   sim.applyGateTaskForTest("identity3", identityThreeQubit, {}, {0, 1, 2});
   EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+  EXPECT_EQ(sim.metalCpuFallbackApplicationsForTest(),
             sim.metalRuntimeAvailableForTest() ? 1 : 0);
 
   sim.applySingleQubitGateForTest(xGate, {}, 1);
