@@ -10,10 +10,10 @@ Caveat: this is runtime counter evidence from selected build-tree ctest cases. I
 | --- | --- |
 | `status` | passed |
 | `report_count` | 1 |
-| `expected` | 18 |
-| `selected` | 18 |
+| `expected` | 19 |
+| `selected` | 19 |
 | `missing` | 0 |
-| `passed` | 18 |
+| `passed` | 19 |
 | `failed` | 0 |
 
 ## Evidence Boundary
@@ -32,7 +32,7 @@ Caveat: this is runtime counter evidence from selected build-tree ctest cases. I
 | fallback_boundary | 1 | 0 | 0 | Unsupported-gate fallback and reupload boundary tests |
 | measurement_reset | 3 | 0 | 0 | Measurement, collapse, and reset counter tests |
 | probability_sampling | 5 | 0 | 0 | Resident probability fill and sampling counter tests |
-| resident_gate | 9 | 0 | 0 | Resident Metal gate/update counter tests |
+| resident_gate | 10 | 0 | 0 | Resident Metal gate/update counter tests |
 
 ## Counter Tests
 
@@ -55,13 +55,14 @@ Caveat: this is runtime counter evidence from selected build-tree ctest cases. I
 | resident_gate | `mklq_metal_MKLQMetalTester.SimulatorKeepsBuiltInYAndControlledYResidentUntilReadback` |
 | resident_gate | `mklq_metal_MKLQMetalTester.SimulatorKeepsMultiControlSingleQubitResidentUntilReadback` |
 | resident_gate | `mklq_metal_MKLQMetalTester.SimulatorKeepsSupportedGateSequenceResidentUntilReadback` |
+| resident_gate | `mklq_metal_MKLQMetalTester.SimulatorKeepsThreeQubitGateResidentUntilReadback` |
 | resident_gate | `mklq_metal_MKLQMetalTester.SimulatorKeepsYAndControlledYResidentUntilReadback` |
 
 ## Reports
 
 | Report | Created | Status | Expected | Selected | Missing | Passed | Failed |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| benchmarks/mklq/reports/local-metal-runtime-counter-probe-2026-06-22.counter.json | 2026-06-22T07:10:22.771671+00:00 | passed | 18 | 18 | 0 | 18 | 0 |
+| benchmarks/mklq/reports/local-metal-runtime-counter-probe-2026-06-22.counter.json | 2026-06-22T07:25:49.516754+00:00 | passed | 19 | 19 | 0 | 19 | 0 |
 
 Regenerate with:
 

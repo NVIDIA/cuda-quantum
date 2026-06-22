@@ -70,8 +70,8 @@ Metal-native replacement for `mklq-cpu`.
 
 Current architecture:
 
-- supported single-target and two-target updates may stay in a resident fp32
-  Metal state buffer;
+- supported single-target, two-target, and three-target updates may stay in a
+  resident fp32 Metal state buffer;
 - supported dense probability fills, cost-gated marginal fills, measurement
   probability reductions, and measurement collapse paths may run through Metal;
 - unsupported or not-yet-profitable paths synchronize back to the MKL-Q fp64 CPU

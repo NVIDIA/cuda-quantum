@@ -368,6 +368,15 @@ protected:
   }
 
   virtual bool
+  applyMetalResidentThreeQubitGate(const complexd *matrix,
+                                   const std::size_t *controlQubits,
+                                   std::size_t controlCount,
+                                   const std::size_t *targets) {
+    return metalExecutor.applyResidentThreeQubitGate(matrix, controlQubits,
+                                                     controlCount, targets);
+  }
+
+  virtual bool
   computeMetalResidentMeasurementProbability(std::size_t index,
                                              double &probabilityOne) {
     return metalExecutor.computeResidentQubitProbability(index,
@@ -998,6 +1007,26 @@ protected:
     }
 
 #if defined(MKLQ_ENABLE_METAL_RUNTIME)
+    if (targetCount == 3) {
+      const bool hadDirtyMetalState = metalStateHostDirty;
+      if (ensureMetalResidentState()) {
+        if (applyMetalResidentThreeQubitGate(task.matrix.data(),
+                                             task.controls.data(),
+                                             task.controls.size(),
+                                             task.targets.data())) {
+          metalStateHostDirty = true;
+          return;
+        }
+        if (hadDirtyMetalState) {
+          const auto error =
+              fmt::format(MKLQ_SIMULATOR_DIAGNOSTIC_PREFIX
+                          " failed to apply resident Metal three-qubit gate: {}",
+                          metalExecutor.lastError());
+          markMetalResidentStatePoisoned(error);
+          throw std::runtime_error(error);
+        }
+      }
+    }
 #if defined(MKLQ_ENABLE_TEST_ACCESSORS)
     if (metalStateHostDirty || metalExecutor.hasResidentState(state.size()))
       ++metalCpuFallbackApplications;

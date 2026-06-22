@@ -49,9 +49,9 @@ or distributed simulator.
 ## Metal Backend Boundary
 
 `mklq-metal` is experimental. The current implementation may keep supported
-single-target and two-target gate updates in a resident fp32 Metal state buffer.
-It also has resident probability-fill, marginal-probability, measurement, and
-reset paths for supported cases.
+single-target, two-target, and three-target gate updates in a resident fp32
+Metal state buffer. It also has resident probability-fill,
+marginal-probability, measurement, and reset paths for supported cases.
 
 Unsupported or not-yet-profitable paths can synchronize back to the MKL-Q CPU
 oracle. That fallback is intentional at this stage. A passing `mklq-metal` test

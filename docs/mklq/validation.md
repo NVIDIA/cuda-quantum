@@ -19,18 +19,17 @@ Latest local validation refresh: 2026-06-22.
 
 The install-prefix build, full public healthcheck, one-command correctness
 gate, public example smoke gate, and standalone install-prefix Python subset
-were last run against source commit
-`a3533cad0b89268e08099e6714454d6559bd015d` after enforcing administrator
-branch protection and switching maintainer flow to PR-first. The clean CPU
-benchmark summary was refreshed separately against
+were refreshed on the local MKL-Q branch after enforcing administrator branch
+protection and switching maintainer flow to PR-first. The clean CPU benchmark
+summary was refreshed separately against
 `34f4b260d1c657ad626c526eed4e6b9d3a441be4` after adding QFT-like and seeded
 Clifford composite rows to the clean evidence gate.
 
 The current refresh includes the earlier Metal counter-evidence work:
 resident built-in Rx/Ry/Rz, controlled-Rx/Ry/Rz, phase-family S/T/Sdg/Tdg,
-multi-control single-qubit resident, unsupported gate fallback/reupload, and
-Python custom three-target fallback correctness fixtures. It also reran the
-full install/build/correctness/example gate after the repository-governance
+multi-control single-qubit resident, resident three-target gates, and
+four-or-more-target unsupported gate fallback/reupload fixtures. It also reran
+the full install/build/correctness/example gate after the repository-governance
 changes landed on `main`.
 
 Raw wrapper output was written to ignored local paths
@@ -49,9 +48,9 @@ output; these raw payloads are not tracked as public evidence.
 - Standalone install-prefix Python subset: `35 passed`.
 - `python_target_smoke`: `57 passed`.
 - `nvqpp_smoke`: `2 passed`.
-- Current `target_config_ctest`: `69/69 passed`.
-- Current `metal_runtime_counter_probe`: 18 expected, 18 selected, 0 missing,
-  and 18 passed, with each counter ctest run independently.
+- Current `target_config_ctest`: `71/71 passed`.
+- Current `metal_runtime_counter_probe`: 19 expected, 19 selected, 0 missing,
+  and 19 passed, with each counter ctest run independently.
 - Clean CPU benchmark gate: passed, with 18 q20 `qpp-cpu`/`mklq-cpu` rows and
   18 rows reporting `status == "ok"`.
 
@@ -131,18 +130,19 @@ python3 benchmarks/mklq/run_correctness_gate.py \
   --build-dir build-python
 ```
 
-Latest local result: passed on 2026-06-22 as part of the full public
-healthcheck against `a3533cad0b89268e08099e6714454d6559bd015d`. It reported 4
-wrapper steps passed, 0 failed, and 0 skipped. The step-level results were:
+Latest local result: passed on 2026-06-22 after adding resident three-target
+Metal gate support. It reported 4 wrapper steps passed, 0 failed, and 0
+skipped. The step-level results were:
 
 - `python_target_smoke`: `57 passed`.
 - `nvqpp_smoke`: `2 passed`.
-- `target_config_ctest`: `69/69 passed`.
-- `metal_runtime_counter_probe`: 18 expected, 18 selected, 0 missing, and 18
+- `target_config_ctest`: `71/71 passed`.
+- `metal_runtime_counter_probe`: 19 expected, 19 selected, 0 missing, and 19
   independently executed passing counter ctests, including the resident
   built-in Rx/Ry/Rz, controlled-Rx/Ry/Rz, and phase-family S/T/Sdg/Tdg
   fixtures, plus the multi-control single-qubit resident fixture and the
-  unsupported gate fallback/reupload boundary fixture.
+  resident three-target gate fixture plus the four-or-more-target unsupported
+  gate fallback/reupload boundary fixture.
 
 The Python smoke step includes the MKL-Q API smoke tests, the CPU correctness
 fixture suite, the limited experimental Metal correctness fixture suite, and

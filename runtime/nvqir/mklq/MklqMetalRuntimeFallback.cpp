@@ -78,6 +78,12 @@ bool MetalStateVectorExecutor::applyResidentTwoQubitGate(
   return false;
 }
 
+bool MetalStateVectorExecutor::applyResidentThreeQubitGate(
+    const std::complex<double> *, const std::size_t *, std::size_t,
+    const std::size_t *) {
+  return false;
+}
+
 bool MetalStateVectorExecutor::fillResidentFullRegisterProbabilities(
     double *, std::size_t) {
   return false;
@@ -103,6 +109,10 @@ std::size_t MetalStateVectorExecutor::singleQubitGateApplications() const {
 }
 
 std::size_t MetalStateVectorExecutor::twoQubitGateApplications() const {
+  return 0;
+}
+
+std::size_t MetalStateVectorExecutor::threeQubitGateApplications() const {
   return 0;
 }
 

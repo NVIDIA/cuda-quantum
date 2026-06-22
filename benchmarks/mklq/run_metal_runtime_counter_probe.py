@@ -31,6 +31,7 @@ COUNTER_TEST_SUFFIXES = (
     "MetalRuntimeFillsResidentProbabilitiesWithoutStateReadback",
     "MetalRuntimeComputesAndCollapsesResidentQubitProbability",
     "SimulatorKeepsSupportedGateSequenceResidentUntilReadback",
+    "SimulatorKeepsThreeQubitGateResidentUntilReadback",
     "SimulatorKeepsYAndControlledYResidentUntilReadback",
     "SimulatorKeepsBuiltInYAndControlledYResidentUntilReadback",
     "SimulatorKeepsBuiltInRxAndControlledRxResidentUntilReadback",

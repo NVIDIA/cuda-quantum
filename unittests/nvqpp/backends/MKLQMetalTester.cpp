@@ -31,6 +31,7 @@ enum class ResidentFailureMode {
   None,
   SingleGate,
   TwoGate,
+  ThreeGate,
   Probability,
   Collapse,
   Reset
@@ -144,6 +145,14 @@ public:
 #endif
   }
 
+  std::size_t threeQubitApplicationsForTest() const {
+#if defined(MKLQ_ENABLE_METAL_RUNTIME)
+    return metalExecutor.threeQubitGateApplications();
+#else
+    return 0;
+#endif
+  }
+
   std::size_t residentStateUploadsForTest() const {
 #if defined(MKLQ_ENABLE_METAL_RUNTIME)
     return metalExecutor.residentStateUploads();
@@ -192,6 +201,15 @@ protected:
         matrix, controlQubits, controlCount, targets);
   }
 
+  bool applyMetalResidentThreeQubitGate(
+      const std::complex<double> *matrix, const std::size_t *controlQubits,
+      std::size_t controlCount, const std::size_t *targets) override {
+    if (residentFailureMode == ResidentFailureMode::ThreeGate)
+      return false;
+    return nvqir::MklqMetalCircuitSimulator::applyMetalResidentThreeQubitGate(
+        matrix, controlQubits, controlCount, targets);
+  }
+
   bool computeMetalResidentMeasurementProbability(
       std::size_t qubit, double &probabilityOne) override {
     if (residentFailureMode == ResidentFailureMode::Probability)
@@ -225,6 +243,15 @@ private:
 void expectNear(std::complex<double> actual, std::complex<double> expected) {
   EXPECT_NEAR(actual.real(), expected.real(), 1.0e-6);
   EXPECT_NEAR(actual.imag(), expected.imag(), 1.0e-6);
+}
+
+std::vector<std::complex<double>> identityGateForTargets(
+    std::size_t targetCount) {
+  const auto dimension = 1ULL << targetCount;
+  std::vector<std::complex<double>> matrix(dimension * dimension, {0.0, 0.0});
+  for (std::size_t index = 0; index < dimension; ++index)
+    matrix[index * dimension + index] = {1.0, 0.0};
+  return matrix;
 }
 
 bool controlsSatisfiedForBasis(std::size_t basis,
@@ -1144,9 +1171,36 @@ CUDAQ_TEST(MKLQMetalTester,
   constexpr double invSqrt2 = 0.70710678118654752440;
   const std::vector<std::complex<double>> hGate{
       {invSqrt2, 0.0}, {invSqrt2, 0.0}, {invSqrt2, 0.0}, {-invSqrt2, 0.0}};
-  std::vector<std::complex<double>> identityThreeQubit(64, {0.0, 0.0});
-  for (std::size_t index = 0; index < 8; ++index)
-    identityThreeQubit[index * 8 + index] = {1.0, 0.0};
+  const auto identityFourQubit = identityGateForTargets(4);
+
+  MklqMetalCircuitSimulatorTester sim;
+  std::vector<std::complex<double>> state(16, {0.0, 0.0});
+  state[0] = {1.0, 0.0};
+  sim.setStateForTest(std::move(state));
+
+  sim.applySingleQubitGateForTest(hGate, {}, 0);
+  sim.applyGateTaskForTest("identity4", identityFourQubit, {}, {0, 1, 2, 3});
+  const auto output = sim.stateVectorForTest();
+
+  ASSERT_EQ(output.size(), 16);
+  expectNear(output[0], {invSqrt2, 0.0});
+  expectNear(output[1], {invSqrt2, 0.0});
+  for (std::size_t index = 2; index < output.size(); ++index)
+    expectNear(output[index], {0.0, 0.0});
+  EXPECT_EQ(sim.residentStateDownloadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+}
+
+CUDAQ_TEST(MKLQMetalTester,
+           SimulatorKeepsThreeQubitGateResidentUntilReadback) {
+  constexpr double invSqrt2 = 0.70710678118654752440;
+  const std::vector<std::complex<double>> hGate{
+      {invSqrt2, 0.0}, {invSqrt2, 0.0}, {invSqrt2, 0.0}, {-invSqrt2, 0.0}};
+  const std::vector<std::complex<double>> xGate{{0.0, 0.0},
+                                                {1.0, 0.0},
+                                                {1.0, 0.0},
+                                                {0.0, 0.0}};
+  const auto identityThreeQubit = identityGateForTargets(3);
 
   MklqMetalCircuitSimulatorTester sim;
   std::vector<std::complex<double>> state(8, {0.0, 0.0});
@@ -1154,13 +1208,32 @@ CUDAQ_TEST(MKLQMetalTester,
   sim.setStateForTest(std::move(state));
 
   sim.applySingleQubitGateForTest(hGate, {}, 0);
+  ASSERT_EQ(sim.residentStateUploadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+  ASSERT_EQ(sim.residentStateDownloadsForTest(), 0);
+  ASSERT_EQ(sim.metalCpuFallbackApplicationsForTest(), 0);
+
   sim.applyGateTaskForTest("identity3", identityThreeQubit, {}, {0, 1, 2});
+  EXPECT_EQ(sim.residentStateDownloadsForTest(), 0);
+  EXPECT_EQ(sim.metalCpuFallbackApplicationsForTest(), 0);
+  EXPECT_EQ(sim.threeQubitApplicationsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+
+  sim.applySingleQubitGateForTest(xGate, {}, 1);
+  EXPECT_EQ(sim.residentStateUploadsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 1 : 0);
+  EXPECT_EQ(sim.singleQubitApplicationsForTest(),
+            sim.metalRuntimeAvailableForTest() ? 2 : 0);
+  EXPECT_EQ(sim.residentStateDownloadsForTest(), 0);
+
   const auto output = sim.stateVectorForTest();
 
   ASSERT_EQ(output.size(), 8);
-  expectNear(output[0], {invSqrt2, 0.0});
-  expectNear(output[1], {invSqrt2, 0.0});
-  for (std::size_t index = 2; index < output.size(); ++index)
+  expectNear(output[0], {0.0, 0.0});
+  expectNear(output[1], {0.0, 0.0});
+  expectNear(output[2], {invSqrt2, 0.0});
+  expectNear(output[3], {invSqrt2, 0.0});
+  for (std::size_t index = 4; index < output.size(); ++index)
     expectNear(output[index], {0.0, 0.0});
   EXPECT_EQ(sim.residentStateDownloadsForTest(),
             sim.metalRuntimeAvailableForTest() ? 1 : 0);
@@ -1175,12 +1248,10 @@ CUDAQ_TEST(MKLQMetalTester,
                                                 {1.0, 0.0},
                                                 {1.0, 0.0},
                                                 {0.0, 0.0}};
-  std::vector<std::complex<double>> identityThreeQubit(64, {0.0, 0.0});
-  for (std::size_t index = 0; index < 8; ++index)
-    identityThreeQubit[index * 8 + index] = {1.0, 0.0};
+  const auto identityFourQubit = identityGateForTargets(4);
 
   MklqMetalCircuitSimulatorTester sim;
-  std::vector<std::complex<double>> state(8, {0.0, 0.0});
+  std::vector<std::complex<double>> state(16, {0.0, 0.0});
   state[0] = {1.0, 0.0};
   sim.setStateForTest(std::move(state));
 
@@ -1190,7 +1261,7 @@ CUDAQ_TEST(MKLQMetalTester,
   ASSERT_EQ(sim.residentStateDownloadsForTest(), 0);
   ASSERT_EQ(sim.metalCpuFallbackApplicationsForTest(), 0);
 
-  sim.applyGateTaskForTest("identity3", identityThreeQubit, {}, {0, 1, 2});
+  sim.applyGateTaskForTest("identity4", identityFourQubit, {}, {0, 1, 2, 3});
   EXPECT_EQ(sim.residentStateDownloadsForTest(),
             sim.metalRuntimeAvailableForTest() ? 1 : 0);
   EXPECT_EQ(sim.metalCpuFallbackApplicationsForTest(),
@@ -1206,7 +1277,7 @@ CUDAQ_TEST(MKLQMetalTester,
 
   const auto output = sim.stateVectorForTest();
 
-  ASSERT_EQ(output.size(), 8);
+  ASSERT_EQ(output.size(), 16);
   expectNear(output[0], {0.0, 0.0});
   expectNear(output[1], {0.0, 0.0});
   expectNear(output[2], {invSqrt2, 0.0});
@@ -1377,6 +1448,53 @@ CUDAQ_TEST(MKLQMetalTester,
   }
 
   FAIL() << "expected resident two-gate failure to poison readback";
+}
+
+CUDAQ_TEST(MKLQMetalTester,
+           SimulatorPoisonsResidentStateWhenThreeGateFails) {
+  const std::vector<std::complex<double>> xGate{{0.0, 0.0},
+                                                {1.0, 0.0},
+                                                {1.0, 0.0},
+                                                {0.0, 0.0}};
+  const auto identityThreeQubit = identityGateForTargets(3);
+
+  MklqMetalCircuitSimulatorTester sim;
+  if (!sim.metalRuntimeAvailableForTest())
+    return;
+
+  std::vector<std::complex<double>> state(8, {0.0, 0.0});
+  state[0] = {1.0, 0.0};
+  sim.setStateForTest(std::move(state));
+  sim.applySingleQubitGateForTest(xGate, {}, 0);
+  ASSERT_EQ(sim.residentStateUploadsForTest(), 1);
+  ASSERT_EQ(sim.singleQubitApplicationsForTest(), 1);
+  ASSERT_EQ(sim.residentStateDownloadsForTest(), 0);
+  sim.setResidentFailureModeForTest(ResidentFailureMode::ThreeGate);
+
+  try {
+    sim.applyGateTaskForTest("identity3", identityThreeQubit, {}, {0, 1, 2});
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find(
+                  "failed to apply resident Metal three-qubit gate"),
+              std::string::npos)
+        << error.what();
+    EXPECT_EQ(sim.residentStateDownloadsForTest(), 0);
+  } catch (...) {
+    FAIL() << "expected runtime_error from resident three-gate failure";
+  }
+
+  try {
+    (void)sim.stateVectorForTest();
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find(
+                  "unrecoverable Metal resident state"),
+              std::string::npos)
+        << error.what();
+    EXPECT_EQ(sim.residentStateDownloadsForTest(), 0);
+    return;
+  }
+
+  FAIL() << "expected resident three-gate failure to poison readback";
 }
 
 CUDAQ_TEST(MKLQMetalTester,

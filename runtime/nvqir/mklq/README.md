@@ -13,9 +13,10 @@ ON only for Apple Silicon (`Darwin arm64/aarch64`) builds.
   and tuning work. Accelerate/vDSP dense-probability variants are benchmarked
   separately before being admitted into the default runtime path.
 - `mklq-metal`: experimental Apple GPU target name. It registers an MKL-Q
-  mixed-path simulator as `mklq_metal`: supported single-target and two-target
-  updates, including controlled forms, can stay in a resident fp32 Metal state
-  buffer across supported gate sequences. Dense full-register probability
+  mixed-path simulator as `mklq_metal`: supported single-target, two-target,
+  and three-target updates, including controlled one-/two-target forms, can
+  stay in a resident fp32 Metal state buffer across supported gate sequences.
+  Dense full-register probability
   fills, cost-gated resident marginal probability fills, and measure/reset
   probability-and-collapse paths can read and update that resident buffer
   directly. Measurement
@@ -158,7 +159,7 @@ target-marker output.
 - `mklq-metal` remains experimental. It no longer routes through the upstream
   `qpp` backend and now links Metal/Foundation on Apple platforms for runtime
   device discovery plus a resident fp32 Metal state buffer for supported
-  single-target gates, two-target gates, and dense full-register
+  single-target gates, two-target gates, three-target gates, and dense full-register
   probability-fill kernels. Partial-register sampling uses a cost-gated
   resident marginal probability kernel for small marginal buffers; when the
   marginal partial-sum work is no smaller than a full probability fill, it
@@ -172,8 +173,8 @@ target-marker output.
   branch with a Metal kernel without first downloading the state. The host only
   sums per-threadgroup partial probabilities for those reductions. The host
   state remains fp64 and is synchronized at CPU fallback/readback boundaries.
-  Unsupported paths still fall back to the MKL-Q CPU oracle, and the target is
-  not yet a full Metal GPU backend.
+  Four-or-more-target gates and other unsupported paths still fall back to the
+  MKL-Q CPU oracle, and the target is not yet a full Metal GPU backend.
 - The first correctness gate covers basic state allocation, sampling, reset,
   state export/import, state index bounds, non-power-of-two state rejection,
   out-of-range qubit boundary checks, basic custom two-qubit operations,
