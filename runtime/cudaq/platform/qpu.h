@@ -57,6 +57,16 @@ protected:
   [[nodiscard]] static KernelThunkResultType
   runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
 
+  /// @brief Re-throw an exception the kernel deferred during execution, if any.
+  /// Subclasses must call this immediately after invoking a kernel, from the
+  /// C++ frame above the JIT/AOT boundary. It exists because on some platforms
+  /// (macOS arm64) a C++ exception cannot unwind through a JIT-compiled kernel
+  /// frame; the simulator records the error on the execution context instead of
+  /// throwing across that boundary (see
+  /// ExecutionContext::deferredKernelException). No-op when nothing was
+  /// deferred.
+  static void rethrowDeferredKernelException();
+
 public:
   /// The constructor, initializes the execution queue
   QPU() : execution_queue(std::make_unique<QuantumExecutionQueue>()) {}
