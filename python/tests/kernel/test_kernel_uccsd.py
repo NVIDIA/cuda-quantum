@@ -546,8 +546,7 @@ def test_cudaq_uccsd1():
     counts = cudaq.sample(kernel, shots_count=1000)
 
     expected_states = {
-        '00000011', '00000110', '00010010', '01000010', '10000001',
-        '11000000'
+        '00000011', '00000110', '00010010', '01000010', '10000001', '11000000'
     }
     observed_states = set(counts)
     assert len(observed_states) == 6 or len(observed_states) == 5
