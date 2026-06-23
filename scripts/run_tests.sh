@@ -76,11 +76,12 @@ fi
 
 # 1. CTest: all gtest tests in parallel.
 # Exclude lit test suites from ctest -- they are run individually below.
+# Keep ctest-cudaq-unit in this pass; it wraps gtest-based cudaq/unittests.
 # GPU tests serialize automatically via RESOURCE_LOCK "gpu" in CMakeLists.txt.
 # On machines without a GPU, $gpu_excludes skips gpu_required tests.
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
-  -E "ctest-cudaq|ctest-targettests|pycudaq-mlir" $gpu_excludes
+  -E "^(ctest-cudaq|ctest-targettests|pycudaq-mlir)$" $gpu_excludes
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"

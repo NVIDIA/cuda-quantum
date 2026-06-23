@@ -11,9 +11,9 @@ CUDA-Q Realtime, including connectivity to a
 
 - A host system with NVIDIA GPU and ConnectX-7/BlueField NIC.
 
-- A FPGA, programmed with `HSB` IP and connected to the NIC.
+- An FPGA, programmed with `HSB` IP and connected to the NIC.
 
-> **_NOTE:_** We recommended using NVIDIA ConnectX-7 as prior generations
+> **_NOTE:_** We recommend using NVIDIA ConnectX-7 as prior generations
 may not have all the required capabilities.
 
 ### Software Components
@@ -26,7 +26,7 @@ may not have all the required capabilities.
 with `gpunetio` support.
 
 > **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA
-using the builtin `HSB` support of CUDA-Q realtime.
+using the built-in `HSB` support of CUDA-Q Realtime.
 
 <!--- -->
 
@@ -59,12 +59,13 @@ Please refer to this [section](#using-docker) for instructions.
     >  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/cudaq/realtime/lib
     > ```
 
-2. Load `HSB` IP bit-file to the FPGA
+2. Program the FPGA with `HSB`
 
-    The bit-file for supported FPGA vendors
-    can be found [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/).
+    See the [CUDA-Q Realtime installation docs](https://nvidia.github.io/cuda-quantum/latest/using/realtime/installation.html#realtime-hsb-fpga-artifacts)
+    for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
+    and the pre-built RFSoC bit-file.
 
-    > **_NOTE:_** Please make sure set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
+    > **_NOTE:_** Please make sure to set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
     and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration)
     (if not already done so).
 
