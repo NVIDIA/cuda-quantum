@@ -527,4 +527,129 @@ CUDAQ_TEST(KernelsTester, msmTester_pauli2) {
   EXPECT_EQ(msm_prob_err_id[0], 0);
 }
 
+/// @brief Build a two-qubit (4x4) product channel from single-qubit Kraus
+/// operators, tagged with a single-qubit noise type and a single probability.
+/// Matches how the CUDA-QX QEC library builds `two_qubit_depolarization` /
+/// `two_qubit_bitflip`.
+static cudaq::kraus_channel make_two_qubit_product_channel(
+    const std::vector<std::vector<cudaq::complex>> &singleQubitKraus,
+    cudaq::noise_model_type type, double p) {
+  std::vector<cudaq::kraus_op> ops;
+  for (const auto &k1 : singleQubitKraus)
+    for (const auto &k2 : singleQubitKraus)
+      ops.push_back(cudaq::kraus_op(cudaq::detail::kron(k1, 2, 2, k2, 2, 2)));
+  cudaq::kraus_channel channel(ops);
+  channel.noise_type = type;
+  channel.parameters = {p};
+  return channel;
+}
+
+/// @brief A single-qubit-tagged depolarization channel on a two-qubit gate
+/// broadcasts to an independent DEPOLARIZE1 on each qubit in the MSM.
+CUDAQ_TEST(KernelsTester, msmTester_two_qubit_depol_broadcast) {
+  struct cx_kernel {
+    void operator()() __qpu__ {
+      cudaq::qvector q(2);
+      x<cudaq::ctrl>(q[0], q[1]);
+      mz(q);
+    }
+  };
+
+  double p = 0.0625;
+  auto r = static_cast<cudaq::real>(std::sqrt(1.0 - p));
+  auto s = static_cast<cudaq::real>(std::sqrt(p / 3.0));
+  std::vector<std::vector<cudaq::complex>> singleQubitKraus = {
+      {r, 0, 0, r},                                        // sqrt(1-p) I
+      {0, s, s, 0},                                        // sqrt(p/3) X
+      {0, cudaq::complex(0, -s), cudaq::complex(0, s), 0}, // sqrt(p/3) Y
+      {s, 0, 0, static_cast<cudaq::real>(-s)}};            // sqrt(p/3) Z
+
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel(
+      "x",
+      make_two_qubit_product_channel(
+          singleQubitKraus, cudaq::noise_model_type::depolarization_channel, p),
+      /*num_controls=*/1);
+  cudaq::set_noise(noise);
+
+  cudaq::ExecutionContext ctx_msm_size("msm_size");
+  auto &platform = cudaq::get_platform();
+  platform.with_execution_context(ctx_msm_size, cx_kernel{});
+
+  cudaq::ExecutionContext ctx_msm("msm");
+  ctx_msm.noiseModel = &noise;
+  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
+  platform.with_execution_context(ctx_msm, cx_kernel{});
+
+  auto msm_transpose = transpose_msm(ctx_msm.result.sequential_data());
+
+  // Mechanisms {X,Y,Z} on q0 then {X,Y,Z} on q1; only X and Y flip the
+  // Z-basis measurement. Row 0 is q0, row 1 is q1.
+  const std::vector<std::string> expected = {"11....", "...11."};
+  EXPECT_EQ(msm_transpose, expected);
+
+  ASSERT_EQ(ctx_msm.msm_probabilities.value().size(), 6u);
+  for (std::size_t i = 0; i < 6; i++)
+    EXPECT_NEAR(ctx_msm.msm_probabilities.value()[i], p / 3, 1e-5)
+        << "Mismatch at index " << i;
+
+  // Each qubit is an independent error source with its own error id.
+  const std::vector<std::size_t> expected_err_ids = {0, 0, 0, 1, 1, 1};
+  EXPECT_EQ(ctx_msm.msm_prob_err_id.value(), expected_err_ids);
+
+  cudaq::unset_noise();
+}
+
+/// @brief A single-qubit-tagged bit-flip channel on a two-qubit gate
+/// broadcasts to an independent X_ERROR on each qubit in the MSM.
+CUDAQ_TEST(KernelsTester, msmTester_two_qubit_bitflip_broadcast) {
+  struct cx_kernel {
+    void operator()() __qpu__ {
+      cudaq::qvector q(2);
+      x<cudaq::ctrl>(q[0], q[1]);
+      mz(q);
+    }
+  };
+
+  double p = 0.0625;
+  auto r = static_cast<cudaq::real>(std::sqrt(1.0 - p));
+  auto t = static_cast<cudaq::real>(std::sqrt(p));
+  std::vector<std::vector<cudaq::complex>> singleQubitKraus = {
+      {r, 0, 0, r},  // sqrt(1-p) I
+      {0, t, t, 0}}; // sqrt(p) X
+
+  cudaq::noise_model noise;
+  noise.add_all_qubit_channel(
+      "x",
+      make_two_qubit_product_channel(
+          singleQubitKraus, cudaq::noise_model_type::bit_flip_channel, p),
+      /*num_controls=*/1);
+  cudaq::set_noise(noise);
+
+  cudaq::ExecutionContext ctx_msm_size("msm_size");
+  auto &platform = cudaq::get_platform();
+  platform.with_execution_context(ctx_msm_size, cx_kernel{});
+
+  cudaq::ExecutionContext ctx_msm("msm");
+  ctx_msm.noiseModel = &noise;
+  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
+  platform.with_execution_context(ctx_msm, cx_kernel{});
+
+  auto msm_transpose = transpose_msm(ctx_msm.result.sequential_data());
+
+  // Two mechanisms: X on q0 (flips row 0) and X on q1 (flips row 1).
+  const std::vector<std::string> expected = {"1.", ".1"};
+  EXPECT_EQ(msm_transpose, expected);
+
+  ASSERT_EQ(ctx_msm.msm_probabilities.value().size(), 2u);
+  for (std::size_t i = 0; i < 2; i++)
+    EXPECT_NEAR(ctx_msm.msm_probabilities.value()[i], p, 1e-5)
+        << "Mismatch at index " << i;
+
+  const std::vector<std::size_t> expected_err_ids = {0, 1};
+  EXPECT_EQ(ctx_msm.msm_prob_err_id.value(), expected_err_ids);
+
+  cudaq::unset_noise();
+}
+
 #endif
