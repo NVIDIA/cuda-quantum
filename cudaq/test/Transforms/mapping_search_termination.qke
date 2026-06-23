@@ -1,0 +1,50 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The release valve force-routes a front-layer gate when the SABRE heuristic
+// reaches the stall budget without routing one. Pinning the budget to one swap
+// makes the valve fire, and contrasting that against a budget high enough that
+// it never fires shows the routing is observably the valve's work, not ordinary
+// SABRE: on this circuit the forced route uses 5 swaps where the unrestricted
+// heuristic uses 3. CircuitCheck confirms both outputs are correct mappings.
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=1 stall-swap-budget-per-qubit=0' %s | FileCheck --check-prefix=VALVE %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=1 stall-swap-budget-per-qubit=0' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=16 stall-swap-budget-per-qubit=0' %s | FileCheck --check-prefix=NOVALVE %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none min-stall-swap-budget=16 stall-swap-budget-per-qubit=0' %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+func.func @release_valve() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %v3 = quake.borrow_wire @wires[3] : !quake.wire
+  %v4 = quake.borrow_wire @wires[4] : !quake.wire
+  %v5 = quake.borrow_wire @wires[5] : !quake.wire
+  // Two overlapping long-range gates on a path. With the budget pinned to 1 the
+  // heuristic is cut off and the valve force-routes them along shortest paths;
+  // with a high budget the heuristic routes them with fewer swaps.
+  %g0:2 = quake.x [%v0] %v3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g1:2 = quake.x [%v2] %v5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %g0#0 : !quake.wire
+  quake.return_wire %v1 : !quake.wire
+  quake.return_wire %g1#0 : !quake.wire
+  quake.return_wire %g0#1 : !quake.wire
+  quake.return_wire %v4 : !quake.wire
+  quake.return_wire %g1#1 : !quake.wire
+  return
+}
+
+// The release valve force-routes both gates, at a higher swap count.
+// VALVE-COUNT-5: quake.swap
+// VALVE-NOT: quake.swap
+
+// With a budget high enough that the valve never fires, the heuristic routes the
+// same circuit with fewer swaps.
+// NOVALVE-COUNT-3: quake.swap
+// NOVALVE-NOT: quake.swap
