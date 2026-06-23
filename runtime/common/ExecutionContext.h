@@ -215,8 +215,8 @@ void resetExecutionContext();
 /// @brief Execute the given function within the given policy and execution
 /// context.
 template <typename Policy, typename Callable, typename... Args>
-auto with_policy_and_ctx(Policy &policy, ExecutionContext &ctx, Callable &&f,
-                         Args &&...args)
+auto with_policy_and_ctx(const Policy &policy, ExecutionContext &ctx,
+                         Callable &&f, Args &&...args)
     -> std::invoke_result_t<Callable, Args...> {
 
   // Save the outer execution context (if any) so we can restore it after.
