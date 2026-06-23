@@ -958,13 +958,14 @@ public:
     }
 
     /// Use the dialect-conversion framework to replace each synthesizable
-    /// custom operation with a `quake.apply` of its decomposed kernel. A custom
-    /// op is *illegal* (must be rewritten) exactly when such a kernel exists;
-    /// everything else is *legal* and left untouched, so the pass stays
-    /// composable (no `signalPassFailure`, no crash) -- the rewrite is never
-    /// committed unless the legality constraint is met.
+    /// custom operation with a `quake.apply` of its decomposed kernel. This
+    /// pass only ever rewrites `quake.custom_unitary_constant` (marked
+    /// *illegal* when a decomposed kernel exists for it) into a `quake.apply`
+    /// (the single op it produces, hence marked legal). A partial conversion
+    /// leaves every other, unmarked op untouched, so the pass stays composable
+    /// -- unsupported/non-unitary/reconstruction-miss custom ops simply remain.
     ConversionTarget target(*ctx);
-    target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
+    target.addLegalOp<cudaq::quake::ApplyOp>();
     target.addDynamicallyLegalOp<cudaq::quake::CustomUnitaryConstantOp>(
         [](cudaq::quake::CustomUnitaryConstantOp op) {
           return !op->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
