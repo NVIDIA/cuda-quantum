@@ -316,6 +316,10 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     }
     auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
+    auto calleeAttr = FlatSymbolRefAttr::get(ctx, calleeName);
+    if (!SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply,
+                                                            calleeAttr))
+      return failure();
     auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
@@ -335,7 +339,7 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     }
     LLVM_DEBUG(llvm::dbgs() << "replacing: " << apply << '\n');
     [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<func::CallOp>(
-        apply, apply.getResultTypes(), calleeName, newArgs);
+        apply, apply.getResultTypes(), calleeAttr, newArgs);
     LLVM_DEBUG(llvm::dbgs() << "with " << result << '\n');
     return success();
   }
