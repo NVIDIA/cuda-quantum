@@ -948,14 +948,32 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
       "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), "
       "file(/path/to/file), bypass">,
-    Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
+    Option<"extendedLayerSize", "extended-layer-size", "unsigned",
            /*default=*/"20", "Extended layer size">,
-    Option<"extendedLayerWeight", "extendedLayerWeight", "float",
+    Option<"extendedLayerWeight", "extended-layer-weight", "float",
            /*default=*/"0.5", "Extended layer weight">,
-    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5",
+    Option<"decayDelta", "decay-delta", "float", /*default=*/"0.5",
            "Decay delta">,
-    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
+    Option<"roundsDecayReset", "rounds-decay-reset", "unsigned", /*default=*/"5",
            "Number of rounds before decay is reset">,
+    Option<"minStallSwapBudget", "min-stall-swap-budget", "unsigned",
+           /*default=*/"64",
+           "Release valve floor: minimum number of consecutive swaps that route "
+           "no gate before a stuck front layer is force-routed along a shortest "
+           "path (advanced)">,
+    Option<"stallSwapBudgetPerQubit", "stall-swap-budget-per-qubit", "unsigned",
+           /*default=*/"4",
+           "Release valve scaling: per-device-qubit stall budget. The budget "
+           "used is max(min-stall-swap-budget, stall-swap-budget-per-qubit * "
+           "numQubits) (advanced)">,
+    Option<"placement", "placement", "std::string",
+           /*default=*/"\"identity\"",
+           "Initial placement strategy: auto (propose identity and greedy "
+           "seeds, select by routed swap count), identity, greedy">,
+    Option<"search", "search", "std::string", /*default=*/"\"none\"",
+           "Layout search strategy: sabre (SABRE forward-backward-forward "
+           "reverse-traversal refinement of each seed), none (single forward "
+           "route per seed; legacy mapping is placement=identity search=none)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
            "internal compiler errors">

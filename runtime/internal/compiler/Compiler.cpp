@@ -455,7 +455,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
         return mlir::WalkResult::advance();
       });
       if (hasNamedMeasurements) {
-        warnedNamedMeasurements = true;
         std::cerr << "WARNING: Kernel \"" << kernelName
                   << "\" uses named measurement results "
                   << "but is invoked in sampling mode. Support for "

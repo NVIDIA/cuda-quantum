@@ -57,9 +57,6 @@ class Compiler {
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
-  /// Whether compilation emitted a named measurement warning.
-  bool warnedNamedMeasurements = false;
-
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
                                            mlir::MLIRContext *,
@@ -94,10 +91,6 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  /// Whether compilation emitted a warning about the presence of named
-  /// measurements.
-  bool hasWarnedNamedMeasurements() const { return warnedNamedMeasurements; }
-
   const cudaq::CompileTarget &getTarget() const { return *target; }
 
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
@@ -151,10 +144,6 @@ compileModule(const Policy &policy,
   auto compiled =
       compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
 
-  if constexpr (std::is_same_v<Policy, cudaq::sample_policy>) {
-    if (compiler.hasWarnedNamedMeasurements())
-      policy.warnedNamedMeasurements = true;
-  }
   return compiled;
 }
 
