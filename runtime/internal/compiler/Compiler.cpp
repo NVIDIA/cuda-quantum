@@ -24,6 +24,8 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
+#include "cudaq/algorithms/observe/policy.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ADT/SmallSet.h"
@@ -577,7 +579,8 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 
     auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
     codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
-                       mapping_reorder_idx);
+                       mapping_reorder_idx,
+                       compiled.getMetadata().hasConditionalsOnMeasureResults);
   }
 
   return codes;
@@ -704,4 +707,30 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
     }
   }
   return moduleOp;
+}
+
+cudaq::CompiledModule cudaq_internal::compiler::compileModule(
+    std::unique_ptr<cudaq::CompileTarget> target,
+    const cudaq::SourceModule &src, cudaq::KernelArgs args, bool isEntryPoint) {
+  if (!target->overrideAOTCompilation && src.getFunctionPtr()) {
+    // We are allowed to use the AOT-compiled module as-is, so nothing to do.
+    CUDAQ_INFO("No JIT compilation required. Using AOT-compiled module as-is.");
+    return cudaq::CompiledModule{src};
+  }
+
+  const auto &kernelName = src.getName();
+  auto mlirArt = src.getMlir();
+  if (!mlirArt.has_value()) {
+    mlirArt = CompiledModuleHelper::loadMlirArtifact(src);
+  }
+
+  assert(mlirArt.has_value() &&
+         "Compiler::compileModule requires an MLIR artifact");
+
+  Compiler compiler(std::move(target));
+  auto compiled =
+      compiler.runPassPipeline(kernelName, mlirArt->getOpaqueModulePtr(), args,
+                               isEntryPoint, mlirArt->getContext());
+
+  return compiled;
 }
