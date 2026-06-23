@@ -6,9 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np
-import scipy.sparse as sp
-
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
@@ -69,6 +66,9 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
 
     if not return_m2d:
         return result
+
+    import numpy as np
+    import scipy.sparse as sp
 
     dem_text, num_measurements, det_rows, obs_rows = result
 
