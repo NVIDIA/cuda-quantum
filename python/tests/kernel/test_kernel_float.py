@@ -310,3 +310,133 @@ def test_float32_list_parameter_promotion():
     check([np.float32(np.pi / 2), 0])
     check([1, 0])
     check([np.pi / 2, 0, True])
+
+
+def test_math_functions_float64():
+    """Test that math functions can be used inside kernels and match host numpy (float64)."""
+
+    @cudaq.kernel
+    def f_sin() -> np.float64:
+        return np.sin(np.float64(0.5))
+
+    assert is_close(np.sin(0.5), f_sin())
+
+    @cudaq.kernel
+    def f_cos() -> np.float64:
+        return np.cos(np.float64(0.5))
+
+    assert is_close(np.cos(0.5), f_cos())
+
+    @cudaq.kernel
+    def f_tan() -> np.float64:
+        return np.tan(np.float64(0.5))
+
+    assert is_close(np.tan(0.5), f_tan())
+
+    @cudaq.kernel
+    def f_arcsin() -> np.float64:
+        return np.arcsin(np.float64(0.5))
+
+    assert is_close(np.arcsin(0.5), f_arcsin())
+
+    @cudaq.kernel
+    def f_arccos() -> np.float64:
+        return np.arccos(np.float64(0.5))
+
+    assert is_close(np.arccos(0.5), f_arccos())
+
+    @cudaq.kernel
+    def f_arctan() -> np.float64:
+        return np.arctan(np.float64(0.5))
+
+    assert is_close(np.arctan(0.5), f_arctan())
+
+    @cudaq.kernel
+    def f_sqrt() -> np.float64:
+        return np.sqrt(np.float64(0.5))
+
+    assert is_close(np.sqrt(0.5), f_sqrt())
+
+    @cudaq.kernel
+    def f_exp() -> np.float64:
+        return np.exp(np.float64(0.5))
+
+    assert is_close(np.exp(0.5), f_exp())
+
+    @cudaq.kernel
+    def f_log() -> np.float64:
+        return np.log(np.float64(0.5))
+
+    assert is_close(np.log(0.5), f_log())
+
+
+def test_math_functions_float32():
+    """Test that math functions can be used inside kernels and match host numpy (float32)."""
+
+    @cudaq.kernel
+    def f_sin() -> np.float32:
+        return np.sin(np.float32(0.5))
+
+    assert is_close(np.sin(np.float32(0.5)), f_sin())
+
+    @cudaq.kernel
+    def f_cos() -> np.float32:
+        return np.cos(np.float32(0.5))
+
+    assert is_close(np.cos(np.float32(0.5)), f_cos())
+
+    @cudaq.kernel
+    def f_tan() -> np.float32:
+        return np.tan(np.float32(0.5))
+
+    assert is_close(np.tan(np.float32(0.5)), f_tan())
+
+    @cudaq.kernel
+    def f_arcsin() -> np.float32:
+        return np.arcsin(np.float32(0.5))
+
+    assert is_close(np.arcsin(np.float32(0.5)), f_arcsin())
+
+    @cudaq.kernel
+    def f_arccos() -> np.float32:
+        return np.arccos(np.float32(0.5))
+
+    assert is_close(np.arccos(np.float32(0.5)), f_arccos())
+
+    @cudaq.kernel
+    def f_arctan() -> np.float32:
+        return np.arctan(np.float32(0.5))
+
+    assert is_close(np.arctan(np.float32(0.5)), f_arctan())
+
+    @cudaq.kernel
+    def f_sqrt() -> np.float32:
+        return np.sqrt(np.float32(0.5))
+
+    assert is_close(np.sqrt(np.float32(0.5)), f_sqrt())
+
+    @cudaq.kernel
+    def f_exp() -> np.float32:
+        return np.exp(np.float32(0.5))
+
+    assert is_close(np.exp(np.float32(0.5)), f_exp())
+
+    @cudaq.kernel
+    def f_log() -> np.float32:
+        return np.log(np.float32(0.5))
+
+    assert is_close(np.log(np.float32(0.5)), f_log())
+
+
+def test_math_function_as_gate_parameter():
+    """Test that a math function result can be used as a gate parameter."""
+
+    @cudaq.kernel
+    def prep(p: float):
+        q = cudaq.qubit()
+        ry(2.0 * np.asin(np.sqrt(p)), q)
+
+    cudaq.set_random_seed(13)
+    p = 0.3
+    counts = cudaq.sample(prep, p, shots_count=20000)
+    assert abs(counts.probability('1') - p) < 0.02
