@@ -101,4 +101,34 @@ std::string dem_from_kernel(QuantumKernel &&kernel, Args &&...args) {
                          /*noise=*/nullptr, std::forward<Args>(args)...);
 }
 
+/// @brief Overload that also returns the m2d and m2o sparse matrices.
+///
+/// @param m2d_out  Populated with the measurements-to-detectors matrix.
+/// @param m2o_out  Populated with the measurements-to-observables matrix.
+///                 Both are filled in a single circuit pass.
+template <typename QuantumKernel, typename... Args>
+  requires std::invocable<QuantumKernel &, Args...>
+std::string dem_from_kernel(QuantumKernel &&kernel,
+                            const cudaq::noise_model *noise,
+                            cudaq::M2DSparseMatrix &m2d_out,
+                            cudaq::M2OSparseMatrix &m2o_out, Args &&...args) {
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+  return detail::runDemFromKernel(
+      kernelName, platform, noise,
+      [&]() mutable { kernel(std::forward<Args>(args)...); },
+      /*plugin_name=*/"stim", &m2d_out, &m2o_out);
+}
+
+/// @brief Convenience overload: m2d/m2o outputs, no noise model.
+template <typename QuantumKernel, typename... Args>
+  requires std::invocable<QuantumKernel &, Args...>
+std::string dem_from_kernel(QuantumKernel &&kernel,
+                            cudaq::M2DSparseMatrix &m2d_out,
+                            cudaq::M2OSparseMatrix &m2o_out, Args &&...args) {
+  return dem_from_kernel(std::forward<QuantumKernel>(kernel),
+                         /*noise=*/nullptr, m2d_out, m2o_out,
+                         std::forward<Args>(args)...);
+}
+
 } // namespace cudaq

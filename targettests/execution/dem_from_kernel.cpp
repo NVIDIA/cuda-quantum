@@ -220,6 +220,19 @@ static std::size_t maxIndexAfter(const std::string &haystack, char prefix) {
 
 static const cudaq::noise_model g_emptyNoise{};
 
+// Print a sparse matrix (m2d or m2o) in a stable, FileCheck-friendly form.
+template <typename M>
+static void printSparseMatrix(const char *name, const M &mat) {
+  std::printf("%s rows=%zu cols=%zu\n", name, mat.rows.size(),
+              mat.num_measurements);
+  for (std::size_t r = 0; r < mat.rows.size(); ++r) {
+    std::printf("  row[%zu]:", r);
+    for (auto c : mat.rows[r])
+      std::printf(" %zu", c);
+    std::printf("\n");
+  }
+}
+
 template <typename Kernel, typename... Args>
 static void runCase(const char *label, Kernel &&kernel, Args &&...args) {
   try {
@@ -305,6 +318,26 @@ int main() {
   // Non-Clifford gate must surface as a Stim diagnostic.
   runNoNoiseCase("NON_CLIFFORD", nonClifford{});
 
+  // m2d/m2o overload — with noise, two-round memory experiment.
+  // 6 measurements, 3 cross-round detectors, 1 observable over last 3.
+  {
+    cudaq::M2DSparseMatrix m2d;
+    cudaq::M2OSparseMatrix m2o;
+    cudaq::dem_from_kernel(memoryExperimentTwoRounds{}, &g_emptyNoise, m2d, m2o);
+    printSparseMatrix("M2D_MEM2R", m2d);
+    printSparseMatrix("M2O_MEM2R", m2o);
+  }
+
+  // m2d/m2o overload — no-noise convenience form, demoKernel.
+  // 3 measurements, 1 detector over all 3, 1 observable on m0.
+  {
+    cudaq::M2DSparseMatrix m2d;
+    cudaq::M2OSparseMatrix m2o;
+    cudaq::dem_from_kernel(demoKernel, m2d, m2o);
+    printSparseMatrix("M2D_DEMO", m2d);
+    printSparseMatrix("M2O_DEMO", m2o);
+  }
+
   return 0;
 }
 
@@ -319,3 +352,13 @@ int main() {
 // CHECK: VECTORIZED errors=4 detectors=3 observables=1
 // CHECK: CONDITIONAL THREW
 // CHECK: NON_CLIFFORD THREW
+// CHECK: M2D_MEM2R rows=3 cols=6
+// CHECK:   row[0]: 0 3
+// CHECK:   row[1]: 1 4
+// CHECK:   row[2]: 2 5
+// CHECK: M2O_MEM2R rows=1 cols=6
+// CHECK:   row[0]: 3 4 5
+// CHECK: M2D_DEMO rows=1 cols=3
+// CHECK:   row[0]: 0 1 2
+// CHECK: M2O_DEMO rows=1 cols=3
+// CHECK:   row[0]: 0
