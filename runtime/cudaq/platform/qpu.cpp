@@ -113,14 +113,14 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const sample_policy &) {
-  throw std::runtime_error(
-      "no CompileTarget defined for sample_policy on this QPU");
+  // Fall back to policy-agnostic compile target.
+  return getCompileTarget(other_policies{}, nullptr);
 }
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const observe_policy &) {
-  throw std::runtime_error(
-      "no CompileTarget defined for observe_policy on this QPU");
+  // Fall back to policy-agnostic compile target.
+  return getCompileTarget(other_policies{}, nullptr);
 }
 
 std::unique_ptr<cudaq::CompileTarget>
