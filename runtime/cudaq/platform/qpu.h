@@ -67,6 +67,19 @@ protected:
   /// deferred.
   static void rethrowDeferredKernelException();
 
+  /// @brief RAII marker for the window in which a JIT/AOT-compiled kernel frame
+  /// is executing. While alive it sets `ExecutionContext::inKernelLaunch` on
+  /// the active context, so the simulator defers (rather than throws)
+  /// exceptions that would otherwise have to unwind through the kernel frame.
+  /// Launchers wrap the raw kernel invocation in this scope and call
+  /// rethrowDeferredKernelException() immediately afterwards.
+  struct InKernelLaunchScope {
+    InKernelLaunchScope();
+    ~InKernelLaunchScope();
+    InKernelLaunchScope(const InKernelLaunchScope &) = delete;
+    InKernelLaunchScope &operator=(const InKernelLaunchScope &) = delete;
+  };
+
 public:
   /// The constructor, initializes the execution queue
   QPU() : execution_queue(std::make_unique<QuantumExecutionQueue>()) {}

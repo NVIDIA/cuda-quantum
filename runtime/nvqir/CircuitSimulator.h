@@ -903,17 +903,20 @@ protected:
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
-  /// @brief Record a fatal kernel error. When an execution context is active
-  /// the exception is stashed on it (`deferredKernelException`) so the launcher
-  /// can re-throw it from a C++ frame above the JIT boundary; this is required
-  /// on platforms such as macOS arm64 where a C++ exception cannot unwind
-  /// through a JIT-compiled kernel frame and would otherwise call
-  /// `std::terminate`. Without a context to carry the error there is no JIT
-  /// frame to escape, so throw directly. Only the first error per kernel run is
-  /// retained; later ones are suppressed since the kernel result is discarded.
+  /// @brief Record a fatal kernel error. While a JIT/AOT-compiled kernel frame
+  /// is executing (`ExecutionContext::inKernelLaunch`) the exception is stashed
+  /// on the context (`deferredKernelException`) so the launcher can re-throw it
+  /// from a C++ frame above the JIT boundary; this is required on platforms
+  /// such as macOS arm64 where a C++ exception cannot unwind through a
+  /// JIT-compiled kernel frame and would otherwise call `std::terminate`.
+  /// Outside such a frame (for example, gate application during sample/observe
+  /// finalization, or with no active context) there is no JIT frame to escape,
+  /// so throw directly, exactly as callers expect on every platform. Only the
+  /// first error per kernel run is retained; later ones are suppressed since
+  /// the kernel result is discarded.
   static void deferOrThrowKernelException(const std::string &msg) {
     auto *ctx = cudaq::getExecutionContext();
-    if (!ctx)
+    if (!ctx || !ctx->inKernelLaunch)
       throw std::runtime_error(msg);
     if (!ctx->deferredKernelException)
       ctx->deferredKernelException =

@@ -174,6 +174,15 @@ public:
   /// above that boundary once the kernel returns. Callers therefore observe the
   /// same exception they would on platforms where direct unwinding works.
   std::exception_ptr deferredKernelException;
+
+  /// @brief True while a JIT/AOT-compiled kernel frame is executing on this
+  /// thread (set by the launcher around the kernel invocation; see
+  /// QPU::InKernelLaunchScope). The simulator only defers exceptions into
+  /// `deferredKernelException` while this is set. Outside the kernel frame
+  /// (for example, gate application during sample/observe finalization) there
+  /// is no JIT frame for an exception to unwind through, so it is thrown
+  /// directly, preserving the behavior callers see on all platforms.
+  bool inKernelLaunch = false;
 };
 
 //===----------------------------------------------------------------------===//
