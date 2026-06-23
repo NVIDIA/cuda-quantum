@@ -37,8 +37,8 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
       noise_model (:class:`NoiseModel`, optional): Noise model layered on
           top of any `apply_noise` ops already present in the kernel.
       return_m2d (bool, optional): When True, also return the sparse
-          measurements-to-detectors (m2d) matrix alongside the DEM text.
-          Defaults to False.
+          measurements-to-detectors (m2d) and measurements-to-observables
+          (m2o) matrices alongside the DEM text. Defaults to False.
 
     Returns:
       If `return_m2d` is False (default): a UTF-8 string in Stim's standard
