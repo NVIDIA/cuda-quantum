@@ -1,0 +1,101 @@
+#!/bin/bash
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Test that nvq++ discovers external plugin targets from user and system
+# scopes, passes -rpath/-L for plugin lib directories, expands %PLUGIN_ROOT%
+# in YAML, and respects scope precedence (user overrides system).
+
+set -euo pipefail
+
+NVQ="@CMAKE_BINARY_DIR@/bin/nvq++"
+TARGET_DIR="@CMAKE_BINARY_DIR@/targets"
+SYSTEM_PLUGINS="${TARGET_DIR}/../plugins"
+
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR" "${SYSTEM_PLUGINS}/nvqpp-b5-system-only" "${SYSTEM_PLUGINS}/nvqpp-b5-precedence"' EXIT
+
+USER_HOME="${TMPDIR}/user"
+
+# Create a trivial C++ source for compilation tests.
+TRIVIAL_SRC="${TMPDIR}/trivial.cpp"
+echo 'int main() { return 0; }' > "$TRIVIAL_SRC"
+
+# --- User-only plugin (with data file for %PLUGIN_ROOT% expansion) ---
+mkdir -p "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets" \
+         "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/lib" \
+         "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/data"
+echo "topology" > "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/data/topology.txt"
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets/nvqpp-b5-user-only.yml" <<'EOF'
+name: nvqpp-b5-user-only
+description: "B5 user plugin target."
+config:
+  library-mode: true
+  preprocessor-defines: ["-DB5_USER_ONLY=%PLUGIN_ROOT%/data/topology.txt"]
+EOF
+
+# --- System-only plugin ---
+mkdir -p "${SYSTEM_PLUGINS}/nvqpp-b5-system-only/targets" \
+         "${SYSTEM_PLUGINS}/nvqpp-b5-system-only/lib"
+cat > "${SYSTEM_PLUGINS}/nvqpp-b5-system-only/targets/nvqpp-b5-system-only.yml" <<'EOF'
+name: nvqpp-b5-system-only
+description: "B5 system plugin target."
+config:
+  library-mode: true
+  preprocessor-defines: ["-DB5_SYSTEM_ONLY"]
+EOF
+
+# --- Precedence plugin: same name in both user and system scopes ---
+mkdir -p "${USER_HOME}/cudaq/plugins/nvqpp-b5-precedence/targets" \
+         "${USER_HOME}/cudaq/plugins/nvqpp-b5-precedence/lib"
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-b5-precedence/targets/nvqpp-b5-precedence.yml" <<'EOF'
+name: nvqpp-b5-precedence
+description: "B5 user precedence target."
+config:
+  library-mode: true
+  preprocessor-defines: ["-DB5_FROM_USER"]
+EOF
+mkdir -p "${SYSTEM_PLUGINS}/nvqpp-b5-precedence/targets" \
+         "${SYSTEM_PLUGINS}/nvqpp-b5-precedence/lib"
+cat > "${SYSTEM_PLUGINS}/nvqpp-b5-precedence/targets/nvqpp-b5-precedence.yml" <<'EOF'
+name: nvqpp-b5-precedence
+description: "B5 system fallback target."
+config:
+  library-mode: true
+  preprocessor-defines: ["-DB5_FROM_SYSTEM"]
+EOF
+
+# --- Test: --list-targets shows both user and system plugins ---
+list_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" --list-targets)
+echo "$list_output" | grep -q 'nvqpp-b5-user-only'
+echo "$list_output" | grep -q 'nvqpp-b5-system-only'
+
+# --- Test: User plugin passes correct flags and expands %PLUGIN_ROOT% ---
+user_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-user-only \
+              "$TRIVIAL_SRC" -o "${TMPDIR}/user.exe" 2>&1)
+echo "$user_output" | grep -- '-DB5_USER_ONLY=' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/data/topology.txt'
+echo "$user_output" | grep -- '-Wl,-rpath,' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
+echo "$user_output" | grep -- '-L' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
+
+# --- Test: System plugin passes correct flags and lib paths ---
+system_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-system-only \
+                "$TRIVIAL_SRC" -o "${TMPDIR}/system.exe" 2>&1)
+echo "$system_output" | grep -q -- '-DB5_SYSTEM_ONLY'
+echo "$system_output" | grep -- '-Wl,-rpath,' | grep -q '/plugins/nvqpp-b5-system-only/lib'
+echo "$system_output" | grep -- '-L' | grep -q '/plugins/nvqpp-b5-system-only/lib'
+
+# --- Test: User scope takes precedence over system scope ---
+precedence_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-precedence \
+                    "$TRIVIAL_SRC" -o "${TMPDIR}/precedence.exe" 2>&1)
+echo "$precedence_output" | grep -q -- '-DB5_FROM_USER'
+if echo "$precedence_output" | grep -q -- '-DB5_FROM_SYSTEM'; then
+  echo "FAIL: system scope should not override user scope" >&2
+  exit 1
+fi
+
+echo "PASS: external_plugin_target"

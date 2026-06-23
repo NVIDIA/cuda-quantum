@@ -438,6 +438,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
 endif()
 
 add_subdirectory(backends)
+add_subdirectory(plugins)
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)
