@@ -67,6 +67,16 @@ void cudaq::QPU::rethrowDeferredKernelException() {
   }
 }
 
+cudaq::QPU::InKernelLaunchScope::InKernelLaunchScope() {
+  if (auto *ctx = getExecutionContext())
+    ctx->inKernelLaunch = true;
+}
+
+cudaq::QPU::InKernelLaunchScope::~InKernelLaunchScope() {
+  if (auto *ctx = getExecutionContext())
+    ctx->inKernelLaunch = false;
+}
+
 cudaq::KernelThunkResultType
 cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
                                  KernelArgs args) {
@@ -86,6 +96,10 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   auto rawArgs = args.getTypeErased().value_or(std::span<void *const>{});
   auto funcPtr = compiled.getJit()->getFn();
   const auto &resultInfo = compiled.getResultInfo();
+  // Mark the kernel frame so the simulator defers (rather than throws)
+  // exceptions while the JIT'd kernel runs; rethrowDeferredKernelException()
+  // below surfaces any such error from this C++ frame.
+  InKernelLaunchScope kernelFrame;
   if (!compiled.isFullySpecialized()) {
     // Pack args at runtime via argsCreator, then call the thunk.
     auto argsCreator = compiled.getArgsCreator();
