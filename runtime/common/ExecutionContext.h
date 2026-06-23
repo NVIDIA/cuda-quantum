@@ -24,6 +24,27 @@ class SimulationState;
 class ExecutionManager;
 class KernelArgs;
 
+/// @brief Options forwarded to
+/// `stim::ErrorAnalyzer::circuit_to_detector_error_model` when generating a
+/// Detector Error Model (DEM) from a kernel.
+struct dem_options {
+  /// Decompose hyper-edge error mechanisms into pairs of two-detector edges.
+  bool decompose_errors = false;
+  /// Fold loop bodies in the circuit for a more compact DEM.
+  bool fold_loops = false;
+  /// Allow detectors whose parity is not determined by the circuit.
+  bool allow_gauge_detectors = false;
+  /// Threshold (in [0,1]) for approximating disjoint-error products.
+  /// Set to 0 to disable approximation.
+  double approximate_disjoint_errors_threshold = 0.0;
+  /// Silently skip error mechanisms that cannot be decomposed instead of
+  /// raising an exception.
+  bool ignore_decomposition_failures = false;
+  /// Prevent the decomposer from introducing remnant edges that would otherwise
+  /// be needed to satisfy the decomposition.
+  bool block_decomposition_from_introducing_remnant_edges = false;
+};
+
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
 class ExecutionContext {
@@ -163,10 +184,8 @@ public:
   /// @brief Slot for the detector error model, as `.dem` text.
   std::string dem_text;
 
-  /// @brief When true, hyper-edge error mechanisms are decomposed into pairs of
-  /// two-detector edges by the Stim ErrorAnalyzer before the `.dem` text is
-  /// returned by `dem_from_kernel`. Defaults to false.
-  bool dem_decompose_errors = false;
+  /// @brief Options forwarded to the Stim ErrorAnalyzer when generating a DEM.
+  dem_options opts;
   /// @endcond
 };
 

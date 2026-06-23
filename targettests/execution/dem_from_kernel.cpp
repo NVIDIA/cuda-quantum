@@ -244,7 +244,7 @@ static void runCase(const char *label, Kernel &&kernel, Args &&...args) {
   try {
     std::string demText = cudaq::dem_from_kernel(
         std::forward<Kernel>(kernel), &g_emptyNoise,
-        /*decompose_errors=*/false, std::forward<Args>(args)...);
+        /*options=*/cudaq::dem_options{}, std::forward<Args>(args)...);
     // Tally distinct DEM instructions.
     std::printf("%s errors=%zu detectors=%zu observables=%zu\n", label,
                 countOccurrences(demText, "error("),
@@ -271,18 +271,17 @@ static void runDecomposeCase(const char *label, Kernel &&kernel,
   try {
     std::string demRaw = cudaq::dem_from_kernel(
         std::forward<Kernel>(kernel), &g_emptyNoise,
-        /*decompose_errors=*/false, std::forward<Args>(args)...);
+        /*options=*/cudaq::dem_options{}, std::forward<Args>(args)...);
     std::string demDecomposed = cudaq::dem_from_kernel(
         std::forward<Kernel>(kernel), &g_emptyNoise,
-        /*decompose_errors=*/true, std::forward<Args>(args)...);
-    std::printf(
-        "%s_RAW hyperedge=%d caret=%d\n", label,
-        demRaw.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
-        demRaw.find('^') != std::string::npos ? 1 : 0);
-    std::printf(
-        "%s_DECOMPOSED hyperedge=%d caret=%d\n", label,
-        demDecomposed.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
-        demDecomposed.find('^') != std::string::npos ? 1 : 0);
+        /*options=*/cudaq::dem_options{.decompose_errors = true},
+        std::forward<Args>(args)...);
+    std::printf("%s_RAW hyperedge=%d caret=%d\n", label,
+                demRaw.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
+                demRaw.find('^') != std::string::npos ? 1 : 0);
+    std::printf("%s_DECOMPOSED hyperedge=%d caret=%d\n", label,
+                demDecomposed.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
+                demDecomposed.find('^') != std::string::npos ? 1 : 0);
   } catch (const std::exception &e) {
     std::printf("%s THREW: %s\n", label, e.what());
   }

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
@@ -213,16 +214,14 @@ protected:
   /// `recordedCircuit` and return it as `.dem` text.
   std::string generateDem() override {
     auto *ctx = getExecutionContext();
-    const bool decompose_errors = ctx ? ctx->dem_decompose_errors : false;
+    const cudaq::dem_options opts = ctx ? ctx->opts : cudaq::dem_options{};
     stim::DetectorErrorModel dem =
         stim::ErrorAnalyzer::circuit_to_detector_error_model(
-            recordedCircuit,
-            /*decompose_errors=*/decompose_errors,
-            /*fold_loops=*/false,
-            /*allow_gauge_detectors=*/false,
-            /*approximate_disjoint_errors_threshold=*/0,
-            /*ignore_decomposition_failures=*/false,
-            /*block_decomposition_from_introducing_remnant_edges=*/false);
+            recordedCircuit, opts.decompose_errors, opts.fold_loops,
+            opts.allow_gauge_detectors,
+            opts.approximate_disjoint_errors_threshold,
+            opts.ignore_decomposition_failures,
+            opts.block_decomposition_from_introducing_remnant_edges);
     return dem.str();
   }
 

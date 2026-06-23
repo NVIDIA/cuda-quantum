@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/ExecutionContext.h"
 #include "cudaq/platform.h"
 #include <concepts>
 #include <functional>
@@ -25,7 +26,7 @@ std::string runDemFromKernel(const std::string &kernelName,
                              cudaq::quantum_platform &platform,
                              const cudaq::noise_model *noise,
                              const std::function<void()> &wrappedKernel,
-                             bool decompose_errors = false,
+                             const cudaq::dem_options &options = {},
                              const std::string &plugin_name = "stim");
 
 } // namespace cudaq::detail
@@ -45,30 +46,29 @@ namespace cudaq {
 ///                lambda, or kernel-builder).
 /// @param noise   Optional noise model layered on per `cudaq::noise_model`
 ///                semantics.
-/// @param decompose_errors When true, hyper-edge error mechanisms are
-///                decomposed into graph-like pair edges by Stim's error
-///                analyzer.
+/// @param options Options forwarded to the Stim error analyzer (see
+///                `cudaq::dem_options`).
 /// @param args    Arguments forwarded to the kernel invocation.
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
 std::string dem_from_kernel(QuantumKernel &&kernel,
                             const cudaq::noise_model *noise,
-                            bool decompose_errors, Args &&...args) {
+                            const cudaq::dem_options &options, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   return detail::runDemFromKernel(
       kernelName, platform, noise,
-      [&]() mutable { kernel(std::forward<Args>(args)...); }, decompose_errors);
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, options);
 }
 
-/// @brief Convenience overload: noise model with default
-/// `decompose_errors=false`, forwarding @p args to the kernel.
+/// @brief Convenience overload: noise model with default options, forwarding
+/// @p args to the kernel.
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
 std::string dem_from_kernel(QuantumKernel &&kernel,
                             const cudaq::noise_model *noise, Args &&...args) {
   return dem_from_kernel(std::forward<QuantumKernel>(kernel), noise,
-                         /*decompose_errors=*/false,
+                         /*options=*/cudaq::dem_options{},
                          std::forward<Args>(args)...);
 }
 
@@ -77,7 +77,7 @@ template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
 std::string dem_from_kernel(QuantumKernel &&kernel, Args &&...args) {
   return dem_from_kernel(std::forward<QuantumKernel>(kernel),
-                         /*noise=*/nullptr, /*decompose_errors=*/false,
+                         /*noise=*/nullptr, /*options=*/cudaq::dem_options{},
                          std::forward<Args>(args)...);
 }
 
