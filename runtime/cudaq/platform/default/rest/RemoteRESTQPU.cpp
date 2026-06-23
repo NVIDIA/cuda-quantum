@@ -15,8 +15,8 @@ static std::vector<cudaq::KernelExecution>
 runCodegen(const cudaq::CompiledModule &module,
            std::unique_ptr<cudaq::CompileTarget> target) {
   if (module.getMlirArtifacts().empty())
-    throw std::runtime_error("QPU does not support launching a "
-                             "CompiledModule without MLIR artifacts.");
+    CUDAQ_ERROR("QPU does not support launching a "
+                "CompiledModule without MLIR artifacts.");
 
   cudaq_internal::compiler::Compiler compiler(std::move(target));
   return compiler.emitKernelExecutions(module);
@@ -87,8 +87,8 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   CUDAQ_INFO("launching remote rest kernel ({})", compiled.getName());
 
   if (compiled.getMlirArtifacts().empty())
-    throw std::runtime_error("QPU does not support launching a "
-                             "CompiledModule without MLIR artifacts.");
+    CUDAQ_ERROR("QPU does not support launching a "
+                "CompiledModule without MLIR artifacts.");
 
   auto codes = compiler.emitKernelExecutions(compiled);
 
