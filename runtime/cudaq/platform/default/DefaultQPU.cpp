@@ -38,7 +38,11 @@ cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
 
   auto packed = args.getPacked();
   void *argData = packed ? packed->data.data() : nullptr;
-  return rawFn->getFn()(argData, /*isRemote=*/false);
+  auto result = rawFn->getFn()(argData, /*isRemote=*/false);
+  // Surface any error the kernel deferred rather than threw (see
+  // QPU::rethrowDeferredKernelException).
+  rethrowDeferredKernelException();
+  return result;
 }
 
 cudaq::sample_result

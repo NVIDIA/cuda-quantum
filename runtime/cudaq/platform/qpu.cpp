@@ -19,6 +19,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
+#include <exception>
 #include <stdexcept>
 
 using namespace cudaq_internal::compiler;
@@ -58,6 +59,14 @@ cudaq::QPU::launchKernel(const async_observe_policy &policy,
       "This QPU does not support launching the async_observe_policy.");
 }
 
+void cudaq::QPU::rethrowDeferredKernelException() {
+  if (auto *ctx = getExecutionContext(); ctx && ctx->deferredKernelException) {
+    auto deferred = ctx->deferredKernelException;
+    ctx->deferredKernelException = nullptr;
+    std::rethrow_exception(deferred);
+  }
+}
+
 cudaq::KernelThunkResultType
 cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
                                  KernelArgs args) {
@@ -92,17 +101,21 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
                   resultInfo.getBufferSize());
     }
     std::free(buff);
+    rethrowDeferredKernelException();
     return {nullptr, 0};
   }
   if (resultInfo.hasResult()) {
     // Fully specialized with result: rawArgs.back() is the pre-allocated
     // result buffer; pass it directly to the thunk.
     void *buff = const_cast<void *>(rawArgs.back());
-    return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
-        buff, /*client_server=*/false);
+    auto result = reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(
+        funcPtr)(buff, /*client_server=*/false);
+    rethrowDeferredKernelException();
+    return result;
   }
   // Fully specialized, no result.
   funcPtr();
+  rethrowDeferredKernelException();
   return {nullptr, 0};
 }
 

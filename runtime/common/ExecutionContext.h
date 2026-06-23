@@ -15,6 +15,7 @@
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
+#include <exception>
 #include <optional>
 #include <string_view>
 
@@ -159,6 +160,16 @@ public:
   /// @brief Slot for the detector error model, as `.dem` text.
   std::string dem_text;
   /// @endcond
+
+  /// @brief Captures an exception raised by the kernel while it runs on a
+  /// backend that cannot unwind C++ exceptions through JIT-compiled kernel
+  /// frames (notably macOS arm64, where the ORC-JIT'd kernel frame carries no
+  /// unwind info the system unwinder can use, so a throw escaping into it calls
+  /// `std::terminate`). The simulator stores the error here instead of throwing
+  /// across the JIT boundary, and the launcher re-throws it from a C++ frame
+  /// above that boundary once the kernel returns. Callers therefore observe the
+  /// same exception they would on platforms where direct unwinding works.
+  std::exception_ptr deferredKernelException;
 };
 
 //===----------------------------------------------------------------------===//
