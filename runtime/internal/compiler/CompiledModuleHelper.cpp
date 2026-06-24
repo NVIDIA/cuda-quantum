@@ -7,11 +7,12 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "common/CompiledModule.h"
+#include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Operation.h"
 #include "mlir/IR/Types.h"
 
 using namespace mlir;
@@ -93,6 +94,18 @@ CompiledModule CompiledModuleHelper::createCompiledModule(
   for (auto &[artName, artifact] : compiledArtifacts)
     compiled.addArtifact(std::move(artName), std::move(artifact));
   return compiled;
+}
+
+cudaq::FatQuakeModule::MlirArtifact
+CompiledModuleHelper::loadMlirArtifact(const cudaq::SourceModule &module) {
+  if (auto mlirArt = module.getMlir())
+    return *mlirArt;
+
+  auto [moduleOp, context] =
+      cudaq_internal::compiler::Compiler::loadQuakeCodeByName(module.getName());
+  cudaq::FatQuakeModule::MlirArtifact mlirArtifact(moduleOp,
+                                                   std::move(context));
+  return mlirArtifact;
 }
 
 } // namespace cudaq_internal::compiler
