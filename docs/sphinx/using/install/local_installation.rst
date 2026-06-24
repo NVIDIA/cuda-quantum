@@ -660,8 +660,10 @@ running on DGX Cloud:
 
 Replace `<my-custom-token>` in the command above with a custom token that you can freely choose.
 You will use this token to authenticate with JupyterLab;
-Go to the `job portal <https://docs.nvidia.com/base-command-platform/user-guide/latest/index.html#jobs-and-gpu-instances>`__, click on the job you just launched, and click on the link
-under |:spellcheck-disable:|"URL/Hostname"|:spellcheck-enable:| in Service Mapped Ports. 
+In the Base Command Platform web interface, navigate to your job (see
+`Jobs and GPU Instances <https://docs.nvidia.com/base-command-platform/user-guide/latest/index.html#jobs-and-gpu-instances>`__),
+click on the job you just launched, and click on the link
+under |:spellcheck-disable:|"URL/Hostname"|:spellcheck-enable:| in Service Mapped Ports.
 
 .. note::
 
@@ -687,7 +689,9 @@ or the `VS Code Web UI <https://vscode.dev/>`__, running on DGX Cloud:
       --ace <ace_name> --instance <instance_name> \
       --commandline 'vscode-setup tunnel --name cuda-quantum-dgx --accept-server-license-terms'
 
-Go to the `job portal <https://docs.nvidia.com/base-command-platform/user-guide/latest/index.html#jobs-and-gpu-instances>`__, click on the job you just launched, and select the "Log"
+In the Base Command Platform web interface, navigate to your job (see
+`Jobs and GPU Instances <https://docs.nvidia.com/base-command-platform/user-guide/latest/index.html#jobs-and-gpu-instances>`__),
+click on the job you just launched, and select the "Log"
 tab. Once the job is running, you should see instructions there for how to connect to the device the job is running on.
 These instructions include a link to open and the code to enter on that page; follow the instructions to authenticate. 
 Once you have authenticated, you can either 
