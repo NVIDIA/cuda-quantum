@@ -402,12 +402,8 @@ struct WireSetToProfileQIRPass
       else
         regNameMap[disc.getOperation()] = "?";
     });
-    std::optional<std::uint32_t> highestIdentity;
-    op.walk([&](cudaq::quake::BorrowWireOp op) {
-      highestIdentity = highestIdentity
-                            ? std::max(*highestIdentity, op.getIdentity())
-                            : op.getIdentity();
-    });
+    auto highestIdentity =
+        cudaq::quake::getMaxBorrowedWireIndex(op.getOperation());
     if (highestIdentity)
       op->setAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName,
                   builder.getStringAttr(std::to_string(*highestIdentity + 1)));

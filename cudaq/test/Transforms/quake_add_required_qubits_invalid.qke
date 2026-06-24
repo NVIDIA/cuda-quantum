@@ -1,0 +1,34 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: cudaq-opt --quake-add-required-qubits --split-input-file --verify-diagnostics %s
+// clang-format on
+
+// A gate applied directly to a `!quake.ref` (reference/memory semantics) is
+// rejected.
+func.func @uses_ref_semantics() {
+  %0 = quake.alloca !quake.ref
+  quake.h %0 : (!quake.ref) -> ()
+  quake.dealloc %0 : !quake.ref
+  return
+}
+// expected-error@-4 {{quake-add-required-qubits requires value semantics}}
+
+// -----
+
+// A gate applied to a `!quake.ref` extracted from a `!quake.veq` is likewise
+// reference semantics and is rejected.
+func.func @uses_veq_semantics() {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  quake.dealloc %0 : !quake.veq<2>
+  return
+}
+// expected-error@-4 {{quake-add-required-qubits requires value semantics}}

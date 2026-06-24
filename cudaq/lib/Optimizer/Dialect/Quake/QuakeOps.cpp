@@ -19,6 +19,9 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include <algorithm>
+#include <cstdint>
+#include <optional>
 #include <unordered_set>
 
 using namespace mlir;
@@ -72,6 +75,17 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, SinkOp, ReturnWireOp>(op);
+}
+
+std::optional<std::uint32_t>
+cudaq::quake::getMaxBorrowedWireIndex(Operation *op) {
+  std::optional<std::uint32_t> highestIdentity;
+  op->walk([&](cudaq::quake::BorrowWireOp op) {
+    highestIdentity = highestIdentity
+                          ? std::max(*highestIdentity, op.getIdentity())
+                          : op.getIdentity();
+  });
+  return highestIdentity;
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {

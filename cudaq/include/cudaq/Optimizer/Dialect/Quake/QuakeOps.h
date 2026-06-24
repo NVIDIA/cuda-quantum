@@ -161,4 +161,11 @@ constexpr bool isMeasure = std::is_same_v<OP, cudaq::quake::MxOp> ||
                            std::is_same_v<OP, cudaq::quake::MyOp> ||
                            std::is_same_v<OP, cudaq::quake::MzOp>;
 
+/// Returns the largest `identity` (physical wire index) among all
+/// `quake.borrow_wire` operations nested under \p op (typically a
+/// `func.func`), or std::nullopt if \p op borrows no wires. The number of
+/// qubits required by a wire-set (value-semantics) program is this value plus
+/// one.
+std::optional<std::uint32_t> getMaxBorrowedWireIndex(mlir::Operation *op);
+
 } // namespace cudaq::quake

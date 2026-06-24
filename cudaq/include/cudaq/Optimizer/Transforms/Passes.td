@@ -1200,6 +1200,29 @@ def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let constructor = "cudaq::opt::createQuakeAddMetadata()";
 }
 
+def QuakeAddRequiredQubits :
+    Pass<"quake-add-required-qubits", "mlir::func::FuncOp"> {
+  let summary = "Annotate a Quake function with its required qubit count.";
+  let description = [{
+    Computes the number of physical qubits required by a value-semantics
+    (wire set) Quake function and records it on the function as a string
+    attribute. The count is the highest `quake.borrow_wire` identity plus one.
+
+    This pass requires value semantics and rejects reference (memory) semantics
+    (a quantum gate applied directly to a `!quake.ref`/`!quake.veq`); a
+    function with no `quake.borrow_wire` is left unchanged.
+
+    The attribute name defaults to `requiredQubits` and can be customized with
+    the `attribute` option.
+  }];
+
+  let options = [
+    Option<"attributeName", "attribute", "std::string",
+           /*default=*/"\"requiredQubits\"",
+           "Name of the attribute that records the required qubit count.">
+  ];
+}
+
 def QuakePropagateMetadata :
     Pass<"quake-propagate-metadata", "mlir::ModuleOp"> {
   let summary = "Propagate metadata from callees to callers when needed.";

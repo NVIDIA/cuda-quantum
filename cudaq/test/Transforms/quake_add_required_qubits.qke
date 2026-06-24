@@ -1,0 +1,40 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: cudaq-opt --quake-add-required-qubits %s | FileCheck %s --implicit-check-not=requiredQubits
+// RUN: cudaq-opt --quake-add-required-qubits=attribute=num_qubits %s | FileCheck --check-prefix=CUSTOM %s --implicit-check-not=num_qubits
+// clang-format on
+
+quake.wire_set @phys[8]
+
+// The required qubit count is the highest borrowed wire identity (5) plus one,
+// independent of how many wires are actually borrowed.
+func.func @borrows_noncontiguous() attributes {"cudaq-entrypoint"} {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  %1 = quake.borrow_wire @phys[2] : !quake.wire
+  %2 = quake.borrow_wire @phys[5] : !quake.wire
+  %3 = quake.h %0 : (!quake.wire) -> !quake.wire
+  quake.return_wire %3 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+// CHECK-LABEL:   func.func @borrows_noncontiguous()
+// CHECK-SAME:      requiredQubits = "6"
+// CUSTOM-LABEL:  func.func @borrows_noncontiguous()
+// CUSTOM-SAME:     num_qubits = "6"
+
+// A classical device function borrows no wires, so it is left unchanged
+// (the --implicit-check-not above asserts requiredQubits is added nowhere).
+func.func @increment(%arg0: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %c1_i32 = arith.constant 1 : i32
+  %0 = arith.addi %arg0, %c1_i32 : i32
+  return %0 : i32
+}
+// CHECK-LABEL:   func.func @increment
