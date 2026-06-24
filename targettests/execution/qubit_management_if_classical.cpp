@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,7 +11,7 @@
 // RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
 
 struct run_test {
-  __qpu__ auto operator()() {
+  __qpu__ bool operator()() {
     cudaq::qubit p;
 
     if (true) {

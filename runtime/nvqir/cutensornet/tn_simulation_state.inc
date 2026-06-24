@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -48,31 +48,9 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   // Compute <bra|ket> by conjugating the entire |bra> tensor network.
   // Reverse them
   std::reverse(tensorOps.begin(), tensorOps.end());
-  std::vector<void *> tempDeviceBuffers;
-  for (auto &op : tensorOps) {
+  for (auto &op : tensorOps)
     op.isAdjoint = !op.isAdjoint;
-    if (!op.isUnitary) {
-      // For non-unitary ops, i.e., projectors, we need to do a transpose to
-      // reverse the leg connection.
-      const auto dim = (1 << op.targetQubitIds.size());
-      // FIXME: perform this in device memory.
-      Eigen::Matrix<std::complex<ScalarType>, Eigen::Dynamic, Eigen::Dynamic>
-          mat(dim, dim);
-      HANDLE_CUDA_ERROR(
-          cudaMemcpy(mat.data(), op.deviceData,
-                     mat.size() * sizeof(std::complex<ScalarType>),
-                     cudaMemcpyDeviceToHost));
-      mat.transposeInPlace();
-      void *tempBuffer{nullptr};
-      const auto sizeBytes = mat.size() * sizeof(std::complex<ScalarType>);
-      HANDLE_CUDA_ERROR(cudaMalloc(&tempBuffer, sizeBytes));
-      HANDLE_CUDA_ERROR(cudaMemcpy(
-          tempBuffer, mat.data(), mat.size() * sizeof(std::complex<ScalarType>),
-          cudaMemcpyHostToDevice));
-      op.deviceData = tempBuffer;
-      tempDeviceBuffers.emplace_back(tempBuffer);
-    }
-  }
+
   // Append them to ket
   // Note: we clone a new ket tensor network to keep this ket as-is.
   const auto nbQubits = std::max(getNumQubits(), other.getNumQubits());
@@ -202,8 +180,6 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
   HANDLE_CUTN_ERROR(cutensornetDestroyState(tempQuantumState));
-  for (auto *tempBuffer : tempDeviceBuffers)
-    HANDLE_CUDA_ERROR(cudaFree(tempBuffer));
 
   return std::abs(h_overlap);
 }
@@ -213,7 +189,7 @@ std::complex<double> TensorNetSimulationState<ScalarType>::getAmplitude(
     const std::vector<int> &basisState) {
   if (getNumQubits() != basisState.size())
     throw std::runtime_error(
-        fmt::format("[tensornet-state] getAmplitude with an invalid number "
+        cudaq_fmt::format("[tensornet-state] getAmplitude with an invalid number "
                     "of bits in the "
                     "basis state: expected {}, provided {}.",
                     getNumQubits(), basisState.size()));
@@ -288,6 +264,8 @@ template <typename ScalarType>
 std::unique_ptr<cudaq::SimulationState>
 TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
     std::size_t size, void *ptr, std::size_t dataType) {
+  if (!ptr || size == 0)
+    throw std::runtime_error("[createFromSizeAndPtr] invalid null pointer or zero size");
   if (dataType == cudaq::detail::variant_index<cudaq::state_data,
                                                cudaq::TensorStateData>()) {
     throw std::runtime_error(
@@ -305,7 +283,7 @@ TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
 
 template <typename ScalarType>
 void TensorNetSimulationState<ScalarType>::destroyState() {
-  CUDAQ_INFO("mps-state destroying state vector handle.");
+  CUDAQ_INFO("tn-state destroying state vector handle.");
   m_state.reset();
 }
 
@@ -315,13 +293,13 @@ void TensorNetSimulationState<ScalarType>::toHostImpl(
     std::complex<T> *clientAllocatedData, std::size_t numElements) const {
   auto stateVec = m_state->getStateVector();
   if (stateVec.size() != numElements)
-    throw std::runtime_error(fmt::format(
+    throw std::runtime_error(cudaq_fmt::format(
         "[TensorNetSimulationState] Dimension mismatch: expecting {} "
         "elements but providing an array of size {}.",
         stateVec.size(), numElements));
   if (std::is_same_v<ScalarType, T>) {
     std::memcpy(clientAllocatedData, stateVec.data(),
-                numElements * sizeof(ScalarType));
+                numElements * sizeof(std::complex<ScalarType>));
   } else {
     for (std::size_t i = 0; i < numElements; ++i)
       clientAllocatedData[i] = stateVec[i];

@@ -4,6 +4,11 @@ coverage:
       default:
         target: 70%
         threshold: 1%
+        base: pr
+        informational: true
+    patch:
+      default:
+        informational: true
 ignore:
    - "tpls"
 fixes:

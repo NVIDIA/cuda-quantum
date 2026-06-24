@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 
 /// @brief Provide an API call that enables
 /// target modification at runtime (primarily used by
@@ -22,4 +22,4 @@ void disableTargetModification();
 /// @brief Provide an API call that returns
 /// true if the target is modifiable at runtime.
 bool canModifyTarget();
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail

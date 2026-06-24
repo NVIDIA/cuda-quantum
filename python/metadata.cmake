@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -19,4 +19,10 @@ if(CUDA_VERSION_MAJOR)
     file(WRITE ${METADATA_FILE} "cuda_major=${CUDA_VERSION_MAJOR}")
 else()
     file(WRITE ${METADATA_FILE} "cuda_major=None")
+endif()
+
+if(ASSERTIONS_ENABLED)
+    file(APPEND ${METADATA_FILE} "\nassertions_enabled=True")
+else()
+    file(APPEND ${METADATA_FILE} "\nassertions_enabled=False")
 endif()

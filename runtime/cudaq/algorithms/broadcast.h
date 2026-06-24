@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/host_config.h"
-#include "cudaq/platform.h"
+#include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
 
@@ -30,7 +30,7 @@ auto make_argset(const std::vector<Args> &...args) {
   return std::make_tuple(args...);
 }
 
-namespace details {
+namespace detail {
 template <typename ReturnType, typename... Args>
 using BroadcastFunctorType = const std::function<ReturnType(
     std::size_t, std::size_t, std::size_t, Args &...)>;
@@ -97,19 +97,9 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
 
             // Fill the argument tuple with the actual arguments.
             cudaq::tuple_for_each_with_idx(
-                params,
-#if CUDAQ_USE_STD20
-                [&]<typename IDX_TYPE>(auto &&element, IDX_TYPE &&idx) {
+                params, [&]<typename IDX_TYPE>(auto &&element, IDX_TYPE &&idx) {
                   std::get<IDX_TYPE::value + 3>(currentArgs) = element[i];
-                }
-#else
-                [&](auto &&element, auto &&idx) {
-                  std::get<std::remove_cv_t<
-                               std::remove_reference_t<decltype(idx)>>::value +
-                           3>(currentArgs) = element[i];
-                }
-#endif
-            );
+                });
 
             // Call observe/sample with the current set of arguments
             // (provided as a tuple)
@@ -135,5 +125,5 @@ broadcastFunctionOverArguments(std::size_t numQpus, quantum_platform &platform,
 
   return allResults;
 }
-} // namespace details
+} // namespace detail
 } // namespace cudaq

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -38,8 +38,8 @@ def test_control_list_rotation():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      (%[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 3.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2.000000e+00 : f64
@@ -79,8 +79,8 @@ def test_rotation_qreg():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:                 %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      (%[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f64
 # CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 1 : i64

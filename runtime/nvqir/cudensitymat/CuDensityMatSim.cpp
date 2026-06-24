@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,8 +10,11 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
-#include "cudaq.h"
+#include "ObserveResult.h"
+#include "common/FmtCore.h"
+#include "cudaq/cudaq_mpi.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include <dlfcn.h>
 
 namespace {
 // Hook to query this shared lib file location at runtime.
@@ -59,7 +62,8 @@ void initCuDensityMatCommLib() {
   }
 }
 
-class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double> {
+class CuDensityMatSim : public nvqir::CircuitSimulatorBase<double>,
+                        public nvqir::MpiCircuitSimulator {
 private:
   static constexpr int INVALID_CUDA_DEVICE = -1;
 
@@ -72,7 +76,6 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::nQubitsAllocated;
   using nvqir::CircuitSimulatorBase<ScalarType>::stateDimension;
   using nvqir::CircuitSimulatorBase<ScalarType>::calculateStateDim;
-  using nvqir::CircuitSimulatorBase<ScalarType>::executionContext;
   using nvqir::CircuitSimulatorBase<ScalarType>::gateToString;
   using nvqir::CircuitSimulatorBase<ScalarType>::x;
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
@@ -123,22 +126,49 @@ public:
 
   /// The destructor
   virtual ~CuDensityMatSim() {}
+
+  bool setMpiCommunicator(void *comm, int commSizeBytes) override {
+    return cudaq::dynamics::Context::getCurrentContext()->setMpiCommunicator(
+        comm, commSizeBytes);
+  }
+
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuDensityMatState>();
   }
 
-  void resetExecutionContext() override {
-    // If null, do nothing
-    if (!executionContext)
-      return;
-    // Just check that the dynamics target was not invoked in gate simulation
-    // contexts.
-    if (executionContext->name != "evolve")
-      throw std::runtime_error(fmt::format(
-          "[dynamics target] Execution context '{}' is not supported.",
-          executionContext->name));
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<cudaq::CuDensityMatState>()->createFromData(data);
   }
 
+protected:
+  void finalizeExecutionContextImpl(cudaq::ExecutionContext &context) {
+    // Just check that the dynamics target was not invoked in gate simulation
+    // contexts.
+    if (context.name != "evolve")
+      throw std::runtime_error(fmt::format(
+          "[dynamics target] Execution context '{}' is not supported.",
+          context.name));
+  }
+
+  cudaq::sample_result
+  finalizeExecutionContext(const cudaq::sample_policy &policy) override {
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
+  }
+
+  cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &policy) override {
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
+  }
+
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                cudaq::ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
+  }
+
+public:
   void addQubitToState() override {
     throw std::runtime_error(
         "[dynamics target] Quantum gate simulation is not supported.");
@@ -165,7 +195,8 @@ public:
         "[dynamics target] Quantum gate simulation is not supported.");
   }
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubitIdxs,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     throw std::runtime_error("[dynamics target] Quantum gate simulation is not "
                              "supported.");
     return cudaq::ExecutionResult();

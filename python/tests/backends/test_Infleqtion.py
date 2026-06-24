@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,15 +17,15 @@ pytestmark = pytest.mark.skip("Infleqtion / Superstaq API key required")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("infleqtion")
     yield "Running the tests."
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 
-def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+def assert_close(want, got, tolerance=1.0e-5) -> bool:
+    return abs(want - got) < tolerance
 
 
 def test_simple_kernel():
@@ -153,23 +153,6 @@ def test_observe():
     print(res.expectation())
 
 
-def test_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-        mz(qubits)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-
 def test_state_synthesis():
 
     @cudaq.kernel
@@ -193,6 +176,31 @@ def test_state_synthesis():
     counts = cudaq.sample(kernel2, s)
     assert '10' in counts
     assert len(counts) == 1
+
+
+def test_state_preparation():
+    shots = 100
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    counts.dump()
+    assert assert_close(shots / 2, counts["00"], shots / 10)
+    assert assert_close(shots / 2, counts["10"], shots / 10)
+
+
+def test_state_preparation_builder():
+    shots = 100
+    kernel, state = cudaq.make_kernel(list[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(shots / 2, counts["00"], shots / 10)
+    assert assert_close(shots / 2, counts["10"], shots / 10)
 
 
 def test_exp_pauli():

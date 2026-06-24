@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,12 +11,7 @@ import os
 import pytest
 from multiprocessing import Process
 from network_utils import check_server_connection
-
-try:
-    from utils.mock_qpu.quantum_machines import start_server
-except:
-    print("Mock qpu not available, skipping Quantum Machines tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from utils.mock_qpu.quantum_machines import start_server
 
 skipIfQuantumMachinesNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("quantum_machines")),

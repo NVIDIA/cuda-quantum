@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,7 +10,7 @@ import cudaq
 import pytest
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def clean():
     cudaq.reset_target()
 
@@ -46,8 +46,52 @@ def test_basic():
     assert counts.count("s") == 1
     assert counts.count("t") == 1
 
+    d = counts.to_dict()
+    assert d["rx"] == 1
+    assert d["ry"] == 1
+    assert d["rz"] == 1
+    assert d["h"] == 1
+    assert d["x"] == 1
+    assert d["y"] == 1
+    assert d["z"] == 1
+    assert d["s"] == 1
+    assert d["t"] == 1
 
-def test_choice_function():
+
+def test_control_gates_resources():
+
+    @cudaq.kernel
+    def mykernel():
+        q = cudaq.qvector(3)
+        x(q[0])
+        x.ctrl(q[0], q[1])
+        x.ctrl([q[0], q[1]], q[2])
+        h(q[0])
+        h.ctrl(q[0], q[1])
+
+    counts = cudaq.estimate_resources(mykernel)
+
+    assert counts.count_controls("x", 0) == 1
+    assert counts.count_controls("x", 1) == 1
+    assert counts.count_controls("x", 2) == 1
+
+    assert counts.count_controls("h", 0) == 1
+    assert counts.count_controls("h", 1) == 1
+
+    assert counts.count() == 5
+
+    d = counts.to_dict()
+    assert isinstance(d, dict)
+
+    assert d["x"] == 1
+    assert d["h"] == 1
+
+    assert d["cx"] == 1
+    assert d["ccx"] == 1
+    assert d["ch"] == 1
+
+
+def test_choice_function_1():
 
     @cudaq.kernel
     def mykernel():
@@ -73,6 +117,14 @@ def test_choice_function():
     assert counts2.count("h") == 1
     assert counts2.count("x") == 1
 
+    d1 = counts1.to_dict()
+    d2 = counts2.to_dict()
+    assert isinstance(d1, dict)
+    assert isinstance(d2, dict)
+    assert d1["h"] == 1
+    assert d2["h"] == 1
+    assert d2["x"] == 1
+
     cudaq.set_target("quantinuum", emulate=True)
     counts1 = cudaq.estimate_resources(mykernel)
     counts2 = cudaq.estimate_resources(mykernel, choice=choice)
@@ -81,8 +133,14 @@ def test_choice_function():
     assert counts2.count("h") == 1
     assert counts2.count("x") == 1
 
+    d1 = counts1.to_dict()
+    d2 = counts2.to_dict()
+    assert d1["h"] == 1
+    assert d2["h"] == 1
+    assert d2["x"] == 1
 
-def test_choice_function():
+
+def test_choice_function_2():
 
     @cudaq.kernel
     def mykernel():
@@ -90,32 +148,27 @@ def test_choice_function():
         p = cudaq.qubit()
 
         h(q)
-
-        m1 = mz(q)
-        if m1:
-            x(p)
-            m2 = mz(p)
-        else:
-            m3 = mz(p)
+        x(p)
 
     counts1 = cudaq.sample(mykernel, shots_count=5)
     counts2 = cudaq.estimate_resources(mykernel)
     counts3 = cudaq.sample(mykernel, shots_count=10)
 
-    assert counts1.count("00") + counts1.count("11") == 5
+    assert counts1.count("01") + counts1.count("11") == 5
     assert counts2.count("h") == 1
-    assert counts3.count("00") + counts3.count("11") == 10
+    assert counts3.count("01") + counts3.count("11") == 10
 
     cudaq.set_target("quantinuum", emulate=True)
     counts1 = cudaq.sample(mykernel, shots_count=5)
     counts2 = cudaq.estimate_resources(mykernel)
     counts3 = cudaq.sample(mykernel, shots_count=10)
 
-    assert counts1.count("00") + counts1.count("11") == 5
+    assert counts1.count("01") + counts1.count("11") == 5
     assert counts2.count("h") == 1
-    assert counts3.count("00") + counts3.count("11") == 10
+    assert counts3.count("01") + counts3.count("11") == 10
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_sample_in_choice():
 
     @cudaq.kernel
@@ -137,11 +190,11 @@ def test_sample_in_choice():
         return True
 
     with pytest.raises(RuntimeError):
-        cudaq.estimate_resources(mykernel, choice)
+        cudaq.estimate_resources(mykernel, choice=choice)
 
     with pytest.raises(RuntimeError):
         cudaq.set_target("quantinuum", emulate=True)
-        cudaq.estimate_resources(mykernel, choice)
+        cudaq.estimate_resources(mykernel, choice=choice)
 
 
 def test_loop_with_args():
@@ -162,10 +215,20 @@ def test_loop_with_args():
     assert counts.count("rx") == 3
     assert counts.count("h") == 1
 
+    d = counts.to_dict()
+    assert isinstance(d, dict)
+    assert d["rx"] == 3
+    assert d["h"] == 1
+
     cudaq.set_target("qci", emulate=True)
     counts = cudaq.estimate_resources(caller, 3, [4.0, 5.0, 6.0])
     assert counts.count("rx") == 3
     assert counts.count("h") == 1
+
+    d = counts.to_dict()
+    assert isinstance(d, dict)
+    assert d["rx"] == 3
+    assert d["h"] == 1
 
 
 # leave for gdb debugging

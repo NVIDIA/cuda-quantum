@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,10 +11,10 @@
 // nvq++ --target dynamics qubit_control.cpp -o a.out && ./a.out
 // ```
 
+#include "export_csv_helper.h"
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/operators.h"
-#include "export_csv_helper.h"
 #include <cudaq.h>
 
 int main() {

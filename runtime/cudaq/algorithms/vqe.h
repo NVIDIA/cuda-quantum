@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,15 +7,15 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq/gradients.h"
 #include "gradient.h"
 #include "observe.h"
 #include "optimizer.h"
+#include "cudaq/gradients.h"
 #include <stdio.h>
 
 namespace cudaq {
 
-namespace __internal__ {
+namespace detail {
 /// \brief This is an internal helper function to reduce duplicated code in the
 /// user-facing `vqe()` functions below. Users should not directly call this
 /// function.
@@ -27,15 +27,15 @@ remote_vqe(cudaq::quantum_platform &platform, QuantumKernel &&kernel,
            const cudaq::spin_op &H, cudaq::optimizer &optimizer,
            cudaq::gradient *gradient, const int n_params,
            const std::size_t shots, Args &&...args) {
-  auto ctx = std::make_unique<ExecutionContext>("observe", shots);
-  ctx->kernelName = cudaq::getKernelName(kernel);
-  ctx->spin = cudaq::spin_op::canonicalize(H);
-  platform.set_exec_ctx(ctx.get());
+  ExecutionContext ctx("observe", shots);
+  ctx.kernelName = cudaq::getKernelName(kernel);
+  ctx.spin = cudaq::spin_op::canonicalize(H);
   auto serializedArgsBuffer = serializeArgs(args...);
-  platform.launchVQE(ctx->kernelName, serializedArgsBuffer.data(), gradient, H,
-                     optimizer, n_params, shots);
-  platform.reset_exec_ctx();
-  return ctx->optResult.value_or(optimization_result{});
+  platform.with_execution_context(ctx, [&]() {
+    platform.launchVQE(ctx.kernelName, serializedArgsBuffer.data(), gradient, H,
+                       optimizer, n_params, shots);
+  });
+  return ctx.optResult.value_or(optimization_result{});
 }
 
 static inline void print_arg_mapper_warning() {
@@ -47,7 +47,7 @@ static inline void print_arg_mapper_warning() {
       "the non-variational arguments.\n");
 }
 
-} // namespace __internal__
+} // namespace detail
 
 ///
 /// \brief Compute the minimal eigenvalue of \p H with VQE.
@@ -108,9 +108,9 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
 
   auto &platform = cudaq::get_platform();
   if (platform.get_remote_capabilities().vqe)
-    return __internal__::remote_vqe(platform, kernel, H, optimizer,
-                                    /*gradient=*/nullptr, n_params, /*shots=*/0,
-                                    args...);
+    return detail::remote_vqe(platform, kernel, H, optimizer,
+                              /*gradient=*/nullptr, n_params, /*shots=*/0,
+                              args...);
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -179,9 +179,8 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
 
   auto &platform = cudaq::get_platform();
   if (platform.get_remote_capabilities().vqe)
-    return __internal__::remote_vqe(platform, kernel, H, optimizer,
-                                    /*gradient=*/nullptr, n_params, shots,
-                                    args...);
+    return detail::remote_vqe(platform, kernel, H, optimizer,
+                              /*gradient=*/nullptr, n_params, shots, args...);
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -250,16 +249,13 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
 
   auto &platform = cudaq::get_platform();
   if (platform.get_remote_capabilities().vqe)
-    return __internal__::remote_vqe(platform, kernel, H, optimizer, &gradient,
-                                    n_params,
-                                    /*shots=*/0, args...);
+    return detail::remote_vqe(platform, kernel, H, optimizer, &gradient,
+                              n_params,
+                              /*shots=*/0, args...);
 
   auto requires_grad = optimizer.requiresGradients();
   // If there are additional arguments, we need to clone the gradient and
   // provide it the concrete arguments.
-  // Note: the strange initialization of newGrad is to avoid a C++17 compiler
-  // error that happens because the `swap` is ambiguous between the unique_ptr
-  // and the qubit swap.
   std::unique_ptr<cudaq::gradient> newGrad = [&]() {
     if (requires_grad) {
       auto newGrad_ = gradient.clone();
@@ -345,7 +341,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::spin_op H,
         "aware of the ArgMapper.");
   }
   if (cudaq::get_platform().get_remote_capabilities().vqe)
-    __internal__::print_arg_mapper_warning();
+    detail::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -427,7 +423,7 @@ optimization_result vqe(std::size_t shots, QuantumKernel &&kernel,
         "aware of the ArgMapper.");
   }
   if (cudaq::get_platform().get_remote_capabilities().vqe)
-    __internal__::print_arg_mapper_warning();
+    detail::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {
@@ -479,7 +475,7 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
                         const int n_params, ArgMapper &&argsMapper) {
   bool requiresGrad = optimizer.requiresGradients();
   if (cudaq::get_platform().get_remote_capabilities().vqe)
-    __internal__::print_arg_mapper_warning();
+    detail::print_arg_mapper_warning();
 
   return optimizer.optimize(n_params, [&](const std::vector<double> &x,
                                           std::vector<double> &grad_vec) {

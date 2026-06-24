@@ -23,6 +23,7 @@ You are browsing the documentation for |version| version of CUDA-Q. You can find
       Applications <using/applications.rst>
       Backends <using/backends/backends.rst>
       Dynamics <using/dynamics.rst>
+      Realtime <using/realtime.rst>
       CUDA-QX <using/cudaqx/cudaqx.rst>
       Installation <using/install/install.rst>
       Integration <using/integration/integration.rst>

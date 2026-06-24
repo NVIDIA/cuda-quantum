@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 #include <cudensitymat.h>
 #include <deque>
 #include <unordered_set>
@@ -101,7 +101,7 @@ private:
     std::vector<std::string> paramNames;
     ScalarCallBackContext(const std::vector<scalar_operator> &scalar_ops,
                           const std::vector<std::string> &paramNames)
-        : scalarOps(scalar_ops), paramNames(paramNames){};
+        : scalarOps(scalar_ops), paramNames(paramNames) {};
   };
 
   struct TensorCallBackContext {
@@ -112,7 +112,7 @@ private:
     TensorCallBackContext(const std::vector<matrix_handler> &tensor_ops,
                           const std::vector<std::string> &param_names,
                           const cudaq::dimension_map &dims)
-        : tensorOps(tensor_ops), paramNames(param_names), dimensions(dims){};
+        : tensorOps(tensor_ops), paramNames(param_names), dimensions(dims) {};
   };
 
   cudensitymatWrappedScalarCallback_t

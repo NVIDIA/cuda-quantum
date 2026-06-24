@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -27,21 +27,21 @@ def test_recursive_calls():
     print(kernel3)
 
 
-# CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:  func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK:    %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:    %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
-# CHECK:    call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_1]]) : (!quake.ref) -> ()
+# CHECK:    call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_1]]) : (!quake.ref) -> ()
 # CHECK:    return
 # CHECK:  }
 
-# CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:  func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: (%arg0: !quake.ref) {{.*}}{
-# CHECK:    call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%arg0) : (!quake.ref) -> ()
+# CHECK:    call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%arg0) : (!quake.ref) -> ()
 # CHECK:    return
 # CHECK:  }
 
-# CHECK-LABEL:  func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:  func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: (%arg0: !quake.ref) {{.*}}{
 # CHECK:    return
 # CHECK:  }

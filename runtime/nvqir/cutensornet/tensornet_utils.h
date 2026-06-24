@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -76,7 +76,8 @@ struct ScratchDeviceMem {
 
 /// Initialize `cutensornet` MPI Comm
 /// If MPI is not available, fallback to an empty implementation.
-void initCuTensornetComm(cutensornetHandle_t cutnHandle);
+void initCuTensornetComm(cutensornetHandle_t cutnHandle, void *comm,
+                         int commSizeBytes);
 
 /// Reset `cutensornet` MPI Comm, e.g., in preparation for shutdown.
 /// Note: this will make sure no further MPI activities from `cutensornet` can

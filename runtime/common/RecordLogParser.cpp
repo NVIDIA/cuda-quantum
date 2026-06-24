@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 #include "RecordLogParser.h"
-#include "Logger.h"
+#include "FmtCore.h"
 #include "Timing.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/runtime/logger/logger.h"
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
@@ -67,7 +68,7 @@ void cudaq::RecordLogParser::handleHeader(
     const std::vector<std::string> &entries) {
   if (entries.size() < 3)
     throw std::runtime_error("Invalid HEADER record");
-  if (entries[1] == "schema_name") {
+  if (entries[1] == "schema_id") {
     if (entries[2] == "labeled")
       schema = RecordSchemaType::LABELED;
     else if (entries[2] == "ordered")
@@ -119,9 +120,14 @@ void cudaq::RecordLogParser::handleOutput(
         (containerMeta.m_type == ContainerType::ARRAY &&
          containerMeta.elementCount == 0);
     if (isUninitializedContainer) {
-      // Currently, our QIR for sampled kernel only has a sequence of RESULT
-      // records, not wrapped in an ARRAY. Hence, we treat it as an array of
-      // results.
+      // NOTE: This is a temporary workaround until all backends consistently
+      // use the new transformation pass that wraps result records inside an
+      // array record output. For now, we permit "naked" RESULT records, i.e.,
+      // if the QIR produced by a sampled kernel emits a sequence of RESULT
+      // records without enclosing them in an ARRAY, we interpret them
+      // collectively as an array of results.
+      // NOTE: This assumption prevents us from correctly supporting `run` with
+      // `qir-base` profile.
       containerMeta.m_type = ContainerType::ARRAY;
       containerMeta.elementCount =
           std::stoul(metadata[ResultCountMetadataName]);
@@ -214,23 +220,23 @@ void cudaq::RecordLogParser::handleOutput(
     processSingleRecord(recValue, recLabel);
 }
 
-cudaq::details::DataHandlerBase &
+cudaq::detail::DataHandlerBase &
 cudaq::RecordLogParser::getDataHandler(const std::string &dataType) {
   // Static handlers for different data types
-  static details::DataHandler<bool> boolHandler(
-      std::make_unique<details::BooleanConverter>());
-  static details::DataHandler<std::int8_t> i8Handler(
-      std::make_unique<details::IntegerConverter<std::int8_t>>());
-  static details::DataHandler<std::int16_t> i16Handler(
-      std::make_unique<details::IntegerConverter<std::int16_t>>());
-  static details::DataHandler<std::int32_t> i32Handler(
-      std::make_unique<details::IntegerConverter<std::int32_t>>());
-  static details::DataHandler<std::int64_t> i64Handler(
-      std::make_unique<details::IntegerConverter<std::int64_t>>());
-  static details::DataHandler<float> f32Handler(
-      std::make_unique<details::FloatConverter<float>>());
-  static details::DataHandler<double> f64Handler(
-      std::make_unique<details::FloatConverter<double>>());
+  static detail::DataHandler<bool> boolHandler(
+      std::make_unique<detail::BooleanConverter>());
+  static detail::DataHandler<std::int8_t> i8Handler(
+      std::make_unique<detail::IntegerConverter<std::int8_t>>());
+  static detail::DataHandler<std::int16_t> i16Handler(
+      std::make_unique<detail::IntegerConverter<std::int16_t>>());
+  static detail::DataHandler<std::int32_t> i32Handler(
+      std::make_unique<detail::IntegerConverter<std::int32_t>>());
+  static detail::DataHandler<std::int64_t> i64Handler(
+      std::make_unique<detail::IntegerConverter<std::int64_t>>());
+  static detail::DataHandler<float> f32Handler(
+      std::make_unique<detail::FloatConverter<float>>());
+  static detail::DataHandler<double> f64Handler(
+      std::make_unique<detail::FloatConverter<double>>());
   // Map data type to the corresponding handler
   if (dataType == "i1")
     return boolHandler;
@@ -250,7 +256,7 @@ cudaq::RecordLogParser::getDataHandler(const std::string &dataType) {
 }
 
 void cudaq::RecordLogParser::preallocateArray() {
-  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  cudaq::detail::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
   containerMeta.dataOffset =
       dh.allocateArray(bufferHandler, containerMeta.elementCount);
 }
@@ -282,7 +288,7 @@ void cudaq::RecordLogParser::processSingleRecord(const std::string &recValue,
     else if (currentOutput == OutputType::DOUBLE)
       label = "f64";
   }
-  cudaq::details::DataHandlerBase &dh = getDataHandler(label);
+  cudaq::detail::DataHandlerBase &dh = getDataHandler(label);
   dh.addRecord(bufferHandler, recValue);
 }
 
@@ -291,7 +297,7 @@ void cudaq::RecordLogParser::processArrayEntry(const std::string &recValue,
   std::size_t index = containerMeta.extractIndex(recLabel);
   if (index >= containerMeta.elementCount)
     throw std::runtime_error("Array index out of bounds");
-  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  cudaq::detail::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
   dh.insertIntoArray(bufferHandler, containerMeta.dataOffset, index, recValue);
 }
 
@@ -300,7 +306,7 @@ void cudaq::RecordLogParser::processTupleEntry(const std::string &recValue,
   std::size_t index = containerMeta.extractIndex(recLabel);
   if (index >= containerMeta.elementCount)
     throw std::runtime_error("Tuple index out of bounds");
-  cudaq::details::DataHandlerBase &dh =
+  cudaq::detail::DataHandlerBase &dh =
       getDataHandler(containerMeta.tupleTypes[index]);
   dh.insertIntoTuple(
       bufferHandler,

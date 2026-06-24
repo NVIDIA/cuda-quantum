@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,7 +16,7 @@
 # The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
 # The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
 # CUDA-Q. This image sets the CC and CXX environment variables to use that toolchain. 
-# Currently, clang16 and gcc11, gcc12, and gcc13 are supported.
+# Currently, gcc12 and gcc13 are supported.
 
 # There are currently no multi-platform manylinux images available.
 # See https://github.com/pypa/manylinux/issues/1306.
@@ -25,8 +25,7 @@ FROM ${base_image}
 
 ARG distro=rhel8
 ARG llvm_commit
-ARG pybind11_commit
-ARG toolchain=gcc11
+ARG toolchain=gcc12
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
@@ -48,13 +47,11 @@ ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
         gcc_version=`echo $toolchain | grep -o '[0-9]*'` && \
         if [ -z "$(which gcc 2> /dev/null | grep $gcc_version)" ]; then \
-            dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version && \
+            # Using releasever=8.9: boost packages missing from 8.10 mirrors for aarch64
+            dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9 gcc-toolset-$gcc_version && \
             enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"; \
         fi && \
         CC="$(which gcc)" && CXX="$(which g++)"; \
-    elif [ "$toolchain" == 'clang16' ]; then \
-        dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6 && \
-        CC="$(which clang-16)" && CXX="$(which clang++-16)"; \
     else echo "Toolchain not supported." && exit 1; \
     fi && dnf clean all \
     && mkdir -p "$LLVM_INSTALL_PREFIX/bootstrap" \
@@ -65,18 +62,10 @@ RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
-# Build pybind11 - 
-# we should be able to use the same pybind version independent on what Python version we generate bindings for.
-ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
-RUN dnf install -y --nobest --setopt=install_weak_deps=False \
-        ninja-build cmake python3-devel \
-    && mkdir /pybind11-project && cd /pybind11-project && git init \
-    && git remote add origin https://github.com/pybind/pybind11 \
-    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
-    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" -DPYBIND11_TEST=False \
-    && cmake --build . --target install --config Release \
-    && cd / && rm -rf /pybind11-project
+# Installing ninja-build, cmake, python3-devel, and ccache required by the LLVM build.
+# Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
+RUN dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9\
+        ninja-build cmake python3-devel ccache
 
 RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).sh -o cmake-install.sh \
     && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
@@ -84,14 +73,17 @@ RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.2
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+ADD ./scripts/build_mlir_python_bindings.sh /scripts/build_mlir_python_bindings.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
-RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
+RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
     bash /scripts/build_llvm.sh -c Release -v
-    # No clean up of the build or source directory,
-    # since we need to re-build llvm for each python version to get the bindings.
+    # The build directory at /llvm-project/build is intentionally retained:
+    # build_mlir_python_bindings.sh reuses it in the wheel container to add
+    # the python-binding targets per Python version without recompiling
+    # the rest of the LLVM/MLIR/clang/lld tree.
 
 # Install CUDA
 
@@ -101,7 +93,8 @@ ENV CUDA_VERSION=${cuda_version}
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
     && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-$distro.repo \
     && dnf clean expire-cache \
-    && dnf install -y --nobest --setopt=install_weak_deps=False wget \
+    # Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
+    && dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9 wget \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
         libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
@@ -123,6 +116,7 @@ ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 ENV AWS_INSTALL_PREFIX=/usr/local/aws
+ENV QRMI_INSTALL_PREFIX=/usr/local/qrmi
 ENV CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
 ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 RUN bash /scripts/install_prerequisites.sh

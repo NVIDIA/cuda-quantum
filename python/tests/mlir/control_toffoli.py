@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -27,13 +27,16 @@ def test_tuple_assign():
     print(toffoli)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__toffoli() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
-# CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
-# CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__toffoli
+# CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref, !quake.ref) -> ()> {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<3>
+# CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][2] : (!quake.veq<3>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
-# CHECK:           quake.apply @__nvqpp__mlirgen__fancyCnot [%[[VAL_1]]] %[[VAL_3]], %[[VAL_2]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_1]][2] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           quake.apply %[[VAL_0]] {{\[}}%[[VAL_2]]] %[[VAL_4]], %[[VAL_5]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.dealloc %[[VAL_1]] : !quake.veq<3>
 # CHECK:           return
 # CHECK:         }

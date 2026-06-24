@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "common/FmtCore.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -37,7 +37,7 @@ using json = nlohmann::json;
 
 /// @brief Convert a double to a JSON string.
 inline std::string doubleAsJsonString(double d) {
-  std::string s = fmt::format("{:.8f}", d);
+  std::string s = cudaq_fmt::format("{:.8f}", d);
   return s;
 }
 

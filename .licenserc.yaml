@@ -5,7 +5,7 @@ header:
     software-name: CUDA-Q
 
     content: |
-      Copyright (c) 2023 - 2025 NVIDIA Corporation & Affiliates.
+      Copyright (c) 2023 - 2026 NVIDIA Corporation & Affiliates.
       All rights reserved.
 
       This source code and the accompanying materials are made available under
@@ -22,12 +22,20 @@ header:
     - '**/*.rst'
     - '**/*.patch'
     - '**/*.config'
+    - '**/*.svg'
+    - 'skills/**/*.sig'  # signed skill bundle manifests; cannot carry a header
+    - 'skills/**/evals/**'  # skill eval datasets/fixtures (evals.json is JSON; no header possible)
     - '**/.*'
     - '**/.*/**'
     - '**/Doxyfile.in'
     - 'CITATION.cff'
     - 'LICENSE'
     - 'NOTICE'
+    - 'llms.txt'
+    - 'cudaq/test/README.txt'
+    - 'runtime/cudaq/platform/default/rest/helpers/anyon/*.txt'
+    - 'targettests/Target/IQM/*.txt'
+    - 'unittests/nvqpp/backends/iqm/*.txt'
     - 'build'
     - 'examples'
     - 'tpls'
@@ -38,10 +46,9 @@ header:
     - 'docs/sphinx/_templates'
     - 'docs/sphinx/_static/cuda_quantum_icon.svg'
     - 'docker/test/installer/mpi_cuda_check.cpp'
-    - 'include/cudaq/Optimizer/CodeGen/OptUtils.h'
-    - 'lib/Optimizer/CodeGen/OptUtils.cpp'
+    - 'cudaq/include/cudaq/Optimizer/CodeGen/OptUtils.h'
+    - 'cudaq/lib/Optimizer/CodeGen/OptUtils.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
-    - 'python/metapackages/MANIFEST.in'
 
   comment: on-failure
 

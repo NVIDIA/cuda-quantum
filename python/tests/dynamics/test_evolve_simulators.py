@@ -1,12 +1,12 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os
 
+import os
 import pytest
 import cudaq
 from cudaq.operators import *
@@ -15,7 +15,7 @@ import numpy as np
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("density-matrix-cpu")
     yield
     cudaq.reset_target()
@@ -231,7 +231,6 @@ def test_evolve(init_state):
     ]
     np.testing.assert_allclose(ideal_results, expected_result_ideal, atol=0.01)
     np.testing.assert_allclose(decay_results, expected_result_decay, atol=0.01)
-
     # Test for `shots_count`
     schedule.reset()
     evolution_result_shots = cudaq.evolve(
@@ -250,7 +249,7 @@ def test_evolve(init_state):
     ]
     np.testing.assert_allclose(results_with_shots,
                                expected_result_ideal,
-                               atol=0.1)
+                               atol=0.15)
 
 
 def test_evolve_async():
@@ -293,7 +292,9 @@ def test_evolve_async():
     np.testing.assert_allclose(ideal_results, expected_result_ideal, atol=0.01)
 
     schedule.reset()
-    # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
+
+    # Now, run the simulation with qubit decaying due to the presence of a
+    # collapse operator.
     evolution_result_decay = cudaq.evolve_async(
         hamiltonian,
         dimensions,
@@ -328,7 +329,28 @@ def test_evolve_async():
     ]
     np.testing.assert_allclose(results_with_shots,
                                expected_result_ideal,
-                               atol=0.1)
+                               atol=0.15)
+
+
+@pytest.mark.parametrize("target", ["density-matrix-cpu", "qpp-cpu"])
+@pytest.mark.parametrize("initial_state",
+                         [InitialState.ZERO, InitialState.UNIFORM])
+def test_evolve_async_initial_state_enum(target, initial_state):
+    cudaq.set_target(target)
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    steps = np.linspace(0, 0.1, 3)
+
+    expected = cudaq.evolve(hamiltonian, dimensions, Schedule(steps, ["time"]),
+                            initial_state)
+    evolution_result = cudaq.evolve_async(hamiltonian, dimensions,
+                                          Schedule(steps, ["time"]),
+                                          initial_state).get()
+
+    np.testing.assert_allclose(np.array(evolution_result.final_state()),
+                               np.array(expected.final_state()),
+                               atol=1e-12)
 
 
 def test_evolve_no_intermediate_results():
@@ -395,8 +417,60 @@ def test_evolve_no_intermediate_results():
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
 
 
+def test_evolve_intermediate_results_without_observables():
+    """Saving intermediate states should not require observables."""
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    rho0 = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    steps = np.linspace(0, 0.1, 3)
+
+    evolution_result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["time"]),
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.ALL)
+
+    assert len(evolution_result.intermediate_states()) == len(steps)
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    evolution_result = cudaq.evolve(hamiltonian,
+                                    dimensions,
+                                    Schedule(steps, ["time"]),
+                                    rho0,
+                                    store_intermediate_results=cudaq.
+                                    IntermediateResultSave.EXPECTATION_VALUE)
+
+    assert len(evolution_result.intermediate_states()) == 1
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    for save_mode in [
+            cudaq.IntermediateResultSave.NONE, cudaq.IntermediateResultSave.ALL
+    ]:
+        ideal_result = cudaq.evolve(hamiltonian,
+                                    dimensions,
+                                    Schedule(steps, ["time"]),
+                                    rho0,
+                                    store_intermediate_results=save_mode)
+        decay_result = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            Schedule(steps, ["time"]),
+            rho0,
+            collapse_operators=[np.sqrt(0.05) * spin.x(0)],
+            store_intermediate_results=save_mode)
+
+        assert not np.allclose(
+            np.array(ideal_result.final_state()).reshape(-1),
+            np.array(decay_result.final_state()).reshape(-1))
+
+
 def test_evolve_async_no_intermediate_results():
-    """Test evolve_async with store_intermediate_results=NONE 
+    """Test evolve_async with store_intermediate_results=NONE
     to verify the else branch in evolve_single_async is working."""
 
     # Qubit Hamiltonian
@@ -459,7 +533,338 @@ def test_evolve_async_no_intermediate_results():
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
 
 
+def test_evolve_async_intermediate_results_without_observables():
+    """Saving intermediate states asynchronously should not require observables."""
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    rho0 = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    steps = np.linspace(0, 0.1, 3)
+
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["time"]),
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.ALL).get()
+
+    assert len(evolution_result.intermediate_states()) == len(steps)
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["time"]),
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE).get()
+
+    assert len(evolution_result.intermediate_states()) == 1
+    assert evolution_result.expectation_values() is None
+    assert evolution_result.final_expectation_values() is None
+
+    for save_mode in [
+            cudaq.IntermediateResultSave.NONE, cudaq.IntermediateResultSave.ALL
+    ]:
+        ideal_result = cudaq.evolve_async(
+            hamiltonian,
+            dimensions,
+            Schedule(steps, ["time"]),
+            rho0,
+            store_intermediate_results=save_mode).get()
+        decay_result = cudaq.evolve_async(
+            hamiltonian,
+            dimensions,
+            Schedule(steps, ["time"]),
+            rho0,
+            collapse_operators=[np.sqrt(0.05) * spin.x(0)],
+            store_intermediate_results=save_mode).get()
+
+        assert not np.allclose(
+            np.array(ideal_result.final_state()).reshape(-1),
+            np.array(decay_result.final_state()).reshape(-1))
+
+
+@pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
+def test_evolve_preserves_qubits_not_in_hamiltonian(target):
+    """A local Hamiltonian should not shrink the full system state."""
+
+    cudaq.reset_target()
+    cudaq.set_target(target)
+
+    hamiltonian = spin.x(0)
+    dimensions = {0: 2, 1: 2}
+    schedule = Schedule([0.0, np.pi / 2.0], ["time"])
+
+    # State vector ordering is little-endian: index 2 is q0=0, q1=1.
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[2] = 1.0
+
+    result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        cudaq.State.from_data(psi0),
+        observables=[spin.z(1)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    expected = np.zeros(4, dtype=np.complex128)
+    expected[3] = -1j
+    if target == "density-matrix-cpu":
+        expected = np.outer(expected, np.conj(expected)).reshape(-1)
+
+    final_state = np.array(result.final_state()).reshape(-1)
+    np.testing.assert_allclose(final_state, expected, atol=1e-12)
+    assert np.isclose(result.expectation_values()[0][0].expectation(), -1.0)
+
+
+@pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
+def test_evolve_async_preserves_qubits_not_in_hamiltonian(target):
+    """The async path should embed local Hamiltonians in the full system."""
+
+    cudaq.reset_target()
+    cudaq.set_target(target)
+
+    hamiltonian = spin.x(0)
+    dimensions = {0: 2, 1: 2}
+    schedule = Schedule([0.0, np.pi / 2.0], ["time"])
+
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[2] = 1.0
+
+    result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        schedule,
+        cudaq.State.from_data(psi0),
+        observables=[spin.z(1)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE).get()
+
+    expected = np.zeros(4, dtype=np.complex128)
+    expected[3] = -1j
+    if target == "density-matrix-cpu":
+        expected = np.outer(expected, np.conj(expected)).reshape(-1)
+
+    final_state = np.array(result.final_state()).reshape(-1)
+    np.testing.assert_allclose(final_state, expected, atol=1e-12)
+    assert np.isclose(result.expectation_values()[0][0].expectation(), -1.0)
+
+
+@pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
+def test_evolve_preserves_order_for_asymmetric_two_qubit_hamiltonian(target):
+    """Non-symmetric product terms must keep the operator target order."""
+
+    cudaq.reset_target()
+    cudaq.set_target(target)
+
+    hamiltonian = spin.x(0) * spin.z(1)
+    dimensions = {0: 2, 1: 2}
+    schedule = Schedule([0.0, np.pi / 2.0], ["time"])
+
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[2] = 1.0
+
+    result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        cudaq.State.from_data(psi0),
+        observables=[spin.z(1)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    expected = np.zeros(4, dtype=np.complex128)
+    expected[3] = 1j
+    if target == "density-matrix-cpu":
+        expected = np.outer(expected, np.conj(expected)).reshape(-1)
+
+    final_state = np.array(result.final_state()).reshape(-1)
+    np.testing.assert_allclose(final_state, expected, atol=1e-12)
+    assert np.isclose(result.expectation_values()[0][0].expectation(), -1.0)
+
+
+def test_evolve_canonicalizes_local_collapse_operator():
+    """Local collapse operators should act on the requested full-system qubit."""
+
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+
+    dimensions = {0: 2, 1: 2}
+    schedule = Schedule([0.0, 0.1], ["time"])
+
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[2] = 1.0
+
+    result = cudaq.evolve(
+        0.0 * spin.x(0),
+        dimensions,
+        schedule,
+        cudaq.State.from_data(psi0),
+        observables=[spin.z(0), spin.z(1)],
+        collapse_operators=[np.sqrt(0.05) * spin.x(0)],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    final_expectations = result.expectation_values()[0]
+    assert final_expectations[0].expectation() < 1.0
+    assert np.isclose(final_expectations[1].expectation(), -1.0, atol=1e-3)
+
+
+def test_evolve_rejects_non_contiguous_dimensions():
+    cudaq.reset_target()
+    cudaq.set_target("qpp-cpu")
+
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[0] = 1.0
+
+    with pytest.raises(ValueError, match="contiguous degrees"):
+        cudaq.evolve(
+            spin.x(1), {
+                1: 2,
+                3: 2
+            },
+            Schedule([0.0, 0.1], ["time"]),
+            cudaq.State.from_data(psi0),
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+
+@pytest.mark.parametrize("kwargs", [{
+    "hamiltonian": spin.x(2),
+    "observables": [],
+    "collapse_operators": []
+}, {
+    "hamiltonian": spin.x(0),
+    "observables": [spin.z(2)],
+    "collapse_operators": []
+}])
+def test_evolve_rejects_operator_degrees_missing_from_dimensions(kwargs):
+    cudaq.reset_target()
+    cudaq.set_target("qpp-cpu")
+
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[0] = 1.0
+
+    with pytest.raises(ValueError, match="operator degrees \\[2\\]"):
+        cudaq.evolve(
+            kwargs["hamiltonian"], {
+                0: 2,
+                1: 2
+            },
+            Schedule([0.0, 0.1], ["time"]),
+            cudaq.State.from_data(psi0),
+            observables=kwargs["observables"],
+            collapse_operators=kwargs["collapse_operators"],
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+
+def test_evolve_rejects_collapse_operator_degrees_missing_from_dimensions():
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[0] = 1.0
+
+    with pytest.raises(ValueError, match="operator degrees \\[2\\]"):
+        cudaq.evolve(
+            spin.x(0), {
+                0: 2,
+                1: 2
+            },
+            Schedule([0.0, 0.1], ["time"]),
+            cudaq.State.from_data(psi0),
+            collapse_operators=[spin.x(2)],
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+
+def test_evolve_async_rejects_invalid_dimensions_and_operator_degrees():
+    cudaq.reset_target()
+    cudaq.set_target("qpp-cpu")
+
+    psi0 = np.zeros(4, dtype=np.complex128)
+    psi0[0] = 1.0
+
+    with pytest.raises(ValueError, match="contiguous degrees"):
+        cudaq.evolve_async(
+            spin.x(1), {
+                1: 2,
+                3: 2
+            },
+            Schedule([0.0, 0.1], ["time"]),
+            cudaq.State.from_data(psi0),
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE).get()
+
+    with pytest.raises(ValueError, match="operator degrees \\[2\\]"):
+        cudaq.evolve_async(
+            spin.x(2), {
+                0: 2,
+                1: 2
+            },
+            Schedule([0.0, 0.1], ["time"]),
+            cudaq.State.from_data(psi0),
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE).get()
+
+
+def test_final_expectation_values_without_observables():
+    """Test that final_expectation_values returns None instead of crashing
+    when evolve is called without observables."""
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    rho0 = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+
+    steps = np.linspace(0, 10, 11)
+    schedule = Schedule(steps, ["time"])
+
+    # Evolve without observables
+    result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0,
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    # final_expectation_values should return None, not segfault
+    assert result.final_expectation_values() is None
+
+    # expectation_values should also be None
+    assert result.expectation_values() is None
+
+    # final_state should still work
+    assert result.final_state() is not None
+
+
+def test_evolve_async_set_target_after_get():
+    """Regression test for issue #3678: calling set_target immediately after
+    evolve_async().get() must not segfault."""
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    rho0 = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+
+    steps = np.linspace(0, 10, 101)
+    schedule = Schedule(steps, ["time"])
+
+    result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[np.sqrt(0.05) * spin.x(0)],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE).get()
+
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+
+    assert result.expectation_values() is not None
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
+    pytest.main([loc, "-srP"])

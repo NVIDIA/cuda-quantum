@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -43,7 +43,7 @@ struct SystemDynamics {
   SystemDynamics(const std::vector<std::int64_t> extents,
                  const std::vector<super_op> &superOperator)
       : modeExtents(extents), superOp(superOperator) {}
-  SystemDynamics() : hamiltonian({cudaq::matrix_op::empty()}){};
+  SystemDynamics() : hamiltonian({cudaq::matrix_op::empty()}) {};
 };
 
 class base_time_stepper;

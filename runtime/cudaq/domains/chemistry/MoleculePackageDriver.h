@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -29,6 +29,6 @@ public:
 
   /// Virtual destructor needed when deleting an instance of a derived class
   /// via a pointer to the base class.
-  virtual ~MoleculePackageDriver(){};
+  virtual ~MoleculePackageDriver() {};
 };
 } // namespace cudaq

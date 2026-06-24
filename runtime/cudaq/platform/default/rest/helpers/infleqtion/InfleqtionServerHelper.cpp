@@ -1,15 +1,16 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Support/Version.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>
@@ -189,7 +190,7 @@ InfleqtionServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // Store output names and reorder indices if necessary
   OutputNamesType outputNamesMap;
-  for (auto &item : circuitCode.output_names.items()) {
+  for (auto &item : circuitCode.output_names->items()) {
     std::size_t idx = std::stoul(item.key());
     ResultInfoType info;
     info.qubitNum = idx;

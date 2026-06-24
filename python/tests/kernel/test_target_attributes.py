@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,7 +15,7 @@ skipIfNoGPU = pytest.mark.skipif(
 
 
 @pytest.fixture
-def do_something():
+def set_up_target():
     cudaq.set_target("nvidia", option="fp32")
     yield "Running the tests."
     cudaq.__clearKernelRegistries()
@@ -23,7 +23,7 @@ def do_something():
 
 
 @skipIfNoGPU
-def test_target_valid_option_attribute(do_something):
+def test_target_valid_option_attribute(set_up_target):
     """Tests the target valid option attribute."""
 
     target = cudaq.get_target()

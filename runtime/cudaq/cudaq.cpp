@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,12 +9,14 @@
 #include "cudaq.h"
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
-#include "cudaq/platform.h"
 #include "distributed/mpi_plugin.h"
+#include "cudaq/platform.h"
+#include "cudaq/simulators.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <map>
@@ -128,7 +130,7 @@ bool is_initialized() {
   return commPlugin->is_initialized();
 }
 
-namespace details {
+namespace detail {
 
 #define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY, REDUCE_OP)                         \
   TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
@@ -147,7 +149,7 @@ CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies, PROD)
 CUDAQ_ALL_REDUCE_IMPL(double, std::plus, SUM)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies, PROD)
 
-} // namespace details
+} // namespace detail
 
 #define CUDAQ_ALL_GATHER_IMPL(TYPE)                                            \
   void all_gather(std::vector<TYPE> &global, const std::vector<TYPE> &local) { \
@@ -178,6 +180,39 @@ std::pair<void *, std::size_t> comm_dup() {
   return std::make_pair(dupComm->commPtr, dupComm->commSize);
 }
 
+void *split_communicator(int color, const std::optional<int> &key) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling split_communicator.");
+  auto *commPlugin = getMpiPlugin();
+  cudaqDistributedCommunicator_t *newComm = nullptr;
+  cudaqDistributedCommunicator_t *comm = commPlugin->getComm();
+  const auto splitStatus =
+      commPlugin->get()->CommSplit(comm, color, key.value_or(rank()), &newComm);
+  if (splitStatus != 0 || newComm == nullptr)
+    throw std::runtime_error("Failed to split the MPI communicator.");
+  return newComm->commPtr;
+}
+
+void set_communicator(void *comm) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling set_communicator.");
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *asMpiSim = dynamic_cast<nvqir::MpiCircuitSimulator *>(circuitSimulator);
+  if (!asMpiSim) {
+    // Output a warning and return if the current simulator doesn't support
+    // MPI-based distributed simulation.
+    CUDAQ_WARN("The current circuit simulator '{}' does not support MPI-based "
+               "distributed simulation. Ignoring the set_communicator call.",
+               circuitSimulator->name());
+    return;
+  }
+
+  asMpiSim->setMpiCommunicator(
+      comm, static_cast<int>(getMpiPlugin()->getComm()->commSize));
+}
+
 void finalize() {
   // Inform the simulator that we are
   // about to run MPI Finalize
@@ -192,13 +227,18 @@ void finalize() {
 
 } // namespace cudaq::mpi
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 std::map<std::string, std::string> runtime_registered_mlir;
 std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
-} // namespace cudaq::__internal__
+
+TargetSetter::TargetSetter(const char *backend) {
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(std::string(backend));
+}
+} // namespace cudaq::detail
 
 //===----------------------------------------------------------------------===//
 
@@ -207,31 +247,6 @@ void setRandomSeed(std::size_t);
 }
 
 namespace cudaq {
-
-void set_target_backend(const char *backend) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(std::string(backend));
-}
-
-// Ignore warnings about deprecations in platform.set_shots and
-// platform.clear_shots because the functions that are using them here
-// (cudaq::set_shots and cudaq::clear_shots are also deprecated and will be
-// removed at the same time.)
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-void set_shots(const std::size_t nShots) {
-  auto &platform = cudaq::get_platform();
-  platform.set_shots(nShots);
-}
-void clear_shots(const std::size_t nShots) {
-  auto &platform = cudaq::get_platform();
-  platform.clear_shots();
-}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();
@@ -266,7 +281,7 @@ int num_available_gpus() {
   return nDevices;
 }
 
-namespace __internal__ {
+namespace detail {
 void cudaqCtrlCHandler(int signal) {
   printf(" CTRL-C caught in cudaq runtime.\n");
   std::exit(1);
@@ -279,7 +294,7 @@ __attribute__((constructor)) void startSigIntHandler() {
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
 }
-} // namespace __internal__
+} // namespace detail
 
 } // namespace cudaq
 
@@ -289,7 +304,7 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
                                              char *initList, std::size_t size) {
   // result is a sret return value. Make sure it is default initialized. Takes
   // advantage of default empty vector being all 0s.
-  std::memset(&result, 0, sizeof(result));
+  std::memset(static_cast<void *>(&result), 0, sizeof(result));
   // Allocate space.
   result.reserve(size);
   // Copy in the initialization list data.
@@ -344,5 +359,15 @@ void __nvqpp_vector_bool_free_temporary_initlists(
 /// should not be a compatibility issue.
 const char *__nvqpp_getStringData(const std::string &s) { return s.data(); }
 std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
+
+/// Runtime error helper. This is called from JIT-compiled kernels when a custom
+/// operation is invoked with a qvector and its runtime size does not match the
+/// number of qubits the operation requires.
+void __nvqpp_customop_size_error(std::int64_t expected, std::int64_t actual) {
+  throw std::runtime_error(
+      fmt::format("custom operation requires {} qubit target(s), but {} were "
+                  "provided",
+                  expected, actual));
+}
 }
 } // namespace cudaq::support

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 
 namespace cudaq {
 class LinkedLibraryHolder;
-void bindPyState(py::module &mod, LinkedLibraryHolder &holder);
+
+void bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder);
 } // namespace cudaq

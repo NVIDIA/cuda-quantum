@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,8 +9,8 @@
 
 #include "common/Registry.h"
 #include "common/ServerHelper.h"
-#include "cudaq/utils/cudaq_utils.h"
 #include "orca_qpu.h"
+#include "cudaq/utils/cudaq_utils.h"
 
 #include "nlohmann/json.hpp"
 

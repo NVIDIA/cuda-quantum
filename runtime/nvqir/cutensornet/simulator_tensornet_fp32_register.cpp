@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,16 @@
  ******************************************************************************/
 #define TENSORNET_FP32
 
+// GCC 12 emits a spurious -Wstringop-overflow false positive inside
+// std::copy<size_t*> inlined from SimulatorTensorNetBase::swap().
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 #include "simulator_tensornet.h"
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
 
 /// Register this Simulator class with NVQIR under name "tensornet-fp32"
 extern "C" {

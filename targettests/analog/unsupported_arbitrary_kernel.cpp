@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,15 +8,17 @@
 
 /// NOTE: The `quera` target is available only if AWS SDK is installed, i.e. if
 /// `braket` target is also available.
+/// NOTE: This test intentionally exercises the only direct `pasqal` target.
+/// `pasqal` + QRMI coverage is handled in QRMI end to end tests.
 // clang-format off
-// RUN: if %braket_avail; then nvq++ %cpp_std --target quera %s -o %t.x; fi
+// RUN: if %braket_avail; then nvq++ --target quera %s -o %t.x; fi
 // RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
-// RUN: if %braket_avail; then nvq++ %cpp_std --target quera --emulate %s -o %t.x; fi
+// RUN: if %braket_avail; then nvq++ --target quera --emulate %s -o %t.x; fi
 // RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi
 
-// RUN: if %pasqal_avail; then nvq++ %cpp_std --target pasqal %s -o %t.x; fi
+// RUN: if %pasqal_avail; then nvq++ --target pasqal %s -o %t.x; fi
 // RUN: if %pasqal_avail; then not %t.x 2>&1 | FileCheck %s; fi
-// RUN: if %pasqal_avail; then nvq++ %cpp_std --target pasqal --emulate %s -o %t.x; fi
+// RUN: if %pasqal_avail; then nvq++ --target pasqal --emulate %s -o %t.x; fi
 // RUN: if %pasqal_avail; then not %t.x 2>&1 | FileCheck %s; fi
 
 // clang-format on

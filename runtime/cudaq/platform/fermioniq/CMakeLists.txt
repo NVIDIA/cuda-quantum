@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -21,11 +21,12 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
     cudaq-common 
   PRIVATE
-    pthread
-    cudaq-mlir-runtime 
+    cudaq-mlir-runtime
     fmt::fmt-header-only
-    cudaq 
-    cudaq-platform-default)
+    cudaq
+    cudaq-platform-default
+    nvqir
+)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 

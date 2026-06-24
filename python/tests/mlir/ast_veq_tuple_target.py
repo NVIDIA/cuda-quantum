@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -67,7 +67,8 @@ def test_list_deconstruction():
     print(kernel5)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
@@ -78,7 +79,8 @@ def test_list_deconstruction():
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
@@ -89,7 +91,8 @@ def test_list_deconstruction():
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
@@ -100,7 +103,8 @@ def test_list_deconstruction():
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
 # CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
@@ -112,18 +116,13 @@ def test_list_deconstruction():
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 5.000000e-01 : f64
-# CHECK:           %[[VAL_2:.*]] = cc.alloca f64
-# CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<f64>
-# CHECK:           %[[VAL_3:.*]] = cc.alloca f64
-# CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<f64>
 # CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_2]] : !cc.ptr<f64>
-# CHECK:           quake.rz (%[[VAL_5]]) %[[VAL_4]] : (f64, !quake.ref) -> ()
-# CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
-# CHECK:           quake.ry (%[[VAL_6]]) %[[VAL_4]] : (f64, !quake.ref) -> ()
+# CHECK:           quake.rz (%[[VAL_1]]) %[[VAL_4]] : (f64, !quake.ref) -> ()
+# CHECK:           quake.ry (%[[VAL_0]]) %[[VAL_4]] : (f64, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -135,29 +134,31 @@ def test_list_deconstruction_failures():
         q: cudaq.qview
         r: cudaq.qubit
 
-    @cudaq.kernel
-    def kernel1():
-        (q0, q1), q2 = cudaq.qvector(3)
-        x(q0)
-        y(q1)
-        z(q2)
-
     try:
+
+        @cudaq.kernel
+        def kernel1():
+            (q0, q1), q2 = cudaq.qvector(3)
+            x(q0)
+            y(q1)
+            z(q2)
+
         print(kernel1)
     except Exception as e:
         print("Failure for kernel1:")
         print(e)
 
-    @cudaq.kernel
-    def kernel2():
-        ts = cudaq.qvector(1)
-        data = MyTuple(ts, cudaq.qubit())
-        (q0, q1), q2 = data
-        x(q0)
-        y(q1)
-        z(q2)
-
     try:
+
+        @cudaq.kernel
+        def kernel2():
+            ts = cudaq.qvector(1)
+            data = MyTuple(ts, cudaq.qubit())
+            (q0, q1), q2 = data
+            x(q0)
+            y(q1)
+            z(q2)
+
         # This will fail when running the pass manager.
         # I could not figure out how to capture any errors that the
         # pass manager produces and return them along with the
@@ -181,14 +182,15 @@ def test_list_deconstruction_failures():
     # for that. We can, and do, give a proper error, however, if
     # the list we assign is a Python literal expression
 
-    @cudaq.kernel
-    def kernel3():
-        r1, r2 = [0.5, 1., 1.5]
-        q = cudaq.qubit()
-        rz(r1, q)
-        ry(r2, q)
-
     try:
+
+        @cudaq.kernel
+        def kernel3():
+            r1, r2 = [0.5, 1., 1.5]
+            q = cudaq.qubit()
+            rz(r1, q)
+            ry(r2, q)
+
         print(kernel3)
     except Exception as e:
         print("Failure for kernel3:")
@@ -197,11 +199,11 @@ def test_list_deconstruction_failures():
 
 # CHECK-LABEL:   Failure for kernel1:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> (q0, q1), q2 = cudaq.qvector(3))
+# CHECK-NEXT:    (offending source -> {{.*}}q0, q1{{.*}}, q2{{.*}} = cudaq.qvector(3))
 
 # CHECK-LABEL:   Failure for kernel2:
-# CHECK-NEXT:    could not compile code for 'kernel2'
+# CHECK-NEXT:    could not compile code for 'kernel2
 
 # CHECK-LABEL:   Failure for kernel3:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> r1, r2 = [0.5, 1.0, 1.5])
+# CHECK-NEXT:    (offending source -> {{.*}}r1, r2{{.*}} = [0.5, 1.0, 1.5])

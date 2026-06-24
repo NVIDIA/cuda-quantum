@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,7 +10,11 @@ set(LIBRARY_NAME cudaq-ensmallen)
 
 set (CUDAQ_TPLS_DIR ${CMAKE_SOURCE_DIR}/tpls)
 
-set(BLA_STATIC ON)
+if(DEFINED ENV{BLAS_INSTALL_PREFIX})
+  find_library(BLAS_LIBRARIES blas
+    HINTS "$ENV{BLAS_INSTALL_PREFIX}" "$ENV{BLAS_INSTALL_PREFIX}/lib"
+    REQUIRED)
+endif()
 find_package(BLAS REQUIRED)
 
 add_library(${LIBRARY_NAME} SHARED ensmallen.cpp)

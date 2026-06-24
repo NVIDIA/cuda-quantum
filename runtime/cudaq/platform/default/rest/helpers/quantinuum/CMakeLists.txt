@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,7 +11,8 @@ add_target_config(quantinuum)
 add_library(cudaq-serverhelper-quantinuum SHARED QuantinuumServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-quantinuum
   PUBLIC 
-    cudaq-common 
+    cudaq-common
+    cudaq-logger 
     fmt::fmt-header-only 
 )
 install(TARGETS cudaq-serverhelper-quantinuum DESTINATION lib)

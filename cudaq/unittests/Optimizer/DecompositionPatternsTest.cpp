@@ -1,0 +1,563 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "DecompositionPatterns.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringSet.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/Math/IR/Math.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <gtest/gtest.h>
+#include <memory>
+
+using namespace mlir;
+
+namespace {
+
+class DecompositionPatternsTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    context = std::make_unique<MLIRContext>();
+    context->loadDialect<arith::ArithDialect, cudaq::cc::CCDialect,
+                         func::FuncDialect, cudaq::quake::QuakeDialect>();
+  }
+
+  std::unique_ptr<MLIRContext> context;
+};
+
+struct GateSpec {
+  std::string gateName;
+  size_t numControls;
+  bool isAdj;
+};
+
+// Helper to parse gate string like "x(1)", "z(2)", "rx<adj>", "rx<adj>(1)"
+GateSpec parseGateSpec(StringRef gateSpec) {
+  // Find the end of the gate name (before '<' or '(')
+  auto nameEnd = gateSpec.find_first_of("(<");
+  std::string gateName;
+  if (nameEnd == StringRef::npos) {
+    return {gateSpec.str(), 0, false};
+  }
+  gateName = gateSpec.substr(0, nameEnd).str();
+  gateSpec = gateSpec.drop_front(nameEnd);
+
+  // Check for <adj>
+  bool isAdj = gateSpec.consume_front("<adj>");
+
+  // Check for (N) control count
+  size_t numControls = 0;
+  if (gateSpec.consume_front("(")) {
+    gateSpec = gateSpec.ltrim();
+    if (gateSpec.starts_with("n")) {
+      numControls = std::numeric_limits<size_t>::max();
+    } else {
+      gateSpec.consumeInteger(10, numControls);
+    }
+  }
+
+  return {gateName, numControls, isAdj};
+}
+
+// Helper function to create a test module with a single gate operation
+ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
+  auto [gateName, numControls, isAdj] = parseGateSpec(gateSpecStr);
+
+  // Limit the number of controls to 2
+  numControls = std::min<size_t>(numControls, 2);
+
+  size_t numQubits;
+  if (gateName == "swap" || gateName == "exp_pauli") {
+    assert(numControls == 0);
+    // exp_pauli can have any number of qubits, we hardcode to 2 for the test.
+    numQubits = 2;
+  } else {
+    numQubits = numControls + 1;
+  }
+
+  OpBuilder builder(context);
+  auto module = ModuleOp::create(builder, builder.getUnknownLoc());
+  builder.setInsertionPointToEnd(module.getBody());
+
+  // Create function type: (qubits...) -> ()
+  SmallVector<Type> inputTypes;
+  auto refType = cudaq::quake::RefType::get(context);
+  for (size_t i = 0; i < numQubits; ++i) {
+    inputTypes.push_back(refType);
+  }
+  auto funcType = builder.getFunctionType(inputTypes, {});
+
+  // Create function
+  auto func = func::FuncOp::create(builder, builder.getUnknownLoc(),
+                                   "test_func", funcType);
+  auto *entry = func.addEntryBlock();
+  builder.setInsertionPointToStart(entry);
+
+  // Get operands (controls and target)
+  SmallVector<Value> controls;
+  for (size_t i = 0; i < numControls; ++i) {
+    controls.push_back(entry->getArgument(i));
+  }
+  Value target = entry->getArgument(numControls);
+
+  // Create the gate operation based on gate name
+  Location loc = builder.getUnknownLoc();
+
+  Value pi_2 = cudaq::opt::factory::createFloatConstant(loc, builder, M_PI_2,
+                                                        builder.getF64Type());
+
+  if (gateName == "h") {
+    cudaq::quake::HOp::create(builder, loc, isAdj, controls, target);
+  } else if (gateName == "s") {
+    cudaq::quake::SOp::create(builder, loc, isAdj, controls, target);
+  } else if (gateName == "t") {
+    cudaq::quake::TOp::create(builder, loc, isAdj, controls, target);
+  } else if (gateName == "x") {
+    cudaq::quake::XOp::create(builder, loc, isAdj, controls, target);
+  } else if (gateName == "y") {
+    cudaq::quake::YOp::create(builder, loc, isAdj, controls, target);
+  } else if (gateName == "z") {
+    cudaq::quake::ZOp::create(builder, loc, isAdj, controls, target);
+  } else if (gateName == "rx") {
+    cudaq::quake::RxOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
+  } else if (gateName == "ry") {
+    cudaq::quake::RyOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
+  } else if (gateName == "rz") {
+    cudaq::quake::RzOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
+  } else if (gateName == "r1") {
+    cudaq::quake::R1Op::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
+  } else if (gateName == "u3") {
+    cudaq::quake::U3Op::create(builder, loc, isAdj,
+                               ValueRange{pi_2, pi_2, pi_2}, controls, target);
+  } else if (gateName == "phased_rx") {
+    cudaq::quake::PhasedRxOp::create(
+        builder, loc, isAdj, ValueRange{{pi_2, pi_2}}, controls, target);
+  } else if (gateName == "swap") {
+    // Swap needs 2 targets
+    Value target = entry->getArgument(0);
+    Value target2 = entry->getArgument(1);
+    cudaq::quake::SwapOp::create(builder, loc, ValueRange{target, target2});
+  } else if (gateName == "exp_pauli") {
+    Value target = entry->getArgument(0);
+    Value target2 = entry->getArgument(1);
+    // Create a veq from the two target qubits using ConcatOp
+    SmallVector<Value> targetValues = {target, target2};
+    Value qubitsVal = cudaq::quake::ConcatOp::create(
+        builder, loc, cudaq::quake::VeqType::get(builder.getContext(), 2),
+        targetValues);
+
+    cudaq::quake::ExpPauliOp::create(builder, loc,
+                                     /* parameters = */ ValueRange{pi_2},
+                                     /* controls = */ ValueRange{},
+                                     /* targets = */ qubitsVal,
+                                     /* pauliLiteral = */ "XX");
+  } else {
+    // Unsupported gate for this test
+    ADD_FAILURE() << "unknown gate: " << gateName;
+  }
+
+  func::ReturnOp::create(builder, loc);
+  return module;
+}
+
+ModuleOp createDynamicControlGateModule(MLIRContext *context,
+                                        StringRef gateName) {
+  OpBuilder builder(context);
+  auto module = ModuleOp::create(builder, builder.getUnknownLoc());
+  builder.setInsertionPointToEnd(module.getBody());
+
+  auto veqType = cudaq::quake::VeqType::getUnsized(context);
+  auto refType = cudaq::quake::RefType::get(context);
+  auto funcType = builder.getFunctionType({veqType, refType}, {});
+  auto func = func::FuncOp::create(builder, builder.getUnknownLoc(),
+                                   "test_func", funcType);
+  auto *entry = func.addEntryBlock();
+  builder.setInsertionPointToStart(entry);
+
+  Location loc = builder.getUnknownLoc();
+  Value control = entry->getArgument(0);
+  Value target = entry->getArgument(1);
+  if (gateName == "s")
+    cudaq::quake::SOp::create(builder, loc, /*isAdj=*/false,
+                              ValueRange{control}, target);
+  else if (gateName == "t")
+    cudaq::quake::TOp::create(builder, loc, /*isAdj=*/false,
+                              ValueRange{control}, target);
+  else
+    ADD_FAILURE() << "unknown dynamic control gate: " << gateName.str();
+
+  func::ReturnOp::create(builder, loc);
+  return module;
+}
+
+std::unique_ptr<cudaq::DecompositionPatternType>
+instantiatePatternType(StringRef patternName) {
+  for (auto &entry : cudaq::DecompositionPatternTypeRegistry::entries()) {
+    if (entry.getName() == patternName)
+      return entry.instantiate();
+  }
+  return nullptr;
+}
+
+LogicalResult applySinglePattern(ModuleOp module, StringRef patternName,
+                                 ArrayRef<std::size_t> disabledControlCounts) {
+  auto patternType = instantiatePatternType(patternName);
+  if (!patternType)
+    return failure();
+
+  RewritePatternSet patterns(module->getContext());
+  patterns.add(
+      patternType->create(module->getContext(), 1, disabledControlCounts));
+  FrozenRewritePatternSet frozenPatterns(std::move(patterns));
+  return applyPatternsGreedily(module, frozenPatterns);
+}
+
+// Helper to collect all gate types in a module
+llvm::StringSet<> collectGateTypesInModule(ModuleOp module) {
+  llvm::StringSet<> gates;
+
+  module.walk([&](Operation *op) {
+    if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
+      std::string gateName = optor->getName().stripDialect().str();
+      auto numControls = optor.getControls().size();
+
+      if (numControls > 0) {
+        gateName += "(" + std::to_string(numControls) + ")";
+      }
+
+      gates.insert(gateName);
+    }
+  });
+
+  return gates;
+}
+
+template <typename OpTy>
+std::size_t countOps(ModuleOp module) {
+  std::size_t count = 0;
+  module.walk([&](OpTy op) { ++count; });
+  return count;
+}
+
+inline std::pair<std::string, size_t>
+splitGateAndControls(llvm::StringRef gate) {
+  auto parenOpen = gate.find('(');
+  std::string gatePrefix;
+  size_t gateNum = 0;
+  if (parenOpen != llvm::StringRef::npos) {
+    gatePrefix = gate.substr(0, parenOpen).str();
+    auto parenClose = gate.find(')', parenOpen);
+    assert(parenClose != llvm::StringRef::npos);
+    std::string numStr =
+        gate.substr(parenOpen + 1, parenClose - parenOpen - 1).str();
+    if (numStr == "n")
+      gateNum = std::numeric_limits<size_t>::max();
+    else
+      gateNum = static_cast<size_t>(std::stoul(numStr));
+  } else {
+    gatePrefix = gate.str();
+  }
+  return {gatePrefix, gateNum};
+};
+
+void stripNamespace(std::string &debugName) {
+  auto lastColon = debugName.find_last_of(':');
+  if (lastColon != llvm::StringRef::npos) {
+    debugName = debugName.substr(lastColon + 1);
+  }
+}
+
+} // namespace
+
+// Test 2: Verify pattern names match getDebugName()
+TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
+
+  for (auto &entry : patternEntries) {
+    std::string patternName = entry.getName().str();
+    std::unique_ptr<cudaq::DecompositionPatternType> patternType;
+    for (auto it = cudaq::DecompositionPatternType::RegistryType::begin(),
+              ie = cudaq::DecompositionPatternType::RegistryType::end();
+         it != ie; ++it) {
+      if (patternName == it->getName()) {
+        patternType = it->instantiate();
+        break;
+      }
+    }
+    ASSERT_NE(patternType, nullptr)
+        << "Failed to recover registered pattern type: " << patternName;
+
+    auto pattern = patternType->create(context.get());
+    ASSERT_NE(pattern, nullptr) << "Failed to create pattern: " << patternName;
+
+    // Get the debug name
+    auto debugName = pattern->getDebugName().str();
+    stripNamespace(debugName);
+
+    // Verify they match
+    EXPECT_EQ(patternName, debugName)
+        << "Pattern name '" << patternName << "' does not match debug name '"
+        << debugName << "'";
+  }
+}
+
+// Test 3: Verify metadata is consistent (source and target gates are valid)
+TEST_F(DecompositionPatternsTest, MetadataConsistency) {
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
+
+  for (auto &entry : patternEntries) {
+    std::string patternName = entry.getName().str();
+    auto patternType = entry.instantiate();
+    auto variants = patternType->getVariants();
+
+    EXPECT_FALSE(variants.empty())
+        << "Pattern '" << patternName << "' has no variants";
+
+    for (const auto &variant : variants) {
+      EXPECT_FALSE(variant.sourceOp.name.empty())
+          << "Pattern '" << patternName << "' has empty source gate";
+
+      EXPECT_FALSE(variant.targetOps.empty())
+          << "Pattern '" << patternName << "' has empty target gates";
+
+      for (const auto &targetGate : variant.targetOps) {
+        EXPECT_FALSE(targetGate.name.empty())
+            << "Pattern '" << patternName << "' has empty target gate in list";
+      }
+    }
+  }
+}
+
+TEST_F(DecompositionPatternsTest, SAndTToR1AdvertiseVariants) {
+  auto findPatternType = [](llvm::StringRef patternName) {
+    for (auto &entry : cudaq::DecompositionPatternTypeRegistry::entries()) {
+      if (entry.getName() == patternName)
+        return entry.instantiate();
+    }
+    return std::unique_ptr<cudaq::DecompositionPatternType>();
+  };
+
+  auto sToR1 = findPatternType("SToR1");
+  auto tToR1 = findPatternType("TToR1");
+  ASSERT_NE(sToR1, nullptr);
+  ASSERT_NE(tToR1, nullptr);
+
+  auto collectSources = [](const cudaq::DecompositionPatternType &patternType) {
+    std::vector<std::string> sources;
+    for (const auto &variant : patternType.getVariants())
+      sources.push_back(variant.sourceOp.str());
+    std::sort(sources.begin(), sources.end());
+    return sources;
+  };
+
+  std::vector<std::string> expectedS{"s", "s(1)", "s(n)"};
+  std::vector<std::string> expectedT{"t", "t(1)", "t(n)"};
+  EXPECT_EQ(collectSources(*sToR1), expectedS);
+  EXPECT_EQ(collectSources(*tToR1), expectedT);
+}
+
+TEST_F(DecompositionPatternsTest, R1ToU3RespectsEnabledSourceVariants) {
+  std::vector<std::size_t> disabledControlCounts{0, 2};
+
+  auto bareModule = createTestModule(context.get(), "r1");
+  ASSERT_TRUE(succeeded(
+      applySinglePattern(bareModule, "R1ToU3", disabledControlCounts)));
+  auto bareGates = collectGateTypesInModule(bareModule);
+  EXPECT_TRUE(bareGates.contains("r1"));
+  EXPECT_FALSE(bareGates.contains("u3"));
+
+  auto oneControlModule = createTestModule(context.get(), "r1(1)");
+  ASSERT_TRUE(succeeded(
+      applySinglePattern(oneControlModule, "R1ToU3", disabledControlCounts)));
+  auto oneControlGates = collectGateTypesInModule(oneControlModule);
+  EXPECT_TRUE(oneControlGates.contains("u3(1)"));
+  EXPECT_FALSE(oneControlGates.contains("r1(1)"));
+
+  auto twoControlModule = createTestModule(context.get(), "r1(2)");
+  ASSERT_TRUE(succeeded(
+      applySinglePattern(twoControlModule, "R1ToU3", disabledControlCounts)));
+  auto twoControlGates = collectGateTypesInModule(twoControlModule);
+  EXPECT_TRUE(twoControlGates.contains("r1(2)"));
+  EXPECT_FALSE(twoControlGates.contains("u3(2)"));
+}
+
+TEST_F(DecompositionPatternsTest, U3ToRotationsRespectsEnabledSourceVariants) {
+  std::vector<std::size_t> disabledControlCounts{0, 2};
+
+  auto bareModule = createTestModule(context.get(), "u3");
+  ASSERT_TRUE(succeeded(
+      applySinglePattern(bareModule, "U3ToRotations", disabledControlCounts)));
+  auto bareGates = collectGateTypesInModule(bareModule);
+  EXPECT_TRUE(bareGates.contains("u3"));
+  EXPECT_FALSE(bareGates.contains("rz"));
+  EXPECT_FALSE(bareGates.contains("rx"));
+
+  auto oneControlModule = createTestModule(context.get(), "u3(1)");
+  ASSERT_TRUE(succeeded(applySinglePattern(oneControlModule, "U3ToRotations",
+                                           disabledControlCounts)));
+  auto oneControlGates = collectGateTypesInModule(oneControlModule);
+  EXPECT_TRUE(oneControlGates.contains("rz(1)"));
+  EXPECT_TRUE(oneControlGates.contains("rx(1)"));
+  EXPECT_FALSE(oneControlGates.contains("u3(1)"));
+
+  auto twoControlModule = createTestModule(context.get(), "u3(2)");
+  ASSERT_TRUE(succeeded(applySinglePattern(twoControlModule, "U3ToRotations",
+                                           disabledControlCounts)));
+  auto twoControlGates = collectGateTypesInModule(twoControlModule);
+  EXPECT_TRUE(twoControlGates.contains("u3(2)"));
+  EXPECT_FALSE(twoControlGates.contains("rz(2)"));
+  EXPECT_FALSE(twoControlGates.contains("rx(2)"));
+}
+
+TEST_F(DecompositionPatternsTest, UnboundedSourceVariantsDoNotMatchBareGates) {
+  std::vector<std::size_t> r1DisabledControlCounts{0};
+  auto bareR1Module = createTestModule(context.get(), "r1");
+  ASSERT_TRUE(succeeded(
+      applySinglePattern(bareR1Module, "R1ToU3", r1DisabledControlCounts)));
+  auto bareR1Gates = collectGateTypesInModule(bareR1Module);
+  EXPECT_TRUE(bareR1Gates.contains("r1"));
+  EXPECT_FALSE(bareR1Gates.contains("u3"));
+
+  auto controlledR1Module = createTestModule(context.get(), "r1(2)");
+  ASSERT_TRUE(succeeded(applySinglePattern(controlledR1Module, "R1ToU3",
+                                           r1DisabledControlCounts)));
+  auto controlledR1Gates = collectGateTypesInModule(controlledR1Module);
+  EXPECT_TRUE(controlledR1Gates.contains("u3(2)"));
+  EXPECT_FALSE(controlledR1Gates.contains("r1(2)"));
+
+  std::vector<std::size_t> u3DisabledControlCounts{0};
+  auto bareU3Module = createTestModule(context.get(), "u3");
+  ASSERT_TRUE(succeeded(applySinglePattern(bareU3Module, "U3ToRotations",
+                                           u3DisabledControlCounts)));
+  auto bareU3Gates = collectGateTypesInModule(bareU3Module);
+  EXPECT_TRUE(bareU3Gates.contains("u3"));
+  EXPECT_FALSE(bareU3Gates.contains("rz"));
+  EXPECT_FALSE(bareU3Gates.contains("rx"));
+
+  auto controlledU3Module = createTestModule(context.get(), "u3(2)");
+  ASSERT_TRUE(succeeded(applySinglePattern(controlledU3Module, "U3ToRotations",
+                                           u3DisabledControlCounts)));
+  auto controlledU3Gates = collectGateTypesInModule(controlledU3Module);
+  EXPECT_TRUE(controlledU3Gates.contains("rz(2)"));
+  EXPECT_TRUE(controlledU3Gates.contains("rx(2)"));
+  EXPECT_FALSE(controlledU3Gates.contains("u3(2)"));
+}
+
+TEST_F(DecompositionPatternsTest, SAndTToR1AcceptDynamicControlsWhenNEnabled) {
+  auto sModule = createDynamicControlGateModule(context.get(), "s");
+  ASSERT_TRUE(succeeded(applySinglePattern(sModule, "SToR1", {})));
+  EXPECT_EQ(countOps<cudaq::quake::SOp>(sModule), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::R1Op>(sModule), 1u);
+
+  auto tModule = createDynamicControlGateModule(context.get(), "t");
+  ASSERT_TRUE(succeeded(applySinglePattern(tModule, "TToR1", {})));
+  EXPECT_EQ(countOps<cudaq::quake::TOp>(tModule), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::R1Op>(tModule), 1u);
+}
+
+TEST_F(DecompositionPatternsTest, R1ToRzDoesNotRewriteAdjointR1) {
+  auto module = createTestModule(context.get(), "r1<adj>");
+
+  ASSERT_TRUE(succeeded(applySinglePattern(module, "R1ToRz", {})));
+
+  EXPECT_EQ(countOps<cudaq::quake::R1Op>(module), 1u);
+  EXPECT_EQ(countOps<cudaq::quake::RzOp>(module), 0u);
+}
+
+// Test 4: Verify pattern decompositions produce only target gates
+TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
+
+  for (auto &entry : patternEntries) {
+    std::string patternName = entry.getName().str();
+    auto patternType = entry.instantiate();
+    for (const auto &variant : patternType->getVariants()) {
+      std::string sourceGate = variant.sourceOp.str();
+      std::vector<std::string> targetGates;
+      for (const auto &targetGate : variant.targetOps)
+        targetGates.push_back(targetGate.str());
+
+      // Create a test module with the source gate
+      auto module = createTestModule(context.get(), sourceGate);
+
+      // Apply the decomposition pass with only this pattern enabled
+      PassManager pm(context.get());
+      cudaq::opt::DecompositionOptions options;
+      options.enabledPatterns = llvm::SmallVector<std::string>{patternName};
+      pm.addPass(cudaq::opt::createDecomposition(options));
+
+      // Run the pass
+      auto result = pm.run(module);
+      ASSERT_TRUE(succeeded(result))
+          << "Decomposition pass failed for pattern: " << patternName;
+
+      // Collect all gates in the output
+      auto outputGates = collectGateTypesInModule(module);
+
+      // Map from gate prefix to allowed number of controls
+      llvm::StringMap<llvm::SmallVector<size_t>> allowedGates;
+      for (auto targetGate : targetGates) {
+        auto [tPrefix, tNum] = splitGateAndControls(targetGate);
+        allowedGates[tPrefix].push_back(tNum);
+      }
+      auto isAllowedGate = [&](StringRef gate) {
+        // Split gate into prefix and number (e.g., "h(1)" -> "h", 1) using
+        // utility function
+        auto [gatePrefix, gateNum] = splitGateAndControls(gate);
+
+        auto it = allowedGates.find(gatePrefix);
+        if (it == allowedGates.end()) {
+          return false;
+        }
+        auto allowedNumControls = it->second;
+        // Check if the number of controls is in the allowed list (or if any
+        // number is allowed)
+        auto isEqOrMax = [gateNum](size_t num) {
+          return num == gateNum || num == std::numeric_limits<size_t>::max();
+        };
+        return std::find_if(allowedNumControls.begin(),
+                            allowedNumControls.end(),
+                            isEqOrMax) != allowedNumControls.end();
+      };
+
+      std::vector<std::string> unexpectedGates;
+      for (auto &outputGate : outputGates) {
+        if (!isAllowedGate(outputGate.getKey())) {
+          unexpectedGates.push_back(outputGate.getKey().str());
+        }
+      }
+
+      if (!unexpectedGates.empty()) {
+        auto expectedGatesStr = llvm::join(targetGates, ", ");
+        auto unexpectedGatesStr = llvm::join(unexpectedGates, ", ");
+
+        ADD_FAILURE() << "Pattern '" << patternName
+                      << "' produced unexpected gates.\n"
+                      << "  Allowed gates: {" << expectedGatesStr << "}\n"
+                      << "  Found: {" << unexpectedGatesStr << "}";
+      }
+    }
+  }
+}

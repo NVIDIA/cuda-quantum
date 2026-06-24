@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,21 +7,66 @@
  ******************************************************************************/
 
 #include "execution_manager.h"
+#include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "nvqir/CircuitSimulator.h"
+#include "cudaq/algorithms/observe/policy.h"
+#include "cudaq/algorithms/policy_cpos.h"
+#include "cudaq/algorithms/policy_dispatch.h"
 
-namespace cudaq {
+using namespace cudaq;
+
 static ExecutionManager *execution_manager;
 
-void setExecutionManagerInternal(ExecutionManager *em) {
+namespace nvqir {
+CircuitSimulator *getCircuitSimulatorInternal();
+}
+
+void cudaq::setExecutionManagerInternal(ExecutionManager *em) {
   CUDAQ_INFO("external caller setting the execution manager.");
   execution_manager = em;
 }
 
-void resetExecutionManagerInternal() {
+void cudaq::resetExecutionManagerInternal() {
   CUDAQ_INFO("external caller clearing the execution manager.");
   execution_manager = nullptr;
 }
 
-ExecutionManager *getExecutionManagerInternal() { return execution_manager; }
+ExecutionManager *cudaq::getExecutionManagerInternal() {
+  return execution_manager;
+}
 
-} // namespace cudaq
+ExecutionManager *cudaq::detail::getExecutionManagerFromContext() {
+  auto ctx = getExecutionContext();
+  if (ctx)
+    return ctx->executionManager;
+  return nullptr;
+}
+
+void ExecutionManager::configureExecutionContext(ExecutionContext &ctx) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(ctx);
+}
+
+void ExecutionManager::configureExecutionContext(const sample_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
+  if (auto *ctx = getExecutionContext())
+    configureExecutionContext(*ctx);
+
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
+  policies::withPolicy(ctx.name, [&](auto policy) {
+    policies::visitResult(
+        [&]() { return cudaq::finalize_execution_manager(*this, policy, ctx); },
+        [&](sample_result &&r) { ctx.result = std::move(r); },
+        [&](observe_result &&r) {
+          ctx.result = r.raw_data();
+          ctx.expectationValue = r.expectation();
+        },
+        [&](policies::void_result &&r) {});
+  });
+}

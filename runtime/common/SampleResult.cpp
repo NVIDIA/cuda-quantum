@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,8 +17,7 @@
 #include <map>
 #include <vector>
 
-namespace cudaq {
-std::string longToBitString(int size, long x) {
+static std::string longToBitString(int size, long x) {
   std::string s(size, '0');
   int counter = 0;
   do {
@@ -29,9 +28,9 @@ std::string longToBitString(int size, long x) {
   return s;
 }
 
-void deserializeCounts(
-    std::vector<std::size_t> &data, std::size_t &stride,
-    std::unordered_map<std::string, std::size_t> &localCounts) {
+static void
+deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
+                  std::unordered_map<std::string, std::size_t> &localCounts) {
   auto nBs = data[stride];
   stride++;
 
@@ -45,8 +44,8 @@ void deserializeCounts(
   stride += nBs * 3;
 }
 
-std::string extractNameFromData(std::vector<std::size_t> &data,
-                                std::size_t &stride) {
+static std::string extractNameFromData(std::vector<std::size_t> &data,
+                                       std::size_t &stride) {
   auto nChars = data[stride++];
 
   std::string name(data.begin() + stride, data.begin() + stride + nChars);
@@ -54,6 +53,8 @@ std::string extractNameFromData(std::vector<std::size_t> &data,
   stride += nChars;
   return name;
 }
+
+namespace cudaq {
 
 ExecutionResult::ExecutionResult(CountsDictionary c) : counts(c) {}
 ExecutionResult::ExecutionResult(std::string name) : registerName(name) {}
@@ -130,6 +131,8 @@ void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
+//===----------------------------------------------------------------------===//
+
 std::vector<std::size_t> sample_result::serialize() const {
   std::vector<std::size_t> retData;
   for (auto &result : sampleResults) {
@@ -160,40 +163,33 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
 }
 
 sample_result::sample_result(ExecutionResult &&result) {
-  sampleResults.insert({result.registerName, result});
-  for (auto &[bits, count] : result.counts)
+  auto counts = result.counts;
+  sampleResults.insert({result.registerName, std::move(result)});
+  for (auto &[bits, count] : counts)
     totalShots += count;
 }
 
-sample_result::sample_result(ExecutionResult &result)
-    : sample_result(std::move(result)) {}
+sample_result::sample_result(const ExecutionResult &result)
+    : sample_result(ExecutionResult{result}) {}
 
-sample_result::sample_result(std::vector<ExecutionResult> &results) {
-  for (auto &result : results) {
+sample_result::sample_result(const std::vector<ExecutionResult> &results) {
+  for (auto &result : results)
     sampleResults.insert({result.registerName, result});
-  }
-  if (!results.empty())
-    for (auto &[bits, count] : results[0].counts)
-      totalShots += count;
-}
-
-sample_result::sample_result(double preComputedExp,
-                             std::vector<ExecutionResult> &results) {
-  for (auto &result : results) {
-    sampleResults.insert({result.registerName, result});
-  }
-
-  // Create a spot for the pre-computed exp val
-  sampleResults.emplace(GlobalRegisterName, preComputedExp);
 
   if (results.empty())
     return;
-
   for (auto &[bits, count] : results[0].counts)
     totalShots += count;
 }
 
-void sample_result::append(ExecutionResult &result, bool concatenate) {
+sample_result::sample_result(double preComputedExp,
+                             const std::vector<ExecutionResult> &results)
+    : sample_result(results) {
+  // Create a spot for the pre-computed exp val
+  sampleResults.emplace(GlobalRegisterName, preComputedExp);
+}
+
+void sample_result::append(const ExecutionResult &result, bool concatenate) {
   // If given a result corresponding to the same register name, either a)
   // replace the existing one if concatenate is false, or b) if concatenate is
   // true, stitch the bitstrings from "result" into the existing one.
@@ -232,12 +228,11 @@ sample_result &sample_result::operator+=(const sample_result &other) {
   for (auto &otherResults : other.sampleResults) {
     auto regName = otherResults.first;
     auto foundIter = sampleResults.find(regName);
-    if (foundIter == sampleResults.end())
+    if (foundIter == sampleResults.end()) {
       sampleResults.insert({regName, otherResults.second});
-    else {
-
-      // we already have a sample result with this name, so
-      // now lets just merge them
+    } else {
+      // We already have a sample result with this name, so now lets just merge
+      // them.
       auto &sr = sampleResults[regName];
       for (auto &[bits, count] : otherResults.second.counts) {
         auto &ourCounts = sr.counts;

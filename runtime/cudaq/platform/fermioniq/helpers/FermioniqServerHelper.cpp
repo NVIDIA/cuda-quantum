@@ -1,14 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Support/Version.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>
@@ -227,7 +228,7 @@ FermioniqServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
     circuit_names.push_back(circuitCode.name);
 
-    CUDAQ_INFO("outputNames: {}", circuitCode.output_names.dump());
+    CUDAQ_INFO("outputNames: {}", circuitCode.output_names->dump());
 
     // Construct the job message (for Fermioniq backend)
     circuits.push_back(circuitCode.code);
@@ -238,8 +239,8 @@ FermioniqServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
       config["bond_dim"] = stoi(backendConfig.at(CFG_BOND_DIM_KEY));
     }
 
-    if (circuitCode.user_data.contains("observable")) {
-      config["observable"] = circuitCode.user_data["observable"];
+    if (circuitCode.user_data->contains("observable")) {
+      config["observable"] = circuitCode.user_data->operator[]("observable");
     }
 
     configs.push_back(config);

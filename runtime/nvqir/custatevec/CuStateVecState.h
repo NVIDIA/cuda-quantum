@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,8 @@
 #pragma once
 
 #include "common/SimulationState.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include <thrust/complex.h>
 #include <thrust/device_ptr.h>
@@ -19,9 +21,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != CUSTATEVEC_STATUS_SUCCESS) {                                    \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           custatevecGetErrorString(err),      \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(cudaq_fmt::format(                              \
+          "[custatevec] %{} in {} (line {})", custatevecGetErrorString(err),   \
+          __FUNCTION__, __LINE__));                                            \
     }                                                                          \
   };
 
@@ -29,9 +31,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           cudaGetErrorString(err),            \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(                                                \
+          cudaq_fmt::format("[custatevec] %{} in {} (line {})",                \
+                            cudaGetErrorString(err), __FUNCTION__, __LINE__)); \
     }                                                                          \
   };
 
@@ -90,11 +92,12 @@ private:
     return attributes.device;
   }
 
-  /// @brief Check the input data pointer and if it is
-  /// host data, copy it to the GPU.
-  auto maybeCopyToDevice(std::size_t size, void *dataPtr) {
+  /// @brief Check the input data pointer and if it is host data, copy it to
+  /// the GPU. Returns the (possibly newly-allocated) device pointer together
+  /// with a flag that is true iff we performed a `cudaMalloc` here.
+  std::pair<void *, bool> maybeCopyToDevice(std::size_t size, void *dataPtr) {
     if (isDevicePointer(dataPtr))
-      return dataPtr;
+      return {dataPtr, false};
 
     std::complex<ScalarType> *ptr = nullptr;
     HANDLE_CUDA_ERROR(
@@ -102,7 +105,7 @@ private:
     HANDLE_CUDA_ERROR(cudaMemcpy(ptr, dataPtr,
                                  size * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
-    return reinterpret_cast<void *>(ptr);
+    return {reinterpret_cast<void *>(ptr), true};
   };
 
 public:
@@ -159,11 +162,11 @@ public:
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
     if (getNumQubits() != basisState.size())
-      throw std::runtime_error(
-          fmt::format("[custatevec-state] getAmplitude with an invalid number "
-                      "of bits in the "
-                      "basis state: expected {}, provided {}.",
-                      getNumQubits(), basisState.size()));
+      throw std::runtime_error(cudaq_fmt::format(
+          "[custatevec-state] getAmplitude with an invalid number "
+          "of bits in the "
+          "basis state: expected {}, provided {}.",
+          getNumQubits(), basisState.size()));
     if (std::any_of(basisState.begin(), basisState.end(),
                     [](int x) { return x != 0 && x != 1; }))
       throw std::runtime_error(
@@ -207,11 +210,14 @@ public:
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t type) override {
-    // If the data is provided as a pointer / size, then
-    // we assume we do not own it.
-    bool weOwnTheData = type < 2 ? true : false;
-    ptr = maybeCopyToDevice(size, ptr);
-    return std::make_unique<CusvState<ScalarType>>(size, ptr, weOwnTheData);
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[createFromSizeAndPtr] invalid null pointer or zero size");
+    // We own the device buffer iff `maybeCopyToDevice` had to allocate one
+    // (i.e. the input was a host pointer). For an existing device pointer
+    // supplied by the caller, ownership stays with the caller.
+    auto [devPtr, weAllocated] = maybeCopyToDevice(size, ptr);
+    return std::make_unique<CusvState<ScalarType>>(size, devPtr, weAllocated);
   }
 
   /// @brief Return the tensor at the given index. Throws

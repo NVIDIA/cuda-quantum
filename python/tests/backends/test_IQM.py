@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 # Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
@@ -21,12 +21,8 @@ import pytest
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
 
-try:
-    from utils.mock_qpu.iqm import startServer
-    from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
-except:
-    pytest.skip("Mock qpu not available, skipping IQM tests.",
-                allow_module_level=True)
+from utils.mock_qpu.iqm import startServer
+from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
 
 # Define the port for the mock server
 port = 62443
@@ -61,6 +57,8 @@ def startUpMockServer():
     # Kill the server, remove the tokens file
     p.terminate()
     os.remove(tmp_tokens_file.name)
+
+    cudaq.reset_target()
 
 
 def test_iqm_ghz():
@@ -155,6 +153,22 @@ def test_iqm_u3_ctrl_decomposition():
     result = cudaq.sample(kernel)
 
 
+def test_iqm_ccx_qvec_slice_control():
+
+    @cudaq.kernel
+    def check_mcx():
+        qubits = cudaq.qvector(4)
+        x.ctrl(qubits[1:3], qubits[0])
+
+    @cudaq.kernel
+    def check_mcx1():
+        qubits = cudaq.qvector(4)
+        x.ctrl(qubits[1:4], qubits[0])
+
+    cudaq.sample(check_mcx)
+    cudaq.sample(check_mcx1)
+
+
 def test_IQM_state_preparation():
     shots = 10000
 
@@ -183,86 +197,19 @@ def test_IQM_state_preparation_builder():
     assert assert_close(counts["11"], 0., 2)
 
 
-def test_IQM_state_synthesis_from_simulator():
+def test_IQM_state_synthesis_from_simulator_unsupported():
 
     @cudaq.kernel
     def kernel(state: cudaq.State):
         qubits = cudaq.qvector(state)
 
+    # Constructed a state bound to the local simulator is unsupported.
     state = cudaq.State.from_data(
         np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
                  dtype=cudaq.complex()))
 
-    counts = cudaq.sample(kernel, state)
-    print(counts)
-    assert "00" in counts
-    assert "10" in counts
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-
-def test_IQM_state_synthesis_from_simulator_builder():
-
-    kernel, state = cudaq.make_kernel(cudaq.State)
-    qubits = kernel.qalloc(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-
-def test_IQM_state_synthesis():
-
-    @cudaq.kernel
-    def init(n: int):
-        q = cudaq.qvector(n)
-        x(q[0])
-
-    @cudaq.kernel
-    def kernel(s: cudaq.State):
-        q = cudaq.qvector(s)
-        x(q[1])
-
-    s = cudaq.get_state(init, 2)
-    s = cudaq.get_state(kernel, s)
-    counts = cudaq.sample(kernel, s)
-    assert '10' in counts
-    assert assert_close(counts["00"], 0., 2)
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-
-def test_IQM_state_synthesis_builder():
-
-    init, n = cudaq.make_kernel(int)
-    qubits = init.qalloc(n)
-    init.x(qubits[0])
-
-    s = cudaq.get_state(init, 2)
-
-    kernel, state = cudaq.make_kernel(cudaq.State)
-    qubits = kernel.qalloc(state)
-    kernel.x(qubits[1])
-
-    s = cudaq.get_state(kernel, s)
-    counts = cudaq.sample(kernel, s)
-    assert '10' in counts
-    assert assert_close(counts["00"], 0., 2)
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, state)
 
 
 def test_exp_pauli():
@@ -328,8 +275,9 @@ def test_2q_unitary_synthesis():
         custom_cnot(qubits[0], qubits[1])
 
     counts = cudaq.sample(bell_pair)
-    # Gives result like { 00:500 01:0 10:0 11:500 }
-    assert counts['01'] == 0 and counts['10'] == 0
+    # Gives result like { 00:500 01:0 10:0 11:500 } or { 00:500 11:500 }
+    assert ('01' not in counts or counts['01'] == 0) and ('10' not in counts or
+                                                          counts['10'] == 0)
 
     cudaq.register_operation(
         "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
@@ -345,7 +293,10 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    assert counts["0010011"] == 1000
+    # The 5th qubit in `qubits` is not referenced and may be deleted
+    assert ("0010011" in counts and
+            counts["0010011"] == 1000) or ("001011" in counts and
+                                           counts["001011"] == 1000)
 
 
 def test_explicit_measurement():
@@ -360,6 +311,48 @@ def test_explicit_measurement():
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(bell_pair, explicit_measurements=True)
     assert "not supported on this target" in repr(e)
+
+
+def test_IQM_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    counts.dump()
+    assert '10' in counts
+    assert assert_close(counts["00"], 0., 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_synthesis_builder():
+
+    init, n = cudaq.make_kernel(int)
+    qubits = init.qalloc(n)
+    init.x(qubits[0])
+
+    s = cudaq.get_state(init, 2)
+
+    kernel, state = cudaq.make_kernel(cudaq.State)
+    qubits = kernel.qalloc(state)
+    kernel.x(qubits[1])
+
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    assert '10' in counts
+    assert assert_close(counts["00"], 0., 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 # leave for gdb debugging

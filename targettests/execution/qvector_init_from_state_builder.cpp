@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,7 @@
 
 // clang-format off
 // Simulators
-// RUN: nvq++ %cpp_std --enable-mlir  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --library-mode %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

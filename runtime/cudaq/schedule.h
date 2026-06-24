@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,9 +9,9 @@
 #pragma once
 #include <complex>
 #include <cstddef>
-#include <cudaq.h>
 #include <functional>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -52,7 +52,7 @@ private:
 public:
   // Default constructor (empty schedule)
   schedule() = default;
-  schedule(pointer ptr) : ptr(ptr){};
+  schedule(pointer ptr) : ptr(ptr) {};
 
   /// @brief Constructor.
   /// @param steps: The sequence of steps in the schedule. Restricted to a

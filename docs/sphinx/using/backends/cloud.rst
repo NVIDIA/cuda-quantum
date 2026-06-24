@@ -5,7 +5,7 @@ CUDA-Q provides a number of options to access hardware resources (GPUs and QPUs)
 
 .. toctree::
    :maxdepth: 1
-      
-        Amazon Braket (braket) <cloud/braket.rst>
-        NVIDIA Quantum Cloud (nvqc) <cloud/nvqc.rst>
 
+        Amazon Braket (braket) <cloud/braket.rst>
+        Scaleway QaaS (scaleway) <cloud/scaleway.rst>
+        qBraid <cloud/qbraid.rst>

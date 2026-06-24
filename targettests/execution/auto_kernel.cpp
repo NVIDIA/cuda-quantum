@@ -1,20 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
-
-// CHECK: size 3
-// CHECK: 0: {{[tf]}}
-// CHECK: 1: {{[tf]}}
-// CHECK: 2: {{[tf]}}
 
 struct ak2 {
   auto operator()() __qpu__ {
@@ -26,7 +20,7 @@ struct ak2 {
     h(q[0]);
     x(q[1]);
     y(q[2]);
-    return mz(q);
+    return cudaq::to_bools(mz(q));
   }
 };
 
@@ -39,3 +33,8 @@ int main() {
   }
   return 0;
 }
+
+// CHECK: size 3
+// CHECK: 0: {{[tf]}}
+// CHECK: 1: {{[tf]}}
+// CHECK: 2: {{[tf]}}

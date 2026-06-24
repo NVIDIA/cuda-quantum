@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,6 +12,6 @@ add_library(cudaq-serverhelper-quantum_machines SHARED QuantumMachinesServerHelp
 target_link_libraries(cudaq-serverhelper-quantum_machines
   PUBLIC
     cudaq-common
-    fmt::fmt-header-only
+    cudaq-logger
 )
 install(TARGETS cudaq-serverhelper-quantum_machines DESTINATION lib)

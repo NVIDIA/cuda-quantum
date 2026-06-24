@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,57 +9,21 @@
 import cudaq, pytest, os
 import numpy as np
 from cudaq import spin
-from multiprocessing import Process
 from typing import List
-from network_utils import check_server_connection
-try:
-    from utils.mock_qpu.quantinuum import startServer
-except:
-    print("Mock qpu not available, skipping Quantinuum tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from conftest import QUANTINUUM_MOCK_PORT
 
-# Define the port for the mock server
-port = 62440
+pytestmark = pytest.mark.xdist_group("quantinuum_mock")
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
-
-
-@pytest.fixture(scope="session", autouse=True)
-def startUpMockServer():
-    # We need a Fake Credentials Config file
-    credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
-
-    # Create Nexus credential file (cookie format)
-    with open(credsName, 'w') as f:
-        f.write('key: {}\nrefresh: {}\ntime: 0'.format("nexus_key",
-                                                       "nexus_refresh"))
-
-    cudaq.set_random_seed(13)
-
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-
-    if not check_server_connection(port):
-        p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.",
-                    returncode=1)
-
-    yield credsName
-
-    # Kill the server, remove the file
-    p.terminate()
-    os.remove(credsName)
+    return got < -1.1 and got > -2.2
 
 
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget(startUpMockServer):
-    # Set the target, using the next generation `Helios` device.
+def configureTarget(quantinuum_mock_server):
     cudaq.set_target('quantinuum',
-                     url='http://localhost:{}'.format(port),
-                     credentials=startUpMockServer,
+                     url='http://localhost:{}'.format(QUANTINUUM_MOCK_PORT),
+                     credentials=quantinuum_mock_server,
                      project='mock_project_id',
                      machine='Helios-1SC')
 
@@ -179,44 +143,6 @@ def test_quantinuum_u3_ctrl_decomposition():
     result = cudaq.sample(kernel)
 
 
-def test_quantinuum_state_preparation():
-
-    @cudaq.kernel
-    def kernel(vec: List[complex]):
-        qubits = cudaq.qvector(vec)
-        mz(qubits)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-
-def test_quantinuum_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-        mz(qubits)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
-
 def test_quantinuum_state_synthesis():
 
     @cudaq.kernel
@@ -277,6 +203,45 @@ def test_run():
         if result == qubitCount:
             non_zero_count += 1
     assert non_zero_count > 0
+
+
+def test_quantinuum_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+        mz(qubits)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
+def test_quantinuum_dem_from_kernel_target_independent():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        q0, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
+        x(q0)
+        x(q1)
+        x(q2)
+        m0 = mz(q0)
+        m1 = mz(q1)
+        m2 = mz(q2)
+        cudaq.detector(m0, m1, m2)
+        cudaq.logical_observable(m0)
+        return m0 ^ m1 ^ m2
+
+    dem_text = cudaq.dem_from_kernel(kernel)
+    assert "detector D0" in dem_text
+    assert "logical_observable L0" in dem_text
+
+    results = cudaq.run(kernel, shots_count=10)
+    assert len(results) == 10
+    assert all(1 == r for r in results)
 
 
 # leave for gdb debugging

@@ -1,0 +1,107 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --qubit-mapping='device=path(3) raise-fatal-errors=1' %s -split-input-file -verify-diagnostics
+
+// expected-error@+1 {{no borrow_wire ops found in test_00}}
+func.func @test_00() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3:2 = quake.x [%1] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%4#1] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %4#0 : !quake.wire
+  quake.sink %5#0 : !quake.wire
+  quake.sink %5#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_01[10]
+
+func.func @test_01() {
+  %0 = quake.borrow_wire @wires_01[0] : !quake.wire
+  // expected-error @+1 {{the mapper requires borrow operations and prohibits null wires}}
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3:2 = quake.x [%1] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%4#1] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %4#0 : !quake.wire
+  quake.sink %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02[10]
+
+func.func @test_02() {
+  %0 = quake.borrow_wire @wires_02[0] : !quake.wire
+  // expected-error @+1 {{the mapper requires borrow operations and prohibits reference semantics}}
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  %3 = quake.alloca !quake.ref
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_03[10]
+
+// expected-error@+1 {{no borrow_wire ops found in test_03}}
+func.func @test_03() {
+  return
+}
+
+// -----
+
+quake.wire_set @wires_04[10]
+
+// A measured wire reused by a later quantum op is a mid-circuit measurement the
+// mapper cannot preserve while it defers measurements to the end.
+func.func @test_04() {
+  %0 = quake.borrow_wire @wires_04[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_04[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // expected-error @+1 {{unsupported mid-circuit measurement}}
+  %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.h %wire : (!quake.wire) -> !quake.wire
+  quake.return_wire %3 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_05[10]
+
+// A measurement result feeding control flow through a store/load is the
+// adaptive/feed-forward shape CUDA-Q lowering produces, and is unsupported. The
+// feedback diagnostic is reported on the function, not the measurement op.
+// expected-error @+1 {{unsupported measurement-dependent behavior}}
+func.func @test_05() {
+  %0 = quake.borrow_wire @wires_05[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_05[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %b = quake.discriminate %meas : (!quake.measure) -> i1
+  %slot = cc.alloca i1
+  cc.store %b, %slot : !cc.ptr<i1>
+  %cond = cc.load %slot : !cc.ptr<i1>
+  cc.if(%cond) {
+    %tmp = cc.alloca i1
+  }
+  quake.return_wire %wire : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}

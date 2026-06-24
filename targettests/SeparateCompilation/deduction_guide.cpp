@@ -1,18 +1,17 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ --enable-mlir -c %t/udedgulib.cpp -o %t/udedgulib.o && \
-// RUN: nvq++ --enable-mlir -c %t/udedguuser.cpp -o %t/udedguuser.o && \
-// RUN: nvq++ --enable-mlir %t/udedgulib.o %t/udedguuser.o -o %t/udedgu.x && \
+// RUN: nvq++ -c %t/udedgulib.cpp -o %t/udedgulib.o && \
+// RUN: nvq++ -c %t/udedguuser.cpp -o %t/udedguuser.o && \
+// RUN: nvq++ %t/udedgulib.o %t/udedguuser.o -o %t/udedgu.x && \
 // RUN: %t/udedgu.x | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on

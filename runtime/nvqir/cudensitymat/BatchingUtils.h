@@ -1,6 +1,6 @@
 
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,7 +12,7 @@
 
 namespace cudaq {
 
-namespace __internal__ {
+namespace detail {
 // Helper to determine if the list of operators can be batched together
 // for evolution.
 bool checkBatchingCompatibility(
@@ -24,5 +24,5 @@ bool checkBatchingCompatibility(
 bool checkBatchingCompatibility(const std::vector<super_op> &listSuperOp);
 bool checkBatchingCompatibility(
     const std::vector<cudaq::matrix_handler> &elemOps);
-} // namespace __internal__
+} // namespace detail
 } // namespace cudaq

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,7 @@
 #include "kernels.h"
 #include "common/EigenDense.h"
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 std::vector<std::string> grayCode(std::size_t rank) {
   std::function<void(std::vector<std::string> &, std::size_t)> grayCodeRecurse;
@@ -184,4 +184,4 @@ std::vector<double> getAlphaY(const std::span<double> data,
 
   return res;
 }
-} // namespace cudaq::details
+} // namespace cudaq::detail

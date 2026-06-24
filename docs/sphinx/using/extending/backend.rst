@@ -41,7 +41,7 @@ Here's a template for implementing a server helper class:
 .. code-block:: cpp
 
     // ProviderNameServerHelper.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/Support/Version.h"
@@ -229,9 +229,7 @@ Create a ``YAML`` configuration file for your target:
       # Tell the rest-qpu that we are generating QIR base profile.
       # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
       codegen-emission: qir-base
-      # Library mode is only for simulators, physical backends must turn this off
-      library-mode: false
-    
+
     # Some examples of target arguments are shown below.
     # You do not need to add any arguments for your backend if you do not need them.
     target-arguments:
@@ -286,18 +284,16 @@ Create unit tests for your server helper:
 .. code-block:: cmake
 
     # CMakeLists.txt
-    add_executable(ProviderNameTester ProviderNameTester.cpp)
-    target_link_libraries(ProviderNameTester
-      PRIVATE
-      cudaq-common
-      cudaq
-      gtest_main
+    add_backend_unittest_executable(ProviderNameTester 
+      SOURCES ProviderNameTester.cpp
+      BACKEND ProviderName
+      BACKEND_CONFIG "<provider_name> url=http://localhost:<PORT>"
     )
     
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ProviderNameStartServerAndTest.sh.in
-                  ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh @ONLY)
+    configure_file(ProviderNameStartServerAndTest.sh.in
+                   ProviderNameStartServerAndTest.sh @ONLY)
     
-    add_test(NAME ProviderNameTester COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh)
+    add_test(NAME ProviderNameTester COMMAND bash ProviderNameStartServerAndTest.sh)
     set_tests_properties(ProviderNameTester PROPERTIES TIMEOUT 120)
 
 3. Create a shell script to start the mock server and run tests:
@@ -305,9 +301,9 @@ Create unit tests for your server helper:
 .. code-block:: bash
 
     #!/bin/bash
-    
+
     # Start the mock server
-    python3 -m utils.mock_qpu.<provider_name> @PORT@ &
+    python3 python/tests/utils/start_mock_qpu.py <provider_name> &
     SERVER_PID=$!
     
     # Wait for server to start
@@ -328,21 +324,13 @@ Create unit tests for your server helper:
 .. code-block:: cpp
 
     // ProviderNameTester.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/platform/quantum_platform.h"
     #include "gtest/gtest.h"
     
     TEST(ProviderNameTester, checkSimpleCircuit) {
-      // Initialize the platform
-      auto platform = cudaq::get_platform();
-      platform->setTargetBackend("<provider_name>");
-      
-      // Set configuration
-      platform->setBackendParameter("url", "http://localhost:PORT");
-      platform->setBackendParameter("api_key", "test_key");
-      
       // Create a simple circuit
       auto kernel = cudaq::make_kernel();
       auto qubits = kernel.qalloc(2);
@@ -374,7 +362,7 @@ And add the following to your ``targettests`` ``.cpp`` file:
 
 .. code-block:: cpp
 
-    // RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi
+    // RUN: if %provider_avail; then nvq++ --target provider %s -o %t.x; fi
 
 Mock Server
 -----------
@@ -383,7 +371,7 @@ Create a mock server for testing:
 
 .. code-block:: text
 
-    utils/mock_qpu/<provider_name>/
+    python/tests/utils/mock_qpu/<provider_name>/
     └── __init__.py
 
 Implement the mock server:
@@ -469,11 +457,7 @@ Create Python tests for your backend:
         not (cudaq.has_target("<provider_name>")),
         reason='Could not find `<provider_name>` in installation')
     
-    try:
-        from utils.mock_qpu.<provider_name> import startServer
-    except:
-        print("Mock qpu not available, skipping Provider Name tests.")
-        pytest.skip("Mock qpu not available.", allow_module_level=True)
+    from utils.mock_qpu.<provider_name> import startServer
     
     # Define the port for the mock server - make sure this is unique
     # across all tests.

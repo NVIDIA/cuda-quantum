@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,7 +15,7 @@
 namespace cudaq {
 CuDensityMatTimeStepper::CuDensityMatTimeStepper(
     cudensitymatHandle_t handle, cudensitymatOperator_t liouvillian)
-    : m_handle(handle), m_liouvillian(liouvillian){};
+    : m_handle(handle), m_liouvillian(liouvillian) {};
 
 state CuDensityMatTimeStepper::compute(
     const state &inputState, double t,
@@ -85,7 +85,6 @@ void CuDensityMatTimeStepper::computeImpl(
   }
   double *param_d =
       static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
-  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   {
     cudaq::dynamics::PerfMetricScopeTimer metricTimer(
         "cudensitymatOperatorComputeAction");

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,7 +10,8 @@
 #include "BatchingUtils.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <iostream>
 #include <map>
 #include <ranges>
@@ -172,8 +173,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
 
   const bool isBatched = elemOps.size() > 1 && !allSame;
   // We should have validated the batching compatibility.
-  assert(!isBatched ||
-         cudaq::__internal__::checkBatchingCompatibility(elemOps));
+  assert(!isBatched || cudaq::detail::checkBatchingCompatibility(elemOps));
 
   auto subspaceExtents = getSubspaceExtents(modeExtents, elemOps[0].degrees());
   cudaq::dimension_map dimensions = convertDimensions(modeExtents);
@@ -248,7 +248,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         if (diags.empty())
           return false;
         const auto dim = std::accumulate(
-            subspaceExtents.begin(), subspaceExtents.end(), 1,
+            subspaceExtents.begin(), subspaceExtents.end(), int64_t{1},
             std::multiplies<decltype(subspaceExtents)::value_type>());
         if (dim < m_minDimensionDiag)
           return false;
@@ -270,8 +270,8 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     }
 
     const int64_t totalDim =
-        std::accumulate(subspaceExtents.begin(), subspaceExtents.end(), 1,
-                        std::multiplies<int64_t>());
+        std::accumulate(subspaceExtents.begin(), subspaceExtents.end(),
+                        int64_t{1}, std::multiplies<int64_t>());
     std::vector<std::complex<double>> tensorData;
     tensorData.reserve(totalDim * totalDim * batchSize);
     for (const auto &elementaryOp : elemOps) {
@@ -358,17 +358,9 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
       throw std::runtime_error(
           "Mismatch between degrees and modalities sizes.");
 
-    if (sub_degrees.size() != 1)
-      throw std::runtime_error(
-          "Elementary operator must act on a single degree.");
-
     for (size_t j = 0; j < sub_degrees.size(); j++) {
       std::size_t degree = sub_degrees[j];
       int modality = modalities[j];
-
-      if (sub_degrees[i] < 0)
-        throw std::out_of_range("Degree cannot be negative!");
-
       allDegrees.emplace_back(degree);
       allModeActionDuality.emplace_back(modality);
     }
@@ -525,8 +517,10 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
         m_deviceBuffers.emplace(staticCoefficients_d);
         std::vector<cudaq::scalar_operator> coeffs;
         coeffs.reserve(batchSize);
-        for (const auto &hamiltonian : ops) {
-          coeffs.emplace_back(hamiltonian[termIdx].get_coefficient());
+        // Fix: Use sorted batchedProductTerms instead of unsorted ops to get
+        // the correct coefficient for each term after sorting by degrees.
+        for (const auto &productTerms : batchedProductTerms) {
+          coeffs.emplace_back(productTerms[termIdx].get_coefficient());
         }
         cuDoubleComplex *totalCoefficients_d = static_cast<cuDoubleComplex *>(
             cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(

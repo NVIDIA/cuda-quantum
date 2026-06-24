@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api=api=full --symbol-dce %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__bell_error_vecI10SantaKrausE(%arg0: !quake.veq<2>, %arg1: !cc.ptr<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  quake.apply_noise @shimzoo(%arg1) %arg0 : (!cc.ptr<f64>, !quake.veq<2>) -> ()
+  return
+}
+
+func.func private @shimzoo(!cc.ptr<f64>, !quake.veq<?>)
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__bell_error_vecI10SantaKrausE(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.ptr<!llvm.struct<"Array", opaque>>,
+// CHECK-SAME:      %[[ARG1:.*]]: !cc.ptr<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
+// CHECK:           %[[VAL_0:.*]] = call @__quantum__qis__convert_array_to_stdvector(%[[ARG0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
+// CHECK:           call @shimzoo(%[[ARG1]], %[[VAL_0]]) : (!cc.ptr<f64>, !cc.ptr<!llvm.struct<"Array", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__free_converted_stdvector(%[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> ()
+// CHECK:           return
+// CHECK:         }
+

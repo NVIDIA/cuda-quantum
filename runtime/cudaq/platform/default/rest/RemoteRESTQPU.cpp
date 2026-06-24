@@ -1,57 +1,99 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/BaseRemoteRESTQPU.h"
+#include "RemoteRESTQPU.h"
+#include "common/CompiledModule.h"
+#include "common/KernelExecution.h"
+#include "cudaq_internal/compiler/Compiler.h"
 
-using namespace mlir;
+static std::vector<cudaq::KernelExecution>
+runCodegen(const cudaq::CompiledModule &module,
+           std::unique_ptr<cudaq::CompileTarget> target) {
+  if (module.getMlirArtifacts().empty())
+    CUDAQ_ERROR("QPU does not support launching a "
+                "CompiledModule without MLIR artifacts.");
 
-namespace cudaq {
-std::string get_quake_by_name(const std::string &);
-} // namespace cudaq
+  cudaq_internal::compiler::Compiler compiler(std::move(target));
+  return compiler.emitKernelExecutions(module);
+}
 
-namespace {
+using namespace cudaq;
+cudaq::RemoteRESTQPU::~RemoteRESTQPU() = default;
 
-/// @brief The `RemoteRESTQPU` is a subtype of QPU that enables the
-/// execution of CUDA-Q kernels on remotely hosted quantum computing
-/// services via a REST Client / Server interaction. This type is meant
-/// to be general enough to support any remotely hosted service. Specific
-/// details about JSON payloads are abstracted via an abstract type called
-/// ServerHelper, which is meant to be subtyped by each provided remote QPU
-/// service. Moreover, this QPU handles launching kernels under a number of
-/// Execution Contexts, including sampling and observation via synchronous or
-/// asynchronous client invocations. This type should enable both QIR-based
-/// backends as well as those that take OpenQASM2 as input.
-class RemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
-protected:
-  std::tuple<ModuleOp, MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName,
-                             void *data) override {
-    auto contextPtr = cudaq::initializeMLIR();
-    MLIRContext &context = *contextPtr.get();
+sample_result RemoteRESTQPU::launchKernel(const sample_policy &policy,
+                                          const CompiledModule &module,
+                                          KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
 
-    // Get the quake representation of the kernel
-    auto quakeCode = cudaq::get_quake_by_name(kernelName);
-    auto m_module = parseSourceString<ModuleOp>(quakeCode, &context);
-    if (!m_module)
-      throw std::runtime_error("module cannot be parsed");
+  auto target = getCompileTarget(policy);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
 
-    return std::make_tuple(m_module.release(), contextPtr.release(), data);
+async_sample_result
+RemoteRESTQPU::launchKernel(const async_sample_policy &policy,
+                            const CompiledModule &module, KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
+
+  auto target = getCompileTarget(policy.inner);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
+observe_result RemoteRESTQPU::launchKernel(const observe_policy &policy,
+                                           const CompiledModule &module,
+                                           KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
+
+  auto target = getCompileTarget(policy);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
+async_observe_result
+RemoteRESTQPU::launchKernel(const async_observe_policy &policy,
+                            const CompiledModule &module, KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
+
+  auto target = getCompileTarget(policy.inner);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
+KernelThunkResultType
+RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
+  CompiledModule compiled;
+  auto target = getCompileTarget(other_policies{}, getExecutionContext());
+  cudaq_internal::compiler::Compiler compiler(std::move(target));
+
+  if (std::holds_alternative<SourceModule>(module)) {
+    const auto &source = std::get<SourceModule>(module);
+    CUDAQ_INFO("no compiled kernel found for {}, compiling now",
+               source.getName());
+    auto mlirArt =
+        cudaq_internal::compiler::CompiledModuleHelper::loadMlirArtifact(
+            source);
+    compiled =
+        compiler.runPassPipeline(source.getName(), mlirArt.getOpaqueModulePtr(),
+                                 args, true, mlirArt.getContext());
+  } else {
+    compiled = std::get<CompiledModule>(module);
   }
+  CUDAQ_INFO("launching remote rest kernel ({})", compiled.getName());
 
-  void cleanupContext(MLIRContext *context) override { delete context; }
+  if (compiled.getMlirArtifacts().empty())
+    CUDAQ_ERROR("QPU does not support launching a "
+                "CompiledModule without MLIR artifacts.");
 
-public:
-  /// @brief The constructor
-  RemoteRESTQPU() : BaseRemoteRESTQPU() {}
+  auto codes = compiler.emitKernelExecutions(compiled);
 
-  RemoteRESTQPU(RemoteRESTQPU &&) = delete;
-  virtual ~RemoteRESTQPU() = default;
-};
-} // namespace
+  completeLaunchKernel(compiled.getName(), std::move(codes));
+  return {};
+}
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteRESTQPU, remote_rest)
+CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::RemoteRESTQPU, remote_rest)

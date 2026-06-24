@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
@@ -32,9 +32,10 @@ int main() {
   auto counts = cudaq::estimate_resources([&](){ return i++ < 5; }, kernel);
   counts.dump();
 
-  // CHECK: Total # of gates: 11
+  // CHECK: Total # of gates: 17
   // CHECK-DAG: h :  6
   // CHECK-DAG: rz :  5
+  // CHECK-DAG: mz :  6
 
   return 0;
 }

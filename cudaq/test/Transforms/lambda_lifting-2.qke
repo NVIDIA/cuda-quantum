@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
+
+func.func private @__nvqpp__mlirgen__foo..0x7abaa13ce580(%arg0: i64)
+
+func.func @__nvqpp__mlirgen__bar..0x7aba206b5040() {
+  %c8_i64 = arith.constant 8 : i64
+  %0 = cc.create_lambda {
+  ^bb0(%arg0: i64):
+    func.call @__nvqpp__mlirgen__foo..0x7abaa13ce580(%arg0) : (i64) -> ()
+    cc.return
+  } : !cc.callable<(i64) -> ()>
+  cc.call_callable %0, %c8_i64 : (!cc.callable<(i64) -> ()>, i64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__bar..0x7aba206b5040() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 8 : i64
+// CHECK:           %[[VAL_1:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0() : () -> !cc.callable<(i64) -> ()>
+// CHECK:           call @__nvqpp__callable.thunk.lambda.0(%[[VAL_1]], %[[VAL_0]]) : (!cc.callable<(i64) -> ()>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(i64) -> ()>, %[[VAL_1:.*]]: i64)
+// CHECK:           call @__nvqpp__lifted.lambda.0(%[[VAL_1]]) : (i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
+// CHECK-SAME:      %[[VAL_0:.*]]: i64)
+// CHECK:           call @__nvqpp__mlirgen__foo..0x7abaa13ce580(%[[VAL_0]]) : (i64) -> ()
+// CHECK:           return
+// CHECK:         }

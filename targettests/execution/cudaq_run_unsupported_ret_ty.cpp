@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std %s -o %t && %t |& FileCheck %s -check-prefix=FAIL
+// RUN: nvq++ %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // clang-format on
 
 #include <cudaq.h>

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,17 +10,11 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Resources.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/platform.h"
 
-namespace nvqir {
-void switchToResourceCounterSimulator();
-void stopUsingResourceCounterSimulator();
-void setChoiceFunction(std::function<bool()> choice);
-cudaq::Resources *getResourceCounts();
-} // namespace nvqir
-
 namespace cudaq {
-namespace details {
+namespace detail {
 
 /// @brief Take the input KernelFunctor (a lambda that captures runtime
 /// arguments and invokes the quantum kernel) and invoke the resource estimation
@@ -31,32 +25,20 @@ Resources run_estimate_resources(KernelFunctor &&wrappedKernel,
                                  const std::string &kernelName,
                                  std::function<bool()> choice) {
   // Create the execution context.
-  auto ctx = std::make_unique<ExecutionContext>("resource-count", 1);
-  ctx->kernelName = kernelName;
+  ExecutionContext ctx("resource-count", 1);
+  ctx.kernelName = kernelName;
 
   // Indicate that this is not an async exec
-  ctx->asyncExec = false;
+  ctx.asyncExec = false;
 
-  // Use the resource counter simulator
-  nvqir::switchToResourceCounterSimulator();
-  // Set the choice function for the simulator
-  nvqir::setChoiceFunction(choice);
-
-  // Set the platform
-  platform.set_exec_ctx(ctx.get());
-
-  wrappedKernel();
-
-  platform.reset_exec_ctx();
-
-  // Save and clone counts data
-  auto counts = Resources(*nvqir::getResourceCounts());
-  // Switch simulators back
-  nvqir::stopUsingResourceCounterSimulator();
-
-  return counts;
+  // RAII: scope is released (and the resource-counter state cleared) on
+  // every exit path, including exceptions thrown from the kernel.
+  auto rcScope = nvqir::resource_counter::make_scope(std::move(choice));
+  platform.with_execution_context(ctx,
+                                  std::forward<KernelFunctor>(wrappedKernel));
+  return nvqir::resource_counter::get_counts(rcScope);
 }
-} // namespace details
+} // namespace detail
 
 /// @brief Given any CUDA-Q kernel and its associated runtime arguments,
 /// return the resources that this kernel will use. This does not execute the
@@ -66,14 +48,8 @@ Resources run_estimate_resources(KernelFunctor &&wrappedKernel,
 /// `true` or `false` with 50% probability. To estimate resources for specific
 /// paths based on measurements, supply a choice function to the overloaded
 /// version of this function.
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 Resources estimate_resources(QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
@@ -81,7 +57,7 @@ Resources estimate_resources(QuantumKernel &&kernel, Args &&...args) {
   std::mt19937 gen(seed);
   std::uniform_int_distribution<> rand(0, 1);
   auto choice = [&]() { return rand(gen); };
-  return details::run_estimate_resources(
+  return detail::run_estimate_resources(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, choice);
 }
@@ -96,19 +72,13 @@ Resources estimate_resources(QuantumKernel &&kernel, Args &&...args) {
 ///               used to determine which path is taken when the kernel has
 ///               branches on mid-circuit measurement results. Invoking the
 ///               kernel from inside this function is forbidden.
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 Resources estimate_resources(std::function<bool()> choice,
                              QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-  return details::run_estimate_resources(
+  return detail::run_estimate_resources(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, choice);
 }

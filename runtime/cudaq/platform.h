@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/builder/kernel_builder.h"
+#include "cudaq/platform/qpu_types.h"
 #include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
@@ -30,17 +32,33 @@ inline bool is_remote_platform() {
   return getQuantumPlatformInternal()->is_remote();
 }
 
-/// @brief Return true if the quantum platform is a remote simulator.
-inline bool is_remote_simulator_platform() {
-  return getQuantumPlatformInternal()
-      ->get_remote_capabilities()
-      .isRemoteSimulator;
-}
-
 /// @brief Return true if the quantum platform is emulated.
 inline bool is_emulated_platform() {
   return getQuantumPlatformInternal()->is_emulated();
 }
+
+/// @brief Return true if the quantum platform is a simulator.
+inline bool is_simulator_platform() {
+  return getQuantumPlatformInternal()->is_simulator();
+}
+
+template <typename Policy>
+std::unique_ptr<cudaq::CompileTarget> get_compile_target(const Policy &policy) {
+  return getQuantumPlatformInternal()->getCompileTarget(policy);
+}
+
+/// Get the default compile target configuration
+///
+/// This is suitable for local simulators, i.e. it will use
+/// AOT-compiled modules as-is if they exist, and otherwise JIT-compile the
+/// module as appropriate for a Python kernel.
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultCompileTarget(const sample_policy &policy);
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultCompileTarget(const observe_policy &policy);
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultCompileTarget(const other_policies &policy,
+                        ExecutionContext *context);
 
 // Declare this function, implemented elsewhere
 std::string getQIR(const std::string &);

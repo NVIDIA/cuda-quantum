@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,13 +7,14 @@
  ******************************************************************************/
 
 #include "Future.h"
-#include "Logger.h"
 #include "ObserveResult.h"
 #include "RestClient.h"
 #include "ServerHelper.h"
+#include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 #include <thread>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 sample_result future::get() {
   if (wrapsFutureSampling)
@@ -49,7 +50,7 @@ sample_result future::get() {
                                  " must inherit `QirServerHelper` class");
       if (!inFutureRawOutput)
         throw std::runtime_error(
-            "cudaq::details::future::get() for 'run' requires a raw output "
+            "cudaq::detail::future::get() for 'run' requires a raw output "
             "pointer but it was not provided.");
 
       const auto qirOutputLog =
@@ -59,19 +60,18 @@ sample_result future::get() {
     }
 
     auto c = serverHelper->processResults(resultResponse, id.first);
+    if (c.has_expectation()) {
+      // If the QPU returns the data with expectation values, just use it
+      // directly.
+      // This can be the case for remote emulation/simulation providers who
+      // compute the expectation value for us.
+      return c;
+    }
     if (isObserve()) {
       // Use the job name instead of the global register.
       results.emplace_back(c.to_map(), id.second);
       results.back().sequentialData = c.sequential_data();
     } else {
-      if (c.has_expectation()) {
-        // If the QPU returns the data with expectation values, just use it
-        // directly.
-        // This can be the case for remote emulation/simulation providers who
-        // compute the expectation value for us.
-        return c;
-      }
-
       // For each register, add the results into result.
       for (auto &regName : c.register_names()) {
         results.emplace_back(c.to_map(regName), regName);
@@ -82,7 +82,7 @@ sample_result future::get() {
 
   return sample_result(results);
 #else
-  throw std::runtime_error("cudaq::details::future::get() requires REST Client "
+  throw std::runtime_error("cudaq::detail::future::get() requires REST Client "
                            "but CUDA-Q was built without it.");
   return sample_result();
 #endif
@@ -143,4 +143,4 @@ std::istream &operator>>(std::istream &is, future &f) {
   return is;
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

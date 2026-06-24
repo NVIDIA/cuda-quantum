@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -91,17 +91,18 @@ def test_run_with_integer_left_shift_operator():
 
 def test_run_with_non_integer_left_shift_operator():
 
-    @cudaq.kernel
-    def kernel(n: int) -> int:
-        q = cudaq.qvector(n)
-        m = mz(q)
-        r = 0
-        for i in range(n):
-            r = r & (m[i] << 1.0)
-
-        return r
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(n: int) -> int:
+            q = cudaq.qvector(n)
+            m = mz(q)
+            r = 0
+            for i in range(n):
+                r = r & (m[i] << 1.0)
+
+            return r
+
         results = cudaq.run(kernel, 3, shots_count=2)
     assert "unsupported operand type(s) for BinOp.LShift; only integers supported" in str(
         e.value)

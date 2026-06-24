@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,11 +10,30 @@
 
 trap '(return 0 2>/dev/null) && return 1 || exit 1' ERR
 
+# Tolerate transient apt/dnf mirror failures.
+if [ -d /etc/apt/apt.conf.d ]; then
+    echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries 2>/dev/null || \
+        sudo sh -c 'echo "Acquire::Retries \"5\";" > /etc/apt/apt.conf.d/80-retries' 2>/dev/null || true
+fi
+
+# Retry dnf operations to tolerate transient CDN/mirror races. NVIDIA's CUDA
+# repo rotates its repodata, and if the hashed *-primary.xml.gz referenced by a
+# just-fetched repomd.xml is replaced before dnf downloads it, the install dies
+# with a 404 on metadata. Refreshing metadata between attempts re-fetches the
+# current repomd so the retry sees consistent files.
+dnf_retry() {
+    for n in 1 2 3 4 5; do
+        dnf "$@" && return 0
+        [ $n -lt 5 ] && { dnf clean all >/dev/null 2>&1 || true; sleep $((5*n)); }
+    done
+    return 1
+}
+
 case $1 in
     *ubuntu*)
         pkg_manager=apt-get
     ;;
-    *debian*) 
+    *debian*)
         pkg_manager=apt-get
     ;;
     *almalinux*|*redhat*)
@@ -58,21 +77,31 @@ if [ "$pkg_manager" == "apt-get" ]; then
         rm cuda-keyring_1.1-1_all.deb
     fi
 
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        apt-get install -y --no-install-recommends ${VALIDATION_PACKAGES}
+    fi
+
 elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
-    dnf install -y --nobest --setopt=install_weak_deps=False \
+    dnf_retry install -y --nobest --setopt=install_weak_deps=False \
         sudo 'dnf-command(config-manager)'
     echo "dnf install -y --nobest --setopt=install_weak_deps=False openssh-clients" > install_sshclient.sh
 
     ## [C development headers]
     if [ -n "${LIBCDEV_PACKAGE}" ]; then
-        dnf install -y --nobest --setopt=install_weak_deps=False ${LIBCDEV_PACKAGE}
+        dnf_retry install -y --nobest --setopt=install_weak_deps=False ${LIBCDEV_PACKAGE}
     fi
 
     ## [CUDA runtime libraries]
     if [ -n "${CUDA_DISTRIBUTION}" ]; then
         dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
-        dnf install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
+        dnf_retry install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
+    fi
+
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        dnf_retry install -y --nobest --setopt=install_weak_deps=False ${VALIDATION_PACKAGES}
     fi
 
 elif [ "$pkg_manager" == "zypper" ]; then
@@ -90,6 +119,11 @@ elif [ "$pkg_manager" == "zypper" ]; then
     if [ -n "${CUDA_DISTRIBUTION}" ]; then
         zypper ar "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
         zypper --non-interactive --gpg-auto-import-keys in --no-recommends ${CUDA_PACKAGES}
+    fi
+
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        zypper --non-interactive in --no-recommends ${VALIDATION_PACKAGES}
     fi
 
 else

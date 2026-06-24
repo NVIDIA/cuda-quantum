@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,7 @@
 
 // Compile and run with:
 // ```
-// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x && ./trotter.x
+// nvq++ -v trotter_kernel_mode.cpp -o trotter.x && ./trotter.x
 // ```
 
 #include <complex>
@@ -44,7 +44,7 @@ int STEPS = 10; // set to around 100 for `nvidia` target
 // Compile and run with:
 // clang-format off
 // ```
-// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x --target nvidia && ./trotter.x
+// nvq++ -v trotter_kernel_mode.cpp -o trotter.x --target nvidia && ./trotter.x
 // ```
 // clang-format off
 

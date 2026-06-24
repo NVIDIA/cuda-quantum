@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
-#include "SimulationState.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
@@ -19,6 +19,10 @@
 #include <string_view>
 
 namespace cudaq {
+
+class SimulationState;
+class ExecutionManager;
+class KernelArgs;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -31,8 +35,10 @@ public:
   /// @brief The constructor, takes the name and the number of shots.
   /// @param n The name of the context
   /// @param shots_ The number of shots
-  ExecutionContext(const std::string &n, std::size_t shots_)
-      : name(n), shots(shots_) {}
+  /// @param qpu_id The ID of the QPU that this execution context is running on.
+  ExecutionContext(const std::string &n, std::size_t shots_,
+                   std::size_t qpu_id = 0)
+      : name(n), shots(shots_), qpuId(qpu_id) {}
 
   ~ExecutionContext() = default;
 
@@ -71,7 +77,7 @@ public:
 
   /// @brief When execution asynchronously, store the expected results as a
   /// cudaq::future here.
-  details::future futureResult;
+  detail::future futureResult;
 
   /// @brief Construct a `async_sample_result` so as to pass across Python
   /// boundary
@@ -79,19 +85,6 @@ public:
 
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
-
-  /// @brief A map of basis-state amplitudes
-  // The list of basis state is set before kernel launch and the map is filled
-  // by the executor platform.
-  std::optional<std::map<std::vector<int>, std::complex<double>>>
-      amplitudeMaps = std::nullopt;
-
-  /// @brief List of pairs of states to compute the overlap
-  std::optional<std::pair<const SimulationState *, const SimulationState *>>
-      overlapComputeStates = std::nullopt;
-
-  /// @brief Overlap results
-  std::optional<std::complex<double>> overlapResult = std::nullopt;
 
   /// @brief When run under the tracer context, persist the traced quantum
   /// resources here.
@@ -114,6 +107,9 @@ public:
   /// @brief A vector containing information about how to reorder the global
   /// register after execution. Empty means no reordering.
   std::vector<std::size_t> reorderIdx;
+
+  /// @brief The ID of the QPU that this execution context is running on.
+  std::size_t qpuId = 0;
 
   /// @brief A buffer containing the return value of a kernel invocation.
   /// Note: this is only needed for invocation not able to return a
@@ -142,5 +138,91 @@ public:
   /// Note: Measurement Syndrome Matrix is defined in
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
+
+  bool allowCompiledModuleCaching = false;
+
+  bool useParametricJit = false;
+
+  /// @cond HIDDEN_MEMBERS
+  /// @brief Pointer to the execution manager for the current execution context,
+  /// if it exists.
+  ExecutionManager *executionManager = nullptr;
+
+  /// @brief For performance, a launcher may cache the JIT execution engine and
+  /// use it for multiple discrete calls.
+  std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
+
+  /// @brief Dispatcher towards the policy specific launch.
+  std::function<void(const AnyModule &module, const KernelArgs &args)>
+      executeKernelApi;
+
+  /// @brief Slot for the detector error model, as `.dem` text.
+  std::string dem_text;
+  /// @endcond
 };
+
+//===----------------------------------------------------------------------===//
+// Access to the thread-local ExecutionContext
+//===----------------------------------------------------------------------===//
+
+/// @brief Get the current thread-local execution context.
+///
+/// This is used by the NVQIR bridge to forward calls from QPU kernels to the
+/// appropriate QPU backend. It is also currently used in QPUs and simulators
+/// to adjust behavior based on the execution context.
+ExecutionContext *getExecutionContext();
+
+/// @brief Return true if the simulator is in the tracer mode.
+bool isInTracerMode();
+
+/// @brief Return true if the current execution is in batch mode.
+bool isInBatchMode();
+
+/// @brief Return true if the current execution is the last execution of batch
+/// mode.
+bool isLastBatch();
+
+/// @brief Get the ID of the current QPU.
+std::size_t getCurrentQpuId();
+
+namespace detail {
+/// Set the execution context for the current thread.
+///
+/// Use `quantum_platform::with_execution_context` instead of setting/resetting
+/// the execution context manually.
+void setExecutionContext(ExecutionContext *ctx);
+
+/// Reset the execution context for the current thread.
+///
+/// Use `quantum_platform::with_execution_context` instead of setting/resetting
+/// the execution context manually.
+void resetExecutionContext();
+
+/// @brief Execute the given function within the given policy and execution
+/// context.
+template <typename Policy, typename Callable, typename... Args>
+auto with_policy_and_ctx(const Policy &policy, ExecutionContext &ctx,
+                         Callable &&f, Args &&...args)
+    -> std::invoke_result_t<Callable, Args...> {
+
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = getExecutionContext();
+  detail::setExecutionContext(&ctx);
+
+  // Cleanup runs after the kernel returns or throws.
+  auto cleanup = [&outerContext]() {
+    detail::resetExecutionContext();
+    if (outerContext)
+      detail::setExecutionContext(outerContext);
+  };
+
+  if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+    try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+    return;
+  }
+
+  return try_finally([&] { return f(std::forward<Args>(args)...); }, cleanup);
+}
+
+} // namespace detail
 } // namespace cudaq

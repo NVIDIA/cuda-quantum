@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,7 +11,7 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import numpy
 
@@ -27,7 +27,7 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # CUDA Library Path Configuration
 # ============================================================================ #
 def _configure_cuda_library_paths() -> None:
-    """    
+    """
     Sets the `CUDAQ_DYNLIBS` environment variable with paths to required
     CUDA libraries based on the detected CUDA version.
     """
@@ -127,19 +127,68 @@ except Exception:
         print("Could not find a suitable cuQuantum Python package.")
     pass
 
+
+def _patch_mlir_isinstance() -> None:
+    import builtins
+
+    from .mlir._mlir_libs import _mlir as _mlir_ext
+    ir = _mlir_ext.ir
+    value_base = getattr(ir, "Value", None)
+    py_isinstance = builtins.isinstance
+    for name in dir(ir):
+        cls = getattr(ir, name)
+        if not py_isinstance(cls, type) or "isinstance" in cls.__dict__:
+            continue
+        static_typeid = None
+        try:
+            static_typeid = cls.static_typeid
+        except Exception:
+            pass
+        if static_typeid is not None:
+
+            def _isinstance(other, _tid=static_typeid):
+                try:
+                    return other.typeid == _tid
+                except Exception:
+                    return False
+        elif value_base is not None and cls is not value_base and \
+                issubclass(cls, value_base):
+
+            def _isinstance(other, _cls=cls, _isinst=py_isinstance):
+                try:
+                    return _isinst(other.maybe_downcast(), _cls)
+                except Exception:
+                    return False
+        else:
+            continue
+        setattr(cls, "isinstance", staticmethod(_isinstance))
+
+
+_patch_mlir_isinstance()
+del _patch_mlir_isinstance
+
 # ============================================================================ #
 # Module Imports
 # ============================================================================ #
 
 from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
-from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
-from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
-from .kernel.utils import globalKernelDecorators
+from .kernel.kernel_builder import (make_kernel, QuakeValue, PyKernel)
+from .kernel.ast_bridge import (globalRegisteredOperations, PyASTBridge)
 from .runtime.sample import sample
+from .runtime.sample import sample_async, AsyncSampleResult
 from .runtime.observe import observe
+from .runtime.observe import observe_async
+from .runtime.run import run
 from .runtime.run import run_async
-from .runtime.state import to_cupy
+from .runtime import ptsbe
+from .runtime.translate import translate
+from .runtime.state import (get_state, get_state_async, to_cupy)
+from .runtime.draw import draw
+from .runtime.unitary import get_unitary
+from .runtime.resource_count import estimate_resources
+from .runtime.dem import dem_from_kernel
+from .runtime.vqe import vqe  # Removed! Use VQE from CUDA-QX
 from .kernel.register_op import register_operation
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -155,10 +204,10 @@ else:
 # Add the parallel runtime types
 parallel = cudaq_runtime.parallel
 
-# Primitive Types
-qubit = cudaq_runtime.qubit
-qvector = cudaq_runtime.qvector
-qview = cudaq_runtime.qview
+# Primitive Types (stubs; used only in kernels, parsed to MLIR)
+from .kernel_types import (_KERNEL_ONLY_ERROR_MESSAGE, measure_handle, qubit,
+                           qvector, qview)
+
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
@@ -169,7 +218,7 @@ SimulationPrecision = cudaq_runtime.SimulationPrecision
 Resources = cudaq_runtime.Resources
 
 # to be deprecated
-qreg = cudaq_runtime.qvector
+qreg = qvector
 
 # Operator API
 from .operators import boson
@@ -178,14 +227,9 @@ from .operators import spin
 from .operators import custom as operators
 from .operators.definitions import *
 from .operators.manipulation import OperatorArithmetics
-import cudaq.operators.expressions  # needs to be imported, since otherwise e.g. evaluate is not defined
+# needs to be imported, since otherwise e.g. evaluate is not defined
+import cudaq.operators.expressions
 from .operators.super_op import SuperOperator
-
-# Time evolution API
-from .dynamics.schedule import Schedule
-from .dynamics.evolution import evolve, evolve_async
-from .dynamics.integrators import *
-from .dynamics.helpers import IntermediateResultSave
 
 InitialStateType = cudaq_runtime.InitialStateType
 
@@ -229,51 +273,37 @@ Depolarization1 = cudaq_runtime.Depolarization1
 Depolarization2 = cudaq_runtime.Depolarization2
 
 # Functions
-sample_async = cudaq_runtime.sample_async
-observe_async = cudaq_runtime.observe_async
-get_state = cudaq_runtime.get_state
-get_state_async = cudaq_runtime.get_state_async
 SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
+AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 EvolveResult = cudaq_runtime.EvolveResult
 AsyncEvolveResult = cudaq_runtime.AsyncEvolveResult
-AsyncSampleResult = cudaq_runtime.AsyncSampleResult
-AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
-vqe = cudaq_runtime.vqe
-draw = cudaq_runtime.draw
-get_unitary = cudaq_runtime.get_unitary
-run = cudaq_runtime.run
-estimate_resources = cudaq_runtime.estimate_resources
-translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix
-
-# to be deprecated
-to_qir = cudaq_runtime.get_qir
 
 testing = cudaq_runtime.testing
 
 # target-specific
 orca = cudaq_runtime.orca
 
-
 # ============================================================================ #
 # Utility Functions
 # ============================================================================ #
+
+
 def synthesize(kernel, *args):
-    # Compile if necessary, no-op if already compiled
-    kernel.compile()
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
-                             kernelName=kernel.name)
+                             kernelName=kernel.name,
+                             decorator=kernel)
 
 
 def complex():
     """
-    Return the data type for the current simulation backend, 
+    Return the data type for the current simulation backend,
     either `numpy.complex128` or `numpy.complex64`.
     """
     target = get_target()
@@ -285,51 +315,184 @@ def complex():
 
 def amplitudes(array_data):
     """
-    Create a state array with the appropriate data type for the 
-    current simulation backend target. 
+    Create a state array with the appropriate data type for the
+    current simulation backend target.
     """
     return numpy.array(array_data, dtype=complex())
 
 
+def to_bools(handles):
+    """Bulk-discriminate a ``list[cudaq.measure_handle]`` into a
+    ``list[bool]``. Device-only: this Python symbol exists so kernel
+    code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
+    the call and lowers it to a vector form ``quake.discriminate`` on
+    ``!cc.stdvec<!cc.measure_handle>``. Host-side invocation raises a
+    ``RuntimeError``.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))
+
+
+def detector(*measurements):
+    """Define a detector over one or more measurement results.
+
+    A detector is a parity constraint: under noise-free execution the XOR of
+    the referenced measurements is deterministic. Each call defines one
+    detector. Arguments are individual ``cudaq.measure_handle`` values or a
+    single ``list[cudaq.measure_handle]``.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.detector"))
+
+
+def logical_observable(*measurements, observable_index=0):
+    """Define a logical observable over one or more measurement results.
+
+    The variadic form uses ``observable_index = 0``. Codes with ``k``
+    logical qubits should pass a single ``list[cudaq.measure_handle]`` and
+    an explicit ``observable_index`` for each observable ``0..k-1``.
+    """
+    raise RuntimeError(
+        _KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.logical_observable"))
+
+
+def detectors(prev, curr):
+    """Define N detectors by pairing two measurement vectors element-wise.
+
+    Standard form for cross-round detectors: each detector ``i`` is the
+    parity of ``prev[i]`` and ``curr[i]``. Size agreement between ``prev``
+    and ``curr`` is checked at runtime.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.detectors"))
+
+
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations
-    globalKernelRegistry.clear()
-    globalAstRegistry.clear()
+    global globalRegisteredOperations
     globalRegisteredOperations.clear()
 
 
-cudaq_runtime.register_set_target_callback(
-    lambda _:
-    [setattr(kernel, "module", None) for kernel in globalKernelDecorators],
-    "clearKernelDecoratorModules")
+# Lazy-loaded modules. The `dynamics`, `kernels`, and `domains` packages pull
+# in heavy dependencies that most users don't need on every import. Rather
+# than importing them eagerly, we defer them until first access via
+# `__getattr__` (PEP 562). Known names are mapped explicitly below;
+# star-import names (like integrator classes) fall through to
+# `_DEFERRED_STAR_MODULES` so new exports are picked up automatically.
 
-# Expose chemistry domain functions
-from .domains import chemistry
-from .kernels import uccsd
-from .dbg import ast
+_LAZY_ATTRS = {
+    'Schedule': '.dynamics.schedule',
+    'evolve': '.dynamics.evolution',
+    'evolve_async': '.dynamics.evolution',
+    'IntermediateResultSave': '.dynamics.helpers',
+    'amplitude_encode': '.contrib.encoding',
+    'angular_encode': '.contrib.encoding',
+}
+
+_LAZY_SUBMODULES = {
+    'chemistry': '.domains.chemistry',
+    'uccsd': '.kernels.uccsd',
+    'ast': '.dbg.ast',
+}
+
+_DEFERRED_STAR_MODULES = [
+    '.dynamics.integrators',
+]
+
+
+def __getattr__(name):
+    import importlib
+
+    if name in _LAZY_ATTRS:
+        mod = importlib.import_module(_LAZY_ATTRS[name], __name__)
+        val = getattr(mod, name)
+        globals()[name] = val
+        return val
+
+    if name in _LAZY_SUBMODULES:
+        mod = importlib.import_module(_LAZY_SUBMODULES[name], __name__)
+        globals()[name] = mod
+        return mod
+
+    # Fallback: try deferred star-import modules.
+    for mod_path in _DEFERRED_STAR_MODULES:
+        mod = importlib.import_module(mod_path, __name__)
+        if hasattr(mod, name):
+            val = getattr(mod, name)
+            globals()[name] = val
+            return val
+
+    # Fallback: try importing as a cudaq submodule (e.g., `cudaq.kernels`,
+    # `cudaq.dynamics`). This handles sub-packages that were previously
+    # accessible as side effects of eager imports.
+    try:
+        mod = importlib.import_module(f'.{name}', __name__)
+        globals()[name] = mod
+        return mod
+    except ImportError:
+        pass
+
+    raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
+
+
+def __dir__():
+    """Includes lazy-loaded names so tab-completion matches pre-lazy behavior.
+
+    This triggers the deferred star-module imports (e.g.
+    ``dynamics.integrators``) on first tab-completion, so there is a one-time
+    performance cost in interactive sessions.
+    """
+    import importlib
+    names = list(globals().keys())
+    names.extend(_LAZY_ATTRS.keys())
+    names.extend(_LAZY_SUBMODULES.keys())
+    for mod_path in _DEFERRED_STAR_MODULES:
+        try:
+            mod = importlib.import_module(mod_path, __name__)
+            names.extend(getattr(mod, '__all__', dir(mod)))
+        except ImportError:
+            pass
+    return names
+
 
 # ============================================================================ #
 # Command Line Argument Parsing
 # ============================================================================ #
-initKwargs = {}
 
-# Look for --target=<target> options
-for p in sys.argv:
-    split_params = p.split('=')
-    if len(split_params) == 2:
-        if split_params[0] in ['-target', '--target']:
-            initKwargs['target'] = split_params[1]
 
-# Look for --target <target> (with a space)
-if '-target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
-if '--target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
-if '--target-option' in sys.argv:
-    initKwargs['option'] = sys.argv[sys.argv.index('--target-option') + 1]
-if '--emulate' in sys.argv:
-    initKwargs['emulate'] = True
-if not '--cudaq-full-stack-trace' in sys.argv:
-    sys.tracebacklimit = 0
+def parse_args(args: Sequence[str] | None = None):
+    """
+    Parse command line arguments and initialize the CUDA-Q environment.
+    """
+    import argparse
 
-cudaq_runtime.initialize_cudaq(**initKwargs)
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--target', '-target', type=str, dest='target')
+    parser.add_argument('--target-option', type=str, dest='option')
+    parser.add_argument('--emulate', action='store_true', dest='emulate')
+    parser.add_argument('--cudaq-full-stack-trace',
+                        action='store_true',
+                        dest='full_stack_trace')
+
+    # Parse only known arguments to avoid errors from unrecognized options
+    args, _ = parser.parse_known_args(args)
+
+    if not args.full_stack_trace:
+        sys.tracebacklimit = 0
+
+    args = vars(args)  # convert to dict
+    args.pop('full_stack_trace', None)
+
+    cudaq_runtime.initialize_cudaq(**args)
+
+
+if __name__ == '__main__':
+    parse_args()
+# TODO: remove this, see https://github.com/NVIDIA/cuda-quantum/issues/3863
+elif any(
+        w in ''.join(sys.argv) for w in
+    ['-target', '--target-option', '--emulate', '--cudaq-full-stack-trace']):
+    import warnings
+    warnings.warn(
+        "Will now parse command line arguments. This will be removed in a future "
+        "release, call cudaq.parse_args() explicitly to parse arguments.",
+        DeprecationWarning)
+    parse_args()
+else:
+    cudaq_runtime.initialize_cudaq()

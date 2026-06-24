@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,7 +12,7 @@ import cudaq
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -29,6 +29,15 @@ def test_builtin_controlled_gates():
     assert counts["01"] == 1000
 
     @cudaq.kernel
+    def multi_control_simple_gate():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cx(c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_simple_gate)
+    assert counts["10011"] == 1000
+
+    @cudaq.kernel
     def control_rotation_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         cry(np.pi, ~c, q)
@@ -36,6 +45,15 @@ def test_builtin_controlled_gates():
 
     counts = cudaq.sample(control_rotation_gate)
     assert counts["01"] == 1000
+
+    @cudaq.kernel
+    def multi_control_rotation_gate():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cry(np.pi, c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_rotation_gate)
+    assert counts["10011"] == 1000
 
     # Note: u3, swap, and exp_pauli do not have a built-in
     # c<gatename> version at the time of writing this.
@@ -62,16 +80,6 @@ def test_ctrl_attribute():
     assert counts["10011"] == 1000
 
     @cudaq.kernel
-    def multi_control_simple_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        x.ctrl(c1, ~c2, ~c3, c4, q)
-
-    counts = cudaq.sample(multi_control_simple_gate2)
-    assert counts["10011"] == 1000
-
-    @cudaq.kernel
     def control_rotation_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         ry.ctrl(np.pi, ~c, q)
@@ -87,16 +95,6 @@ def test_ctrl_attribute():
         ry.ctrl(np.pi, c[0], ~c[1], ~c[2], c[3], q)
 
     counts = cudaq.sample(multi_control_rotation_gate)
-    assert counts["10011"] == 1000
-
-    @cudaq.kernel
-    def multi_control_rotation_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        ry.ctrl(np.pi, c1, ~c2, ~c3, c4, q)
-
-    counts = cudaq.sample(multi_control_rotation_gate2)
     assert counts["10011"] == 1000
 
     @cudaq.kernel
@@ -120,17 +118,6 @@ def test_ctrl_attribute():
     assert counts["100101"] == 1000
 
     @cudaq.kernel
-    def multi_control_swap_gate2():
-        c, q1, q2 = cudaq.qvector(4), cudaq.qubit(), cudaq.qubit()
-        x(q1)
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        swap.ctrl(c1, ~c2, ~c3, c4, q1, q2)
-
-    counts = cudaq.sample(multi_control_swap_gate2)
-    assert counts["100101"] == 1000
-
-    @cudaq.kernel
     def control_u3_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         t, p, l = np.pi, 0., 0.
@@ -148,17 +135,6 @@ def test_ctrl_attribute():
         u3.ctrl(t, p, l, c[0], ~c[1], c[2], ~c[3], q)
 
     counts = cudaq.sample(multi_control_u3_gate)
-    assert counts["10101"] == 1000
-
-    @cudaq.kernel
-    def multi_control_u3_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[2])
-        c1, c2, c3, c4 = c
-        t, p, l = np.pi, 0., 0.
-        u3.ctrl(t, p, l, c1, ~c2, c3, ~c4, q)
-
-    counts = cudaq.sample(multi_control_u3_gate2)
     assert counts["10101"] == 1000
 
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
@@ -181,16 +157,6 @@ def test_ctrl_attribute():
     counts = cudaq.sample(multi_control_registered_operation)
     assert counts["10101"] == 1000
 
-    @cudaq.kernel
-    def multi_control_registered_operation2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[2])
-        c1, c2, c3, c4 = c
-        custom_x.ctrl(c1, ~c2, c3, ~c4, q)
-
-    counts = cudaq.sample(multi_control_registered_operation2)
-    assert counts["10101"] == 1000
-
 
 def test_cudaq_control():
 
@@ -207,6 +173,15 @@ def test_cudaq_control():
     counts = cudaq.sample(control_kernel)
     assert counts["01"] == 1000
 
+    @cudaq.kernel
+    def multi_control_kernel():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cudaq.control(custom_x, c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_kernel)
+    assert counts["10011"] == 1000
+
     # Note: calling cudaq.control on a registered operation
     # or on a built-in gate is not supported at the time of writing this
 
@@ -216,63 +191,143 @@ def test_unsupported_calls():
     # If we add support for any of these, add the corresponding
     # tests above and remove the notes.
 
-    @cudaq.kernel
-    def cu3_gate():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        t, p, l = 0., 0., np.pi
-        cu3(t, p, l, ~c, q)
-        cu3(t, p, l, c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def cu3_gate():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            t, p, l = 0., 0., np.pi
+            cu3(t, p, l, ~c, q)
+            cu3(t, p, l, c, q)
+
         cudaq.sample(cu3_gate)
     assert "unhandled function call - cu3" in str(e.value)
 
-    @cudaq.kernel
-    def cswap_gate():
-        c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
-        x(q1)
-        cswap(~c, q1, q2)
-        cswap(c, q1, q2)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def cswap_gate():
+            c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
+            x(q1)
+            cswap(~c, q1, q2)
+            cswap(c, q1, q2)
+
         cudaq.sample(cswap_gate)
     assert "unhandled function call - cswap" in str(e.value)
 
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
-    @cudaq.kernel
-    def control_registered_operation():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        cudaq.control(custom_x, ~c, q)
-        cudaq.control(custom_x, c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_registered_operation():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            cudaq.control(custom_x, ~c, q)
+            cudaq.control(custom_x, c, q)
+
         cudaq.sample(control_registered_operation)
     assert "calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported" in str(
         e.value)
 
-    @cudaq.kernel
-    def control_rotation_gate():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        cudaq.control(ry, ~c, np.pi, q)
-        cudaq.control(ry, c, np.pi, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_rotation_gate():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            cudaq.control(ry, ~c, np.pi, q)
+            cudaq.control(ry, c, np.pi, q)
+
         cudaq.sample(control_rotation_gate)
     assert "calling cudaq.control or cudaq.adjoint on a built-in gate is not supported" in str(
         e.value)
 
-    @cudaq.kernel
-    def control_simple_gate():
-        c, q = cudaq.qvector(3), cudaq.qubit()
-        cx(~c, q)
-        x(c[0])
-        cx(c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_simple_gate():
+            c, q = cudaq.qvector(3), cudaq.qubit()
+            cx(~c, q)
+            x(c[0])
+            cx(c, q)
+
         cudaq.sample(control_simple_gate)
     assert "unary operator ~ is only supported for values of type qubit" in str(
         e.value)
+
+
+def test_control_float_list_complex_real_access():
+    """
+    Regression test for a bug in cudaq.control() argument synthesis.
+    
+    The bug occurs when these three conditions are met:
+    1. Using cudaq.control() to call a sub-kernel
+    2. The sub-kernel has BOTH float AND list[complex] parameters
+    3. The sub-kernel accesses .real on a complex value from the list
+    
+    Error: 'func.call' op operand type mismatch: expected operand type 
+    '!quake.veq<?>', but provided '!quake.veq<N>'
+    RuntimeError: Could not successfully apply argument synth.
+    
+    This pattern is used in the krylov.ipynb notebook.
+    """
+
+    @cudaq.kernel
+    def sub_kernel(qubits: cudaq.qview, dt: float, values: list[complex]):
+        rx(dt * values[0].real, qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(dt: float, values: list[complex]):
+        ancilla = cudaq.qubit()
+        qreg = cudaq.qvector(2)
+        h(ancilla)
+        cudaq.control(sub_kernel, ancilla, qreg, dt, values)
+
+    result = cudaq.sample(main_kernel, 0.1, [0.5 + 0j, 0.25 + 0j])
+    assert len(result) > 0
+
+
+def test_control_list_complex_real_access_no_float():
+    """
+    Verify that list[complex] with .real access works when there's no float param.
+    This is a control test to confirm the bug is specific to the float + list[complex]
+    combination.
+    """
+
+    @cudaq.kernel
+    def sub_kernel(qubits: cudaq.qview, values: list[complex]):
+        rx(values[0].real, qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(values: list[complex]):
+        ancilla = cudaq.qubit()
+        qreg = cudaq.qvector(2)
+        h(ancilla)
+        cudaq.control(sub_kernel, ancilla, qreg, values)
+
+    # This should work
+    result = cudaq.sample(main_kernel, [0.5 + 0j, 0.25 + 0j])
+    assert len(result) > 0
+
+
+def test_control_float_list_complex_no_real_access():
+    """
+    Verify that float + list[complex] works when .real is not accessed.
+    This is a control test to confirm the bug requires the .real access.
+    """
+
+    @cudaq.kernel
+    def sub_kernel(qubits: cudaq.qview, dt: float, values: list[complex]):
+        rx(dt, qubits[0])
+
+    @cudaq.kernel
+    def main_kernel(dt: float, values: list[complex]):
+        ancilla = cudaq.qubit()
+        qreg = cudaq.qvector(2)
+        h(ancilla)
+        cudaq.control(sub_kernel, ancilla, qreg, dt, values)
+
+    result = cudaq.sample(main_kernel, 0.1, [0.5 + 0j, 0.25 + 0j])
+    assert len(result) > 0
 
 
 # leave for gdb debugging

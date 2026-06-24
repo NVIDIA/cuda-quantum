@@ -1,0 +1,88 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+
+func.func @test(%angle : f32, %arg : !quake.ref) {
+  quake.t %arg : (!quake.ref) -> ()
+  quake.h %arg : (!quake.ref) -> ()
+  %1 = arith.constant 1.0 : f32
+  quake.rx (%angle) %arg : (f32, !quake.ref) -> ()
+  quake.x %arg : (!quake.ref) -> ()
+  return
+}
+  
+func.func @do_apply(%arg : !quake.ref, %brg : !quake.ref) {
+  %cst = arith.constant 2.97 : f32
+  quake.apply<adj> @test [%brg] %cst, %arg : (!quake.ref, f32, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func private @test.0.adj.ctrl(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_2:.*]] = arith.constant -2.97{{[0]*}}e+00 : f32
+// CHECK:           quake.x [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[VAL_2]]) {{\[}}%[[VAL_0]]] %[[VAL_1]] : (f32, !quake.veq<?>, !quake.ref) -> ()
+// CHECK:           quake.h [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK:           quake.t<adj> [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// The following test the implicit coercion of apply operands to unsized veq
+// type. This can be done uniformly by injecting a concat operation.
+
+func.func @utility_gate(%arg : !quake.veq<?>) {
+  quake.y %arg : (!quake.veq<?>) -> ()
+  quake.t %arg : (!quake.veq<?>) -> ()
+  return
+}
+
+func.func @apply_yski() {
+  %0 = quake.alloca !quake.ref
+  quake.apply @utility_gate %0 : (!quake.ref) -> ()
+  quake.dealloc %0 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @apply_yski() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.concat %[[VAL_0]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @utility_gate(%[[VAL_1]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+func.func @apply_kaksi() {
+  %0 = quake.alloca !quake.veq<4>
+  quake.apply @utility_gate %0 : (!quake.veq<4>) -> ()
+  quake.dealloc %0 : !quake.veq<4>
+  return
+}
+
+// CHECK-LABEL:   func.func @apply_kaksi() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[VAL_1:.*]] = quake.concat %[[VAL_0]] : (!quake.veq<4>) -> !quake.veq<?>
+// CHECK:           call @utility_gate(%[[VAL_1]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.veq<4>
+// CHECK:           return
+// CHECK:         }
+
+func.func @apply_kolme() {
+  %0 = quake.alloca !quake.struq<!quake.ref, !quake.ref>
+  quake.apply @utility_gate %0 : (!quake.struq<!quake.ref, !quake.ref>) -> ()
+  quake.dealloc %0 : !quake.struq<!quake.ref, !quake.ref>
+  return
+}
+
+// CHECK-LABEL:   func.func @apply_kolme() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.struq<!quake.ref, !quake.ref>
+// CHECK:           %[[VAL_1:.*]] = quake.concat %[[VAL_0]] : (!quake.struq<!quake.ref, !quake.ref>) -> !quake.veq<?>
+// CHECK:           call @utility_gate(%[[VAL_1]]) : (!quake.veq<?>) -> ()
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.struq<!quake.ref, !quake.ref>
+// CHECK:           return
+// CHECK:         }

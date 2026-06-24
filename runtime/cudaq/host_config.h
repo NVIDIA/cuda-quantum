@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,7 +10,6 @@
 
 #include <complex>
 
-#define CUDAQ_USE_STD20 (__cplusplus >= 202002L)
 #define CUDAQ_APPLE_CLANG (defined(__apple_build_version__))
 
 namespace cudaq {
@@ -32,5 +31,24 @@ using real = double;
 #endif
 
 using complex = std::complex<real>;
+
+namespace detail {
+/// @brief Static initializer that wires up the runtime target backend on
+/// program startup. `nvq++` defines `NVQPP_TARGET_BACKEND_CONFIG` for
+/// `gen-target-backend: true` targets so that including any public CUDA-Q
+/// header instantiates the inline global below, which calls
+/// `quantum_platform::setTargetBackend(...)` from a static constructor.
+///
+/// The class is a forward declaration so this block has no JIT-compiler
+/// dependency; the constructor body lives in `cudaq.cpp`.
+class TargetSetter {
+public:
+  TargetSetter(const char *backend);
+};
+
+#ifdef NVQPP_TARGET_BACKEND_CONFIG
+inline TargetSetter targetSetter(NVQPP_TARGET_BACKEND_CONFIG);
+#endif
+} // namespace detail
 
 } // namespace cudaq

@@ -1,0 +1,117 @@
+$schema: https://public.gha-runners.nvidia.com/nv-slack-bot/schemas/config-v1.json
+enabled: true
+notifications:
+  - name: "Publishing workflow failed"
+    event: workflow_run
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: workflow_run.name = "Publishing" and workflow_run.conclusion = "failure"
+    message:
+      body: |
+        <{{url}}|Publishing workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+      vars:
+        url: workflow_run.html_url
+        branch: workflow_run.head_branch
+        sha: $substring(workflow_run.head_sha, 0, 7)
+        commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
+    show_webhook_payload_on_error: false
+
+  - name: "Stable publishing workflow failed"
+    event: workflow_run
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: workflow_run.name = "Push stable release" and workflow_run.conclusion = "failure"
+    message:
+      body: |
+        <{{url}}|Push stable release workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+      vars:
+        url: workflow_run.html_url
+        branch: workflow_run.head_branch
+        sha: $substring(workflow_run.head_sha, 0, 7)
+        commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
+    show_webhook_payload_on_error: false
+
+  - name: "Deployments workflow failed"
+    event: workflow_run
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: workflow_run.name = "Deployments" and workflow_run.conclusion = "failure"
+    message:
+      body: |
+        <{{url}}|Deployments workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+      vars:
+        url: workflow_run.html_url
+        branch: workflow_run.head_branch
+        sha: $substring(workflow_run.head_sha, 0, 7)
+        commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
+    show_webhook_payload_on_error: false
+
+  - name: "Merge queue CI failed"
+    event: workflow_run
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: workflow_run.name = "CI" and workflow_run.event = "merge_group" and workflow_run.conclusion = "failure"
+    message:
+      body: |
+        <{{url}}|Merge queue CI> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+      vars:
+        url: workflow_run.html_url
+        branch: workflow_run.head_branch
+        sha: $substring(workflow_run.head_sha, 0, 7)
+        commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
+    show_webhook_payload_on_error: false
+
+  - name: "Daily CI failed"
+    event: workflow_run
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: workflow_run.name = "CI" and workflow_run.event = "schedule" and workflow_run.conclusion = "failure"
+    message:
+      body: |
+        <{{url}}|Daily CI> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+      vars:
+        url: workflow_run.html_url
+        branch: workflow_run.head_branch
+        sha: $substring(workflow_run.head_sha, 0, 7)
+        commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
+    show_webhook_payload_on_error: false
+
+  - name: "Issue opened"
+    event: issues
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: action = "opened"
+    message:
+      body: |
+        New issue opened: <{{url}}|{{title}}>
+      vars:
+        url: issue.html_url
+        title: issue.title
+    show_webhook_payload_on_error: false
+
+  - name: "Stale issue (no update in over a week)"
+    event: repository_dispatch
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: action = "stale-issue"
+    message:
+      body: |
+        Issue has had no activity in over a week: <{{url}}|{{title}}>
+      vars:
+        url: client_payload.url
+        title: client_payload.title
+    show_webhook_payload_on_error: false

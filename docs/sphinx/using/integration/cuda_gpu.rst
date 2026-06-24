@@ -106,7 +106,7 @@ To get an executable, compile the code with
 
 .. code-block:: bash
 
-    nvcc -c -std=c++17 -Xcompiler -fPIC my_proj.cu -o my_proj.o
+    nvcc -c -std=c++20 -Xcompiler -fPIC my_proj.cu -o my_proj.o
     nvq++ my_proj_quantum.cpp my_proj.o -I"${CUDA_HOME}/include/" -L"${CUDA_HOME}/lib64" -lcudart -o my_executable
 
 Above, :code:`nvq++` is used for the link step and will make sure the CUDA-Q

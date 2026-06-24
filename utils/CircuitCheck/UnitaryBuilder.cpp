@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #include "UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include <algorithm>
 #include <numeric>
 
 using namespace cudaq;
@@ -16,7 +17,7 @@ using namespace mlir;
 LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   for (auto arg : func.getArguments()) {
     auto type = arg.getType();
-    if (isa<quake::RefType, quake::VeqType>(type))
+    if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(type))
       if (allocateQubits(arg) == WalkResult::interrupt())
         return failure();
   }
@@ -27,24 +28,24 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   SmallVector<Complex, 16> matrix;
   SmallVector<Qubit, 16> qubits;
   auto result = func.walk([&](Operation *op) {
-    if (auto nullWireOp = dyn_cast<quake::NullWireOp>(op))
+    if (auto nullWireOp = dyn_cast<cudaq::quake::NullWireOp>(op))
       return allocateQubits(nullWireOp.getResult());
-    if (auto borrowOp = dyn_cast<quake::BorrowWireOp>(op))
+    if (auto borrowOp = dyn_cast<cudaq::quake::BorrowWireOp>(op))
       return allocateQubits(borrowOp.getResult());
-    if (auto allocOp = dyn_cast<quake::AllocaOp>(op))
+    if (auto allocOp = dyn_cast<cudaq::quake::AllocaOp>(op))
       return allocateQubits(allocOp.getResult());
-    if (auto extractOp = dyn_cast<quake::ExtractRefOp>(op))
+    if (auto extractOp = dyn_cast<cudaq::quake::ExtractRefOp>(op))
       return visitExtractOp(extractOp);
-    if (auto unwrapOp = dyn_cast<quake::UnwrapOp>(op))
+    if (auto unwrapOp = dyn_cast<cudaq::quake::UnwrapOp>(op))
       return visitUnwrapOp(unwrapOp);
-    if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
+    if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
       optor.getOperatorMatrix(matrix);
       // If the operator couldn't produce a matrix, stop the walk.
       if (matrix.empty()) {
         optor.emitOpError("Couldn't produce matrix.");
         return WalkResult::interrupt();
       }
-      auto quantumOperands = quake::getQuantumOperands(op);
+      auto quantumOperands = cudaq::quake::getQuantumOperands(op);
       if (quantumOperands.empty()) {
         optor.emitOpError("Couldn't get quantum operands");
         return WalkResult::interrupt();
@@ -55,13 +56,14 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
         return WalkResult::interrupt();
       }
 
-      for (auto &&[newQuantumOp, quantumOp] : llvm::zip(
-               quake::getQuantumResults(op), quake::getQuantumOperands(op)))
+      for (auto &&[newQuantumOp, quantumOp] :
+           llvm::zip(cudaq::quake::getQuantumResults(op),
+                     cudaq::quake::getQuantumOperands(op)))
         qubitMap.insert({newQuantumOp, qubitMap[quantumOp]});
 
       // When checking mapped circuits, we do a software swap, i.e., just change
       // the qubit mapping instead of applying the swap operation.
-      if (upToMapping && isa<quake::SwapOp>(op)) {
+      if (upToMapping && isa<cudaq::quake::SwapOp>(op)) {
         std::swap(qubitMap[op->getResult(0)], qubitMap[op->getResult(1)]);
       } else {
         if (optor.getNegatedControls())
@@ -87,7 +89,7 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 // Visitors
 //===----------------------------------------------------------------------===//
 
-WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
+WalkResult UnitaryBuilder::visitExtractOp(cudaq::quake::ExtractRefOp op) {
   Value veq = op.getVeq();
   ArrayRef<unsigned> qubits = qubitMap[veq];
   std::size_t index = 0;
@@ -103,7 +105,7 @@ WalkResult UnitaryBuilder::visitExtractOp(quake::ExtractRefOp op) {
   return WalkResult::advance();
 }
 
-WalkResult UnitaryBuilder::visitUnwrapOp(quake::UnwrapOp op) {
+WalkResult UnitaryBuilder::visitUnwrapOp(cudaq::quake::UnwrapOp op) {
   ArrayRef<unsigned> qubits = qubitMap[op.getOperand()];
   auto [entry, _] = qubitMap.try_emplace(op.getResult());
   entry->second.push_back(qubits.front());
@@ -117,7 +119,7 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
     return WalkResult::interrupt();
   }
   auto &qubits = entry->second;
-  if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
+  if (auto veq = dyn_cast<cudaq::quake::VeqType>(value.getType())) {
     if (!veq.hasSpecifiedSize()) {
       value.getDefiningOp()->emitError("Veq doesn't have a specified size.");
       return WalkResult::interrupt();
@@ -148,7 +150,7 @@ LogicalResult UnitaryBuilder::getValueAsInt(Value value, std::size_t &result) {
 LogicalResult UnitaryBuilder::getQubits(ValueRange values,
                                         SmallVectorImpl<Qubit> &qubits) {
   for (Value value : values) {
-    if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
+    if (auto veq = dyn_cast<cudaq::quake::VeqType>(value.getType())) {
       if (!veq.hasSpecifiedSize())
         return failure();
       llvm::copy(qubitMap[value], std::back_inserter(qubits));
@@ -202,7 +204,14 @@ void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, unsigned numTargets,
     applyControlledMatrix(m, qubits);
     return;
   }
-  applyMatrix(m, numTargets, qubits);
+  // Multi-target gate. `OperatorInterface` matrices index the first target as
+  // the most-significant qubit, whereas the index math in `applyMatrix` treats
+  // its first qubit as least-significant. Reverse the target qubits (the
+  // trailing `numTargets` operands; any controls come first and keep their
+  // order) to reconcile the two conventions.
+  SmallVector<Qubit, 16> reordered(qubits.begin(), qubits.end());
+  std::reverse(reordered.end() - numTargets, reordered.end());
+  applyMatrix(m, numTargets, reordered);
 }
 
 void UnitaryBuilder::growMatrix(unsigned numQubits) {

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -42,3 +42,15 @@ add_lit_testsuites(PYCUDAQMLIR ${CMAKE_CURRENT_SOURCE_DIR}
 add_test(NAME pycudaq-mlir
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-pycudaq-mlir
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+# This test runs llvm-lit internally with parallism, so have ctest 
+# run sequentially.
+include(ProcessorCount)
+ProcessorCount(NPROC)
+if(NPROC EQUAL 0)
+  set(NPROC 1)
+endif()
+set_tests_properties(pycudaq-mlir PROPERTIES
+  TIMEOUT 1200
+  PROCESSORS ${NPROC})
+
+add_subdirectory(phase_folding)

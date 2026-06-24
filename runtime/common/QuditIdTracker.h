@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -27,6 +27,11 @@ private:
 public:
   QuditIdTracker() = default;
   QuditIdTracker(const QuditIdTracker &) = delete;
+
+  void reset() {
+    currentId = 0;
+    recycledQudits.clear();
+  }
 
   /// @brief Return the next available index, take from the recycled qudit
   /// identifiers if possible.

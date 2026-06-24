@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "cudaq/operators/matrix.h"
 #include "cudaq/operators/operator_leafs.h"
-#include "cudaq/utils/matrix.h"
 
 namespace cudaq {
 /// @brief The matrix_handler class manages matrix-based quantum operators.

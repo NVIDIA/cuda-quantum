@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -48,5 +48,67 @@ private:
   int m_order;
   std::optional<double> m_dt;
 };
+
+/// @brief `Crank-Nicolson` integrator for quantum state evolution.
+class crank_nicolson : public cudaq::base_integrator {
+public:
+  /// @brief Default number of predictor-corrector iterations.
+  static constexpr int default_num_corrector_steps = 2;
+
+  /// @brief Constructor.
+  /// @param num_corrector_steps Number of corrector iterations per step.
+  ///        (default: 2, i.e., one predictor + two `correctors`)
+  /// @param max_step_size Optional maximum internal sub-step size. When
+  ///        provided the integrator will sub-step by at most this amount
+  ///        when integrating toward each scheduled time point.
+  crank_nicolson(int num_corrector_steps = default_num_corrector_steps,
+                 const std::optional<double> &max_step_size = {});
+
+  /// @brief Integrate toward a specified time point.
+  void integrate(double targetTime) override;
+  /// @brief Set the initial state of the integration.
+  void setState(const cudaq::state &initialState, double t0) override;
+  /// @brief Get the current time and state.
+  std::pair<double, cudaq::state> getState() override;
+  /// @brief Clone the current integrator.
+  std::shared_ptr<base_integrator> clone() override;
+
+private:
+  double m_t;
+  std::shared_ptr<cudaq::state> m_state;
+  int m_num_corrector_steps;
+  std::optional<double> m_dt;
+};
+
+/// @brief `Magnus` expansion integrator for quantum state evolution.
+class magnus_expansion : public cudaq::base_integrator {
+public:
+  /// @brief Default maximum number of Taylor series terms.
+  static constexpr int default_num_taylor_terms = 10;
+
+  /// @brief Constructor.
+  /// @param num_taylor_terms Maximum number of Taylor terms used to
+  ///        approximate exp(h·L_mid). (default: 10; the series exits
+  ///        early when a term is negligibly small.)
+  /// @param max_step_size Optional maximum internal sub-step size.
+  magnus_expansion(int num_taylor_terms = default_num_taylor_terms,
+                   const std::optional<double> &max_step_size = {});
+
+  /// @brief Integrate toward a specified time point.
+  void integrate(double targetTime) override;
+  /// @brief Set the initial state of the integration.
+  void setState(const cudaq::state &initialState, double t0) override;
+  /// @brief Get the current time and state.
+  std::pair<double, cudaq::state> getState() override;
+  /// @brief Clone the current integrator.
+  std::shared_ptr<base_integrator> clone() override;
+
+private:
+  double m_t;
+  std::shared_ptr<cudaq::state> m_state;
+  int m_num_taylor_terms;
+  std::optional<double> m_dt;
+};
+
 } // namespace integrators
 } // namespace cudaq

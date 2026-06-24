@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,7 +17,7 @@ endif()
 
 add_subdirectory(fermioniq)
 
-if (AWSSDK_ROOT)
+if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
   add_subdirectory(quera)
 endif()
 

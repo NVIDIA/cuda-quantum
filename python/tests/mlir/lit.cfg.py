@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 import os
-
+import subprocess
 import lit.formats
 import lit.util
 
@@ -46,7 +46,8 @@ for arch in config.targets_to_build.split():
 # subdirectories contain auxiliary inputs for various tests in their parent
 # directories.
 config.excludes = [
-    'Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt', 'lit.cfg.py'
+    'Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt', 'lit.cfg.py',
+    'random_gen.py'
 ]
 
 # test_source_root: The root path where tests are located.
@@ -58,3 +59,31 @@ config.test_exec_root = os.path.join(config.cudaq_obj_root, 'python/tests/mlir')
 # Tweak the PATH to include the tools dir.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
+
+# Generate phase-folding tests
+gen_tests_dir = os.path.join(config.cudaq_src_dir, 'python', 'tests', 'mlir',
+                             'generated')
+os.makedirs(gen_tests_dir, exist_ok=True)  # mode=0o777
+
+
+def generate_phasefolding_test(filename, seed, min_block_length,
+                               max_block_length, rz_weight):
+    test_src_dir = os.path.join(config.cudaq_src_dir, 'python', 'tests', 'mlir',
+                                'phase_folding')
+    with open(os.path.join(gen_tests_dir, filename + str(seed) + '.py'),
+              'w') as fout:
+        subprocess.run([
+            sys.executable, 'random_gen.py', filename + '.py.template',
+            '--seed=' + str(seed), '--block-length=' + str(min_block_length) +
+            '-' + str(max_block_length), '--rz-weight=' + str(rz_weight)
+        ],
+                       cwd=test_src_dir,
+                       stdout=fout)
+
+
+for seed in range(1, 11):
+    generate_phasefolding_test('branch-in-loop', seed, 30, 45, 0.5)
+for seed in range(1, 11):
+    generate_phasefolding_test('loop-with-break', seed, 20, 30, 0.5)
+generate_phasefolding_test('straight-line', 27, 100, 100, 0.5)
+generate_phasefolding_test('subkernel', 1, 20, 30, 0.5)

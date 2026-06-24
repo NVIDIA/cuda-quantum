@@ -142,7 +142,7 @@ Similar to `sample_async`, `run` also supports asynchronous execution for the `r
         :end-before: [End `RunAsyncOutput`]
 
 .. note::
-    Currently, `run` and `run_async` are only supported on simulator targets.
+    Currently, `run` and `run_async` are supported on simulator targets and select hardware platforms.
 
 Observe
 -------

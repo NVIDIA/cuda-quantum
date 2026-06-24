@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,20 +8,20 @@
 
 #pragma once
 
-#include <concepts>
-
 #include "common/ExecutionContext.h"
 #include "cudaq/platform.h"
+#include <concepts>
+#include <iostream>
 
 namespace cudaq {
 
-namespace __internal__ {
+namespace detail {
 
 std::string draw(const Trace &trace);
 
 std::string getLaTeXString(const Trace &trace);
 
-} // namespace __internal__
+} // namespace detail
 
 namespace contrib {
 
@@ -32,18 +32,21 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   // Get the platform.
   auto &platform = cudaq::get_platform();
 
-  // This can only be done in simulation
-  if (!platform.is_simulator())
-    throw std::runtime_error("Cannot use draw on a physical QPU.");
+  // This is not supported on hardware backends, but we don't want callers to
+  // crash on unhandled exceptions.
+  if (!platform.is_simulator()) {
+    std::cerr << "Warning: `draw` can only be used with a simulator platform. "
+              << "Returning an empty trace." << std::endl;
+    return Trace();
+  }
 
   // Create an execution context, indicate this is for tracing the execution
   // path
   ExecutionContext context("tracer");
 
   // set the context, execute and then reset
-  platform.set_exec_ctx(&context);
-  kernel(args...);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(context, std::forward<KernelFunctor>(kernel),
+                                  std::forward<Args>(args)...);
 
   return context.kernelTrace;
 }
@@ -52,14 +55,14 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
 /// state representation.
 template <typename KernelFunctor>
 std::string extractTrace(KernelFunctor &&kernel) {
-  return __internal__::draw(traceFromKernel(kernel));
+  return detail::draw(traceFromKernel(kernel));
 }
 
 /// @brief Execute the given kernel functor and extract the
 /// state representation as LaTeX.
 template <typename KernelFunctor>
 std::string extractTraceLatex(KernelFunctor &&kernel) {
-  return __internal__::getLaTeXString(traceFromKernel(kernel));
+  return detail::getLaTeXString(traceFromKernel(kernel));
 }
 
 // clang-format off
@@ -107,34 +110,23 @@ std::string extractTraceLatex(KernelFunctor &&kernel) {
 /// */      
 /// \endcode
 ///
+/// @note This function is only available when using simulator backends.
 // clang-format on
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
-  return __internal__::draw(
+  return detail::draw(
       contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
 }
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 std::string draw(std::string format, QuantumKernel &&kernel, Args &&...args) {
   if (format == "ascii") {
     return draw(kernel, std::forward<Args>(args)...);
   } else if (format == "latex") {
-    return __internal__::getLaTeXString(
+    return detail::getLaTeXString(
         contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
   } else {
     throw std::runtime_error(
@@ -151,11 +143,11 @@ void draw(std::ostream &os, QuantumKernel &&kernel, Args &&...args) {
 
 } // namespace contrib
 
-namespace details {
+namespace detail {
 /// @brief execute the kernel functor (with optional arguments) and return the
 /// trace of the execution path.
 template <typename KernelFunctor, typename... Args>
-[[deprecated("cudaq::details::traceFromKernel is deprecated - please use "
+[[deprecated("cudaq::detail::traceFromKernel is deprecated - please use "
              "cudaq::contrib::traceFromKernel instead.")]] cudaq::Trace
 traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
   return contrib::traceFromKernel(kernel, std::forward<Args>(args)...);
@@ -164,46 +156,34 @@ traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
 /// @brief Execute the given kernel functor and extract the
 /// state representation.
 template <typename KernelFunctor>
-[[deprecated("cudaq::details::extractTrace is deprecated - please use "
+[[deprecated("cudaq::detail::extractTrace is deprecated - please use "
              "cudaq::contrib::extractTrace instead.")]] std::string
 extractTrace(KernelFunctor &&kernel) {
-  return __internal__::draw(traceFromKernel(kernel));
+  return detail::draw(traceFromKernel(kernel));
 }
 
 /// @brief Execute the given kernel functor and extract the
 /// state representation as LaTeX.
 template <typename KernelFunctor>
-[[deprecated("cudaq::details::extractTraceLatex is deprecated - please use "
+[[deprecated("cudaq::detail::extractTraceLatex is deprecated - please use "
              "cudaq::contrib::extractTraceLatex instead.")]] std::string
 extractTraceLatex(KernelFunctor &&kernel) {
-  return __internal__::getLaTeXString(traceFromKernel(kernel));
+  return detail::getLaTeXString(traceFromKernel(kernel));
 }
 
-} // namespace details
+} // namespace detail
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 [[deprecated("cudaq::draw is deprecated - please use "
              "cudaq::contrib::draw instead.")]] std::string
 draw(QuantumKernel &&kernel, Args &&...args) {
-  return __internal__::draw(
+  return detail::draw(
       contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
 }
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 [[deprecated("cudaq::draw is deprecated - please use "
              "cudaq::contrib::draw instead.")]] std::string
 draw(std::string format, QuantumKernel &&kernel, Args &&...args) {

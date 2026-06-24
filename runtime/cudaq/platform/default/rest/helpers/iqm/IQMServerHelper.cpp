@@ -1,14 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  * Copyright 2025 IQM Quantum Computers                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 
 #include "nlohmann/json.hpp"
@@ -203,6 +203,15 @@ void IQMServerHelper::initialize(BackendConfig config) {
     quantumArchitectureFilePath = std::string(token);
     cleanupQuantumArchitectureFilePath = false;
   }
+
+  // Parse common config entries (e.g. `reorderIdx.<task_id>` populated by
+  // Executor::execute) so that processResults() can map sampled bitstrings
+  // back to the user's original qubit allocation order after the qubit
+  // mapping pass has permuted them. Without this call the reorder map stays
+  // empty and the bitstrings remain in physical-qubit order, which leads to
+  // wrong bit positions when the mapping pass picks a non-identity
+  // placement (see GitHub issue #4621).
+  parseConfigForCommonParams(config);
 }
 
 ServerJobPayload
@@ -293,9 +302,9 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
 
   sample_result sampleResult(srs);
 
-  // The original sampleResult is ordered by qubit number (FIXME: VERIFY THIS)
-  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
+  // The original sampleResult is ordered by physical qubit number. Reorder
+  // according to reorderIdx[] so the global bitstring is in the user's
+  // original qubit allocation order.
   auto thisJobReorderIdxIt = reorderIdx.find(jobID);
   if (thisJobReorderIdxIt != reorderIdx.end()) {
     auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
@@ -498,7 +507,7 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
         std::string(P_tmpdir) + "/qpu-architecture-XXXXXX";
     fd = mkstemp(quantumArchitectureFilePath.data());
   } else {
-    fd = open(quantumArchitectureFilePath.data(), O_WRONLY | O_CREAT | O_EXCL,
+    fd = open(quantumArchitectureFilePath.data(), O_WRONLY | O_CREAT,
               S_IRUSR | S_IRGRP | S_IROTH);
   }
   if (fd < 0) {

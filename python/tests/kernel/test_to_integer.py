@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -18,7 +18,7 @@ def testToInteger():
         for i in range(len(applyX)):
             if applyX[i]:
                 x(q[i])
-        return cudaq.to_integer(mz(q))
+        return cudaq.to_integer(cudaq.to_bools(mz(q)))
 
     test_cases = [
         [1, 1, 1],

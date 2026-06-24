@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,10 +13,14 @@ import pytest
 import random
 import numpy as np
 import os
+import subprocess
+import sys
 from typing import List
 
 import cudaq
 from cudaq import spin
+
+from test_helpers import h2_hamiltonian_4q
 
 
 def test_sdg_0_state():
@@ -1032,15 +1036,7 @@ def test_from_state1():
 
 
 def test_pauli_word_input():
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
 
     kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
     q = kernel.qalloc(4)
@@ -1063,15 +1059,7 @@ def test_exp_pauli():
     print(type(.11))
     kernel.exp_pauli(.11, qubits, "XXXY")
     print(kernel)
-    h2_data = [
-        3, 1, 1, 3, 0.0454063, 0, 2, 0, 0, 0, 0.17028, 0, 0, 0, 2, 0, -0.220041,
-        -0, 1, 3, 3, 1, 0.0454063, 0, 0, 0, 0, 0, -0.106477, 0, 0, 2, 0, 0,
-        0.17028, 0, 0, 0, 0, 2, -0.220041, -0, 3, 3, 1, 1, -0.0454063, -0, 2, 2,
-        0, 0, 0.168336, 0, 2, 0, 2, 0, 0.1202, 0, 0, 2, 0, 2, 0.1202, 0, 2, 0,
-        0, 2, 0.165607, 0, 0, 2, 2, 0, 0.165607, 0, 0, 0, 2, 2, 0.174073, 0, 1,
-        1, 3, 3, -0.0454063, -0, 15
-    ]
-    h = cudaq.SpinOperator(h2_data, 4)
+    h = h2_hamiltonian_4q()
     want_exp = cudaq.observe(kernel, h).expectation()
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
@@ -1095,6 +1083,49 @@ def test_exp_pauli():
         'XXXY') + cudaq.SpinOperator.from_word("YYYX")
     with pytest.raises(RuntimeError) as error:
         kernel.exp_pauli(theta, qubits, invalidOp)
+
+
+def test_exp_pauli_register_and_qubits():
+    """Test that exp_pauli correctly concatenates a register with
+    individual qubits (regression test for operator precedence fix)."""
+    cudaq.reset_target()
+
+    # Case 1: register + individual qubit
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    q_extra = kernel.qalloc()
+    kernel.exp_pauli(1.0, qreg, q_extra, 'XXX')
+    ir = str(kernel)
+    assert 'quake.concat' in ir, \
+        "exp_pauli should concat register and individual qubits"
+
+    # Case 2: register + multiple individual qubits
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    q0 = kernel.qalloc()
+    q1 = kernel.qalloc()
+    kernel.exp_pauli(0.5, qreg, q0, q1, 'XXYY')
+    ir = str(kernel)
+    assert 'quake.concat' in ir, \
+        "exp_pauli should concat register and multiple individual qubits"
+
+    # Case 3: individual qubits only (no register) should still work
+    kernel = cudaq.make_kernel()
+    q0 = kernel.qalloc()
+    q1 = kernel.qalloc()
+    kernel.exp_pauli(1.0, q0, q1, 'XX')
+    ir = str(kernel)
+    assert 'quake.concat' in ir
+
+    # Case 4: register only (no individual qubits) should still work
+    kernel = cudaq.make_kernel()
+    qreg = kernel.qalloc(2)
+    kernel.exp_pauli(1.0, qreg, 'XX')
+    counts = cudaq.sample(kernel)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
 
 
 def test_givens_rotation_op():
@@ -1147,7 +1178,7 @@ def test_fermionic_swap_op():
 
 def test_call_kernel_expressions():
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesInt(qubits: cudaq.qview, val: int):
         x(qubits[val])
 
@@ -1161,7 +1192,7 @@ def test_call_kernel_expressions():
     assert len(counts) == 1
     assert '00100' in counts
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndFloat(qubits: cudaq.qview, qbit: int, val: float):
         ry(val, qubits[qbit])
 
@@ -1184,7 +1215,7 @@ def test_call_kernel_expressions_List():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
                                        val: List[float]):
         ry(val[0], qubits[qbit])
@@ -1199,7 +1230,7 @@ def test_call_kernel_expressions_List():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: List[List[float]]):
         ry(val[0][0], qubits[qbit])
@@ -1231,7 +1262,7 @@ def test_call_kernel_expressions_list():
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListFloat(qubits: cudaq.qview, qbit: int,
                                        val: list[float]):
         ry(val[0], qubits[qbit])
@@ -1246,7 +1277,7 @@ def test_call_kernel_expressions_list():
                       cudaq.observe(ansatz, hamiltonian).expectation(),
                       atol=1e-2)
 
-    @cudaq.kernel()
+    @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndListListFloat(qubits: cudaq.qview, qbit: int,
                                            val: list[list[float]]):
         ry(val[0][0], qubits[qbit])
@@ -1271,6 +1302,57 @@ def test_call_kernel_expressions_list():
     kernelAndArgs = cudaq.make_kernel(list[float])
     qubits = kernelAndArgs[0].qalloc(1)
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
+
+
+def test_call_kernel_deferred_compilation():
+    # We currently don't support calling a kernel that hasn't been compiled yet
+    # from a kernel builder. This is because both the kernel builder and the
+    # MLIR compilation require exclusive access to the global MLIR context.
+    # Launching compilation during the lifetime of the kernel builder would
+    # invalidate the references to MLIR objects that the kernel builder holds.
+    @cudaq.kernel(defer_compilation=True)
+    def notPrecompiledKernel():
+        pass
+
+    kernel = cudaq.make_kernel()
+    with pytest.raises(RuntimeError) as e:
+        kernel.apply_call(notPrecompiledKernel)
+
+    assert "must be compiled to be used in the kernel builder" in str(e.value)
+    assert "notPrecompiledKernel" in str(e.value)
+    assert "or deactivate deferred compilation" in str(e.value)
+
+
+def test_apply_call_captures_from_definition_scope():
+    """
+    A kernel builder calls (via apply_call) a decorator kernel that itself
+    captures another decorator kernel from its *definition* scope.  The
+    captured inner kernel is not in scope at the apply_call call-site.
+    """
+
+    def make():
+        n_qubits = 0
+
+        @cudaq.kernel()
+        def inner(q: cudaq.qubit):
+            x(q)
+
+        @cudaq.kernel(defer_compilation=False)
+        def wrapper():
+            # capture n_qubits, resolves to n_qubits=1
+            q = cudaq.qvector(n_qubits)
+            # capture inner
+            inner(q[0])
+
+        n_qubits = 1  # this is the value that matters
+
+        return wrapper
+
+    wrapper = make()
+    # `inner` and `n_qubits` are NOT reachable from this scope.
+    builder = cudaq.make_kernel()
+    builder.apply_call(wrapper)
+    cudaq.sample(builder, shots_count=3)
 
 
 def test_sample_with_no_qubits():
@@ -1453,6 +1535,41 @@ def test_call_invalid_attribute_on_a_kernel():
         kernel.op(q[0])
         result = cudaq.sample(kernel, cudaq.pauli_word("X"))
     assert "not supported on PyKernel" in str(e.value)
+
+
+def test_repeated_builder_launch_no_segfault():
+    """A ``list[bool]`` arg used to corrupt the heap during argument synthesis,
+    crashing a repeated ``make_kernel`` + ``sample`` loop at a random iteration.
+
+    The crash only surfaces when the bit-packed ``std::vector<bool>`` padding is
+    nonzero, so run under ``MALLOC_PERTURB_`` (set before the process starts) in
+    a subprocess. See ``runtime/test/test_argument_conversion.cpp`` for the
+    unit-level regression.
+    """
+    script = (
+        "import cudaq\n"
+        "from typing import List\n"
+        "cudaq.set_target('qpp-cpu')\n"
+        "for _ in range(512):\n"
+        "    kernel, *_ = cudaq.make_kernel(bool, list[bool], List[int], list[float])\n"
+        "    kernel.qalloc(1)\n"
+        "    cudaq.sample(kernel, False, [False], [3], [3.5])\n"
+        "    cudaq.sample(kernel, False, [], [], [])\n"
+        "print('OK')\n")
+    env = dict(os.environ)
+    # Dirty fresh allocations so the std::vector<bool> padding is never zero,
+    # otherwise the corruption stays latent and the test passes with the bug.
+    env["MALLOC_PERTURB_"] = "165"
+    proc = subprocess.run([sys.executable, "-c", script],
+                          env=env,
+                          capture_output=True,
+                          text=True,
+                          timeout=900)
+    assert proc.returncode == 0, ("repeated make_kernel/sample crashed "
+                                  f"(returncode={proc.returncode}).\n"
+                                  f"stdout:\n{proc.stdout}\n"
+                                  f"stderr (tail):\n{proc.stderr[-3000:]}")
+    assert "OK" in proc.stdout
 
 
 # leave for gdb debugging

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,11 @@
  ******************************************************************************/
 
 #include "CodeGenConfig.h"
-#include "Logger.h"
+#include "FmtCore.h"
+#include "cudaq/runtime/logger/logger.h"
+#include <stdexcept>
+#include <tuple>
+#include <vector>
 
 namespace {
 
@@ -50,6 +54,15 @@ cudaq::CodeGenConfig
 cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
   auto [codeGenName, codeGenVersion, codeGenOptions] =
       parseCodeGenTranslationString(codegenTranslation);
+
+  if (codeGenName == "nop") {
+    CodeGenConfig config = {.profile = codeGenName,
+                            .isQIRProfile = false,
+                            .isAdaptiveProfile = true,
+                            .isBaseProfile = false,
+                            .outputLog = true};
+    return config;
+  }
 
   if (codeGenName.find("qir") == codeGenName.npos)
     return {.profile = codeGenName};

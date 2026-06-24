@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,10 +11,7 @@
 #include "nlohmann/json.hpp"
 #include <bitset>
 
-namespace cudaq {
-namespace utils {
-
-namespace quantinuum {
+namespace cudaq::utils::quantinuum {
 
 // Helper to process Quantinuum Nexus result
 // Note: we split this out in a header file for testability purposes.
@@ -98,6 +95,5 @@ processResults(const nlohmann::json &shotResultJson,
   allResults.push_back(result);
   return cudaq::sample_result{allResults};
 }
-} // namespace quantinuum
-} // namespace utils
-} // namespace cudaq
+
+} // namespace cudaq::utils::quantinuum

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -517,7 +517,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     kernel.rx(thetas[2], qreg[2])
     kernel.rx(thetas[3], qreg[3])
 
-    print(cudaq.get_state(kernel, angles))
+    cudaq.get_state(kernel, angles).dump()
     # Measure each qubit in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
 
@@ -566,6 +566,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     with pytest.raises(Exception) as error:
         # Test kernel call.
         kernel(bad_params)
+    assert "Invalid runtime list argument" in str(error.value)
     with pytest.raises(Exception) as error:
         # Test observe call.
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
@@ -573,10 +574,38 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
         # Test too few elements in array.
         bad_params = np.random.uniform(low=-np.pi, high=np.pi, size=(2,))
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
-    with pytest.raises(Exception) as error:
-        # Test too many elements in array.
-        bad_params = np.random.uniform(low=-np.pi, high=np.pi, size=(8,))
-        cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
+
+
+def test_observe_kernel_exception_no_segfault():
+    """
+    When cudaq.observe is called with list arguments that are
+    too short, the kernel raises a RuntimeError inside the ExecutionContext.
+    Before this change, ExecutionContext.__exit__ would call finalizeExecutionContext on
+    an uninitialized simulator state causing a segfault on GPU backend.
+    """
+    qubit_count = 4
+    kernel, thetas = cudaq.make_kernel(list)
+    qreg = kernel.qalloc(qubit_count)
+    for i in range(qubit_count):
+        kernel.rx(thetas[i], qreg[i])
+    hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
+
+    with pytest.raises(Exception) as exception:
+        cudaq.observe(kernel,
+                      hamiltonian,
+                      np.random.uniform(size=(3, 2)),
+                      shots_count=10)
+    assert "Invalid runtime list argument" in str(exception.value)
+
+    with pytest.raises(Exception) as exception:
+        cudaq.observe(kernel,
+                      hamiltonian,
+                      np.random.uniform(size=(2,)),
+                      shots_count=10)
+    assert "Invalid runtime list argument" in str(exception.value)
+
+    result = cudaq.observe(kernel, hamiltonian, [np.pi] * qubit_count)
+    assert np.isclose(result.expectation(), -4.0, atol=1e-12)
 
 
 def test_observe_n():
@@ -678,7 +707,8 @@ def test_observe_list():
 
     sum = 5.907
     for r in results:
-        sum += r.expectation() * np.real(r.get_spin().get_coefficient())
+        sum += r.expectation() * np.real(
+            next(iter(r.get_spin())).evaluate_coefficient())
     print(sum)
     want_expectation_value = -1.7487948611472093
     assert assert_close(want_expectation_value, sum, tolerance=1e-2)
@@ -735,7 +765,8 @@ def test_combine_sweep():
         # Id term offset
         sum = 5.907
         for r in perParamResult:
-            sum += r.expectation() * np.real(r.get_spin().get_coefficient())
+            sum += r.expectation() * np.real(
+                next(iter(r.get_spin())).evaluate_coefficient())
         assert assert_close(expectedEnergy, sum, tolerance=1e-2)
 
 
@@ -780,7 +811,10 @@ def test_batched_observe_results():
 
 
 def test_observe():
-    """ Check if the bug reported in  https://github.com/NVIDIA/cuda-quantum/issues/1218 affects 'observe_async'"""
+    """
+    Check if the bug reported in
+    https://github.com/NVIDIA/cuda-quantum/issues/1218 affects 'observe_async'
+    """
 
     def kernel_maker(n):
         kernel, theta = cudaq.make_kernel(float)

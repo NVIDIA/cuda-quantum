@@ -1,18 +1,17 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ --enable-mlir -c %t/baselib.cpp -o %t/baselib.o && \
-// RUN: nvq++ --enable-mlir -c %t/baseuser.cpp -o %t/baseuser.o && \
-// RUN: nvq++ --enable-mlir %t/baselib.o %t/baseuser.o -o %t/base.a.out && \
+// RUN: nvq++ -c %t/baselib.cpp -o %t/baselib.o && \
+// RUN: nvq++ -c %t/baseuser.cpp -o %t/baseuser.o && \
+// RUN: nvq++ %t/baselib.o %t/baseuser.o -o %t/base.a.out && \
 // RUN: %t/base.a.out | FileCheck %s ; else \
 // RUN: echo "skipping"; fi
 // clang-format on

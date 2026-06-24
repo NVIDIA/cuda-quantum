@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -24,7 +24,8 @@ def test_kernel_qalloc_empty():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           return
 # CHECK:         }
@@ -42,7 +43,8 @@ def test_kernel_qalloc_qreg():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<10>
 # CHECK:           return
 # CHECK:         }
@@ -60,7 +62,8 @@ def test_kernel_qalloc_qreg_keyword():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<10>
 # CHECK:           return
 # CHECK:         }
@@ -77,8 +80,8 @@ def test_kernel_qalloc_quake_val():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:      %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      (%[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<?>[%[[VAL_0]] : i64]
 # CHECK:           return
 # CHECK:         }
@@ -96,7 +99,8 @@ def test_kernel_qalloc_qubit():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           return
 # CHECK:         }
@@ -113,7 +117,8 @@ def test_kernel_qalloc_qubit_keyword():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}() attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 # CHECK:           return
 # CHECK:         }

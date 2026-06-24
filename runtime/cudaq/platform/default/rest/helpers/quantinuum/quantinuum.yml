@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -23,8 +23,6 @@ config:
   jit-low-level-pipeline: "func.func(combine-quantum-alloc,qubit-reset-before-reuse)"
   # Tell the rest-qpu that we are generating Adaptive QIR.
   codegen-emission: qir-adaptive:0.1:int_computations
-  # Library mode is only for simulators, physical backends must turn this off
-  library-mode: false
 
 target-arguments:
   - key: url

@@ -29,7 +29,7 @@ c = [.707 + 0j, 0 - .707j]
 
 @cudaq.kernel
 def kernel(vec: list[complex]):
-    q = cudaq.qubit(vec)
+    q = cudaq.qvector(vec)
 
 
 # [End `PassingComplexVector`]

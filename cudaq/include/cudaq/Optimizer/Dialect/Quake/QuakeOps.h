@@ -1,0 +1,164 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "cudaq/Optimizer/Dialect/Common/Traits.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/OpDefinition.h"
+#include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/RegionKindInterface.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
+#include "mlir/Interfaces/LoopLikeInterface.h"
+
+//===----------------------------------------------------------------------===//
+// Canonicalizer functions.
+//===----------------------------------------------------------------------===//
+
+namespace cudaq::quake {
+mlir::Value createConstantAlloca(mlir::PatternRewriter &builder,
+                                 mlir::Location loc, mlir::OpResult result,
+                                 mlir::ValueRange args);
+
+void getResetEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
+void getMeasurementEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
+void getOperatorEffectsImpl(
+    mlir::SmallVectorImpl<
+        mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
+        &effects,
+    llvm::MutableArrayRef<mlir::OpOperand> controls,
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
+
+mlir::ParseResult genericOpParse(mlir::OpAsmParser &parser,
+                                 mlir::OperationState &result);
+void genericOpPrinter(mlir::OpAsmPrinter &_odsPrinter, mlir::Operation *op,
+                      bool isAdj, mlir::OperandRange params,
+                      mlir::OperandRange ctrls, mlir::OperandRange targs,
+                      mlir::DenseBoolArrayAttr negatedQubitControlsAttr);
+} // namespace cudaq::quake
+
+//===----------------------------------------------------------------------===//
+// Tablegen generated logic.
+//===----------------------------------------------------------------------===//
+
+#define GET_OP_CLASSES
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h.inc"
+
+//===----------------------------------------------------------------------===//
+// Utility functions to test the form of an operation.
+//===----------------------------------------------------------------------===//
+
+// Is \p op in the Quake dialect?
+inline bool isQuakeOperation(mlir::Operation *op) {
+  if (auto *dialect = op->getDialect())
+    return dialect->getNamespace() == "quake";
+  return false;
+}
+
+namespace cudaq::quake {
+/// Returns true if and only if any quantum operand has type `!quake.ref` or
+/// `!quake.veq`.
+inline bool hasReference(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isQuantumReferenceType(opnd.getType()))
+      return true;
+  return false;
+}
+
+/// Return the static size of a `!quake.veq` Value. Looks through RelaxSizeOp
+/// when the surface type is dynamically sized but the inner value has a known
+/// size.
+inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
+  auto veqTy = mlir::dyn_cast<cudaq::quake::VeqType>(v.getType());
+  if (!veqTy)
+    return std::nullopt;
+  if (veqTy.hasSpecifiedSize())
+    return veqTy.getSize();
+  if (auto relaxOp = v.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
+    // RelaxSizeOp verifier guarantees input is VeqType when result is VeqType.
+    auto innerTy =
+        mlir::cast<cudaq::quake::VeqType>(relaxOp.getInputVec().getType());
+    if (innerTy.hasSpecifiedSize())
+      return innerTy.getSize();
+  }
+  return std::nullopt;
+}
+
+/// Returns true if and only if any quantum operand has type `!quake.ref`.
+inline bool hasNonVectorReference(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isa<cudaq::quake::RefType>(opnd.getType()))
+      return true;
+  return false;
+}
+
+/// Returns true if and only if all quantum operands do not have type
+/// `!quake.wire` or `!quake.control`.
+inline bool isAllReferences(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isQuantumValueType(opnd.getType()))
+      return false;
+  return true;
+}
+
+/// Returns true if and only if all quantum operands have type `!quake.wire` or
+/// `!quake.control`.
+inline bool isAllValues(mlir::Operation *op) {
+  for (mlir::Value opnd : op->getOperands())
+    if (isQuantumReferenceType(opnd.getType()))
+      return false;
+  return true;
+}
+
+/// Returns true if and only if \p op is in the intermediate quantum load/store
+/// (QLS) form.
+inline bool isWrapped(mlir::Operation *op) {
+  for (mlir::Value val : op->getOperands())
+    if (isa<cudaq::quake::WireType>(val.getType()) &&
+        !val.getDefiningOp<cudaq::quake::UnwrapOp>())
+      return false;
+  for (mlir::Value val : op->getResults())
+    if (isa<cudaq::quake::WireType>(val.getType()))
+      for (auto *u : val.getUsers())
+        if (!isa<cudaq::quake::WrapOp>(u))
+          return false;
+  return true;
+}
+
+/// Returns true if and only if \p op is fully in linear-value form.
+/// Linear-value form is defined such that the Op, \p op, is not in full (or
+/// partial) memory-SSA form and is not in the intermediate QLS form.
+inline bool isLinearValueForm(mlir::Operation *op) {
+  return isa<cudaq::quake::NullWireOp, cudaq::quake::SinkOp>(op) ||
+         (isAllValues(op) && !isWrapped(op));
+}
+inline bool isLinearValueForm(mlir::Value val) {
+  if (auto *op = val.getDefiningOp())
+    return isLinearValueForm(op);
+  return isQuantumValueType(val.getType());
+}
+
+template <typename OP>
+constexpr bool isMeasure = std::is_same_v<OP, cudaq::quake::MxOp> ||
+                           std::is_same_v<OP, cudaq::quake::MyOp> ||
+                           std::is_same_v<OP, cudaq::quake::MzOp>;
+
+} // namespace cudaq::quake

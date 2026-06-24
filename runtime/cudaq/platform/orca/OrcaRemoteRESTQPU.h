@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,14 +9,14 @@
 #pragma once
 
 #include "OrcaExecutor.h"
-#include "common/ExecutionContext.h"
-#include "common/Future.h"
-#include "common/RestClient.h"
-#include "common/ServerHelper.h"
+#include "common/CompiledModule.h"
 #include "cudaq/platform/qpu.h"
-#include "orca_qpu.h"
+#include "cudaq/utils/cudaq_utils.h"
+#include "cudaq/utils/owning_ptr.h"
+#include <filesystem>
 
 namespace cudaq {
+class ServerHelper;
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
 /// execution of CUDA-Q kernels on remotely hosted quantum computing
@@ -42,20 +42,13 @@ protected:
   /// @brief Pointer to the concrete Executor for this QPU
   std::unique_ptr<OrcaExecutor> executor;
 
-  /// @brief Pointer to the concrete ServerHelper, provides
+  /// @brief Pointer to the forward declared ServerHelper, provides
   /// specific JSON payloads and POST/GET URL paths.
-  std::unique_ptr<ServerHelper> serverHelper;
+  cudaq::owning_ptr<ServerHelper> serverHelper;
 
   /// @brief Mapping of general key-values for backend
   /// configuration.
   std::map<std::string, std::string> backendConfig;
-
-  /// @brief Mapping of thread and execution context
-  std::unordered_map<std::size_t, cudaq::ExecutionContext *> contexts;
-
-private:
-  /// @brief RestClient used for HTTP requests.
-  RestClient client;
 
 public:
   /// @brief The constructor
@@ -77,16 +70,10 @@ public:
   }
 
   /// @brief Enqueue a quantum task on the asynchronous execution queue.
-  void enqueue(cudaq::QuantumTask &task) override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
-    execution_queue->enqueue(task);
-  }
+  void enqueue(cudaq::QuantumTask &task) override;
 
   /// @brief Return true if the current backend is a simulator
   bool isSimulator() override { return emulate; }
-
-  /// @brief Return true if the current backend supports conditional feedback
-  bool supportsConditionalFeedback() override { return false; }
 
   /// @brief Return true if the current backend supports explicit measurements
   bool supportsExplicitMeasurements() override { return false; }
@@ -100,36 +87,25 @@ public:
   /// @brief Return true if the current backend is remote
   virtual bool isRemote() override { return !emulate; }
 
-  /// @brief Store the execution context for launching kernel
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU::setExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts.emplace(tid, context);
-    cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
-  }
-
-  /// @brief Overrides resetExecutionContext
-  void resetExecutionContext() override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts[tid] = nullptr;
-    contexts.erase(tid);
-  }
-
   /// @brief This setTargetBackend override is in charge of reading the
   /// specific target backend configuration file.
   void setTargetBackend(const std::string &backend) override;
 
+  [[nodiscard]] KernelThunkResultType
+  launchKernelCommon(const std::string &kernelName, void *args);
+
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
-  KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override;
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error("launch kernel on raw args not implemented");
+  [[nodiscard]] KernelThunkResultType
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args) override {
+    if (!std::holds_alternative<SourceModule>(module))
+      throw std::runtime_error(
+          "OrcaRemoteRESTQPU does not support pre-compiled module launch.");
+
+    const auto &src = std::get<SourceModule>(module);
+    auto packed = args.getPacked();
+    void *argData = packed ? packed->data.data() : nullptr;
+    return launchKernelCommon(src.getName(), argData);
   }
 };
 } // namespace cudaq

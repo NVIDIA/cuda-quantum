@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,10 +8,14 @@
 
 #pragma once
 #include "common/ExecutionContext.h"
-#include "common/RestClient.h"
-#include "common/ServerHelper.h"
+#include "common/KernelExecution.h"
+#include "common/Registry.h"
+#include <memory>
 
 namespace cudaq {
+
+class RestClient;
+class ServerHelper;
 
 /// @brief The Executor provides an abstraction for executing compiled
 /// quantum codes targeting a remote REST server. This type provides a
@@ -20,7 +24,7 @@ namespace cudaq {
 class Executor : public registry::RegisteredType<Executor> {
 protected:
   /// @brief The REST Client used to interact with the remote system
-  RestClient client;
+  std::unique_ptr<RestClient> client;
 
   /// @brief The ServerHelper, providing system-specific JSON-formatted
   /// job posts and results translation
@@ -30,8 +34,8 @@ protected:
   std::size_t shots = 100;
 
 public:
-  Executor() = default;
-  virtual ~Executor() = default;
+  Executor();
+  virtual ~Executor();
 
   /// @brief Set the server helper
   virtual void setServerHelper(ServerHelper *helper) { serverHelper = helper; }
@@ -41,10 +45,10 @@ public:
 
   /// @brief Execute the provided quantum codes and return a future object
   /// The caller can make this synchronous by just immediately calling .get().
-  virtual details::future
+  virtual detail::future
   execute(std::vector<KernelExecution> &codesToExecute,
-          cudaq::details::ExecutionContextType execType =
-              cudaq::details::ExecutionContextType::sample,
+          cudaq::detail::ExecutionContextType execType =
+              cudaq::detail::ExecutionContextType::sample,
           std::vector<char> *rawOutput = nullptr);
 };
 

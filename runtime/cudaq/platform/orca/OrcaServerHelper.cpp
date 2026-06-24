@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,9 +8,10 @@
 
 #include "OrcaServerHelper.h"
 #include "common/Future.h"
-#include "common/Logger.h"
 #include "common/Registry.h"
+#include "nlohmann/json.hpp"
 #include "orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
 

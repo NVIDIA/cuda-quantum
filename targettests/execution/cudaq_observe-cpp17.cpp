@@ -8,11 +8,14 @@
 
 // REQUIRES: c++17
 // clang-format off
-// RUN: nvq++ %cpp_std --target infleqtion --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target ionq       --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc        --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target infleqtion               --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %ionq_avail; then nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s; fi
+// 2 different IQM machines for 2 different topologies
+// RUN: if %iqm_avail; then nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %iqm_avail; then nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %oqc_avail; then nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qbraid_avail; then nvq++ %cpp_std --target qbraid                   --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

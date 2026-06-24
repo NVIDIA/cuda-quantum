@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -15,8 +15,8 @@ add_target_config(oqc)
 add_library(cudaq-serverhelper-oqc SHARED OQCServerHelp.cpp )
 target_link_libraries(cudaq-serverhelper-oqc
   PUBLIC 
+    cudaq-logger 
     cudaq-common 
-    fmt::fmt-header-only 
 )
 install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
 
