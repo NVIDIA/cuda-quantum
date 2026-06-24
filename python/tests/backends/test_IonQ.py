@@ -365,7 +365,7 @@ def test_2q_unitary_synthesis():
         # And no target field at all in the response is treated as not-a-QPU.
         ("", "", True, []),
     ])
-def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
+def test_per_shot_output(mock_target, mock_noise, memory, expect_shots):
 
     url = "http://localhost:{}".format(port)
 
@@ -392,6 +392,100 @@ def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
         # case doesn't inherit stale state.
         requests.post(f"{url}/_mock_server_config_target?target=")
         requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+
+def test_per_shot_output_global_marginal_and_named_registers():
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_and_measure_subset():
+            qubits = cudaq.qvector(4)
+            x(qubits[0])
+            x(qubits[2])
+            x(qubits[3])
+            high = mz(qubits[3])
+            low = mz(qubits[1])
+
+        results = cudaq.sample(prep_and_measure_subset, shots_count=3)
+
+        # Full per-shot data is 1011. The global register retains
+        # only measured qubits, sorted by qubit index: q1 then q3.
+        assert results.get_sequential_data() == ['01', '01', '01']
+        assert results.get_sequential_data("high") == ['1', '1', '1']
+        assert results.get_sequential_data("low") == ['0', '0', '0']
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+
+def test_per_shot_output_warns_when_shots_url_is_missing(capfd):
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=false")
+        requests.post(f"{url}/_mock_server_config_shots_results?available=true")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_missing_shots_url():
+            qubit = cudaq.qubit()
+            x(qubit)
+
+        results = cudaq.sample(prep_missing_shots_url, shots_count=3)
+        captured = capfd.readouterr()
+
+        assert results["1"] == 3
+        assert results.get_sequential_data() == []
+        assert "IonQ per shot results url is missing for job" in captured.err
+        assert "get_sequential_data() will be empty." in captured.err
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=true")
+        requests.post(f"{url}/_mock_server_config_shots_results?available=true")
+
+
+def test_per_shot_output_warns_when_results_are_unavailable(capfd):
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=true")
+        requests.post(
+            f"{url}/_mock_server_config_shots_results?available=false")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_unavailable_shot_results():
+            qubit = cudaq.qubit()
+            x(qubit)
+
+        results = cudaq.sample(prep_unavailable_shot_results, shots_count=3)
+        captured = capfd.readouterr()
+
+        assert results["1"] == 3
+        assert results.get_sequential_data() == []
+        assert "IonQ per shot results unavailable for job" in captured.err
+        assert "get_sequential_data() will be empty." in captured.err
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=true")
+        requests.post(f"{url}/_mock_server_config_shots_results?available=true")
 
 
 @pytest.mark.skip_macos_arm64_jit

@@ -41,6 +41,8 @@ numQubitsRequired = 0
 
 jobTarget = ""
 noiseModel = ""
+shotsUrlAvailable = True
+shotsResultsAvailable = True
 
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
@@ -130,7 +132,7 @@ async def postJob(job: Job,
 @app.get("/v0.3/jobs")
 async def getJob(id: str):
     global countJobGetRequests, createdJobs, numQubitsRequired
-    global jobTarget, noiseModel
+    global jobTarget, noiseModel, shotsUrlAvailable
 
     # Simulate asynchronous execution
     if countJobGetRequests < 3:
@@ -142,14 +144,15 @@ async def getJob(id: str):
         "jobs": [{
             "status": "completed",
             "qubits": numQubitsRequired,
-            "results_url": "/v0.3/jobs/{}/results".format(id),
-            "results": {
-                "shots": {
-                    "url": "/v0.4/jobs/{}/results/shots".format(id)
-                }
-            }
+            "results_url": "/v0.3/jobs/{}/results".format(id)
         }]
     }
+    if shotsUrlAvailable:
+        res["jobs"][0]["results"] = {
+            "shots": {
+                "url": "/v0.4/jobs/{}/results/shots".format(id)
+            }
+        }
     if jobTarget:
         res["jobs"][0]["target"] = jobTarget
     if noiseModel:
@@ -176,6 +179,11 @@ async def getResults(jobId: str):
 
 @app.get("/v0.4/jobs/{jobId}/results/shots")
 async def getShotResults(jobId: str):
+    global shotsResultsAvailable
+    if not shotsResultsAvailable:
+        raise HTTPException(status_code=500,
+                            detail="Shot results are unavailable")
+
     counts = createdJobs[jobId]
     # Note, the real IonQ backend reverses the bitstring relative to what the
     # simulator does, so flip the bitstring with [::-1].
@@ -197,6 +205,20 @@ async def set_mock_server_target(target: str):
 async def set_mock_server_noise_model(noise: str):
     global noiseModel
     noiseModel = noise
+    return {"status": "ok"}
+
+
+@app.post("/_mock_server_config_shots_url")
+async def set_mock_server_shots_url(available: bool):
+    global shotsUrlAvailable
+    shotsUrlAvailable = available
+    return {"status": "ok"}
+
+
+@app.post("/_mock_server_config_shots_results")
+async def set_mock_server_shots_results(available: bool):
+    global shotsResultsAvailable
+    shotsResultsAvailable = available
     return {"status": "ok"}
 
 
