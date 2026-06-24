@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
 #include "cudaq/platform.h"
@@ -17,13 +18,23 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <stdexcept>
+#include <variant>
+
+#ifndef CUDAQ_DISABLE_JIT_COMPILER
+namespace cudaq_internal::compiler {
+cudaq::CompiledModule
+compileModule(std::unique_ptr<cudaq::CompileTarget> target,
+              const cudaq::SourceModule &src, cudaq::KernelArgs args,
+              bool isEntryPoint = true);
+} // namespace cudaq_internal::compiler
+#endif
 
 namespace cudaq {
 namespace detail {
 
 /// @brief Execute the given function within the given execution context.
 template <typename Policy, typename Callable, typename... Args>
-auto launch(Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
+auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
             quantum_platform &platform, Callable &&f, Args &&...args)
     -> Policy::result_type {
 
@@ -51,7 +62,30 @@ auto launch(Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
   auto &qpu = platform.getQPU(qpu_id);
   ctx.executeKernelApi = [&qpu, &result, &policy](const AnyModule &module,
                                                   const KernelArgs &args) {
-    result = qpu.launchKernel(policy, module, args);
+    CompiledModule compiled;
+    if (const auto *source = std::get_if<SourceModule>(&module)) {
+#ifdef CUDAQ_DISABLE_JIT_COMPILER
+      // If JIT compilation is disabled, compilation is a no-op. QPUs may throw
+      // an error if they expect a JIT-compiled module.
+      CUDAQ_INFO("JIT compilation is disabled. Compilation is a no-op.");
+      compiled = CompiledModule{*source};
+#else
+      CUDAQ_INFO("No compiled module found. Compiling.");
+      std::unique_ptr<cudaq::CompileTarget> target;
+      if constexpr (requires { policy.inner; }) {
+        target = cudaq::get_compile_target(policy.inner);
+      } else {
+        target = cudaq::get_compile_target(policy);
+      }
+      compiled = cudaq_internal::compiler::compileModule(std::move(target),
+                                                         *source, args);
+#endif
+    } else {
+      CUDAQ_INFO("Found compiled module. Skipping compilation.");
+      compiled = std::get<CompiledModule>(module);
+    }
+    CUDAQ_INFO("Launching kernel.");
+    result = qpu.launchKernel(policy, compiled, args);
   };
 
   if constexpr (requires { policy.inner; })
