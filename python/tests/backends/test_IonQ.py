@@ -369,24 +369,29 @@ def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
 
     url = "http://localhost:{}".format(port)
 
-    requests.post(f"{url}/_mock_server_config_target?target={mock_target}")
-    requests.post(f"{url}/_mock_server_config_noise_model?noise={mock_noise}")
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target={mock_target}")
+        requests.post(
+            f"{url}/_mock_server_config_noise_model?noise={mock_noise}")
 
-    cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=memory)
+        cudaq.set_target("ionq",
+                         url=url,
+                         noise='forte-enterprise-1',
+                         memory=memory)
 
-    @cudaq.kernel
-    def prep_110():
-        qubits = cudaq.qvector(3)
-        x(qubits[0])
-        cx(qubits[0], qubits[1])
+        @cudaq.kernel
+        def prep_110():
+            qubits = cudaq.qvector(3)
+            x(qubits[0])
+            cx(qubits[0], qubits[1])
 
-    results = cudaq.sample(prep_110, shots_count=3)
-    assert results.get_sequential_data() == expect_shots
-
-    # Unconditionally reset both mock-server fields so a later parametrize
-    # case doesn't inherit stale state.
-    requests.post(f"{url}/_mock_server_config_target?target=")
-    requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        results = cudaq.sample(prep_110, shots_count=3)
+        assert results.get_sequential_data() == expect_shots
+    finally:
+        # Unconditionally reset both mock-server fields so a later parametrize
+        # case doesn't inherit stale state.
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
 
 
 @pytest.mark.skip_macos_arm64_jit
