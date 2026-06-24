@@ -76,6 +76,7 @@ jobs:
             cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
             CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
             mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
+            python3 validate_sdist_metadata.py /tmp/packages/cudaq-*.tar.gz
             rm -rf dist
 
             echo "Creating README.md for cuda-quantum package"
@@ -98,6 +99,43 @@ jobs:
           path: /tmp/packages/
           retention-days: 1
           if-no-files-found: error
+
+  validate_sdist_metadata_old_pip:
+    name: Validate sdist metadata (Ubuntu 22.04 system pip)
+    needs: build_metapackages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    container:
+      image: ubuntu:22.04
+
+    steps:
+      - name: Load metapackages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
+          path: /tmp/metapackages/
+          merge-multiple: true
+
+      - name: Validate metadata with system pip
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq
+          apt-get install -y -qq python3 python3-pip > /dev/null
+          echo "Using $(pip3 --version)"
+          set +e
+          pip3 install /tmp/metapackages/cudaq-*.tar.gz 2>&1 | tee /tmp/install.log
+          install_status=$?
+          set -e
+          if grep -Eiq "metadata has 'unknown'|inconsistent name: filename has 'cudaq', but metadata has 'unknown'" /tmp/install.log; then
+            echo "::error file=python_metapackages.yml::cudaq sdist metadata name mismatch on Ubuntu 22.04 system pip."
+            exit 1
+          fi
+          if [ "$install_status" -ne 0 ] && ! grep -q "No matching distribution found for cuda-quantum" /tmp/install.log; then
+            echo "::error file=python_metapackages.yml::Unexpected pip failure while validating cudaq sdist metadata."
+            exit 1
+          fi
 
   test_metapackages:
     name: Test Python metapackages

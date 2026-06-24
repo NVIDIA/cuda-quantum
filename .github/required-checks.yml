@@ -31,6 +31,7 @@ merge_group: &full_matrix
 - Create Docker images (amd64) / Validation
 - Create Docker images (arm64) / Validation
 - Create Python metapackages / Build Python metapackages
+- Create Python metapackages / Validate sdist metadata (Ubuntu 22.04 system pip)
 - Create Python metapackages / Test Python metapackages (3.11)
 - Create Python metapackages / Test Python metapackages (3.13)
 - Create Python metapackages / Test Python metapackages (12.6, 3.11)
