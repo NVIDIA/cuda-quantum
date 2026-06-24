@@ -47,14 +47,18 @@ std::unique_ptr<cudaq::CompileTarget> get_compile_target(const Policy &policy) {
   return getQuantumPlatformInternal()->getCompileTarget(policy);
 }
 
-/// Get the default compile target configuration used when JITing for Python.
+/// Get the default compile target configuration
+///
+/// This is suitable for local simulators, i.e. it will use
+/// AOT-compiled modules as-is if they exist, and otherwise JIT-compile the
+/// module as appropriate for a Python kernel.
 std::unique_ptr<cudaq::CompileTarget>
-getDefaultPythonCompileTarget(const sample_policy &policy);
+getDefaultCompileTarget(const sample_policy &policy);
 std::unique_ptr<cudaq::CompileTarget>
-getDefaultPythonCompileTarget(const observe_policy &policy);
+getDefaultCompileTarget(const observe_policy &policy);
 std::unique_ptr<cudaq::CompileTarget>
-getDefaultPythonCompileTarget(const other_policies &policy,
-                              ExecutionContext *context);
+getDefaultCompileTarget(const other_policies &policy,
+                        ExecutionContext *context);
 
 // Declare this function, implemented elsewhere
 std::string getQIR(const std::string &);
