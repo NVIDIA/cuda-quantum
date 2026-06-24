@@ -62,8 +62,9 @@ void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   executor->setServerHelper(serverHelper.get());
 }
 
-KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
-    const std::string &kernelName, KernelThunkType kernelFunc, void *args) {
+KernelThunkResultType
+cudaq::OrcaRemoteRESTQPU::launchKernelCommon(const std::string &kernelName,
+                                             void *args) {
 
   CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
              kernelName, qpu_id);

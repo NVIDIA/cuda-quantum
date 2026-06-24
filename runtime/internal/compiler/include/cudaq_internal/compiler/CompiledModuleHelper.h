@@ -18,6 +18,8 @@ class ModuleOp;
 
 namespace cudaq_internal::compiler {
 
+class Compiler;
+
 /// Compiler-side helper for `cudaq::CompiledModule`: static factory methods and
 /// utilities that depend on MLIR but pair with the MLIR-free `CompiledModule`
 /// API in `common/CompiledModule.h`.
@@ -76,6 +78,11 @@ public:
       std::string name, cudaq::ResultInfo resultInfo,
       std::vector<NamedCompiledArtifact> compiledArtifacts,
       cudaq::CompiledModule::CompilationMetadata metadata = {});
+
+  /// Load the module's source MLIR using `Compiler::loadQuakeCodeByName` and
+  /// return it.
+  static cudaq::FatQuakeModule::MlirArtifact
+  loadMlirArtifact(const cudaq::SourceModule &module);
 };
 
 } // namespace cudaq_internal::compiler

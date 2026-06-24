@@ -220,9 +220,30 @@ private:
   void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
+    auto countPathNodes = [](llvm::ArrayRef<Qubit> parents, Qubit src,
+                             Qubit dst) {
+      std::size_t count = 2;
+      auto p = parents[dst.index];
+      while (p != src) {
+        ++count;
+        p = parents[p.index];
+      }
+      return count;
+    };
+
+    mlir::SmallVector<mlir::SmallVector<Qubit>> allParents;
+    allParents.reserve(numNodes);
+    std::size_t numPathNodes = 0;
+    for (unsigned n = 0; n < numNodes; ++n) {
+      allParents.push_back(getShortestPathsBFS(topology, Qubit(n)));
+      for (auto m = n + 1; m < numNodes; ++m)
+        numPathNodes += countPathNodes(allParents.back(), Qubit(n), Qubit(m));
+    }
+    pathsData.reserve(numPathNodes);
+
     mlir::SmallVector<Qubit> path(numNodes);
     for (unsigned n = 0; n < numNodes; ++n) {
-      auto parents = getShortestPathsBFS(topology, Qubit(n));
+      auto &parents = allParents[n];
       // Reconstruct the paths
       for (auto m = n + 1; m < numNodes; ++m) {
         path.clear();
