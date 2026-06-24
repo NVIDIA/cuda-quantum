@@ -62,7 +62,7 @@ to install `DOCA` for your system.
 
 To build CUDA-Q Realtime with `HSB`, first, one needs to compile the `HSB` code.
 
-After cloning `HSB` from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA),
+After cloning `HSB` from [GitHub](https://github.com/nvidia-holoscan/holoscan-sensor-bridge),
 build it with
 
 ```bash
@@ -111,8 +111,10 @@ sub-directory in CUDA-Q source tree.
 To run the end-to-end RPC dispatch testing between FPGA and GPU
 using CUDA-Q Realtime and Holoscan Sensor Bridge,
 
-- Load the `HSB` bit-file into the FPGA.
-The bit-file can be obtained from [here](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA).
+- Program the FPGA with `HSB`.
+  See the [CUDA-Q Realtime installation docs](https://nvidia.github.io/cuda-quantum/latest/using/realtime/installation.html#realtime-hsb-fpga-artifacts)
+  for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
+  and the pre-built RFSoC bit-file.
 
 - Run the test script (at `cuda-quantum/realtime/unittests/utils/hololink_test.sh`).
 For example,
@@ -168,7 +170,7 @@ the report as shown above.
 > bash hololink_test.sh --page-size 512 --device mlx5_0 --gpu 0 --bridge-ip 192.168.0.101 --fpga-ip 192.168.0.2 --unified --build  --hololink-dir $HOLOLINK_DIR --cuda-quantum-dir $CUDAQ_DIR
 > ```
 >
-> `$HOLOLINK_DIR` and `$CUDAQ_DIR` are the top-level source directory of Hololink
-> and CUDA-Q accordingly.
+> `$HOLOLINK_DIR` and `$CUDAQ_DIR` are the top-level source directories for HSB
+> and CUDA-Q, respectively.
 > Please note that `$CUDAQ_DIR` here is the parent directory
 > that contains the `realtime` sub-directory.

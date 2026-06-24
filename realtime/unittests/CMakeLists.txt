@@ -93,13 +93,16 @@ if(CMAKE_CUDA_COMPILER)
     GTest::gtest_main
     CUDA::cudart
     cudaq-realtime
+    cudaq-realtime-dispatch
     cudaq-realtime-host-dispatch
+    ${CUDADEVRT_LIBRARY}
   )
   add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
   gtest_discover_tests(test_host_dispatcher
     TEST_PREFIX "test_host_dispatcher."
   )
   message(STATUS "  - test_host_dispatcher (host dispatcher loop)")
+
 endif()
 
 # ==============================================================================

@@ -374,6 +374,18 @@ protected:
 
     // If we have a valid operation, apply it
     if (auto res = isValidStimNoiseChannel(channel)) {
+      // A channel acting on `num_targets` qubits is broadcast independently
+      // across each consecutive group of `num_targets` qubits, matching Stim's
+      // multi-target semantics.
+      const std::size_t num_targets = res->num_targets;
+      if (num_targets == 0 || qubits.size() % num_targets != 0)
+        throw std::runtime_error(fmt::format(
+            "Stim noise channel '{}' expects a positive multiple of {} target "
+            "qubit(s) but was applied to {} qubit(s).",
+            res->stim_name, num_targets, qubits.size()));
+      const std::size_t num_groups = qubits.size() / num_targets;
+      const std::size_t num_mechanisms = res->params.size();
+
       if (is_msm_mode) {
         // If the noise operation is the first operation done to a qubit, the
         // x_table and z_table may not be sized for the qubits. If that is the
@@ -387,23 +399,26 @@ protected:
         // Apply the errors found in res directly into sampleSim, as if they
         // definitely happened, 1 mechanism at a time. (For example, a
         // depolarization channel will manifest as 3 possible error mechanisms:
-        // an X error, Y error, or Z error.)
-        std::size_t num_mechanisms = res->params.size();
-        std::size_t flip_ix = 0;
-        for (std::size_t m = 0; m < num_mechanisms; m++) {
-          // In this mode, the "shot" is an alias for the MSM error count.
-          std::size_t shot = msm_err_count;
-          if (msm_err_count < sampleSim->batch_size) {
-            for (std::size_t t = 0; t < res->num_targets; t++, flip_ix++) {
-              sampleSim->x_table[qubits[t]][shot] ^= res->flips_x[flip_ix];
-              sampleSim->z_table[qubits[t]][shot] ^= res->flips_z[flip_ix];
+        // an X error, Y error, or Z error.) Each broadcast group is an
+        // independent error source with its own error id.
+        for (std::size_t g = 0; g < num_groups; g++) {
+          for (std::size_t m = 0; m < num_mechanisms; m++) {
+            // In this mode, the "shot" is an alias for the MSM error count.
+            std::size_t shot = msm_err_count;
+            if (msm_err_count < sampleSim->batch_size) {
+              for (std::size_t t = 0; t < num_targets; t++) {
+                auto q = qubits[g * num_targets + t];
+                auto flip_ix = m * num_targets + t;
+                sampleSim->x_table[q][shot] ^= res->flips_x[flip_ix];
+                sampleSim->z_table[q][shot] ^= res->flips_z[flip_ix];
+              }
+              executionContext->msm_probabilities->push_back(res->params[m]);
+              executionContext->msm_prob_err_id->push_back(msm_id_counter);
+              msm_err_count++;
             }
-            executionContext->msm_probabilities->push_back(res->params[m]);
-            executionContext->msm_prob_err_id->push_back(msm_id_counter);
-            msm_err_count++;
           }
+          msm_id_counter++;
         }
-        msm_id_counter++;
       } else {
         stim::Circuit noiseOps;
         noiseOps.safe_append_u(res.value().stim_name, qubits,
@@ -414,8 +429,8 @@ protected:
         recordedCircuit.safe_append_u(res.value().stim_name, qubits,
                                       channel.parameters);
 
-        // Increment the error count by the number of mechanisms
-        msm_err_count += res->params.size();
+        // Count one mechanism per group.
+        msm_err_count += num_groups * num_mechanisms;
       }
     }
   }

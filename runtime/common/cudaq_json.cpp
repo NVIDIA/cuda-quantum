@@ -11,6 +11,8 @@
 
 namespace cudaq {
 
+cudaq_json::cudaq_json() : impl(std::make_unique<nlohmann::json>()) {}
+
 cudaq_json::cudaq_json(const cudaq_json &other)
     : impl(std::make_unique<nlohmann::json>(*other.impl)) {}
 

@@ -74,6 +74,15 @@ Kernel Execution
 .. autofunction:: cudaq::estimate_resources
 .. autofunction:: cudaq::dem_from_kernel
 
+``cudaq.contrib``
+=============================
+
+Quantum Embeddings
+-----------------------------
+
+.. autofunction:: cudaq.contrib.amplitude_encode
+.. autofunction:: cudaq.contrib.angular_encode
+
 Quantum Error Correction
 =============================
 
