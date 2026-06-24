@@ -1,0 +1,248 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-unroll --add-dealloc --combine-quantum-alloc --canonicalize --factor-quantum-alloc --memtoreg --add-wireset --assign-wire-indices %s | FileCheck --check-prefix=DEFAULT %s
+// clang-format on
+
+// The inputs below are the value-semantics (post-mem2reg) form produced by the
+// real pipeline (cudaq-quake | cudaq-opt --canonicalize --factor-quantum-alloc
+// --memtoreg). `clean_repeat` applies the same gates to the same qubits each
+// iteration: mem2reg threaded its qubits as !quake.wire loop iter-args, so it is
+// a clean value-semantics loop. `blocking_static` indexes qubits by the
+// induction variable (quake.extract_ref in the loop body), so it still uses
+// reference semantics and blocks wire conversion.
+//
+// With unroll-only-wire-blocking-loops=true the clean loop stays rolled (its qubits
+// become explicit quake.borrow_wire values carried as iter-args) while the
+// blocking loop is unrolled. With the default cc-loop-unroll (DEFAULT) both
+// loops are fully unrolled, i.e. existing behavior is unchanged.
+
+module {
+  func.func @__nvqpp__mlirgen__function_clean_repeat._Z12clean_repeatv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %c1_i32 = arith.constant 1 : i32
+    %c5_i32 = arith.constant 5 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2:2 = cc.scope -> (!quake.wire, !quake.wire) {
+      %8 = cc.undef i32
+      %9:3 = cc.loop while ((%arg0 = %0, %arg1 = %1, %arg2 = %c0_i32) -> (!quake.wire, !quake.wire, i32)) {
+        %10 = arith.cmpi slt, %arg2, %c5_i32 : i32
+        cc.condition %10(%arg0, %arg1, %arg2 : !quake.wire, !quake.wire, i32)
+      } do {
+      ^bb0(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: i32):
+        %10 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+        %11:2 = quake.x [%10] %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        cc.continue %11#0, %11#1, %arg2 : !quake.wire, !quake.wire, i32
+      } step {
+      ^bb0(%arg0: !quake.wire, %arg1: !quake.wire, %arg2: i32):
+        %10 = arith.addi %arg2, %c1_i32 : i32
+        cc.continue %arg0, %arg1, %10 : !quake.wire, !quake.wire, i32
+      }
+      cc.continue %9#0, %9#1 : !quake.wire, !quake.wire
+    }
+    %measOut, %wires = quake.mz %2#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %4 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %measOut_0, %wires_1 = quake.mz %2#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    %6 = quake.discriminate %measOut_0 : (!cc.measure_handle) -> i1
+    %7 = arith.cmpi ne, %4, %6 : i1
+    return %7 : i1
+  }
+
+// Selective mode: `clean_repeat` should stay rolled as a `cc.loop` with wire
+// iter-args.
+// CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_clean_repeat._Z12clean_repeatv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1 : i32
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 5 : i32
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 0 : i32
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[LOOP_0:.*]]:3 = cc.loop while ((%[[VAL_0:.*]] = %[[BORROW_WIRE_0]], %[[VAL_1:.*]] = %[[BORROW_WIRE_1]], %[[VAL_2:.*]] = %[[CONSTANT_2]]) -> (!quake.wire, !quake.wire, i32)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_2]], %[[CONSTANT_1]] : i32
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_1]], %[[VAL_2]] : !quake.wire, !quake.wire, i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: !quake.wire, %[[VAL_4:.*]]: !quake.wire, %[[VAL_5:.*]]: i32):
+// CHECK:             %[[H_0:.*]] = quake.h %[[VAL_3]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[H_0]]] %[[VAL_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             cc.continue %[[X_0]]#0, %[[X_0]]#1, %[[VAL_5]] : !quake.wire, !quake.wire, i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_6:.*]]: !quake.wire, %[[VAL_7:.*]]: !quake.wire, %[[VAL_8:.*]]: i32):
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_8]], %[[CONSTANT_0]] : i32
+// CHECK:             cc.continue %[[VAL_6]], %[[VAL_7]], %[[ADDI_0]] : !quake.wire, !quake.wire, i32
+// CHECK:           }
+// CHECK:           %[[VAL_9:.*]], %[[MZ_0:.*]] = quake.mz %[[VAL_10:.*]]#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_9]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[VAL_11:.*]], %[[MZ_1:.*]] = quake.mz %[[VAL_10]]#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_11]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[CMPI_1:.*]] = arith.cmpi ne, %[[DISCRIMINATE_0]], %[[DISCRIMINATE_1]] : i1
+// CHECK:           return %[[CMPI_1]] : i1
+// CHECK:         }
+
+// Default mode: `clean_repeat` should be fully unrolled.
+// DEFAULT-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+// DEFAULT-LABEL:   func.func @__nvqpp__mlirgen__function_clean_repeat._Z12clean_repeatv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// DEFAULT:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// DEFAULT:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// DEFAULT:           %[[H_0:.*]] = quake.h %[[BORROW_WIRE_0]] : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[H_0]]] %[[BORROW_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// DEFAULT:           %[[H_1:.*]] = quake.h %[[X_0]]#0 : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[H_1]]] %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// DEFAULT:           %[[H_2:.*]] = quake.h %[[X_1]]#0 : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[X_2:.*]]:2 = quake.x {{\[}}%[[H_2]]] %[[X_1]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// DEFAULT:           %[[H_3:.*]] = quake.h %[[X_2]]#0 : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[X_3:.*]]:2 = quake.x {{\[}}%[[H_3]]] %[[X_2]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// DEFAULT:           %[[H_4:.*]] = quake.h %[[X_3]]#0 : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[X_4:.*]]:2 = quake.x {{\[}}%[[H_4]]] %[[X_3]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// DEFAULT:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_4]]#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// DEFAULT:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
+// DEFAULT:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_4]]#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// DEFAULT:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// DEFAULT:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[DISCRIMINATE_0]], %[[DISCRIMINATE_1]] : i1
+// DEFAULT:           return %[[CMPI_0]] : i1
+// DEFAULT:         }
+
+  func.func @__nvqpp__mlirgen__function_blocking_static._Z15blocking_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %c1_i32 = arith.constant 1 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %c4_i32 = arith.constant 4 : i32
+    %0 = quake.alloca !quake.ref
+    %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
+    %2 = quake.alloca !quake.ref
+    %3 = quake.unwrap %2 : (!quake.ref) -> !quake.wire
+    %4 = quake.alloca !quake.ref
+    %5 = quake.unwrap %4 : (!quake.ref) -> !quake.wire
+    %6 = quake.alloca !quake.ref
+    %7 = quake.unwrap %6 : (!quake.ref) -> !quake.wire
+    quake.wrap %1 to %0 : !quake.wire, !quake.ref
+    quake.wrap %3 to %2 : !quake.wire, !quake.ref
+    quake.wrap %5 to %4 : !quake.wire, !quake.ref
+    quake.wrap %7 to %6 : !quake.wire, !quake.ref
+    %8 = quake.concat %0, %2, %4, %6 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+    cc.scope {
+      %33 = cc.undef i32
+      %34 = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+        %35 = arith.cmpi slt, %arg0, %c4_i32 : i32
+        cc.condition %35(%arg0 : i32)
+      } do {
+      ^bb0(%arg0: i32):
+        %35 = cc.cast signed %arg0 : (i32) -> i64
+        %36 = quake.extract_ref %8[%35] : (!quake.veq<4>, i64) -> !quake.ref
+        %37 = quake.unwrap %36 : (!quake.ref) -> !quake.wire
+        %38 = quake.h %37 : (!quake.wire) -> !quake.wire
+        quake.wrap %38 to %36 : !quake.wire, !quake.ref
+        cc.continue %arg0 : i32
+      } step {
+      ^bb0(%arg0: i32):
+        %35 = arith.addi %arg0, %c1_i32 : i32
+        cc.continue %35 : i32
+      }
+    }
+    %9 = quake.extract_ref %8[0] : (!quake.veq<4>) -> !quake.ref
+    %10 = quake.unwrap %9 : (!quake.ref) -> !quake.wire
+    %measOut, %wires = quake.mz %10 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    quake.wrap %wires to %9 : !quake.wire, !quake.ref
+    %12 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+    %13 = cc.cast unsigned %12 : (i1) -> i32
+    %14 = quake.extract_ref %8[1] : (!quake.veq<4>) -> !quake.ref
+    %15 = quake.unwrap %14 : (!quake.ref) -> !quake.wire
+    %measOut_0, %wires_1 = quake.mz %15 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    quake.wrap %wires_1 to %14 : !quake.wire, !quake.ref
+    %17 = quake.discriminate %measOut_0 : (!cc.measure_handle) -> i1
+    %18 = cc.cast unsigned %17 : (i1) -> i32
+    %19 = arith.xori %13, %18 : i32
+    %20 = quake.extract_ref %8[2] : (!quake.veq<4>) -> !quake.ref
+    %21 = quake.unwrap %20 : (!quake.ref) -> !quake.wire
+    %measOut_2, %wires_3 = quake.mz %21 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    quake.wrap %wires_3 to %20 : !quake.wire, !quake.ref
+    %23 = quake.discriminate %measOut_2 : (!cc.measure_handle) -> i1
+    %24 = cc.cast unsigned %23 : (i1) -> i32
+    %25 = arith.xori %19, %24 : i32
+    %26 = quake.extract_ref %8[3] : (!quake.veq<4>) -> !quake.ref
+    %27 = quake.unwrap %26 : (!quake.ref) -> !quake.wire
+    %measOut_4, %wires_5 = quake.mz %27 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+    quake.wrap %wires_5 to %26 : !quake.wire, !quake.ref
+    %29 = quake.discriminate %measOut_4 : (!cc.measure_handle) -> i1
+    %30 = cc.cast unsigned %29 : (i1) -> i32
+    %31 = arith.xori %25, %30 : i32
+    %32 = arith.cmpi ne, %31, %c0_i32 : i32
+    return %32 : i1
+  }
+
+// Selective mode: `blocking_static` should be unrolled before wire assignment.
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_blocking_static._Z15blocking_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i32
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @wires[2] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_3:.*]] = quake.borrow_wire @wires[3] : !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[BORROW_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_1:.*]] = quake.h %[[BORROW_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_2:.*]] = quake.h %[[BORROW_WIRE_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_3:.*]] = quake.h %[[BORROW_WIRE_3]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i32
+// CHECK:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[H_1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[CAST_1:.*]] = cc.cast unsigned %[[DISCRIMINATE_1]] : (i1) -> i32
+// CHECK:           %[[XORI_0:.*]] = arith.xori %[[CAST_0]], %[[CAST_1]] : i32
+// CHECK:           %[[VAL_2:.*]], %[[MZ_2:.*]] = quake.mz %[[H_2]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[DISCRIMINATE_2:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[CAST_2:.*]] = cc.cast unsigned %[[DISCRIMINATE_2]] : (i1) -> i32
+// CHECK:           %[[XORI_1:.*]] = arith.xori %[[XORI_0]], %[[CAST_2]] : i32
+// CHECK:           %[[VAL_3:.*]], %[[MZ_3:.*]] = quake.mz %[[H_3]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[DISCRIMINATE_3:.*]] = quake.discriminate %[[VAL_3]] : (!cc.measure_handle) -> i1
+// CHECK:           %[[CAST_3:.*]] = cc.cast unsigned %[[DISCRIMINATE_3]] : (i1) -> i32
+// CHECK:           %[[XORI_2:.*]] = arith.xori %[[XORI_1]], %[[CAST_3]] : i32
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[XORI_2]], %[[CONSTANT_0]] : i32
+// CHECK:           quake.return_wire %[[MZ_0]] : !quake.wire
+// CHECK:           quake.return_wire %[[MZ_1]] : !quake.wire
+// CHECK:           quake.return_wire %[[MZ_2]] : !quake.wire
+// CHECK:           quake.return_wire %[[MZ_3]] : !quake.wire
+// CHECK:           return %[[CMPI_0]] : i1
+// CHECK:         }
+
+// Default mode: `blocking_static` should also be fully unrolled.
+// DEFAULT-LABEL:   func.func @__nvqpp__mlirgen__function_blocking_static._Z15blocking_staticv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// DEFAULT:           %[[CONSTANT_0:.*]] = arith.constant 0 : i32
+// DEFAULT:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// DEFAULT:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// DEFAULT:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @wires[2] : !quake.wire
+// DEFAULT:           %[[BORROW_WIRE_3:.*]] = quake.borrow_wire @wires[3] : !quake.wire
+// DEFAULT:           %[[H_0:.*]] = quake.h %[[BORROW_WIRE_0]] : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[H_1:.*]] = quake.h %[[BORROW_WIRE_1]] : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[H_2:.*]] = quake.h %[[BORROW_WIRE_2]] : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[H_3:.*]] = quake.h %[[BORROW_WIRE_3]] : (!quake.wire) -> !quake.wire
+// DEFAULT:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// DEFAULT:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[VAL_0]] : (!cc.measure_handle) -> i1
+// DEFAULT:           %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i32
+// DEFAULT:           %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[H_1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// DEFAULT:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[VAL_1]] : (!cc.measure_handle) -> i1
+// DEFAULT:           %[[CAST_1:.*]] = cc.cast unsigned %[[DISCRIMINATE_1]] : (i1) -> i32
+// DEFAULT:           %[[XORI_0:.*]] = arith.xori %[[CAST_0]], %[[CAST_1]] : i32
+// DEFAULT:           %[[VAL_2:.*]], %[[MZ_2:.*]] = quake.mz %[[H_2]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// DEFAULT:           %[[DISCRIMINATE_2:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+// DEFAULT:           %[[CAST_2:.*]] = cc.cast unsigned %[[DISCRIMINATE_2]] : (i1) -> i32
+// DEFAULT:           %[[XORI_1:.*]] = arith.xori %[[XORI_0]], %[[CAST_2]] : i32
+// DEFAULT:           %[[VAL_3:.*]], %[[MZ_3:.*]] = quake.mz %[[H_3]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// DEFAULT:           %[[DISCRIMINATE_3:.*]] = quake.discriminate %[[VAL_3]] : (!cc.measure_handle) -> i1
+// DEFAULT:           %[[CAST_3:.*]] = cc.cast unsigned %[[DISCRIMINATE_3]] : (i1) -> i32
+// DEFAULT:           %[[XORI_2:.*]] = arith.xori %[[XORI_1]], %[[CAST_3]] : i32
+// DEFAULT:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[XORI_2]], %[[CONSTANT_0]] : i32
+// DEFAULT:           quake.return_wire %[[MZ_0]] : !quake.wire
+// DEFAULT:           quake.return_wire %[[MZ_1]] : !quake.wire
+// DEFAULT:           quake.return_wire %[[MZ_2]] : !quake.wire
+// DEFAULT:           quake.return_wire %[[MZ_3]] : !quake.wire
+// DEFAULT:           return %[[CMPI_0]] : i1
+// DEFAULT:         }
+}

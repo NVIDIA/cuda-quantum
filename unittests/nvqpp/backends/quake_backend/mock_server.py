@@ -7,16 +7,15 @@
 # ============================================================================ #
 
 import cudaq
-from fastapi import FastAPI, HTTPException, Header, Request
-from typing import Union
+from fastapi import FastAPI, HTTPException, Request
 import uvicorn, uuid, base64, ctypes, sys, re
-from pydantic import BaseModel
 from llvmlite import binding as llvm
+from preallocated_qubits_context import PreallocatedQubitsContext
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.ir import Module
 from cudaq.kernel.utils import getMLIRContext
 from cudaq.mlir.dialects import func
-from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.dialects import llvm as mlir_llvm
 
 # Define the REST Server App
 app = FastAPI()
@@ -30,6 +29,116 @@ engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
 
 # Keep track of Job Ids to their Names
 createdJobs = {}
+
+SERVER_EXECUTION_PIPELINE = (
+    "builtin.module("
+    "canonicalize,distributed-device-call,cse,"
+    "func.func("
+    "memtoreg,canonicalize,cc-loop-normalize,"
+    "cc-loop-unroll{maximum-iterations=1024 "
+    "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
+    "allow-early-exit=true},"
+    "canonicalize,regtomem,canonicalize"
+    "),"
+    "canonicalize,cse,symbol-dce,lower-to-cfg,"
+    "func.func(stack-frame-prealloc,combine-quantum-alloc,canonicalize,cse),"
+    "symbol-dce,"
+    "convert-to-qir-api{api=adaptive-profile:1.0 opaque-pointer=true},"
+    "lower-to-cfg,symbol-dce,cc-to-llvm"
+    ")")
+
+
+def verifyValueSemanticsPayload(decoded_payload):
+    required_tokens = ["quake.wire_set", "quake.borrow_wire"]
+    for token in required_tokens:
+        if token not in decoded_payload:
+            raise RuntimeError(
+                f"Remote payload is missing `{token}`. The server must receive"
+                " value-semantics MLIR with an assigned wireset.")
+
+    forbidden_tokens = [
+        "quake.alloca",
+        "quake.extract_ref",
+        "quake.subveq",
+        "quake.concat",
+        "quake.relax_size",
+        "quake.unwrap",
+        "quake.wrap",
+        "!quake.ref",
+        "!quake.veq",
+    ]
+    for token in forbidden_tokens:
+        if token in decoded_payload:
+            raise RuntimeError(
+                f"Remote payload still contains reference-semantics token"
+                f" `{token}`. The server must receive wireset MLIR.")
+
+
+def verifyExpectedLoopCount(decoded_payload, entry_func_name):
+    match = re.search(r"expected_(\d+)_loops?", entry_func_name)
+    if not match:
+        return
+
+    expectedCount = int(match.group(1))
+    actualCount = len(re.findall(r"\bcc\.loop\b", decoded_payload))
+    if actualCount != expectedCount:
+        raise RuntimeError(
+            "Remote payload preserved an unexpected number of `cc.loop` ops "
+            f"for `{entry_func_name}`: expected {expectedCount}, got "
+            f"{actualCount}.")
+
+
+def getNumRequiredQubits(function):
+    for a in function.attributes:
+        if "required_num_qubits" in str(a):
+            return int(
+                str(a).split(f'required_num_qubits\"=')[-1].split(" ")
+                [0].replace("\"", "").replace("'", ""))
+        elif "requiredQubits" in str(a):
+            return int(
+                str(a).split(f'requiredQubits\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
+def getNumRequiredResults(function):
+    for a in function.attributes:
+        if "required_num_results" in str(a):
+            return int(
+                str(a).split(f'required_num_results\"=')[-1].split(" ")
+                [0].replace("\"", "").replace("'", ""))
+        elif "requiredResults" in str(a):
+            return int(
+                str(a).split(f'requiredResults\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
+def getKernelFunction(module):
+    for f in module.functions:
+        if not f.is_declaration:
+            return f
+    return None
+
+
+def verifyModule(module, stage):
+    if not module.operation.verify():
+        raise RuntimeError(f"MLIR verification failed for {stage} module.")
+
+
+def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
+    # The client/server contract is checked before this point. The client has
+    # already run the target JIT pipeline through wireset assignment. For
+    # execution, the mock server fully unrolls the submitted value-semantic IR,
+    # reconstructs ref semantics with `regtomem`, and then uses the normal QIR
+    # API lowering path.
+    pm = PassManager.parse(SERVER_EXECUTION_PIPELINE, context=ctx)
+    try:
+        pm.run(recovered_mod.operation)
+    except Exception as e:
+        raise RuntimeError("Failed to lower recovered module for execution: "
+                           f"{e}\n{recovered_mod}") from e
+
+    verifyModule(recovered_mod, "server-lowered")
+    return mlir_llvm.translate_module_to_llvmir(recovered_mod.operation)
 
 
 @app.post("/job")
@@ -47,8 +156,11 @@ async def postJob(request: Request):
             "Input MLIR contains malloc or memcpy calls. These should have been"
             " eliminated by the eliminate-dead-heap-copy pass.")
 
+    verifyValueSemanticsPayload(decoded_payload)
+
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)
+    verifyModule(recovered_mod, "submitted")
     pm = PassManager.parse(
         "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
     try:
@@ -64,37 +176,41 @@ async def postJob(request: Request):
                 if attr == "cudaq-entrypoint":
                     entry_func_name = op.name.value
                     break
-    # Lower the module to LLVM IR
-    qir_code = cudaq_runtime._lower_to_qir(recovered_mod)
+    if not entry_func_name:
+        raise RuntimeError(
+            "Remote payload is missing a `cudaq-entrypoint` function.")
+    verifyExpectedLoopCount(decoded_payload, entry_func_name)
+
+    # Lower the module to LLVM IR.
+    qir_code = lowerValueSemanticsPayloadForExecution(recovered_mod, ctx)
     m = llvm.module.parse_assembly(qir_code)
     m.verify()
 
+    # Get the function, number of qubits, and kernel name.
+    function = getKernelFunction(m)
+    if function == None:
+        raise Exception("Could not find kernel function")
+    numQubitsRequired = getNumRequiredQubits(function)
+    numResultsRequired = getNumRequiredResults(function)
+    kernelFunctionName = function.name
+
     # Job ID
     newId = str(uuid.uuid4())
-
-    all_funcs = m.functions
-    for f in all_funcs:
-        if f.is_declaration:
-            # Look up external functions: get the in-process address me.
-            func_addr = llvm.address_of_symbol(f.name)
-            if func_addr is None:
-                createdJobs[
-                    newId] = f"FAILURE: Function {f.name} not found in JIT engine."
-                return ({"id": newId}, 201)
 
     # JIT Compile and get Function Pointer
     engine.add_module(m)
     engine.finalize_object()
     engine.run_static_constructors()
-    funcPtr = engine.get_function_address(entry_func_name)
+    funcPtr = engine.get_function_address(kernelFunctionName)
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
     # Clear any leftover log from previous jobs
     cudaq.testing.getAndClearOutputLog()
-    qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\n"
+    qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
 
     shots = payload["shots"]
     for i in range(shots):
-        kernel()
+        with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
+            kernel()
         shot_log = cudaq.testing.getAndClearOutputLog()
         if i > 0:
             qir_log += "START\n"
