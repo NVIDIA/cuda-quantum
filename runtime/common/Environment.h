@@ -13,4 +13,11 @@ namespace cudaq {
 /// @brief Helper function to get boolean environment variable
 bool getEnvBool(const char *envName, bool defaultVal);
 
+/// Valid options for `CUDAQ_MLIR_PRINT_EACH_PASS` environment variable.
+enum class PrintEachPassMode { None = 0, Specialize = 1, All = 2 };
+
+/// @brief Parse the environment variable into a PrintEachPassMode.
+PrintEachPassMode
+getEnvPrintEachPassMode(const char *envName = "CUDAQ_MLIR_PRINT_EACH_PASS");
+
 } // namespace cudaq

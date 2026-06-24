@@ -24,4 +24,18 @@ bool getEnvBool(const char *envName, bool defaultVal = false) {
   return defaultVal;
 }
 
+PrintEachPassMode getEnvPrintEachPassMode(const char *envName) {
+  if (auto envVal = std::getenv(envName)) {
+    std::string tmp(envVal);
+    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    if (tmp == "specialize")
+      return PrintEachPassMode::Specialize;
+    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "y" ||
+        tmp == "yes")
+      return PrintEachPassMode::All;
+  }
+  return PrintEachPassMode::None;
+}
+
 } // namespace cudaq

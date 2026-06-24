@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "common/Environment.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq/Target/CompileTarget.h"
@@ -39,10 +40,12 @@ class Compiler {
   /// `-mlir-disable-threading` for `cudaq-opt`.
   bool disableMLIRthreading = false;
 
-  /// @brief Flag indicating whether we should enable MLIR printing before and
-  /// after each pass. This is similar to `-mlir-print-ir-before-all` and
-  /// `-mlir-print-ir-after-all` in `cudaq-opt`.
-  bool enablePrintMLIREachPass = false;
+  /// @brief Whether to enable MLIR printing before and after each pass.
+  ///
+  /// This is similar to `-mlir-print-ir-before-all` and
+  /// `-mlir-print-ir-after-all` in `cudaq-opt`. Printing can be enabled for all
+  /// passes or just during specialization.
+  cudaq::PrintEachPassMode printEachPass = cudaq::PrintEachPassMode::None;
 
   /// @brief Flag indicating whether we should enable MLIR pass statistics
   /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`

@@ -136,14 +136,12 @@ cudaq_internal::compiler::Compiler::Compiler(
   // Get additional debug values
   disableMLIRthreading =
       cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
-  enablePrintMLIREachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+  printEachPass = cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   enablePassStatistics =
       cudaq::getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
 
-  // If the very verbose enablePrintMLIREachPass flag is set, then
-  // multi-threading must be disabled.
-  if (enablePrintMLIREachPass) {
+  // Ensure pass debug output is ordered and readable.
+  if (printEachPass != cudaq::PrintEachPassMode::None) {
     disableMLIRthreading = true;
   }
 }
@@ -209,6 +207,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
   auto packed = args.getPacked();
   if (!args.empty()) {
     mlir::PassManager pm(contextPtr);
+    if (printEachPass != cudaq::PrintEachPassMode::None)
+      moduleOp.dump();
     if (isPython && rawArgs)
       cudaq_internal::compiler::mergeAllCallableClosures(moduleOp, kernelName,
                                                          *rawArgs);
@@ -300,6 +300,13 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
           cudaq::opt::createQuakeSynthesizer(kernelName, packed->data.data()));
     }
     pm.addPass(mlir::createCanonicalizerPass());
+    if (printEachPass != cudaq::PrintEachPassMode::None)
+      moduleOp.dump();
+    // For Specialize mode, enable per-pass IR printing on this pipeline only.
+    // The ::All variant is handled by configurePassManagerFromEnv (called by
+    // runPassManager).
+    if (printEachPass == cudaq::PrintEachPassMode::Specialize)
+      pm.enableIRPrinting();
     if (failed(cudaq_internal::compiler::runPassManager(
             pm, moduleOp.getOperation())))
       throw std::runtime_error(
