@@ -351,14 +351,14 @@ def test_2q_unitary_synthesis():
 @pytest.mark.parametrize(
     "mock_target,mock_noise,memory,expect_shots",
     [
-        # Shot-wise data SHOULD be returned: QPU target, or noisy simulator.
+        # Per-shot data SHOULD be returned: QPU target, or noisy simulator.
         ("aria-1", "", True, ['110', '110', '110']),
         ("simulator", "aria-1", True, ['110', '110', '110']),
         # memory=False short-circuits even when the server would otherwise have it.
         ("aria-1", "", False, []),
         ("simulator", "aria-1", False, []),
-        # Shot-wise data should be SKIPPED for ideal-simulator runs, even when
-        # the user explicitly asks for memory=True. shotWiseOutputIsNeeded must
+        # Per-shot data should be SKIPPED for ideal-simulator runs, even when
+        # the user explicitly asks for memory=True. Per-shot data must
         # return false here so we don't pay the extra round-trip.
         ("simulator", "", True, []),
         ("simulator", "ideal", True, []),
