@@ -855,7 +855,10 @@ class PyASTBridge(ast.NodeVisitor):
             type) or F32Type.isinstance(type) or ComplexType.isinstance(type)
 
     def __isSupportedNumpyFunction(self, id):
-        return id in ['sin', 'cos', 'sqrt', 'ceil', 'exp']
+        return id in [
+            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'arcsin', 'arccos',
+            'arctan', 'sqrt', 'ceil', 'exp', 'log'
+        ]
 
     def __isSupportedVectorFunction(self, id):
         return id in ['front', 'back', 'append']
@@ -3618,6 +3621,38 @@ class PyASTBridge(ast.NodeVisitor):
                             return
                         self.pushValue(math.SqrtOp(value).result)
                         return
+                    if node.func.attr == 'tan':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.TanOp(value).result)
+                        return
+                    if node.func.attr in ['asin', 'arcsin']:
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.AsinOp(value).result)
+                        return
+                    if node.func.attr in ['acos', 'arccos']:
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.AcosOp(value).result)
+                        return
+                    if node.func.attr in ['atan', 'arctan']:
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.AtanOp(value).result)
+                        return
                     if node.func.attr == 'exp':
                         if ComplexType.isinstance(value.type):
                             # Note: using `complex.ExpOp` results in a "can't
@@ -3640,6 +3675,14 @@ class PyASTBridge(ast.NodeVisitor):
                             self.pushValue(res)
                             return
                         self.pushValue(math.ExpOp(value).result)
+                        return
+                    if node.func.attr == 'log':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.LogOp(value).result)
                         return
                     if node.func.attr == 'ceil':
                         if ComplexType.isinstance(value.type):
