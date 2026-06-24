@@ -107,18 +107,17 @@ public:
 
     // Cleanup runs after the kernel returns or throws. It finalizes results
     // and tears down, then resets the execution context.
-    // The context reset always runs even if finalization throws.
+    // Both endExecution() and the context reset always run even if finalization
+    // throws so the simulator is never left with stale state.
     auto cleanup = [this, &ctx, &outerContext]() {
-      detail::try_finally(
-          [this, &ctx] {
-            finalizeExecutionContext(ctx);
-            endExecution();
-          },
-          [&outerContext] {
-            detail::resetExecutionContext();
-            if (outerContext)
-              detail::setExecutionContext(outerContext);
-          });
+      detail::try_finally([this, &ctx] { finalizeExecutionContext(ctx); },
+                          [this, &outerContext] {
+                            endExecution();
+
+                            detail::resetExecutionContext();
+                            if (outerContext)
+                              detail::setExecutionContext(outerContext);
+                          });
     };
 
     if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {

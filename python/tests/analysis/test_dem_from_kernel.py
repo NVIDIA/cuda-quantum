@@ -297,7 +297,7 @@ def test_allow_gauge_detectors():
 def test_decompose_and_ignore_failures():
     """Three detectors on the same measurement create a 3-way hyperedge that
     Stim cannot decompose into pairs.  decompose_errors=True must raise unless
-    ignore_decomposition_failures=True, which silently drops the bad edge."""
+    ignore_decomposition_failures=True, which silently accepts the bad edge."""
 
     @cudaq.kernel
     def kernel():
