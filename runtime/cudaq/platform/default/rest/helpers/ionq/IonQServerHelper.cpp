@@ -362,11 +362,31 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error(
         "ServerMessage doesn't contain 'status' key in the first job.");
 
-  // Throw a runtime error if the job has failed
-  if (jobs[0].at("status").get<std::string>() == "failed")
-    throw std::runtime_error("The job failed upon submission. Check the "
-                             "job submission in your IonQ "
-                             "account for more information.");
+  // Throw a runtime error if the job has failed. Surface IonQ's reported
+  // failure code/message when present so the actual cause lands in the logs.
+  if (jobs[0].at("status").get<std::string>() == "failed") {
+    std::string errorMessage;
+    // Ref: https://docs.ionq.com/api-reference/v0.3/jobs/get-jobs
+    if (jobs[0].contains("failure") && jobs[0].at("failure").is_object()) {
+      auto &failure = jobs[0].at("failure");
+      std::string code =
+          failure.contains("code") ? failure.at("code").get<std::string>() : "";
+      std::string message = failure.contains("error")
+                                ? failure.at("error").get<std::string>()
+                                : "";
+      if (!code.empty() || !message.empty()) {
+        errorMessage = " IonQ reported";
+        if (!code.empty())
+          errorMessage += " [" + code + "]";
+        if (!message.empty())
+          errorMessage += ": " + message;
+        errorMessage += ".";
+      }
+    }
+    throw std::runtime_error(
+        "The job failed upon submission." + errorMessage +
+        " Check the job submission in your IonQ account for more information.");
+  }
 
   // Return whether the job is completed
   return jobs[0].at("status").get<std::string>() == "completed";

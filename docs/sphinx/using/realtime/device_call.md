@@ -51,8 +51,10 @@ Additional options:
 - `--cudaq-device-call-timeout-ms=<ms>`: per-dispatch timeout
 
 The built-in channels (`shared-memory`, `host-dispatch`, `gpu-dispatch`) run an
-in-process service and are not covered in depth here. The remainder of this page
-documents the `cpu_roce` channel.
+in-process service and are not covered in depth here. `host-dispatch` uses the
+`libcudaq-realtime` host path and can dispatch service entries as either
+`CUDAQ_DISPATCH_HOST_CALL` handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH` workers.
+The remainder of this page documents the `cpu_roce` channel.
 
 ## The `cpu_roce` channel
 

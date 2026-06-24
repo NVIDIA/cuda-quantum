@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "FermioniqQPU.h"
+#include "cudaq_internal/compiler/Compiler.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
-#include <memory>
-#include <optional>
 
 namespace {
 void attachFermioniqObservable(cudaq::KernelExecution &code,
@@ -36,57 +36,86 @@ cudaq::FermioniqQPU::~FermioniqQPU() = default;
 
 cudaq::sample_result
 cudaq::FermioniqQPU::launchKernel(const cudaq::sample_policy &policy,
-                                  const AnyModule &module, KernelArgs args) {
-  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
   CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
-             kernelName, policy.name);
+             module.getName(), policy.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  cudaq_internal::compiler::Compiler compiler(getCompileTarget(policy));
+  auto codes = compiler.emitKernelExecutions(module);
+
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
 
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
 cudaq::async_sample_result
 cudaq::FermioniqQPU::launchKernel(const cudaq::async_sample_policy &policy,
-                                  const AnyModule &module, KernelArgs args) {
-  auto [kernelName, codes] =
-      compileKernelExecutions(policy.inner, module, args);
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
   CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
-             kernelName, policy.inner.name);
+             module.getName(), policy.inner.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  cudaq_internal::compiler::Compiler compiler(getCompileTarget(policy.inner));
+  auto codes = compiler.emitKernelExecutions(module);
+
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
 
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
 cudaq::observe_result
 cudaq::FermioniqQPU::launchKernel(const cudaq::observe_policy &policy,
-                                  const AnyModule &module, KernelArgs args) {
-  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
   CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
-             kernelName, policy.name);
+             module.getName(), policy.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  cudaq_internal::compiler::Compiler compiler(getCompileTarget(policy));
+  auto codes = compiler.emitKernelExecutions(module);
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
 
   attachFermioniqObservable(codes[0], policy.spin);
-  auto result = completeLaunchKernel(policy, kernelName, std::move(codes));
+  auto result =
+      completeLaunchKernel(policy, module.getName(), std::move(codes));
   auto expectation = result.raw_data().expectation(GlobalRegisterName);
   return cudaq::observe_result(expectation, result.get_spin(),
                                result.raw_data());
 }
 
 cudaq::async_observe_result
-cudaq::FermioniqQPU::launchKernel(cudaq::async_observe_policy &policy,
-                                  const AnyModule &module, KernelArgs args) {
-  auto [kernelName, codes] =
-      compileKernelExecutions(policy.inner, module, args);
+cudaq::FermioniqQPU::launchKernel(const cudaq::async_observe_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
   CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
-             kernelName, policy.inner.name);
+             module.getName(), policy.inner.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  cudaq_internal::compiler::Compiler compiler(getCompileTarget(policy.inner));
+  auto codes = compiler.emitKernelExecutions(module);
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
 
   attachFermioniqObservable(codes[0], policy.inner.spin);
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
 CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::FermioniqQPU, fermioniq)

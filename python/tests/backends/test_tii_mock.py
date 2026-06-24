@@ -20,11 +20,7 @@ skipIfTiiNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("tii")),
     reason='Could not find `tii` in installation')
 
-try:
-    from utils.mock_qpu.tii import startServer
-except:
-    print("Mock qpu not available, skipping tii tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from utils.mock_qpu.tii import startServer
 
 # Define the port for the mock server - make sure this is unique
 # across all tests.

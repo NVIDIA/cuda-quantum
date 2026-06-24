@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "DefaultQPU.h"
+#include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/Timing.h"
 #include "cudaq/algorithms/policies.h"
+#include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 
 cudaq::DefaultQPU::~DefaultQPU() = default;
@@ -21,17 +23,19 @@ void cudaq::DefaultQPU::enqueue(QuantumTask &task) {
 cudaq::KernelThunkResultType
 cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
                                        cudaq::KernelArgs args) {
-  if (!std::holds_alternative<cudaq::SourceModule>(module))
-    return runJITCompiledModule(std::get<cudaq::CompiledModule>(module), args);
-
-  const auto &src = std::get<cudaq::SourceModule>(module);
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::unifiedLaunchModule");
-  auto rawFn = src.getFunctionPtr();
-  if (!rawFn)
-    throw std::runtime_error(
-        "DefaultQPU::unifiedLaunchModule requires a raw kernel function "
-        "pointer for kernel '" +
-        src.getName() + "'.");
+
+  std::optional<FatQuakeModule::FunctionPtrArtifact> rawFn;
+  if (std::holds_alternative<SourceModule>(module)) {
+    rawFn = std::get<SourceModule>(module).getFunctionPtr();
+    assert(rawFn && "SourceModule must have a valid AOT-compiled thunk");
+  } else {
+    auto &compiled = std::get<CompiledModule>(module);
+    rawFn = compiled.getFunctionPtr();
+    if (!rawFn)
+      return runJITCompiledModule(compiled, args);
+  }
+
   auto packed = args.getPacked();
   void *argData = packed ? packed->data.data() : nullptr;
   return rawFn->getFn()(argData, /*isRemote=*/false);
@@ -39,7 +43,7 @@ cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
 
 cudaq::sample_result
 cudaq::DefaultQPU::launchKernel(const cudaq::sample_policy &policy,
-                                const cudaq::AnyModule &module,
+                                const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
@@ -49,7 +53,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::sample_policy &policy,
 
 cudaq::async_sample_result
 cudaq::DefaultQPU::launchKernel(const async_sample_policy &policy,
-                                const cudaq::AnyModule &module,
+                                const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   throw std::runtime_error(
       "DefaultQPU does not support launching the async_sample_policy.");
@@ -57,7 +61,7 @@ cudaq::DefaultQPU::launchKernel(const async_sample_policy &policy,
 
 cudaq::observe_result
 cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
-                                const cudaq::AnyModule &module,
+                                const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
@@ -66,11 +70,27 @@ cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
 }
 
 cudaq::async_observe_result
-cudaq::DefaultQPU::launchKernel(async_observe_policy &policy,
-                                const cudaq::AnyModule &module,
+cudaq::DefaultQPU::launchKernel(const async_observe_policy &policy,
+                                const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   throw std::runtime_error(
       "DefaultQPU does not support launching the async_observe_policy.");
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
+  return getDefaultCompileTarget(policy);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
+  return getDefaultCompileTarget(policy);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::DefaultQPU::getCompileTarget(const other_policies &policy,
+                                    ExecutionContext *context) {
+  return getDefaultCompileTarget(policy, context);
 }
 
 void cudaq::DefaultQPU::configureExecutionContext(
