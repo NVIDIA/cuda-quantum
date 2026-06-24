@@ -181,7 +181,7 @@ public:
   std::string dem_text;
 
   /// @brief Options forwarded to the Stim ErrorAnalyzer when generating a DEM.
-  dem_options opts;
+  dem_options dem_opts;
   /// @endcond
 };
 

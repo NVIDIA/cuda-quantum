@@ -34,7 +34,7 @@ std::string runDemFromKernel(const std::string &kernelName,
   ctx.kernelName = kernelName;
   ctx.qpuId = cudaq::getCurrentQpuId();
   ctx.asyncExec = false;
-  ctx.opts = options;
+  ctx.dem_opts = options;
   if (noise)
     ctx.noiseModel = noise;
 

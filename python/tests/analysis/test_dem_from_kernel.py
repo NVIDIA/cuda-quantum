@@ -205,6 +205,33 @@ def test_emulate_target_independent():
             "detectors": 1,
             "observables": 1
         }
+
+        @cudaq.kernel
+        def hyperedge_kernel():
+            q0 = cudaq.qubit()
+            q1 = cudaq.qubit()
+            x.ctrl(q0, q1)
+            m0 = mz(q0)
+            m1 = mz(q1)
+            cudaq.detector(m0)
+            cudaq.detector(m0)
+            cudaq.detector(m1)
+            cudaq.detector(m1)
+
+        pauli2_probs = [0.0] * 15
+        pauli2_probs[4] = 0.25  # XX
+        noise = cudaq.NoiseModel()
+        noise.add_channel("x", [0, 1], cudaq.Pauli2(pauli2_probs))
+
+        dem_raw = cudaq.dem_from_kernel(hyperedge_kernel, noise_model=noise)
+        dem_decomposed = cudaq.dem_from_kernel(hyperedge_kernel,
+                                               noise_model=noise,
+                                               decompose_errors=True)
+
+        assert "D0 D1 D2 D3" in dem_raw
+        assert "^" not in dem_raw
+        assert "D0 D1 D2 D3" not in dem_decomposed
+        assert "^" in dem_decomposed
     finally:
         cudaq.reset_target()
 

@@ -214,7 +214,7 @@ protected:
   /// `recordedCircuit` and return it as `.dem` text.
   std::string generateDem() override {
     auto *ctx = getExecutionContext();
-    const cudaq::dem_options opts = ctx ? ctx->opts : cudaq::dem_options{};
+    const cudaq::dem_options opts = ctx ? ctx->dem_opts : cudaq::dem_options{};
     stim::DetectorErrorModel dem =
         stim::ErrorAnalyzer::circuit_to_detector_error_model(
             recordedCircuit, opts.decompose_errors, opts.fold_loops,
