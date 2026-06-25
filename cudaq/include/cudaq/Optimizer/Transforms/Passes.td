@@ -238,7 +238,8 @@ def CombineMeasurements :
     }
     ```
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def CombineQuantumAllocations :
@@ -258,7 +259,8 @@ def CombineQuantumAllocations :
     combined deallocation will be added to each exit block.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
@@ -954,13 +956,13 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            /*default=*/"0.5", "Extended layer weight">,
     Option<"decayDelta", "decay-delta", "float", /*default=*/"0.5",
            "Decay delta">,
-    Option<"roundsDecayReset", "rounds-decay-reset", "unsigned", /*default=*/"5",
-           "Number of rounds before decay is reset">,
+    Option<"roundsDecayReset", "rounds-decay-reset", "unsigned",
+           /*default=*/"5", "Number of rounds before decay is reset">,
     Option<"minStallSwapBudget", "min-stall-swap-budget", "unsigned",
            /*default=*/"64",
-           "Release valve floor: minimum number of consecutive swaps that route "
-           "no gate before a stuck front layer is force-routed along a shortest "
-           "path (advanced)">,
+           "Release valve floor: minimum number of consecutive swaps that "
+           "route no gate before a stuck front layer is force-routed along a "
+           "shortest path (advanced)">,
     Option<"stallSwapBudgetPerQubit", "stall-swap-budget-per-qubit", "unsigned",
            /*default=*/"4",
            "Release valve scaling: per-device-qubit stall budget. The budget "
@@ -1012,7 +1014,8 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     SSA semantics. A use can destroy the value itself, therefore it is required
     that `wire` values be threads in and out of each and every use.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"classicalValues", "classical", "bool",
@@ -1086,7 +1089,8 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     "Minimumn percentage of rz ops in subcircuit to run phase folding">,
   ];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
@@ -1366,9 +1370,12 @@ def ResourceCountPreprocess :
 
   let options = [
     Option<"countGate", "count-gate",
-      "std::function<void(std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t)>",
-      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t){}",
-      "Closure that receives gate name, control qubit indices, target qubit indices, and multiplicity">,
+      "std::function<void(std::string,std::vector<std::size_t>,std::vector"
+      "<std::size_t>,size_t)>",
+      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector"
+      "<std::size_t>,size_t){}",
+      "Closure that receives gate name, control qubit indices, target qubit "
+      "indices, and multiplicity">,
     Option<"dumpPreprocessed", "dump-preprocessed", "bool", /*default=*/"false",
       "Dump preprocessed gates instead of counting them (useful for testing)">,
   ];
@@ -1540,7 +1547,7 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   }];
 
   let dependentDialects = ["mlir::cf::ControlFlowDialect",
-                           "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
+    "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

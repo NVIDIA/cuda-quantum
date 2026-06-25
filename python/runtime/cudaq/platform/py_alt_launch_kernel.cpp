@@ -713,8 +713,7 @@ compileModuleImpl(const std::string &name, ModuleOp mod,
     auto *ctx = cudaq::getExecutionContext();
     if (!ctx) {
       auto target = cudaq::get_compile_target(cudaq::other_policies{});
-      return cudaq_internal::compiler::compileModule(cudaq::other_policies{},
-                                                     std::move(target), src,
+      return cudaq_internal::compiler::compileModule(std::move(target), src,
                                                      {rawArgs}, isEntryPoint);
     }
 
@@ -724,8 +723,8 @@ compileModuleImpl(const std::string &name, ModuleOp mod,
         policy.spin = ctx->spin.value();
       }
       auto target = cudaq::get_compile_target(policy);
-      return cudaq_internal::compiler::compileModule(
-          &policy, std::move(target), src, {rawArgs}, isEntryPoint);
+      return cudaq_internal::compiler::compileModule(std::move(target), src,
+                                                     {rawArgs}, isEntryPoint);
     });
   };
 
