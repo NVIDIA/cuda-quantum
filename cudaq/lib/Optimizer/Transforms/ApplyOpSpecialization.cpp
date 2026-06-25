@@ -405,6 +405,25 @@ public:
       assert(func && "global must be a FuncOp");
       auto &variant = variantIter->second;
 
+      // We cannot synthesize variants if only a declaration is available.
+      if ((variant.needsAdjointVariant || variant.needsAdjointControlVariant ||
+           variant.needsControlVariant) &&
+          func.isDeclaration()) {
+        if (variant.needsAdjointVariant || variant.needsAdjointControlVariant) {
+          func.emitOpError()
+              << "cannot create adjoint variant for forward-declared kernel '"
+              << func.getName()
+              << "' (kernel body is unavailable in this translation unit)";
+        } else {
+          func.emitOpError()
+              << "cannot create control variant for forward-declared kernel '"
+              << func.getName()
+              << "' (kernel body is unavailable in this translation unit)";
+        }
+        signalPassFailure();
+        return failure();
+      }
+
       if (variant.needsControlVariant)
         createControlVariantOf(func);
       if (variant.needsAdjointVariant) {
