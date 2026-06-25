@@ -435,3 +435,15 @@ def test_state_from_data_rejects_non_power_of_two():
     bad = np.ones(7, dtype=np.complex128) / np.sqrt(7)
     with pytest.raises(RuntimeError, match="power of 2"):
         cudaq.State.from_data(bad)
+
+
+def test_state_from_data_rejects_empty_vector():
+    cudaq.set_target('qpp-cpu')
+    with pytest.raises(RuntimeError, match="power of 2"):
+        cudaq.State.from_data(np.array([], dtype=np.complex128))
+
+
+def test_state_from_data_accepts_power_of_two():
+    cudaq.set_target('qpp-cpu')
+    good = np.ones(4, dtype=np.complex128) / 2.0
+    assert cudaq.State.from_data(good) is not None
