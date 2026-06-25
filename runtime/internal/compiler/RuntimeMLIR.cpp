@@ -755,13 +755,14 @@ cudaq_internal::compiler::getEntryPointName(OwningOpRef<ModuleOp> &module) {
 
 void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
   auto *ctx = pm.getContext();
-  auto printMode = cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
+  auto printEachPass =
+      cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   auto disableThreading =
       cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  if (printMode != cudaq::PrintEachPassMode::None || disableThreading)
+  if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading)
     ctx->disableMultithreading();
   // Enable IR printing indiscriminately. ::Specialize variant is handled in
   // Compiler::prepareModule.
-  if (printMode == cudaq::PrintEachPassMode::All)
+  if (printEachPass == cudaq::PrintEachPassMode::All)
     pm.enableIRPrinting();
 }

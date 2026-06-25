@@ -557,12 +557,14 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
       if (codegenTranslation.starts_with("qir")) {
         if (failed(translation(*compiled_module, codegenTranslation, outStr,
                                postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass, enablePassStatistics)))
+                               printEachPass == cudaq::PrintEachPassMode::All,
+                               enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       } else {
         if (failed(translation(*compiled_module, outStr, postCodeGenPasses,
-                               printIR, enablePrintMLIREachPass,
+                               printIR,
+                               printEachPass == cudaq::PrintEachPassMode::All,
                                enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
