@@ -31,6 +31,19 @@ namespace cudaq::realtime {
 /// DROPS unknown slots (clears rx_flags).
 __constant__ std::uint32_t g_dispatch_shared_ring_mode = 0;
 
+/// @brief Persistent RX-ring cursor for the self-relaunching graph scheduler
+/// (dispatch_kernel_with_graph).  A tail self-relaunch is a fresh kernel
+/// invocation, so a local current_slot would reset to 0 every relaunch (i.e.
+/// every decode/shot) and rescan the ring from the start -- which, against an
+/// open-loop producer like the Hololink RX kernel that fills slots strictly in
+/// order (window N -> slot N % num_slots), lets the scan grab a slot out of
+/// send order and races the flag-clear against slot reuse (observed as a rare
+/// duplicate-enqueue + dropped-get_corrections).  Holding the cursor here lets
+/// the relaunched kernel resume at the next slot, preserving strict-FIFO
+/// consumption across relaunches.  Reset to 0 by cudaq_create_dispatch_graph_*
+/// at setup; only tid 0 of the (single-block) scheduler reads/writes it.
+__device__ std::size_t g_graph_dispatch_cursor = 0;
+
 /// @brief Lookup function entry in table by function_id.
 __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
     std::uint32_t function_id,
@@ -395,7 +408,10 @@ __global__ void dispatch_kernel_with_graph(
     cudaGraphExec_t triggered_graph_exec) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   std::uint64_t local_packet_count = 0;
-  std::size_t current_slot = 0;
+  // Resume the RX-ring cursor from the persistent global so a tail
+  // self-relaunch continues at the next slot instead of rescanning from 0.
+  // Reset to 0 by cudaq_create_dispatch_graph_regular for the first launch.
+  std::size_t current_slot = g_graph_dispatch_cursor;
 
   // Set when a DEVICE_CALL handler returns CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH:
   // we fired triggered_graph_exec fire-and-forget and must tail-self-relaunch
@@ -541,6 +557,11 @@ __global__ void dispatch_kernel_with_graph(
   // budget -- so the path can fire an unbounded number of follow-up graphs
   // across relaunches.  On shutdown we fall through without relaunching.
   if (s_relaunch && tid == 0) {
+    // Persist the cursor so the relaunched kernel resumes at the next slot
+    // (strict FIFO), not slot 0.  Fence so the store is visible to the
+    // relaunched invocation.
+    g_graph_dispatch_cursor = current_slot;
+    __threadfence();
     cudaGraphLaunch(cudaGetCurrentGraphExec(), cudaStreamGraphTailLaunch);
   }
 #endif
@@ -790,7 +811,21 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
     delete ctx;
     return err;
   }
-  
+
+  // Reset the persistent RX-ring cursor so this scheduler's first launch starts
+  // at slot 0 (it persists across tail self-relaunches thereafter).
+  {
+    std::size_t zero = 0;
+    err = cudaMemcpyToSymbol(cudaq::realtime::g_graph_dispatch_cursor, &zero,
+                             sizeof(zero), 0, cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+      cudaGraphExecDestroy(ctx->graph_exec);
+      cudaGraphDestroy(ctx->graph);
+      delete ctx;
+      return err;
+    }
+  }
+
   ctx->is_valid = true;
   *out_context = ctx;
   return cudaSuccess;
