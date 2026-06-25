@@ -425,6 +425,40 @@ def test_per_shot_output_global_marginal_and_named_registers():
         requests.post(f"{url}/_mock_server_config_noise_model?noise=")
 
 
+def test_per_shot_output_interleaved_mixed_sequences():
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        # Bit strings 1010, 1111, 1010, 1111 encoded as IonQ decimal strings.
+        requests.post(
+            f"{url}/_mock_server_config_shots_payload?payload=5,15,5,15")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_and_measure_subset():
+            qubits = cudaq.qvector(4)
+            x(qubits[0])
+            x(qubits[2])
+            x(qubits[3])
+            high = mz(qubits[3])
+            low = mz(qubits[1])
+
+        results = cudaq.sample(prep_and_measure_subset, shots_count=4)
+
+        # Global register keeps measured qubits sorted by qubit index: q1,q3.
+        assert results.get_sequential_data() == ['00', '11', '00', '11']
+        assert results.get_sequential_data("high") == ['0', '1', '0', '1']
+        assert results.get_sequential_data("low") == ['0', '1', '0', '1']
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_payload?payload=")
+
+
 def test_per_shot_output_warns_when_shots_url_is_missing(capfd):
 
     url = "http://localhost:{}".format(port)
@@ -444,11 +478,12 @@ def test_per_shot_output_warns_when_shots_url_is_missing(capfd):
 
         results = cudaq.sample(prep_missing_shots_url, shots_count=3)
         captured = capfd.readouterr()
+        logs = captured.out + captured.err
 
         assert results["1"] == 3
         assert results.get_sequential_data() == []
-        assert "IonQ per shot results url is missing for job" in captured.err
-        assert "get_sequential_data() will be empty." in captured.err
+        assert "IonQ per shot results url is missing for job" in logs
+        assert "get_sequential_data() will be empty." in logs
     finally:
         requests.post(f"{url}/_mock_server_config_target?target=")
         requests.post(f"{url}/_mock_server_config_noise_model?noise=")
@@ -476,11 +511,12 @@ def test_per_shot_output_warns_when_results_are_unavailable(capfd):
 
         results = cudaq.sample(prep_unavailable_shot_results, shots_count=3)
         captured = capfd.readouterr()
+        logs = captured.out + captured.err
 
         assert results["1"] == 3
         assert results.get_sequential_data() == []
-        assert "IonQ per shot results unavailable for job" in captured.err
-        assert "get_sequential_data() will be empty." in captured.err
+        assert "IonQ per shot results unavailable for job" in logs
+        assert "get_sequential_data() will be empty." in logs
     finally:
         requests.post(f"{url}/_mock_server_config_target?target=")
         requests.post(f"{url}/_mock_server_config_noise_model?noise=")

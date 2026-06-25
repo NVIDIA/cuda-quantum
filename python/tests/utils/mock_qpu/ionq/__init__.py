@@ -43,6 +43,7 @@ jobTarget = ""
 noiseModel = ""
 shotsUrlAvailable = True
 shotsResultsAvailable = True
+shotsPayloadOverride = []
 
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
@@ -179,10 +180,13 @@ async def getResults(jobId: str):
 
 @app.get("/v0.4/jobs/{jobId}/results/shots")
 async def getShotResults(jobId: str):
-    global shotsResultsAvailable
+    global shotsResultsAvailable, shotsPayloadOverride
     if not shotsResultsAvailable:
         raise HTTPException(status_code=500,
                             detail="Shot results are unavailable")
+
+    if shotsPayloadOverride:
+        return shotsPayloadOverride
 
     counts = createdJobs[jobId]
     # Note, the real IonQ backend reverses the bitstring relative to what the
@@ -219,6 +223,18 @@ async def set_mock_server_shots_url(available: bool):
 async def set_mock_server_shots_results(available: bool):
     global shotsResultsAvailable
     shotsResultsAvailable = available
+    return {"status": "ok"}
+
+
+@app.post("/_mock_server_config_shots_payload")
+async def set_mock_server_shots_payload(payload: str = ""):
+    global shotsPayloadOverride
+    if payload == "":
+        shotsPayloadOverride = []
+    else:
+        shotsPayloadOverride = [
+            item.strip() for item in payload.split(",") if item.strip() != ""
+        ]
     return {"status": "ok"}
 
 

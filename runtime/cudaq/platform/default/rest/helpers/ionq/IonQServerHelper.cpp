@@ -481,7 +481,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
 
   // Get a reduced list of qubit numbers that were in the original program
   // so that we can slice the output data and extract the bits that the user
-  // was interested in. Sort by QIR qubit number.
+  // was interested in. Sort by qubit number.
   std::vector<std::size_t> qubitNumbers;
   qubitNumbers.reserve(output_names.size());
   for (auto &[result, info] : output_names) {
