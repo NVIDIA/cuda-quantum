@@ -225,6 +225,19 @@ protected:
     return dem.str();
   }
 
+  /// @brief Finalize the execution context, ensuring the simulator is left in a
+  /// clean state even if finalization throws.
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                cudaq::ExecutionContext &context) override {
+    try {
+      nvqir::CircuitSimulatorBase<double>::finalizeExecutionContext(policy,
+                                                                    context);
+    } catch (...) {
+      endExecution();
+      throw;
+    }
+  }
+
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
   void addQubitsToState(std::size_t qubitCount,
