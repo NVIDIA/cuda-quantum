@@ -35,7 +35,7 @@ jobs:
           kernel="$(uname -r)"
           retry sudo apt-get update
           retry sudo apt-get install -y --no-install-recommends \
-            iproute2 kmod rdma-core ibverbs-utils
+            g++ iproute2 kmod rdma-core ibverbs-utils libibverbs-dev
 
           exact_extra="linux-modules-extra-${kernel}"
           if apt-cache show "$exact_extra" >/dev/null 2>&1; then
@@ -88,6 +88,26 @@ jobs:
           fi
           echo "::error::No SoftRoCE UC traffic probe passed."
           exit 1
+
+      - name: Run CpuRoceTransceiver self-loop probe
+        shell: bash
+        run: |
+          g++ -std=c++17 -Wall -Wextra \
+            -Irealtime/include \
+            realtime/scripts/probe_cpu_roce_self_loop.cpp \
+            realtime/lib/cpu_transport/roce_transceiver.cpp \
+            -libverbs -pthread \
+            -o /tmp/cudaq_cpu_roce_self_loop_probe
+
+          sudo bash realtime/scripts/setup_softroce_loopback.sh \
+            --cleanup-first \
+            --self-loop \
+            --verify-pingpong \
+            --no-exports
+
+          sudo /tmp/cudaq_cpu_roce_self_loop_probe \
+            --device rxe_cudaq0 \
+            --ip 10.88.0.1
 
       - name: Diagnostics
         if: always()
