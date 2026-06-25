@@ -319,9 +319,8 @@ CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_create_dispatch_graph_regular(
 
 // Launch the dispatch graph. The dispatch kernel inside this graph can call
 // cudaGraphLaunch() to launch child graphs from device code.
-CUDAQ_REALTIME_DISPATCH_API cudaError_t
-cudaq_launch_dispatch_graph(cudaq_dispatch_graph_context *context,
-                            cudaStream_t stream);
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_launch_dispatch_graph(
+    cudaq_dispatch_graph_context *context, cudaStream_t stream);
 
 // Destroy the dispatch graph context and release all resources.
 CUDAQ_REALTIME_DISPATCH_API cudaError_t
