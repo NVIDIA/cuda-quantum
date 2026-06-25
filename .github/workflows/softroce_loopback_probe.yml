@@ -109,6 +109,82 @@ jobs:
             --device rxe_cudaq0 \
             --ip 10.88.0.1
 
+      - name: Run CpuRoceTransceiver two-process self-loop probe
+        shell: bash
+        run: |
+          g++ -std=c++17 -Wall -Wextra \
+            -Irealtime/include \
+            realtime/scripts/probe_cpu_roce_two_process.cpp \
+            realtime/lib/cpu_transport/roce_transceiver.cpp \
+            -libverbs -pthread \
+            -o /tmp/cudaq_cpu_roce_two_process_probe
+
+          sudo bash realtime/scripts/setup_softroce_loopback.sh \
+            --cleanup-first \
+            --self-loop \
+            --verify-pingpong \
+            --no-exports
+
+          log_dir="$(mktemp -d)"
+          server_log="${log_dir}/server.log"
+          client_log="${log_dir}/client.log"
+          server_pid=""
+          cleanup_server() {
+            if [[ -n "${server_pid}" ]] && kill -0 "${server_pid}" 2>/dev/null; then
+              kill "${server_pid}" 2>/dev/null || true
+              wait "${server_pid}" 2>/dev/null || true
+            fi
+          }
+          trap cleanup_server EXIT
+
+          timeout 30s sudo /tmp/cudaq_cpu_roce_two_process_probe \
+            --role server \
+            --device rxe_cudaq0 \
+            --ip 10.88.0.1 \
+            --port 39017 \
+            >"${server_log}" 2>&1 &
+          server_pid=$!
+
+          for _ in $(seq 1 100); do
+            if grep -q "TWO_PROCESS_SERVER_READY" "${server_log}"; then
+              break
+            fi
+            if ! kill -0 "${server_pid}" 2>/dev/null; then
+              break
+            fi
+            sleep 0.1
+          done
+
+          if ! grep -q "TWO_PROCESS_SERVER_READY" "${server_log}"; then
+            echo "ERROR: two-process server did not become ready" >&2
+            cat "${server_log}" >&2 || true
+            exit 1
+          fi
+
+          set +e
+          timeout 30s sudo /tmp/cudaq_cpu_roce_two_process_probe \
+            --role client \
+            --device rxe_cudaq0 \
+            --ip 10.88.0.1 \
+            --port 39017 \
+            >"${client_log}" 2>&1
+          client_rc=$?
+          wait "${server_pid}"
+          server_rc=$?
+          set -e
+          server_pid=""
+
+          echo "--- CpuRoceTransceiver two-process client log ---"
+          cat "${client_log}" || true
+          echo "--- CpuRoceTransceiver two-process server log ---"
+          cat "${server_log}" || true
+          rm -rf "${log_dir}"
+
+          if [[ "${client_rc}" != "0" || "${server_rc}" != "0" ]]; then
+            echo "ERROR: CpuRoceTransceiver two-process self-loop failed (client=${client_rc}, server=${server_rc})" >&2
+            exit 1
+          fi
+
       - name: Diagnostics
         if: always()
         shell: bash
