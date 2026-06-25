@@ -227,4 +227,14 @@ CUDAQ_TEST(GetStateTester, checkKron) {
             "0" + std::string(num_qubits_input_state, '1'));
 }
 
+#ifndef CUDAQ_BACKEND_DM
+CUDAQ_TEST(GetStateTester, rejectNonPowerOfTwoStateData) {
+  std::vector<std::complex<double>> invalid(7);
+  const double norm = 1.0 / std::sqrt(7.0);
+  for (auto &val : invalid)
+    val = {norm, 0.0};
+  EXPECT_THROW(cudaq::state::from_data(invalid), std::runtime_error);
+}
+#endif
+
 #endif
