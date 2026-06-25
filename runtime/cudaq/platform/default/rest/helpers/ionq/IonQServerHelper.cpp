@@ -55,10 +55,6 @@ public:
   /// server's response to a job submission.
   std::string constructGetResultsPath(ServerMessage &postResponse);
 
-  /// @brief Constructs the URL for retrieving the results of a job based on a
-  /// job ID.
-  std::string constructGetResultsPath(std::string &jobId);
-
   /// @brief Retrieves the results of a job using the provided path.
   ServerMessage getResults(std::string &resultsGetPath);
 
@@ -326,31 +322,6 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
     appendQueryParam(resultsPath, "format", "qir.quantum-log.v0");
   }
 
-  return resultsPath;
-}
-
-// Overloaded version of constructGetResultsPath for jobId input
-std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
-  if (!keyExists("job_path"))
-    throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
-
-  // Construct the results path, normalizing slashes between base path and id.
-  std::string resultsPath = backendConfig.at("job_path");
-  if (!resultsPath.empty() && resultsPath.back() != '/')
-    resultsPath += '/';
-
-  if (!jobId.empty() && jobId.front() == '/')
-    resultsPath += jobId.substr(1);
-  else
-    resultsPath += jobId;
-
-  resultsPath += "/results";
-
-  // If sharpen is true, add it to the query parameters
-  if (keyExists("sharpen") && backendConfig["sharpen"] == "true")
-    resultsPath += "?sharpen=true";
-
-  // Return the results path
   return resultsPath;
 }
 
