@@ -35,7 +35,15 @@ cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
         src.getName() + "'.");
   auto packed = args.getPacked();
   void *argData = packed ? packed->data.data() : nullptr;
-  return rawFn->getFn()(argData, /*isRemote=*/false);
+  // Mark the kernel frame so the simulator defers (rather than throws)
+  // exceptions while the JIT'd kernel runs; rethrowDeferredKernelException()
+  // below surfaces any such error from this C++ frame.
+  InKernelLaunchScope kernelFrame;
+  auto result = rawFn->getFn()(argData, /*isRemote=*/false);
+  // Surface any error the kernel deferred rather than threw (see
+  // QPU::rethrowDeferredKernelException).
+  rethrowDeferredKernelException();
+  return result;
 }
 
 cudaq::sample_result
