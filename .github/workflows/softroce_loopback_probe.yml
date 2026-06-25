@@ -2,6 +2,22 @@ name: SoftRoCE Capability Probe
 
 on:
   workflow_dispatch:
+    inputs:
+      run_channel_probe:
+        description: "Also run the full CpuRoceChannel device-call probe."
+        required: false
+        type: boolean
+        default: false
+      channel_probe_base_image:
+        description: "Optional devdeps base image digest/tag override for the channel probe."
+        required: false
+        type: string
+        default: ""
+      cache_base:
+        description: "Branch to use as devdeps cache base when resolving the channel probe image."
+        required: false
+        type: string
+        default: main
   push:
     branches:
       - softroce-loopback-investigation
@@ -12,11 +28,61 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  metadata:
+    name: Retrieve channel probe build metadata
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_channel_probe) || github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      cache_base: ${{ steps.cache.outputs.cache_base }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - id: cache
+        run: echo "cache_base=${{ inputs.cache_base || 'main' }}" >> $GITHUB_OUTPUT
+
+  cuda_deps:
+    name: Load channel probe build dependencies
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_channel_probe) || github.event_name == 'push' }}
+    needs: metadata
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/amd64
+      dockerfile: build/devdeps.Dockerfile
+      build_config_id: gcc12
+      build_args: toolchain=gcc12
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      checkout_submodules: true
+      environment: ghcr-ci
+      matrix_key: amd64-gcc12-realtime
+      matrix_step_name: softroce_channel_probe_cuda_deps
+
+  config_cuda_deps:
+    name: Configure channel probe build dependencies
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_channel_probe) || github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    needs: cuda_deps
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        id: read_json
+        with:
+          matrix-step-name: softroce_channel_probe_cuda_deps
+
   probe:
     name: Probe rdma_rxe local traffic
     runs-on: linux-amd64-cpu8
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -216,3 +282,120 @@ jobs:
         shell: bash
         run: |
           sudo bash realtime/scripts/setup_softroce_loopback.sh --cleanup --use-netns
+
+  channel_probe:
+    name: Run CpuRoceChannel device-call self-loop probe
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_channel_probe) || github.event_name == 'push' }}
+    needs: [probe, config_cuda_deps]
+    runs-on: linux-amd64-cpu8
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Install RDMA tooling and packaged RXE modules
+        shell: bash
+        run: |
+          retry() {
+            for n in 1 2 3; do
+              "$@" && return 0
+              sleep $((10 * n * n))
+            done
+            return 1
+          }
+          kernel="$(uname -r)"
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends \
+            iproute2 kmod rdma-core ibverbs-utils
+
+          exact_extra="linux-modules-extra-${kernel}"
+          if apt-cache show "$exact_extra" >/dev/null 2>&1; then
+            retry sudo apt-get install -y --no-install-recommends \
+              --allow-change-held-packages \
+              "$exact_extra"
+          else
+            echo "No apt package candidate for running kernel: $exact_extra"
+          fi
+
+          sudo depmod -a "$kernel" || true
+          modinfo rdma_rxe || modinfo rxe || true
+
+      - name: Build and run CpuRoceChannel device-call self-loop probe
+        shell: bash
+        env:
+          DOCKER_BUILDKIT: "1"
+          CHANNEL_PROBE_BASE_IMAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.channel_probe_base_image != '' && inputs.channel_probe_base_image || fromJson(needs.config_cuda_deps.outputs.json).image_hash[format('{0}-gcc12-realtime', 'amd64')] }}
+        run: |
+          if [[ -z "${CHANNEL_PROBE_BASE_IMAGE}" || "${CHANNEL_PROBE_BASE_IMAGE}" == "null" ]]; then
+            echo "::error::Could not resolve the amd64-gcc12-realtime devdeps image for the channel probe."
+            exit 1
+          fi
+          echo "Using channel probe base image: ${CHANNEL_PROBE_BASE_IMAGE}"
+
+          docker build \
+            --file docker/release/cudaq.realtime-integration.Dockerfile \
+            --target realtime-integration \
+            --build-arg "base_image=${CHANNEL_PROBE_BASE_IMAGE}" \
+            --build-arg cuda_version=12.6 \
+            --build-arg build_device_call_tests=true \
+            --tag cudaq-realtime-softroce:local \
+            .
+
+          sudo bash realtime/scripts/setup_softroce_loopback.sh \
+            --cleanup-first \
+            --self-loop \
+            --verify-pingpong \
+            --no-exports
+
+          docker run --rm \
+            --privileged \
+            --network host \
+            --ulimit memlock=-1:-1 \
+            cudaq-realtime-softroce:local \
+            bash -lc '
+              set -euo pipefail
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                ibverbs-providers ibverbs-utils rdma-core
+              apt-get clean
+              rm -rf /var/lib/apt/lists/*
+              ibv_devices
+              /cuda-quantum/unittests/device_call/cpu_roce_device_call_test.sh \
+                --build-dir /tmp/build-realtime-integration/cudaq \
+                --channel-device rxe_cudaq0 \
+                --channel-ip 10.88.0.1 \
+                --daemon-device rxe_cudaq0 \
+                --daemon-ip 10.88.0.1 \
+                --filter CpuRoceDispatchTest.DispatchesAddThemSynchronously
+            '
+
+      - name: Diagnostics
+        if: always()
+        shell: bash
+        run: |
+          uname -a || true
+          ip route show table local || true
+          modinfo rdma_rxe || modinfo rxe || true
+          rdma system show || true
+          ip -br addr || true
+          ip link show type veth || true
+          rdma dev show || true
+          rdma link show || true
+          ibv_devices || true
+          ibv_devinfo || true
+          lsmod | grep -E '(^rdma_rxe|^rxe)' || true
+
+      - name: Cleanup SoftRoCE topology
+        if: always()
+        shell: bash
+        run: sudo bash realtime/scripts/setup_softroce_loopback.sh --cleanup --use-netns
