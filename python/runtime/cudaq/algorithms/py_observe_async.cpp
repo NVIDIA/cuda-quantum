@@ -21,6 +21,9 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#ifdef CUDAQ_ENABLE_CUDA
+#include "cuda_runtime_api.h"
+#endif
 
 using namespace cudaq;
 
@@ -71,6 +74,10 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
   auto &platform = get_platform();
   args = simplifiedValidateInputArguments(args);
   auto fnOp = getKernelFuncOp(mod, shortName);
+#ifdef CUDAQ_ENABLE_CUDA
+  if (platform.num_qpus() > 1)
+    cudaSetDevice(static_cast<int>(qpu_id));
+#endif
   auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
 
   // Launch the asynchronous execution.
