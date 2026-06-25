@@ -1,0 +1,122 @@
+name: SoftRoCE Capability Probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - softroce-loopback-investigation
+      - "pull-request/[0-9]+"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Probe rdma_rxe local traffic
+    runs-on: linux-amd64-cpu8
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install RDMA tooling and packaged RXE modules
+        shell: bash
+        run: |
+          retry() {
+            for n in 1 2 3; do
+              "$@" && return 0
+              sleep $((10 * n * n))
+            done
+            return 1
+          }
+          kernel="$(uname -r)"
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends \
+            iproute2 kmod rdma-core ibverbs-utils
+
+          exact_extra="linux-modules-extra-${kernel}"
+          if apt-cache show "$exact_extra" >/dev/null 2>&1; then
+            retry sudo apt-get install -y --no-install-recommends \
+              --allow-change-held-packages \
+              "$exact_extra"
+          else
+            echo "No apt package candidate for running kernel: $exact_extra"
+          fi
+
+          sudo depmod -a "$kernel" || true
+          modinfo rdma_rxe || modinfo rxe || true
+
+      - name: Run SoftRoCE traffic probes
+        shell: bash
+        run: |
+          run_probe() {
+            local label="$1"
+            shift
+            echo "::group::${label}"
+            set +e
+            sudo bash realtime/scripts/setup_softroce_loopback.sh \
+              --cleanup-first \
+              "$@" \
+              --verify-pingpong
+            local rc=$?
+            echo "${label}: rc=${rc}"
+            echo "::endgroup::"
+            return "$rc"
+          }
+
+          set +e
+          run_probe "single-device self-loop" --self-loop
+          self_rc=$?
+          run_probe "two-device same-namespace"
+          two_rc=$?
+          run_probe "netns-isolated two-device" --use-netns
+          netns_rc=$?
+          set -e
+
+          echo "SoftRoCE probe summary: self-loop=${self_rc}, same-namespace=${two_rc}, netns=${netns_rc}"
+          if [[ "$netns_rc" == "77" ]]; then
+            echo "::notice::SoftRoCE netns isolation unsupported here; this is separate from basic RXE support."
+          fi
+          if [[ "$two_rc" != "0" ]]; then
+            echo "::notice::Two-device same-namespace RXE traffic failed; both endpoint IPs are local in one netns, so this topology may not be viable."
+          fi
+          if [[ "$self_rc" == "0" || "$two_rc" == "0" || "$netns_rc" == "0" ]]; then
+            exit 0
+          fi
+          echo "::error::No SoftRoCE UC traffic probe passed."
+          exit 1
+
+      - name: Diagnostics
+        if: always()
+        shell: bash
+        run: |
+          uname -a || true
+          ip route show table local || true
+          modinfo rdma_rxe || modinfo rxe || true
+          rdma system show || true
+          apt-cache search "linux-modules.*$(uname -r)" || true
+          apt-cache policy "linux-modules-extra-$(uname -r)" linux-modules-extra-aws || true
+          find "/lib/modules/$(uname -r)" -type f \( -iname '*rxe*' -o -iname 'ib_core*' -o -iname 'rdma_cm*' -o -iname 'ib_uverbs*' \) || true
+          ip netns list || true
+          for ns in cudaq-rxe-ns-a cudaq-rxe-ns-b; do
+            sudo ip netns exec "$ns" ip -br addr || true
+            sudo ip netns exec "$ns" rdma dev show || true
+            sudo ip netns exec "$ns" rdma link show || true
+            sudo ip netns exec "$ns" ibv_devices || true
+          done
+          ip -br addr || true
+          ip link show type veth || true
+          rdma dev show || true
+          rdma link show || true
+          ibv_devices || true
+          ibv_devinfo || true
+          lsmod | grep -E '(^rdma_rxe|^rxe)' || true
+
+      - name: Clean up SoftRoCE loopback
+        if: always()
+        shell: bash
+        run: |
+          sudo bash realtime/scripts/setup_softroce_loopback.sh --cleanup --use-netns
