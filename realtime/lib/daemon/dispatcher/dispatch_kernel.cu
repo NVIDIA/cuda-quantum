@@ -391,10 +391,19 @@ __global__ void dispatch_kernel_with_graph(
     GraphIOContext* graph_io_ctx,
     volatile int* shutdown_flag,
     std::uint64_t* stats,
-    std::size_t num_slots) {
+    std::size_t num_slots,
+    cudaGraphExec_t triggered_graph_exec) {
   int tid = threadIdx.x + blockIdx.x * blockDim.x;
   std::uint64_t local_packet_count = 0;
   std::size_t current_slot = 0;
+
+  // Set when a DEVICE_CALL handler returns CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH:
+  // we fired triggered_graph_exec fire-and-forget and must tail-self-relaunch
+  // (which resets the device-graph fire-and-forget budget) before continuing.
+  __shared__ bool s_relaunch;
+  if (tid == 0)
+    s_relaunch = false;
+  KernelType::sync();
 
   while (!(*shutdown_flag)) {
     if (tid == 0) {
@@ -451,6 +460,25 @@ __global__ void dispatch_kernel_with_graph(
               int status = func(arg_buffer, output_buffer, arg_len,
                                 max_result_len, &result_len);
 
+#if __CUDA_ARCH__ >= 900
+              // A handler may request that the configured follow-up graph be
+              // fired (e.g. it accumulated enough input this call).  Fire it
+              // fire-and-forget -- it operates on state the handler's library
+              // registered out-of-band, so it is NOT handed this slot -- and
+              // arrange a tail self-relaunch (resets the 120 fire-and-forget
+              // budget).  The triggering request is ACKed normally (status=0,
+              // empty result).
+              if (status == CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH) {
+                if (triggered_graph_exec != nullptr) {
+                  cudaGraphLaunch(triggered_graph_exec,
+                                  cudaStreamGraphFireAndForget);
+                  s_relaunch = true;
+                }
+                status = 0;
+                result_len = 0;
+              }
+#endif
+
               RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
               response->magic = RPC_MAGIC_RESPONSE;
               response->status = status;
@@ -502,7 +530,20 @@ __global__ void dispatch_kernel_with_graph(
     }
 
     KernelType::sync();
+    if (s_relaunch)
+      break;
   }
+
+#if __CUDA_ARCH__ >= 900
+  // If we fired a follow-up graph this execution, relaunch ourselves as a tail
+  // launch: it waits for our fire-and-forget child to finish (ordering) and
+  // starts a fresh parent-graph execution, resetting the 120 fire-and-forget
+  // budget -- so the path can fire an unbounded number of follow-up graphs
+  // across relaunches.  On shutdown we fall through without relaunching.
+  if (s_relaunch && tid == 0) {
+    cudaGraphLaunch(cudaGetCurrentGraphExec(), cudaStreamGraphTailLaunch);
+  }
+#endif
 
   if (tid == 0) {
     atomicAdd(reinterpret_cast<unsigned long long*>(stats), local_packet_count);
@@ -640,6 +681,7 @@ struct cudaq_dispatch_graph_context {
   volatile int* shutdown_flag;
   std::uint64_t* stats;
   std::size_t num_slots;
+  cudaGraphExec_t triggered_graph_exec;
 };
 
 extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
@@ -657,6 +699,7 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
     std::size_t num_slots,
     std::uint32_t num_blocks,
     std::uint32_t threads_per_block,
+    cudaGraphExec_t triggered_graph_exec,
     cudaStream_t stream,
     cudaq_dispatch_graph_context** out_context) {
   
@@ -680,6 +723,7 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   ctx->shutdown_flag = shutdown_flag;
   ctx->stats = stats;
   ctx->num_slots = num_slots;
+  ctx->triggered_graph_exec = triggered_graph_exec;
   
   // Create graph
   err = cudaGraphCreate(&ctx->graph, 0);
@@ -700,7 +744,8 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
       &ctx->graph_io_ctx,
       &ctx->shutdown_flag,
       &ctx->stats,
-      &ctx->num_slots
+      &ctx->num_slots,
+      &ctx->triggered_graph_exec
   };
   
   kernel_params.func = reinterpret_cast<void*>(

@@ -640,7 +640,7 @@ TEST(GraphLaunchTest, DispatchKernelGraphLaunch) {
       buffer_size,  // tx_stride_sz
       d_function_entries, 1,
       d_graph_buffer_ptr, d_shutdown, d_stats, 1,
-      1, 32, stream, &dispatch_ctx);
+      1, 32, /*triggered_graph_exec=*/nullptr, stream, &dispatch_ctx);
   
   if (err != cudaSuccess) {
     GTEST_SKIP() << "Device-side graph launch not supported: " 
@@ -722,6 +722,202 @@ TEST(GraphLaunchTest, DispatchKernelGraphLaunch) {
   CUDA_CHECK(cudaGraphDestroy(child_graph));
   CUDA_CHECK(cudaFree(d_graph_buffer_ptr));
   CUDA_CHECK(cudaFree(d_buffer));
+}
+
+//==============================================================================
+// Device-graph self-relaunch test: a DEVICE_CALL handler returns
+// CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH on every call, so the scheduler fires a
+// trivial "triggered" graph fire-and-forget and tail-self-relaunches via
+// cudaGetCurrentGraphExec().  Feeding far more than 120 messages proves the
+// self-relaunch resets the 120-fire-and-forget-launch-per-parent-execution
+// budget, so the device-graph dispatch path can trigger an unbounded number of
+// follow-up graphs (a single long-running parent graph would stall at 120).
+//==============================================================================
+
+constexpr std::uint32_t APPEND_TRIGGER_FUNCTION_ID =
+    cudaq::realtime::fnv1a_hash("append_trigger");
+
+// DEVICE_CALL handler that always requests the configured triggered graph fire.
+__device__ int append_trigger_handler(const void* input, void* output,
+                                       std::uint32_t arg_len,
+                                       std::uint32_t max_result_len,
+                                       std::uint32_t* result_len) {
+  (void)input;
+  (void)output;
+  (void)arg_len;
+  (void)max_result_len;
+  *result_len = 0;
+  return CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH;
+}
+
+__global__ void init_append_trigger_function_table(
+    cudaq_function_entry_t* entries) {
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    entries[0].handler.device_fn_ptr =
+        reinterpret_cast<void*>(&append_trigger_handler);
+    entries[0].function_id = APPEND_TRIGGER_FUNCTION_ID;
+    entries[0].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+    entries[0].reserved[0] = 0;
+    entries[0].reserved[1] = 0;
+    entries[0].reserved[2] = 0;
+    entries[0].schema.num_args = 0;
+    entries[0].schema.num_results = 0;
+    entries[0].schema.reserved = 0;
+  }
+}
+
+// Trivial body of the triggered (follow-up) graph: count invocations.
+__global__ void triggered_counter_kernel(int* counter) {
+  if (threadIdx.x == 0 && blockIdx.x == 0)
+    atomicAdd(counter, 1);
+}
+
+TEST(DeviceGraphSelfRelaunchTest, Exceeds120) {
+  // One triggered launch per message; >> 120 to prove the budget reset.
+  constexpr int kNumMessages = 200;
+  constexpr std::size_t kNumSlots = kNumMessages; // each slot used once
+  constexpr std::size_t kSlotSize = 64;
+
+  cudaStream_t stream;
+  CUDA_CHECK(cudaStreamCreate(&stream));
+
+  // --- Counter + triggered graph (device-launchable) ---
+  int* d_counter = nullptr;
+  CUDA_CHECK(cudaMalloc(&d_counter, sizeof(int)));
+  CUDA_CHECK(cudaMemset(d_counter, 0, sizeof(int)));
+
+  cudaGraph_t trig_graph;
+  CUDA_CHECK(cudaGraphCreate(&trig_graph, 0));
+  cudaKernelNodeParams trig_params = {};
+  void* trig_args[] = {&d_counter};
+  trig_params.func = reinterpret_cast<void*>(triggered_counter_kernel);
+  trig_params.gridDim = dim3(1, 1, 1);
+  trig_params.blockDim = dim3(1, 1, 1);
+  trig_params.sharedMemBytes = 0;
+  trig_params.kernelParams = trig_args;
+  trig_params.extra = nullptr;
+  cudaGraphNode_t trig_node;
+  CUDA_CHECK(
+      cudaGraphAddKernelNode(&trig_node, trig_graph, nullptr, 0, &trig_params));
+  cudaGraphExec_t trig_exec = nullptr;
+  cudaError_t inst_err = cudaGraphInstantiate(
+      &trig_exec, trig_graph, cudaGraphInstantiateFlagDeviceLaunch);
+  if (inst_err != cudaSuccess) {
+    GTEST_SKIP() << "Device-launchable graph not supported: "
+                 << cudaGetErrorString(inst_err);
+  }
+  CUDA_CHECK(cudaGraphUpload(trig_exec, stream));
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+
+  // --- Function table: 1 DEVICE_CALL append-trigger handler ---
+  cudaq_function_entry_t* d_function_entries;
+  CUDA_CHECK(cudaMalloc(&d_function_entries, sizeof(cudaq_function_entry_t)));
+  init_append_trigger_function_table<<<1, 1>>>(d_function_entries);
+  CUDA_CHECK(cudaDeviceSynchronize());
+
+  // --- Rings (pinned-mapped) ---
+  volatile uint64_t *h_rx_flags, *d_rx_flags, *h_tx_flags, *d_tx_flags;
+  std::uint8_t *h_rx_data, *d_rx_data, *h_tx_data, *d_tx_data;
+  ASSERT_TRUE(allocate_ring_buffer(kNumSlots, kSlotSize, &h_rx_flags,
+                                   &d_rx_flags, &h_rx_data, &d_rx_data));
+  ASSERT_TRUE(allocate_ring_buffer(kNumSlots, kSlotSize, &h_tx_flags,
+                                   &d_tx_flags, &h_tx_data, &d_tx_data));
+
+  // Pre-lay all messages: RPCHeader per rx slot; rx_flag = device slot addr.
+  for (int i = 0; i < kNumMessages; ++i) {
+    std::uint8_t* slot = h_rx_data + static_cast<std::size_t>(i) * kSlotSize;
+    auto* hdr = reinterpret_cast<cudaq::realtime::RPCHeader*>(slot);
+    hdr->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
+    hdr->function_id = APPEND_TRIGGER_FUNCTION_ID;
+    hdr->arg_len = 0;
+    hdr->request_id = static_cast<std::uint32_t>(i);
+    hdr->ptp_timestamp = 0;
+    h_rx_flags[i] = reinterpret_cast<uint64_t>(
+        d_rx_data + static_cast<std::size_t>(i) * kSlotSize);
+  }
+  __sync_synchronize();
+
+  // --- Shutdown flag (pinned-mapped) ---
+  volatile int* h_shutdown;
+  volatile int* d_shutdown;
+  {
+    void* tmp;
+    CUDA_CHECK(cudaHostAlloc(&tmp, sizeof(int), cudaHostAllocMapped));
+    h_shutdown = static_cast<volatile int*>(tmp);
+    *h_shutdown = 0;
+    void* tmpd;
+    CUDA_CHECK(cudaHostGetDevicePointer(&tmpd, tmp, 0));
+    d_shutdown = static_cast<volatile int*>(tmpd);
+  }
+
+  uint64_t* d_stats;
+  CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
+  CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
+
+  // current_slot resets to 0 on each self-relaunch, so the scheduler must scan
+  // the ring for the next pending slot (shared_ring_mode enables that scan).
+  CUDA_CHECK(cudaq_dispatch_kernel_set_shared_ring_mode(1));
+
+  cudaq_dispatch_graph_context* ctx = nullptr;
+  cudaError_t err = cudaq_create_dispatch_graph_regular(
+      d_rx_flags, d_tx_flags, d_rx_data, d_tx_data, kSlotSize, kSlotSize,
+      d_function_entries, 1, /*graph_io_ctx=*/nullptr, d_shutdown, d_stats,
+      kNumSlots, /*num_blocks=*/1, /*threads_per_block=*/32, trig_exec, stream,
+      &ctx);
+  if (err != cudaSuccess) {
+    cudaq_dispatch_kernel_set_shared_ring_mode(0);
+    GTEST_SKIP() << "Device-side graph launch not supported: "
+                 << cudaGetErrorString(err);
+  }
+
+  CUDA_CHECK(cudaq_launch_dispatch_graph(ctx, stream));
+
+  // Poll the counter on a SEPARATE stream: the scheduler is a persistent
+  // self-relaunching graph on `stream`, so a synchronous copy (null stream)
+  // would deadlock waiting for it to idle.  cudaMemcpyAsync on poll_stream uses
+  // the copy engine concurrently.
+  cudaStream_t poll_stream;
+  CUDA_CHECK(cudaStreamCreate(&poll_stream));
+  int counter = 0;
+  for (int elapsed = 0; elapsed < 10000; elapsed += 50) {
+    CUDA_CHECK(cudaMemcpyAsync(&counter, d_counter, sizeof(int),
+                               cudaMemcpyDeviceToHost, poll_stream));
+    CUDA_CHECK(cudaStreamSynchronize(poll_stream));
+    if (counter >= kNumMessages)
+      break;
+    usleep(50 * 1000);
+  }
+
+  // Stop the scheduler and wait for the self-relaunch chain to drain.
+  *h_shutdown = 1;
+  __sync_synchronize();
+  usleep(200000);
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+
+  CUDA_CHECK(cudaMemcpyAsync(&counter, d_counter, sizeof(int),
+                             cudaMemcpyDeviceToHost, poll_stream));
+  CUDA_CHECK(cudaStreamSynchronize(poll_stream));
+  CUDA_CHECK(cudaStreamDestroy(poll_stream));
+
+  EXPECT_GT(counter, 120)
+      << "Only " << counter
+      << " triggered launches completed -- self-relaunch likely hit the 120 "
+         "fire-and-forget cap.";
+  EXPECT_EQ(counter, kNumMessages)
+      << "Expected " << kNumMessages << " triggered launches, got " << counter;
+
+  // Cleanup
+  CUDA_CHECK(cudaq_dispatch_kernel_set_shared_ring_mode(0));
+  CUDA_CHECK(cudaq_destroy_dispatch_graph(ctx));
+  CUDA_CHECK(cudaFree(d_stats));
+  CUDA_CHECK(cudaFreeHost(const_cast<int*>(h_shutdown)));
+  free_ring_buffer(h_rx_flags, h_rx_data);
+  free_ring_buffer(h_tx_flags, h_tx_data);
+  CUDA_CHECK(cudaFree(d_function_entries));
+  CUDA_CHECK(cudaGraphExecDestroy(trig_exec));
+  CUDA_CHECK(cudaGraphDestroy(trig_graph));
+  CUDA_CHECK(cudaStreamDestroy(stream));
+  CUDA_CHECK(cudaFree(d_counter));
 }
 
 } // namespace
