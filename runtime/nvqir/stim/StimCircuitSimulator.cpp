@@ -215,9 +215,9 @@ protected:
   void computeM2IntoContext(cudaq::ExecutionContext &ctx) {
     auto flat = recordedCircuit.flattened();
     auto stats = flat.compute_stats();
-    ctx.dem_opts.measurement_matrices.num_measurements = stats.num_measurements;
-    ctx.dem_opts.measurement_matrices.det_rows.resize(stats.num_detectors);
-    ctx.dem_opts.measurement_matrices.obs_rows.resize(stats.num_observables);
+    ctx.measurement_matrices.num_measurements = stats.num_measurements;
+    ctx.measurement_matrices.det_rows.resize(stats.num_detectors);
+    ctx.measurement_matrices.obs_rows.resize(stats.num_observables);
 
     std::size_t meas_so_far = 0;
     std::size_t det_so_far = 0;
@@ -229,7 +229,12 @@ protected:
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
-            ctx.dem_opts.measurement_matrices.det_rows[det_so_far].push_back(
+            if (lookback > meas_so_far)
+              throw std::runtime_error(
+                  "dem_from_kernel: DETECTOR record target rec[-" +
+                  std::to_string(lookback) +
+                  "] references a measurement before the circuit start");
+            ctx.measurement_matrices.det_rows[det_so_far].push_back(
                 meas_so_far - lookback);
           }
         }
@@ -239,7 +244,12 @@ protected:
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
-            ctx.dem_opts.measurement_matrices.obs_rows[obs_idx].push_back(
+            if (lookback > meas_so_far)
+              throw std::runtime_error(
+                  "dem_from_kernel: OBSERVABLE_INCLUDE record target rec[-" +
+                  std::to_string(lookback) +
+                  "] references a measurement before the circuit start");
+            ctx.measurement_matrices.obs_rows[obs_idx].push_back(
                 meas_so_far - lookback);
           }
         }

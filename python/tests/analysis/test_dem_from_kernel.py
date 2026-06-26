@@ -507,5 +507,54 @@ def test_no_return_measurement_matrices_returns_string():
     assert isinstance(result, str)
 
 
+def test_return_measurement_matrices_with_dem_options():
+    """return_measurement_matrices=True and other dem_options work together.
+
+    Passes decompose_errors=True alongside return_measurement_matrices=True to
+    verify that both the DEM option (edge decomposition) and matrix output are
+    applied in the same call.  Uses the two-round memory experiment: with
+    decompose_errors the DEM is unchanged (single-detector edges are already
+    decomposed), so we focus on verifying the option is forwarded by also
+    requesting allow_gauge_detectors which would normally raise for the
+    h/mz-without-reset pattern.  Here we use the round-trip kernel that has
+    well-defined detectors so decompose_errors is the clean observable.
+    """
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def kernel():
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        cudaq.apply_noise(cudaq.Pauli2, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0,
+                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, q0, q1)
+        m0 = mz(q0)
+        m1 = mz(q1)
+        cudaq.detector(m0)
+        cudaq.detector(m0)
+        cudaq.detector(m1)
+        cudaq.detector(m1)
+
+    # Without decompose_errors the four-detector hyperedge is returned raw.
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    assert "D0 D1 D2 D3" in dem_text
+    assert "^" not in dem_text
+    assert m2d.shape == (4, 2)
+    assert m2o.shape == (0, 2)
+
+    # With decompose_errors=True the hyperedge is split and ^ appears.
+    dem_decomposed, m2d2, m2o2 = cudaq.dem_from_kernel(
+        kernel,
+        noise_model=noise,
+        decompose_errors=True,
+        return_measurement_matrices=True)
+    assert "^" in dem_decomposed
+    assert "D0 D1 D2 D3" not in dem_decomposed
+    # Matrices reflect the same circuit regardless of decomposition.
+    assert m2d2.shape == (4, 2)
+    assert m2o2.shape == (0, 2)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

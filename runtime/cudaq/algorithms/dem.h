@@ -22,8 +22,9 @@ namespace cudaq {
 class noise_model;
 
 /// @brief Sparse binary matrix mapping detectors (rows) to measurements
-/// (columns). Returned alongside `M2OSparseMatrix` when `return_m2d=True`
-/// is passed to `dem_from_kernel`.
+/// (columns). Returned alongside `M2OSparseMatrix` when
+/// `return_measurement_matrices=True` is passed to `dem_from_kernel` (Python),
+/// or via the `m2d_out` / `m2o_out` reference overloads (C++).
 ///
 /// `rows[d]` lists the chronological measurement indices that contribute to
 /// detector `d` (i.e. are XOR-ed together to form its syndrome bit).
@@ -35,8 +36,9 @@ struct M2DSparseMatrix {
 };
 
 /// @brief Sparse binary matrix mapping observables (rows) to measurements
-/// (columns). Returned alongside `M2DSparseMatrix` when `return_m2d=True`
-/// is passed to `dem_from_kernel`.
+/// (columns). Returned alongside `M2DSparseMatrix` when
+/// `return_measurement_matrices=True` is passed to `dem_from_kernel` (Python),
+/// or via the `m2d_out` / `m2o_out` reference overloads (C++).
 ///
 /// `rows[k]` lists the chronological measurement indices that contribute to
 /// observable `k`. `num_measurements` gives the total column count (shape is
@@ -118,15 +120,18 @@ std::string dem_from_kernel(QuantumKernel &&kernel, Args &&...args) {
                          std::forward<Args>(args)...);
 }
 
-/// @brief Overload that also returns the m2d and m2o sparse matrices.
+/// @brief Overload that also returns the m2d and m2o sparse matrices,
+/// with full control over analyzer options.
 ///
 /// @param m2d_out  Populated with the measurements-to-detectors matrix.
 /// @param m2o_out  Populated with the measurements-to-observables matrix.
 ///                 Both are filled in a single circuit pass.
+/// @param options  Options forwarded to the Stim error analyzer.
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
 std::string dem_from_kernel(QuantumKernel &&kernel,
                             const cudaq::noise_model *noise,
+                            const cudaq::dem_options &options,
                             cudaq::M2DSparseMatrix &m2d_out,
                             cudaq::M2OSparseMatrix &m2o_out, Args &&...args) {
   auto &platform = cudaq::get_platform();
@@ -134,18 +139,30 @@ std::string dem_from_kernel(QuantumKernel &&kernel,
   return detail::runDemFromKernel(
       kernelName, platform, noise,
       [&]() mutable { kernel(std::forward<Args>(args)...); },
-      /*options=*/{}, /*plugin_name=*/"stim", &m2d_out, &m2o_out);
+      options, /*plugin_name=*/"stim", &m2d_out, &m2o_out);
 }
 
-/// @brief Convenience overload: m2d/m2o outputs, no noise model.
+/// @brief Convenience overload: m2d/m2o outputs with noise, default options.
+template <typename QuantumKernel, typename... Args>
+  requires std::invocable<QuantumKernel &, Args...>
+std::string dem_from_kernel(QuantumKernel &&kernel,
+                            const cudaq::noise_model *noise,
+                            cudaq::M2DSparseMatrix &m2d_out,
+                            cudaq::M2OSparseMatrix &m2o_out, Args &&...args) {
+  return dem_from_kernel(std::forward<QuantumKernel>(kernel), noise,
+                         /*options=*/cudaq::dem_options{}, m2d_out, m2o_out,
+                         std::forward<Args>(args)...);
+}
+
+/// @brief Convenience overload: m2d/m2o outputs, no noise, default options.
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
 std::string dem_from_kernel(QuantumKernel &&kernel,
                             cudaq::M2DSparseMatrix &m2d_out,
                             cudaq::M2OSparseMatrix &m2o_out, Args &&...args) {
   return dem_from_kernel(std::forward<QuantumKernel>(kernel),
-                         /*noise=*/nullptr, m2d_out, m2o_out,
-                         std::forward<Args>(args)...);
+                         /*noise=*/nullptr, /*options=*/cudaq::dem_options{},
+                         m2d_out, m2o_out, std::forward<Args>(args)...);
 }
 
 } // namespace cudaq

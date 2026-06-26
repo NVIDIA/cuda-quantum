@@ -36,8 +36,10 @@ std::string runDemFromKernel(
   ctx.dem_opts = options;
   if (noise)
     ctx.noiseModel = noise;
-  if (m2d_out || m2o_out)
-    ctx.dem_opts.compute_measurement_matrices = true;
+  // Pointer existence is authoritative: non-null pointers enable matrix
+  // computation regardless of the flag in options, and null pointers suppress
+  // it even if the flag is set.
+  ctx.dem_opts.compute_measurement_matrices = (m2d_out || m2o_out);
 
   // RAII: claim the thread-local analysis-simulator slot backed by the `stim`
   // plugin. The scope starts from a clean simulator and releases the override
@@ -48,13 +50,13 @@ std::string runDemFromKernel(
 
   if (m2d_out) {
     m2d_out->num_measurements =
-        ctx.dem_opts.measurement_matrices.num_measurements;
-    m2d_out->rows = std::move(ctx.dem_opts.measurement_matrices.det_rows);
+        ctx.measurement_matrices.num_measurements;
+    m2d_out->rows = std::move(ctx.measurement_matrices.det_rows);
   }
   if (m2o_out) {
     m2o_out->num_measurements =
-        ctx.dem_opts.measurement_matrices.num_measurements;
-    m2o_out->rows = std::move(ctx.dem_opts.measurement_matrices.obs_rows);
+        ctx.measurement_matrices.num_measurements;
+    m2o_out->rows = std::move(ctx.measurement_matrices.obs_rows);
   }
 
   return std::move(ctx.dem_text);
