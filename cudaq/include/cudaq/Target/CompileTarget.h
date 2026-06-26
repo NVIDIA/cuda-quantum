@@ -21,6 +21,17 @@ public:
   /// Hook to update the pass pipeline before compilation.
   virtual void updatePassPipeline(std::string &passPipeline) const {}
 
+  /// Whether to recompile the kernel in the presence of an AOT-compiled module.
+  ///
+  /// If this is `false` and an AOT-compiled kernel (in the form of a function
+  /// pointer) is provided, then compilation will be skipped and all other
+  /// options in this class will be ignored.
+  ///
+  /// If this is `true`, the AOT-compiled module (if it exists) will be
+  /// discarded and compilation will start from scratch, according to the
+  /// options in this class.
+  bool overrideAOTCompilation = false;
+
   /// Resolved MLIR pass-pipeline and `codegen` settings.
   struct PipelineConfig {
     /// If set, override compilation pipeline with this string.
