@@ -126,7 +126,7 @@ def verifyModule(module, stage):
 
 def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
     # The client/server contract is checked before this point. The client has
-    # already run the target JIT pipeline through wireset assignment. For
+    # already run the target JIT pipeline through `wireset` assignment. For
     # execution, the mock server fully unrolls the submitted value-semantic IR,
     # reconstructs ref semantics with `regtomem`, and then uses the normal QIR
     # API lowering path.
