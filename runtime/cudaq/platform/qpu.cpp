@@ -19,6 +19,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
+#include <exception>
 #include <stdexcept>
 
 using namespace cudaq_internal::compiler;
@@ -26,41 +27,54 @@ using namespace cudaq;
 
 cudaq::KernelThunkResultType
 cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
-  if (std::holds_alternative<SourceModule>(module))
-    throw std::runtime_error(
-        "This QPU does not support launching uncompiled SourceModule kernels; "
-        "subclasses must override unifiedLaunchModule.");
-
-  const auto &compiled = std::get<CompiledModule>(module);
-  return runJITCompiledModule(compiled, args);
+  throw std::runtime_error(
+      "This QPU does not support launching the other_policies.");
 }
 
 sample_result cudaq::QPU::launchKernel(const sample_policy &policy,
-                                       const AnyModule &module,
+                                       const CompiledModule &module,
                                        KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the sample_policy.");
 }
 
 async_sample_result cudaq::QPU::launchKernel(const async_sample_policy &policy,
-                                             const AnyModule &module,
+                                             const CompiledModule &module,
                                              KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the async_sample_policy.");
 }
 
 observe_result cudaq::QPU::launchKernel(const observe_policy &policy,
-                                        const AnyModule &module,
+                                        const CompiledModule &module,
                                         KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the observe_policy.");
 }
 
-async_observe_result cudaq::QPU::launchKernel(async_observe_policy &policy,
-                                              const AnyModule &module,
-                                              KernelArgs args) {
+async_observe_result
+cudaq::QPU::launchKernel(const async_observe_policy &policy,
+                         const CompiledModule &module, KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the async_observe_policy.");
+}
+
+void cudaq::QPU::rethrowDeferredKernelException() {
+  if (auto *ctx = getExecutionContext(); ctx && ctx->deferredKernelException) {
+    auto deferred = ctx->deferredKernelException;
+    ctx->deferredKernelException = nullptr;
+    std::rethrow_exception(deferred);
+  }
+}
+
+cudaq::QPU::InKernelLaunchScope::InKernelLaunchScope() {
+  if (auto *ctx = getExecutionContext())
+    ctx->inKernelLaunch = true;
+}
+
+cudaq::QPU::InKernelLaunchScope::~InKernelLaunchScope() {
+  if (auto *ctx = getExecutionContext())
+    ctx->inKernelLaunch = false;
 }
 
 cudaq::KernelThunkResultType
@@ -82,6 +96,10 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   auto rawArgs = args.getTypeErased().value_or(std::span<void *const>{});
   auto funcPtr = compiled.getJit()->getFn();
   const auto &resultInfo = compiled.getResultInfo();
+  // Mark the kernel frame so the simulator defers (rather than throws)
+  // exceptions while the JIT'd kernel runs; rethrowDeferredKernelException()
+  // below surfaces any such error from this C++ frame.
+  InKernelLaunchScope kernelFrame;
   if (!compiled.isFullySpecialized()) {
     // Pack args at runtime via argsCreator, then call the thunk.
     auto argsCreator = compiled.getArgsCreator();
@@ -97,17 +115,21 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
                   resultInfo.getBufferSize());
     }
     std::free(buff);
+    rethrowDeferredKernelException();
     return {nullptr, 0};
   }
   if (resultInfo.hasResult()) {
     // Fully specialized with result: rawArgs.back() is the pre-allocated
     // result buffer; pass it directly to the thunk.
     void *buff = const_cast<void *>(rawArgs.back());
-    return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
-        buff, /*client_server=*/false);
+    auto result = reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(
+        funcPtr)(buff, /*client_server=*/false);
+    rethrowDeferredKernelException();
+    return result;
   }
   // Fully specialized, no result.
   funcPtr();
+  rethrowDeferredKernelException();
   return {nullptr, 0};
 }
 

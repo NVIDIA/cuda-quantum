@@ -103,6 +103,14 @@ def test_builtin_python_phase_spans_wrap_kernel_lifecycle():
     # name needs to update both this test and the contract.
     assert "ast_bridge.build_module" in names
     assert "cudaq.pipeline.aot" in names
+    assert "ast_bridge.visit.Assign" in names
+    assert "ast_bridge.visit.Call" in names
+    assert "ast_bridge.call.resolve_qualified_name" in names
+    assert "ast_bridge.call.process_quake_ctor" in names
+    assert "ast_bridge.call.group_values" in names
+    assert "ast_bridge.call.emit_quantum_operation" in names
+    assert "ast_bridge.call.emit_measurement" in names
+    assert "ast_bridge.call.emit_qvector" in names
 
 
 def test_builder_trace_marks_aot_and_jit_pipeline_spans():

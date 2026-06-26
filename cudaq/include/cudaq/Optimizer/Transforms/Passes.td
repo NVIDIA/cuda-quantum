@@ -238,7 +238,8 @@ def CombineMeasurements :
     }
     ```
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def CombineQuantumAllocations :
@@ -258,7 +259,8 @@ def CombineQuantumAllocations :
     combined deallocation will be added to each exit block.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
@@ -948,14 +950,32 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
       "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), "
       "file(/path/to/file), bypass">,
-    Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
+    Option<"extendedLayerSize", "extended-layer-size", "unsigned",
            /*default=*/"20", "Extended layer size">,
-    Option<"extendedLayerWeight", "extendedLayerWeight", "float",
+    Option<"extendedLayerWeight", "extended-layer-weight", "float",
            /*default=*/"0.5", "Extended layer weight">,
-    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5",
+    Option<"decayDelta", "decay-delta", "float", /*default=*/"0.5",
            "Decay delta">,
-    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
-           "Number of rounds before decay is reset">,
+    Option<"roundsDecayReset", "rounds-decay-reset", "unsigned",
+           /*default=*/"5", "Number of rounds before decay is reset">,
+    Option<"minStallSwapBudget", "min-stall-swap-budget", "unsigned",
+           /*default=*/"64",
+           "Release valve floor: minimum number of consecutive swaps that "
+           "route no gate before a stuck front layer is force-routed along a "
+           "shortest path (advanced)">,
+    Option<"stallSwapBudgetPerQubit", "stall-swap-budget-per-qubit", "unsigned",
+           /*default=*/"4",
+           "Release valve scaling: per-device-qubit stall budget. The budget "
+           "used is max(min-stall-swap-budget, stall-swap-budget-per-qubit * "
+           "numQubits) (advanced)">,
+    Option<"placement", "placement", "std::string",
+           /*default=*/"\"identity\"",
+           "Initial placement strategy: auto (propose identity and greedy "
+           "seeds, select by routed swap count), identity, greedy">,
+    Option<"search", "search", "std::string", /*default=*/"\"none\"",
+           "Layout search strategy: sabre (SABRE forward-backward-forward "
+           "reverse-traversal refinement of each seed), none (single forward "
+           "route per seed; legacy mapping is placement=identity search=none)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
            "internal compiler errors">
@@ -994,7 +1014,8 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     SSA semantics. A use can destroy the value itself, therefore it is required
     that `wire` values be threads in and out of each and every use.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"classicalValues", "classical", "bool",
@@ -1068,7 +1089,8 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     "Minimumn percentage of rz ops in subcircuit to run phase folding">,
   ];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
@@ -1348,9 +1370,12 @@ def ResourceCountPreprocess :
 
   let options = [
     Option<"countGate", "count-gate",
-      "std::function<void(std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t)>",
-      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t){}",
-      "Closure that receives gate name, control qubit indices, target qubit indices, and multiplicity">,
+      "std::function<void(std::string,std::vector<std::size_t>,std::vector"
+      "<std::size_t>,size_t)>",
+      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector"
+      "<std::size_t>,size_t){}",
+      "Closure that receives gate name, control qubit indices, target qubit "
+      "indices, and multiplicity">,
     Option<"dumpPreprocessed", "dump-preprocessed", "bool", /*default=*/"false",
       "Dump preprocessed gates instead of counting them (useful for testing)">,
   ];
@@ -1522,7 +1547,7 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   }];
 
   let dependentDialects = ["mlir::cf::ControlFlowDialect",
-                           "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
+    "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {
