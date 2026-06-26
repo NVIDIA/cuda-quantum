@@ -259,6 +259,27 @@ show_network_diagnostics() {
   fi
 }
 
+verify_netns_ip_connectivity() {
+  echo "=== Verifying netns IP connectivity with ping ==="
+  if ! command -v ping >/dev/null 2>&1; then
+    echo "WARNING: ping not found; skipping netns IP connectivity check." >&2
+    return 0
+  fi
+
+  run_netns "$NETNS_A" ping -c 3 -W 1 "$IP_B"
+  run_netns "$NETNS_B" ping -c 3 -W 1 "$IP_A"
+}
+
+show_infiniband_sysfs() {
+  echo "=== /sys/class/infiniband visibility ==="
+  if [[ "$USE_NETNS" == "1" ]]; then
+    run_netns "$NETNS_A" sh -c 'ls -la /sys/class/infiniband || true'
+    run_netns "$NETNS_B" sh -c 'ls -la /sys/class/infiniband || true'
+  else
+    ls -la /sys/class/infiniband || true
+  fi
+}
+
 verify_pingpong() {
   require_cmd timeout
   require_cmd ibv_uc_pingpong
@@ -351,6 +372,7 @@ setup_netns() {
   run_netns "$NETNS_B" ip link set "$NETDEV_B" up
 
   show_network_diagnostics
+  verify_netns_ip_connectivity
 
   run_netns "$NETNS_A" rdma link add "$RDEV_A" type rxe netdev "$NETDEV_A"
   run_netns "$NETNS_B" rdma link add "$RDEV_B" type rxe netdev "$NETDEV_B"
@@ -361,6 +383,7 @@ setup_netns() {
   run_netns "$NETNS_B" rdma dev show || true
   run_netns "$NETNS_A" ibv_devices || true
   run_netns "$NETNS_B" ibv_devices || true
+  show_infiniband_sysfs
 
   if [[ "$SKIP_RDMA_NETNS_MOVE" == "1" ]]; then
     echo "Skipping explicit rdma dev set ... netns move for diagnostic mode."

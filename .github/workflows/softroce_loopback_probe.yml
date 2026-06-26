@@ -101,7 +101,7 @@ jobs:
           kernel="$(uname -r)"
           retry sudo apt-get update
           retry sudo apt-get install -y --no-install-recommends \
-            g++ iproute2 kmod rdma-core ibverbs-utils libibverbs-dev
+            g++ iproute2 iputils-ping kmod rdma-core ibverbs-utils libibverbs-dev
 
           exact_extra="linux-modules-extra-${kernel}"
           if apt-cache show "$exact_extra" >/dev/null 2>&1; then
