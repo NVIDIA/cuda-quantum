@@ -372,7 +372,8 @@ int main() {
   {
     cudaq::M2DSparseMatrix m2d;
     cudaq::M2OSparseMatrix m2o;
-    cudaq::dem_from_kernel(memoryExperimentTwoRounds{}, &g_emptyNoise, m2d, m2o);
+    cudaq::dem_from_kernel(memoryExperimentTwoRounds{}, &g_emptyNoise, m2d,
+                           m2o);
     printSparseMatrix("M2D_MEM2R", m2d);
     printSparseMatrix("M2O_MEM2R", m2o);
   }

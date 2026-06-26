@@ -79,10 +79,9 @@ static nanobind::object dem_from_kernel_impl(const std::string &kernelName,
       opts.compute_measurement_matrices ? &m2d_storage : nullptr;
   cudaq::M2OSparseMatrix *m2o_ptr =
       opts.compute_measurement_matrices ? &m2o_storage : nullptr;
-  std::string dem_text =
-      cudaq::detail::runDemFromKernel(kernelName, platform, noisePtr, launch,
-                                      opts, /*plugin_name=*/"stim",
-                                      m2d_ptr, m2o_ptr);
+  std::string dem_text = cudaq::detail::runDemFromKernel(
+      kernelName, platform, noisePtr, launch, opts, /*plugin_name=*/"stim",
+      m2d_ptr, m2o_ptr);
 
   if (!opts.compute_measurement_matrices)
     return nanobind::cast(std::move(dem_text));

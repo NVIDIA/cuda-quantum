@@ -18,14 +18,11 @@
 
 namespace cudaq::detail {
 
-std::string runDemFromKernel(const std::string &kernelName,
-                             cudaq::quantum_platform &platform,
-                             const cudaq::noise_model *noise,
-                             const std::function<void()> &kernel,
-                             const cudaq::dem_options &options,
-                             const std::string &plugin_name,
-                             cudaq::M2DSparseMatrix *m2d_out,
-                             cudaq::M2OSparseMatrix *m2o_out) {
+std::string runDemFromKernel(
+    const std::string &kernelName, cudaq::quantum_platform &platform,
+    const cudaq::noise_model *noise, const std::function<void()> &kernel,
+    const cudaq::dem_options &options, const std::string &plugin_name,
+    cudaq::M2DSparseMatrix *m2d_out, cudaq::M2OSparseMatrix *m2o_out) {
 
   if (cudaq::kernelHasConditionalFeedback(kernelName))
     throw std::runtime_error(

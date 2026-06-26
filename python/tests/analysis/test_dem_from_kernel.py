@@ -435,8 +435,8 @@ def test_return_measurement_matrices_no_detectors():
         q = cudaq.qubit()
         mz(q)
 
-    dem_text, m2d, m2o = cudaq.dem_from_kernel(
-        kernel, return_measurement_matrices=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               return_measurement_matrices=True)
     assert m2d.shape == (0, 1)
     assert m2d.nnz == 0
     assert m2o.shape == (0, 1)
@@ -456,8 +456,9 @@ def test_return_measurement_matrices_two_rounds():
             m = m_new
         cudaq.logical_observable(m)
 
-    dem_text, m2d, m2o = cudaq.dem_from_kernel(
-        kernel, 2, return_measurement_matrices=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               2,
+                                               return_measurement_matrices=True)
     # 3 measurements (m0, m1, m2), 2 detectors, 1 observable
     assert m2d.shape == (2, 3)
     dense = m2d.toarray()
@@ -482,8 +483,8 @@ def test_return_measurement_matrices_type_is_scipy_sparse():
         cudaq.detector(m)
         cudaq.logical_observable(m)
 
-    dem_text, m2d, m2o = cudaq.dem_from_kernel(
-        kernel, return_measurement_matrices=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               return_measurement_matrices=True)
     assert isinstance(dem_text, str)
     assert sp.issparse(m2d)
     assert sp.issparse(m2o)
