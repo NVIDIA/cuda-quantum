@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -140,11 +141,10 @@ public:
             // Skip zero-size allocas. Merging them would
             // produce subveq(lo, lo-1) which is invalid.
             continue;
-          if (auto offsetAttr = dyn_cast_if_present<IntegerAttr>(
-                  alloc->getAttr(cudaq::opt::StartingOffsetAttrName))) {
+          if (auto offsetOpt = cudaq::opt::getStartingOffset(alloc)) {
             if (hasUnannotatedAllocation)
               return;
-            auto offset = offsetAttr.getValue().getLimitedValue();
+            auto offset = *offsetOpt;
             if (!startingOffset) {
               if (offset < currentOffset)
                 return;

@@ -27,6 +27,17 @@ public:
     return sampleResults.begin()->first;
   }
 
+  cudaq::sample_result getSampleResult(cudaq::sample_policy policy,
+                                       std::size_t shots = 1) {
+    cudaq::ExecutionContext ctx("sample", shots);
+    this->configureExecutionContext(ctx);
+    cudaq::detail::setExecutionContext(&ctx);
+    auto sampleResults = this->finalizeExecutionContext(policy);
+    cudaq::detail::resetExecutionContext();
+
+    return sampleResults;
+  }
+
   auto getStateVector() {
     this->flushGateQueue();
     return this->state;

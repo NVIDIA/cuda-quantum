@@ -247,9 +247,8 @@ func.func @permuted_mapped_offsets() {
 
 // CHECK-LABEL:   func.func @permuted_mapped_offsets() {
 // CHECK-NOT:       quake.alloca !quake.veq<3>
-// CHECK:           quake.alloca !quake.ref {StartingOffset = 1 : i64}
-// CHECK:           quake.alloca !quake.ref {StartingOffset = 0 : i64}
-// CHECK:           quake.alloca !quake.ref {StartingOffset = 2 : i64}
+// CHECK-COUNT-3:   quake.alloca !quake.ref
+// CHECK-NOT:       quake.alloca !quake.ref
 // CHECK:           return
 // CHECK:         }
 
@@ -263,7 +262,7 @@ func.func @mixed_mapped_offsets() {
 
 // CHECK-LABEL:   func.func @mixed_mapped_offsets() {
 // CHECK-NOT:       quake.alloca !quake.veq<2>
-// CHECK:           quake.alloca !quake.ref
-// CHECK:           quake.alloca !quake.ref {StartingOffset = 4 : i64}
+// CHECK-COUNT-2:   quake.alloca !quake.ref
+// CHECK-NOT:       quake.alloca !quake.ref
 // CHECK:           return
 // CHECK:         }

@@ -9,6 +9,7 @@
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
 #include "common/RestClient.h"
+#include "common/ServerHelper.h"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>

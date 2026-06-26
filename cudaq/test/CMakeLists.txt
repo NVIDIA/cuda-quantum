@@ -64,6 +64,7 @@ set(CUDAQ_TEST_DEPENDS
     nvq++
     test_argument_conversion
     test_compile_target
+    test_kernel_execution_maps
 )
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND

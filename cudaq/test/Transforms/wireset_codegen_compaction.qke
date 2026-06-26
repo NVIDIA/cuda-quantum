@@ -9,7 +9,10 @@
 // RUN: cudaq-opt --wireset-to-profile-qir-prep --wireset-to-profile-qir --symbol-dce %s | FileCheck %s
 
 quake.wire_set @mapped_wireset[100]
+quake.wire_set @aux_wireset[10]
 
+// Sparse device ids 95 and 99 compact to contiguous local indices 0 and 1, and
+// the borrowed wires lower to the QIR call sequence.
 func.func @sparse_device_ids() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %q0 = quake.borrow_wire @mapped_wireset[95] : !quake.wire
   %q1 = quake.borrow_wire @mapped_wireset[99] : !quake.wire
@@ -33,3 +36,48 @@ func.func @sparse_device_ids() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK: %[[Q1:.*]] = cc.cast %[[Q1_PTR]] : (!cc.ptr<none>) -> !cc.ptr<none>
 // CHECK: call @__quantum__qis__h__body(%[[Q0]]) : (!cc.ptr<none>) -> ()
 // CHECK: call @__quantum__qis__cnot__body(%[[Q0]], %[[Q1]]) : (!cc.ptr<none>, !cc.ptr<none>) -> ()
+
+// Borrow from both @mapped_wireset and a plain wire set in the same function.
+// requiredQubits must reflect only the @mapped_wireset borrows (2), not the
+// total borrow count (3), and the mapped borrows still compact to 0 and 1.
+func.func @mixed_wire_sets() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.borrow_wire @mapped_wireset[3] : !quake.wire
+  %q1 = quake.borrow_wire @mapped_wireset[7] : !quake.wire
+  %aux = quake.borrow_wire @aux_wireset[0] : !quake.wire
+  %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %measOut, %wires = quake.mz %1#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %measOut_1, %wires_1 = quake.mz %1#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.discriminate %measOut_1 : (!quake.measure) -> i1
+  quake.return_wire %wires : !quake.wire
+  quake.return_wire %wires_1 : !quake.wire
+  quake.return_wire %aux : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @mixed_wire_sets() attributes {"cudaq-entrypoint", "cudaq-kernel", output_names = {{.*}}, requiredQubits = "2", requiredResults = "2"}
+// CHECK: %[[Q0_ID:.*]] = arith.constant 0 : i64
+// CHECK: %[[Q1_ID:.*]] = arith.constant 1 : i64
+
+// Enriched output_names carries an additive third tuple element, the per-result
+// output position computed from the borrow lowering order. The first two tuple
+// elements (qubit local index and register name) are unchanged.
+// Device qubit 95 is borrowed first (local index 0 -> output position 0) and
+// device qubit 99 second (local index 1 -> output position 1).
+func.func @borrow_order() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.borrow_wire @mapped_wireset[95] : !quake.wire
+  %q1 = quake.borrow_wire @mapped_wireset[99] : !quake.wire
+  %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %measOut, %wires = quake.mz %1#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %measOut_0, %wires_1 = quake.mz %1#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+  quake.return_wire %wires : !quake.wire
+  quake.return_wire %wires_1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @borrow_order()
+// CHECK-SAME: output_names = "{{\[\[}}[0,[0,\22{{.*}}\22,0]],[1,[1,\22{{.*}}\22,1]]]]"

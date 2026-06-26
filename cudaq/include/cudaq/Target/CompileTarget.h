@@ -84,10 +84,6 @@ public:
   /// Whether device calls are supported by the target.
   bool supportDeviceCalls = false;
 
-  /// Whether to retrieve mapping reorder indices from MLIR and store it as
-  /// compiled metadata.
-  bool storeReorderIdx = false;
-
   /// Whether to generate resource counts.
   ///
   /// When true, the compiler will generate resource counts during compilation

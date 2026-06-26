@@ -423,6 +423,11 @@ FermioniqServerHelper::processResults(ServerMessage &postJobResponse,
 
       ExecutionResult exec_result(sample_dict, exp);
       sample_result = cudaq::sample_result(exec_result);
+    } else if (auto result =
+                   tryReconstructFromDeviceIndexedCounts(jobID, sample_dict)) {
+      // Reconstruct the user-visible result order and named registers from the
+      // enriched output_names when one exists for this job.
+      sample_result = *result;
     } else {
       ExecutionResult exec_result(sample_dict);
       sample_result = cudaq::sample_result(exec_result);

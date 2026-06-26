@@ -32,7 +32,7 @@ using namespace mlir;
 
 namespace {
 
-constexpr StringRef mappedWireSetName("mapped_wireset");
+constexpr StringRef mappedWireSetName(cudaq::opt::mappedWiresetName);
 
 //===----------------------------------------------------------------------===//
 // Placement
@@ -429,7 +429,7 @@ void pushSeedIfNew(SmallVector<SmallVector<unsigned>> &seeds,
 SmallVector<SmallVector<unsigned>>
 buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
                     const cudaq::Device &device,
-                    const std::optional<VirtualInteractionGraph> &interactions,
+                    const VirtualInteractionGraph &interactions,
                     ArrayRef<bool> userVirtualQubits) {
   SmallVector<SmallVector<unsigned>> seeds;
 
@@ -443,17 +443,15 @@ buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
 
   if (strategy == PlacementStrategy::Auto ||
       strategy == PlacementStrategy::Greedy) {
-    assert(interactions.has_value() &&
-           "greedy placement requires collected interactions");
     SmallVector<unsigned> greedy =
-        GreedyInitialPlacer(device, *interactions, userVirtualQubits).run();
+        GreedyInitialPlacer(device, interactions, userVirtualQubits).run();
     // For `auto`, greedy degenerates to identity when there are no interactions
     // to place, so skip the duplicate rather than route the identity layout
     // twice.
     pushSeedIfNew(seeds, std::move(greedy));
     if (strategy == PlacementStrategy::Auto)
       if (auto componentSeed = buildComponentCompatibleSeed(
-              numV, device, *interactions, userVirtualQubits))
+              numV, device, interactions, userVirtualQubits))
         pushSeedIfNew(seeds, std::move(*componentSeed));
   }
 
@@ -928,7 +926,9 @@ double SabreRouter::computeLayerCost(ArrayRef<NodeRef> layer) {
     const RoutingProblem::Node &node = problem[n];
     auto phy0 = placement.getPhy(node.qubits[0]);
     auto phy1 = placement.getPhy(node.qubits[1]);
-    cost += device.getDistance(phy0, phy1) - 1;
+    unsigned d = device.getDistance(phy0, phy1);
+    if (d != cudaq::Device::unreachableDistance)
+      cost += d - 1;
   }
   return cost / layer.size();
 }
@@ -1165,23 +1165,20 @@ public:
         reverseProblem(refine ? buildReverseProblem(problem)
                               : RoutingProblem{}) {}
 
-  /// The selected routing result and the final placement it produced (used for
-  /// the mapping_v2p attributes).
+  /// The selected routing result.
   struct Selection {
     RoutingResult result;
-    cudaq::Placement finalLayout;
   };
 
   /// Route every seed and return the candidate with the fewest swaps.
   Selection run(ArrayRef<SmallVector<unsigned>> seeds, unsigned numV,
                 unsigned numPhy) {
-    Selection best{RoutingResult{}, cudaq::Placement(numV, numPhy)};
+    Selection best{RoutingResult{}};
     bool haveBest = false;
     auto consider = [&](RoutingResult result,
-                        const cudaq::Placement &finalPlace) {
+                        const cudaq::Placement & /*finalPlace*/) {
       if (!haveBest || isBetter(result, best.result)) {
         best.result = std::move(result);
-        best.finalLayout = finalPlace;
         haveBest = true;
       }
     };
@@ -1497,6 +1494,10 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
       return;
 
     insertWireSetOpForDevice(*deviceInstance, mod);
+    // Survives SymbolDCEPass (which removes the private WireSetOp after
+    // regtomem) and signals ObserveAnsatz that mapping ran.
+    mod->setAttr(cudaq::opt::qubitMappingRanAttrName,
+                 mlir::UnitAttr::get(mod.getContext()));
   }
 };
 
@@ -1631,7 +1632,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     // Also populate the highest identity borrow up as long as we're traversing
     // them.
     StringRef inputWireSet;
-    std::optional<std::uint32_t> highestIdentity;
+    bool sawAnyBorrow = false;
     auto walkResult = func.walk([&](cudaq::quake::BorrowWireOp borrowOp) {
       if (inputWireSet.empty()) {
         inputWireSet = borrowOp.getSetName();
@@ -1643,9 +1644,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           func.emitOpError("function cannot use multiple WireSets");
         return WalkResult::interrupt();
       }
-      highestIdentity = highestIdentity
-                            ? std::max(*highestIdentity, borrowOp.getIdentity())
-                            : borrowOp.getIdentity();
+      sawAnyBorrow = true;
       return WalkResult::advance();
     });
     if (walkResult.wasInterrupted()) {
@@ -1655,7 +1654,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                  << "NYI: multiple wire sets for a target machine");
       return;
     }
-    if (!highestIdentity) {
+    if (!sawAnyBorrow) {
       if (nonComposable) {
         func.emitOpError("no borrow_wire ops found in " + func.getName());
         signalPassFailure();
@@ -1759,15 +1758,24 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Two-qubit interaction data for placement and disconnected-device
     // reachability checks, collected during the scan.
-    std::optional<VirtualInteractionGraph> interactions;
     SmallVector<bool> userVirtualQubits;
-    interactions.emplace(deviceNumQubits);
+    VirtualInteractionGraph interactions(deviceNumQubits);
     userVirtualQubits.assign(deviceNumQubits, false);
 
     for (Operation &op : block.getOperations()) {
       if (auto qop = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
         // Assign a new virtual qubit to the resulting wire.
         auto id = qop.getIdentity();
+        if (id >= deviceNumQubits) {
+          if (nonComposable) {
+            qop.emitError("borrow_wire identity " + std::to_string(id) +
+                          " exceeds device qubit count " +
+                          std::to_string(deviceNumQubits));
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "borrow identity exceeds device qubits");
+          return;
+        }
         wireToVirtualQ[qop.getResult()] = cudaq::Placement::VirtualQ(id);
         finalQubitWire[id] = qop.getResult();
         sources[id] = qop;
@@ -1845,7 +1853,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
             wireOperands.size() == 2) {
           unsigned v0 = virtualOperands[0].index;
           unsigned v1 = virtualOperands[1].index;
-          interactions->addInteraction(v0, v1);
+          interactions.addInteraction(v0, v1);
         }
 
         // Map the result wires to the appropriate virtual qubits.
@@ -1883,19 +1891,30 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     seeds.erase(llvm::remove_if(seeds,
                                 [&](ArrayRef<unsigned> seed) {
                                   return !seedCanRouteInteractions(
-                                      seed, *deviceInstance, *interactions);
+                                      seed, *deviceInstance, interactions);
                                 }),
                 seeds.end());
     if (seeds.empty()) {
-      if (auto edge = findFirstInteractionEdge(*interactions, numV)) {
-        func.emitError("cannot place two-qubit interaction between virtual "
-                       "qubits " +
-                       std::to_string(edge->first) + " and " +
-                       std::to_string(edge->second) +
-                       " on disconnected device topology");
+      if (auto edge = findFirstInteractionEdge(interactions, numV)) {
+        if (nonComposable)
+          func.emitError("cannot place two-qubit interaction between virtual "
+                         "qubits " +
+                         std::to_string(edge->first) + " and " +
+                         std::to_string(edge->second) +
+                         " on disconnected device topology");
+        else
+          func.emitRemark("cannot place two-qubit interaction between virtual "
+                          "qubits " +
+                          std::to_string(edge->first) + " and " +
+                          std::to_string(edge->second) +
+                          " on disconnected device topology");
       } else {
-        func.emitError("no valid initial layout for disconnected device "
-                       "topology");
+        if (nonComposable)
+          func.emitError("no valid initial layout for disconnected device "
+                         "topology");
+        else
+          func.emitRemark("no valid initial layout for disconnected device "
+                          "topology");
       }
       signalPassFailure();
       return;
@@ -1971,7 +1990,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     RoutingSearchStrategy::Selection selection =
         search.run(seeds, numV, numPhy);
     RoutingResult &best = selection.result;
-    cudaq::Placement &bestLayout = selection.finalLayout;
 
     // Emit the selected result onto the IR exactly once.
     RoutingEmitter emitter(wireToVirtualQ, numPhy);
@@ -2002,58 +2020,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                                            finalWire);
       }
     }
-
-    // Populate legacy mapping_v2p metadata for current runtime consumers:
-    // mapping_v2p[v] contains the final device-qubit placement for virtual
-    // qubit `v`. To map backend result bits back to the original user program,
-    // run something like this:
-    //   for (int v = 0; v < numQubits; v++)
-    //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
-    llvm::SmallVector<Attribute> attrs(*highestIdentity + 1);
-    for (unsigned int v = 0; v < *highestIdentity + 1; v++)
-      attrs[v] = IntegerAttr::get(
-          builder.getIntegerType(64),
-          bestLayout.getPhy(cudaq::Placement::VirtualQ(v)).index);
-
-    func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
-
-    // Now populate mapping_reorder_idx attribute. This attribute will be used
-    // by downstream processing to reconstruct a global register as if mapping
-    // had not occurred. This is important because the global register is
-    // required to be sorted by qubit allocation order, and mapping can change
-    // that apparent order AND introduce ancilla qubits that we don't want to
-    // appear in the final global register.
-
-    // pair is <first=virtual, second=physical>
-    using VirtPhyPairType = std::pair<std::size_t, std::size_t>;
-    llvm::SmallVector<VirtPhyPairType> measuredQubits;
-    measuredQubits.reserve(userQubitsMeasured.size());
-    for (auto mq : userQubitsMeasured) {
-      measuredQubits.emplace_back(
-          mq, bestLayout.getPhy(cudaq::Placement::VirtualQ(mq)).index);
-    }
-    // First sort the pairs according to the device qubits.
-    llvm::sort(measuredQubits,
-               [&](const VirtPhyPairType &a, const VirtPhyPairType &b) {
-                 return a.second < b.second;
-               });
-    // Now find out how to reorder `measuredQubits` such that the elements are
-    // ordered based on the *virtual* qubits (i.e. measuredQubits[].first).
-    llvm::SmallVector<std::size_t> reorder_idx(measuredQubits.size());
-    for (std::size_t ix = 0; auto &element : reorder_idx)
-      element = ix++;
-    llvm::sort(reorder_idx, [&](const std::size_t &i1, const std::size_t &i2) {
-      return measuredQubits[i1].first < measuredQubits[i2].first;
-    });
-    // After kernel execution is complete, you can pass reorder_idx[] into
-    // sample_result::reorder() in order to undo the ordering change to the
-    // global register that the mapping pass induced.
-    llvm::SmallVector<Attribute> mapping_reorder_idx(reorder_idx.size());
-    for (std::size_t ix = 0; auto &element : mapping_reorder_idx)
-      element = IntegerAttr::get(builder.getIntegerType(64), reorder_idx[ix++]);
-
-    func->setAttr("mapping_reorder_idx",
-                  builder.getArrayAttr(mapping_reorder_idx));
   }
 };
 

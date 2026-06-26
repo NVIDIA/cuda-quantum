@@ -33,6 +33,20 @@ class Job(BaseModel):
 # Keep track of Job Ids to their Names
 createdJobs = {}
 
+# Fixed probability responses used by server-helper unit tests that call
+# processResults directly without submitting QIR through this mock service.
+fixedResults = {
+    "cudaq-typed-map-result": {
+        "1": 1.0,
+    },
+    "cudaq-legacy-result": {
+        "1": 1.0,
+    },
+    "cudaq-result-id-map-result": {
+        "1": 1.0,
+    },
+}
+
 # Could how many times the client has requested the Job
 countJobGetRequests = 0
 
@@ -146,7 +160,10 @@ async def getJob(id: str):
 
 @app.get("/v0.3/jobs/{jobId}/results")
 async def getResults(jobId: str):
-    global countJobGetRequests, createdJobs
+    global countJobGetRequests, createdJobs, fixedResults
+
+    if jobId in fixedResults:
+        return fixedResults[jobId]
 
     counts = createdJobs[jobId]
     counts.dump()

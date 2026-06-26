@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
@@ -63,6 +65,28 @@ CUDAQ_TEST(OQCTester, checkSampleAsyncLoadFromFile) {
   EXPECT_EQ(counts.size(), 2);
 
   std::remove("saveMe.json");
+}
+
+// Provider-specific parsing: OQC returns counts under a "results" object with
+// a sibling "task_error". processResults must read that shape into the global
+// register. The shared reconstruction-layout assertion is covered by the
+// representative testers and ResultReconstructionTester.
+CUDAQ_TEST(OQCTester, processResultsParsesProviderResponse) {
+  auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("oqc");
+  ASSERT_TRUE(serverHelper);
+
+  cudaq::BackendConfig config;
+  config["emulate"] = "true";
+  config["output_names.oqc-parse-job-id"] = R"([[[0, [1, "r00000", 0]]]])";
+  serverHelper->initialize(config);
+
+  cudaq::ServerMessage response = {{"results", {{"1", 1000}}},
+                                   {"task_error", nullptr}};
+  std::string jobId = "oqc-parse-job-id";
+  auto result = serverHelper->processResults(response, jobId);
+
+  EXPECT_EQ(result.count("1"), 1000);
+  EXPECT_EQ(result.count("1", "r00000"), 1000);
 }
 
 CUDAQ_TEST(OQCTester, checkObserveSync) {

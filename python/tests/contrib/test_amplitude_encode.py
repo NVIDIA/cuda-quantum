@@ -33,13 +33,6 @@ def test_amplitude_encode_padding():
     got = np.asarray(state)
     want = np.array([0.5, 0.5, 0.5, 0.0], dtype=cudaq.complex()) / expected_norm
     assert np.allclose(got, want)
-
-
-def test_amplitude_encode_issue_example():
-    state = cudaq.contrib.amplitude_encode([0.5, 0.5, 0.5], pad=0)
-    want = np.array([0.5773, 0.5773, 0.5773, 0.0], dtype=cudaq.complex())
-    got = np.asarray(state)
-    assert np.allclose(got, want, rtol=1e-3)
     assert np.isclose(np.linalg.norm(got), 1.0)
 
 

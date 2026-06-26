@@ -31,3 +31,4 @@ endfunction()
 
 add_cudaq_hybrid_test(test_argument_conversion)
 add_cudaq_hybrid_test(test_compile_target)
+add_cudaq_hybrid_test(test_kernel_execution_maps)

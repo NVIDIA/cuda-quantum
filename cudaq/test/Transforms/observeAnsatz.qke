@@ -97,12 +97,12 @@
 // CHECK:           return
 // CHECK:         }
 
-quake.wire_set @mapped[3]
+quake.wire_set @mapped_wireset[3]
 
-func.func @mapped_observe_logical_z0() attributes {mapping_v2p = [1, 0, 2]} {
-  %0 = quake.borrow_wire @mapped[1] : !quake.wire
-  %1 = quake.borrow_wire @mapped[0] : !quake.wire
-  %2 = quake.borrow_wire @mapped[2] : !quake.wire
+func.func @mapped_observe_logical_z0() {
+  %0 = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+  %1 = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  %2 = quake.borrow_wire @mapped_wireset[2] : !quake.wire
   %3 = quake.x %0 : (!quake.wire) -> !quake.wire
   quake.return_wire %3 : !quake.wire
   quake.return_wire %1 : !quake.wire
@@ -110,8 +110,8 @@ func.func @mapped_observe_logical_z0() attributes {mapping_v2p = [1, 0, 2]} {
   return
 }
 
-// Z0-LABEL:   func.func @mapped_observe_logical_z0() attributes {mapping_v2p = [1, 0, 2]} {
-// Z0:           %[[Q0:.*]] = quake.borrow_wire @mapped[1] : !quake.wire
+// Z0-LABEL:   func.func @mapped_observe_logical_z0() {
+// Z0:           %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
 // Z0:           %[[Q0_FINAL:.*]] = quake.x %[[Q0]] : (!quake.wire) -> !quake.wire
 // Z0:           quake.mz %[[Q0_FINAL]] name "r00000" : (!quake.wire) -> (!quake.measure, !quake.wire)
 // Z0:           return

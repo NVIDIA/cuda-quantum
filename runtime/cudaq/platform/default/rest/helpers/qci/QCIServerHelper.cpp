@@ -276,7 +276,16 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("jobId: {}", jobId);
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   auto qirResults = getOutputLog(outputPath);
-  return createSampleResultFromQirOutput(qirResults);
+  auto sampleResult = createSampleResultFromQirOutput(qirResults);
+
+  // Reconstruct the user-visible result order and named registers from the
+  // enriched output_names. When no output_names exist for this job, return the
+  // QIR-derived global register unchanged.
+  if (auto result =
+          tryReconstructFromResultIndexedCounts(jobId, sampleResult.to_map()))
+    return *result;
+
+  return sampleResult;
 }
 
 std::map<std::string, std::string>

@@ -10,6 +10,8 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
+#include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/algorithm.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <fstream>

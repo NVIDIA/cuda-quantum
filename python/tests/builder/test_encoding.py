@@ -37,48 +37,23 @@ def test_amplitude_encode_builder_parameterized_state():
     assert counts['0'] > 900
 
 
-def test_angular_encode_builder_ry():
+@pytest.mark.parametrize("rotation, angles, expected", [
+    ('Y', [0.1, 0.2, 0.3], ['ry(0.1)', 'ry(0.2)', 'ry(0.3)']),
+    ('X', [0.5, 1.0], ['rx(0.5)', 'rx(1']),
+    ('Z', [0.7, 0.8], ['rz(0.7)', 'rz(0.8)']),
+    (None, [0.4, 0.5], ['ry(0.4)', 'ry(0.5)']),
+    ('y', [0.1], ['ry(0.1)']),
+])
+def test_angular_encode_builder_draw(rotation, angles, expected):
     kernel = cudaq.make_kernel()
-    q = kernel.qalloc(3)
-    cudaq.contrib.angular_encode(kernel, q, [0.1, 0.2, 0.3], rotation='Y')
+    q = kernel.qalloc(len(angles))
+    if rotation is None:
+        cudaq.contrib.angular_encode(kernel, q, angles)
+    else:
+        cudaq.contrib.angular_encode(kernel, q, angles, rotation=rotation)
     drawn = cudaq.draw(kernel)
-    assert 'ry(0.1)' in drawn
-    assert 'ry(0.2)' in drawn
-    assert 'ry(0.3)' in drawn
-
-
-def test_angular_encode_builder_rx():
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(2)
-    cudaq.contrib.angular_encode(kernel, q, [0.5, 1.0], rotation='X')
-    drawn = cudaq.draw(kernel)
-    assert 'rx(0.5)' in drawn
-    assert 'rx(1)' in drawn or 'rx(1.0)' in drawn
-
-
-def test_angular_encode_builder_rz():
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(2)
-    cudaq.contrib.angular_encode(kernel, q, [0.7, 0.8], rotation='Z')
-    drawn = cudaq.draw(kernel)
-    assert 'rz(0.7)' in drawn
-    assert 'rz(0.8)' in drawn
-
-
-def test_angular_encode_builder_default_rotation():
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(2)
-    cudaq.contrib.angular_encode(kernel, q, [0.4, 0.5])
-    drawn = cudaq.draw(kernel)
-    assert 'ry(0.4)' in drawn
-    assert 'ry(0.5)' in drawn
-
-
-def test_angular_encode_builder_case_insensitive_rotation():
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(1)
-    cudaq.contrib.angular_encode(kernel, q, [0.1], rotation='y')
-    assert 'ry(0.1)' in cudaq.draw(kernel)
+    for operation in expected:
+        assert operation in drawn
 
 
 def test_angular_encode_builder_parameterized_angles():

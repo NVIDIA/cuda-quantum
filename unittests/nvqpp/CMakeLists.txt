@@ -32,12 +32,14 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/encoding_tester.cpp
   integration/measure_reset_tester.cpp
   integration/mps_to_host_tester.cpp
-  qir/NVQIRTester.cpp  
+  qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
   integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
-  common/CompiledModuleTester.cpp
+  common/NamedVariantStoreTester.cpp
+  common/KernelExecutionTester.cpp
+  common/ResultReconstructionTester.cpp
   ptsbe/PTSBESampleTester.cpp
   ptsbe/PTSBEMultiBackendTester.cpp
   integration/tracer_tester.cpp

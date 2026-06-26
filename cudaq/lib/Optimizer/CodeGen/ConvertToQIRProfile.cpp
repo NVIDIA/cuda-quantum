@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
 #include "cudaq/Todo.h"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
@@ -71,20 +72,6 @@ static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
   if (auto con = low.getDefiningOp<LLVM::ConstantOp>())
     return cast<IntegerAttr>(con.getValue()).getInt();
   return {};
-}
-
-static bool claimPhysicalQubits(Operation *op, DenseSet<std::size_t> &claimed,
-                                std::size_t offset, std::size_t size) {
-  for (std::size_t i = 0; i < size; ++i) {
-    auto id = offset + i;
-    if (claimed.contains(id)) {
-      op->emitOpError("overlaps physical qubit id ") << id;
-      return false;
-    }
-  }
-  for (std::size_t i = 0; i < size; ++i)
-    claimed.insert(offset + i);
-  return true;
 }
 
 namespace {
@@ -148,7 +135,7 @@ private:
           if (auto offsetAttr = dyn_cast_if_present<IntegerAttr>(
                   callOp->getAttr(cudaq::opt::StartingOffsetAttrName)))
             offset = offsetAttr.getValue().getLimitedValue();
-          data.hasError |= !claimPhysicalQubits(
+          data.hasError |= !cudaq::opt::claimPhysicalQubits(
               callOp.getOperation(), claimedQubits, offset, increment);
           data.allocationOffsets[callOp] = offset;
           data.nQubits = std::max(data.nQubits, offset + increment);
@@ -249,7 +236,11 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     assert(iter != infoMap.end());
     rewriter.startOpModification(op);
     const auto &info = iter->second;
-    nlohmann::json resultQubitJSON{info.resultQubitVals};
+    // The full-QIR path has no @mapped_wireset borrow order, so output order
+    // falls back to the qubit (result) order. The enriched output_names carries
+    // the per-result output position as an additive third tuple element.
+    auto resultQubitJSON =
+        cudaq::opt::buildEnrichedOutputNamesJson(info.resultQubitVals, {});
     bool isAdaptive = convertTo == "qir-adaptive";
     const char *profileName = isAdaptive ? "adaptive_profile" : "base_profile";
 

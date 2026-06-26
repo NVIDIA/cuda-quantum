@@ -5,11 +5,11 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-target_sources(cudaq-rest-qpu PRIVATE IQMServerHelper.cpp)
+target_sources(cudaq-rest-qpu PRIVATE IQMServerHelper.cpp IQMQubitMapping.cpp)
 add_target_config(iqm)
 
 
-add_library(cudaq-serverhelper-iqm SHARED IQMServerHelper.cpp )
+add_library(cudaq-serverhelper-iqm SHARED IQMServerHelper.cpp IQMQubitMapping.cpp)
 target_link_libraries(cudaq-serverhelper-iqm
   PUBLIC
     cudaq-common

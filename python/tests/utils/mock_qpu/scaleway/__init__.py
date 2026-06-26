@@ -7,17 +7,10 @@
 # ============================================================================ #
 
 import uuid
-import cudaq
 import json
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-
-from qio.core import (
-    QuantumComputationModel,
-    QuantumComputationParameters,
-    QuantumProgramResult,
-)
 
 
 class CreateJobRequest(BaseModel):
@@ -114,9 +107,45 @@ database.platforms[_FAKE_PLATFORM_ID] = Platform(
     type="simulator",
 )
 
+_FIXED_RESULT_PAYLOAD = json.dumps({
+    "serialization_format":
+        2,
+    "compression_format":
+        1,
+    "serialization":
+        json.dumps({
+            "results": [{
+                "success": True,
+                "shots": 1000,
+                "header": {
+                    "name": "__global__",
+                    "n_qubits": 3,
+                },
+                "data": {
+                    "counts": {
+                        "100": 1000,
+                    },
+                },
+            }]
+        }),
+})
+
+_FIXED_JOB_RESULTS = {
+    "cudaq-typed-map-result": _FIXED_RESULT_PAYLOAD,
+    "cudaq-legacy-result": _FIXED_RESULT_PAYLOAD,
+    "cudaq-result-id-map-result": _FIXED_RESULT_PAYLOAD,
+}
+
 
 def _run_job(job: Job):
     try:
+        import cudaq
+        from qio.core import (
+            QuantumComputationModel,
+            QuantumComputationParameters,
+            QuantumProgramResult,
+        )
+
         payload = database.models[job.model_id].payload
 
         model = QuantumComputationModel.from_json_str(payload)
@@ -240,6 +269,16 @@ async def getJob(jobId: str):
 
 @app.get(_BASE_PATH + "/jobs/{jobId}/results")
 async def listJobResults(jobId: str):
+    if jobId in _FIXED_JOB_RESULTS:
+        return {
+            "job_results": [{
+                "job_id": jobId,
+                "result": _FIXED_JOB_RESULTS[jobId],
+                "url": "",
+            }],
+            "total_count": 1,
+        }
+
     if not database.jobs.get(jobId):
         raise HTTPException(status_code=404, detail="Job not found")
 

@@ -57,7 +57,7 @@ add_cudaq_unittest("test_quake_synth" "quake-synth"
         cudaq-builder
         cudaq-common
         cudaq-platform-default
-        nvqir-qpp 
+        nvqir-qpp
         nvqir
         cudaq-em-default
     LINK_OPTS

@@ -17,7 +17,7 @@ func.func @test_reset() {
   return
 }
 
-// CHECK-LABEL:   func.func @test_reset() attributes {mapping_reorder_idx = [0], mapping_v2p = [0]} {
+// CHECK-LABEL:   func.func @test_reset() {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @mapped_wireset
 // CHECK:           %[[VAL_1:.*]] = quake.reset %[[VAL_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)

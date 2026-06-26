@@ -155,11 +155,13 @@ public:
       counts[bitstring] = count;
     }
 
-    // Create an ExecutionResult
-    cudaq::ExecutionResult execResult{counts};
+    // Reconstruct the user-visible result order and named registers from the
+    // enriched output_names. When no output_names exist for this job, return
+    // the raw global register unchanged.
+    if (auto result = tryReconstructFromDeviceIndexedCounts(jobId, counts))
+      return *result;
 
-    // Return the sample_result
-    return cudaq::sample_result{execResult};
+    return cudaq::sample_result{cudaq::ExecutionResult{counts}};
   }
 
   /// @brief Interval between each request to the server.

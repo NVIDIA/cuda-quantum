@@ -29,5 +29,11 @@ func.func @gate_order() {
   return
 }
 
-// AUTO: mapping_v2p = [2, 1, 0]
-// GREEDY: mapping_v2p = [2, 0, 1]
+// AUTO-LABEL: func.func @gate_order
+// AUTO: %{{.*}} = quake.borrow_wire @mapped_wireset[0]
+// AUTO: %{{.*}} = quake.borrow_wire @mapped_wireset[1]
+// AUTO: %{{.*}} = quake.borrow_wire @mapped_wireset[2]
+// GREEDY-LABEL: func.func @gate_order
+// GREEDY: %{{.*}} = quake.borrow_wire @mapped_wireset[2]
+// GREEDY: %{{.*}} = quake.borrow_wire @mapped_wireset[0]
+// GREEDY: %{{.*}} = quake.borrow_wire @mapped_wireset[1]

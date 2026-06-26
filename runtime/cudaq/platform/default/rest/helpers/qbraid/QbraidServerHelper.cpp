@@ -236,44 +236,16 @@ public:
                     : static_cast<std::size_t>(count);
           }
 
-          // The returned bitstring spans every measured qubit, including
-          // compiler-generated ancillae that the user never declared. Reduce
-          // it down to the user-visible qubits using the output_names entry
-          // populated by the framework (Executor.cpp writes one per submitted
+          // Reconstruct the user-visible result order and named registers from
+          // the enriched output_names (Executor.cpp writes one per submitted
           // circuit; Future.cpp re-initializes the helper with that config
-          // before processResults runs). Mirrors the IonQ / Braket helpers.
-          cudaq::ExecutionResult fullExecResults{counts};
-          auto fullSampleResults = cudaq::sample_result{fullExecResults};
+          // before processResults runs). When no output_names exist for this
+          // job, return the raw flat counts unchanged.
+          if (auto result =
+                  tryReconstructFromDeviceIndexedCounts(jobId, counts))
+            return *result;
 
-          std::vector<ExecutionResult> execResults;
-
-          auto outputNamesIt = outputNames.find(jobId);
-          if (outputNamesIt != outputNames.end() &&
-              !outputNamesIt->second.empty()) {
-            auto &job_output_names = outputNamesIt->second;
-
-            std::vector<std::size_t> qubitNumbers;
-            qubitNumbers.reserve(job_output_names.size());
-            for (auto &[result, info] : job_output_names)
-              qubitNumbers.push_back(info.qubitNum);
-
-            auto subset = fullSampleResults.get_marginal(qubitNumbers);
-            execResults.emplace_back(ExecutionResult{subset.to_map()});
-
-            // Emit one single-bit register per named result so that
-            // `sample_result::to_map(registerName)` still works.
-            for (const auto &[result, info] : job_output_names) {
-              CountsDictionary regCounts;
-              for (const auto &[bits, count] : fullSampleResults)
-                regCounts[std::string{bits[info.qubitNum]}] += count;
-              execResults.emplace_back(regCounts, info.registerName);
-            }
-          } else {
-            // No output_names available: fall back to the full flat counts.
-            execResults.emplace_back(ExecutionResult{counts});
-          }
-
-          return cudaq::sample_result(execResults);
+          return cudaq::sample_result{cudaq::ExecutionResult{counts}};
         }
 
         // No valid data yet and no explicit error - retry

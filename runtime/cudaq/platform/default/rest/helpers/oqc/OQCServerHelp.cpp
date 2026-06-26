@@ -154,6 +154,7 @@ void OQCServerHelper::initialize(BackendConfig config) {
   auto machine = get_from_config(config, "machine", []() { return Lucy; });
   check_machine_allowed(machine);
   config["machine"] = machine;
+  parseConfigForCommonParams(config);
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
     CUDAQ_INFO("Emulation is enabled, ignore all oqc connection specific "
@@ -181,7 +182,6 @@ void OQCServerHelper::initialize(BackendConfig config) {
 
   // Construct the API job path
   config["job_path"] = std::string("/") + dev_id + "/tasks";
-  parseConfigForCommonParams(config);
 
   // Move the passed config into the member variable backendConfig
   backendConfig = std::move(config);
@@ -372,15 +372,6 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     }
   }
 
-  if (outputNames.find(jobId) == outputNames.end())
-    throw std::runtime_error("Could not find output names for job " + jobId);
-
-  auto &output_names = outputNames[jobId];
-  for (auto &[result, info] : output_names) {
-    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
-               info.registerName);
-  }
-
   CountsDictionary countsDict;
   if (hasResultNames) {
     // The following code only supports 1 object in the returned results because
@@ -409,38 +400,11 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     sampleResult.append(executionResult);
   }
 
-  // First reorder the global register by QIR qubit number.
-  std::vector<std::size_t> qirQubitMeasurements;
-  qirQubitMeasurements.reserve(output_names.size());
-  for (auto &[result, info] : output_names)
-    qirQubitMeasurements.push_back(info.qubitNum);
-
-  std::vector<std::size_t> idx(output_names.size());
-  std::iota(idx.begin(), idx.end(), 0);
-  std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
-    return qirQubitMeasurements[i1] < qirQubitMeasurements[i2];
-  });
-  CUDAQ_INFO("Reordering global result to map QIR result order to QIR qubit "
-             "allocation order is {}",
-             idx);
-  sampleResult.reorder(idx);
-
-  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
-  auto thisJobReorderIdxIt = reorderIdx.find(jobId);
-  if (thisJobReorderIdxIt != reorderIdx.end()) {
-    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
-    if (!thisJobReorderIdx.empty())
-      sampleResult.reorder(thisJobReorderIdx);
-  }
-
-  // We will also make registers for each result using output_names.
-  for (auto &[result, info] : output_names) {
-    sample_result singleBitResult = sampleResult.get_marginal({result});
-    ExecutionResult executionResult{singleBitResult.to_map(),
-                                    info.registerName};
-    sampleResult.append(executionResult);
-  }
+  // Reconstruct the user-visible result order and named registers from the
+  // enriched output_names. When no output_names exist for this job, return the
+  // raw global register unchanged.
+  if (auto result = tryReconstructFromResultIndexedCounts(jobId, countsDict))
+    return *result;
 
   return sampleResult;
 }

@@ -38,6 +38,17 @@ class Job(BaseModel):
 
 JOBS_MOCK_DB = {}
 JOBS_MOCK_RESULTS = {}
+FIXED_RESULTS = {
+    "cudaq-typed-map-result": {
+        "100": 1000,
+    },
+    "cudaq-legacy-result": {
+        "100": 1000,
+    },
+    "cudaq-result-id-map-result": {
+        "100": 1000,
+    },
+}
 # Testing toggle: when True, the next job submitted via POST /jobs is created
 # with status FAILED. Consumed (reset to False) after use.
 FAIL_NEXT_JOB = {"enabled": False}
@@ -287,6 +298,19 @@ async def getJobResult(
 
     if x_api_key is None:
         raise HTTPException(status_code=401, detail="API key is required")
+
+    if job_id in FIXED_RESULTS:
+        return {
+            "success": True,
+            "data": {
+                "resultData": {
+                    "measurementCounts": FIXED_RESULTS[job_id]
+                },
+                "status": "COMPLETED",
+                "cost": 0,
+                "timeStamps": {},
+            },
+        }
 
     if job_id not in JOBS_MOCK_DB:
         raise HTTPException(status_code=404, detail="Job not found")

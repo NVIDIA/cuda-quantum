@@ -84,6 +84,8 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
                                     "qs-cudaq-" + std::to_string(std::rand()));
 
   setShots(std::stoul(getValueOrDefault(config, "shots", "", "1000")));
+
+  parseConfigForCommonParams(config);
 }
 
 RestHeaders ScalewayServerHelper::getHeaders() {
@@ -194,66 +196,45 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("Get raw results for job {}: {}", jobId, rawPayload);
 
   try {
-    auto model_id = postJobResponse["model_id"].get<std::string>();
-
-    auto key = "output_names." + model_id;
-    auto outputNamesStr = backendConfig[key];
-    backendConfig.erase(key);
-
-    auto outputNamesJson = json::parse(outputNamesStr);
-
-    OutputNamesType jobOutputNames;
-
-    for (const auto &el : outputNamesJson[0]) {
-      auto result = el[0].get<std::size_t>();
-      auto qubitNum = el[1][0].get<std::size_t>();
-      auto registerName = el[1][1].get<std::string>();
-
-      jobOutputNames[result] = {qubitNum, registerName};
-    }
-
-    // Get a reduced list of qubit numbers that were in the original program
-    // so that we can slice the output data and extract the bits that the user
-    // was interested in. Sort by QIR qubit number.
-    std::vector<std::size_t> qubitNumbers;
-    qubitNumbers.reserve(jobOutputNames.size());
-    for (auto &[result, info] : jobOutputNames) {
-      qubitNumbers.push_back(info.qubitNum);
-    }
-
-    CUDAQ_INFO("qubitNumbers s:{} q:{}", jobOutputNames.size(), qubitNumbers);
-
     auto jsonPayload = json::parse(rawPayload);
 
     auto qioResult = qio::QuantumProgramResult::fromJson(jsonPayload);
 
     auto sampleResult = qioResult.toCudaqSampleResult();
 
-    // For each original counts entry in the full sample results, reduce it
-    // down to the user component and add to userGlobal. If qubitNumbers is
-    // empty, that means all qubits were measured.
-    std::vector<ExecutionResult> execResults;
+    // The output_names config key is keyed by the model id, which is only known
+    // from the response, so route reconstruction through the model id rather
+    // than the job id. createJob writes one output_names key per submitted
+    // circuit (see above).
+    auto model_id = postJobResponse["model_id"].get<std::string>();
 
-    if (qubitNumbers.empty()) {
-      execResults.emplace_back(ExecutionResult{sampleResult.to_map()});
-    } else {
-      auto subset = sampleResult.get_marginal(qubitNumbers);
-      execResults.emplace_back(ExecutionResult{subset.to_map()});
+    auto key = "output_names." + model_id;
+    auto outputNamesIt = backendConfig.find(key);
+    if (outputNamesIt != backendConfig.end()) {
+      auto outputNamesJson = json::parse(outputNamesIt->second);
+      backendConfig.erase(outputNamesIt);
+
+      OutputNamesType jobOutputNames;
+      std::size_t resultIndex = 0;
+      for (const auto &el : outputNamesJson[0]) {
+        auto result = el[0].get<std::size_t>();
+        const auto &outputLocation = el[1];
+        auto qubitNum = outputLocation[0].get<std::size_t>();
+        auto registerName = outputLocation[1].get<std::string>();
+        std::size_t outputPosition = resultIndex;
+        if (outputLocation.size() > 2)
+          outputPosition = outputLocation[2].get<std::size_t>();
+        jobOutputNames[result] = {qubitNum, registerName, outputPosition};
+        ++resultIndex;
+      }
+      outputNames[model_id] = std::move(jobOutputNames);
     }
 
-    // Now add to `execResults` one register at a time
-    for (const auto &[result, info] : jobOutputNames) {
-      CountsDictionary regCounts;
-      for (const auto &[bits, count] : sampleResult)
-        regCounts[std::string{bits[info.qubitNum]}] += count;
-      execResults.emplace_back(regCounts, info.registerName);
-    }
+    if (auto result = tryReconstructFromDeviceIndexedCounts(
+            model_id, sampleResult.to_map()))
+      return *result;
 
-    // Return a sample result including the global register and all individual
-    // registers.
-    auto ret = cudaq::sample_result(execResults);
-
-    return ret;
+    return sampleResult;
   } catch (const std::exception &e) {
     throw std::runtime_error("Error while parsing result: " +
                              std::string(e.what()));

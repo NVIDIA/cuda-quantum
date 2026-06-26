@@ -9,7 +9,9 @@
 #pragma once
 
 #include "common/Future.h"
+#include "common/KernelExecution.h"
 #include "common/SampleResult.h"
+#include "cudaq/algorithms/ExecutionMetadataPolicy.h"
 #include "cudaq/algorithms/sample/options.h"
 
 namespace nvqir {
@@ -22,7 +24,7 @@ class ExecutionManager;
 class ExecutionContext;
 
 /// @brief Tag and options for sampling quantum circuit measurements.
-struct sample_policy {
+struct sample_policy : ExecutionMetadataPolicy {
   /// @brief The name of the policy.
   static constexpr char name[] = "sample";
 
@@ -34,10 +36,6 @@ struct sample_policy {
 
   /// @brief The name of the kernel being executed.
   std::string kernelName;
-
-  /// @brief A vector containing information about how to reorder the global
-  /// register after execution. Empty means no reordering.
-  mutable std::vector<std::size_t> reorderIdx;
 
   mutable const noise_model *noiseModel = nullptr;
 

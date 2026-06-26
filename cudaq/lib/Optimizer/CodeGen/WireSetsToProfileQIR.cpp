@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
@@ -23,6 +24,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <vector>
 
 #define DEBUG_TYPE "wireset-to-profile-qir"
 
@@ -414,23 +416,68 @@ struct WireSetToProfileQIRPass
       else
         regNameMap[disc.getOperation()] = "?";
     });
-    SmallVector<std::uint32_t> activeDeviceQubits;
+    // Collect @mapped_wireset borrows for requiredQubits and the leading
+    // local-index slots. These must match KernelExecution::activeDeviceQubits.
+    // Any borrows from other wire sets are appended after the mapped indices
+    // so BorrowWireRewrite can convert them without disturbing the mapped
+    // layout. When no @mapped_wireset borrows exist (legacy single-wire-set
+    // kernels), all borrows form the qubit set.
+    auto mappedQubits = cudaq::opt::collectMappedDeviceQubits(op);
+
+    // All borrows, sorted and deduplicated, for the full projection.
+    SmallVector<std::uint32_t> allQubits;
     op.walk([&](cudaq::quake::BorrowWireOp borrowWire) {
-      activeDeviceQubits.push_back(borrowWire.getIdentity());
+      allQubits.push_back(borrowWire.getIdentity());
     });
-    llvm::sort(activeDeviceQubits);
-    activeDeviceQubits.erase(
-        std::unique(activeDeviceQubits.begin(), activeDeviceQubits.end()),
-        activeDeviceQubits.end());
+    llvm::sort(allQubits);
+    allQubits.erase(std::unique(allQubits.begin(), allQubits.end()),
+                    allQubits.end());
 
-    LocalWireProjection localProjection;
-    for (auto &&[localIndex, deviceQubit] : llvm::enumerate(activeDeviceQubits))
-      localProjection[deviceQubit] = localIndex;
+    // requiredQubits counts only the mapped set when one is present.
+    std::size_t requiredCount =
+        mappedQubits.empty() ? allQubits.size() : mappedQubits.size();
 
-    if (!activeDeviceQubits.empty())
-      op->setAttr(
-          cudaq::opt::qir0_1::RequiredQubitsAttrName,
-          builder.getStringAttr(std::to_string(activeDeviceQubits.size())));
+    // Build the projection: mapped qubits occupy indices 0..M-1; remaining
+    // non-mapped qubits are appended at M..M+K-1.
+    LocalWireProjection localWireProjection;
+    if (mappedQubits.empty()) {
+      for (auto &&[localIndex, deviceQubit] : llvm::enumerate(allQubits))
+        localWireProjection[deviceQubit] = localIndex;
+    } else {
+      for (auto &&[localIndex, deviceQubit] : llvm::enumerate(mappedQubits))
+        localWireProjection[static_cast<std::uint32_t>(deviceQubit)] =
+            static_cast<std::uint32_t>(localIndex);
+      std::uint32_t next = static_cast<std::uint32_t>(mappedQubits.size());
+      for (auto deviceQubit : allQubits)
+        if (!localWireProjection.count(deviceQubit))
+          localWireProjection[deviceQubit] = next++;
+    }
+
+    // Output order per local index, derived from the borrow lowering order:
+    // the local index of each borrow's first appearance receives the next
+    // increasing order. Unset local indices fall back to identity. This must
+    // be computed before the conversion erases the BorrowWireOps.
+    std::vector<std::size_t> localIndexToOutputOrder(requiredCount,
+                                                     requiredCount);
+    {
+      std::size_t outputOrder = 0;
+      op.walk([&](cudaq::quake::BorrowWireOp borrowWire) {
+        auto it = localWireProjection.find(borrowWire.getIdentity());
+        if (it == localWireProjection.end() ||
+            it->second >= localIndexToOutputOrder.size())
+          return;
+        if (localIndexToOutputOrder[it->second] == requiredCount)
+          localIndexToOutputOrder[it->second] = outputOrder++;
+      });
+      for (std::size_t localIndex = 0;
+           localIndex < localIndexToOutputOrder.size(); ++localIndex)
+        if (localIndexToOutputOrder[localIndex] == requiredCount)
+          localIndexToOutputOrder[localIndex] = localIndex;
+    }
+
+    if (requiredCount > 0)
+      op->setAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName,
+                  builder.getStringAttr(std::to_string(requiredCount)));
 
     RewritePatternSet patterns(context);
     QuakeTypeConverter quakeTypeConverter;
@@ -446,7 +493,7 @@ struct WireSetToProfileQIRPass
         GeneralRewrite<cudaq::quake::SwapOp>,
         GeneralRewrite<cudaq::quake::PhasedRxOp>, ResetRewrite,
         ReturnWireRewrite>(quakeTypeConverter, context);
-    patterns.insert<BorrowWireRewrite>(quakeTypeConverter, localProjection,
+    patterns.insert<BorrowWireRewrite>(quakeTypeConverter, localWireProjection,
                                        context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
                                resultQubitVals, context);
@@ -464,12 +511,13 @@ struct WireSetToProfileQIRPass
       signalPassFailure();
 
     if (resultCounter > 0) {
-      nlohmann::json resultQubitJSON{resultQubitVals};
+      auto resultQubitJSON = cudaq::opt::buildEnrichedOutputNamesJson(
+          resultQubitVals, localIndexToOutputOrder);
       op->setAttr(cudaq::opt::QIROutputNamesAttrName,
                   builder.getStringAttr(resultQubitJSON.dump()));
     }
 
-    if (!activeDeviceQubits.empty())
+    if (requiredCount > 0)
       op->setAttr(cudaq::opt::qir0_1::RequiredResultsAttrName,
                   builder.getStringAttr(std::to_string(resultCounter)));
 

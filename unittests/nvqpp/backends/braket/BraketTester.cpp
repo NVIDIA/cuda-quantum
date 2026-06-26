@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/BraketServerHelper.h"
+#include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
@@ -69,6 +72,41 @@ CUDAQ_TEST(BraketTester, checkSampleAsyncLoadFromFile) {
   EXPECT_EQ(counts.size(), 2);
 
   std::remove("saveMe.json");
+}
+
+CUDAQ_TEST(BraketTester, setOutputNamesKeyMatchesProcessResultsJobID) {
+  // Verify that the key used by setOutputNames (the task ARN string) is the
+  // same key used by processResults when looking up the result map.  In
+  // production, BraketExecutor calls setOutputNames(taskArn, ...) and then
+  // processResults(..., taskArn), so the two keys must be identical.
+  auto rawHelper = cudaq::registry::get<cudaq::ServerHelper>("braket");
+  ASSERT_TRUE(rawHelper);
+  auto *braketHelper =
+      dynamic_cast<cudaq::BraketServerHelper *>(rawHelper.get());
+  ASSERT_TRUE(braketHelper);
+
+  cudaq::BackendConfig config;
+  config["emulate"] = "true";
+  braketHelper->initialize(config);
+
+  const std::string taskArn =
+      "arn:aws:braket:us-east-1:123:quantum-task/test-task-id";
+  // Each output-location tuple is [qubitNum, registerName, outputPosition].
+  braketHelper->setOutputNames(
+      taskArn,
+      R"([[[0, [1, "r00000", 0]], [1, [2, "r00001", 1]], [2, [0, "r00002", 2]]]])");
+
+  cudaq::ServerMessage response = {{"measurementProbabilities", {{"100", 1.0}}},
+                                   {"taskMetadata", {{"shots", 1000}}}};
+
+  std::string jobIdCopy = taskArn;
+  auto result = braketHelper->processResults(response, jobIdCopy);
+
+  // If the keying were wrong, processResults would return the raw counts
+  // instead of the reordered ones.  A successful reorder here confirms the keys
+  // match.
+  EXPECT_EQ(result.count("001"), 1000);
+  EXPECT_EQ(result.count("1", "r00002"), 1000);
 }
 
 CUDAQ_TEST(BraketTester, checkObserveSync) {

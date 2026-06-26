@@ -140,11 +140,14 @@ public:
       std::size_t count = item.value();
       counts[bitstring] = count;
     }
-    // Create an ExecutionResult
-    cudaq::ExecutionResult execResult{counts};
 
-    // Return the sample_result
-    return cudaq::sample_result{execResult};
+    // Reconstruct the user-visible result order and named registers from the
+    // enriched output_names. When no output_names exist for this job, return
+    // the raw global register unchanged.
+    if (auto result = tryReconstructFromDeviceIndexedCounts(jobId, counts))
+      return *result;
+
+    return cudaq::sample_result{cudaq::ExecutionResult{counts}};
   }
 
   /// @brief Override the polling interval method

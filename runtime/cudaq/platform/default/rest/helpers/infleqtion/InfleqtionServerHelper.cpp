@@ -188,17 +188,19 @@ InfleqtionServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   if (backendConfig.count("method"))
     job["method"] = backendConfig.at("method");
 
-  // Store output names and reorder indices if necessary
+  // Store the result-to-output map. The output position follows the result
+  // index so reconstruction preserves the measured qubit order.
   OutputNamesType outputNamesMap;
+  std::size_t outputPosition = 0;
   for (auto &item : circuitCode.output_names->items()) {
     std::size_t idx = std::stoul(item.key());
     ResultInfoType info;
     info.qubitNum = idx;
     info.registerName = item.value();
+    info.outputPosition = outputPosition++;
     outputNamesMap[idx] = info;
   }
   outputNames[circuitCode.name] = outputNamesMap;
-  reorderIdx[circuitCode.name] = circuitCode.mapping_reorder_idx;
 
   // Prepare headers
   RestHeaders headers = getHeaders();
@@ -273,6 +275,10 @@ InfleqtionServerHelper::processResults(ServerMessage &getJobResponse,
     std::size_t count = item.value();
     counts[bitstring] = count;
   }
+
+  if (auto result = tryReconstructFromDeviceIndexedCounts(jobId, counts))
+    return *result;
+
   // Create an ExecutionResult
   cudaq::ExecutionResult execResult{counts};
 

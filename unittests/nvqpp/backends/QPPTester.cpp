@@ -448,6 +448,36 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
   }
 }
 
+CUDAQ_TEST(QPPTester, typedResultMapReconstructsLocalMeasurements) {
+  QppSimulator qppBackend;
+  auto q0 = qppBackend.allocateQubit();
+  auto q1 = qppBackend.allocateQubit();
+  qppBackend.x(q0);
+
+  cudaq::sample_policy policy;
+  policy.resultOutputMap.outputs = {{.resultIndex = 0,
+                                     .deviceQubit = 0,
+                                     .outputName = "left",
+                                     .outputPosition = 0},
+                                    {.resultIndex = 1,
+                                     .deviceQubit = 1,
+                                     .outputName = "right",
+                                     .outputPosition = 1}};
+
+  auto result = qppBackend.getSampleResult(policy);
+
+  EXPECT_EQ(result.count("10"), 1);
+  EXPECT_EQ(result.count("01"), 0);
+  EXPECT_EQ(result.count("1", "left"), 1);
+  EXPECT_EQ(result.count("0", "right"), 1);
+  EXPECT_EQ(result.sequential_data(), (std::vector<std::string>{"10"}));
+  EXPECT_EQ(result.sequential_data("left"), (std::vector<std::string>{"1"}));
+  EXPECT_EQ(result.sequential_data("right"), (std::vector<std::string>{"0"}));
+
+  qppBackend.deallocate(q0);
+  qppBackend.deallocate(q1);
+}
+
 // Checking all parameterized 1 and 2 qubit gates.
 CUDAQ_TEST(QPPTester, checkParameterizedGates) {
   // Checking RX gate.

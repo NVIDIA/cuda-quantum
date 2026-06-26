@@ -49,7 +49,7 @@ public:
     std::string name = kernelName;
     const auto packed = args.getPacked();
     std::string strArgs = packed ? (char *)packed->data.data() : "";
-    codes.push_back(KernelExecution{.name = name, .code = strArgs});
+    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt);
 
     if (executionContext) {
       executor->setShots(executionContext->shots);

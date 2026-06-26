@@ -6,21 +6,26 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s -verify-diagnostics
+// The base-profile conversion claims physical qubits from quake allocations.
+// RUN: not cudaq-opt --convert-to-qir-api=api=base-profile %s 2>&1 | FileCheck --check-prefix=QUAKE %s
+
+// The profile-prep pass claims physical qubits from already-lowered allocation
+// calls, a distinct code path that runs after Quake has been lowered to LLVM.
+// RUN: not cudaq-opt --qir-profile-prep --quake-to-qir-func %s 2>&1 | FileCheck --check-prefix=LLVM %s
 
 module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu"} {
+  // QUAKE: 'quake.alloca' op overlaps physical qubit id 2
   func.func @duplicate_ref_offsets() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.alloca !quake.ref {StartingOffset = 2 : i64}
-    // expected-error @+1 {{overlaps physical qubit id 2}}
     %1 = quake.alloca !quake.ref {StartingOffset = 2 : i64}
     quake.x %0 : (!quake.ref) -> ()
     quake.x %1 : (!quake.ref) -> ()
     return
   }
 
+  // QUAKE: 'quake.alloca' op overlaps physical qubit id 3
   func.func @overlapping_vector_offsets() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %0 = quake.alloca !quake.veq<3> {StartingOffset = 1 : i64}
-    // expected-error @+1 {{overlaps physical qubit id 3}}
     %1 = quake.alloca !quake.veq<2> {StartingOffset = 3 : i64}
     %2 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
     %3 = quake.extract_ref %1[0] : (!quake.veq<2>) -> !quake.ref
@@ -28,4 +33,29 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
     quake.x %3 : (!quake.ref) -> ()
     return
   }
+
+  // LLVM: 'llvm.call' op overlaps physical qubit id 2
+  llvm.func @duplicate_ref_offsets_lowered() attributes {passthrough = ["entry_point"]} {
+    %0 = llvm.call @__quantum__rt__qubit_allocate() {StartingOffset = 2 : i64} : () -> !llvm.ptr
+    %1 = llvm.call @__quantum__rt__qubit_allocate() {StartingOffset = 2 : i64} : () -> !llvm.ptr
+    llvm.call @__quantum__qis__x(%0) : (!llvm.ptr) -> ()
+    llvm.call @__quantum__qis__x(%1) : (!llvm.ptr) -> ()
+    llvm.return
+  }
+
+  // LLVM: 'llvm.call' op overlaps physical qubit id 3
+  llvm.func @overlapping_vector_offsets_lowered() attributes {passthrough = ["entry_point"]} {
+    %0 = llvm.mlir.constant(3 : i64) : i64
+    %1 = llvm.call @__quantum__rt__qubit_allocate_array(%0) {StartingOffset = 1 : i64} : (i64) -> !llvm.ptr
+    %2 = llvm.mlir.constant(2 : i64) : i64
+    %3 = llvm.call @__quantum__rt__qubit_allocate_array(%2) {StartingOffset = 3 : i64} : (i64) -> !llvm.ptr
+    llvm.call @__quantum__rt__array_release(%1) : (!llvm.ptr) -> ()
+    llvm.call @__quantum__rt__array_release(%3) : (!llvm.ptr) -> ()
+    llvm.return
+  }
+
+  llvm.func @__quantum__rt__qubit_allocate() -> !llvm.ptr
+  llvm.func @__quantum__rt__qubit_allocate_array(i64) -> !llvm.ptr
+  llvm.func @__quantum__rt__array_release(!llvm.ptr)
+  llvm.func @__quantum__qis__x(!llvm.ptr)
 }

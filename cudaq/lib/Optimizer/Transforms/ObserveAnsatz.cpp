@@ -18,6 +18,8 @@ using namespace mlir;
 
 namespace {
 
+constexpr StringRef mappedWireSetName(cudaq::opt::mappedWiresetName);
+
 /// Enum type for Paulis
 enum class MeasureBasis { I, X, Y, Z };
 
@@ -105,7 +107,15 @@ private:
 
     AnsatzMetadata data;
 
+    // Module attribute set by MappingPrep; survives SymbolDCEPass.
+    if (auto mod = funcOp->getParentOfType<mlir::ModuleOp>())
+      if (mod->hasAttr(cudaq::opt::qubitMappingRanAttrName))
+        data.mappingPassRan = true;
+
     funcOp->walk([&](cudaq::quake::BorrowWireOp op) {
+      if (op.getSetName() == mappedWireSetName)
+        data.mappingPassRan = true;
+
       Value wire = op.getResult();
       // Wires are linear types that must be used exactly once, so traverse
       // those uses until the end of the linear operators.
@@ -169,17 +179,6 @@ private:
         data.qubitValues.insert({op.getConstantIndex(), op.getResult()});
     });
 
-    // If mapping has moved qubits or introduced auxillary qubits, update the
-    // analysis accordingly.
-    if (auto mappingAttr =
-            dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"))) {
-      // The mapped BorrowWireOps remain in virtual-qubit order, but their
-      // identities carry the physical placement. Preserve that value mapping so
-      // a logical observable still measures the requested virtual qubit.
-      data.nQubits = mappingAttr.size();
-      data.mappingPassRan = true;
-    }
-
     // Count all measures
     funcOp->walk(
         [&](cudaq::quake::MzOp op) { data.measurements.push_back(op); });
@@ -198,8 +197,10 @@ class ObserveAnsatzPass
 public:
   using ObserveAnsatzBase::ObserveAnsatzBase;
 
-  ObserveAnsatzPass(const std::vector<bool> &bsfData)
-      : binarySymplecticForm{bsfData.begin(), bsfData.end()} {}
+  ObserveAnsatzPass(const std::vector<bool> &bsfData,
+                    mlir::StringRef ansatzName = "")
+      : binarySymplecticForm{bsfData.begin(), bsfData.end()},
+        ansatzFunctionName(ansatzName.str()) {}
 
   /// Perform sanity checks and remove existing measurements.
   LogicalResult performPreprocessing(func::FuncOp funcOp,
@@ -228,18 +229,34 @@ public:
     // end of this loop, otherwise the end result may be incorrect.
     for (auto *op : iter->second.measurements) {
       bool safeToRemove = [&]() {
-        for (auto user : op->getUsers())
-          if (!isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(user))
-            return false;
+        for (auto *user : op->getUsers()) {
+          if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(user))
+            continue;
+          if (auto disc = dyn_cast<cudaq::quake::DiscriminateOp>(user)) {
+            if (disc.getResult().use_empty())
+              continue;
+          }
+          return false;
+        }
         return true;
       }();
       if (!safeToRemove)
         return funcOp.emitOpError(
             "Cannot observe kernel with non dangling measurements.");
 
-      for (auto result : op->getResults())
-        if (cudaq::quake::isLinearType(result.getType()))
+      // Mapping-added mz ops are always single-qubit.
+      assert(op->getNumOperands() == 1 &&
+             "mapping-added mz must be single-qubit");
+      for (auto result : op->getResults()) {
+        if (cudaq::quake::isLinearType(result.getType())) {
           result.replaceAllUsesWith(op->getOperand(0));
+        } else {
+          for (auto *user : llvm::make_early_inc_range(result.getUsers())) {
+            user->dropAllUses();
+            user->erase();
+          }
+        }
+      }
 
       op->dropAllReferences();
       op->erase();
@@ -337,6 +354,10 @@ public:
     if (funcOp.empty())
       return;
 
+    // Skip non-ansatz functions to avoid false positives on user measurements.
+    if (!ansatzFunctionName.empty() && funcOp.getName() != ansatzFunctionName)
+      return;
+
     // We can get the pauli term info from the MLIR command line parser, or from
     // a programmatic use of this pass
     if (binarySymplecticForm.empty())
@@ -360,6 +381,9 @@ public:
 
 protected:
   SmallVector<bool> binarySymplecticForm;
+  // Not a tablegen Option, so it must survive MLIR pass-cloning via the copy
+  // ctor.
+  std::string ansatzFunctionName;
 };
 
 } // namespace
@@ -367,4 +391,10 @@ protected:
 std::unique_ptr<mlir::Pass>
 cudaq::opt::createObserveAnsatzPass(const std::vector<bool> &packed) {
   return std::make_unique<ObserveAnsatzPass>(packed);
+}
+
+std::unique_ptr<mlir::Pass>
+cudaq::opt::createObserveAnsatzPass(const std::vector<bool> &packed,
+                                    mlir::StringRef ansatzKernelName) {
+  return std::make_unique<ObserveAnsatzPass>(packed, ansatzKernelName);
 }

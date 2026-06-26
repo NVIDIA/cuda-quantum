@@ -6,16 +6,23 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "common/RestClient.h"
+#include "common/ResultReconstruction.h"
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "llvm/Support/Base64.h"
+#include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <thread>
-using nlohmann::json;
-#include "llvm/Support/Base64.h"
+#include <numeric>
 #include <regex>
+#include <thread>
+#include <unordered_map>
+#include <utility>
+#include <variant>
+
+using nlohmann::json;
 
 namespace cudaq {
 
@@ -28,6 +35,8 @@ void findApiKeyInFile(std::string &apiKey, const std::string &path,
 std::string searchAPIKey(std::string &key, std::string &refreshKey,
                          std::string &credentials, std::string &timeStr,
                          std::string userSpecifiedConfig = "");
+
+static bool isAnyonResultBit(char bit) { return bit == '0' || bit == '1'; }
 
 /// @brief The implements the ServerHelper interface
 /// to map Job requests and Job result retrievals actions from the calling
@@ -189,21 +198,21 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
 
   CUDAQ_INFO("Results message: {}", results.dump());
 
-  std::vector<ExecutionResult> srs;
-
-  // Populate individual registers' results into srs
-  for (auto &[registerName, result] : results.items()) {
-    auto bitResults = result.get<std::vector<std::string>>();
-    CountsDictionary thisRegCounts;
-    for (auto &b : bitResults)
-      thisRegCounts[b]++;
-    srs.emplace_back(thisRegCounts, registerName);
-    srs.back().sequentialData = bitResults;
+  // The local mock server tests do not support the full named QIR output
+  // recording functions. They return a single register keyed by
+  // MOCK_SERVER_RESULTS holding the raw concatenated bitstring per shot, with
+  // no per-register decomposition. Pass that bitstring through unchanged.
+  if (results.begin().key() == "MOCK_SERVER_RESULTS") {
+    auto bitResults =
+        results.at(results.begin().key()).get<std::vector<std::string>>();
+    CountsDictionary counts;
+    for (const auto &bits : bitResults)
+      counts[bits]++;
+    ExecutionResult globalResult{counts, GlobalRegisterName};
+    globalResult.sequentialData = bitResults;
+    return sample_result({globalResult});
   }
 
-  // The global register needs to have results sorted by qubit number.
-  // Sort output_names by qubit first and then result number. If there are
-  // duplicate measurements for a qubit, only save the last one.
   if (outputNames.find(jobId) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobId);
 
@@ -211,88 +220,69 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   for (auto &[result, info] : output_names) {
     CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
                info.registerName);
+    if (!results.contains(info.registerName))
+      throw std::runtime_error("Expected to see " + info.registerName +
+                               " in the results, but did not see it.");
   }
 
-  // The local mock server tests don't work the same way as the true Anyon
-  // QPU. They do not support the full named QIR output recording functions.
-  // Detect for the that difference here.
-  bool mockServer = false;
-  if (results.begin().key() == "MOCK_SERVER_RESULTS") {
-    // printf("this is mock server");
-    mockServer = true;
-  }
+  // Anyon returns measurement results keyed by register name, each a vector of
+  // per-shot bit strings. A register holding several results carries one bit
+  // per result in output-position order. Assemble a per-shot flat bitstring
+  // indexed by qubit number, then reconstruct the user-visible order and named
+  // registers from the enriched output_names through the single bit-index path.
+  std::unordered_map<std::string, std::vector<std::size_t>> resultsByRegister;
+  for (const auto &[result, info] : output_names)
+    resultsByRegister[info.registerName].push_back(result);
+  for (auto &[registerName, resultIds] : resultsByRegister)
+    std::sort(resultIds.begin(), resultIds.end(),
+              [&](std::size_t lhs, std::size_t rhs) {
+                return output_names[lhs].outputPosition <
+                       output_names[rhs].outputPosition;
+              });
 
-  if (!mockServer)
-    for (auto &[_, val] : output_names)
-      if (!results.contains(val.registerName))
-        throw std::runtime_error("Expected to see " + val.registerName +
-                                 " in the results, but did not see it.");
+  std::size_t flatWidth = 0;
+  for (const auto &[result, info] : output_names)
+    flatWidth = std::max(flatWidth, info.qubitNum + 1);
 
-  // Construct idx[] such that output_names[idx[:]] is sorted by QIR qubit
-  // number. There may initially be duplicate qubit numbers if that qubit was
-  // measured multiple times. If that's true, make the lower-numbered result
-  // occur first. (Dups will be removed in the next step below.)
-  std::vector<std::size_t> idx;
-  if (!mockServer) {
-    idx.resize(output_names.size());
-    std::iota(idx.begin(), idx.end(), 0);
-    std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
-      if (output_names[i1].qubitNum == output_names[i2].qubitNum)
-        return i1 < i2; // choose lower result number
-      return output_names[i1].qubitNum < output_names[i2].qubitNum;
-    });
+  std::size_t nShots =
+      results.begin().value().get<std::vector<std::string>>().size();
+  std::vector<std::string> flatBitstrings(nShots, std::string(flatWidth, '0'));
 
-    // The global register only contains the *final* measurement of each
-    // requested qubit, so eliminate lower-numbered results from idx array.
-    for (auto it = idx.begin(); it != idx.end();) {
-      if (std::next(it) != idx.end()) {
-        if (output_names[*it].qubitNum ==
-            output_names[*std::next(it)].qubitNum) {
-          it = idx.erase(it);
-          continue;
-        }
+  for (const auto &[registerName, resultIds] : resultsByRegister) {
+    auto bitResults = results.at(registerName).get<std::vector<std::string>>();
+    if (bitResults.size() != nShots)
+      throw std::runtime_error("Anyon result register " + registerName +
+                               " has an unexpected shot count.");
+    for (std::size_t shot = 0; shot < nShots; ++shot) {
+      const auto &shotBits = bitResults[shot];
+      if (shotBits.size() != 1 && shotBits.size() != resultIds.size())
+        throw std::runtime_error("Anyon result register " + registerName +
+                                 " contained a measurement with unexpected "
+                                 "width.");
+      for (std::size_t localPosition = 0; localPosition < resultIds.size();
+           ++localPosition) {
+        auto bit = shotBits.size() == 1 ? shotBits[0] : shotBits[localPosition];
+        if (!isAnyonResultBit(bit))
+          throw std::runtime_error("Anyon result register " + registerName +
+                                   " contained a non-bit measurement.");
+        flatBitstrings[shot][output_names[resultIds[localPosition]].qubitNum] =
+            bit;
       }
-      ++it;
     }
-  } else {
-    idx.resize(1); // local mock server tests
   }
 
-  // For each shot, we concatenate the measurements results of all qubits.
-  auto begin = results.begin();
-  auto nShots = begin.value().get<std::vector<std::string>>().size();
-  std::vector<std::string> bitstrings(nShots);
-  for (auto r : idx) {
-    // If allNamesPresent == false, that means we are running local mock server
-    // tests which don't support the full QIR output recording functions. Just
-    // use the first key in that case.
-    auto bitResults =
-        mockServer ? results.at(begin.key()).get<std::vector<std::string>>()
-                   : results.at(output_names[r].registerName)
-                         .get<std::vector<std::string>>();
-    for (size_t i = 0; auto &bit : bitResults)
-      bitstrings[i++] += bit;
-  }
+  // The enriched output_names result map preserves per-shot ordering, so the
+  // flat-bitstring shot path keeps Anyon's sequential data intact.
+  if (auto resultMap = resultMapForJob(jobId))
+    return reconstructSampleResultFromDeviceIndexedBitstringShots(
+        flatBitstrings, *resultMap);
 
-  cudaq::CountsDictionary counts;
-  for (auto &b : bitstrings)
-    counts[b]++;
-
-  // Store the combined results into the global register
-  srs.emplace_back(counts, GlobalRegisterName);
-  srs.back().sequentialData = bitstrings;
-  sample_result sampleResult(srs);
-
-  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
-  auto thisJobReorderIdxIt = reorderIdx.find(jobId);
-  if (thisJobReorderIdxIt != reorderIdx.end()) {
-    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
-    if (!thisJobReorderIdx.empty())
-      sampleResult.reorder(thisJobReorderIdx);
-  }
-
-  return sampleResult;
+  CountsDictionary counts;
+  for (const auto &bits : flatBitstrings)
+    counts[bits]++;
+  ExecutionResult globalResult{counts, GlobalRegisterName};
+  globalResult.sequentialData = flatBitstrings;
+  return sample_result({globalResult});
 }
 
 std::map<std::string, std::string>

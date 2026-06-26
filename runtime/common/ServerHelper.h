@@ -14,11 +14,14 @@
 #include "KernelExecution.h"
 #include "Registry.h"
 #include "Resources.h"
+#include "ResultReconstruction.h"
 #include "RuntimeTarget.h"
 #include "SampleResult.h"
 #include "common/RecordLogParser.h"
 #include "cudaq_json.h"
 #include <filesystem>
+#include <optional>
+#include <vector>
 
 namespace cudaq {
 
@@ -44,6 +47,10 @@ using ServerJobPayload =
 struct ResultInfoType {
   std::size_t qubitNum;
   std::string registerName;
+  /// @brief The user-visible output position for this result. Carried as an
+  /// additive third element of the output-location tuple. Defaults to the
+  /// result index when an old compiler omits it.
+  std::size_t outputPosition = 0;
 };
 
 /// @brief Results information, indexed by 0-based result number
@@ -63,18 +70,57 @@ protected:
   /// @brief The number of shots to execute
   std::size_t shots = 100;
 
-  /// @brief Parse a `config` for common parameters in a server helper (i.e.
-  /// `outputNames` and `reorderIdx`)
-  void parseConfigForCommonParams(const BackendConfig &config);
+  /// @brief Parse common execution metadata from server helper configuration.
+  void parseConfigForCommonParams(const BackendConfig &backendConfiguration);
 
   /// @brief Output names indexed by jobID/taskID
   std::map<std::string, OutputNamesType> outputNames;
 
-  /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
-  std::map<std::string, std::vector<std::size_t>> reorderIdx;
+  /// @brief Backend-native label per dense CUDA-Q device qubit, indexed by
+  /// device qubit. A device qubit may have zero or one label. Labels are a
+  /// target property that changes between calibrations, so they live on the
+  /// helper rather than on a per-execution layout. Both a static target
+  /// configuration table and a backend dynamic architecture fetch feed this
+  /// through the
+  /// single setBackendQubitLabel hook. An empty entry means the device qubit
+  /// has no label.
+  std::vector<std::string> backendQubitLabels;
+
+  /// @brief Set the backend-native label for a dense device qubit. Grows the
+  /// label table as needed. This is the one hook a static configuration table
+  /// and a
+  /// dynamic architecture fetch both feed.
+  void setBackendQubitLabel(DeviceQubit deviceQubit, std::string label);
+
+  /// @brief Return the backend-native label for a device qubit, or std::nullopt
+  /// when the qubit is out of range or has no assigned label.
+  std::optional<std::string> backendQubitLabel(DeviceQubit deviceQubit) const;
 
   /// @brief  Information about the runtime target managing this server helper.
   RuntimeTarget runtimeTarget;
+
+  /// @brief Build the bit-index result map for a job from its enriched
+  /// output_names, or std::nullopt when no output_names are stored for the job.
+  /// The bit index is the qubit number, the position is the user-visible output
+  /// position, and the name is the register name.
+  std::optional<cudaq::ResultOutputMap>
+  resultMapForJob(const std::string &jobId) const;
+
+  /// @brief Reconstruct a sample_result for jobId from a device-indexed counts
+  /// dictionary using the enriched output_names result map. Returns
+  /// std::nullopt when no output_names are stored for the job, allowing callers
+  /// to return the raw counts unchanged.
+  std::optional<cudaq::sample_result>
+  tryReconstructFromDeviceIndexedCounts(const std::string &jobId,
+                                        const CountsDictionary &counts);
+
+  /// @brief Reconstruct a sample_result for jobId from a compact counts
+  /// dictionary indexed by result number. Returns std::nullopt when no
+  /// output_names are stored for the job, allowing callers to return the raw
+  /// counts unchanged.
+  std::optional<cudaq::sample_result>
+  tryReconstructFromResultIndexedCounts(const std::string &jobId,
+                                        const CountsDictionary &counts);
 
 public:
   ServerHelper() = default;

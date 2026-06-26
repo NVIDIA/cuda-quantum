@@ -6,16 +6,16 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "IQMQubitMapping.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-
-#include "nlohmann/json.hpp"
-
 #include <fcntl.h>
 #include <fstream>
 #include <regex>
+#include <stdexcept>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -26,20 +26,6 @@
 namespace cudaq {
 
 class IQMServerHelper : public ServerHelper {
-
-  struct qubitOrder {
-    // Lightweight comparison for sorting strings ending in a number in
-    // natural order. This assumes that all strings have either none or
-    // the same prefix and there is a number. No checks on the string
-    // composition is done for performance reasons.
-    bool operator()(const std::string &a, const std::string &b) const {
-      if (a.size() < b.size())
-        return true;
-      if (a.size() > b.size())
-        return false;
-      return a.compare(b) < 0;
-    }
-  };
 
 protected:
   /// @brief The base URL
@@ -80,7 +66,7 @@ protected:
   }
 
   /// @brief Lookup table for translating the qubit names to index numbers
-  std::map<std::string, uint, qubitOrder> qubitNameMap;
+  std::map<std::string, uint, IqmQubitOrder> qubitNameMap;
 
   /// @brief Adjacency map for each qubit
   std::vector<std::set<uint>> qubitAdjacencyMap;
@@ -204,13 +190,8 @@ void IQMServerHelper::initialize(BackendConfig config) {
     cleanupQuantumArchitectureFilePath = false;
   }
 
-  // Parse common config entries (e.g. `reorderIdx.<task_id>` populated by
-  // Executor::execute) so that processResults() can map sampled bitstrings
-  // back to the user's original qubit allocation order after the qubit
-  // mapping pass has permuted them. Without this call the reorder map stays
-  // empty and the bitstrings remain in physical-qubit order, which leads to
-  // wrong bit positions when the mapping pass picks a non-identity
-  // placement (see GitHub issue #4621).
+  // Parse common config entries so processResults() can reconstruct sampled
+  // bitstrings through enriched output_names result maps.
   parseConfigForCommonParams(config);
 }
 
@@ -222,17 +203,17 @@ IQMServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // so we cannot use the batch mode
   for (auto &circuitCode : circuitCodes) {
     ServerMessage message = ServerMessage::object();
-    message["qubit_mapping"] = ServerMessage::array();
     message["circuits"] = ServerMessage::array();
     message["shots"] = shots;
 
-    // Apply the mapping derived from the dynamic quantum architecture.
-    for (auto &[key, value] : qubitNameMap) {
-      nlohmann::json singleQubitMapping;
-      singleQubitMapping["logical_name"] = "QB" + std::to_string(value + 1);
-      singleQubitMapping["physical_name"] = key;
-      message["qubit_mapping"].push_back(singleQubitMapping);
-    }
+    // IQM expects a logical-name to physical-qubit mapping. The compiler emits
+    // that mapping per execution because the backend assigns job ids only after
+    // this submit-side payload is built.
+    message["qubit_mapping"] =
+        buildIqmQubitMapping(circuitCode.targetQubitMapping, qubitNameMap,
+                             [this](DeviceQubit deviceQubit) {
+                               return backendQubitLabel(deviceQubit);
+                             });
 
     ServerMessage yac = nlohmann::json::parse(circuitCode.code);
     yac["name"] = circuitCode.name;
@@ -302,15 +283,9 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
 
   sample_result sampleResult(srs);
 
-  // The original sampleResult is ordered by physical qubit number. Reorder
-  // according to reorderIdx[] so the global bitstring is in the user's
-  // original qubit allocation order.
-  auto thisJobReorderIdxIt = reorderIdx.find(jobID);
-  if (thisJobReorderIdxIt != reorderIdx.end()) {
-    auto &thisJobReorderIdx = thisJobReorderIdxIt->second;
-    if (!thisJobReorderIdx.empty())
-      sampleResult.reorder(thisJobReorderIdx);
-  }
+  if (auto resultMap = resultMapForJob(jobID))
+    return reconstructSampleResultFromDeviceIndexedMeasurements(
+        sampleResult.to_map(), *resultMap);
 
   return sampleResult;
 }
@@ -397,86 +372,31 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     RestClient client;
     auto headers = generateRequestHeader();
 
-    // From the Dynamic Quantum Architecture we need the list of qubits names,
-    // the list of qubit pairs which can form cz-gates, the lists of qubits
-    // which can do prx-gates and the list of qubits which support measurement.
     auto dynamicQuantumArchitecture = client.get(iqmServerUrl,
                                                  "calibration-sets/default/"
                                                  "dynamic-quantum-architecture",
                                                  headers);
     CUDAQ_DBG("Dynamic QA={}", dynamicQuantumArchitecture.dump());
 
-    auto &cz = dynamicQuantumArchitecture["gates"]["cz"];
-    auto implementation = cz["default_implementation"];
-    auto &cz_loci = cz["implementations"][implementation]["loci"];
+    auto mapping = buildIqmArchitectureMapping(dynamicQuantumArchitecture);
+    qubitNameMap = std::move(mapping.qubitNameMap);
+    qubitAdjacencyMap = std::move(mapping.qubitAdjacencyMap);
 
-    auto &prx = dynamicQuantumArchitecture["gates"]["prx"];
-    implementation = prx["default_implementation"];
-    auto prx_loci = prx["implementations"][implementation]["loci"];
+    // Feed the backend-owned label table on the ServerHelper base. Element i of
+    // backendLabels is the provider-native name for dense device qubit i.
+    for (DeviceQubit deviceQubit = 0;
+         deviceQubit < mapping.backendLabels.size(); ++deviceQubit)
+      setBackendQubitLabel(deviceQubit,
+                           std::move(mapping.backendLabels[deviceQubit]));
 
-    auto &measure = dynamicQuantumArchitecture["gates"]["measure"];
-    implementation = measure["default_implementation"];
-    auto &measure_loci = measure["implementations"][implementation]["loci"];
-
-    // For each qubit set flags to indicate whether they can be used in `cz`,
-    // `prx` or `measurement` operations. Then crop all qubits which are not
-    // capable of all three operations and enumerate the remaining ones.
-
-    for (auto qubit : dynamicQuantumArchitecture["qubits"]) {
-      qubitNameMap[qubit] = 0; // initializing to zero meaning no capability
-    }
-    for (auto cz : cz_loci) {
-      // each cz loci has 2 qubits - mark each qubit
-      for (auto qubit : cz) { // cz is an array of strings
-        qubitNameMap[qubit] |= (1 << 0);
-      }
-    }
-    for (auto prx : prx_loci) {
-      qubitNameMap[prx[0]] |= (1 << 1);
-    }
-    for (auto measure : measure_loci) {
-      qubitNameMap[measure[0]] |= (1 << 2);
-    }
-
-    uint idx = 0; // enumeration counter
-    for (auto qubit = qubitNameMap.begin(); qubit != qubitNameMap.end();) {
-      if (qubit->second == ((1 << 0) | (1 << 1) | (1 << 2))) {
-        qubit->second = idx++; // replace flags with enumeration value
-        qubit++;
-      } else {
-        qubit = qubitNameMap.erase(qubit);
-      }
-    }
-    // From here on the qubitNameMap lists only qubits which can be used
-    // for all operations. Starting with 0 each qubit in the list
-    // is enumerated.
-
-    // The number of qubits in this dynamic quantum architecture.
-    uint qubitCount = qubitNameMap.size();
-    CUDAQ_INFO("Server {} has {} calibrated qubits", iqmServerUrl, qubitCount);
-    assert(idx == qubitCount);
+    CUDAQ_INFO("Server {} has {} calibrated qubits", iqmServerUrl,
+               qubitNameMap.size());
 
 #ifdef CUDAQ_DEBUG
     for (auto &[key, value] : qubitNameMap) {
       CUDAQ_DBG("qubit mapping: {} = {}", key, value);
     }
 #endif
-
-    // Initialise the adjacency map with an empty set for each qubit
-    qubitAdjacencyMap.reserve(qubitCount);
-    for (uint i = 0; i < qubitCount; i++) {
-      qubitAdjacencyMap.emplace_back();
-    }
-
-    // Iterate over all cz loci and add only those to the adjacency map
-    // for which all qubits have passed the above tests.
-    for (auto cz : cz_loci) {
-      if (qubitNameMap.count(cz[0]) && qubitNameMap.count(cz[1])) {
-        CUDAQ_DBG("usable cz_loci {}", cz.dump());
-        qubitAdjacencyMap[qubitNameMap[cz[0]]].insert(qubitNameMap[cz[1]]);
-        qubitAdjacencyMap[qubitNameMap[cz[1]]].insert(qubitNameMap[cz[0]]);
-      }
-    } // for all cz loci
   } catch (const std::exception &e) {
     throw std::runtime_error("Unable to get quantum architecture from \"" +
                              iqmServerUrl + "\": " + std::string(e.what()));

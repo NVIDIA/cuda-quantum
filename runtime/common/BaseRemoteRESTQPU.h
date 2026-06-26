@@ -263,7 +263,6 @@ public:
         serverHelper.get(), targetConfig, backendConfig, emulate);
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
-    target->storeReorderIdx = true;
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
     return target;
@@ -460,8 +459,8 @@ public:
           codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
-      localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
       localPolicy.kernelName = kernelName;
+      localPolicy.setKernelExecutionMetadata(codes[i]);
       assert(codes[i].jit);
       auto result = detail::with_policy_and_ctx(localPolicy, context, [&]() {
         return cudaq::ExecutionManager::with_default_em(
@@ -520,8 +519,8 @@ public:
           codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
-      localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
       localPolicy.kernelName = kernelName;
+      localPolicy.setKernelExecutionMetadata(codes[i]);
       assert(codes[i].jit);
       auto result = detail::with_policy_and_ctx(localPolicy, context, [&]() {
         return cudaq::ExecutionManager::with_default_em(

@@ -13,6 +13,7 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
+#include "common/ResultReconstruction.h"
 #include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/algorithms/policies.h"
@@ -1141,12 +1142,54 @@ protected:
       internalResult.append(counts);
     }
 
-    // Reorder the global register (if necessary). This might be necessary if
-    // the mapping pass had run and we want to undo the shuffle that occurred
-    // during mapping.
-    if (!policy.reorderIdx.empty()) {
-      internalResult.reorder(policy.reorderIdx);
-      policy.reorderIdx.clear();
+    if (!policy.resultOutputMap.outputs.empty()) {
+      // Kernels compiled with a result-to-output map go through the QIR
+      // mapping pipeline, which encodes the user-visible output order in the
+      // map. Reconstruct from the global register and replace internalResult
+      // wholesale; any generated named registers are rebuilt from the map.
+      auto makeLocalMeasuredMap = [&]() {
+        auto resultMap = policy.resultOutputMap;
+        std::vector<std::pair<cudaq::DeviceQubit, std::size_t>> localOrder;
+        localOrder.reserve(resultMap.outputs.size());
+        for (std::size_t i = 0; i < resultMap.outputs.size(); ++i) {
+          auto localQubit = resultMap.outputs[i].deviceQubit;
+          if (!policy.activeDeviceQubits.empty()) {
+            auto iter = std::find(policy.activeDeviceQubits.begin(),
+                                  policy.activeDeviceQubits.end(), localQubit);
+            if (iter == policy.activeDeviceQubits.end())
+              throw std::invalid_argument(
+                  "result output map references an inactive device qubit");
+            localQubit = std::distance(policy.activeDeviceQubits.begin(), iter);
+          }
+          localOrder.emplace_back(localQubit, i);
+        }
+        std::sort(localOrder.begin(), localOrder.end());
+        for (std::size_t bit = 0; bit < localOrder.size(); ++bit)
+          resultMap.outputs[localOrder[bit].second].deviceQubit = bit;
+        return resultMap;
+      };
+
+      auto sequentialData = internalResult.sequential_data();
+      if (!sequentialData.empty()) {
+        if (policy.options.explicit_measurements)
+          internalResult =
+              cudaq::reconstructSampleResultFromResultIndexedBitstringShots(
+                  sequentialData, policy.resultOutputMap);
+        else
+          internalResult =
+              cudaq::reconstructSampleResultFromDeviceIndexedBitstringShots(
+                  sequentialData, makeLocalMeasuredMap());
+      } else {
+        auto counts = internalResult.to_map();
+        if (policy.options.explicit_measurements)
+          internalResult =
+              cudaq::reconstructSampleResultFromResultIndexedMeasurements(
+                  counts, policy.resultOutputMap);
+        else
+          internalResult =
+              cudaq::reconstructSampleResultFromDeviceIndexedMeasurements(
+                  counts, makeLocalMeasuredMap());
+      }
     }
 
     // Clear the sample bits for the next run

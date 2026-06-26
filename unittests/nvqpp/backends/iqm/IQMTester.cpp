@@ -73,26 +73,20 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
   EXPECT_LE(counts.size(), 4);
 }
 
-// Regression test for https://github.com/NVIDIA/cuda-quantum/issues/4621
-// The IQM server returns counts ordered by physical qubit. When the
-// qubit-mapping pass picks a non-identity virtual->physical placement, the
-// helper must permute the bitstring back to the user's virtual qubit
-// allocation order. That permutation is communicated to the server helper
-// through `reorderIdx.<jobId>` entries in the backend config, which
-// `parseConfigForCommonParams` parses into `ServerHelper::reorderIdx`. If
-// `initialize()` forgets to call that, the helper returns physical-ordered
-// bitstrings (the bug).
 CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
   auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("iqm");
   ASSERT_TRUE(serverHelper);
 
   const std::string jobId = "test-job-id";
-  // sample_result::reorder semantics: newBits[i] = oldBits[idx[i]].
-  // With idx = [1, 2, 0] and physical bitstring "100", the reordered
-  // (virtual-order) bitstring is "001".
+  // The legacy reorderIdx.<jobId> sidecar (GitHub issue #4621) was retired in
+  // favor of the enriched output_names channel. The permutation it expressed
+  // is now carried by the per-result qubit numbers: output_names bit indices
+  // [1, 2, 0] reorder physical "100" to user-order "001", reproducing the
+  // exact remap the reorderIdx fix landed for issue #4621.
   cudaq::BackendConfig config;
   config["url"] = "http://localhost:62443";
-  config["reorderIdx." + jobId] = "[1, 2, 0]";
+  config["output_names." + jobId] =
+      R"([[[0, [1, "r00000", 0]], [1, [2, "r00001", 1]], [2, [0, "r00002", 2]]]])";
   serverHelper->initialize(config);
 
   cudaq::ServerMessage response = {
@@ -114,8 +108,8 @@ CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
     }
   }
   EXPECT_EQ(mostFrequent, "001")
-      << "IQMServerHelper did not apply reorderIdx from backend config "
-      << "(see GitHub issue #4621). Got \"" << mostFrequent << "\".";
+      << "IQMServerHelper did not reorder the returned bitstring into "
+      << "user order (see GitHub issue #4621). Got \"" << mostFrequent << "\".";
 }
 
 // Setting an arbitrary string in the IQM_TOKEN environment variable must

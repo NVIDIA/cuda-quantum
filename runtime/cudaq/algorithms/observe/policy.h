@@ -9,7 +9,9 @@
 #pragma once
 
 #include "common/Future.h"
+#include "common/KernelExecution.h"
 #include "common/ObserveResult.h"
+#include "cudaq/algorithms/ExecutionMetadataPolicy.h"
 #include "cudaq/algorithms/observe/options.h"
 #include "cudaq/operators.h"
 
@@ -19,7 +21,7 @@ class ExecutionManager;
 class ExecutionContext;
 
 /// @brief Tag and options for computing expectation values.
-struct observe_policy {
+struct observe_policy : ExecutionMetadataPolicy {
   /// @brief The name of the policy.
   static constexpr char name[] = "observe";
 
@@ -34,10 +36,6 @@ struct observe_policy {
 
   /// @brief The spin operator being observed.
   spin_op spin;
-
-  /// @brief A vector containing information about how to reorder the global
-  /// register after execution. Empty means no reordering.
-  mutable std::vector<std::size_t> reorderIdx;
 
   mutable const noise_model *noiseModel = nullptr;
 

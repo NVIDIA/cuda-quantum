@@ -20,7 +20,9 @@
 #include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
@@ -41,6 +43,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Transforms/Passes.h"
+#include <algorithm>
 #include <memory>
 #include <mlir/IR/OwningOpRef.h>
 #include <optional>
@@ -49,7 +52,8 @@
 using namespace mlir;
 
 namespace {
-/// Conditionally form an output_names JSON object if this was for QIR
+/// Conditionally form an output_names JSON object from emitted target code or
+/// the translated MLIR module.
 nlohmann::json formOutputNames(const std::string &codegenTranslation,
                                mlir::ModuleOp moduleOp,
                                const std::string &codeStr) {
@@ -78,7 +82,7 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
         }
       }
     }
-  } else if (codegenTranslation.starts_with("qasm2")) {
+  } else {
     for (auto &op : moduleOp) {
       if (op.hasAttr(cudaq::entryPointAttrName) && op.hasAttr("output_names")) {
         if (auto strAttr = mlir::dyn_cast_if_present<mlir::StringAttr>(
@@ -91,22 +95,7 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
   }
   return output_names;
 }
-/// Extract qubit-mapping reorder indices from the entry-point attributes.
-std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
-                                                  mlir::func::FuncOp epFunc) {
-  assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
-         "Entry point function must survive the lowering pipeline.");
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
-          epFunc->getAttr("mapping_reorder_idx"))) {
-    mapping_reorder_idx.resize(mappingAttr.size());
-    std::transform(mappingAttr.begin(), mappingAttr.end(),
-                   mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
-                     return mlir::cast<mlir::IntegerAttr>(attr).getInt();
-                   });
-  }
-  return mapping_reorder_idx;
-}
+
 } // namespace
 
 std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
@@ -439,10 +428,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       resourceCounts = std::move(*result);
   }
 
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (target->storeReorderIdx)
-    mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
-
   // Warn if kernel has named measurement registers (sub-registers).
   if (target->warnNamedMeasurements) {
     auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
@@ -496,7 +481,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       auto *contextPtr = moduleOp.getContext();
       mlir::PassManager pm(contextPtr);
       pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createObserveAnsatzPass(
-          term.get_binary_symplectic_form()));
+          term.get_binary_symplectic_form(),
+          std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName));
       if (failed(cudaq_internal::compiler::runPassManager(
               pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
@@ -521,9 +507,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
-      {.reorderIdx = mapping_reorder_idx,
-       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes},
-      context);
+      {.hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes}, context);
 }
 
 std::vector<cudaq::KernelExecution>
@@ -539,7 +523,8 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
         cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
             mlirArtifact)
             .clone();
-
+    // Snapshot before translation; BorrowWireOps are lowered away by emit.
+    mlir::OwningOpRef<ModuleOp> preEmitModule = compiled_module->clone();
     std::string codeStr;
     nlohmann::json j;
     if (target->emitTargetCode) {
@@ -565,6 +550,8 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 
       // Form an output_names mapping from codeStr
       j = formOutputNames(codegenTranslation, *compiled_module, codeStr);
+    } else if (codegenTranslation.starts_with("qasm2")) {
+      j = formOutputNames(codegenTranslation, *compiled_module, codeStr);
     }
 
     // Retrieve pre-computed JIT engine and resource counts (if any).
@@ -577,10 +564,25 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
     if (resourceCounts)
       optionalResourceCounts = *resourceCounts;
 
-    auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
-    codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
-                       mapping_reorder_idx,
-                       compiled.getMetadata().hasConditionalsOnMeasureResults);
+    codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j);
+    codes.back().hasConditionalsOnMeasureResults =
+        compiled.getMetadata().hasConditionalsOnMeasureResults;
+    // Active device qubits are the per-execution sidecar fact, populated only
+    // when mapping left BorrowWireOps in the pre-translation snapshot. The
+    // user-visible output order rides on the enriched output_names. The
+    // free-function validate checks both invariants at this boundary: sorted
+    // unique active qubits and dense unique output positions.
+    auto mappedQubits =
+        cudaq::opt::collectMappedDeviceQubits(preEmitModule->getOperation());
+    codes.back().activeDeviceQubits.assign(mappedQubits.begin(),
+                                           mappedQubits.end());
+    auto targetMapping = cudaq::opt::collectMappedTargetQubitMapping(
+        preEmitModule->getOperation());
+    codes.back().targetQubitMapping.reserve(targetMapping.size());
+    for (auto &[logicalName, deviceQubit] : targetMapping)
+      codes.back().targetQubitMapping.push_back(
+          {std::move(logicalName), deviceQubit});
+    cudaq::validateExecutionMetadata(codes.back().activeDeviceQubits, j);
   }
 
   return codes;

@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>

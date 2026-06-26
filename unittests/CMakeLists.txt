@@ -243,4 +243,3 @@ add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
-

@@ -20,8 +20,10 @@ set(COMMON_RUNTIME_SRC
   Executor.cpp
   ExtraPayloadProvider.cpp
   Future.cpp
+  KernelExecution.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
+  ResultReconstruction.cpp
   Resources.cpp
   RuntimeTarget.cpp
   SampleResult.cpp

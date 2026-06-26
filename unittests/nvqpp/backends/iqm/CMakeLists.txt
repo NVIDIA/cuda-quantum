@@ -9,6 +9,17 @@
 configure_file(IQMStartServerAndTest.sh.in IQMStartServerAndTest.sh @ONLY)
 get_property(backend_unittest_libs DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS)
 
+## IQM qubit-mapping unit tests (no live server required)
+set(iqm_helper_dir
+  ${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/default/rest/helpers/iqm)
+add_backend_unittest_executable(test_iqm_qubit_mapping
+  SOURCES IQMQubitMappingTester.cpp
+  BACKEND iqm
+  INCLUDES ${iqm_helper_dir} ${CMAKE_SOURCE_DIR}/runtime ../..
+  LINK_LIBS ${backend_unittest_libs} cudaq-serverhelper-iqm gmock_main
+)
+gtest_discover_tests(test_iqm_qubit_mapping DISCOVERY_TIMEOUT 120)
+
 ## General IQM tests and IQM token tests
 add_backend_unittest_executable(test_iqm 
   SOURCES IQMTester.cpp
