@@ -49,7 +49,7 @@ CMAKE_LINUX_INSTALLER_URL_BASE="https://github.com/Kitware/CMake/releases/downlo
 NINJA_VERSION=1.11.1
 NINJA_TARBALL_URL="https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz"
 
-ZLIB_VERSION=1.3.1
+ZLIB_VERSION=1.3.2
 ZLIB_TARBALL_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
 
 BLAS_VERSION=3.11.0
@@ -58,11 +58,11 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
 
-OPENSSL_VERSION=3.6.2
+OPENSSL_VERSION=3.6.3
 OPENSSL_TARBALL_URL="https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
 
-CURL_VERSION=8.20.0
-CURL_VERSION_UNDERSCORE=curl-8_20_0
+CURL_VERSION=8.21.0
+CURL_VERSION_UNDERSCORE=curl-8_21_0
 CURL_TARBALL_URL="https://github.com/curl/curl/releases/download/${CURL_VERSION_UNDERSCORE}/curl-${CURL_VERSION}.tar.gz"
 CACERT_URL="https://curl.se/ca/cacert.pem"
 CACERT_SHA256_URL="${CACERT_URL}.sha256"
