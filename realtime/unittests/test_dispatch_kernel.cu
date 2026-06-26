@@ -773,6 +773,21 @@ __global__ void triggered_counter_kernel(int* counter) {
 }
 
 TEST(DeviceGraphSelfRelaunchTest, Exceeds120) {
+  // Device-side graph launch (cudaStreamGraphTailLaunch / device-launchable
+  // graphs) requires compute capability 9.0+ (Hopper). On older GPUs the
+  // instantiate/create calls below still succeed, but the device-side launches
+  // silently no-op (the counter never advances), so guard explicitly here --
+  // matching GraphLaunchTest.DispatchKernelGraphLaunch.
+  int device;
+  CUDA_CHECK(cudaGetDevice(&device));
+  cudaDeviceProp prop;
+  CUDA_CHECK(cudaGetDeviceProperties(&prop, device));
+  if (prop.major < 9) {
+    GTEST_SKIP() << "Graph device launch requires compute capability 9.0+, "
+                    "found "
+                 << prop.major << "." << prop.minor;
+  }
+
   // One triggered launch per message; >> 120 to prove the budget reset.
   constexpr int kNumMessages = 200;
   constexpr std::size_t kNumSlots = kNumMessages; // each slot used once
