@@ -427,7 +427,7 @@ def test_dem_options_unknown_key_raises():
         cudaq.dem_from_kernel(kernel, not_a_real_option=True)
 
 
-def test_return_m2d_no_detectors():
+def test_return_measurement_matrices_no_detectors():
     """Kernel with no detectors or observables yields empty m2d and m2o matrices."""
 
     @cudaq.kernel
@@ -435,14 +435,15 @@ def test_return_m2d_no_detectors():
         q = cudaq.qubit()
         mz(q)
 
-    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel, return_m2d=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(
+        kernel, return_measurement_matrices=True)
     assert m2d.shape == (0, 1)
     assert m2d.nnz == 0
     assert m2o.shape == (0, 1)
     assert m2o.nnz == 0
 
 
-def test_return_m2d_two_rounds():
+def test_return_measurement_matrices_two_rounds():
     """Two-round memory experiment: verify m2d and m2o shapes and mappings."""
 
     @cudaq.kernel
@@ -455,7 +456,8 @@ def test_return_m2d_two_rounds():
             m = m_new
         cudaq.logical_observable(m)
 
-    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel, 2, return_m2d=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(
+        kernel, 2, return_measurement_matrices=True)
     # 3 measurements (m0, m1, m2), 2 detectors, 1 observable
     assert m2d.shape == (2, 3)
     dense = m2d.toarray()
@@ -469,8 +471,8 @@ def test_return_m2d_two_rounds():
                                                                        2] == 1
 
 
-def test_return_m2d_type_is_scipy_sparse():
-    """return_m2d=True yields scipy CSR sparse matrices for both m2d and m2o."""
+def test_return_measurement_matrices_type_is_scipy_sparse():
+    """return_measurement_matrices=True yields scipy CSR sparse matrices for both m2d and m2o."""
     import scipy.sparse as sp
 
     @cudaq.kernel
@@ -480,7 +482,8 @@ def test_return_m2d_type_is_scipy_sparse():
         cudaq.detector(m)
         cudaq.logical_observable(m)
 
-    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel, return_m2d=True)
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(
+        kernel, return_measurement_matrices=True)
     assert isinstance(dem_text, str)
     assert sp.issparse(m2d)
     assert sp.issparse(m2o)
@@ -490,8 +493,8 @@ def test_return_m2d_type_is_scipy_sparse():
     assert m2o[0, 0] == 1
 
 
-def test_return_m2d_false_still_returns_string():
-    """Explicit return_m2d=False preserves the original string-only return."""
+def test_no_return_measurement_matrices_returns_string():
+    """Without return_measurement_matrices the return value is a plain string."""
 
     @cudaq.kernel
     def kernel():
@@ -499,7 +502,7 @@ def test_return_m2d_false_still_returns_string():
         m = mz(q)
         cudaq.detector(m)
 
-    result = cudaq.dem_from_kernel(kernel, return_m2d=False)
+    result = cudaq.dem_from_kernel(kernel)
     assert isinstance(result, str)
 
 

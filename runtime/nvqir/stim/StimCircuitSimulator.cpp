@@ -215,9 +215,9 @@ protected:
   void computeM2IntoContext(cudaq::ExecutionContext &ctx) {
     auto flat = recordedCircuit.flattened();
     auto stats = flat.compute_stats();
-    ctx.m2.num_measurements = stats.num_measurements;
-    ctx.m2.det_rows.resize(stats.num_detectors);
-    ctx.m2.obs_rows.resize(stats.num_observables);
+    ctx.dem_opts.measurement_matrices.num_measurements = stats.num_measurements;
+    ctx.dem_opts.measurement_matrices.det_rows.resize(stats.num_detectors);
+    ctx.dem_opts.measurement_matrices.obs_rows.resize(stats.num_observables);
 
     std::size_t meas_so_far = 0;
     std::size_t det_so_far = 0;
@@ -229,7 +229,8 @@ protected:
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
-            ctx.m2.det_rows[det_so_far].push_back(meas_so_far - lookback);
+            ctx.dem_opts.measurement_matrices.det_rows[det_so_far].push_back(
+                meas_so_far - lookback);
           }
         }
         ++det_so_far;
@@ -238,7 +239,8 @@ protected:
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
-            ctx.m2.obs_rows[obs_idx].push_back(meas_so_far - lookback);
+            ctx.dem_opts.measurement_matrices.obs_rows[obs_idx].push_back(
+                meas_so_far - lookback);
           }
         }
       }
@@ -258,7 +260,7 @@ protected:
             opts.ignore_decomposition_failures,
             opts.block_decomposition_from_introducing_remnant_edges);
 
-    if (ctx && ctx->compute_m2)
+    if (ctx && ctx->dem_opts.compute_measurement_matrices)
       computeM2IntoContext(*ctx);
 
     return dem.str();

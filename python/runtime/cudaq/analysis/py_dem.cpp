@@ -31,6 +31,7 @@ using namespace cudaq;
 ///   - approximate_disjoint_errors_threshold (float)
 ///   - ignore_decomposition_failures (bool)
 ///   - block_decomposition_from_introducing_remnant_edges (bool)
+///   - return_measurement_matrices (bool)
 static cudaq::dem_options parseDemOptions(const nanobind::dict &d) {
   cudaq::dem_options opts;
   for (auto [k, v] : d) {
@@ -48,6 +49,8 @@ static cudaq::dem_options parseDemOptions(const nanobind::dict &d) {
     else if (key == "block_decomposition_from_introducing_remnant_edges")
       opts.block_decomposition_from_introducing_remnant_edges =
           nanobind::cast<bool>(v);
+    else if (key == "return_measurement_matrices")
+      opts.compute_measurement_matrices = nanobind::cast<bool>(v);
     else
       throw std::invalid_argument("dem_options: unknown key '" + key + "'");
   }
@@ -57,7 +60,6 @@ static cudaq::dem_options parseDemOptions(const nanobind::dict &d) {
 static nanobind::object dem_from_kernel_impl(const std::string &kernelName,
                                              MlirModule kernelMod,
                                              std::optional<noise_model> noise,
-                                             bool return_m2d,
                                              nanobind::dict dem_options_dict,
                                              nanobind::args args) {
   auto &platform = cudaq::get_platform();
@@ -73,14 +75,16 @@ static nanobind::object dem_from_kernel_impl(const std::string &kernelName,
 
   cudaq::M2DSparseMatrix m2d_storage;
   cudaq::M2OSparseMatrix m2o_storage;
-  cudaq::M2DSparseMatrix *m2d_ptr = return_m2d ? &m2d_storage : nullptr;
-  cudaq::M2OSparseMatrix *m2o_ptr = return_m2d ? &m2o_storage : nullptr;
+  cudaq::M2DSparseMatrix *m2d_ptr =
+      opts.compute_measurement_matrices ? &m2d_storage : nullptr;
+  cudaq::M2OSparseMatrix *m2o_ptr =
+      opts.compute_measurement_matrices ? &m2o_storage : nullptr;
   std::string dem_text =
       cudaq::detail::runDemFromKernel(kernelName, platform, noisePtr, launch,
                                       opts, /*plugin_name=*/"stim",
                                       m2d_ptr, m2o_ptr);
 
-  if (!return_m2d)
+  if (!opts.compute_measurement_matrices)
     return nanobind::cast(std::move(dem_text));
 
   return nanobind::make_tuple(nanobind::cast(std::move(dem_text)),
@@ -91,7 +95,6 @@ static nanobind::object dem_from_kernel_impl(const std::string &kernelName,
 
 void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
   mod.def("dem_from_kernel_impl", dem_from_kernel_impl, nanobind::arg(),
-          nanobind::arg(), nanobind::arg().none(), nanobind::arg("return_m2d"),
-          nanobind::arg("dem_options"),
+          nanobind::arg(), nanobind::arg().none(), nanobind::arg("dem_options"),
           nanobind::arg(), "See python documentation for dem_from_kernel.");
 }

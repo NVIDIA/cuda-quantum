@@ -40,7 +40,7 @@ std::string runDemFromKernel(const std::string &kernelName,
   if (noise)
     ctx.noiseModel = noise;
   if (m2d_out || m2o_out)
-    ctx.compute_m2 = true;
+    ctx.dem_opts.compute_measurement_matrices = true;
 
   // RAII: claim the thread-local analysis-simulator slot backed by the `stim`
   // plugin. The scope starts from a clean simulator and releases the override
@@ -50,12 +50,14 @@ std::string runDemFromKernel(const std::string &kernelName,
   platform.with_execution_context(ctx, kernel);
 
   if (m2d_out) {
-    m2d_out->num_measurements = ctx.m2.num_measurements;
-    m2d_out->rows = std::move(ctx.m2.det_rows);
+    m2d_out->num_measurements =
+        ctx.dem_opts.measurement_matrices.num_measurements;
+    m2d_out->rows = std::move(ctx.dem_opts.measurement_matrices.det_rows);
   }
   if (m2o_out) {
-    m2o_out->num_measurements = ctx.m2.num_measurements;
-    m2o_out->rows = std::move(ctx.m2.obs_rows);
+    m2o_out->num_measurements =
+        ctx.dem_opts.measurement_matrices.num_measurements;
+    m2o_out->rows = std::move(ctx.dem_opts.measurement_matrices.obs_rows);
   }
 
   return std::move(ctx.dem_text);

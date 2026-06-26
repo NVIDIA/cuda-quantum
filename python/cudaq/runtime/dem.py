@@ -18,6 +18,7 @@ _VALID_DEM_OPTION_KEYS = frozenset({
     "approximate_disjoint_errors_threshold",
     "ignore_decomposition_failures",
     "block_decomposition_from_introducing_remnant_edges",
+    "return_measurement_matrices",
 })
 
 
@@ -31,7 +32,7 @@ def _detail_check_conditionals_on_measure(kernel):
 
 
 @trace.traced
-def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False, **dem_kwargs):
+def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
     Runs `kernel` under the internal `"dem"` execution context, captures
@@ -45,9 +46,6 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False, **dem_kwa
       *arguments: Concrete argument values forwarded to the kernel invocation.
       noise_model (:class:`NoiseModel`, optional): Noise model layered on
           top of any `apply_noise` ops already present in the kernel.
-      return_m2d (bool, optional): When True, also return the sparse
-          measurements-to-detectors (m2d) and measurements-to-observables
-          (m2o) matrices alongside the DEM text. Defaults to False.
       decompose_errors (bool, optional): Decompose hyper-edge error
           mechanisms into pairs of two-detector edges. Default ``False``.
       fold_loops (bool, optional): Fold loop bodies in the circuit for a
@@ -63,14 +61,19 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False, **dem_kwa
       block_decomposition_from_introducing_remnant_edges (bool, optional):
           Prevent the decomposer from introducing remnant edges.
           Default ``False``.
+      return_measurement_matrices (bool, optional): When True, also return
+          the sparse measurements-to-detectors (m2d) and
+          measurements-to-observables (m2o) matrices alongside the DEM text.
+          Default ``False``.
 
     Returns:
-      If `return_m2d` is False (default): a UTF-8 string in Stim's standard
-      `.dem` file format. Consumers that need a structured DEM can parse it
-      with `stim.DetectorErrorModel(text)`.
+      If `return_measurement_matrices` is False (default): a UTF-8 string in
+      Stim's standard `.dem` file format. Consumers that need a structured DEM
+      can parse it with `stim.DetectorErrorModel(text)`.
 
-      If `return_m2d` is True: a tuple ``(dem_text, m2d, m2o)`` where both
-      matrices are ``scipy.sparse.csr_matrix`` with binary entries.
+      If `return_measurement_matrices` is True: a tuple
+      ``(dem_text, m2d, m2o)`` where both matrices are
+      ``scipy.sparse.csr_matrix`` with binary entries.
       ``m2d`` has shape ``(num_detectors, num_measurements)``: entry
       ``m2d[d, m] == 1`` means measurement ``m`` contributes to detector ``d``.
       ``m2o`` has shape ``(num_observables, num_measurements)``: entry
@@ -91,10 +94,10 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False, **dem_kwa
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     result = cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
-                                                noise_model, return_m2d,
-                                                dem_kwargs, *processedArgs)
+                                                noise_model, dem_kwargs,
+                                                *processedArgs)
 
-    if not return_m2d:
+    if not dem_kwargs.get("return_measurement_matrices", False):
         return result
 
     import numpy as np
