@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --qubit-mapping=device=path\(3\) %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @test_reset() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.reset %0 : (!quake.wire) -> !quake.wire
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @test_reset() attributes {mapping_reorder_idx = [0], mapping_v2p = [0]} {
+// CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:           %[[VAL_1:.*]] = quake.reset %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           quake.return_wire %[[VAL_3]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
