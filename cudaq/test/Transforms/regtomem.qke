@@ -242,3 +242,28 @@ func.func @f4() {
 // CFG:           return
 // CFG:         }
 
+quake.wire_set @mapped[3]
+
+func.func @mapped_borrow_non_identity() {
+  %0 = quake.borrow_wire @mapped[1] : !quake.wire
+  %1 = quake.borrow_wire @mapped[0] : !quake.wire
+  %2 = quake.borrow_wire @mapped[2] : !quake.wire
+  quake.return_wire %0 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @mapped_borrow_non_identity() {
+// CHECK:           quake.alloca !quake.ref {StartingOffset = 1 : i64}
+// CHECK:           quake.alloca !quake.ref {StartingOffset = 0 : i64}
+// CHECK:           quake.alloca !quake.ref {StartingOffset = 2 : i64}
+// CHECK:           return
+// CHECK:         }
+
+// CFG-LABEL:   func.func @mapped_borrow_non_identity() {
+// CFG:           quake.alloca !quake.ref {StartingOffset = 1 : i64}
+// CFG:           quake.alloca !quake.ref {StartingOffset = 0 : i64}
+// CFG:           quake.alloca !quake.ref {StartingOffset = 2 : i64}
+// CFG:           return
+// CFG:         }

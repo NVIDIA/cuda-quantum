@@ -91,7 +91,7 @@ private:
 };
 
 /// Builds a deterministic topology-aware initial layout by assigning highly
-/// interacting virtual qubits to central physical qubits first. The greedy
+/// interacting virtual qubits to central device qubits first. The greedy
 /// growth and its tie-breaks make the layout a deterministic function of the
 /// interaction counts and the device, so it is reproducible across runs.
 class GreedyInitialPlacer {
@@ -130,21 +130,24 @@ public:
   }
 
 private:
-  /// Physical centrality used to break ties: total distance to every other
+  /// Device-qubit centrality used to break ties: total distance to every other
   /// qubit, and connectivity degree.
   void computeCentrality() {
     using Qubit = cudaq::Device::Qubit;
     distanceSum.assign(n, 0);
     physDegree.assign(n, 0);
     for (unsigned p = 0; p < n; ++p) {
-      for (unsigned q = 0; q < n; ++q)
-        distanceSum[p] += device.getDistance(Qubit(p), Qubit(q));
+      for (unsigned q = 0; q < n; ++q) {
+        unsigned distance = device.getDistance(Qubit(p), Qubit(q));
+        distanceSum[p] +=
+            distance == cudaq::Device::unreachableDistance ? n : distance;
+      }
       physDegree[p] =
           static_cast<unsigned>(device.getNeighbours(Qubit(p)).size());
     }
   }
 
-  /// Seed the worklists for the placement walk: every physical is free and
+  /// Seed the worklists for the placement walk: every device qubit is free and
   /// every user virtual is unplaced, both in ascending order.
   void initWorklists() {
     freePhysicals.reserve(n);
@@ -155,7 +158,7 @@ private:
         unplacedUserVirtuals.push_back(u);
   }
 
-  /// True when physical qubit `a` is more central than `b` and should be
+  /// True when device qubit `a` is more central than `b` and should be
   /// preferred. The primary key is the total distance to every other qubit
   /// (smaller is more central). Ties break toward the higher connectivity
   /// degree, then toward the lower index so the layout stays deterministic.
@@ -167,7 +170,7 @@ private:
     return a < b;
   }
 
-  /// The most central physical qubit not yet used.
+  /// The most central device qubit not yet used.
   unsigned bestFreePhysical() const {
     unsigned best = n;
     for (unsigned p : freePhysicals)
@@ -224,20 +227,29 @@ private:
     return pick;
   }
 
-  /// The free physical qubit minimizing weighted distance from `v` to its
+  /// The free device qubit minimizing weighted distance from `v` to its
   /// placed partners, breaking ties by centrality. When `v` has no interaction
   /// with any placed qubit every cost is zero, so this returns the most central
-  /// free physical, exactly as `bestFreePhysical` would.
+  /// free device qubit, exactly as `bestFreePhysical` would.
   unsigned bestPhysicalFor(unsigned v) const {
     using Qubit = cudaq::Device::Qubit;
     unsigned bestPhy = n;
     unsigned bestCost = 0;
     for (unsigned p : freePhysicals) {
       unsigned cost = 0;
+      bool reachable = true;
       for (const auto &edge : interactions.neighbors(v))
-        if (placedVirtual[edge.first])
-          cost += edge.second *
-                  device.getDistance(Qubit(p), Qubit(vrToPhy[edge.first]));
+        if (placedVirtual[edge.first]) {
+          unsigned distance =
+              device.getDistance(Qubit(p), Qubit(vrToPhy[edge.first]));
+          if (distance == cudaq::Device::unreachableDistance) {
+            reachable = false;
+            break;
+          }
+          cost += edge.second * distance;
+        }
+      if (!reachable)
+        continue;
       bool better = bestPhy == n || cost < bestCost ||
                     (cost == bestCost && isMoreCentralPhysical(p, bestPhy));
       if (better) {
@@ -245,11 +257,11 @@ private:
         bestCost = cost;
       }
     }
-    return bestPhy;
+    return bestPhy == n ? bestFreePhysical() : bestPhy;
   }
 
-  /// Map virtual `v` onto physical `p`, marking `v` placed and `p` taken. The
-  /// sorted worklists keep their order across the erases.
+  /// Map virtual `v` onto device qubit `p`, marking `v` placed and `p` taken.
+  /// The sorted worklists keep their order across the erases.
   void place(unsigned v, unsigned p) {
     vrToPhy[v] = p;
     placedVirtual[v] = true;
@@ -260,8 +272,9 @@ private:
   }
 
   /// Assign any still-unplaced virtuals (non-user qubits) to the remaining free
-  /// physicals, pairing them in ascending order. `freePhysicals` stays sorted,
-  /// so this reproduces the ascending virtual to ascending physical pairing.
+  /// device qubits, pairing them in ascending order. `freePhysicals` stays
+  /// sorted, so this reproduces the ascending virtual to ascending device-qubit
+  /// pairing.
   void assignRemainingVirtuals() {
     unsigned next = 0;
     for (unsigned v = 0; v < n; ++v)
@@ -286,6 +299,129 @@ private:
   SmallVector<unsigned> freePhysicals;
   SmallVector<unsigned> unplacedUserVirtuals;
 };
+
+/// BFS connected-component decomposition over a graph of `n` nodes.
+/// `isActive(u)` returns false to skip node `u` as a BFS root.
+/// `forNeighbors(u, visit)` calls `visit(v)` for each neighbor `v` of `u`.
+/// Returns sorted components in ascending node-index order.
+template <typename IsActive, typename ForNeighbors>
+static SmallVector<SmallVector<unsigned>>
+computeComponents(unsigned n, IsActive isActive, ForNeighbors forNeighbors) {
+  SmallVector<SmallVector<unsigned>> components;
+  SmallVector<bool> visited(n, false);
+
+  for (unsigned start = 0; start < n; ++start) {
+    if (visited[start] || !isActive(start))
+      continue;
+    SmallVector<unsigned> component;
+    SmallVector<unsigned> worklist{start};
+    visited[start] = true;
+    for (std::size_t cursor = 0; cursor < worklist.size(); ++cursor) {
+      unsigned current = worklist[cursor];
+      component.push_back(current);
+      forNeighbors(current, [&](unsigned next) {
+        if (visited[next])
+          return;
+        visited[next] = true;
+        worklist.push_back(next);
+      });
+    }
+    llvm::sort(component);
+    components.push_back(std::move(component));
+  }
+  return components;
+}
+
+SmallVector<SmallVector<unsigned>>
+computeDeviceComponents(const cudaq::Device &device) {
+  using Qubit = cudaq::Device::Qubit;
+  const unsigned n = device.getNumQubits();
+  return computeComponents(
+      n, [](unsigned) { return true; },
+      [&](unsigned current, auto visit) {
+        for (auto neighbor : device.getNeighbours(Qubit(current)))
+          visit(neighbor.index);
+      });
+}
+
+SmallVector<SmallVector<unsigned>>
+computeVirtualComponents(const VirtualInteractionGraph &interactions,
+                         ArrayRef<bool> userVirtualQubits) {
+  const unsigned n = userVirtualQubits.size();
+  return computeComponents(
+      n, [&](unsigned u) { return userVirtualQubits[u]; },
+      [&](unsigned current, auto visit) {
+        for (const auto &edge : interactions.neighbors(current))
+          visit(edge.first);
+      });
+}
+
+std::optional<SmallVector<unsigned>>
+buildComponentCompatibleSeed(unsigned numV, const cudaq::Device &device,
+                             const VirtualInteractionGraph &interactions,
+                             ArrayRef<bool> userVirtualQubits) {
+  SmallVector<SmallVector<unsigned>> deviceComponents =
+      computeDeviceComponents(device);
+  SmallVector<SmallVector<unsigned>> virtualComponents =
+      computeVirtualComponents(interactions, userVirtualQubits);
+  if (virtualComponents.empty())
+    return std::nullopt;
+
+  llvm::sort(virtualComponents, [](const auto &lhs, const auto &rhs) {
+    if (lhs.size() != rhs.size())
+      return lhs.size() > rhs.size();
+    return lhs.front() < rhs.front();
+  });
+
+  SmallVector<SmallVector<unsigned>> availablePhysicals =
+      std::move(deviceComponents);
+  const unsigned unsetPhysical = device.getNumQubits();
+  SmallVector<unsigned> seed(numV, unsetPhysical);
+  SmallVector<bool> usedPhysical(device.getNumQubits(), false);
+
+  for (const auto &virtualComponent : virtualComponents) {
+    unsigned bestComponent = availablePhysicals.size();
+    for (unsigned componentId = 0; componentId < availablePhysicals.size();
+         ++componentId) {
+      const auto &physComponent = availablePhysicals[componentId];
+      if (physComponent.size() < virtualComponent.size())
+        continue;
+      if (bestComponent == availablePhysicals.size() ||
+          physComponent.size() < availablePhysicals[bestComponent].size() ||
+          (physComponent.size() == availablePhysicals[bestComponent].size() &&
+           physComponent.front() < availablePhysicals[bestComponent].front()))
+        bestComponent = componentId;
+    }
+    if (bestComponent == availablePhysicals.size())
+      return std::nullopt;
+
+    auto &physComponent = availablePhysicals[bestComponent];
+    for (auto &&[index, virtualQubit] : llvm::enumerate(virtualComponent)) {
+      unsigned physicalQubit = physComponent[index];
+      seed[virtualQubit] = physicalQubit;
+      usedPhysical[physicalQubit] = true;
+    }
+    physComponent.erase(physComponent.begin(),
+                        physComponent.begin() + virtualComponent.size());
+  }
+
+  SmallVector<unsigned> remainingPhysicals;
+  for (unsigned p = 0; p < device.getNumQubits(); ++p)
+    if (!usedPhysical[p])
+      remainingPhysicals.push_back(p);
+  unsigned nextRemaining = 0;
+  for (unsigned v = 0; v < numV; ++v)
+    if (seed[v] == unsetPhysical)
+      seed[v] = remainingPhysicals[nextRemaining++];
+
+  return seed;
+}
+
+void pushSeedIfNew(SmallVector<SmallVector<unsigned>> &seeds,
+                   SmallVector<unsigned> seed) {
+  if (llvm::find(seeds, seed) == seeds.end())
+    seeds.push_back(std::move(seed));
+}
 
 /// Generate the seed layouts to try, in deterministic order. Each seed only
 /// proposes a starting vrToPhy. The router decides the rest. `interactions` is
@@ -314,11 +450,41 @@ buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
     // For `auto`, greedy degenerates to identity when there are no interactions
     // to place, so skip the duplicate rather than route the identity layout
     // twice.
-    if (strategy == PlacementStrategy::Greedy || greedy != seeds.front())
-      seeds.push_back(std::move(greedy));
+    pushSeedIfNew(seeds, std::move(greedy));
+    if (strategy == PlacementStrategy::Auto)
+      if (auto componentSeed = buildComponentCompatibleSeed(
+              numV, device, *interactions, userVirtualQubits))
+        pushSeedIfNew(seeds, std::move(*componentSeed));
   }
 
   return seeds;
+}
+
+bool seedCanRouteInteractions(ArrayRef<unsigned> seed,
+                              const cudaq::Device &device,
+                              const VirtualInteractionGraph &interactions) {
+  using Qubit = cudaq::Device::Qubit;
+  for (unsigned v = 0, end = seed.size(); v < end; ++v)
+    for (const auto &edge : interactions.neighbors(v)) {
+      unsigned u = edge.first;
+      if (u <= v)
+        continue;
+      if (!device.hasPath(Qubit(seed[v]), Qubit(seed[u])))
+        return false;
+    }
+  return true;
+}
+
+std::optional<std::pair<unsigned, unsigned>>
+findFirstInteractionEdge(const VirtualInteractionGraph &interactions,
+                         unsigned numQubits) {
+  for (unsigned v = 0; v < numQubits; ++v)
+    for (const auto &edge : interactions.neighbors(v)) {
+      unsigned u = edge.first;
+      if (u > v)
+        return std::make_pair(v, u);
+    }
+  return std::nullopt;
 }
 
 //===----------------------------------------------------------------------===//
@@ -369,7 +535,7 @@ struct RoutingProblem {
 struct RoutingEvent {
   enum class Kind { Gate, Swap };
 
-  /// A gate mapped onto the physical qubits `phys`, in operand order.
+  /// A gate mapped onto the device qubits `phys`, in operand order.
   static RoutingEvent gate(mlir::Operation *op,
                            ArrayRef<cudaq::Placement::DeviceQ> phys) {
     return RoutingEvent{
@@ -390,7 +556,7 @@ struct RoutingEvent {
 /// The outcome of routing one layout. The emitter replays `trace` onto the IR.
 /// `swapCount` is the metric used to compare layouts.
 struct RoutingResult {
-  /// Virtual-to-physical layout at the start of the walk, before any swap.
+  /// Virtual-to-device layout at the start of the walk, before any swap.
   SmallVector<unsigned> initialLayout;
   SmallVector<RoutingEvent> trace;
   unsigned swapCount = 0;
@@ -591,7 +757,7 @@ private:
 
   Swap chooseSwap();
 
-  /// Record a swap between two physical qubits: apply it to the placement and
+  /// Record a swap between two device qubits: apply it to the placement and
   /// append it to the trace.
   void addSwap(cudaq::Placement::DeviceQ q0, cudaq::Placement::DeviceQ q1);
 
@@ -1105,22 +1271,22 @@ private:
 
 /// Applies a RoutingResult to the IR. This is the only place routing rewrites
 /// the circuit. It rewires each mapped operation and inserts the swaps,
-/// threading the current wire on each physical qubit.
+/// threading the current wire on each device qubit.
 class RoutingEmitter {
 public:
   RoutingEmitter(DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
                  unsigned numPhysical)
       : wireToVirtualQ(wireMap), phyToWire(numPhysical) {}
 
-  /// Apply `result` to `block`. Returns the final wire on each physical qubit,
+  /// Apply `result` to `block`. Returns the final wire on each device qubit,
   /// which the caller uses to create the return_wire ops.
   ArrayRef<Value> emit(Block &block,
                        ArrayRef<cudaq::quake::BorrowWireOp> sources,
                        const RoutingResult &result) {
-    // Place each source wire on its physical qubit under the initial layout.
-    // Backends read a wire's physical qubit from its borrow identity, so the
-    // layout has to be written into that identity here: a non-identity layout
-    // is not materialized by phyToWire tracking alone. The layout is a
+    // Place each source wire on its device qubit under the initial layout. The
+    // borrow identity records the CUDA-Q device qubit selected by mapping, so a
+    // non-identity layout has to be written into that identity here: it is not
+    // materialized by phyToWire tracking alone. The layout is a
     // permutation, so the rewritten identities stay distinct and within the
     // device range.
     for (auto borrowWire : sources) {
@@ -1135,7 +1301,7 @@ public:
     auto wireType = builder.getType<cudaq::quake::WireType>();
     for (const RoutingEvent &ev : result.trace) {
       if (ev.kind == RoutingEvent::Kind::Gate) {
-        // Rewire the operation onto its physical qubits.
+        // Rewire the operation onto its device qubits.
         SmallVector<Value, 2> newOpWires;
         for (auto phy : ev.phys)
           newOpWires.push_back(phyToWire[phy.index]);
@@ -1591,15 +1757,12 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
     SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
-    bool collectInteractions = placementStrategy != PlacementStrategy::Identity;
-
-    // Two-qubit interaction data for placement, collected during the scan.
+    // Two-qubit interaction data for placement and disconnected-device
+    // reachability checks, collected during the scan.
     std::optional<VirtualInteractionGraph> interactions;
     SmallVector<bool> userVirtualQubits;
-    if (collectInteractions) {
-      interactions.emplace(deviceNumQubits);
-      userVirtualQubits.assign(deviceNumQubits, false);
-    }
+    interactions.emplace(deviceNumQubits);
+    userVirtualQubits.assign(deviceNumQubits, false);
 
     for (Operation &op : block.getOperations()) {
       if (auto qop = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
@@ -1608,8 +1771,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         wireToVirtualQ[qop.getResult()] = cudaq::Placement::VirtualQ(id);
         finalQubitWire[id] = qop.getResult();
         sources[id] = qop;
-        if (collectInteractions)
-          userVirtualQubits[id] = true;
+        userVirtualQubits[id] = true;
         lastSource = &op;
       } else if (dyn_cast<cudaq::quake::NullWireOp>(op)) {
         if (nonComposable) {
@@ -1679,8 +1841,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
             userQubitsMeasured.push_back(virtualQ.index);
 
         // Record two-qubit interactions for placement.
-        if (collectInteractions &&
-            !isa<cudaq::quake::MeasurementInterface>(op) &&
+        if (!isa<cudaq::quake::MeasurementInterface>(op) &&
             wireOperands.size() == 2) {
           unsigned v0 = virtualOperands[0].index;
           unsigned v1 = virtualOperands[1].index;
@@ -1710,6 +1871,33 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         signalPassFailure();
       }
       LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
+      return;
+    }
+
+    const unsigned numV = sources.size();
+    const unsigned numPhy = deviceInstance->getNumQubits();
+
+    SmallVector<SmallVector<unsigned>> seeds =
+        buildPlacementSeeds(placementStrategy, numV, *deviceInstance,
+                            interactions, userVirtualQubits);
+    seeds.erase(llvm::remove_if(seeds,
+                                [&](ArrayRef<unsigned> seed) {
+                                  return !seedCanRouteInteractions(
+                                      seed, *deviceInstance, *interactions);
+                                }),
+                seeds.end());
+    if (seeds.empty()) {
+      if (auto edge = findFirstInteractionEdge(*interactions, numV)) {
+        func.emitError("cannot place two-qubit interaction between virtual "
+                       "qubits " +
+                       std::to_string(edge->first) + " and " +
+                       std::to_string(edge->second) +
+                       " on disconnected device topology");
+      } else {
+        func.emitError("no valid initial layout for disconnected device "
+                       "topology");
+      }
+      signalPassFailure();
       return;
     }
 
@@ -1772,13 +1960,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
     }
 
-    const unsigned numV = sources.size();
-    const unsigned numPhy = deviceInstance->getNumQubits();
-
-    SmallVector<SmallVector<unsigned>> seeds =
-        buildPlacementSeeds(placementStrategy, numV, *deviceInstance,
-                            interactions, userVirtualQubits);
-
     // Build the routing problem once (it does not depend on the layout), then
     // search over the seeds for the result with the fewest swaps.
     RoutingProblem problem =
@@ -1809,7 +1990,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Remove any unused BorrowWireOps and add ReturnWireOp's where needed. Each
-    // source starts on physical qubit `initialLayout[i]`, so its final wire is
+    // source starts on device qubit `initialLayout[i]`, so its final wire is
     // the one threaded onto that track.
     builder.setInsertionPoint(block.getTerminator());
     for (const auto &[i, s] : llvm::enumerate(sources)) {
@@ -1822,11 +2003,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
     }
 
-    // Populate mapping_v2p attribute on this function such that:
-    // - mapping_v2p[v] contains the final physical qubit placement for virtual
-    //   qubit `v`.
-    // To map the backend qubits back to the original user program (i.e. before
-    // this pass), run something like this:
+    // Populate legacy mapping_v2p metadata for current runtime consumers:
+    // mapping_v2p[v] contains the final device-qubit placement for virtual
+    // qubit `v`. To map backend result bits back to the original user program,
+    // run something like this:
     //   for (int v = 0; v < numQubits; v++)
     //     dataForOriginalQubit[v] = dataFromBackendQubit[mapping_v2p[v]];
     llvm::SmallVector<Attribute> attrs(*highestIdentity + 1);
@@ -1852,7 +2032,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       measuredQubits.emplace_back(
           mq, bestLayout.getPhy(cudaq::Placement::VirtualQ(mq)).index);
     }
-    // First sort the pairs according to the physical qubits.
+    // First sort the pairs according to the device qubits.
     llvm::sort(measuredQubits,
                [&](const VirtPhyPairType &a, const VirtPhyPairType &b) {
                  return a.second < b.second;

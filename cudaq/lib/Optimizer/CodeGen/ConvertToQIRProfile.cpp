@@ -73,10 +73,25 @@ static std::optional<std::int64_t> sliceLowerBound(Operation *op) {
   return {};
 }
 
+static bool claimPhysicalQubits(Operation *op, DenseSet<std::size_t> &claimed,
+                                std::size_t offset, std::size_t size) {
+  for (std::size_t i = 0; i < size; ++i) {
+    auto id = offset + i;
+    if (claimed.contains(id)) {
+      op->emitOpError("overlaps physical qubit id ") << id;
+      return false;
+    }
+  }
+  for (std::size_t i = 0; i < size; ++i)
+    claimed.insert(offset + i);
+  return true;
+}
+
 namespace {
 struct FunctionAnalysisData {
   std::size_t nQubits = 0;
   std::size_t nResults = 0;
+  bool hasError = false;
   // Store by result to prevent collisions on a single qubit having
   // multiple measurements (Adaptive Profile)
   // map[result] --> [qb,regName]
@@ -114,6 +129,7 @@ private:
     if (!funcOp)
       return;
     FunctionAnalysisData data;
+    DenseSet<std::size_t> claimedQubits;
     funcOp->walk([&](LLVM::CallOp callOp) {
       auto funcNameAttr = callOp.getCalleeAttr();
       if (!funcNameAttr)
@@ -127,8 +143,15 @@ private:
         // of qubits.
         if (data.allocationOffsets.find(callOp) ==
             data.allocationOffsets.end()) {
-          data.allocationOffsets[callOp] = data.nQubits;
-          data.nQubits += incrementBy();
+          auto increment = incrementBy();
+          std::size_t offset = data.nQubits;
+          if (auto offsetAttr = dyn_cast_if_present<IntegerAttr>(
+                  callOp->getAttr(cudaq::opt::StartingOffsetAttrName)))
+            offset = offsetAttr.getValue().getLimitedValue();
+          data.hasError |= !claimPhysicalQubits(
+              callOp.getOperation(), claimedQubits, offset, increment);
+          data.allocationOffsets[callOp] = offset;
+          data.nQubits = std::max(data.nQubits, offset + increment);
         }
       };
 
@@ -363,6 +386,11 @@ struct QIRToQIRProfileFuncPass
     RewritePatternSet patterns(ctx);
     const auto &analysis = getAnalysis<FunctionProfileAnalysis>();
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
+    auto iter = funcAnalysisInfo.find(op);
+    if (iter != funcAnalysisInfo.end() && iter->second.hasError) {
+      signalPassFailure();
+      return;
+    }
     patterns.insert<AddFuncAttribute>(ctx, funcAnalysisInfo,
                                       convertTo.getValue());
     patterns.insert<AddCallAttribute>(ctx, funcAnalysisInfo);

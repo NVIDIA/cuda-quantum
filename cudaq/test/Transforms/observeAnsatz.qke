@@ -9,6 +9,7 @@
 // clang-format off
 // Observing for SpinOp = "x(0)*y(1)*z(2)"
 // RUN: cudaq-opt --canonicalize --cse --observe-ansatz="term-bsf=1,1,0,0,1,1" --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --canonicalize --cse --observe-ansatz="term-bsf=0,0,0,1,0,0" --canonicalize %s | FileCheck --check-prefix=Z0 %s
 // clang-format on
 
   func.func @__nvqpp__mlirgen__ansatz(%arg0: f64) {
@@ -95,3 +96,23 @@
 // CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_5]] name "r00002" : (!quake.ref) -> !quake.measure
 // CHECK:           return
 // CHECK:         }
+
+quake.wire_set @mapped[3]
+
+func.func @mapped_observe_logical_z0() attributes {mapping_v2p = [1, 0, 2]} {
+  %0 = quake.borrow_wire @mapped[1] : !quake.wire
+  %1 = quake.borrow_wire @mapped[0] : !quake.wire
+  %2 = quake.borrow_wire @mapped[2] : !quake.wire
+  %3 = quake.x %0 : (!quake.wire) -> !quake.wire
+  quake.return_wire %3 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+// Z0-LABEL:   func.func @mapped_observe_logical_z0() attributes {mapping_v2p = [1, 0, 2]} {
+// Z0:           %[[Q0:.*]] = quake.borrow_wire @mapped[1] : !quake.wire
+// Z0:           %[[Q0_FINAL:.*]] = quake.x %[[Q0]] : (!quake.wire) -> !quake.wire
+// Z0:           quake.mz %[[Q0_FINAL]] name "r00000" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// Z0:           return
+// Z0:         }

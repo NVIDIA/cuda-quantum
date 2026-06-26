@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
@@ -50,8 +51,10 @@ public:
           cudaq::opt::factory::createLLVMFunctionSymbol(
               qirQubitAllocate, qubitType, {}, parentModule);
 
-      rewriter.replaceOpWithNewOp<LLVM::CallOp>(alloca, qubitType, symbolRef,
-                                                ValueRange{});
+      auto call = rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+          alloca, qubitType, symbolRef, ValueRange{});
+      if (auto attr = alloca->getAttr(cudaq::opt::StartingOffsetAttrName))
+        call->setAttr(cudaq::opt::StartingOffsetAttrName, attr);
       return success();
     }
 
@@ -78,8 +81,10 @@ public:
     }
 
     // Replace the AllocaOp with the QIR call.
-    rewriter.replaceOpWithNewOp<LLVM::CallOp>(alloca, array_qbit_type,
-                                              symbolRef, sizeOperand);
+    auto call = rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        alloca, array_qbit_type, symbolRef, sizeOperand);
+    if (auto attr = alloca->getAttr(cudaq::opt::StartingOffsetAttrName))
+      call->setAttr(cudaq::opt::StartingOffsetAttrName, attr);
     return success();
   }
 };

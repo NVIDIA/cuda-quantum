@@ -161,13 +161,22 @@ struct GeneralRewrite : OpConversionPattern<OP> {
 };
 
 namespace {
+using LocalWireProjection = DenseMap<std::uint32_t, std::uint32_t>;
+
 struct BorrowWireRewrite : OpConversionPattern<cudaq::quake::BorrowWireOp> {
-  using OpConversionPattern::OpConversionPattern;
+  using Base = OpConversionPattern;
+  explicit BorrowWireRewrite(TypeConverter &typeConverter,
+                             const LocalWireProjection &projection,
+                             MLIRContext *ctxt, PatternBenefit benefit = 1)
+      : Base(typeConverter, ctxt, benefit), projection(projection) {}
 
   LogicalResult
   matchAndRewrite(cudaq::quake::BorrowWireOp borrowWire, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto id = borrowWire.getIdentity();
+    auto it = projection.find(borrowWire.getIdentity());
+    if (it == projection.end())
+      return failure();
+    auto id = it->second;
     auto loc = borrowWire.getLoc();
     Value idCon = arith::ConstantIntOp::create(rewriter, loc, id, 64);
     auto imTy =
@@ -177,6 +186,9 @@ struct BorrowWireRewrite : OpConversionPattern<cudaq::quake::BorrowWireOp> {
         borrowWire, cudaq::cg::getQubitType(rewriter.getContext()), idCon);
     return success();
   }
+
+private:
+  const LocalWireProjection &projection;
 };
 
 struct ResetRewrite : OpConversionPattern<cudaq::quake::ResetOp> {
@@ -402,15 +414,23 @@ struct WireSetToProfileQIRPass
       else
         regNameMap[disc.getOperation()] = "?";
     });
-    std::optional<std::uint32_t> highestIdentity;
-    op.walk([&](cudaq::quake::BorrowWireOp op) {
-      highestIdentity = highestIdentity
-                            ? std::max(*highestIdentity, op.getIdentity())
-                            : op.getIdentity();
+    SmallVector<std::uint32_t> activeDeviceQubits;
+    op.walk([&](cudaq::quake::BorrowWireOp borrowWire) {
+      activeDeviceQubits.push_back(borrowWire.getIdentity());
     });
-    if (highestIdentity)
-      op->setAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName,
-                  builder.getStringAttr(std::to_string(*highestIdentity + 1)));
+    llvm::sort(activeDeviceQubits);
+    activeDeviceQubits.erase(
+        std::unique(activeDeviceQubits.begin(), activeDeviceQubits.end()),
+        activeDeviceQubits.end());
+
+    LocalWireProjection localProjection;
+    for (auto &&[localIndex, deviceQubit] : llvm::enumerate(activeDeviceQubits))
+      localProjection[deviceQubit] = localIndex;
+
+    if (!activeDeviceQubits.empty())
+      op->setAttr(
+          cudaq::opt::qir0_1::RequiredQubitsAttrName,
+          builder.getStringAttr(std::to_string(activeDeviceQubits.size())));
 
     RewritePatternSet patterns(context);
     QuakeTypeConverter quakeTypeConverter;
@@ -424,8 +444,10 @@ struct WireSetToProfileQIRPass
         GeneralRewrite<cudaq::quake::RyOp>, GeneralRewrite<cudaq::quake::RzOp>,
         GeneralRewrite<cudaq::quake::R1Op>, GeneralRewrite<cudaq::quake::U3Op>,
         GeneralRewrite<cudaq::quake::SwapOp>,
-        GeneralRewrite<cudaq::quake::PhasedRxOp>, BorrowWireRewrite,
-        ResetRewrite, ReturnWireRewrite>(quakeTypeConverter, context);
+        GeneralRewrite<cudaq::quake::PhasedRxOp>, ResetRewrite,
+        ReturnWireRewrite>(quakeTypeConverter, context);
+    patterns.insert<BorrowWireRewrite>(quakeTypeConverter, localProjection,
+                                       context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
                                resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";
@@ -447,7 +469,7 @@ struct WireSetToProfileQIRPass
                   builder.getStringAttr(resultQubitJSON.dump()));
     }
 
-    if (highestIdentity)
+    if (!activeDeviceQubits.empty())
       op->setAttr(cudaq::opt::qir0_1::RequiredResultsAttrName,
                   builder.getStringAttr(std::to_string(resultCounter)));
 

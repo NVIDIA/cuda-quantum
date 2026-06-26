@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s -verify-diagnostics
+
+module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu"} {
+  func.func @duplicate_ref_offsets() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.alloca !quake.ref {StartingOffset = 2 : i64}
+    // expected-error @+1 {{overlaps physical qubit id 2}}
+    %1 = quake.alloca !quake.ref {StartingOffset = 2 : i64}
+    quake.x %0 : (!quake.ref) -> ()
+    quake.x %1 : (!quake.ref) -> ()
+    return
+  }
+
+  func.func @overlapping_vector_offsets() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.alloca !quake.veq<3> {StartingOffset = 1 : i64}
+    // expected-error @+1 {{overlaps physical qubit id 3}}
+    %1 = quake.alloca !quake.veq<2> {StartingOffset = 3 : i64}
+    %2 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+    %3 = quake.extract_ref %1[0] : (!quake.veq<2>) -> !quake.ref
+    quake.x %2 : (!quake.ref) -> ()
+    quake.x %3 : (!quake.ref) -> ()
+    return
+  }
+}

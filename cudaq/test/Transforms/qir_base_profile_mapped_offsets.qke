@@ -1,0 +1,35 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s | FileCheck %s
+
+module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu"} {
+  func.func @mapped_offsets() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.alloca !quake.ref {StartingOffset = 1 : i64}
+    %1 = quake.alloca !quake.ref {StartingOffset = 0 : i64}
+    %2 = quake.alloca !quake.veq<3> {StartingOffset = 3 : i64}
+    quake.x %0 : (!quake.ref) -> ()
+    quake.x %1 : (!quake.ref) -> ()
+    %3 = quake.extract_ref %2[2] : (!quake.veq<3>) -> !quake.ref
+    quake.x %3 : (!quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @mapped_offsets() attributes
+// CHECK-SAME:      ["requiredQubits", "6"]
+// CHECK-DAG:       %[[PHYS5:.*]] = arith.constant 5 : i64
+// CHECK-DAG:       %[[PHYS0:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[PHYS1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[Q1:.*]] = cc.cast %[[PHYS1]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           %[[Q0:.*]] = cc.cast %[[PHYS0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           call @__quantum__qis__x__body(%[[Q1]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           call @__quantum__qis__x__body(%[[Q0]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           %[[Q5:.*]] = cc.cast %[[PHYS5]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           call @__quantum__qis__x__body(%[[Q5]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// CHECK:           return

@@ -11,6 +11,7 @@
 #include "cudaq/ADT/GraphCSR.h"
 #include "cudaq/Support/Graph.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include <limits>
 
 namespace cudaq {
 
@@ -22,6 +23,9 @@ class Device {
 public:
   using Qubit = GraphCSR::Node;
   using Path = mlir::SmallVector<Qubit>;
+
+  static constexpr unsigned unreachableDistance =
+      std::numeric_limits<unsigned>::max();
 
   /// Read device connectivity info from a file. The input format is the same
   /// as the Graph dump() format.
@@ -168,10 +172,20 @@ public:
   /// Returns the number of physical qubits in the device.
   unsigned getNumQubits() const { return topology.getNumNodes(); }
 
-  /// Returns the distance between two qubits.
+  /// Returns the distance between two qubits, or `unreachableDistance` when no
+  /// path exists.
   unsigned getDistance(Qubit src, Qubit dst) const {
+    if (src == dst)
+      return 0;
     unsigned pairID = getPairID(src.index, dst.index);
-    return src == dst ? 0 : shortestPaths[pairID].size() - 1;
+    PathRef path = shortestPaths[pairID];
+    return path.empty() ? unreachableDistance : path.size() - 1;
+  }
+
+  bool hasPath(Qubit src, Qubit dst) const {
+    if (src == dst)
+      return true;
+    return !shortestPaths[getPairID(src.index, dst.index)].empty();
   }
 
   mlir::ArrayRef<Qubit> getNeighbours(Qubit src) const {
@@ -179,12 +193,17 @@ public:
   }
 
   bool areConnected(Qubit q0, Qubit q1) const {
-    return getDistance(q0, q1) == 1;
+    return hasPath(q0, q1) && getDistance(q0, q1) == 1;
   }
 
-  /// Returns a shortest path between two qubits.
+  /// Returns a shortest path between two qubits, or an empty path when no path
+  /// exists.
   Path getShortestPath(Qubit src, Qubit dst) const {
+    if (src == dst)
+      return Path{src};
     unsigned pairID = getPairID(src.index, dst.index);
+    if (shortestPaths[pairID].empty())
+      return {};
     if (src.index > dst.index)
       return Path(llvm::reverse(shortestPaths[pairID]));
     return Path(shortestPaths[pairID]);
@@ -214,14 +233,15 @@ private:
     return (u * getNumQubits()) - (((u - 1) * u) / 2) + v - u;
   }
 
-  /// Compute the shortest path between every qubit. This assumes that there
-  /// exists at least one path between every source and destination pair. I.e.
-  /// the graph cannot be bipartite.
+  /// Compute the shortest path between every qubit. Disconnected pairs are
+  /// represented by empty paths.
   void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
     auto countPathNodes = [](llvm::ArrayRef<Qubit> parents, Qubit src,
                              Qubit dst) {
+      if (!parents[dst.index].isValid())
+        return std::size_t{0};
       std::size_t count = 2;
       auto p = parents[dst.index];
       while (p != src) {
@@ -246,6 +266,8 @@ private:
       auto &parents = allParents[n];
       // Reconstruct the paths
       for (auto m = n + 1; m < numNodes; ++m) {
+        if (!parents[m].isValid())
+          continue;
         path.clear();
         path.push_back(Qubit(m));
         auto p = parents[m];

@@ -1,0 +1,35 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --wireset-to-profile-qir-prep --wireset-to-profile-qir --symbol-dce %s | FileCheck %s
+
+quake.wire_set @mapped_wireset[100]
+
+func.func @sparse_device_ids() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q0 = quake.borrow_wire @mapped_wireset[95] : !quake.wire
+  %q1 = quake.borrow_wire @mapped_wireset[99] : !quake.wire
+  %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %measOut, %wires = quake.mz %1#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %measOut_0, %wires_1 = quake.mz %1#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+  quake.return_wire %wires : !quake.wire
+  quake.return_wire %wires_1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @sparse_device_ids() attributes {"cudaq-entrypoint", "cudaq-kernel", output_names = {{.*}}, requiredQubits = "2", requiredResults = "2"}
+// CHECK: %[[Q0_ID:.*]] = arith.constant 0 : i64
+// CHECK: %[[Q0_PTR:.*]] = cc.cast %[[Q0_ID]] : (i64) -> !cc.ptr<none>
+// CHECK: %[[Q0:.*]] = cc.cast %[[Q0_PTR]] : (!cc.ptr<none>) -> !cc.ptr<none>
+// CHECK: %[[Q1_ID:.*]] = arith.constant 1 : i64
+// CHECK: %[[Q1_PTR:.*]] = cc.cast %[[Q1_ID]] : (i64) -> !cc.ptr<none>
+// CHECK: %[[Q1:.*]] = cc.cast %[[Q1_PTR]] : (!cc.ptr<none>) -> !cc.ptr<none>
+// CHECK: call @__quantum__qis__h__body(%[[Q0]]) : (!cc.ptr<none>) -> ()
+// CHECK: call @__quantum__qis__cnot__body(%[[Q0]], %[[Q1]]) : (!cc.ptr<none>, !cc.ptr<none>) -> ()

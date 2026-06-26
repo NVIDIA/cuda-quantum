@@ -8,9 +8,11 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <optional>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_COMBINEQUANTUMALLOCATIONS
@@ -125,6 +127,8 @@ public:
     // 1. Scan the top-level of the function for all alloca operations. Exit if
     // any of them are parametric.
     Analysis analysis;
+    std::optional<std::size_t> startingOffset;
+    bool hasUnannotatedAllocation = false;
     std::size_t currentOffset = 0;
     for (auto &block : func.getRegion())
       for (auto &op : block) {
@@ -136,6 +140,23 @@ public:
             // Skip zero-size allocas. Merging them would
             // produce subveq(lo, lo-1) which is invalid.
             continue;
+          if (auto offsetAttr = dyn_cast_if_present<IntegerAttr>(
+                  alloc->getAttr(cudaq::opt::StartingOffsetAttrName))) {
+            if (hasUnannotatedAllocation)
+              return;
+            auto offset = offsetAttr.getValue().getLimitedValue();
+            if (!startingOffset) {
+              if (offset < currentOffset)
+                return;
+              startingOffset = offset - currentOffset;
+            } else if (offset != *startingOffset + currentOffset) {
+              return;
+            }
+          } else if (startingOffset) {
+            return;
+          } else {
+            hasUnannotatedAllocation = true;
+          }
           analysis.allocations.push_back(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
@@ -156,6 +177,9 @@ public:
     rewriter.setInsertionPointToStart(entryBlock);
     auto veqTy = cudaq::quake::VeqType::get(ctx, currentOffset);
     analysis.newAlloc = cudaq::quake::AllocaOp::create(rewriter, loc, veqTy);
+    if (startingOffset)
+      analysis.newAlloc->setAttr(cudaq::opt::StartingOffsetAttrName,
+                                 rewriter.getI64IntegerAttr(*startingOffset));
 
     // 3. Greedily replace the uses of the original alloca ops with uses of
     // partitions of the new alloca op. Replace subveq of subveq with a single

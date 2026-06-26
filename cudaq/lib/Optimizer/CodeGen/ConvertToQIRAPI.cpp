@@ -101,6 +101,20 @@ static Value createGlobalCString(Operation *op, Location loc,
   return cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
 }
 
+static bool claimPhysicalQubits(Operation *op, DenseSet<std::size_t> &claimed,
+                                std::size_t offset, std::size_t size) {
+  for (std::size_t i = 0; i < size; ++i) {
+    auto id = offset + i;
+    if (claimed.contains(id)) {
+      op->emitOpError("overlaps physical qubit id ") << id;
+      return false;
+    }
+  }
+  for (std::size_t i = 0; i < size; ++i)
+    claimed.insert(offset + i);
+  return true;
+}
+
 /// Use modifier class classes to specialize the QIR API to a particular flavor
 /// of QIR. For example, the names of the actual functions in "full QIR" are
 /// different than the names used by the other API flavors.
@@ -230,8 +244,10 @@ struct AllocaOpToCallsRewrite
       StringRef qirQubitAllocate = cudaq::opt::QIRQubitAllocate;
       Type qubitTy = M::getQubitType(rewriter.getContext());
 
-      rewriter.replaceOpWithNewOp<func::CallOp>(alloc, TypeRange{qubitTy},
-                                                qirQubitAllocate, ValueRange{});
+      auto call = rewriter.replaceOpWithNewOp<func::CallOp>(
+          alloc, TypeRange{qubitTy}, qirQubitAllocate, ValueRange{});
+      if (auto attr = alloc->getAttr(cudaq::opt::StartingOffsetAttrName))
+        call->setAttr(cudaq::opt::StartingOffsetAttrName, attr);
       return success();
     }
 
@@ -263,9 +279,11 @@ struct AllocaOpToCallsRewrite
     }
 
     // Replace the AllocaOp with the QIR call.
-    rewriter.replaceOpWithNewOp<func::CallOp>(alloc, TypeRange{arrayQubitTy},
-                                              qirQubitArrayAllocate,
-                                              ValueRange{sizeOperand});
+    auto call = rewriter.replaceOpWithNewOp<func::CallOp>(
+        alloc, TypeRange{arrayQubitTy}, qirQubitArrayAllocate,
+        ValueRange{sizeOperand});
+    if (auto attr = alloc->getAttr(cudaq::opt::StartingOffsetAttrName))
+      call->setAttr(cudaq::opt::StartingOffsetAttrName, attr);
     return success();
   }
 };
@@ -2885,10 +2903,12 @@ struct QuakeToQIRAPIPrepPass
       // If the API is one of the profile variants, we must perform allocation
       // and measurement analysis and stick attributes on the Ops as needed.
       OpBuilder builder(module);
+      bool hasError = false;
       module.walk([&](func::FuncOp func) {
         std::size_t totalQubits = 0;
         std::size_t totalResults = 0;
         int counter = 0;
+        DenseSet<std::size_t> claimedQubits;
 
         // A map to keep track of wire set usage.
         DenseMap<StringRef, DenseSet<std::size_t>> borrowSets;
@@ -2902,33 +2922,58 @@ struct QuakeToQIRAPIPrepPass
           if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
             auto allocTy = alloc.getType();
             if (isa<cudaq::quake::RefType>(allocTy)) {
-              alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
-                             builder.getI64IntegerAttr(totalQubits++));
+              if (auto offsetAttr = dyn_cast_if_present<IntegerAttr>(
+                      alloc->getAttr(cudaq::opt::StartingOffsetAttrName))) {
+                auto offset = static_cast<std::size_t>(
+                    offsetAttr.getValue().getLimitedValue());
+                hasError |= !claimPhysicalQubits(op, claimedQubits, offset, 1);
+                totalQubits = std::max(totalQubits, offset + 1);
+              } else {
+                alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
+                               builder.getI64IntegerAttr(totalQubits));
+                claimPhysicalQubits(op, claimedQubits, totalQubits, 1);
+                ++totalQubits;
+              }
               return;
             }
             if (!isa<cudaq::quake::VeqType>(allocTy)) {
               alloc.emitOpError("must be veq type.");
+              hasError = true;
               return;
             }
             auto veqTy = cast<cudaq::quake::VeqType>(allocTy);
             if (!veqTy.hasSpecifiedSize()) {
               alloc.emitOpError("must have a constant size.");
+              hasError = true;
               return;
             }
-            alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
-                           builder.getI64IntegerAttr(totalQubits));
-            totalQubits += veqTy.getSize();
+            auto size = veqTy.getSize();
+            if (auto offsetAttr = dyn_cast_if_present<IntegerAttr>(
+                    alloc->getAttr(cudaq::opt::StartingOffsetAttrName))) {
+              auto offset = offsetAttr.getValue().getLimitedValue();
+              hasError |= !claimPhysicalQubits(op, claimedQubits, offset, size);
+              totalQubits = std::max<std::size_t>(totalQubits, offset + size);
+            } else {
+              alloc->setAttr(cudaq::opt::StartingOffsetAttrName,
+                             builder.getI64IntegerAttr(totalQubits));
+              claimPhysicalQubits(op, claimedQubits, totalQubits, size);
+              totalQubits += size;
+            }
             return;
           }
           if (auto nw = dyn_cast<cudaq::quake::NullWireOp>(op)) {
             nw->setAttr(cudaq::opt::StartingOffsetAttrName,
-                        builder.getI64IntegerAttr(totalQubits++));
+                        builder.getI64IntegerAttr(totalQubits));
+            claimPhysicalQubits(op, claimedQubits, totalQubits, 1);
+            ++totalQubits;
             return;
           }
           if (auto nc = dyn_cast<cudaq::quake::NullCableOp>(op)) {
             cudaq::quake::CableType cableTy = nc.getType();
             nc->setAttr(cudaq::opt::StartingOffsetAttrName,
                         builder.getI64IntegerAttr(totalQubits));
+            claimPhysicalQubits(op, claimedQubits, totalQubits,
+                                cableTy.getSize());
             totalQubits += cableTy.getSize();
             return;
           }
@@ -2936,6 +2981,7 @@ struct QuakeToQIRAPIPrepPass
             [[maybe_unused]] StringRef name = bw.getSetName();
             [[maybe_unused]] std::int32_t wire = bw.getIdentity();
             bw.emitOpError("not implemented.");
+            hasError = true;
             return;
           }
 
@@ -2946,6 +2992,7 @@ struct QuakeToQIRAPIPrepPass
                 std::distance(mz.getTargets().begin(), mz.getTargets().end()) !=
                     1) {
               mz.emitOpError("must measure exactly one qubit.");
+              hasError = true;
               return;
             }
             mz->setAttr(cudaq::opt::ResultIndexAttrName,
@@ -2985,6 +3032,10 @@ struct QuakeToQIRAPIPrepPass
         if (!funcAttrs.empty())
           func->setAttr("passthrough", builder.getArrayAttr(funcAttrs));
       });
+      if (hasError) {
+        signalPassFailure();
+        return;
+      }
     }
 
     auto *ctx = module.getContext();

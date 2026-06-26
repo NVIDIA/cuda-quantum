@@ -173,20 +173,10 @@ private:
     // analysis accordingly.
     if (auto mappingAttr =
             dyn_cast_if_present<ArrayAttr>(funcOp->getAttr("mapping_v2p"))) {
-      // First populate mapping_v2p[].
-      SmallVector<std::size_t> mapping_v2p(mappingAttr.size());
-      std::transform(
-          mappingAttr.begin(), mappingAttr.end(), mapping_v2p.begin(),
-          [](Attribute attr) { return cast<IntegerAttr>(attr).getInt(); });
-
-      // Next create newQubitValues[]
-      DenseMap<std::size_t, Value> newQubitValues;
-      for (auto [origIx, mappedIx] : llvm::enumerate(mapping_v2p))
-        newQubitValues[origIx] = data.qubitValues[mappedIx];
-
-      // Now replace the values in data
-      data.nQubits = mapping_v2p.size();
-      data.qubitValues = newQubitValues;
+      // The mapped BorrowWireOps remain in virtual-qubit order, but their
+      // identities carry the physical placement. Preserve that value mapping so
+      // a logical observable still measures the requested virtual qubit.
+      data.nQubits = mappingAttr.size();
       data.mappingPassRan = true;
     }
 

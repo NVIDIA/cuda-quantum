@@ -1,0 +1,28 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_pair.txt) placement=greedy search=none' %s | FileCheck --check-prefix=PAIR %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @bell_pair() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %1#0 : !quake.wire
+  quake.return_wire %1#1 : !quake.wire
+  return
+}
+
+// PAIR: quake.wire_set @mapped_wireset[10] adjacency
+// PAIR-SAME: sparse<{{.*}}[5, 6]{{.*}}>
+// PAIR: %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[5]
+// PAIR: %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[6]
+// PAIR: %[[H:.*]] = quake.h %[[Q0]]
+// PAIR: quake.x [%[[H]]] %[[Q1]]
