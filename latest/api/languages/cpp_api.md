@@ -8699,6 +8699,39 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         Note: Measurement Syndrome Matrix is defined in
         [https://arxiv.org/pdf/2407.13826](https://arxiv.org/pdf/2407.13826){.reference
         .external}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a7268afa9e6d2db245355782f45658fe7 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[exception_ptr]{.pre}]{.n}[ ]{.w}[[[deferredKernelException]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext23deferredKernelExceptionE "Permalink to this definition"){.headerlink}\
+
+    :   Captures an exception raised by the kernel while it runs on a
+        backend that cannot unwind C++ exceptions through JIT-compiled
+        kernel frames (notably macOS arm64, where the ORC-JIT'd kernel
+        frame carries no unwind info the system unwinder can use, so a
+        throw escaping into it calls [`std::terminate`{.docutils
+        .literal .notranslate}]{.pre}). The simulator stores the error
+        here instead of throwing across the JIT boundary, and the
+        launcher re-throws it from a C++ frame above that boundary once
+        the kernel returns. Callers therefore observe the same exception
+        they would on platforms where direct unwinding works.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a7be42e76958d7d38341d8d4af172ffe7 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[inKernelLaunch]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext14inKernelLaunchE "Permalink to this definition"){.headerlink}\
+
+    :   True while a JIT/AOT-compiled kernel frame is executing on this
+        thread (set by the launcher around the kernel invocation; see
+        QPU::InKernelLaunchScope). The simulator only defers exceptions
+        into [`deferredKernelException`{.docutils .literal
+        .notranslate}]{.pre} while this is set. Outside the kernel frame
+        (for example, gate application during sample/observe
+        finalization) there is no JIT frame for an exception to unwind
+        through, so it is thrown directly, preserving the behavior
+        callers see on all platforms.
     :::
 
 ```{=html}

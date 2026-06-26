@@ -5559,6 +5559,18 @@
 <dd><p>The number of rows and columns of a Measurement Syndrome Matrix. Note: Measurement Syndrome Matrix is defined in <a class="reference external" href="https://arxiv.org/pdf/2407.13826">https://arxiv.org/pdf/2407.13826</a>. </p>
 </dd></dl>
 
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext23deferredKernelExceptionE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a7268afa9e6d2db245355782f45658fe7"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">exception_ptr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">deferredKernelException</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext23deferredKernelExceptionE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Captures an exception raised by the kernel while it runs on a backend that cannot unwind C++ exceptions through JIT-compiled kernel frames (notably macOS arm64, where the ORC-JIT’d kernel frame carries no unwind info the system unwinder can use, so a throw escaping into it calls <code class="docutils literal notranslate"><span class="pre">std::terminate</span></code>). The simulator stores the error here instead of throwing across the JIT boundary, and the launcher re-throws it from a C++ frame above that boundary once the kernel returns. Callers therefore observe the same exception they would on platforms where direct unwinding works. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext14inKernelLaunchE">
+<span class="target" id="classcudaq_1_1ExecutionContext_1a7be42e76958d7d38341d8d4af172ffe7"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">inKernelLaunch</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext14inKernelLaunchE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>True while a JIT/AOT-compiled kernel frame is executing on this thread (set by the launcher around the kernel invocation; see QPU::InKernelLaunchScope). The simulator only defers exceptions into <code class="docutils literal notranslate"><span class="pre">deferredKernelException</span></code> while this is set. Outside the kernel frame (for example, gate application during sample/observe finalization) there is no JIT frame for an exception to unwind through, so it is thrown directly, preserving the behavior callers see on all platforms. </p>
+</dd></dl>
+
 </div>
 </dd></dl>
 
