@@ -857,7 +857,7 @@ class PyASTBridge(ast.NodeVisitor):
     def __isSupportedNumpyFunction(self, id):
         return id in [
             'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'arcsin', 'arccos',
-            'arctan', 'sqrt', 'ceil', 'exp', 'log'
+            'arctan', 'sqrt', 'ceil', 'floor', 'exp', 'log'
         ]
 
     def __isSupportedVectorFunction(self, id):
@@ -3704,6 +3704,14 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"supported for complex numbers", node)
                             return
                         self.pushValue(math.CeilOp(value).result)
+                        return
+                    if node.func.attr == 'floor':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.FloorOp(value).result)
                         return
 
                     self.emitFatalError(
