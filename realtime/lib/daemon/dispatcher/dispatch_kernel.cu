@@ -726,6 +726,19 @@ extern "C" cudaError_t cudaq_create_dispatch_graph_regular(
   
   (void)rx_data;
   (void)rx_stride_sz;
+
+  // The self-relaunching scheduler path (triggered_graph_exec set) is built
+  // around a single block: dispatch_kernel_with_graph uses block-scoped
+  // __shared__ state (s_relaunch) and a single device-global RX cursor
+  // (g_graph_dispatch_cursor). With more than one block, each block would get
+  // its own shared state and the blocks would race on the global cursor and the
+  // tail self-relaunch, so require num_blocks == 1 in that mode.
+  if (triggered_graph_exec != nullptr && num_blocks != 1) {
+    if (out_context)
+      *out_context = nullptr;
+    return cudaErrorInvalidValue;
+  }
+
   cudaError_t err;
   
   // Allocate context with persistent parameter storage

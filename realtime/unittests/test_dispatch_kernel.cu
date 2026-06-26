@@ -935,4 +935,23 @@ TEST(DeviceGraphSelfRelaunchTest, Exceeds120) {
   CUDA_CHECK(cudaFree(d_counter));
 }
 
+// The self-relaunching scheduler is single-block by construction (block-scoped
+// __shared__ state + a single device-global cursor), so
+// cudaq_create_dispatch_graph_regular must reject num_blocks > 1 when a
+// triggered graph is provided. The validation runs before any CUDA work, so
+// this needs no device-side graph support (it runs on pre-Hopper CI too).
+TEST(DeviceGraphSelfRelaunchTest, RejectsMultiBlockTriggered) {
+  cudaq_dispatch_graph_context *ctx = nullptr;
+  cudaGraphExec_t fake_exec = reinterpret_cast<cudaGraphExec_t>(0x1);
+  cudaError_t err = cudaq_create_dispatch_graph_regular(
+      /*rx_flags=*/nullptr, /*tx_flags=*/nullptr, /*rx_data=*/nullptr,
+      /*tx_data=*/nullptr, /*rx_stride_sz=*/64, /*tx_stride_sz=*/64,
+      /*function_table=*/nullptr, /*func_count=*/0, /*graph_io_ctx=*/nullptr,
+      /*shutdown_flag=*/nullptr, /*stats=*/nullptr, /*num_slots=*/1,
+      /*num_blocks=*/2, /*threads_per_block=*/32, fake_exec, /*stream=*/0,
+      &ctx);
+  EXPECT_EQ(err, cudaErrorInvalidValue);
+  EXPECT_EQ(ctx, nullptr);
+}
+
 } // namespace
