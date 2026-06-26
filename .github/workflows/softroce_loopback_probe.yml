@@ -138,18 +138,23 @@ jobs:
           self_rc=$?
           run_probe "two-device same-namespace"
           two_rc=$?
+          run_probe "netns-create-only two-device" --use-netns --skip-rdma-netns-move
+          netns_create_rc=$?
           run_probe "netns-isolated two-device" --use-netns
           netns_rc=$?
           set -e
 
-          echo "SoftRoCE probe summary: self-loop=${self_rc}, same-namespace=${two_rc}, netns=${netns_rc}"
+          echo "SoftRoCE probe summary: self-loop=${self_rc}, same-namespace=${two_rc}, netns-create-only=${netns_create_rc}, netns=${netns_rc}"
+          if [[ "$netns_create_rc" != "0" ]]; then
+            echo "::notice::Creating RXE from inside netns without rdma dev set ... netns did not produce a working isolated endpoint."
+          fi
           if [[ "$netns_rc" == "77" ]]; then
             echo "::notice::SoftRoCE netns isolation unsupported here; this is separate from basic RXE support."
           fi
           if [[ "$two_rc" != "0" ]]; then
             echo "::notice::Two-device same-namespace RXE traffic failed; both endpoint IPs are local in one netns, so this topology may not be viable."
           fi
-          if [[ "$self_rc" == "0" || "$two_rc" == "0" || "$netns_rc" == "0" ]]; then
+          if [[ "$self_rc" == "0" || "$two_rc" == "0" || "$netns_create_rc" == "0" || "$netns_rc" == "0" ]]; then
             exit 0
           fi
           echo "::error::No SoftRoCE UC traffic probe passed."

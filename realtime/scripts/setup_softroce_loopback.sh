@@ -30,6 +30,7 @@ PRINT_EXPORTS=1
 VERIFY_PINGPONG=0
 USE_NETNS=0
 SELF_LOOP=0
+SKIP_RDMA_NETNS_MOVE=0
 SOFTROCE_UNSUPPORTED_RC=77
 
 usage() {
@@ -53,6 +54,9 @@ Options:
   --verify-pingpong     Run ibv_uc_pingpong over the RXE devices.
   --self-loop           Use one RXE device as both pingpong endpoints.
   --use-netns           Put each RXE endpoint in its own network namespace.
+  --skip-rdma-netns-move
+                        Diagnostic mode: create RXE from inside each netns,
+                        but do not move the RDMA devices into those netns.
   -h, --help            Show this help.
 EOF
 }
@@ -75,6 +79,7 @@ while [[ $# -gt 0 ]]; do
     --verify-pingpong) VERIFY_PINGPONG=1; shift ;;
     --self-loop) SELF_LOOP=1; shift ;;
     --use-netns) USE_NETNS=1; shift ;;
+    --skip-rdma-netns-move) SKIP_RDMA_NETNS_MOVE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "ERROR: unknown option: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -241,6 +246,19 @@ wait_for_roce_gid() {
   return 1
 }
 
+show_network_diagnostics() {
+  echo "=== SoftRoCE network diagnostics ==="
+  if [[ "$USE_NETNS" == "1" ]]; then
+    run_netns "$NETNS_A" ip route get "$IP_B" from "$IP_A" || true
+    run_netns "$NETNS_B" ip route get "$IP_A" from "$IP_B" || true
+    run_netns "$NETNS_A" ip route show table local || true
+    run_netns "$NETNS_B" ip route show table local || true
+  else
+    ip route get "$IP_B" from "$IP_A" || true
+    ip route show table local || true
+  fi
+}
+
 verify_pingpong() {
   require_cmd timeout
   require_cmd ibv_uc_pingpong
@@ -332,13 +350,27 @@ setup_netns() {
   run_netns "$NETNS_A" ip link set "$NETDEV_A" up
   run_netns "$NETNS_B" ip link set "$NETDEV_B" up
 
+  show_network_diagnostics
+
   run_netns "$NETNS_A" rdma link add "$RDEV_A" type rxe netdev "$NETDEV_A"
   run_netns "$NETNS_B" rdma link add "$RDEV_B" type rxe netdev "$NETDEV_B"
-  # RXE links can be created from a network namespace while the RDMA devices
-  # remain visible in the initial RDMA namespace. Move them explicitly so
-  # libibverbs opens the endpoint-local device in each process namespace.
-  move_rdma_device_to_netns "$RDEV_A" "$NETNS_A"
-  move_rdma_device_to_netns "$RDEV_B" "$NETNS_B"
+
+  echo "=== RDMA visibility after netns-local RXE creation ==="
+  rdma dev show || true
+  run_netns "$NETNS_A" rdma dev show || true
+  run_netns "$NETNS_B" rdma dev show || true
+  run_netns "$NETNS_A" ibv_devices || true
+  run_netns "$NETNS_B" ibv_devices || true
+
+  if [[ "$SKIP_RDMA_NETNS_MOVE" == "1" ]]; then
+    echo "Skipping explicit rdma dev set ... netns move for diagnostic mode."
+  else
+    # RXE links can be created from a network namespace while the RDMA devices
+    # remain visible in the initial RDMA namespace. Move them explicitly so
+    # libibverbs opens the endpoint-local device in each process namespace.
+    move_rdma_device_to_netns "$RDEV_A" "$NETNS_A"
+    move_rdma_device_to_netns "$RDEV_B" "$NETNS_B"
+  fi
 
   wait_for_roce_gid "$RDEV_A" "$IP_A" "$NETNS_A"
   wait_for_roce_gid "$RDEV_B" "$IP_B" "$NETNS_B"
@@ -404,6 +436,7 @@ else
 fi
 
 echo "=== SoftRoCE loopback devices ==="
+show_network_diagnostics
 if [[ "$USE_NETNS" == "1" ]]; then
   rdma dev show || true
   run_netns "$NETNS_A" rdma dev show || true
