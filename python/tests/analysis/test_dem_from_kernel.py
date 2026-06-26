@@ -507,6 +507,72 @@ def test_no_return_measurement_matrices_returns_string():
     assert isinstance(result, str)
 
 
+def test_return_measurement_matrices_duplicate_targets_cancel():
+    """detector(m, m) references the same measurement twice; in GF(2) they
+    cancel, so the m2d row should be all-zero (the measurement is absent)."""
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def duplicate_detector_kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m = mz(q)
+        cudaq.detector(m, m)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(duplicate_detector_kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    # Stim itself sees detector(m XOR m) = detector(0) — no error mechanism
+    # touches D0, so the DEM lists the detector but no error lines.
+    assert "detector D0" in dem_text
+    assert "error(" not in dem_text
+    assert m2d.shape == (1, 1)
+    assert m2d[0, 0] == 0  # double reference cancels in GF(2)
+    assert m2o.shape == (0, 1)
+
+
+def test_return_measurement_matrices_odd_duplicate_survives():
+    """detector(m, m, m) references the same measurement three times; in GF(2)
+    three cancels to one, so the m2d entry should be 1."""
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def triple_ref_kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m = mz(q)
+        cudaq.detector(m, m, m)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(triple_ref_kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    assert "error(" in dem_text
+    assert m2d.shape == (1, 1)
+    assert m2d[0, 0] == 1  # triple reference reduces to one in GF(2)
+
+
+def test_return_measurement_matrices_mixed_duplicate():
+    """detector(m0, m1, m1): m0 appears once (survives), m1 appears twice
+    (cancels). The m2d row should have a 1 only in the m0 column."""
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def mixed_dup_kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m0 = mz(q)
+        m1 = mz(q)
+        cudaq.detector(m0, m1, m1)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(mixed_dup_kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    assert m2d.shape == (1, 2)
+    dense = m2d.toarray()
+    assert dense[0, 0] == 1  # m0 survives
+    assert dense[0, 1] == 0  # m1 cancels
+
+
 def test_return_measurement_matrices_with_dem_options():
     """return_measurement_matrices=True and other dem_options work together.
 
