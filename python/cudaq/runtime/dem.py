@@ -11,6 +11,15 @@ from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
 from .utils import _kernel_has_conditionals_on_measure
 
+_VALID_DEM_OPTION_KEYS = frozenset({
+    "decompose_errors",
+    "fold_loops",
+    "allow_gauge_detectors",
+    "approximate_disjoint_errors_threshold",
+    "ignore_decomposition_failures",
+    "block_decomposition_from_introducing_remnant_edges",
+})
+
 
 def _detail_check_conditionals_on_measure(kernel):
     if not _kernel_has_conditionals_on_measure(kernel):
@@ -22,7 +31,7 @@ def _detail_check_conditionals_on_measure(kernel):
 
 
 @trace.traced
-def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
+def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False, **dem_kwargs):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
     Runs `kernel` under the internal `"dem"` execution context, captures
@@ -39,6 +48,21 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
       return_m2d (bool, optional): When True, also return the sparse
           measurements-to-detectors (m2d) and measurements-to-observables
           (m2o) matrices alongside the DEM text. Defaults to False.
+      decompose_errors (bool, optional): Decompose hyper-edge error
+          mechanisms into pairs of two-detector edges. Default ``False``.
+      fold_loops (bool, optional): Fold loop bodies in the circuit for a
+          more compact DEM. Default ``False``.
+      allow_gauge_detectors (bool, optional): Allow detectors whose parity
+          is not determined by the circuit. Default ``False``.
+      approximate_disjoint_errors_threshold (float, optional): Threshold
+          for approximating disjoint-error products; set to ``0`` to
+          disable. Default ``0.0``.
+      ignore_decomposition_failures (bool, optional): Skip error mechanisms
+          that cannot be decomposed instead of raising an exception.
+          Default ``False``.
+      block_decomposition_from_introducing_remnant_edges (bool, optional):
+          Prevent the decomposer from introducing remnant edges.
+          Default ``False``.
 
     Returns:
       If `return_m2d` is False (default): a UTF-8 string in Stim's standard
@@ -55,6 +79,12 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
     """
     _detail_check_conditionals_on_measure(kernel)
 
+    unknown = set(dem_kwargs) - _VALID_DEM_OPTION_KEYS
+    if unknown:
+        raise ValueError(
+            f"dem_from_kernel: unknown keyword argument(s) {sorted(unknown)}. "
+            f"Valid options: {sorted(_VALID_DEM_OPTION_KEYS)}")
+
     if isa_kernel_decorator(kernel):
         decorator = kernel
     else:
@@ -62,7 +92,7 @@ def dem_from_kernel(kernel, *args, noise_model=None, return_m2d=False):
     processedArgs, module = decorator.prepare_call(*args)
     result = cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
                                                 noise_model, return_m2d,
-                                                *processedArgs)
+                                                dem_kwargs, *processedArgs)
 
     if not return_m2d:
         return result
