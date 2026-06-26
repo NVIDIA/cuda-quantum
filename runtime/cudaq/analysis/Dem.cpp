@@ -49,13 +49,11 @@ std::string runDemFromKernel(
   platform.with_execution_context(ctx, kernel);
 
   if (m2d_out) {
-    m2d_out->num_measurements =
-        ctx.measurement_matrices.num_measurements;
+    m2d_out->num_measurements = ctx.measurement_matrices.num_measurements;
     m2d_out->rows = std::move(ctx.measurement_matrices.det_rows);
   }
   if (m2o_out) {
-    m2o_out->num_measurements =
-        ctx.measurement_matrices.num_measurements;
+    m2o_out->num_measurements = ctx.measurement_matrices.num_measurements;
     m2o_out->rows = std::move(ctx.measurement_matrices.obs_rows);
   }
 

@@ -138,8 +138,8 @@ std::string dem_from_kernel(QuantumKernel &&kernel,
   auto kernelName = cudaq::getKernelName(kernel);
   return detail::runDemFromKernel(
       kernelName, platform, noise,
-      [&]() mutable { kernel(std::forward<Args>(args)...); },
-      options, /*plugin_name=*/"stim", &m2d_out, &m2o_out);
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, options,
+      /*plugin_name=*/"stim", &m2d_out, &m2o_out);
 }
 
 /// @brief Convenience overload: m2d/m2o outputs with noise, default options.

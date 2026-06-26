@@ -525,8 +525,8 @@ def test_return_measurement_matrices_with_dem_options():
     def kernel():
         q0 = cudaq.qubit()
         q1 = cudaq.qubit()
-        cudaq.apply_noise(cudaq.Pauli2, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0,
-                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, q0, q1)
+        cudaq.apply_noise(cudaq.Pauli2, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0,
+                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, q0, q1)
         m0 = mz(q0)
         m1 = mz(q1)
         cudaq.detector(m0)

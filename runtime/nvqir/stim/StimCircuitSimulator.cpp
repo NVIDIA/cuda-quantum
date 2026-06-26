@@ -249,8 +249,8 @@ protected:
                   "dem_from_kernel: OBSERVABLE_INCLUDE record target rec[-" +
                   std::to_string(lookback) +
                   "] references a measurement before the circuit start");
-            ctx.measurement_matrices.obs_rows[obs_idx].push_back(
-                meas_so_far - lookback);
+            ctx.measurement_matrices.obs_rows[obs_idx].push_back(meas_so_far -
+                                                                 lookback);
           }
         }
       }
