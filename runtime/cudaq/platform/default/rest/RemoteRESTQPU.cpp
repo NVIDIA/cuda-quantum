@@ -7,76 +7,92 @@
  ******************************************************************************/
 
 #include "RemoteRESTQPU.h"
+#include "common/CompiledModule.h"
+#include "common/KernelExecution.h"
+#include "cudaq_internal/compiler/Compiler.h"
+
+static std::vector<cudaq::KernelExecution>
+runCodegen(const cudaq::CompiledModule &module,
+           std::unique_ptr<cudaq::CompileTarget> target) {
+  if (module.getMlirArtifacts().empty())
+    CUDAQ_ERROR("QPU does not support launching a "
+                "CompiledModule without MLIR artifacts.");
+
+  cudaq_internal::compiler::Compiler compiler(std::move(target));
+  return compiler.emitKernelExecutions(module);
+}
 
 using namespace cudaq;
 cudaq::RemoteRESTQPU::~RemoteRESTQPU() = default;
 
 sample_result RemoteRESTQPU::launchKernel(const sample_policy &policy,
-                                          const AnyModule &module,
+                                          const CompiledModule &module,
                                           KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
-  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+
+  auto target = getCompileTarget(policy);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
 async_sample_result
 RemoteRESTQPU::launchKernel(const async_sample_policy &policy,
-                            const AnyModule &module, KernelArgs args) {
+                            const CompiledModule &module, KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
-  auto [kernelName, codes] =
-      compileKernelExecutions(policy.inner, module, args);
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+
+  auto target = getCompileTarget(policy.inner);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
 observe_result RemoteRESTQPU::launchKernel(const observe_policy &policy,
-                                           const AnyModule &module,
+                                           const CompiledModule &module,
                                            KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
-  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+
+  auto target = getCompileTarget(policy);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
-async_observe_result RemoteRESTQPU::launchKernel(async_observe_policy &policy,
-                                                 const AnyModule &module,
-                                                 KernelArgs args) {
+async_observe_result
+RemoteRESTQPU::launchKernel(const async_observe_policy &policy,
+                            const CompiledModule &module, KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
-  auto [kernelName, codes] =
-      compileKernelExecutions(policy.inner, module, args);
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+
+  auto target = getCompileTarget(policy.inner);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
 KernelThunkResultType
 RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
-  Compiler compiler(getCompileTarget(other_policies{}, getExecutionContext()));
-
-  std::string kernelName;
-  std::optional<CompiledModule> compiled;
+  CompiledModule compiled;
+  auto target = getCompileTarget(other_policies{}, getExecutionContext());
+  cudaq_internal::compiler::Compiler compiler(std::move(target));
 
   if (std::holds_alternative<SourceModule>(module)) {
-    const auto &src = std::get<SourceModule>(module);
-    kernelName = src.getName();
-    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-    auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
-
-    // Get the Quake code, lowered according to config file.
-    compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
-                                        std::move(context));
+    const auto &source = std::get<SourceModule>(module);
+    CUDAQ_INFO("no compiled kernel found for {}, compiling now",
+               source.getName());
+    auto mlirArt =
+        cudaq_internal::compiler::CompiledModuleHelper::loadMlirArtifact(
+            source);
+    compiled =
+        compiler.runPassPipeline(source.getName(), mlirArt.getOpaqueModulePtr(),
+                                 args, true, mlirArt.getContext());
   } else {
     compiled = std::get<CompiledModule>(module);
-    kernelName = compiled->getName();
-    CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
   }
+  CUDAQ_INFO("launching remote rest kernel ({})", compiled.getName());
 
-  auto codes = compiler.emitKernelExecutions(*compiled);
+  if (compiled.getMlirArtifacts().empty())
+    CUDAQ_ERROR("QPU does not support launching a "
+                "CompiledModule without MLIR artifacts.");
 
-  // Propagate metadata from the compiled artifact to the execution context.
-  if (auto ctx = getExecutionContext()) {
-    ctx->hasConditionalsOnMeasureResults =
-        compiled->getMetadata().hasConditionalsOnMeasureResults;
-  }
+  auto codes = compiler.emitKernelExecutions(compiled);
 
-  completeLaunchKernel(kernelName, std::move(codes));
+  completeLaunchKernel(compiled.getName(), std::move(codes));
   return {};
 }
 

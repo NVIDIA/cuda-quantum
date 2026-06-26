@@ -6,7 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --disable-mlir-links %s -o %s.x && ! ldd %s.x | grep -q libcudaq-mlir-runtime.so 
+// clang-format off
+// RUN: nvq++ --disable-mlir-links %s -o %s.x && ! ldd %s.x | grep -q libcudaq-mlir-runtime.so
+// RUN: nvq++ --disable-mlir-links %s -o %s.x && %s.x
+// We expect a failure when emulating a target that requires JIT compilation.
+// RUN: nvq++ --disable-mlir-links --target quantinuum --emulate %s -o %s.x && CUDAQ_LOG_LEVEL=info %s.x 2>&1 | FileCheck %s --check-prefix=FAIL
+// clang-format on
 
 #include "cudaq.h"
 
@@ -21,3 +26,6 @@ int main() {
   counts.dump();
   return 0;
 }
+
+// FAIL: JIT compilation is disabled. Compilation is a no-op.
+// FAIL: QPU does not support launching a CompiledModule without MLIR artifacts
