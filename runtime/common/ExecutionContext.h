@@ -47,7 +47,7 @@ struct dem_options {
 
   /// When true, the DEM execution also populates
   /// `ExecutionContext::measurement_matrices`.
-  bool compute_measurement_matrices = false;
+  bool return_measurement_matrices = false;
 };
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
@@ -189,7 +189,7 @@ public:
   dem_options dem_opts;
 
   /// @brief Sparse m2d/m2o matrix data; populated when
-  /// `dem_opts.compute_measurement_matrices` is true. See
+  /// `dem_opts.return_measurement_matrices` is true. See
   /// `cudaq::M2DSparseMatrix` and `cudaq::M2OSparseMatrix` for the
   /// public-facing types.
   struct MeasurementMatrices {

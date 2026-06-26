@@ -39,7 +39,7 @@ std::string runDemFromKernel(
   // Pointer existence is authoritative: non-null pointers enable matrix
   // computation regardless of the flag in options, and null pointers suppress
   // it even if the flag is set.
-  ctx.dem_opts.compute_measurement_matrices = (m2d_out || m2o_out);
+  ctx.dem_opts.return_measurement_matrices = (m2d_out || m2o_out);
 
   // RAII: claim the thread-local analysis-simulator slot backed by the `stim`
   // plugin. The scope starts from a clean simulator and releases the override

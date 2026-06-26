@@ -291,7 +291,7 @@ protected:
             opts.ignore_decomposition_failures,
             opts.block_decomposition_from_introducing_remnant_edges);
 
-    if (ctx && ctx->dem_opts.compute_measurement_matrices)
+    if (ctx && ctx->dem_opts.return_measurement_matrices)
       computeM2IntoContext(*ctx);
 
     return dem.str();

@@ -50,7 +50,7 @@ static cudaq::dem_options parseDemOptions(const nanobind::dict &d) {
       opts.block_decomposition_from_introducing_remnant_edges =
           nanobind::cast<bool>(v);
     else if (key == "return_measurement_matrices")
-      opts.compute_measurement_matrices = nanobind::cast<bool>(v);
+      opts.return_measurement_matrices = nanobind::cast<bool>(v);
     else
       throw std::invalid_argument("dem_options: unknown key '" + key + "'");
   }
@@ -76,14 +76,14 @@ static nanobind::object dem_from_kernel_impl(const std::string &kernelName,
   cudaq::M2DSparseMatrix m2d_storage;
   cudaq::M2OSparseMatrix m2o_storage;
   cudaq::M2DSparseMatrix *m2d_ptr =
-      opts.compute_measurement_matrices ? &m2d_storage : nullptr;
+      opts.return_measurement_matrices ? &m2d_storage : nullptr;
   cudaq::M2OSparseMatrix *m2o_ptr =
-      opts.compute_measurement_matrices ? &m2o_storage : nullptr;
+      opts.return_measurement_matrices ? &m2o_storage : nullptr;
   std::string dem_text = cudaq::detail::runDemFromKernel(
       kernelName, platform, noisePtr, launch, opts, /*plugin_name=*/"stim",
       m2d_ptr, m2o_ptr);
 
-  if (!opts.compute_measurement_matrices)
+  if (!opts.return_measurement_matrices)
     return nanobind::cast(std::move(dem_text));
 
   return nanobind::make_tuple(nanobind::cast(std::move(dem_text)),
