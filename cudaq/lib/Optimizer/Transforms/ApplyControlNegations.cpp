@@ -43,20 +43,24 @@ public:
             ValueRange{op.getControls()[negationIter.index()]});
 
     if constexpr (std::is_same_v<Op, cudaq::quake::ExpPauliOp>) {
-      // ??? How is this correct? The controls are not changed?!
+      // The X conjugation above already realizes the negated controls, so the
+      // recreated op must NOT carry the negation attribute - otherwise it stays
+      // illegal and the partial conversion cannot converge.
       cudaq::quake::ExpPauliOp::create(
           rewriter, loc, TypeRange{}, op.getIsAdjAttr(), op.getParameters(),
-          op.getControls(), op.getTargets(), op.getNegatedQubitControlsAttr(),
+          op.getControls(), op.getTargets(), mlir::DenseBoolArrayAttr{},
           op.getPauli(), op.getPauliLiteralAttr());
     } else if constexpr (std::is_same_v<Op,
                                         cudaq::quake::CustomUnitaryCallOp>) {
-      // ??? How is this correct? The controls are not changed?!
+      // The X conjugation above realizes the negated controls, so the recreated
+      // op uses plain (positive) controls and carries no negation attribute.
       cudaq::quake::CustomUnitaryCallOp::create(
           rewriter, loc, op.getGeneratorAttr(), op.getIsAdj(),
           op.getParameters(), op.getControls(), op.getTargets());
     } else if constexpr (std::is_same_v<
                              Op, cudaq::quake::CustomUnitaryConstantOp>) {
-      // ??? How is this correct? The controls are not changed?!
+      // The X conjugation above realizes the negated controls, so the recreated
+      // op uses plain (positive) controls and carries no negation attribute.
       cudaq::quake::CustomUnitaryConstantOp::create(
           rewriter, loc, op.getMatrixAttr(), op.getIsAdj(), op.getParameters(),
           op.getControls(), op.getTargets(), {});
@@ -107,8 +111,9 @@ struct ApplyControlNegationsPass
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::cc::CCDialect, arith::ArithDialect,
                            LLVM::LLVMDialect>();
+    const bool preserveNegatedControls = preserveGateControlPolarity;
     target.addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>(
-        [](Operation *op) {
+        [preserveNegatedControls](Operation *op) {
           auto quantumOp = dyn_cast<cudaq::quake::OperatorInterface>(op);
           if (!quantumOp)
             return true;
@@ -117,11 +122,28 @@ struct ApplyControlNegationsPass
           if (!negations.has_value())
             return true;
 
+          bool anyNegated = false;
           for (auto negation : negations.value())
-            if (negation)
-              return false;
+            anyNegated |= negation;
+          if (!anyNegated)
+            return true;
 
-          return true;
+          // Preserve negations only for gates enabled on the native-control
+          // runtime path. Everything else - exp_pauli, custom unitary, and
+          // built-ins kept on the fallback path (phased_rx, u2, u3, swap), is
+          // still expanded into X conjugation.
+          if (preserveNegatedControls) {
+            if (isa<cudaq::quake::PhasedRxOp, cudaq::quake::U2Op,
+                    cudaq::quake::U3Op, cudaq::quake::SwapOp,
+                    cudaq::quake::ExpPauliOp, cudaq::quake::CustomUnitaryCallOp,
+                    cudaq::quake::CustomUnitaryConstantOp>(op))
+              return false;
+            // All other quake ops carrying negations at this point are
+            // preservable built-ins.
+            return true;
+          }
+
+          return false;
         });
     if (failed(applyPartialConversion(funcOp, target, std::move(patterns)))) {
       funcOp->emitOpError("could not replace negations");

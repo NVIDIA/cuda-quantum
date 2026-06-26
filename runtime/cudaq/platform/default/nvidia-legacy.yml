@@ -25,20 +25,24 @@ configuration-matrix:
     config:
       nvqir-simulation-backend: custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+      supports-negated-controls: true
   - name: single-gpu-fp64
     option-flags: [fp64]
     config:
       nvqir-simulation-backend: custatevec-fp64
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+      supports-negated-controls: true
   - name: multi-qpu-fp32
     option-flags: [fp32, mqpu]
     config:
       nvqir-simulation-backend: custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
       platform-library: mqpu
+      supports-negated-controls: true
   - name: multi-qpu-fp64
     option-flags: [fp64, mqpu]
     config:
       platform-library: mqpu
       nvqir-simulation-backend: custatevec-fp64
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+      supports-negated-controls: true

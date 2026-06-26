@@ -31,6 +31,7 @@ namespace cudaq_internal::compiler {
 
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
-                                 llvm::StringRef convertTo);
+                                 llvm::StringRef convertTo,
+                                 bool preserveGateControlPolarity = false);
 
 } // namespace cudaq_internal::compiler

@@ -24,6 +24,7 @@ constexpr const char *nvqirFuncs[] = {
     cudaq::opt::NVQIRInvokeRotationWithControlBits,   // obsolete
     cudaq::opt::NVQIRInvokeWithControlRegisterOrBits, // obsolete
     cudaq::opt::NVQIRGeneralizedInvokeAny,
+    cudaq::opt::NVQIRGeneralizedInvokeWithControlValues,
     cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
     cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
     cudaq::getNumQubitsFromCudaqState,

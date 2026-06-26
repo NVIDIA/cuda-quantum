@@ -58,8 +58,14 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
       pipelineConfig.codegenTranslation == "nop"
           ? "jit-deploy-pipeline{no-loop-unroll=true}"
           : "jit-deploy-pipeline";
+  // Forward the target's native negated-control capability so the JIT
+  // finalize stage preserves built-in gate control polarity instead of
+  // expanding it into X gates.
+  const std::string preserveGateControlPolarity =
+      target.supportsNegatedControls ? "true" : "false";
   const std::string finalizeStage =
-      "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
+      "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls +
+      " preserve-gate-control-polarity=" + preserveGateControlPolarity + "}";
 
   appendPipelineStage(passPipeline, pipelineConfig.highLevelPipeline);
   appendPipelineStage(passPipeline, deployStage);

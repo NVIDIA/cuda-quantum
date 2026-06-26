@@ -106,6 +106,10 @@ struct BackendEndConfigEntry {
   std::string CodegenEmission;
   /// Post code generation IR passes configuration (hardware REST QPU)
   std::string PostCodeGenPasses;
+  /// Whether this backend can apply negated controls directly / natively.
+  /// When true, gate control polarity is carried to the runtime instead of
+  /// being expanded into X gates at compile time.
+  bool SupportsNegatedControls = false;
   /// Name of the platform library to use
   std::string PlatformLibrary;
   /// Name of the execution manager to use in library mode
@@ -170,6 +174,13 @@ public:
   // Helper to determine the codegen config based on CLI arguments
   std::string
   getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
+
+  /// Return the backend configuration entry activated by the given runtime/CLI
+  /// arguments: the selected `configuration-matrix` entry, or the single
+  /// `BackendConfig`. Mirrors the selection `processRuntimeArgs` performs.
+  /// Empty if no entry applies.
+  std::optional<BackendEndConfigEntry>
+  getActiveBackendConfig(const std::map<std::string, std::string> &args) const;
 };
 
 /// Process the target configuration into a `nvq++` compatible script according

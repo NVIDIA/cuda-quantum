@@ -115,6 +115,12 @@ getDefaultPythonCompileTargetImpl() {
 
   ct->fullySpecialize = !isLocalSimulator;
   ct->isLocalSimulator = isLocalSimulator;
+  // Native negated-control support is a compile-time property of the
+  // target. Read it from the active backend config.
+  if (rt)
+    if (auto activeConfig =
+            rt->config.getActiveBackendConfig(rt->runtimeConfig))
+      ct->supportsNegatedControls = activeConfig->SupportsNegatedControls;
   ct->supportDeviceCalls = true;
   ct->argumentSynthChangeSemantics = false;
   ct->pipelineConfig.codegenTranslation = "qir:";

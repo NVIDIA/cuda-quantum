@@ -167,7 +167,8 @@ insertResultMapCleanupOperations(Operation *module,
 
 cudaq::JitEngine
 cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo) {
+                                          llvm::StringRef convertTo,
+                                          bool preserveGateControlPolarity) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
@@ -179,7 +180,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
   opts.transformer = std::move(transformerTemp);
   opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   auto llvmModuleBuilderTemp =
-      [convertTo = convertTo.str()](
+      [convertTo = convertTo.str(), preserveGateControlPolarity](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -203,7 +204,12 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
       profileName = convertTo;
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
     } else {
-      cudaq::opt::addAOTPipelineConvertToQIR(pm);
+      // Forward the target's native negated-control capability so this
+      // QIR-conversion pipeline also preserves built-in gate control polarity
+      // (`apply-control-negations` runs a second time here, after jit-finalize,
+      // and would otherwise re-expand the negations into X gates).
+      cudaq::opt::addAOTPipelineConvertToQIR(pm, /*convertTo=*/{},
+                                             preserveGateControlPolarity);
     }
 
     std::string error_msg;

@@ -1227,6 +1227,15 @@ struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
       return unitary.emitOpError(
           "Parameterized custom operations not yet supported.");
 
+    // Native negated-control polarity is only emitted for gate ops
+    // preserved by `apply-control-negations`. A custom operation that still
+    // carries negated controls here would otherwise be applied with
+    // conventional (closed) controls, so reject rather than silently mis-apply.
+    if (auto neg = adaptor.getNegatedQubitControls())
+      if (llvm::any_of(*neg, [](bool b) { return b; }))
+        return unitary.emitOpError(
+            "negated controls are not supported for custom operations.");
+
     auto loc = unitary.getLoc();
     auto arrayTy = M::getArrayType(rewriter.getContext());
 
@@ -1794,7 +1803,12 @@ struct AnnotateKernelsWithMeasurementStringsPattern
 template <typename M, typename OP>
 struct QuantumGatePattern : public OpConversionPattern<OP> {
   using Base = OpConversionPattern<OP>;
-  using Base::Base;
+
+  bool allowNegatedControls = false;
+
+  QuantumGatePattern(TypeConverter &typeConverter, MLIRContext *context,
+                     bool allow = false)
+      : Base(typeConverter, context), allowNegatedControls(allow) {}
 
   LogicalResult
   matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
@@ -1810,8 +1824,19 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     };
     auto qirFunctionName = M::quakeToFuncName(op);
 
-    // Make sure that apply-control-negations pass was run.
-    if (adaptor.getNegatedQubitControls())
+    // For targets that apply negated controls natively the
+    // `apply-control-negations` pass runs in preserve mode and leaves supported
+    // built-in gate negations in place, so the attribute survives here. Carry
+    // the polarity to the runtime via the control-bits dispatcher instead of
+    // erasing it.
+    auto negatedControlsAttr = adaptor.getNegatedQubitControls();
+    ArrayRef<bool> negatedControls;
+    if (negatedControlsAttr)
+      negatedControls = *negatedControlsAttr;
+    const bool hasNegatedControls =
+        llvm::any_of(negatedControls, [](bool b) { return b; });
+
+    if (hasNegatedControls && !allowNegatedControls)
       return op.emitOpError("negated control qubits not allowed.");
 
     // Prepare any floating-point parameters.
@@ -1847,9 +1872,11 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     // If no control qubits or if there is 1 control and it is already a veq,
     // just add a call and forward the target qubits as needed.
     auto numControls = adaptor.getControls().size();
-    if (op.getControls().empty() ||
-        conformsToIntendedCall(numControls, getInitialType(op, opParams.size()),
-                               op, qirFunctionName)) {
+    if (!hasNegatedControls &&
+        (op.getControls().empty() ||
+         conformsToIntendedCall(numControls,
+                                getInitialType(op, opParams.size()), op,
+                                qirFunctionName))) {
       SmallVector<Value> args{opParams.begin(), opParams.end()};
       args.append(adaptor.getControls().begin(), adaptor.getControls().end());
       args.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
@@ -1877,19 +1904,30 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     // make Array* and Qubit* indistinguishable on the live operand.
     for (auto [i, val] : llvm::enumerate(adaptor.getControls())) {
       Type origCtrlTy = getInitialType(op, opParams.size() + i);
+      const bool isNegated = i < negatedControls.size() && negatedControls[i];
       if (isaVeqArgument(origCtrlTy)) {
+        // Whole-register (veq) controls can never be negated
+        if (isNegated)
+          return op.emitOpError("negated controls are not supported for "
+                                "whole-register (veq) controls.");
         numArrayCtrls++;
         auto sizeCall = func::CallOp::create(
             rewriter, loc, i64Ty, cudaq::opt::QIRArrayGetSize, ValueRange{val});
-        // Arrays are encoded as pairs of arguments: length and Array*
+        // Arrays are encoded as length, Array*. Every qubit an array control
+        // contributes always activates on |1>, so no activation value is
+        // needed here (the control-values dispatcher fills it in).
         opArrCtrls.push_back(sizeCall.getResult(0));
         opArrCtrls.push_back(
             cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
       } else {
         numQubitCtrls++;
-        // Qubits are simply the Qubit**
+        // Qubits are the Qubit** (+ a trailing i64 activation value when any
+        // control is negated: 1 = activate on |1>, 0 = activate on |0>).
         opQubitCtrls.emplace_back(
             cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
+        if (hasNegatedControls)
+          opQubitCtrls.push_back(arith::ConstantIntOp::create(
+              rewriter, loc, i64Ty, isNegated ? 0 : 1));
       }
     }
 
@@ -1915,8 +1953,15 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     for (auto t : adaptor.getTargets())
       opTargs.push_back(cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, t));
 
-    // Build the declared arguments for the helper call (5 total).
+    // Build the declared arguments for the helper call. When any control is
+    // negated, route to the control-values dispatcher. Per-qubit-control
+    // activation values were interleaved into `opQubitCtrls` above; array
+    // (veq) controls carry no activation value since they are always
+    // positive.
     SmallVector<Value> args;
+    StringRef invokeFn =
+        hasNegatedControls ? cudaq::opt::NVQIRGeneralizedInvokeWithControlValues
+                           : cudaq::opt::NVQIRGeneralizedInvokeAny;
     args.emplace_back(
         arith::ConstantIntOp::create(rewriter, loc, opParams.size(), 64));
     args.emplace_back(
@@ -1934,9 +1979,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     args.append(opTargs.begin(), opTargs.end());
 
     // Call the generalized version of the gate invocation.
-    cudaq::cc::VarargCallOp::create(rewriter, loc, TypeRange{},
-                                    cudaq::opt::NVQIRGeneralizedInvokeAny,
-                                    args);
+    cudaq::cc::VarargCallOp::create(rewriter, loc, TypeRange{}, invokeFn, args);
     return forwardOrEraseOp();
   }
 
@@ -2477,7 +2520,8 @@ struct FullQIR {
   }
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
+                                      TypeConverter &typeConverter,
+                                      bool allowNegatedControls = false) {
     auto *ctx = patterns.getContext();
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
@@ -2490,23 +2534,23 @@ struct FullQIR {
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
-        ApplyNoiseOpRewrite<Self>,
+        ApplyNoiseOpRewrite<Self>>(typeConverter, ctx);
 
-        /* Regular quantum operators. */
-        QuantumGatePattern<Self, cudaq::quake::HOp>,
-        QuantumGatePattern<Self, cudaq::quake::PhasedRxOp>,
-        QuantumGatePattern<Self, cudaq::quake::R1Op>,
-        QuantumGatePattern<Self, cudaq::quake::RxOp>,
-        QuantumGatePattern<Self, cudaq::quake::RyOp>,
-        QuantumGatePattern<Self, cudaq::quake::RzOp>,
-        QuantumGatePattern<Self, cudaq::quake::SOp>,
-        QuantumGatePattern<Self, cudaq::quake::SwapOp>,
-        QuantumGatePattern<Self, cudaq::quake::TOp>,
-        QuantumGatePattern<Self, cudaq::quake::U2Op>,
-        QuantumGatePattern<Self, cudaq::quake::U3Op>,
-        QuantumGatePattern<Self, cudaq::quake::XOp>,
-        QuantumGatePattern<Self, cudaq::quake::YOp>,
-        QuantumGatePattern<Self, cudaq::quake::ZOp>>(typeConverter, ctx);
+    patterns.insert<QuantumGatePattern<Self, cudaq::quake::HOp>,
+                    QuantumGatePattern<Self, cudaq::quake::PhasedRxOp>,
+                    QuantumGatePattern<Self, cudaq::quake::R1Op>,
+                    QuantumGatePattern<Self, cudaq::quake::RxOp>,
+                    QuantumGatePattern<Self, cudaq::quake::RyOp>,
+                    QuantumGatePattern<Self, cudaq::quake::RzOp>,
+                    QuantumGatePattern<Self, cudaq::quake::SOp>,
+                    QuantumGatePattern<Self, cudaq::quake::SwapOp>,
+                    QuantumGatePattern<Self, cudaq::quake::TOp>,
+                    QuantumGatePattern<Self, cudaq::quake::U2Op>,
+                    QuantumGatePattern<Self, cudaq::quake::U3Op>,
+                    QuantumGatePattern<Self, cudaq::quake::XOp>,
+                    QuantumGatePattern<Self, cudaq::quake::YOp>,
+                    QuantumGatePattern<Self, cudaq::quake::ZOp>>(
+        typeConverter, ctx, allowNegatedControls);
     commonQuakeHandlingPatterns(patterns, typeConverter, ctx);
     commonQECHandlingPatterns(patterns, typeConverter, ctx);
     commonClassicalHandlingPatterns(patterns, typeConverter, ctx);
@@ -2548,8 +2592,10 @@ struct AnyProfileQIR {
   }
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
+                                      TypeConverter &typeConverter,
+                                      bool allowNegatedControls = false) {
     auto *ctx = patterns.getContext();
+    allowNegatedControls = false;
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
         AllocaOpToIntRewrite<Self>, BundleCableOpRewrite<Self>,
@@ -2560,23 +2606,23 @@ struct AnyProfileQIR {
 
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
-        ResetOpPattern<Self>, ApplyNoiseOpRewrite<Self>,
+        ResetOpPattern<Self>, ApplyNoiseOpRewrite<Self>>(typeConverter, ctx);
 
-        /* Regular quantum operators. */
-        QuantumGatePattern<Self, cudaq::quake::HOp>,
-        QuantumGatePattern<Self, cudaq::quake::PhasedRxOp>,
-        QuantumGatePattern<Self, cudaq::quake::R1Op>,
-        QuantumGatePattern<Self, cudaq::quake::RxOp>,
-        QuantumGatePattern<Self, cudaq::quake::RyOp>,
-        QuantumGatePattern<Self, cudaq::quake::RzOp>,
-        QuantumGatePattern<Self, cudaq::quake::SOp>,
-        QuantumGatePattern<Self, cudaq::quake::SwapOp>,
-        QuantumGatePattern<Self, cudaq::quake::TOp>,
-        QuantumGatePattern<Self, cudaq::quake::U2Op>,
-        QuantumGatePattern<Self, cudaq::quake::U3Op>,
-        QuantumGatePattern<Self, cudaq::quake::XOp>,
-        QuantumGatePattern<Self, cudaq::quake::YOp>,
-        QuantumGatePattern<Self, cudaq::quake::ZOp>>(typeConverter, ctx);
+    patterns.insert<QuantumGatePattern<Self, cudaq::quake::HOp>,
+                    QuantumGatePattern<Self, cudaq::quake::PhasedRxOp>,
+                    QuantumGatePattern<Self, cudaq::quake::R1Op>,
+                    QuantumGatePattern<Self, cudaq::quake::RxOp>,
+                    QuantumGatePattern<Self, cudaq::quake::RyOp>,
+                    QuantumGatePattern<Self, cudaq::quake::RzOp>,
+                    QuantumGatePattern<Self, cudaq::quake::SOp>,
+                    QuantumGatePattern<Self, cudaq::quake::SwapOp>,
+                    QuantumGatePattern<Self, cudaq::quake::TOp>,
+                    QuantumGatePattern<Self, cudaq::quake::U2Op>,
+                    QuantumGatePattern<Self, cudaq::quake::U3Op>,
+                    QuantumGatePattern<Self, cudaq::quake::XOp>,
+                    QuantumGatePattern<Self, cudaq::quake::YOp>,
+                    QuantumGatePattern<Self, cudaq::quake::ZOp>>(
+        typeConverter, ctx, allowNegatedControls);
     commonQuakeHandlingPatterns(patterns, typeConverter, ctx);
     commonQECHandlingPatterns(patterns, typeConverter, ctx);
     commonClassicalHandlingPatterns(patterns, typeConverter, ctx);
@@ -2613,8 +2659,10 @@ struct BaseProfileQIR : public AnyProfileQIR<opaquePtr> {
   using Base = AnyProfileQIR<opaquePtr>;
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
-    Base::populateRewritePatterns(patterns, typeConverter);
+                                      TypeConverter &typeConverter,
+                                      bool allowNegatedControls = false) {
+    Base::populateRewritePatterns(patterns, typeConverter,
+                                  allowNegatedControls);
     patterns
         .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
             typeConverter, patterns.getContext());
@@ -2631,8 +2679,10 @@ struct AdaptiveProfileQIR : public AnyProfileQIR<opaquePtr> {
   using Base = AnyProfileQIR<opaquePtr>;
 
   static void populateRewritePatterns(RewritePatternSet &patterns,
-                                      TypeConverter &typeConverter) {
-    Base::populateRewritePatterns(patterns, typeConverter);
+                                      TypeConverter &typeConverter,
+                                      bool allowNegatedControls = false) {
+    Base::populateRewritePatterns(patterns, typeConverter,
+                                  allowNegatedControls);
     patterns
         .insert<DiscriminateOpToCallRewrite<Self>, MeasurementOpPattern<Self>>(
             typeConverter, patterns.getContext());
@@ -2659,7 +2709,8 @@ struct QuakeToQIRAPIPass
     LLVM_DEBUG(llvm::dbgs() << "Before QIR API conversion:\n" << *op << '\n');
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    A::populateRewritePatterns(patterns, typeConverter);
+    A::populateRewritePatterns(patterns, typeConverter,
+                               this->allowNegatedControls);
     ConversionTarget target(*ctx);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            cf::ControlFlowDialect, func::FuncDialect,
@@ -3062,11 +3113,14 @@ struct QuakeToQIRAPIFinalPass
 } // namespace
 
 void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
-                                            bool opaquePtr) {
+                                            bool opaquePtr,
+                                            bool allowNegatedControls) {
   QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
   pm.addPass(cudaq::opt::createLowerToCG());
-  QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
+  QuakeToQIRAPIOptions apiOpt{.api = api.str(),
+                              .opaquePtr = opaquePtr,
+                              .allowNegatedControls = allowNegatedControls};
   pm.addPass(cudaq::opt::createQuakeToQIRAPI(apiOpt));
   pm.addPass(cudaq::opt::createQirInsertArrayRecord());
   pm.addPass(createCanonicalizerPass());
@@ -3087,6 +3141,10 @@ struct QIRAPIPipelineOptions
   PassOptions::Option<bool> opaquePtr{*this, "opaque-pointer",
                                       llvm::cl::desc("use opaque pointers"),
                                       llvm::cl::init(false)};
+  PassOptions::Option<bool> allowNegatedControls{
+      *this, "allow-negated-controls",
+      llvm::cl::desc("allow built-in gate negations to reach the runtime"),
+      llvm::cl::init(false)};
 };
 } // namespace
 
@@ -3094,6 +3152,7 @@ void cudaq::opt::registerToQIRAPIPipeline() {
   PassPipelineRegistration<QIRAPIPipelineOptions>(
       "convert-to-qir-api", "Convert quake to one of the QIR APIs.",
       [](OpPassManager &pm, const QIRAPIPipelineOptions &opt) {
-        addConvertToQIRAPIPipeline(pm, opt.api, opt.opaquePtr);
+        addConvertToQIRAPIPipeline(pm, opt.api, opt.opaquePtr,
+                                   opt.allowNegatedControls);
       });
 }

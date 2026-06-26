@@ -1385,6 +1385,72 @@ void generalizedInvokeWithRotationsControlsTargets(
       numTargetOperands, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
 
+/// @brief Like `generalizedInvokeWithRotationsControlsTargets`, but each
+/// individual qubit control carries an explicit activation value for negated
+/// controls. Per qubit-control operand the varargs gain a trailing i64 bit
+/// value (1 = activate on |1>, the conventional positive control; 0 =
+/// activate on |0>, a negated control): array controls pass (length, Array*)
+/// with no activation value. The dispatcher flattens these into a per-control
+/// value list aligned to the control order commonInvoke produces, stages it on
+/// the simulator, and the single gate this dispatch enqueues consumes it.
+void generalizedInvokeWithControlValues(std::size_t numRotationOperands,
+                                        std::size_t numControlArrayOperands,
+                                        std::size_t numControlQubitOperands,
+                                        std::size_t numTargetOperands,
+                                        void (*QISFunction)(...), ...) {
+  const std::size_t totalControls =
+      numControlArrayOperands + numControlQubitOperands;
+  double parameters[numRotationOperands];
+  std::size_t arrayAndLength[totalControls];
+  Qubit *controls[totalControls];
+  Qubit *targets[numTargetOperands];
+  // Per-control activation values flattened to match the control order that
+  // commonInvoke produces: each array control contributes a positive (1)
+  // value once per qubit in the register (arrays first), then each
+  // individual qubit control contributes its explicit value, in order.
+  std::vector<std::uint8_t> controlBitValues;
+  std::size_t i;
+  va_list args;
+  va_start(args, QISFunction);
+  for (i = 0; i < numRotationOperands; ++i)
+    parameters[i] = va_arg(args, double);
+  for (i = 0; i < numControlArrayOperands; ++i) {
+    const std::size_t length = va_arg(args, std::size_t);
+    Qubit *array = va_arg(args, Qubit *);
+    arrayAndLength[i] = length;
+    controls[i] = array;
+    controlBitValues.insert(controlBitValues.end(), length, 1);
+  }
+  for (i = 0; i < numControlQubitOperands; ++i) {
+    Qubit *qubit = va_arg(args, Qubit *);
+    const auto bitValue = static_cast<std::uint8_t>(va_arg(args, std::int64_t));
+    arrayAndLength[numControlArrayOperands + i] = 0;
+    controls[numControlArrayOperands + i] = qubit;
+    controlBitValues.push_back(bitValue);
+  }
+  for (i = 0; i < numTargetOperands; ++i)
+    targets[i] = va_arg(args, Qubit *);
+  va_end(args);
+
+  auto *simulator = getCircuitSimulatorInternal();
+  simulator->setControlBitValues(std::move(controlBitValues));
+
+  struct CtrlBitGuard {
+    nvqir::CircuitSimulator *sim;
+    bool armed = true;
+    ~CtrlBitGuard() {
+      if (armed)
+        sim->setControlBitValues({});
+    }
+    void dismiss() { armed = false; }
+  };
+  CtrlBitGuard guard{simulator};
+  commonInvokeWithRotationsControlsTargets(
+      numRotationOperands, parameters, totalControls, arrayAndLength, controls,
+      numTargetOperands, targets, reinterpret_cast<void (*)()>(QISFunction));
+  guard.dismiss();
+}
+
 /// @brief Utility function used by Quake->QIR to invoke a QIR QIS function
 /// with a variadic list of control qubits.
 void invokeWithControlQubits(const std::size_t numControlOperands,

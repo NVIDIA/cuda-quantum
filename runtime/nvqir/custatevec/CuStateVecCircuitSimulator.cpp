@@ -18,6 +18,7 @@
 #include <iostream>
 #include <random>
 #include <set>
+#include <stdexcept>
 
 namespace {
 
@@ -96,9 +97,12 @@ protected:
   /// @param matrix The matrix data as a 1-d array, row-major
   /// @param controls Possible control qubits, can be empty
   /// @param targets Target qubits
+  /// @param controlBitValues Per-control activation values aligned to
+  /// `controls`
   void applyGateMatrix(const DataVector &matrix,
                        const std::vector<int> &controls,
-                       const std::vector<int> &targets) {
+                       const std::vector<int> &targets,
+                       const std::vector<int> &controlBitValues = {}) {
     HANDLE_ERROR(custatevecApplyMatrixGetWorkspaceSize(
         handle, cuStateVecCudaDataType, nQubitsAllocated, matrix.data(),
         cuStateVecCudaDataType, CUSTATEVEC_MATRIX_LAYOUT_ROW, 0, targets.size(),
@@ -115,8 +119,10 @@ protected:
         handle, deviceStateVector, cuStateVecCudaDataType,
         localNQubitsAllocated, matrix.data(), cuStateVecCudaDataType,
         CUSTATEVEC_MATRIX_LAYOUT_ROW, 0, targets.data(), targets.size(),
-        controls.empty() ? nullptr : controls.data(), nullptr, controls.size(),
-        cuStateVecComputeType, extraWorkspace, extraWorkspaceSizeInBytes));
+        controls.empty() ? nullptr : controls.data(),
+        controlBitValues.empty() ? nullptr : controlBitValues.data(),
+        controls.size(), cuStateVecComputeType, extraWorkspace,
+        extraWorkspaceSizeInBytes));
 
     if (extraWorkspace) {
       HANDLE_CUDA_ERROR(cudaFree(extraWorkspace));
@@ -128,7 +134,8 @@ protected:
   template <typename RotationGateT>
   void oneQubitOneParamApply(const double angle,
                              const std::vector<std::size_t> &controls,
-                             const std::size_t qubitIdx) {
+                             const std::size_t qubitIdx,
+                             const std::vector<int> &controlBitValues = {}) {
     RotationGateT gate;
     std::vector<int> controls32;
     for (auto c : controls)
@@ -137,7 +144,9 @@ protected:
     int targets[] = {(int)qubitIdx};
     HANDLE_ERROR(custatevecApplyPauliRotation(
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
-        -0.5 * angle, pauli, targets, 1, controls32.data(), nullptr,
+        -0.5 * angle, pauli, targets, 1, controls32.data(),
+        // Per-control activation values; nullptr => all on |1>.
+        controlBitValues.empty() ? nullptr : controlBitValues.data(),
         controls32.size()));
   }
 
@@ -359,9 +368,22 @@ protected:
     std::transform(task.targets.begin(), task.targets.end(),
                    std::back_inserter(targets),
                    [](std::size_t idx) { return static_cast<int>(idx); });
+
+    // `controlBitValues` convention: 1 = activate on |1>, 0 = activate on |0>.
+    // Empty means every control is conventional, which downstream maps to
+    // `nullptr` so every control activates on |1> as usual.
+    std::vector<int> controlBitValues(task.controlBitValues.begin(),
+                                      task.controlBitValues.end());
+
+    // The per-control activation values are either absent (every control
+    // conventional) or exactly one per control.
+    if (!controlBitValues.empty() && controlBitValues.size() != controls.size())
+      throw std::runtime_error(
+          "`controlBitValues` size does not match the control count.");
+
     // If we have no parameters, just apply the matrix.
     if (task.parameters.empty()) {
-      applyGateMatrix(task.matrix, controls, targets);
+      applyGateMatrix(task.matrix, controls, targets, controlBitValues);
       return;
     }
 
@@ -369,16 +391,16 @@ protected:
     // compute with custatevecApplyPauliRotation
     if (task.operationName == "rx") {
       oneQubitOneParamApply<nvqir::rx<ScalarType>>(
-          task.parameters[0], task.controls, task.targets[0]);
+          task.parameters[0], task.controls, task.targets[0], controlBitValues);
     } else if (task.operationName == "ry") {
       oneQubitOneParamApply<nvqir::ry<ScalarType>>(
-          task.parameters[0], task.controls, task.targets[0]);
+          task.parameters[0], task.controls, task.targets[0], controlBitValues);
     } else if (task.operationName == "rz") {
       oneQubitOneParamApply<nvqir::rz<ScalarType>>(
-          task.parameters[0], task.controls, task.targets[0]);
+          task.parameters[0], task.controls, task.targets[0], controlBitValues);
     } else {
       // Fallback to just applying the gate.
-      applyGateMatrix(task.matrix, controls, targets);
+      applyGateMatrix(task.matrix, controls, targets, controlBitValues);
     }
   }
 
@@ -424,6 +446,9 @@ public:
 
   /// @brief Device synchronization
   void synchronize() override { HANDLE_CUDA_ERROR(cudaDeviceSynchronize()); }
+
+  /// @brief Native negated-control support: consume `controlBitValues`.
+  bool supportsNegatedControls() const override { return true; }
 
   /// @brief Measure operation
   /// @param qubitIdx

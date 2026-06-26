@@ -25,14 +25,24 @@ struct TargetCodegenPipelineOptions
   PassOptions::Option<std::string> target{
       *this, "convert-to", llvm::cl::desc("Conversion target specifier."),
       llvm::cl::init("")};
+  PassOptions::Option<bool> preserveGateControlPolarity{
+      *this, "preserve-gate-control-polarity",
+      llvm::cl::desc("Preserve built-in gate control polarity for targets that "
+                     "apply negated controls natively."),
+      llvm::cl::init(false)};
 };
 } // namespace
 
-static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
+static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo,
+                                     bool preserveGateControlPolarity = false) {
   auto convertFields = convertTo.split(':');
-  if (convertFields.first == "qir" || convertFields.first == "qir-full") {
-    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
-                                                   convertFields.second.str());
+  const bool isFullQIR =
+      convertFields.first == "qir" || convertFields.first == "qir-full";
+  const bool allowNegatedControls = preserveGateControlPolarity && isFullQIR;
+  if (isFullQIR) {
+    cudaq::opt::addConvertToQIRAPIPipeline(
+        pm, "full:" + convertFields.second.str(),
+        /*opaquePtr=*/true, allowNegatedControls);
   } else if (convertFields.first == "qir-base") {
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurements());
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile:" +
@@ -61,7 +71,10 @@ void createCommonTargetCodegenPipeline(
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   } else {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+    cudaq::opt::ApplyControlNegationsOptions acnOpts;
+    acnOpts.preserveGateControlPolarity = options.preserveGateControlPolarity;
+    pm.addNestedPass<func::FuncOp>(
+        cudaq::opt::createApplyControlNegations(acnOpts));
     cudaq::opt::addAggressiveInlining(pm);
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
@@ -107,7 +120,8 @@ void createTargetCodegenPipeline(PassManager &pm,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   }
-  ::addQIRConversionPipeline(pm, options.target);
+  ::addQIRConversionPipeline(pm, options.target,
+                             options.preserveGateControlPolarity);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
   cudaq::opt::ReturnToOutputLogOptions opts;
@@ -121,11 +135,13 @@ void createTargetCodegenPipeline(PassManager &pm,
 }
 
 template <bool isJIT>
-void createTargetCodegenPipeline(PassManager &pm, StringRef convertTo) {
+void createTargetCodegenPipeline(PassManager &pm, StringRef convertTo,
+                                 bool preserveGateControlPolarity = false) {
   auto convertFields = convertTo.split(':');
   TargetCodegenPipelineOptions opts;
   opts.allowBreaksInLoops = convertFields.first == "qir-adaptive";
   opts.target = convertTo.str();
+  opts.preserveGateControlPolarity = preserveGateControlPolarity;
   createTargetCodegenPipeline<isJIT>(pm, opts);
 }
 
@@ -135,10 +151,12 @@ void cudaq::opt::addJITPipelineConvertToQIR(PassManager &pm,
 }
 
 void cudaq::opt::addAOTPipelineConvertToQIR(PassManager &pm,
-                                            StringRef convertTo) {
+                                            StringRef convertTo,
+                                            bool preserveGateControlPolarity) {
   if (convertTo.empty())
     convertTo = "qir";
-  ::createTargetCodegenPipeline</*JIT=*/false>(pm, convertTo);
+  ::createTargetCodegenPipeline</*JIT=*/false>(pm, convertTo,
+                                               preserveGateControlPolarity);
 }
 
 void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(

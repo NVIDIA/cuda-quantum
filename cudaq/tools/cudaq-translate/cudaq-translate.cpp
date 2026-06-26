@@ -80,6 +80,12 @@ static llvm::cl::opt<bool> emitLLVM(
                    "translation will terminate with the selected dialect."),
     llvm::cl::init(true));
 
+static llvm::cl::opt<bool> preserveGateControlPolarity(
+    "preserve-gate-control-polarity",
+    llvm::cl::desc("Preserve built-in gate control polarity for targets that "
+                   "apply negated  controls natively."),
+    llvm::cl::init(false));
+
 static constexpr const char BOLD[] = "\033[1m";
 static constexpr const char RED[] = "\033[91m";
 static constexpr const char CLEAR[] = "\033[0m";
@@ -176,12 +182,23 @@ int main(int argc, char **argv) {
 
   StringRef convertValue = convertTo.getValue();
   auto convertPair = convertValue.split(':');
+  bool earlyExitWithError = false;
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
+               const bool fullQIR = convertPair.first == "qir" ||
+                                    convertPair.first == "qir-full";
+               if (preserveGateControlPolarity && !fullQIR) {
+                 mlir::emitError(
+                     modLoc, "`--preserve-gate-control-polarity` is only valid "
+                             "for full-QIR targets.");
+                 earlyExitWithError = true;
+                 return;
+               }
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
-               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue);
+               cudaq::opt::addAOTPipelineConvertToQIR(
+                   pm, convertValue, preserveGateControlPolarity && fullQIR);
              })
       .Case("openqasm2",
             [&]() {
@@ -202,6 +219,9 @@ int main(int argc, char **argv) {
             modLoc, "must use convert-to to specify a transport layer");
         std::exit(1);
       })();
+
+  if (earlyExitWithError)
+    return 1;
 
   if (failed(pm.run(*module)))
     cudaq::emitFatalError(module->getLoc(), "pipeline failed");

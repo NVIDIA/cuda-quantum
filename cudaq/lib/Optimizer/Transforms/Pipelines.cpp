@@ -69,6 +69,11 @@ struct TargetFinalizationJitPipelineOptions
       llvm::cl::desc(
           "Lower device calls (to normal function calls) in JIT pipeline."),
       llvm::cl::init(true)};
+  PassOptions::Option<bool> preserveGateControlPolarity{
+      *this, "preserve-gate-control-polarity",
+      llvm::cl::desc("Preserve gate control polarity for targets that can "
+                     "apply negated controls natively."),
+      llvm::cl::init(false)};
 };
 } // namespace
 
@@ -176,7 +181,10 @@ static void createJITTargetFinalizePipeline(
   if (options.lowerDeviceCalls)
     pm.addPass(cudaq::opt::createDistributedDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+  cudaq::opt::ApplyControlNegationsOptions acnOpts;
+  acnOpts.preserveGateControlPolarity = options.preserveGateControlPolarity;
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createApplyControlNegations(acnOpts));
   cudaq::opt::createTargetFinalizePipeline(pm);
 }
 

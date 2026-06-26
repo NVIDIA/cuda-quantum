@@ -116,6 +116,9 @@ public:
   /// `std::vector<bool>`.
   bool isLocalSimulator = false;
 
+  /// Whether the target can apply negated controls directly / natively.
+  bool supportsNegatedControls = false;
+
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
