@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
@@ -212,16 +213,29 @@ protected:
   /// @brief Compute the detector error model from the accumulated
   /// `recordedCircuit` and return it as `.dem` text.
   std::string generateDem() override {
+    auto *ctx = getExecutionContext();
+    const cudaq::dem_options opts = ctx ? ctx->dem_opts : cudaq::dem_options{};
     stim::DetectorErrorModel dem =
         stim::ErrorAnalyzer::circuit_to_detector_error_model(
-            recordedCircuit,
-            /*decompose_errors=*/false,
-            /*fold_loops=*/false,
-            /*allow_gauge_detectors=*/false,
-            /*approximate_disjoint_errors_threshold=*/0,
-            /*ignore_decomposition_failures=*/false,
-            /*block_decomposition_from_introducing_remnant_edges=*/false);
+            recordedCircuit, opts.decompose_errors, opts.fold_loops,
+            opts.allow_gauge_detectors,
+            opts.approximate_disjoint_errors_threshold,
+            opts.ignore_decomposition_failures,
+            opts.block_decomposition_from_introducing_remnant_edges);
     return dem.str();
+  }
+
+  /// @brief Finalize the execution context, ensuring the simulator is left in a
+  /// clean state even if finalization throws.
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                cudaq::ExecutionContext &context) override {
+    try {
+      nvqir::CircuitSimulatorBase<double>::finalizeExecutionContext(policy,
+                                                                    context);
+    } catch (...) {
+      endExecution();
+      throw;
+    }
   }
 
   /// @brief Override the default sized allocation of qubits

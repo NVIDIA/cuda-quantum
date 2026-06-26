@@ -79,6 +79,16 @@ typedef enum {
   CUDAQ_DISPATCH_HOST_CALL = 2
 } cudaq_dispatch_mode_t;
 
+// Reserved DEVICE_CALL return status (NOT an error).  A device-call handler
+// returns this to tell the device-graph scheduler that a runtime condition is
+// met and the configured follow-up graph (triggered_graph_exec) should be
+// fired fire-and-forget, after which the scheduler tail-self-relaunches to
+// reset the device-graph fire-and-forget budget (see
+// cudaq_create_dispatch_graph_regular).  The scheduler writes a normal
+// status=0 ACK for the triggering request.  Chosen to not collide with
+// success (0) or the negative error codes handlers conventionally return.
+#define CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH 0x12A6E5
+
 // Payload type identifiers (matching PayloadTypeID in dispatch_kernel_launch.h)
 typedef enum {
   CUDAQ_TYPE_UINT8 = 0x10,
@@ -240,8 +250,13 @@ typedef void (*cudaq_unified_launch_fn_t)(
     cudaStream_t stream);
 
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
-// These functions are only available when compiled for sm_90 or higher
-#if defined(__CUDACC__) || defined(CUDA_VERSION)
+// These functions are only available when compiled for sm_90 or higher.
+// Gate on any CUDA-aware TU: __CUDACC__ (nvcc), CUDA_VERSION (driver cuda.h),
+// or CUDART_VERSION (runtime cuda_runtime.h).  Host TUs that include only
+// <cuda_runtime.h> define CUDART_VERSION but NOT CUDA_VERSION, so the latter
+// alone would hide this API (and the include guard then prevents a later
+// <cuda.h> from re-exposing it) -- see qec_realtime_session consumers.
+#if defined(__CUDACC__) || defined(CUDA_VERSION) || defined(CUDART_VERSION)
 
 //==============================================================================
 // Graph-Based Dispatch API (Proper Device-Side Graph Launch Support)
@@ -276,22 +291,40 @@ typedef struct cudaq_dispatch_graph_context cudaq_dispatch_graph_context;
 //   kernel fills this before each fire-and-forget child graph launch so
 //   the graph kernel knows where to read input and write output.
 //
+// triggered_graph_exec: Optional device-launchable graph (or NULL).  When a
+//   DEVICE_CALL handler returns CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH, the
+//   scheduler fires this graph fire-and-forget (it operates on state the
+//   handler's library registered out-of-band -- it is NOT handed the
+//   request's rx/tx slot), then tail-self-relaunches via
+//   cudaGetCurrentGraphExec() so the device-graph fire-and-forget budget (120
+//   per parent-graph execution) resets each relaunch.  This is what lets the
+//   path sustain far more than 120 such triggered launches.  When NULL, the
+//   sentinel is treated as a pass-through status and no self-relaunch occurs.
+//
 // Returns cudaSuccess on success, or an error code on failure.
-cudaError_t cudaq_create_dispatch_graph_regular(
+// Marked CUDAQ_REALTIME_DISPATCH_API (default visibility) so that, after the
+// dispatch archive is absorbed into a binary, these symbols stay in the
+// binary's dynamic table and can satisfy a consumer .so that calls them (e.g.
+// cudaq-qec-realtime-decoding.so's device-graph scheduler mode).  Without the
+// default visibility the archive's hidden definition cannot be re-exported and
+// the link fails with "hidden symbol ... referenced by DSO".
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_create_dispatch_graph_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     void *graph_io_ctx, volatile int *shutdown_flag, uint64_t *stats,
     size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
-    cudaStream_t stream, cudaq_dispatch_graph_context **out_context);
+    cudaGraphExec_t triggered_graph_exec, cudaStream_t stream,
+    cudaq_dispatch_graph_context **out_context);
 
 // Launch the dispatch graph. The dispatch kernel inside this graph can call
 // cudaGraphLaunch() to launch child graphs from device code.
-cudaError_t cudaq_launch_dispatch_graph(cudaq_dispatch_graph_context *context,
-                                        cudaStream_t stream);
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_launch_dispatch_graph(
+    cudaq_dispatch_graph_context *context, cudaStream_t stream);
 
 // Destroy the dispatch graph context and release all resources.
-cudaError_t cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
+CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
 
 #endif
 
