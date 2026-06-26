@@ -316,6 +316,7 @@ public:
       context.executionManager = cudaq::getDefaultExecutionManager();
       context.noiseModel = executionContext->noiseModel;
       context.qpuId = executionContext->qpuId;
+      context.dem_opts = executionContext->dem_opts;
       context.hasConditionalsOnMeasureResults =
           codes[0].hasConditionalsOnMeasureResults;
       cudaq::platform::with_execution_context(
