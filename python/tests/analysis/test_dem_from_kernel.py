@@ -205,6 +205,33 @@ def test_emulate_target_independent():
             "detectors": 1,
             "observables": 1
         }
+
+        @cudaq.kernel
+        def hyperedge_kernel():
+            q0 = cudaq.qubit()
+            q1 = cudaq.qubit()
+            x.ctrl(q0, q1)
+            m0 = mz(q0)
+            m1 = mz(q1)
+            cudaq.detector(m0)
+            cudaq.detector(m0)
+            cudaq.detector(m1)
+            cudaq.detector(m1)
+
+        pauli2_probs = [0.0] * 15
+        pauli2_probs[4] = 0.25  # XX
+        noise = cudaq.NoiseModel()
+        noise.add_channel("x", [0, 1], cudaq.Pauli2(pauli2_probs))
+
+        dem_raw = cudaq.dem_from_kernel(hyperedge_kernel, noise_model=noise)
+        dem_decomposed = cudaq.dem_from_kernel(hyperedge_kernel,
+                                               noise_model=noise,
+                                               decompose_errors=True)
+
+        assert "D0 D1 D2 D3" in dem_raw
+        assert "^" not in dem_raw
+        assert "D0 D1 D2 D3" not in dem_decomposed
+        assert "^" in dem_decomposed
     finally:
         cudaq.reset_target()
 
@@ -244,6 +271,160 @@ def test_conditional_feedback_rejected():
 
     with pytest.raises(RuntimeError, match=r"branches on a measurement"):
         cudaq.dem_from_kernel(kernel)
+
+
+def test_decompose_errors_correlated_xx():
+    """dem_options decompose_errors=True splits four-detector hyperedges into pair edges."""
+
+    @cudaq.kernel
+    def kernel():
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.125, q0)
+        # pauli2 probabilities: IX,IY,IZ,XI,XX,XY,XZ,YI,YX,YY,YZ,ZI,ZX,ZY,ZZ
+        cudaq.apply_noise(cudaq.Pauli2, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0,
+                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, q0, q1)
+        m0 = mz(q0)
+        m1 = mz(q1)
+        cudaq.detector(m0)
+        cudaq.detector(m0)
+        cudaq.detector(m1)
+        cudaq.detector(m1)
+
+    noise = cudaq.NoiseModel()
+    dem_raw = cudaq.dem_from_kernel(kernel, noise_model=noise)
+    dem_decomposed = cudaq.dem_from_kernel(kernel,
+                                           noise_model=noise,
+                                           decompose_errors=True)
+
+    assert "D0 D1 D2 D3" in dem_raw
+    assert "^" not in dem_raw
+    assert "D0 D1 D2 D3" not in dem_decomposed
+    assert "^" in dem_decomposed
+    assert "error(0.25) D0 D1 ^ D2 D3" in dem_decomposed
+
+
+def test_allow_gauge_detectors():
+    """allow_gauge_detectors=True permits detectors with non-deterministic parity."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        h(q)
+        m = mz(q)
+        cudaq.detector(m)
+
+    with pytest.raises(Exception):
+        cudaq.dem_from_kernel(kernel)
+
+    dem = cudaq.dem_from_kernel(kernel, allow_gauge_detectors=True)
+    assert isinstance(dem, str)
+
+
+def test_decompose_and_ignore_failures():
+    """Three detectors on the same measurement create a 3-way hyperedge that
+    Stim cannot decompose into pairs.  decompose_errors=True must raise unless
+    ignore_decomposition_failures=True, which silently accepts the bad edge."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m = mz(q)
+
+        # odd-cardinality hyperedge {D0, D1, D2}
+        # with no other mechanism to decompose into.
+        cudaq.detector(m)
+        cudaq.detector(m)
+        cudaq.detector(m)
+
+    noise = cudaq.NoiseModel()
+
+    # Without decompose_errors the raw hyperedge is returned fine.
+    dem_raw = cudaq.dem_from_kernel(kernel, noise_model=noise)
+    assert "D0 D1 D2" in dem_raw
+
+    # decompose_errors=True on an odd hyperedge raises.
+    with pytest.raises(Exception):
+        cudaq.dem_from_kernel(kernel, noise_model=noise, decompose_errors=True)
+
+    # ignore_decomposition_failures=True keeps the undecomposable edge as-is
+    dem_ignored = cudaq.dem_from_kernel(kernel,
+                                        noise_model=noise,
+                                        decompose_errors=True,
+                                        ignore_decomposition_failures=True)
+    assert "D0 D1 D2" in dem_ignored
+    assert "^" not in dem_ignored
+
+
+def test_approximate_disjoint_errors_threshold():
+    """Pauli1 with nonzero pX and pY cannot be expressed as independent errors;
+    Stim raises unless approximate_disjoint_errors_threshold exceeds all components."""
+    pX, pY = 0.05, 0.08
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.Pauli1, pX, pY, 0.0, q)
+        m = mz(q)
+        cudaq.detector(m)
+
+    noise = cudaq.NoiseModel()
+    with pytest.raises(Exception):
+        cudaq.dem_from_kernel(kernel, noise_model=noise)
+    with pytest.raises(Exception):
+        cudaq.dem_from_kernel(kernel,
+                              noise_model=noise,
+                              approximate_disjoint_errors_threshold=0.06)
+    dem = cudaq.dem_from_kernel(kernel,
+                                noise_model=noise,
+                                approximate_disjoint_errors_threshold=0.1)
+    assert _count_errors(dem) > 0
+
+
+def test_fold_loops_and_block_decomposition():
+    """fold_loops is a no-op for flat circuits.  block_decomposition_from_introducing_
+    remnant_edges raises when a hyperedge cannot be decomposed; Stim adds the flag name
+    to the error message, distinguishing it from a plain decomposition failure."""
+    noise = cudaq.NoiseModel()
+
+    # Three detectors on one measurement create an odd-cardinality hyperedge that
+    # cannot be decomposed.  block=True causes Stim to include the flag name in the
+    # error message; block=False raises too but without that annotation.
+    @cudaq.kernel
+    def k_3det():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m = mz(q)
+        cudaq.detector(m)
+        cudaq.detector(m)
+        cudaq.detector(m)
+
+    dem = cudaq.dem_from_kernel(k_3det, noise_model=noise)
+    assert dem == cudaq.dem_from_kernel(k_3det,
+                                        noise_model=noise,
+                                        fold_loops=True)
+
+    with pytest.raises(
+            Exception,
+            match="block_decomposition_from_introducing_remnant_edges"):
+        cudaq.dem_from_kernel(
+            k_3det,
+            noise_model=noise,
+            decompose_errors=True,
+            block_decomposition_from_introducing_remnant_edges=True)
+
+
+def test_dem_options_unknown_key_raises():
+    """Passing an unknown keyword argument raises ValueError."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        mz(q)
+
+    with pytest.raises(ValueError, match="unknown keyword argument"):
+        cudaq.dem_from_kernel(kernel, not_a_real_option=True)
 
 
 if __name__ == "__main__":
