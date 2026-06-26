@@ -181,6 +181,8 @@ public:
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
   /// Get the compile target of the QPU for the given policy.
+  ///
+  /// By default, fall back to other_policies compile target.
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(const sample_policy &policy);
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
