@@ -14,6 +14,7 @@
 #include <cudaq/algorithms/dem.h>
 #include <exception>
 #include <string>
+#include <vector>
 
 // ---------------------------------------------------------------------------
 // Test kernels
@@ -158,6 +159,24 @@ struct nonClifford {
   }
 };
 
+// X_ERROR plus a correlated XX (pauli2) mechanism on two qubits, with paired
+// detectors on each measurement record. Without decomposition the XX error is a
+// four-detector hyperedge; with decompose_errors=true Stim splits it into two
+// graphlike pair edges joined by ^.
+struct correlatedXXHyperedge {
+  void operator()(std::vector<double> parms) __qpu__ {
+    cudaq::qubit q0, q1;
+    cudaq::apply_noise<cudaq::x_error>(0.125, q0);
+    cudaq::apply_noise<cudaq::pauli2>(parms, q0, q1);
+    auto m0 = mz(q0);
+    auto m1 = mz(q1);
+    cudaq::detector(m0);
+    cudaq::detector(m0);
+    cudaq::detector(m1);
+    cudaq::detector(m1);
+  }
+};
+
 // Branches on a measurement result.
 struct conditionalKernel {
   void operator()() __qpu__ {
@@ -223,9 +242,9 @@ static const cudaq::noise_model g_emptyNoise{};
 template <typename Kernel, typename... Args>
 static void runCase(const char *label, Kernel &&kernel, Args &&...args) {
   try {
-    std::string demText =
-        cudaq::dem_from_kernel(std::forward<Kernel>(kernel), &g_emptyNoise,
-                               std::forward<Args>(args)...);
+    std::string demText = cudaq::dem_from_kernel(
+        std::forward<Kernel>(kernel), &g_emptyNoise,
+        /*options=*/cudaq::dem_options{}, std::forward<Args>(args)...);
     // Tally distinct DEM instructions.
     std::printf("%s errors=%zu detectors=%zu observables=%zu\n", label,
                 countOccurrences(demText, "error("),
@@ -243,6 +262,28 @@ static void runTrivial() {
                 maxIndexAfter(demText, 'D'), maxIndexAfter(demText, 'L'));
   } catch (const std::exception &e) {
     std::printf("TRIVIAL THREW: %s\n", e.what());
+  }
+}
+
+template <typename Kernel, typename... Args>
+static void runDecomposeCase(const char *label, Kernel &&kernel,
+                             Args &&...args) {
+  try {
+    std::string demRaw = cudaq::dem_from_kernel(
+        std::forward<Kernel>(kernel), &g_emptyNoise,
+        /*options=*/cudaq::dem_options{}, std::forward<Args>(args)...);
+    std::string demDecomposed = cudaq::dem_from_kernel(
+        std::forward<Kernel>(kernel), &g_emptyNoise,
+        /*options=*/cudaq::dem_options{.decompose_errors = true},
+        std::forward<Args>(args)...);
+    std::printf("%s_RAW hyperedge=%d caret=%d\n", label,
+                demRaw.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
+                demRaw.find('^') != std::string::npos ? 1 : 0);
+    std::printf("%s_DECOMPOSED hyperedge=%d caret=%d\n", label,
+                demDecomposed.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
+                demDecomposed.find('^') != std::string::npos ? 1 : 0);
+  } catch (const std::exception &e) {
+    std::printf("%s THREW: %s\n", label, e.what());
   }
 }
 
@@ -297,6 +338,14 @@ int main() {
   // Vectorized stdvec form producing the same shape as MEM_EXP_2R.
   runCase("VECTORIZED", vectorizedDetectors{});
 
+  // Correlated XX error: raw DEM keeps a four-detector hyperedge; decomposed
+  // DEM splits it into graphlike pair edges.
+  {
+    std::vector<double> pauli2Probs(15, 0.0);
+    pauli2Probs[4] = 0.25; // XX
+    runDecomposeCase("CORRELATED_XX", correlatedXXHyperedge{}, pauli2Probs);
+  }
+
   // Measurement-dependent control flow must be rejected with a clear
   // diagnostic. The single-trajectory recorded circuit cannot represent
   // measurement-conditional gates.
@@ -317,5 +366,7 @@ int main() {
 // CHECK: THREE_MZ errors=2 detectors=1 observables=1
 // CHECK: MEM_EXP_2R errors=4 detectors=3 observables=1
 // CHECK: VECTORIZED errors=4 detectors=3 observables=1
+// CHECK: CORRELATED_XX_RAW hyperedge=1 caret=0
+// CHECK: CORRELATED_XX_DECOMPOSED hyperedge=0 caret=1
 // CHECK: CONDITIONAL THREW
 // CHECK: NON_CLIFFORD THREW

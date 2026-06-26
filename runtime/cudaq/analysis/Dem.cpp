@@ -22,6 +22,7 @@ std::string runDemFromKernel(const std::string &kernelName,
                              cudaq::quantum_platform &platform,
                              const cudaq::noise_model *noise,
                              const std::function<void()> &kernel,
+                             const cudaq::dem_options &options,
                              const std::string &plugin_name) {
 
   if (cudaq::kernelHasConditionalFeedback(kernelName))
@@ -33,6 +34,7 @@ std::string runDemFromKernel(const std::string &kernelName,
   ctx.kernelName = kernelName;
   ctx.qpuId = cudaq::getCurrentQpuId();
   ctx.asyncExec = false;
+  ctx.dem_opts = options;
   if (noise)
     ctx.noiseModel = noise;
 

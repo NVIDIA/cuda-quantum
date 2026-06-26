@@ -44,18 +44,19 @@ public:
   }
 
   sample_result launchKernel(const sample_policy &policy,
-                             const AnyModule &module, KernelArgs args) override;
+                             const CompiledModule &module,
+                             KernelArgs args) override;
 
   async_sample_result launchKernel(const async_sample_policy &policy,
-                                   const AnyModule &module,
+                                   const CompiledModule &module,
                                    KernelArgs args) override;
 
   observe_result launchKernel(const observe_policy &policy,
-                              const AnyModule &module,
+                              const CompiledModule &module,
                               KernelArgs args) override;
 
-  async_observe_result launchKernel(async_observe_policy &policy,
-                                    const AnyModule &module,
+  async_observe_result launchKernel(const async_observe_policy &policy,
+                                    const CompiledModule &module,
                                     KernelArgs args) override;
 };
 
