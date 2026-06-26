@@ -967,10 +967,10 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "used is max(min-stall-swap-budget, stall-swap-budget-per-qubit * "
            "numQubits) (advanced)">,
     Option<"placement", "placement", "std::string",
-           /*default=*/"\"identity\"",
+           /*default=*/"\"auto\"",
            "Initial placement strategy: auto (propose identity and greedy "
            "seeds, select by routed swap count), identity, greedy">,
-    Option<"search", "search", "std::string", /*default=*/"\"none\"",
+    Option<"search", "search", "std::string", /*default=*/"\"sabre\"",
            "Layout search strategy: sabre (SABRE forward-backward-forward "
            "reverse-traversal refinement of each seed), none (single forward "
            "route per seed; legacy mapping is placement=identity search=none)">,

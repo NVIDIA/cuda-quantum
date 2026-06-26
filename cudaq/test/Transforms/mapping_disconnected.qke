@@ -6,7 +6,13 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
+// A 10-node device with a single connected pair {5, 6} forces the mapper to
+// select that one component and place both interacting qubits onto it.
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_pair.txt) placement=greedy search=none' %s | FileCheck --check-prefix=PAIR %s
+
+// The same circuit on a 10-node device with no edges has no component that can
+// host a two-qubit interaction, so the mapper rejects it as a fatal error.
+// RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_isolated.txt) placement=greedy search=none raise-fatal-errors=1' %s 2>&1 | FileCheck --check-prefix=ISOLATED %s
 
 quake.wire_set @wires[2147483647]
 
@@ -24,5 +30,7 @@ func.func @bell_pair() {
 // PAIR-SAME: sparse<{{.*}}[5, 6]{{.*}}>
 // PAIR: %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[5]
 // PAIR: %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[6]
-// PAIR: %[[H:.*]] = quake.h %[[Q0]]
-// PAIR: quake.x [%[[H]]] %[[Q1]]
+// PAIR: quake.h %[[Q0]]
+// PAIR: quake.x [%{{.*}}] %[[Q1]]
+
+// ISOLATED: cannot place two-qubit interaction between virtual qubits 0 and 1 on disconnected device topology

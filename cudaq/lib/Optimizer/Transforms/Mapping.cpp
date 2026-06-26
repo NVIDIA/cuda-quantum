@@ -1737,10 +1737,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         return;
       }
       func.emitWarning("unknown qubit-mapping placement strategy '" +
-                       this->placement + "'; using 'identity'");
+                       this->placement + "'; using 'auto'");
     }
     PlacementStrategy placementStrategy =
-        parsedPlacement.value_or(PlacementStrategy::Identity);
+        parsedPlacement.value_or(PlacementStrategy::Auto);
 
     std::optional<SearchStrategy> parsedSearch =
         parseSearchStrategy(this->search);
@@ -1752,9 +1752,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         return;
       }
       func.emitWarning("unknown qubit-mapping search strategy '" +
-                       this->search + "'; using 'none'");
+                       this->search + "'; using 'sabre'");
     }
-    SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
+    SearchStrategy searchStrategy =
+        parsedSearch.value_or(SearchStrategy::Sabre);
 
     // Two-qubit interaction data for placement and disconnected-device
     // reachability checks, collected during the scan.

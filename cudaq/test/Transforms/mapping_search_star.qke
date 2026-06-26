@@ -7,17 +7,15 @@
 // ========================================================================== //
 
 // The issue (#4289): identity placement ties the routed swap count to the
-// physical numbering of an isomorphic device. SABRE search removes that
+// physical numbering of an isomorphic device. The default search removes that
 // dependence by selecting the seed that routes best.
 
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,0) placement=identity search=none' %s | FileCheck --check-prefix=IDENT50 %s
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=identity search=none' %s | FileCheck --check-prefix=IDENT52 %s
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,0)' %s | FileCheck --check-prefix=DEFAULT50 %s
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,2)' %s | FileCheck --check-prefix=DEFAULT52 %s
-// RUN: cudaq-opt '--qubit-mapping=device=star(5,0) placement=auto search=sabre' %s | FileCheck --check-prefix=SABRE50 %s
-// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=auto search=sabre' %s | FileCheck --check-prefix=SABRE52 %s
-// RUN: cudaq-opt '--qubit-mapping=device=star(5,0) placement=auto search=sabre' %s | CircuitCheck --up-to-mapping %s
-// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=auto search=sabre' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,0)' %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2)' %s | CircuitCheck --up-to-mapping %s
 
 quake.wire_set @wires[2147483647]
 
@@ -45,11 +43,6 @@ func.func @fan() {
 // IDENT52-COUNT-1: quake.swap
 // IDENT52-NOT: quake.swap
 
-// The default stays legacy/off until SABRE is explicitly enabled.
+// The default search routes both numberings identically.
 // DEFAULT50-NOT: quake.swap
-// DEFAULT52-COUNT-1: quake.swap
 // DEFAULT52-NOT: quake.swap
-
-// SABRE search routes both numberings identically.
-// SABRE50-NOT: quake.swap
-// SABRE52-NOT: quake.swap

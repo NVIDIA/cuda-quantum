@@ -24,4 +24,4 @@ func.func @bad_placement() {
   return
 }
 
-// WARN: warning: unknown qubit-mapping placement strategy 'bogus'; using 'identity'
+// WARN: warning: unknown qubit-mapping placement strategy 'bogus'; using 'auto'
