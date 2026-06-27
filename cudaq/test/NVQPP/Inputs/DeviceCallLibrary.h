@@ -588,8 +588,7 @@ struct GeneratedHostDispatchGraphTable {
       return 1;
 
     for (std::uint32_t i = 0; i < Count; ++i) {
-      if (reportCudaError(createHostDispatchGraph(&graphExecs[i],
-                                                  d_mailbox + i,
+      if (reportCudaError(createHostDispatchGraph(&graphExecs[i], d_mailbox + i,
                                                   d_entries, Count),
                           "createHostDispatchGraph") != cudaSuccess)
         return 1;

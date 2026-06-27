@@ -23,6 +23,7 @@ struct DetectorScalar {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorScalar()
 // CHECK:           %[[VAL_Q:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_M:.*]] = quake.mz %[[VAL_Q]] name "h" : (!quake.ref) -> !cc.measure_handle
@@ -33,6 +34,7 @@ struct DetectorScalar {
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::detector(h0, h1, h2)` — variadic scalar handles.
@@ -48,6 +50,7 @@ struct DetectorVariadic {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorVariadic()
 // CHECK:           %[[VAL_H0:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
 // CHECK:           %[[VAL_H1:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
@@ -56,6 +59,7 @@ struct DetectorVariadic {
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::detector(vec)` — single stdvec of handles.
@@ -69,6 +73,7 @@ struct DetectorVector {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorVector()
 // CHECK:           %[[VAL_QS:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %[[VAL_QS]] name "handles" : (!quake.veq<4>) -> !cc.stdvec<!cc.measure_handle>
@@ -79,6 +84,7 @@ struct DetectorVector {
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::detector(hs, h)` — mixed scalar + list operands.
@@ -94,6 +100,7 @@ struct DetectorMixed {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorMixed()
 // CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
@@ -103,6 +110,7 @@ struct DetectorMixed {
 // CHECK:           qec.detector %[[VAL_HSL]], %{{.*}} : !cc.stdvec<!cc.measure_handle>, !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::logical_observable(...)` — variadic default index.
@@ -117,6 +125,7 @@ struct ObservableVariadic {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVariadic()
 // CHECK:           %[[VAL_H0:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
 // CHECK:           %[[VAL_H1:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
@@ -124,6 +133,7 @@ struct ObservableVariadic {
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::logical_observable(vec)` — vector form, default index 0.
@@ -137,6 +147,7 @@ struct ObservableVectorDefault {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVectorDefault()
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
 // CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
@@ -146,6 +157,7 @@ struct ObservableVectorDefault {
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::logical_observable(vec, 2)` — vector form, explicit index.
@@ -159,6 +171,7 @@ struct ObservableVectorIndexed {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVectorIndexed()
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
 // CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
@@ -167,6 +180,7 @@ struct ObservableVectorIndexed {
 // CHECK:           qec.observable %[[VAL_HSL]] index 2 : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::logical_observable(vec, constexpr_var)` — index is any C++
@@ -184,10 +198,12 @@ struct ObservableConstexprIndex {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableConstexprIndex()
 // CHECK:           qec.observable %{{.*}} index 5 : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct ObservableExpressionIndex {
   void operator()() __qpu__ {
@@ -197,10 +213,12 @@ struct ObservableExpressionIndex {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableExpressionIndex()
 // CHECK:           qec.observable %{{.*}} index 3 : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::logical_observable(hs, h)` — mixed list + scalar operands via
@@ -217,6 +235,7 @@ struct ObservableMixed {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableMixed()
 // CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
@@ -227,6 +246,7 @@ struct ObservableMixed {
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // Rvalue measurement handles
@@ -239,11 +259,13 @@ struct DetectorRvalueScalar {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorRvalueScalar()
 // CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
 // CHECK:           qec.detector %{{.*}} : !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct ObservableRvalueVariadic {
   void operator()() __qpu__ {
@@ -252,10 +274,12 @@ struct ObservableRvalueVariadic {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableRvalueVariadic()
 // CHECK:           qec.observable %{{.*}}, %{{.*}} : !cc.measure_handle, !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // `cudaq::detectors(prev, curr)` — paired stdvecs.
@@ -270,6 +294,7 @@ struct PairDetectors {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__PairDetectors()
 // CHECK:           %[[VAL_P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           %[[VAL_PA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
@@ -282,6 +307,7 @@ struct PairDetectors {
 // CHECK:           qec.pair_detectors %[[VAL_PL]], %[[VAL_CL]] : <!cc.measure_handle>, <!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // End-to-end: distance-3 bit-flip repetition code with cross-round detectors
@@ -317,6 +343,7 @@ struct RepCodeD3 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__RepCodeD3(
 // CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[CONSTANT_0:.*]] = arith.constant 1 : i32
@@ -383,15 +410,14 @@ struct RepCodeD3 {
 // CHECK:           qec.observable %[[LOAD_R]] : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // ---------------------------------------------------------------------------
 // A user-defined `cudaq::qec::detector` function
 // ---------------------------------------------------------------------------
 
 namespace cudaq::qec {
-inline void detector(cudaq::measure_handle h) {
-  (void)h;
-}
+inline void detector(cudaq::measure_handle h) { (void)h; }
 } // namespace cudaq::qec
 
 struct NamespacedDetectorIsAllowed {

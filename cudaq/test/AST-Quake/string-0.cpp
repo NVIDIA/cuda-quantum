@@ -25,6 +25,7 @@ void test0(double theta) {
   KernelWithString{}(theta, pauliWord);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__KernelWithString(
 // CHECK-SAME:      %[[VAL_0:.*]]: f64{{.*}}, %[[VAL_1:.*]]: !cc.charspan{{.*}})
 // CHECK:           %[[VAL_2:.*]] = cc.alloca f64
@@ -37,3 +38,4 @@ void test0(double theta) {
 // CHECK:           quake.exp_pauli %[[VAL_4]], %[[VAL_7]], %[[VAL_5]] : (f64, !quake.veq<1>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
