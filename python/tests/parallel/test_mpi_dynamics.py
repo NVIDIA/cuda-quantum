@@ -19,6 +19,8 @@ skipIfUnsupported = pytest.mark.skipif(
 def setup_mpi():
     """Setup and teardown MPI and dynamics target for the module."""
     cudaq.mpi.initialize()
+    if cudaq.mpi.num_ranks() <= 1:
+        pytest.skip("MPI dynamics tests require more than one MPI rank")
     cudaq.set_target('dynamics')
     yield
     cudaq.reset_target()
