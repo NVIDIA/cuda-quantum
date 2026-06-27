@@ -1082,9 +1082,9 @@ jobs:
         image_hash: ${{ fromJson(needs.image_validation_config.outputs.docker_images) }}
         include:
           - arch: amd64
-            runner: nv-gpu-amd64-rtxpro6000-2gpu
+            runner: linux-amd64-gpu-rtxpro6000-latest-2
           - arch: arm64
-            runner: nv-gpu-arm64-l4-2gpu
+            runner: linux-arm64-gpu-l4-latest-2
       fail-fast: false
 
     container:
