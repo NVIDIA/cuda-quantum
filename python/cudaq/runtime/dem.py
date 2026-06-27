@@ -18,6 +18,7 @@ _VALID_DEM_OPTION_KEYS = frozenset({
     "approximate_disjoint_errors_threshold",
     "ignore_decomposition_failures",
     "block_decomposition_from_introducing_remnant_edges",
+    "return_measurement_matrices",
 })
 
 
@@ -60,11 +61,24 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
       block_decomposition_from_introducing_remnant_edges (bool, optional):
           Prevent the decomposer from introducing remnant edges.
           Default ``False``.
+      return_measurement_matrices (bool, optional): When True, also return
+          the sparse measurements-to-detectors (m2d) and
+          measurements-to-observables (m2o) matrices alongside the DEM text.
+          Default ``False``.
 
     Returns:
-      UTF-8 string in Stim's standard `.dem` file format. Consumers
-      that need a structured DEM can parse it with
-      `stim.DetectorErrorModel(text)`.
+      If `return_measurement_matrices` is False (default): a UTF-8 string in
+      Stim's standard `.dem` file format. Consumers that need a structured DEM
+      can parse it with `stim.DetectorErrorModel(text)`.
+
+      If `return_measurement_matrices` is True: a tuple
+      ``(dem_text, m2d, m2o)`` where both matrices are
+      ``scipy.sparse.csr_matrix`` with binary entries.
+      ``m2d`` has shape ``(num_detectors, num_measurements)``: entry
+      ``m2d[d, m] == 1`` means measurement ``m`` contributes to detector ``d``.
+      ``m2o`` has shape ``(num_observables, num_measurements)``: entry
+      ``m2o[k, m] == 1`` means measurement ``m`` contributes to observable ``k``.
+      Measurement indices are chronological.
     """
     _detail_check_conditionals_on_measure(kernel)
 
@@ -79,6 +93,26 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
     else:
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
-    return cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
-                                              noise_model, dem_kwargs,
-                                              *processedArgs)
+    result = cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
+                                                noise_model, dem_kwargs,
+                                                *processedArgs)
+
+    if not dem_kwargs.get("return_measurement_matrices", False):
+        return result
+
+    import numpy as np
+    import scipy.sparse as sp
+
+    dem_text, num_measurements, det_rows, obs_rows = result
+
+    def _make_csr(rows, num_cols):
+        row_idx = [r for r, ms in enumerate(rows) for _ in ms]
+        col_idx = [m for ms in rows for m in ms]
+        return sp.csr_matrix(
+            (np.ones(len(row_idx), dtype=np.uint8), (row_idx, col_idx)),
+            shape=(len(rows), num_cols),
+        )
+
+    m2d = _make_csr(det_rows, num_measurements)
+    m2o = _make_csr(obs_rows, num_measurements)
+    return dem_text, m2d, m2o

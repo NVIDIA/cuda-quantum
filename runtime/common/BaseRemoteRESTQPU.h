@@ -322,6 +322,8 @@ public:
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->dem_text = std::move(context.dem_text);
+      executionContext->measurement_matrices =
+          std::move(context.measurement_matrices);
       return;
     }
 
