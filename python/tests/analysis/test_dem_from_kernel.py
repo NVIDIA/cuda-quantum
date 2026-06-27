@@ -427,5 +427,200 @@ def test_dem_options_unknown_key_raises():
         cudaq.dem_from_kernel(kernel, not_a_real_option=True)
 
 
+def test_return_measurement_matrices_no_detectors():
+    """Kernel with no detectors or observables yields empty m2d and m2o matrices."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        mz(q)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               return_measurement_matrices=True)
+    assert m2d.shape == (0, 1)
+    assert m2d.nnz == 0
+    assert m2o.shape == (0, 1)
+    assert m2o.nnz == 0
+
+
+def test_return_measurement_matrices_two_rounds():
+    """Two-round memory experiment: verify m2d and m2o shapes and mappings."""
+
+    @cudaq.kernel
+    def kernel(n_rounds: int):
+        q = cudaq.qubit()
+        m = mz(q)
+        for _ in range(n_rounds):
+            m_new = mz(q)
+            cudaq.detector(m_new, m)
+            m = m_new
+        cudaq.logical_observable(m)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               2,
+                                               return_measurement_matrices=True)
+    # 3 measurements (m0, m1, m2), 2 detectors, 1 observable
+    assert m2d.shape == (2, 3)
+    dense = m2d.toarray()
+    # det0 = m0 XOR m1, det1 = m1 XOR m2
+    assert dense[0, 0] == 1 and dense[0, 1] == 1 and dense[0, 2] == 0
+    assert dense[1, 0] == 0 and dense[1, 1] == 1 and dense[1, 2] == 1
+    # observable 0 = m2 (the last measurement)
+    assert m2o.shape == (1, 3)
+    obs_dense = m2o.toarray()
+    assert obs_dense[0, 0] == 0 and obs_dense[0, 1] == 0 and obs_dense[0,
+                                                                       2] == 1
+
+
+def test_return_measurement_matrices_type_is_scipy_sparse():
+    """return_measurement_matrices=True yields scipy CSR sparse matrices for both m2d and m2o."""
+    import scipy.sparse as sp
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        m = mz(q)
+        cudaq.detector(m)
+        cudaq.logical_observable(m)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               return_measurement_matrices=True)
+    assert isinstance(dem_text, str)
+    assert sp.issparse(m2d)
+    assert sp.issparse(m2o)
+    assert m2d.shape == (1, 1)
+    assert m2d[0, 0] == 1
+    assert m2o.shape == (1, 1)
+    assert m2o[0, 0] == 1
+
+
+def test_no_return_measurement_matrices_returns_string():
+    """Without return_measurement_matrices the return value is a plain string."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        m = mz(q)
+        cudaq.detector(m)
+
+    result = cudaq.dem_from_kernel(kernel)
+    assert isinstance(result, str)
+
+
+def test_return_measurement_matrices_duplicate_targets_cancel():
+    """detector(m, m) references the same measurement twice; in GF(2) they
+    cancel, so the m2d row should be all-zero (the measurement is absent)."""
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def duplicate_detector_kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m = mz(q)
+        cudaq.detector(m, m)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(duplicate_detector_kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    # Stim itself sees detector(m XOR m) = detector(0) — no error mechanism
+    # touches D0, so the DEM lists the detector but no error lines.
+    assert "detector D0" in dem_text
+    assert "error(" not in dem_text
+    assert m2d.shape == (1, 1)
+    assert m2d[0, 0] == 0  # double reference cancels in GF(2)
+    assert m2o.shape == (0, 1)
+
+
+def test_return_measurement_matrices_odd_duplicate_survives():
+    """detector(m, m, m) references the same measurement three times; in GF(2)
+    three cancels to one, so the m2d entry should be 1."""
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def triple_ref_kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m = mz(q)
+        cudaq.detector(m, m, m)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(triple_ref_kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    assert "error(" in dem_text
+    assert m2d.shape == (1, 1)
+    assert m2d[0, 0] == 1  # triple reference reduces to one in GF(2)
+
+
+def test_return_measurement_matrices_mixed_duplicate():
+    """detector(m0, m1, m1): m0 appears once (survives), m1 appears twice
+    (cancels). The m2d row should have a 1 only in the m0 column."""
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def mixed_dup_kernel():
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m0 = mz(q)
+        m1 = mz(q)
+        cudaq.detector(m0, m1, m1)
+
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(mixed_dup_kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    assert m2d.shape == (1, 2)
+    dense = m2d.toarray()
+    assert dense[0, 0] == 1  # m0 survives
+    assert dense[0, 1] == 0  # m1 cancels
+
+
+def test_return_measurement_matrices_with_dem_options():
+    """return_measurement_matrices=True and other dem_options work together.
+
+    Passes decompose_errors=True alongside return_measurement_matrices=True to
+    verify that both the DEM option (edge decomposition) and matrix output are
+    applied in the same call.  Uses the two-round memory experiment: with
+    decompose_errors the DEM is unchanged (single-detector edges are already
+    decomposed), so we focus on verifying the option is forwarded by also
+    requesting allow_gauge_detectors which would normally raise for the
+    h/mz-without-reset pattern.  Here we use the round-trip kernel that has
+    well-defined detectors so decompose_errors is the clean observable.
+    """
+    noise = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def kernel():
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        cudaq.apply_noise(cudaq.Pauli2, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0,
+                          0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, q0, q1)
+        m0 = mz(q0)
+        m1 = mz(q1)
+        cudaq.detector(m0)
+        cudaq.detector(m0)
+        cudaq.detector(m1)
+        cudaq.detector(m1)
+
+    # Without decompose_errors the four-detector hyperedge is returned raw.
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(kernel,
+                                               noise_model=noise,
+                                               return_measurement_matrices=True)
+    assert "D0 D1 D2 D3" in dem_text
+    assert "^" not in dem_text
+    assert m2d.shape == (4, 2)
+    assert m2o.shape == (0, 2)
+
+    # With decompose_errors=True the hyperedge is split and ^ appears.
+    dem_decomposed, m2d2, m2o2 = cudaq.dem_from_kernel(
+        kernel,
+        noise_model=noise,
+        decompose_errors=True,
+        return_measurement_matrices=True)
+    assert "^" in dem_decomposed
+    assert "D0 D1 D2 D3" not in dem_decomposed
+    # Matrices reflect the same circuit regardless of decomposition.
+    assert m2d2.shape == (4, 2)
+    assert m2o2.shape == (0, 2)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

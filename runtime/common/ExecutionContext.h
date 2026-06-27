@@ -44,6 +44,10 @@ struct dem_options {
   /// Prevent the decomposer from introducing remnant edges that would otherwise
   /// be needed to satisfy the decomposition.
   bool block_decomposition_from_introducing_remnant_edges = false;
+
+  /// When true, the DEM execution also populates
+  /// `ExecutionContext::measurement_matrices`.
+  bool return_measurement_matrices = false;
 };
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
@@ -187,6 +191,18 @@ public:
 
   /// @brief Options forwarded to the Stim ErrorAnalyzer when generating a DEM.
   dem_options dem_opts;
+
+  /// @brief Sparse m2d/m2o matrix data; populated when
+  /// `dem_opts.return_measurement_matrices` is true. See
+  /// `cudaq::M2DSparseMatrix` and `cudaq::M2OSparseMatrix` for the
+  /// public-facing types.
+  struct MeasurementMatrices {
+    std::size_t num_measurements = 0;
+    std::vector<std::vector<std::size_t>>
+        det_rows; // det_rows[d] = measurement indices for detector d
+    std::vector<std::vector<std::size_t>>
+        obs_rows; // obs_rows[k] = measurement indices for observable k
+  } measurement_matrices;
   /// @endcond
 
   /// @brief Captures an exception raised by the kernel while it runs on a
