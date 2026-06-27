@@ -14,15 +14,16 @@ namespace cudaq {
 
 /// Returns the shortest path from \p src to every other destination in
 /// \p graph. The return vector `vec[i]` contains the next node in path to
-/// `src`. If `vec[i] == src`, then it is either an immediate neighbor, or there
-/// is no path to get there (i.e. the graph is bipartite).
+/// `src`. If `vec[i]` is invalid, then there is no path from `src` to `i`.
 mlir::SmallVector<GraphCSR::Node> getShortestPathsBFS(const GraphCSR &graph,
                                                       GraphCSR::Node src) {
   assert(src.isValid() && "Invalid source node");
   mlir::SmallVector<bool> discovered(graph.getNumNodes(), false);
-  mlir::SmallVector<GraphCSR::Node> parents(graph.getNumNodes(), src);
+  mlir::SmallVector<GraphCSR::Node> parents(graph.getNumNodes());
   mlir::SmallVector<GraphCSR::Node> queue;
   queue.reserve(graph.getNumNodes());
+  discovered[src.index] = true;
+  parents[src.index] = src;
   queue.push_back(src);
   std::size_t begin = 0;
   while (begin < queue.size()) {

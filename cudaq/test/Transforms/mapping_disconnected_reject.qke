@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --assign-wire-indices '--qubit-mapping=device=file(%S/mapping_disconnected_4681.txt)' %s -verify-diagnostics
+// RUN: cudaq-opt --assign-wire-indices '--qubit-mapping=device=file(%S/mapping_disconnected_4681.txt) placement=auto search=sabre' %s -verify-diagnostics
+
+quake.wire_set @wires[2147483647]
+
+// expected-error @+1 {{selected initial layouts cannot route active two-qubit interaction between virtual qubits 0 and 1}}
+func.func @bell() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %m0, %4 = quake.mz %3#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %5 = quake.mz %3#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %4 : !quake.wire
+  quake.sink %5 : !quake.wire
+  return
+}
