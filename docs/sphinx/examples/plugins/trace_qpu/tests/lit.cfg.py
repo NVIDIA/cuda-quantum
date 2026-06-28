@@ -15,7 +15,8 @@ from lit.llvm import llvm_config
 
 config.name = 'trace_qpu plugin'
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
-config.suffixes = ['.cpp']
+config.suffixes = ['.cpp', '.py', '.test']
+config.excludes = ['lit.cfg.py']
 config.test_source_root = os.path.dirname(__file__)
 config.test_exec_root = os.path.join(config.cudaq_obj_root, 'external',
                                      'trace-qpu', 'tests')

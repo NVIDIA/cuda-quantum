@@ -82,7 +82,7 @@ public:
   }
 
   sample_result launchKernel(const sample_policy &policy,
-                             const AnyModule &module,
+                             const CompiledModule &module,
                              KernelArgs args) override {
     unifiedLaunchModule(module, args);
     CountsDictionary counts{{"0", policy.options.shots}};
@@ -90,7 +90,7 @@ public:
   }
 
   observe_result launchKernel(const observe_policy &policy,
-                              const AnyModule &module,
+                              const CompiledModule &module,
                               KernelArgs args) override {
     unifiedLaunchModule(module, args);
     if (policy.options.shots > 0) {
@@ -103,19 +103,9 @@ public:
   }
 
   std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &policy) override {
-    return getDefaultPythonCompileTarget(policy);
-  }
-
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy) override {
-    return getDefaultPythonCompileTarget(policy);
-  }
-
-  std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &policy,
                    ExecutionContext *context) override {
-    return getDefaultPythonCompileTarget(policy, context);
+    return getDefaultCompileTarget(policy, context);
   }
 };
 
