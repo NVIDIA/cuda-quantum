@@ -12,6 +12,7 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -130,21 +131,9 @@ std::string getPassPipeline(const cudaq::CompileTarget &target);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.
-template <typename Policy>
 cudaq::CompiledModule
-compileModule(const Policy &policy,
-              std::unique_ptr<cudaq::CompileTarget> target,
+compileModule(std::unique_ptr<cudaq::CompileTarget> target,
               const cudaq::SourceModule &src, cudaq::KernelArgs args,
-              bool isEntryPoint = true) {
-  const auto &kernelName = src.getName();
-  auto modulePtr = src.getMlirOpaqueModulePtr();
-  assert(modulePtr && "Compiler::compileModule requires an MLIR artifact");
-
-  Compiler compiler(std::move(target));
-  auto compiled =
-      compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
-
-  return compiled;
-}
+              bool isEntryPoint = true);
 
 } // namespace cudaq_internal::compiler

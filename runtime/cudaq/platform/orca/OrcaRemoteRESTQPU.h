@@ -9,6 +9,7 @@
 #pragma once
 
 #include "OrcaExecutor.h"
+#include "common/CompiledModule.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "cudaq/utils/owning_ptr.h"
@@ -91,8 +92,7 @@ public:
   void setTargetBackend(const std::string &backend) override;
 
   [[nodiscard]] KernelThunkResultType
-  launchKernelCommon(const std::string &kernelName, KernelThunkType kernelFunc,
-                     void *args);
+  launchKernelCommon(const std::string &kernelName, void *args);
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
@@ -103,11 +103,9 @@ public:
           "OrcaRemoteRESTQPU does not support pre-compiled module launch.");
 
     const auto &src = std::get<SourceModule>(module);
-    auto rawFn = src.getFunctionPtr();
-    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
     auto packed = args.getPacked();
     void *argData = packed ? packed->data.data() : nullptr;
-    return launchKernelCommon(src.getName(), kernelFunc, argData);
+    return launchKernelCommon(src.getName(), argData);
   }
 };
 } // namespace cudaq

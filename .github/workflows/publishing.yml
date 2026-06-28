@@ -1203,6 +1203,7 @@ jobs:
           chmod a+w "$GITHUB_STEP_SUMMARY"
 
           su cudaqtest -ls /bin/bash -c "
+            set -o pipefail
             source ${install_path}/set_env.sh
             cd ${workdir}
             GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
