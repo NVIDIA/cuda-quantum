@@ -36,35 +36,7 @@ public:
     platformQPUs.clear();
   }
 
-  MultiQPUQuantumPlatform() {
-    int nDevices = cudaq::getCudaDeviceCount();
-    // Skipped if CUDA-Q was built with CUDA but no devices present at
-    // runtime.
-    if (nDevices > 0) {
-      const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
-      if (envVal != nullptr) {
-        int specifiedNDevices = 0;
-        try {
-          specifiedNDevices = std::stoi(envVal);
-        } catch (...) {
-          throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment "
-                                   "variable, must be integer.");
-        }
-
-        if (specifiedNDevices < nDevices)
-          nDevices = specifiedNDevices;
-      }
-
-      if (nDevices == 0)
-        throw std::runtime_error("No GPUs available to instantiate platform.");
-
-      // Add a QPU for each GPU.
-      for (int i = 0; i < nDevices; i++) {
-        platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
-        platformQPUs.back()->setId(i);
-      }
-    }
-  }
+  MultiQPUQuantumPlatform() { populateDefaultQPUs(); }
 
   bool supports_task_distribution() const override { return true; }
 
@@ -81,6 +53,8 @@ public:
   }
 
 private:
+  void populateDefaultQPUs();
+
   static std::string getTargetName(const std::string &description) {
     // Target name is the first one in the target config string
     // or the whole string if this is the only config.
@@ -177,15 +151,50 @@ private:
                         "target config. Currently only 'orca' is supported.",
                         qpuSubType));
       }
-    } else if (platformQPUs.empty()) {
-      // No QPU (GPU simulator nor specified platform QPU) was able to be
-      // initialized, so we can't run.
-      throw std::runtime_error(
-          "No platform QPU implementations available. Please check your "
-          "installation and target configuration.");
+    } else {
+      populateDefaultQPUs();
+
+      if (platformQPUs.empty()) {
+        // No QPU (GPU simulator nor specified platform QPU) was able to be
+        // initialized, so we can't run.
+        throw std::runtime_error(
+            "No platform QPU implementations available. Please check your "
+            "installation and target configuration.");
+      }
     }
   }
 };
+
+void MultiQPUQuantumPlatform::populateDefaultQPUs() {
+  platformQPUs.clear();
+  int nDevices = cudaq::getCudaDeviceCount();
+  // Skipped if CUDA-Q was built with CUDA but no devices present at
+  // runtime.
+  if (nDevices > 0) {
+    const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
+    if (envVal != nullptr) {
+      int specifiedNDevices = 0;
+      try {
+        specifiedNDevices = std::stoi(envVal);
+      } catch (...) {
+        throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment "
+                                 "variable, must be integer.");
+      }
+
+      if (specifiedNDevices < nDevices)
+        nDevices = specifiedNDevices;
+    }
+
+    if (nDevices == 0)
+      throw std::runtime_error("No GPUs available to instantiate platform.");
+
+    // Add a QPU for each GPU.
+    for (int i = 0; i < nDevices; i++) {
+      platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
+      platformQPUs.back()->setId(i);
+    }
+  }
+}
 } // namespace
 
 CUDAQ_REGISTER_PLATFORM(MultiQPUQuantumPlatform, mqpu)

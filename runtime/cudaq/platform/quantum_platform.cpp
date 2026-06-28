@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/platform/quantum_platform.h"
+#include "algorithms/policies.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
@@ -16,7 +17,6 @@
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <string>
 
 using namespace cudaq_internal::compiler;
@@ -123,17 +123,21 @@ getDefaultPythonCompileTargetImpl() {
 }
 
 std::unique_ptr<cudaq::CompileTarget>
-getDefaultPythonCompileTarget(const sample_policy &) {
-  return getDefaultPythonCompileTargetImpl();
-}
-std::unique_ptr<cudaq::CompileTarget>
-getDefaultPythonCompileTarget(const observe_policy &) {
-  return getDefaultPythonCompileTargetImpl();
-}
-std::unique_ptr<cudaq::CompileTarget>
-getDefaultPythonCompileTarget(const other_policies &,
-                              ExecutionContext *context) {
+getDefaultCompileTarget(const sample_policy &) {
   auto ct = getDefaultPythonCompileTargetImpl();
+  ct->overrideAOTCompilation = false;
+  return ct;
+}
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultCompileTarget(const observe_policy &) {
+  auto ct = getDefaultPythonCompileTargetImpl();
+  ct->overrideAOTCompilation = false;
+  return ct;
+}
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultCompileTarget(const other_policies &, ExecutionContext *context) {
+  auto ct = getDefaultPythonCompileTargetImpl();
+  ct->overrideAOTCompilation = false;
 
   if (context && context->name == "dem") {
     ct->emitJit = true;

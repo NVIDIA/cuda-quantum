@@ -838,6 +838,10 @@ protected:
                    const std::vector<std::size_t> &controls,
                    const std::vector<std::size_t> &targets,
                    const std::vector<ScalarType> &params) {
+    // Once a kernel run has failed (error deferred for the launcher to
+    // re-throw), stop accumulating further gates.
+    if (kernelExecutionDeferred())
+      return;
     if (cudaq::isInTracerMode()) {
       std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
       for (auto &c : controls)
@@ -903,9 +907,46 @@ protected:
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
+  /// @brief Record a fatal kernel error. While a JIT/AOT-compiled kernel frame
+  /// is executing (`ExecutionContext::inKernelLaunch`) the exception is stashed
+  /// on the context (`deferredKernelException`) so the launcher can re-throw it
+  /// from a C++ frame above the JIT boundary; this is required on platforms
+  /// such as macOS arm64 where a C++ exception cannot unwind through a
+  /// JIT-compiled kernel frame and would otherwise call `std::terminate`.
+  /// Outside such a frame (for example, gate application during sample/observe
+  /// finalization, or with no active context) there is no JIT frame to escape,
+  /// so throw directly, exactly as callers expect on every platform. Only the
+  /// first error per kernel run is retained; later ones are suppressed since
+  /// the kernel result is discarded.
+  static void deferOrThrowKernelException(const std::string &msg) {
+    auto *ctx = cudaq::getExecutionContext();
+    if (!ctx || !ctx->inKernelLaunch)
+      throw std::runtime_error(msg);
+    if (!ctx->deferredKernelException)
+      ctx->deferredKernelException =
+          std::make_exception_ptr(std::runtime_error(msg));
+  }
+
+  /// @brief True once the current kernel run has recorded a deferred error.
+  /// Gate enqueue and queue flushing become no-ops in this state so the
+  /// simulator is not mutated after the failure and no re-entrant throw occurs.
+  static bool kernelExecutionDeferred() {
+    auto *ctx = cudaq::getExecutionContext();
+    return ctx && ctx->deferredKernelException;
+  }
+
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
+
+    // If an earlier operation in this kernel run already failed, drop any
+    // queued gates without applying them. The recorded error is re-thrown by
+    // the launcher once the kernel returns (see deferOrThrowKernelException).
+    if (kernelExecutionDeferred()) {
+      while (!gateQueue.empty())
+        gateQueue.pop();
+      return;
+    }
 
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
@@ -918,12 +959,14 @@ protected:
       } catch (std::exception &e) {
         while (!gateQueue.empty())
           gateQueue.pop();
-        throw std::runtime_error(std::string("Exception in applyGate: ") +
-                                 e.what());
+        deferOrThrowKernelException(std::string("Exception in applyGate: ") +
+                                    e.what());
+        return;
       } catch (...) {
         while (!gateQueue.empty())
           gateQueue.pop();
-        throw std::runtime_error("Unknown exception in applyGate");
+        deferOrThrowKernelException("Unknown exception in applyGate");
+        return;
       }
       if (getNoiseModel() && !getNoiseModel()->empty()) {
         std::vector<double> params(next.parameters.begin(),

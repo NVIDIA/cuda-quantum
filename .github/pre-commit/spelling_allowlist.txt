@@ -240,6 +240,7 @@ deallocated
 deallocates
 deallocation
 deallocations
+decomposer
 decrement
 decrementing
 dendrogram

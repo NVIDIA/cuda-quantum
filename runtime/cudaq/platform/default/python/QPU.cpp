@@ -43,8 +43,8 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
                                              const std::string &format) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
 
-  auto target = getDefaultPythonCompileTarget(other_policies{},
-                                              cudaq::getExecutionContext());
+  auto target =
+      getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
   target->fullySpecialize = true;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 
@@ -87,8 +87,8 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
                                              OpaqueArguments &args) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
 
-  auto target = getDefaultPythonCompileTarget(other_policies{},
-                                              cudaq::getExecutionContext());
+  auto target =
+      getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
   target->fullySpecialize = true;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 

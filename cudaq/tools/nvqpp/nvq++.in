@@ -822,6 +822,8 @@ NVQIR_LIBS="${NVQIR_LIBS}${NVQIR_SIMULATION_BACKEND}"
 # Add the MLIR-related libraries if requested. 
 if ${ENABLE_MLIR_LIB_LINKING}; then 
     LINKLIBS="${LINKLIBS} -lcudaq-mlir-runtime -lcudaq-builder"
+else
+	PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_DISABLE_JIT_COMPILER"
 fi
 
 if ${ENABLE_REALTIME_LOWERING}; then
