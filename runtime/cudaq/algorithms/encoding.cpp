@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "encoding.h"
-#include "cudaq/platform.h"
+#include "cudaq/simulators.h"
 #include <cmath>
 #include <stdexcept>
 
@@ -26,8 +26,11 @@ std::size_t nextPowerOfTwo(std::size_t n) {
 }
 
 simulation_precision targetPrecision() {
-  if (const auto *rt = get_platform().get_runtime_target())
-    return rt->get_precision();
+  // Encoding is compiled into libcudaq rather than per target by nvq++, so use
+  // runtime simulator information to determine the required data precision.
+  if (const auto *simulator = get_simulator())
+    return simulator->isSinglePrecision() ? simulation_precision::fp32
+                                          : simulation_precision::fp64;
   return simulation_precision::fp64;
 }
 
@@ -58,8 +61,7 @@ prepareAmplitudeVector(std::span<const std::complex<double>> data,
 }
 
 std::vector<std::complex<double>> stateToAmplitudeVector(const state &data) {
-  const auto tensor = data.get_tensor(0);
-  const std::size_t numElements = tensor.get_num_elements();
+  const std::size_t numElements = 1ULL << data.get_num_qubits();
   if (numElements == 0)
     throw std::invalid_argument("amplitude_encode: input must be non-empty.");
 
