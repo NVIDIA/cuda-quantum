@@ -492,9 +492,42 @@ class PyKernelDecorator(object):
     @staticmethod
     def from_json(jStr, overrideDict=None):
         """
-        Convert a JSON string into a new PyKernelDecorator object.
+        Convert a JSON string (as produced by `to_json`) into a new
+        PyKernelDecorator object.
         """
         j = json.loads(jStr)
+        # The serialized form should be a JSON object.
+        if not isinstance(j, dict):
+            raise RuntimeError(
+                "from_json expects a JSON object produced by "
+                "PyKernelDecorator.to_json, but the input deserialized to a "
+                f"JSON {type(j).__name__}.")
+        # `to_json` always emits these three keys.
+        for key in ('funcSrc', 'name', 'location'):
+            if key not in j:
+                raise RuntimeError(
+                    "from_json: serialized PyKernelDecorator is missing the "
+                    f"required key '{key}'.")
+        # `funcSrc` is recompiled as the kernel body and `name` is its
+        # identifier; both should be strings (non-strings would fail deep inside the constructor).
+        if not isinstance(j['funcSrc'], str):
+            raise RuntimeError(
+                "from_json: the 'funcSrc' field must be a string, but got a "
+                f"{type(j['funcSrc']).__name__}.")
+        if not isinstance(j['name'], str):
+            raise RuntimeError(
+                "from_json: the 'name' field must be a string, but got a "
+                f"{type(j['name']).__name__}.")
+        # `location` is null or a [filename, lineno] pair. A wrong-typed value
+        # survives construction (compilation is deferred) but later crashes the
+        # diagnostic emitter, so reject it here at the boundary.
+        loc = j['location']
+        if loc is not None and not (isinstance(loc, list) and len(loc) == 2 and
+                                    isinstance(loc[0], str) and
+                                    isinstance(loc[1], int)):
+            raise RuntimeError(
+                "from_json: the 'location' field must be null or a "
+                f"[filename, lineno] pair, but got {repr(loc)}.")
         return PyKernelDecorator(function=j['funcSrc'],
                                  verbose=False,
                                  kernelName=j['name'],
