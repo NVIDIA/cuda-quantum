@@ -105,6 +105,55 @@ __qpu__ std::vector<bool> kernel() {
 // CHECK:           return %[[RESULT]] : !cc.stdvec<i1>
 // CHECK:         }
 
+// The inner loop unrolls first, exposing outer-induction-variable-dependent
+// flattened indices. The same pass must then unroll the outer loop when it
+// reaches a fixed point.
+__qpu__ std::vector<bool> rectangular_flattened_index() {
+  constexpr int N = 2;
+  constexpr int M = 3;
+  cudaq::qvector q(N * M);
+  for (int i = 0; i < N; ++i)
+    for (int j = 0; j < M; ++j)
+      x(q[i * M + j]);
+  return cudaq::to_bools(mz(q));
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_rectangular_flattened_index._Z27rectangular_flattened_indexv() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-NOT:       cc.loop
+// CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
+// CHECK:           %[[Q0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
+// CHECK:           %[[Q1:.*]] = quake.borrow_wire @wires[1] : !quake.wire
+// CHECK:           %[[Q2:.*]] = quake.borrow_wire @wires[2] : !quake.wire
+// CHECK:           %[[Q3:.*]] = quake.borrow_wire @wires[3] : !quake.wire
+// CHECK:           %[[Q4:.*]] = quake.borrow_wire @wires[4] : !quake.wire
+// CHECK:           %[[Q5:.*]] = quake.borrow_wire @wires[5] : !quake.wire
+// CHECK-NOT:       cc.loop
+// CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
+// CHECK:           %[[X0:.*]] = quake.x %[[Q0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X1:.*]] = quake.x %[[Q1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X2:.*]] = quake.x %[[Q2]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X3:.*]] = quake.x %[[Q3]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X4:.*]] = quake.x %[[Q4]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X5:.*]] = quake.x %[[Q5]] : (!quake.wire) -> !quake.wire
+// CHECK-NOT:       cc.loop
+// CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
+// CHECK:           %[[M0:.*]], %[[W0:.*]] = quake.mz %[[X0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[M1:.*]], %[[W1:.*]] = quake.mz %[[X1]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[M2:.*]], %[[W2:.*]] = quake.mz %[[X2]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[M3:.*]], %[[W3:.*]] = quake.mz %[[X3]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[M4:.*]], %[[W4:.*]] = quake.mz %[[X4]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK:           %[[M5:.*]], %[[W5:.*]] = quake.mz %[[X5]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+// CHECK-NOT:       cc.loop
+// CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
+// CHECK:           quake.return_wire %[[W0]] : !quake.wire
+// CHECK:           quake.return_wire %[[W1]] : !quake.wire
+// CHECK:           quake.return_wire %[[W2]] : !quake.wire
+// CHECK:           quake.return_wire %[[W3]] : !quake.wire
+// CHECK:           quake.return_wire %[[W4]] : !quake.wire
+// CHECK:           quake.return_wire %[[W5]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
 // The middle loop does not access quantum data, but it separates the inner loop
 // from the grandparent induction variable that bounds it. The outer and inner
 // loops must unroll so the q[inner] access lowers to static wires, while the
