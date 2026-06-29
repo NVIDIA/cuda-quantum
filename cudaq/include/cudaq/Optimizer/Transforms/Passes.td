@@ -866,6 +866,15 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     necessary when synthesizing quantum circuits from CUDA-Q kernels, such
     as when generating a QIR base profile. A quantum circuit requires all loops
     be completely unrolled.
+
+    The unroll-only-wire-blocking-loops option opts in to selective unrolling
+    for a value-semantics (wire) pipeline: only loops that still access
+    quantum data by dynamic reference or slice (blocking wire conversion) are
+    unrolled. Counted loops whose quantum accesses can be represented with
+    static wireset indices are left rolled. A loop that blocks wire
+    conversion but cannot be unrolled (e.g. a non-constant trip
+    count) is a dead end and is reported as an error. This option defaults to
+    false, leaving the pass behavior unchanged for all existing pipelines.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
@@ -878,7 +887,12 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
-      "Allow unrolling of loop with early exit (i.e. break statement).">
+      "Allow unrolling of loop with early exit (i.e. break statement).">,
+    Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
+      "bool", /*default=*/"false",
+      "Unroll only loops that block wire conversion; keep counted loops "
+      "whose quantum accesses can be represented with static wireset indices "
+      "rolled (and error on a blocking loop that cannot be unrolled).">
   ];
 }
 

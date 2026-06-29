@@ -27,8 +27,8 @@ else
   LIB_EXT="so"
 fi
 
+PYTHONPATH=@CMAKE_BINARY_DIR@/python:@CMAKE_SOURCE_DIR@/python/tests/utils/mock_qpu @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
 
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
