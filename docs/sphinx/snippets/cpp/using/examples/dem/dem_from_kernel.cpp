@@ -48,5 +48,18 @@ int main() {
       cudaq::dem_from_kernel(memory_experiment, &noise, /*rounds=*/2);
   std::printf("%s\n", dem.c_str());
   // [End Generate]
+
+  // [Begin Options]
+  // Pass a cudaq::dem_options struct to control the Stim error analyzer.
+  // decompose_errors=true converts hyper-edge mechanisms into two-detector
+  // edges, which is required by most MWPM decoders.
+  cudaq::dem_options opts;
+  opts.decompose_errors = true;
+  opts.fold_loops = true;
+  std::string dem2 =
+      cudaq::dem_from_kernel(memory_experiment, &noise, opts, /*rounds=*/2);
+  std::printf("%s\n", dem2.c_str());
+  // [End Options]
+
   return 0;
 }

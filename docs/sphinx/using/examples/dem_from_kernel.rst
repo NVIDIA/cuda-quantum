@@ -84,6 +84,58 @@ flips one detector together with the logical observable ``L0``:
     error(0.01000000000000000021) D4 L0
     error(0.01000000000000000021) D5 L0
 
+DEM Options
+-----------
+
+``dem_from_kernel`` accepts optional parameters that are forwarded to the Stim
+error analyzer (C++: ``cudaq::dem_options`` struct; Python: keyword arguments).
+All options default to ``False`` / ``0``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 44 56
+
+   * - Option
+     - Description
+   * - ``decompose_errors``
+     - Decompose hyper-edge error mechanisms into pairs of two-detector edges.
+       Required when feeding the DEM to minimum-weight perfect matching decoders.
+   * - ``fold_loops``
+     - Fold loop bodies in the circuit for a more compact DEM. CUDA-Q kernels
+       are compiled to a flat (loop-free) Stim circuit, so this option has no
+       effect in practice. 
+   * - ``allow_gauge_detectors``
+     - Allow detectors whose parity is not determined by the circuit.
+   * - ``approximate_disjoint_errors_threshold``
+     - Threshold in [0, 1] for approximating disjoint-error products.
+       Set to ``0.0`` (the default) to disable approximation.
+   * - ``ignore_decomposition_failures``
+     - When decomposition fails for an error mechanism, insert it into the DEM
+       undecomposed (as a hyper-edge) instead of raising an exception. Only
+       relevant when ``decompose_errors`` is ``True``.
+   * - ``block_decomposition_from_introducing_remnant_edges``
+     - Prevent the decomposer from introducing remnant edges that would
+       otherwise be needed to satisfy the decomposition.
+
+.. tab:: Python
+
+   Pass any option as a keyword argument after the kernel arguments:
+
+   .. literalinclude:: ../../snippets/python/using/examples/dem/dem_from_kernel.py
+        :language: python
+        :start-after: [Begin Options]
+        :end-before: [End Options]
+
+.. tab:: C++
+
+   Construct a ``cudaq::dem_options`` value and pass it as the third
+   argument (after the noise model):
+
+   .. literalinclude:: ../../snippets/cpp/using/examples/dem/dem_from_kernel.cpp
+        :language: cpp
+        :start-after: [Begin Options]
+        :end-before: [End Options]
+
 Limitations
 ------------
 
@@ -93,6 +145,6 @@ Limitations
 * **No measurement-conditional control flow.** Branching on a measurement result
   changes the measurement count shot-to-shot and breaks the detector matrix
   model; such kernels are rejected.
-* **Independent Pauli noise.** Each error mechanism is assumed independent..
+* **Independent Pauli noise.** Each error mechanism is assumed independent.
 * **Pre-decomposition.** The DEM reflects the abstract kernel circuit, not the
   hardware-decomposed circuit.

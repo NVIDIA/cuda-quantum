@@ -44,3 +44,17 @@ noise = cudaq.NoiseModel()
 dem = cudaq.dem_from_kernel(memory_experiment, 2, noise_model=noise)
 print(dem)
 # [End Generate]
+
+# [Begin Options]
+# Pass DEM options as keyword arguments to control the Stim error analyzer.
+# decompose_errors=True converts hyper-edge mechanisms into two-detector edges,
+# which is required by most MWPM decoders.
+dem2 = cudaq.dem_from_kernel(
+    memory_experiment,
+    2,
+    noise_model=noise,
+    decompose_errors=True,
+    fold_loops=True,
+)
+print(dem2)
+# [End Options]
