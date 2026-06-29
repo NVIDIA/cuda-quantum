@@ -518,7 +518,7 @@ class PyKernelDecorator(object):
             raise RuntimeError(
                 "from_json: the 'name' field must be a string, but got a "
                 f"{type(j['name']).__name__}.")
-        # `location` is null or a [filename, lineno] pair. A wrong-typed value
+        # `location` is null or a `[filename, lineno]` pair. A wrong-typed value
         # survives construction (compilation is deferred) but later crashes the
         # diagnostic emitter, so reject it here at the boundary.
         loc = j['location']
