@@ -8131,20 +8131,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dem_8h_1aecd215fa18f2b3228c4ce099d426ed37"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">dem_from_kernel</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args" title="cudaq::dem_from_kernel::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">noise</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args" title="cudaq::dem_from_kernel::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and return the resulting model as a UTF-8 string in Stim’s standard <a class="reference external" href="https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md"> file format</a>. </p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The active CUDA-Q target / platform is not modified; the analysis simulator is purely an internal override.</p>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>kernel</strong> – Any callable that can be invoked with <code class="docutils literal notranslate"><span class="pre">args</span></code> (CUDA-Q kernel, lambda, or kernel-builder). </p></li>
-<li><p><strong>noise</strong> – Optional noise model layered on per <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1noise__model"><span class="std std-ref"><span class="pre">cudaq::noise_model</span></span></a></code> semantics. </p></li>
-<li><p><strong>args</strong> – Arguments forwarded to the kernel invocation. </p></li>
-</ul>
-</dd>
-</dl>
+<dd><p>Convenience overload: noise model with default options, forwarding <code class="docutils literal notranslate"><span class="pre">args</span></code> to the kernel. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8316,7 +8303,8 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy">
 <span class="target" id="classcudaq_1_1QPU_1aab2349600fade270b8ef0d51f07e1318"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">unique_ptr</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">CompileTarget</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getCompileTarget</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">sample_policy</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">policy</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> for the given policy. </p>
+<dd><p>Get the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> for the given policy.</p>
+<p>By default, fall back to other_policies compile target. </p>
 </dd></dl>
 
 <dl class="cpp function">

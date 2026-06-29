@@ -12543,32 +12543,8 @@ discriminate a vector of handles.
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
 []{#dem_8h_1aecd215fa18f2b3228c4ce099d426ed37 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "Permalink to this definition"){.headerlink}\
 
-:   Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and
-    return the resulting model as a UTF-8 string in Stim's standard
-    [file
-    format](https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md){.reference
-    .external}.
-
-    ::: {.admonition .note}
-    Note
-
-    The active CUDA-Q target / platform is not modified; the analysis
-    simulator is purely an internal override.
-    :::
-
-    Parameters[:]{.colon}
-
-    :   -   **kernel** -- Any callable that can be invoked with
-            [`args`{.docutils .literal .notranslate}]{.pre} (CUDA-Q
-            kernel, lambda, or kernel-builder).
-
-        -   **noise** -- Optional noise model layered on per
-            [[[`cudaq::noise_model`{.docutils .literal
-            .notranslate}]{.pre}]{.std
-            .std-ref}](#classcudaq_1_1noise__model){.reference
-            .internal} semantics.
-
-        -   **args** -- Arguments forwarded to the kernel invocation.
+:   Convenience overload: noise model with default options, forwarding
+    [`args`{.docutils .literal .notranslate}]{.pre} to the kernel.
 
 ```{=html}
 <!-- -->
@@ -12847,6 +12823,8 @@ them they are erased before execution.
     :   Get the compile target of the [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
         given policy.
+
+        By default, fall back to other_policies compile target.
 
     ```{=html}
     <!-- -->
