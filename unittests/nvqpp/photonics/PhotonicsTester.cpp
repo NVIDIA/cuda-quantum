@@ -57,6 +57,29 @@ TEST_F(PhotonicsTester, checkSimple) {
   }
 }
 
+TEST_F(PhotonicsTester, checkStateIndexBounds) {
+  struct stateKernel {
+    void operator()() __qpu__ {
+      cudaq::qvector<3> qumodes(2);
+      create(qumodes[0]);
+      create(qumodes[1]);
+      create(qumodes[1]);
+      mz(qumodes);
+    }
+  };
+
+  auto state = cudaq::get_state(stateKernel{});
+  EXPECT_EQ(state.get_tensor().extents, (std::vector<std::size_t>{9}));
+  EXPECT_NO_THROW(state[8]);
+  // state[9]: index equals state length.
+  EXPECT_THROW(state[9], std::out_of_range);
+  EXPECT_NO_THROW(state.amplitude({2, 2}));
+  // amplitude({3, 0}): digit equals qudit level.
+  EXPECT_THROW(state.amplitude({3, 0}), std::out_of_range);
+  // amplitude({-1, 0}): negative qudit digit.
+  EXPECT_THROW(state.amplitude({-1, 0}), std::out_of_range);
+}
+
 TEST_F(PhotonicsTester, checkHOM) {
 
   struct HOM {

@@ -47,6 +47,13 @@ struct PhotonicsState : public cudaq::SimulationState {
           "[photonics] getAmplitude with an invalid number of bits in the "
           "basis state: expected {}, provided {}.",
           getNumQubits(), basisState.size()));
+    // Each basis-state digit indexes one qudit and must be within that qudit's
+    // number of levels before it is converted to a flat state-vector index.
+    if (std::any_of(basisState.begin(), basisState.end(), [&](int digit) {
+          return digit < 0 || static_cast<std::size_t>(digit) >= levels;
+        }))
+      throw std::out_of_range(
+          "[photonics] basis-state value is out of bounds.");
 
     // Convert the basis state to an index value
     const std::size_t idx = std::accumulate(

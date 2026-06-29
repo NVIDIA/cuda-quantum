@@ -16,6 +16,7 @@
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <limits>
 #include <nanobind/ndarray.h>
 
 using namespace cudaq;
@@ -649,8 +650,18 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           "__getitem__",
           [](state &s, int idx) {
             // Support Pythonic negative index
-            if (idx < 0)
+            if (idx < 0) {
+              // Reject negative indices when the existing signed-int shift
+              // cannot represent the logical qubit dimension safely.
+              if (s.get_num_qubits() >=
+                  static_cast<std::size_t>(std::numeric_limits<int>::digits))
+                throw std::out_of_range("State index out of bounds.");
               idx += (1 << s.get_num_qubits());
+              // An index that remains negative was below the Pythonic lower
+              // bound and must not be converted to an unsigned C++ index.
+              if (idx < 0)
+                throw std::out_of_range("State index out of bounds.");
+            }
             return s[idx];
           },
           R"#(Return the `index`-th element of the state vector.
@@ -672,8 +683,18 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
                                        " provided.");
             for (auto &val : idx)
               // Support Pythonic negative index
-              if (val < 0)
+              if (val < 0) {
+                // Reject negative indices when the existing signed-int shift
+                // cannot represent the logical matrix dimension safely.
+                if (s.get_num_qubits() >=
+                    static_cast<std::size_t>(std::numeric_limits<int>::digits))
+                  throw std::out_of_range("State index out of bounds.");
                 val += (1 << s.get_num_qubits());
+                // Prevent excessively negative values from reaching the
+                // unsigned C++ matrix accessor.
+                if (val < 0)
+                  throw std::out_of_range("State index out of bounds.");
+              }
             return s(idx[0], idx[1]);
           },
           R"#(Return the element of the density matrix at the provided
