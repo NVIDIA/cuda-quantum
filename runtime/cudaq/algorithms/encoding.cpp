@@ -62,9 +62,6 @@ prepareAmplitudeVector(std::span<const std::complex<double>> data,
 
 std::vector<std::complex<double>> stateToAmplitudeVector(const state &data) {
   const std::size_t numElements = 1ULL << data.get_num_qubits();
-  if (numElements == 0)
-    throw std::invalid_argument("amplitude_encode: input must be non-empty.");
-
   std::vector<std::complex<double>> vec;
   vec.reserve(numElements);
   for (std::size_t i = 0; i < numElements; ++i)
