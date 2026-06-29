@@ -18,6 +18,9 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#ifdef CUDAQ_ENABLE_CUDA
+#include "cuda_runtime_api.h"
+#endif
 
 using namespace cudaq;
 
@@ -37,6 +40,10 @@ static async_sample_result sample_async_impl(
         "Noise model is not supported on remote platforms.");
 
   auto fnOp = getKernelFuncOp(mod, shortName);
+#ifdef CUDAQ_ENABLE_CUDA
+  if (platform.num_qpus() > 1)
+    cudaSetDevice(static_cast<int>(qpu_id));
+#endif
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   // Should only have C++ going on here, safe to release the GIL

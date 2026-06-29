@@ -167,6 +167,11 @@ public:
     return state{}.initialize(data);
   }
 
+  /// @brief If this state lives on a GPU other than the active CUDA device,
+  /// return an equivalent state whose data is on the active device. Host states
+  /// are returned unchanged.
+  state localized_to_current_device() const;
+
 private:
   state() : internal{nullptr} {}
   state &initialize(const state_data &data);

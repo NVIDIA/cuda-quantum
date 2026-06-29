@@ -448,6 +448,14 @@ void cudaq::packArgs(
               argData.emplace_back(copyState, [](void *ptr) {
                 delete static_cast<state *>(ptr);
               });
+            } else if (simState->isDeviceData()) {
+              // MQPU launches may run on a different GPU than the one that owns
+              // device-resident state data (e.g. CuPy-backed cudaq.State).
+              state *localizedState =
+                  new state(stateArg->localized_to_current_device());
+              argData.emplace_back(localizedState, [](void *ptr) {
+                delete static_cast<state *>(ptr);
+              });
             } else {
               argData.emplace_back(
                   stateArg,

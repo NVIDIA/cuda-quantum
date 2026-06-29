@@ -10,6 +10,9 @@
 #include "common/EigenDense.h"
 #include "cudaq/simulators.h"
 #include <iostream>
+#ifdef CUDAQ_ENABLE_CUDA
+#include "cuda_runtime_api.h"
+#endif
 
 namespace {
 /// Create a shared pointer that calls destroyState at destruction.
@@ -123,6 +126,42 @@ state &state::operator=(state &&other) {
   // Copy and swap idiom
   std::swap(internal, other.internal);
   return *this;
+}
+
+state state::localized_to_current_device() const {
+#ifdef CUDAQ_ENABLE_CUDA
+  if (!is_on_gpu())
+    return *this;
+
+  const auto tensor = get_tensor();
+  if (tensor.data == nullptr)
+    return *this;
+
+  cudaPointerAttributes attributes{};
+  if (cudaPointerGetAttributes(&attributes, tensor.data) != cudaSuccess)
+    return *this;
+
+  int currentDevice = 0;
+  if (cudaGetDevice(&currentDevice) != cudaSuccess)
+    return *this;
+
+  if (attributes.type != cudaMemoryTypeDevice ||
+      attributes.device == currentDevice)
+    return *this;
+
+  const auto numElements = tensor.get_num_elements();
+  if (get_precision() == SimulationState::precision::fp32) {
+    std::vector<std::complex<float>> host(numElements);
+    to_host(host.data(), numElements);
+    return state::from_data(host);
+  }
+
+  std::vector<std::complex<double>> host(numElements);
+  to_host(host.data(), numElements);
+  return state::from_data(host);
+#else
+  return *this;
+#endif
 }
 
 extern "C" {
