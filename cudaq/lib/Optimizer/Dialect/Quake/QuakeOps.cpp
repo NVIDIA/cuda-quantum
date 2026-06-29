@@ -71,8 +71,8 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 }
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
-  return isa<OperatorInterface, MeasurementInterface, SinkOp, ReturnWireOp,
-             cudaq::cc::IfOp>(op);
+  return isa<OperatorInterface, MeasurementInterface, ResetOp, SinkOp,
+             ReturnWireOp>(op);
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {

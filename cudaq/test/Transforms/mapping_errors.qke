@@ -62,3 +62,23 @@ quake.wire_set @wires_03[10]
 func.func @test_03() {
   return
 }
+
+// -----
+
+quake.wire_set @wires_04[10]
+
+func.func @test_04() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires_04[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_04[1] : !quake.wire
+  %2:2 = cc.if (%cond) ((%a = %0, %b = %1)) -> (!quake.wire, !quake.wire) {
+    // expected-error @+1 {{mapper cannot handle 2-qubit gates inside branches}}
+    %r:2 = quake.x [%a] %b : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %r#0, %r#1 : !quake.wire, !quake.wire
+  } else {
+    cc.continue %a, %b : !quake.wire, !quake.wire
+  }
+  quake.return_wire %2#0 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
