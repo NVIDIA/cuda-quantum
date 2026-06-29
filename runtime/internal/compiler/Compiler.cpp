@@ -302,10 +302,10 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
     pm.addPass(mlir::createCanonicalizerPass());
     if (printEachPass != cudaq::PrintEachPassMode::None)
       moduleOp.dump();
-    // For Specialize mode, enable per-pass IR printing on this pipeline only.
+    // For ArgSynthesis mode, enable per-pass IR printing on this pipeline only.
     // The ::All variant is handled by configurePassManagerFromEnv (called by
     // runPassManager).
-    if (printEachPass == cudaq::PrintEachPassMode::Specialize)
+    if (printEachPass == cudaq::PrintEachPassMode::ArgSynthesis)
       pm.enableIRPrinting();
     if (failed(cudaq_internal::compiler::runPassManager(
             pm, moduleOp.getOperation())))

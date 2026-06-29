@@ -10,32 +10,33 @@
 #include <algorithm>
 #include <string>
 
-namespace cudaq {
+static std::string toLower(const std::string &str) {
+  std::string tmp(str);
+  std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return tmp;
+}
+
+static bool isTruthy(const std::string &str) {
+  return str == "1" || str == "on" || str == "true" || str[0] == 'y';
+}
 
 /// @brief Helper function to get boolean environment variable
-bool getEnvBool(const char *envName, bool defaultVal = false) {
+bool cudaq::getEnvBool(const char *envName, bool defaultVal = false) {
   if (auto envVal = std::getenv(envName)) {
-    std::string tmp(envVal);
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    return (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "y" ||
-            tmp == "yes");
+    return isTruthy(toLower(envVal));
   }
   return defaultVal;
 }
 
-PrintEachPassMode getEnvPrintEachPassMode(const char *envName) {
+cudaq::PrintEachPassMode cudaq::getEnvPrintEachPassMode(const char *envName) {
   if (auto envVal = std::getenv(envName)) {
-    std::string tmp(envVal);
-    std::transform(tmp.begin(), tmp.end(), tmp.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    if (tmp == "specialize")
-      return PrintEachPassMode::Specialize;
-    if (tmp == "1" || tmp == "on" || tmp == "true" || tmp == "y" ||
-        tmp == "yes")
+    auto tmp = toLower(envVal);
+    if (tmp == "specialize" || tmp.starts_with("arg-synth") ||
+        tmp.starts_with("argsynth"))
+      return PrintEachPassMode::ArgSynthesis;
+    if (isTruthy(tmp))
       return PrintEachPassMode::All;
   }
   return PrintEachPassMode::None;
 }
-
-} // namespace cudaq

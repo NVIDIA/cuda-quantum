@@ -99,7 +99,7 @@ getDefaultPythonCompileTargetImpl() {
       cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
   if (enablePythonCodegenDump) {
     CUDAQ_WARN("CUDAQ_PYTHON_CODEGEN_DUMP is no longer supported. Use "
-               "CUDAQ_MLIR_PRINT_EACH_PASS=specialize instead.");
+               "CUDAQ_MLIR_PRINT_EACH_PASS=argsynth instead.");
   }
   std::unique_ptr<cudaq::CompileTarget> ct;
   auto *rt = platform->get_runtime_target();

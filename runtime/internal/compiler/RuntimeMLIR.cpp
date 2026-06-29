@@ -761,7 +761,7 @@ void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
       cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
   if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading)
     ctx->disableMultithreading();
-  // Enable IR printing indiscriminately. ::Specialize variant is handled in
+  // Enable IR printing indiscriminately. ::ArgSynthesis variant is handled in
   // Compiler::prepareModule.
   if (printEachPass == cudaq::PrintEachPassMode::All)
     pm.enableIRPrinting();
