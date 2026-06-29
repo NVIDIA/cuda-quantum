@@ -8,28 +8,16 @@
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(canonicalize,distributed-device-call{realtime=1},cse,canonicalize)' %s | FileCheck %s
 
-// CHECK-LABEL:   func.func @noResultKernel
-// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
-// CHECK:           %[[FUNCTION:.*]] = arith.constant -2031154270 : i32
-// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
 func.func @noResultKernel(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   cc.device_call @device_call_no_result(%arg0) : (i32) -> ()
   return
 }
 
-// CHECK-LABEL:   func.func @withResultKernel
-// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
-// CHECK:           %[[FUNCTION:.*]] = arith.constant -345221385 : i32
-// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
 func.func @withResultKernel(%arg0 : i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %0 = cc.device_call @device_call_with_result(%arg0) : (i32) -> i32
   return %0 : i32
 }
 
-// CHECK-LABEL:   func.func @resetKernel
-// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
-// CHECK:           %[[FUNCTION:.*]] = arith.constant -160073908 : i32
-// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
 func.func @resetKernel(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   cc.device_call @device_call_reset(%arg0) : (i32) -> ()
   return
@@ -38,3 +26,20 @@ func.func @resetKernel(%arg0 : i32) attributes {"cudaq-entrypoint", "cudaq-kerne
 func.func private @device_call_no_result(i32) attributes {"cudaq-devicecall"}
 func.func private @device_call_with_result(i32) -> i32 attributes {"cudaq-devicecall"}
 func.func private @device_call_reset(i32) attributes {"cudaq-devicecall"}
+
+// clang-format off
+// CHECK-LABEL:   func.func @noResultKernel
+// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
+// CHECK:           %[[FUNCTION:.*]] = arith.constant -2031154270 : i32
+// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
+
+// CHECK-LABEL:   func.func @withResultKernel
+// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
+// CHECK:           %[[FUNCTION:.*]] = arith.constant -345221385 : i32
+// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
+
+// CHECK-LABEL:   func.func @resetKernel
+// CHECK:           %[[DEVICE:.*]] = arith.constant 0 : i32
+// CHECK:           %[[FUNCTION:.*]] = arith.constant -160073908 : i32
+// CHECK:           call @__cudaq_device_call_acquire_realtime_frame(%[[DEVICE]], %[[FUNCTION]]
+// clang-format on
