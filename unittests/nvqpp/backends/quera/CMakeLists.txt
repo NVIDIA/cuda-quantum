@@ -11,9 +11,10 @@ add_backend_unittest_executable(test_quera
 
   LINK_LIBS
   cudaq
-  cudaq-common 
+  cudaq-common
   gtest_main
   cudaq-platform-default
+  cudaq-serverhelper-quera
   )
 
 gtest_discover_tests(test_quera DISCOVERY_TIMEOUT 120)
