@@ -384,8 +384,9 @@ jobs:
               bash -lc '
                 set -euo pipefail
                 echo "--- ibv_devices ---"
-                ibv_devices
-                test -d /sys/class/infiniband/rxe_cudaq0
+                devices="$(ibv_devices)"
+                printf "%s\n" "$devices"
+                printf "%s\n" "$devices" | awk "NR > 2 { print \$1 }" | grep -qx rxe_cudaq0
               '
             local rc=$?
             set -e
