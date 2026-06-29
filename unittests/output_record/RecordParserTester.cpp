@@ -484,11 +484,18 @@ CUDAQ_TEST(ParserTester, checkNumericValidation) {
 
 CUDAQ_TEST(ParserTester, checkContainerValidation) {
   const std::vector<std::string> invalidLogs = {
+      // A scalar root cannot be followed by an implicit RESULT array.
       "OUTPUT\tINT\t1\n"
       "OUTPUT\tRESULT\t0\n",
+      // A scalar root cannot be followed by an explicit array.
       "OUTPUT\tINT\t1\n"
       "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
-      "OUTPUT\tINT\t9\t[0]\n"};
+      "OUTPUT\tINT\t9\t[0]\n",
+      // Flat and preallocated array representations cannot be mixed.
+      "OUTPUT\tARRAY\t1\n"
+      "OUTPUT\tINT\t7\ti32\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tBOOL\t1\t[0]\n"};
   for (const auto &log : invalidLogs) {
     cudaq::RecordLogParser parser;
     EXPECT_ANY_THROW(parser.parse(log));

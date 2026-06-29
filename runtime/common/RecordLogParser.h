@@ -329,6 +329,13 @@ public:
   std::size_t getBufferSize() const { return bufferHandler.getBufferSize(); }
 
 private:
+  /// Result-buffer storage for aggregate roots. FLAT appends element bytes;
+  /// PREALLOCATED reserves the host layout before indexed insertion. This is
+  /// separate from `RecordSchemaType` for implicit `RESULT` arrays which are
+  /// materialized as a preallocated `vector<bool>` even when no labeled schema
+  /// was declared.
+  enum struct ContainerStorage { FLAT, PREALLOCATED };
+
   /// Process different types of records
   void handleHeader(const std::vector<std::string> &);
   void handleMetadata(const std::vector<std::string> &);
@@ -347,12 +354,15 @@ private:
   void processTupleEntry(const std::string &, const std::string &);
   /// Require every root result in a log to use one container shape.
   void validateRootContainer(ContainerType);
+  /// Require every aggregate root to use one storage representation.
+  void validateRootContainer(ContainerType, ContainerStorage);
   /// Get data handler for the specified type
   detail::DataHandlerBase &getDataHandler(const std::string &dataType);
 
   RecordSchemaType schema = RecordSchemaType::ORDERED;
   OutputType currentOutput;
   std::optional<ContainerType> rootContainerType;
+  std::optional<ContainerStorage> rootContainerStorage;
   /// Manages the underlying buffer storage
   detail::BufferHandler bufferHandler;
   /// Tracks container metadata during decoding

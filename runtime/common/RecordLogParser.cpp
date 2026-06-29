@@ -28,6 +28,8 @@ std::size_t getTypeByteSize(const std::string &type) {
     return sizeof(float);
   if (type == "f64")
     return sizeof(double);
+  if (type == "error")
+    throw std::runtime_error("Unsupported element type in struct type.");
   throw std::runtime_error("Unsupported data type: " + type);
 }
 } // namespace
@@ -140,7 +142,8 @@ void cudaq::RecordLogParser::handleOutput(
         (containerMeta.m_type == ContainerType::ARRAY &&
          containerMeta.elementCount == 0);
     if (isUninitializedContainer) {
-      validateRootContainer(ContainerType::ARRAY);
+      validateRootContainer(ContainerType::ARRAY,
+                            ContainerStorage::PREALLOCATED);
       // NOTE: This is a temporary workaround until all backends consistently
       // use the new transformation pass that wraps result records inside an
       // array record output. For now, we permit "naked" RESULT records, i.e.,
@@ -198,7 +201,9 @@ void cudaq::RecordLogParser::handleOutput(
     return;
   }
   if (recType == "ARRAY") {
-    validateRootContainer(ContainerType::ARRAY);
+    validateRootContainer(ContainerType::ARRAY,
+                          recLabel.empty() ? ContainerStorage::FLAT
+                                           : ContainerStorage::PREALLOCATED);
     containerMeta.m_type = ContainerType::ARRAY;
     containerMeta.elementCount = std::stoul(recValue);
     if (!recLabel.empty()) {
@@ -209,7 +214,9 @@ void cudaq::RecordLogParser::handleOutput(
     return;
   }
   if (recType == "TUPLE") {
-    validateRootContainer(ContainerType::TUPLE);
+    validateRootContainer(ContainerType::TUPLE,
+                          recLabel.empty() ? ContainerStorage::FLAT
+                                           : ContainerStorage::PREALLOCATED);
     containerMeta.m_type = ContainerType::TUPLE;
     containerMeta.elementCount = std::stoul(recValue);
     if (!recLabel.empty()) {
@@ -250,6 +257,16 @@ void cudaq::RecordLogParser::validateRootContainer(ContainerType type) {
   if (rootContainerType.has_value() && rootContainerType.value() != type)
     throw std::runtime_error("Inconsistent root result types");
   rootContainerType = type;
+}
+
+void cudaq::RecordLogParser::validateRootContainer(
+    ContainerType type, ContainerStorage containerStorage) {
+  validateRootContainer(type);
+  if (rootContainerStorage.has_value() &&
+      rootContainerStorage.value() != containerStorage)
+    throw std::runtime_error(
+        "Inconsistent root result storage representations");
+  rootContainerStorage = containerStorage;
 }
 
 cudaq::detail::DataHandlerBase &
