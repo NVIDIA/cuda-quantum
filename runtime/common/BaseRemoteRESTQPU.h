@@ -316,11 +316,14 @@ public:
       context.executionManager = cudaq::getDefaultExecutionManager();
       context.noiseModel = executionContext->noiseModel;
       context.qpuId = executionContext->qpuId;
+      context.dem_opts = executionContext->dem_opts;
       context.hasConditionalsOnMeasureResults =
           codes[0].hasConditionalsOnMeasureResults;
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->dem_text = std::move(context.dem_text);
+      executionContext->measurement_matrices =
+          std::move(context.measurement_matrices);
       return;
     }
 
