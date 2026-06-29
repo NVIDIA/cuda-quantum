@@ -389,7 +389,6 @@ jobs:
                 printf "%s\n" "$devices" | awk "NR > 2 { print \$1 }" | grep -qx rxe_cudaq0
               '
             local rc=$?
-            set -e
             echo "container visibility ${label}: rc=${rc}"
             echo "::endgroup::"
             return "${rc}"
