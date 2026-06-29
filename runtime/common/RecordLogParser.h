@@ -332,7 +332,7 @@ private:
   /// Result-buffer storage for aggregate roots. FLAT appends element bytes;
   /// PREALLOCATED reserves the host layout before indexed insertion. This is
   /// separate from `RecordSchemaType` for implicit `RESULT` arrays which are
-  /// materialized as a preallocated `vector<bool>` even when no labeled schema
+  /// materialized as a pre-allocated `vector<bool>` even when no labeled schema
   /// was declared.
   enum struct ContainerStorage { FLAT, PREALLOCATED };
 
