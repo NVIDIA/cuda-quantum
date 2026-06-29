@@ -362,18 +362,74 @@ jobs:
             --verify-pingpong \
             --no-exports
 
+          cat > /tmp/cudaq-realtime-softroce-rdma.Dockerfile <<'EOF'
+          FROM cudaq-realtime-softroce:local
+          RUN apt-get update && apt-get install -y --no-install-recommends \
+                ibverbs-providers ibverbs-utils rdma-core \
+              && apt-get clean \
+              && rm -rf /var/lib/apt/lists/*
+          EOF
+          docker build \
+            --file /tmp/cudaq-realtime-softroce-rdma.Dockerfile \
+            --tag cudaq-realtime-softroce-rdma:local \
+            /tmp
+
+          probe_container_visibility() {
+            local label="$1"
+            shift
+            echo "::group::Container RXE visibility: ${label}"
+            set +e
+            docker run --rm "$@" \
+              cudaq-realtime-softroce-rdma:local \
+              bash -lc '
+                set -euo pipefail
+                echo "--- ibv_devices ---"
+                ibv_devices
+                test -d /sys/class/infiniband/rxe_cudaq0
+              '
+            local rc=$?
+            set -e
+            echo "container visibility ${label}: rc=${rc}"
+            echo "::endgroup::"
+            return "${rc}"
+          }
+
+          set +e
+          probe_container_visibility "default"
+          default_rc=$?
+          probe_container_visibility "host-network" --network host
+          hostnet_rc=$?
+          probe_container_visibility "infiniband-bind" \
+            --mount type=bind,source=/dev/infiniband,target=/dev/infiniband
+          ibbind_only_rc=$?
+          probe_container_visibility "infiniband-bind-host-network" \
+            --network host \
+            --mount type=bind,source=/dev/infiniband,target=/dev/infiniband
+          ibbind_hostnet_rc=$?
+          probe_container_visibility "privileged" \
+            --privileged \
+            --ulimit memlock=-1:-1
+          privileged_only_rc=$?
+          probe_container_visibility "privileged-host-network" \
+            --privileged \
+            --network host \
+            --ulimit memlock=-1:-1
+          privileged_hostnet_rc=$?
+          set -e
+
+          echo "Container RXE visibility summary: default=${default_rc}, host-network=${hostnet_rc}, infiniband-bind=${ibbind_only_rc}, infiniband-bind-host-network=${ibbind_hostnet_rc}, privileged=${privileged_only_rc}, privileged-host-network=${privileged_hostnet_rc}"
+          if [[ "${privileged_hostnet_rc}" != "0" ]]; then
+            echo "::error::Known-good privileged host-network container did not see rxe_cudaq0."
+            exit 1
+          fi
+
           docker run --rm \
             --privileged \
             --network host \
             --ulimit memlock=-1:-1 \
-            cudaq-realtime-softroce:local \
+            cudaq-realtime-softroce-rdma:local \
             bash -lc '
               set -euo pipefail
-              apt-get update
-              apt-get install -y --no-install-recommends \
-                ibverbs-providers ibverbs-utils rdma-core
-              apt-get clean
-              rm -rf /var/lib/apt/lists/*
               ibv_devices
               /cuda-quantum/unittests/device_call/cpu_roce_device_call_test.sh \
                 --build-dir /tmp/build-realtime-integration/cudaq \
@@ -382,6 +438,13 @@ jobs:
                 --daemon-device rxe_cudaq0 \
                 --daemon-ip 10.88.0.1 \
                 --filter CpuRoceDispatchTest.DispatchesAddThemSynchronously
+              /cuda-quantum/unittests/device_call/cpu_roce_device_call_test.sh \
+                --build-dir /tmp/build-realtime-integration/cudaq \
+                --channel-device rxe_cudaq0 \
+                --channel-ip 10.88.0.1 \
+                --daemon-device rxe_cudaq0 \
+                --daemon-ip 10.88.0.1 \
+                --app
             '
 
       - name: Diagnostics
