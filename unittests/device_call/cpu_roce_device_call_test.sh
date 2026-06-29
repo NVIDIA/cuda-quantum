@@ -27,7 +27,7 @@
 #   cpu_roce_device_call_test.sh \
 #       --channel-device mlx5_0 --channel-ip 10.0.0.1 \
 #       --daemon-device  mlx5_1 --daemon-ip  10.0.0.2 \
-#       [--app] [--setup-network] [--build] [--build-dir DIR] [--mtu 4200]
+#       [--app] [--app-target TARGET] [--setup-network] [--build] [--build-dir DIR] [--mtu 4200]
 #
 # A loopback cable between the two ports (or two ports on the same NIC) is
 # assumed.  The two ports must be different so the caller and the service can
@@ -50,6 +50,7 @@ GTEST_FILTER="CpuRoceDispatchTest.*"
 # the channel's per-slot RDMA writes land in valid daemon ring slots.
 APP_SLOTS=64
 APP_SLOT_SIZE=384
+APP_TARGET="qpp-cpu"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -63,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --setup-network)  DO_SETUP_NETWORK=1; shift;;
     --build)          DO_BUILD=1; shift;;
     --app)            DO_APP=1; shift;;
+    --app-target)     APP_TARGET="$2"; shift 2;;
     -h|--help)
       sed -n '2,46p' "${BASH_SOURCE[0]}"; exit 0;;
     *) echo "Unknown argument: $1" >&2; exit 1;;
@@ -178,8 +180,8 @@ run_app_test() {
   }
   trap cleanup_app RETURN
 
-  echo "--- Compiling device_call app (nvq++ -frealtime-lowering) ---"
-  "$nvqpp" --target qpp-cpu -frealtime-lowering \
+  echo "--- Compiling device_call app (nvq++ --target $APP_TARGET -frealtime-lowering) ---"
+  "$nvqpp" --target "$APP_TARGET" -frealtime-lowering \
     "$app_src" -o "$workdir/cpu_roce_app" || {
     echo "ERROR: nvq++ compile failed" >&2; return 1; }
 
