@@ -79,6 +79,46 @@ static bool storeDominatesLoad(cudaq::cc::StoreOp store,
          store.getOperation()->isBeforeInBlock(anchor);
 }
 
+// Follow a pointer back to the `cc.alloca` that owns its storage.  Returns null
+// if the chain does not bottom out at a local alloca (e.g. a function argument
+// or heap pointer).
+static cudaq::cc::AllocaOp getOwningAlloca(Value ptr) {
+  while (true) {
+    if (auto cp = ptr.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+      ptr = cp.getBase();
+      continue;
+    }
+    if (auto cs = ptr.getDefiningOp<cudaq::cc::CastOp>()) {
+      ptr = cs.getValue();
+      continue;
+    }
+    break;
+  }
+  return ptr.getDefiningOp<cudaq::cc::AllocaOp>();
+}
+
+// True if any `cc.store` into `alloca` satisfies `pred`. The bridge addresses a
+// slot's storage with a single indexing/retyping step before the store, so it
+// suffices to check stores directly on the alloca plus stores one hop away
+// through a `cc.compute_ptr` / `cc.cast` of it (e.g. brace-init writes elem 0
+// via a decay `cc.cast` and elem 1 via a `cc.compute_ptr`).
+static bool anyStoreInto(cudaq::cc::AllocaOp alloca,
+                         llvm::function_ref<bool(cudaq::cc::StoreOp)> pred) {
+  for (Operation *allocaUser : alloca->getUsers()) {
+    if (auto store = dyn_cast<cudaq::cc::StoreOp>(allocaUser)) {
+      if (pred(store))
+        return true;
+      continue;
+    }
+    if (isa<cudaq::cc::ComputePtrOp, cudaq::cc::CastOp>(allocaUser))
+      for (Operation *uu : allocaUser->getUsers())
+        if (auto store = dyn_cast<cudaq::cc::StoreOp>(uu))
+          if (store.getPtrvalue() == allocaUser->getResult(0) && pred(store))
+            return true;
+  }
+  return false;
+}
+
 // Walks the use-def chain back to the originating `mz`/`mx`/`my` so the bridge
 // can statically diagnose `bool b = h;` when `h` was default-constructed.
 //
@@ -98,21 +138,8 @@ static bool isBoundHandle(Value v, llvm::SmallPtrSetImpl<Value> &visited) {
   auto load = v.getDefiningOp<cudaq::cc::LoadOp>();
   if (!load)
     return true;
-  // Walk through `cc.compute_ptr` and `cc.cast` to reach the alloca that owns
-  // the storage being loaded.
   Value ptr = load.getPtrvalue();
-  while (true) {
-    if (auto cp = ptr.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
-      ptr = cp.getBase();
-      continue;
-    }
-    if (auto cs = ptr.getDefiningOp<cudaq::cc::CastOp>()) {
-      ptr = cs.getValue();
-      continue;
-    }
-    break;
-  }
-  auto alloca = ptr.getDefiningOp<cudaq::cc::AllocaOp>();
+  auto alloca = getOwningAlloca(ptr);
   if (!alloca)
     return true;
   auto eleTy = alloca.getElementType();
@@ -128,18 +155,8 @@ static bool isBoundHandle(Value v, llvm::SmallPtrSetImpl<Value> &visited) {
       return false;
     return isBoundHandle(store.getValue(), visited);
   };
-  for (Operation *u : alloca->getUsers()) {
-    if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
-      if (checkStore(store))
-        return true;
-      continue;
-    }
-    if (isa<cudaq::cc::ComputePtrOp, cudaq::cc::CastOp>(u))
-      for (Operation *uu : u->getUsers())
-        if (auto store = dyn_cast<cudaq::cc::StoreOp>(uu))
-          if (store.getPtrvalue() == u->getResult(0) && checkStore(store))
-            return true;
-  }
+  if (anyStoreInto(alloca, checkStore))
+    return true;
   return false;
 }
 
@@ -1459,6 +1476,21 @@ bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
       (funcName == "tan" || funcName == "tanf"))
     return floatOperator(math::TanOp{}, "tan");
+
+  // Handle std::asin
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "asin" || funcName == "asinf"))
+    return floatOperator(math::AsinOp{}, "asin");
+
+  // Handle std::acos
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "acos" || funcName == "acosf"))
+    return floatOperator(math::AcosOp{}, "acos");
+
+  // Handle std::atan
+  if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
+      (funcName == "atan" || funcName == "atanf"))
+    return floatOperator(math::AtanOp{}, "atan");
 
   // Handle std::exp
   if ((isInNamespace(func, "std") || isNotInANamespace(func)) &&
@@ -3815,6 +3847,54 @@ bool QuakeBridgeVisitor::VisitStringLiteral(clang::StringLiteral *x) {
       builder.getContext(), builder.getI8Type(), x->getString().size() + 1));
   return pushValue(cc::CreateStringLiteralOp::create(
       builder, toLocation(x), strLitTy, builder.getStringAttr(x->getString())));
+}
+
+// This walk is lenient: it returns `false` (unbound) only when it can prove no
+// measurement reached the vector, and `true` (bound) for every shape it cannot
+// disprove. It proves "unbound" through exactly one shape: a local descriptor
+// slot initialized from a `cc.stdvec_init` whose backing array never receives a
+// bound element store.
+//
+// Limitation: `anyStoreInto` is satisfied by the first bound element, so a
+// partially-bound vector (some elements measured, some not) reads as bound.
+// Per-element / per-index resolution is deferred (NVIDIA/cuda-quantum#4479),
+// the same coarseness `isBoundHandle` carries on aggregates.
+bool QuakeBridgeVisitor::isBoundHandleVector(
+    mlir::Value v, llvm::SmallPtrSetImpl<mlir::Value> &visited) {
+  if (!visited.insert(v).second)
+    return false;
+  if (v.getDefiningOp<cudaq::quake::MeasurementInterface>())
+    return true;
+  // The vector is a named local; trace its descriptor slot to the store that
+  // initialized it. Anything we cannot trace is assumed bound.
+  auto load = v.getDefiningOp<cc::LoadOp>();
+  if (!load)
+    return true;
+  mlir::Value slotPtr = load.getPtrvalue();
+  auto slot = slotPtr.getDefiningOp<cc::AllocaOp>();
+  if (!slot)
+    return true;
+  for (Operation *u : slot->getUsers()) {
+    auto store = dyn_cast<cc::StoreOp>(u);
+    if (!store || store.getPtrvalue() != slotPtr ||
+        !storeDominatesLoad(store, load))
+      continue;
+    mlir::Value stored = store.getValue();
+    if (stored.getDefiningOp<cudaq::quake::MeasurementInterface>())
+      return true;
+    // Bound iff some element was stored from a bound handle; an empty backing
+    // array is the only provable "unbound".
+    if (auto init = stored.getDefiningOp<cc::StdvecInitOp>()) {
+      auto arr = getOwningAlloca(init.getBuffer());
+      if (!arr)
+        return true;
+      return anyStoreInto(arr, [&](cc::StoreOp st) {
+        return isBoundHandle(st.getValue(), visited);
+      });
+    }
+    return true;
+  }
+  return true;
 }
 
 } // namespace cudaq::detail

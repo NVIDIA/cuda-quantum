@@ -1191,7 +1191,49 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
-  // We could get the data from the global here.
+  matrix.clear();
+  // The unitary is held in a `cc.global` constant referenced by this op. Read
+  // it (row-major, as authored by `register_operation`) and return it in the
+  // column-major layout the `OperatorInterface` contract requires.
+  auto global = SymbolTable::lookupNearestSymbolFrom<cudaq::cc::GlobalOp>(
+      *this, getMatrix());
+  if (!global)
+    return;
+  auto attr = global.getValue();
+  if (!attr)
+    return;
+  auto elementsAttr = dyn_cast<mlir::ElementsAttr>(*attr);
+  if (!elementsAttr)
+    return;
+  SmallVector<std::complex<double>> rowMajor;
+  for (auto valAttr : elementsAttr.getValues<mlir::Attribute>()) {
+    if (auto fa = dyn_cast<FloatAttr>(valAttr)) {
+      rowMajor.emplace_back(fa.getValue().convertToDouble(), 0.0);
+    } else if (auto ia = dyn_cast<IntegerAttr>(valAttr)) {
+      rowMajor.emplace_back(static_cast<double>(ia.getInt()), 0.0);
+    } else if (auto arrayAttr = dyn_cast<mlir::ArrayAttr>(valAttr)) {
+      auto re = cast<FloatAttr>(arrayAttr[0]).getValue().convertToDouble();
+      auto im = cast<FloatAttr>(arrayAttr[1]).getValue().convertToDouble();
+      rowMajor.emplace_back(re, im);
+    } else {
+      // Unsupported element type; leave the matrix empty.
+      return;
+    }
+  }
+  auto dim = static_cast<size_t>(
+      std::llround(std::sqrt(static_cast<double>(rowMajor.size()))));
+  if (dim == 0 || dim * dim != rowMajor.size())
+    return;
+  const bool adj = getIsAdj();
+  matrix.resize(dim * dim);
+  for (size_t r = 0; r < dim; ++r)
+    for (size_t c = 0; c < dim; ++c) {
+      auto u = rowMajor[r * dim + c];
+      if (adj)
+        matrix[c + dim * r] = std::conj(u);
+      else
+        matrix[r + dim * c] = u;
+    }
 }
 
 LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
@@ -1199,7 +1241,41 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
   auto fn =
       SymbolTable::lookupNearestSymbolFrom<cudaq::cc::GlobalOp>(*this, mat);
   if (!fn)
-    return emitOpError("symbol must be a cc.global");
+    return emitOpError("Invalid matrix symbol, must reference a `cc.global`");
+  auto attr = fn.getValue();
+  if (!attr)
+    return emitOpError("Invalid matrix symbol, must have a constant value");
+  auto elementsAttr = dyn_cast<mlir::ElementsAttr>(*attr);
+  if (!elementsAttr)
+    return emitOpError("Invalid matrix symbol, must be an elements attribute");
+  auto complex64Ty = ComplexType::get(Float64Type::get(getContext()));
+  if (elementsAttr.getElementType() != complex64Ty)
+    return emitOpError("Invalid matrix element type, required `complex<f64>`");
+
+  size_t numQubits = 0;
+  bool sizeKnown = true;
+  for (auto target : getTargets()) {
+    if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(target.getType())) {
+      if (!veqTy.hasSpecifiedSize()) {
+        sizeKnown = false;
+        break;
+      }
+      numQubits += veqTy.getSize();
+    } else {
+      ++numQubits;
+    }
+  }
+  if (numQubits >= 32)
+    return emitOpError("Too many qubits (>=32), not supported");
+  if (sizeKnown) {
+    const size_t numEntries =
+        static_cast<size_t>(elementsAttr.getNumElements());
+    const size_t expectedDim = size_t{1} << numQubits;
+    if (numEntries != expectedDim * expectedDim)
+      return emitOpError(
+          "Invalid matrix size, required 2^N * 2^N for N-qubit operation");
+  }
+
   return verifyWireResultsAreLinear(getOperation());
 }
 

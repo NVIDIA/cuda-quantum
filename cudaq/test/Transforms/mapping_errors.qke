@@ -82,3 +82,46 @@ func.func @test_04() {
   quake.return_wire %2#1 : !quake.wire
   return
 }
+
+// -----
+
+quake.wire_set @wires_05[10]
+
+// A measured wire reused by a later quantum op is a mid-circuit measurement the
+// mapper cannot preserve while it defers measurements to the end.
+func.func @test_05() {
+  %0 = quake.borrow_wire @wires_05[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_05[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // expected-error @+1 {{unsupported mid-circuit measurement}}
+  %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.h %wire : (!quake.wire) -> !quake.wire
+  quake.return_wire %3 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_06[10]
+
+// A measurement result feeding control flow through a store/load is the
+// adaptive/feed-forward shape CUDA-Q lowering produces, and is unsupported. The
+// feedback diagnostic is reported on the function, not the measurement op.
+// expected-error @+1 {{unsupported measurement-dependent behavior}}
+func.func @test_06() {
+  %0 = quake.borrow_wire @wires_06[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_06[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %b = quake.discriminate %meas : (!quake.measure) -> i1
+  %slot = cc.alloca i1
+  cc.store %b, %slot : !cc.ptr<i1>
+  %cond = cc.load %slot : !cc.ptr<i1>
+  cc.if(%cond) {
+    %tmp = cc.alloca i1
+  }
+  quake.return_wire %wire : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}

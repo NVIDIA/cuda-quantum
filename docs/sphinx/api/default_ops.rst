@@ -656,10 +656,10 @@ operations, each operating on 2 qubits.
       :end-before: [End Docs]
 
 
-.. note:: 
+.. note::
 
   When a custom operation is used on hardware backends, it is synthesized to a
-  set of native quantum operations. Currently, only 1-qubit and 2-qubit custom 
+  set of native quantum operations. Currently, only up to 5-qubit custom
   operations are supported on hardware backends.
 
 

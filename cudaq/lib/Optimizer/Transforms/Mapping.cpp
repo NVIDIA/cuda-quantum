@@ -1198,6 +1198,7 @@ static void rewireBranchRegion(
   }
 }
 
+
 /// Applies a RoutingResult to the IR. This is the only place routing rewrites
 /// the circuit. It rewires each mapped operation and inserts the swaps,
 /// threading the current wire on each physical qubit.
