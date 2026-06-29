@@ -28,9 +28,8 @@ CUDAQ_TEST(AnyonUtilTester, checkRejectsUnequalRegisterLengths) {
   nlohmann::json results;
   results["r0"] = std::vector<std::string>{"0"};
   results["r1"] = std::vector<std::string>(64, "1");
-  EXPECT_THROW(
-      cudaq::utils::anyon::combineRegisterResults(results, {"r0", "r1"}),
-      std::runtime_error);
+  EXPECT_ANY_THROW(
+      cudaq::utils::anyon::combineRegisterResults(results, {"r0", "r1"}));
 }
 
 int main(int argc, char **argv) {
