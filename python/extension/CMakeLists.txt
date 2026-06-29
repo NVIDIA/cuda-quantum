@@ -83,6 +83,7 @@ else()
     ../../runtime/internal/compiler/RuntimeMLIR.cpp
     ../../runtime/internal/compiler/JIT.cpp
     ../../runtime/internal/compiler/Compiler.cpp
+    ../../runtime/internal/compiler/ResourceCount.cpp
     ../../runtime/internal/compiler/JITTargetPipeline.cpp
     ../../runtime/internal/compiler/TracePassInstrumentation.cpp
   )
