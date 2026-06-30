@@ -1992,7 +1992,9 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[jStr]{.pre}]{.n}*, *[[overrideDict]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.from_json "Permalink to this definition"){.headerlink}
 
-    :   Convert a JSON string into a new PyKernelDecorator object.
+    :   Convert a JSON string (as produced by [`to_json`{.code .docutils
+        .literal .notranslate}]{.pre}) into a new PyKernelDecorator
+        object.
 
     [[is_compiled]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.is_compiled "Permalink to this definition"){.headerlink}
 
@@ -5977,7 +5979,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x94f4750\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 
