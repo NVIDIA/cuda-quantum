@@ -10,7 +10,7 @@
 #include "cudaq/spin_op.h"
 
 #include <algorithm>
-#include <limits>
+#include <climits>
 #include <numeric>
 #include <stdexcept>
 #include <string.h>
@@ -20,7 +20,7 @@
 #include <vector>
 
 static std::string longToBitString(std::size_t size, long x) {
-  if (size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+  if (size > sizeof(long) * CHAR_BIT)
     throw std::runtime_error("Invalid serialized sample_result. Bitstring "
                              "length exceeds supported range.");
 
