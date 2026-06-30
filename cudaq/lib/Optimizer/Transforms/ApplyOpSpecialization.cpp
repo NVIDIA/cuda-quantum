@@ -317,8 +317,7 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
     auto calleeAttr = FlatSymbolRefAttr::get(ctx, calleeName);
-    if (!SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply,
-                                                            calleeAttr))
+    if (!SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply, calleeAttr))
       return failure();
     auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
