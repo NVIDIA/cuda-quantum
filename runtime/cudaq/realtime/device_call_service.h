@@ -17,8 +17,8 @@
 
 namespace cudaq::realtime {
 
-/// Optional service-provided synchronizer used when the dispatch loop is owned
-/// by the service artifact rather than by a CUDA-Q-created stream.
+/// Optional service-provided synchronize function used when the dispatch loop
+/// is owned by the service artifact rather than by a CUDA-Q-created stream.
 using DeviceCallDispatchSynchronizeFn = cudaError_t (*)();
 
 /// Dispatch paths supported by a device-call service session.
