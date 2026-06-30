@@ -37,6 +37,17 @@ def test_state_from_mps_simple():
     assert np.isclose(state[1], 0.0)
     assert np.isclose(state[2], 0.0)
     assert np.isclose(state[3], 0.0)
+    assert np.isclose(state[-1], 0.0)
+    assert np.isclose(state[-4], 1.0)
+    # state[2**2]: index equals dimension.
+    with pytest.raises(IndexError):
+        state[2**2]
+    # state[INT_MAX]: index exceeds dimension.
+    with pytest.raises(IndexError):
+        state[2147483647]
+    # state[-5]: index below -dimension.
+    with pytest.raises(IndexError):
+        state[-5]
 
 
 @skipIfNoGPU

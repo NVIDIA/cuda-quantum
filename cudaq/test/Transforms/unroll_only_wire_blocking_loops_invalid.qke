@@ -1,0 +1,94 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --verify-diagnostics %s
+// clang-format on
+
+// Input produced by the real pipeline
+// (cudaq-quake | cudaq-opt --canonicalize --factor-quantum-alloc --memtoreg).
+
+// A loop that both (a) indexes qubits by the induction variable -- so mem2reg
+// leaves quake.extract_ref reference semantics in the body, blocking wire
+// conversion -- and (b) has a runtime trip count (%arg0, a kernel argument) --
+// so it cannot be unrolled -- is a dead end: it can be neither kept in value
+// semantics nor unrolled. With unroll-only-wire-blocking-loops the pass rejects it.
+
+module {
+  func.func @__nvqpp__mlirgen__function_dyn_bound._Z9dyn_boundi(%arg0: i32) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %c1_i32 = arith.constant 1 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %0 = cc.undef i32
+    %1 = quake.alloca !quake.ref
+    %2 = quake.unwrap %1 : (!quake.ref) -> !quake.wire
+    %3 = quake.alloca !quake.ref
+    %4 = quake.unwrap %3 : (!quake.ref) -> !quake.wire
+    quake.wrap %2 to %1 : !quake.wire, !quake.ref
+    quake.wrap %4 to %3 : !quake.wire, !quake.ref
+    %5 = quake.concat %1, %3 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+    cc.scope {
+      %11 = cc.undef i32
+      // expected-error@+1 {{loop accesses quantum data by a dynamic index or slice and cannot be unrolled (trip count is not a compile-time constant); it can be neither kept in value semantics nor unrolled}}
+      %12 = cc.loop while ((%arg1 = %c0_i32) -> (i32)) {
+        %13 = arith.cmpi slt, %arg1, %arg0 : i32
+        cc.condition %13(%arg1 : i32)
+      } do {
+      ^bb0(%arg1: i32):
+        %13 = cc.cast signed %arg1 : (i32) -> i64
+        %14 = quake.extract_ref %5[%13] : (!quake.veq<2>, i64) -> !quake.ref
+        %15 = quake.unwrap %14 : (!quake.ref) -> !quake.wire
+        %16 = quake.h %15 : (!quake.wire) -> !quake.wire
+        quake.wrap %16 to %14 : !quake.wire, !quake.ref
+        cc.continue %arg1 : i32
+      } step {
+      ^bb0(%arg1: i32):
+        %13 = arith.addi %arg1, %c1_i32 : i32
+        cc.continue %13 : i32
+      }
+    }
+    %measOut = quake.mz %5 name "m" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+    %6 = cc.undef !cc.stdvec<!cc.measure_handle>
+    %7 = cc.stdvec_data %measOut : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+    %8 = cc.cast %7 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
+    %9 = cc.load %8 : !cc.ptr<!cc.measure_handle>
+    %10 = quake.discriminate %9 : (!cc.measure_handle) -> i1
+    return %10 : i1
+  }
+
+  func.func @__nvqpp__mlirgen__function_dyn_subveq_bound._Z16dyn_subveq_boundi(%arg0: i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i32 = arith.constant 1 : i32
+    %0 = quake.alloca !quake.ref
+    %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
+    %2 = quake.alloca !quake.ref
+    %3 = quake.unwrap %2 : (!quake.ref) -> !quake.wire
+    quake.wrap %1 to %0 : !quake.wire, !quake.ref
+    quake.wrap %3 to %2 : !quake.wire, !quake.ref
+    %4 = quake.concat %0, %2 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+    cc.scope {
+      // expected-error@+1 {{loop accesses quantum data by a dynamic index or slice and cannot be unrolled (trip count is not a compile-time constant); it can be neither kept in value semantics nor unrolled}}
+      %5 = cc.loop while ((%arg1 = %c0_i32) -> (i32)) {
+        %6 = arith.cmpi slt, %arg1, %arg0 : i32
+        cc.condition %6(%arg1 : i32)
+      } do {
+      ^bb0(%arg1: i32):
+        %6 = cc.cast signed %arg1 : (i32) -> i64
+        %7 = arith.addi %6, %c1_i64 : i64
+        %8 = quake.subveq %4, %6, %7 : (!quake.veq<2>, i64, i64) -> !quake.veq<2>
+        quake.mz %8 : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+        cc.continue %arg1 : i32
+      } step {
+      ^bb0(%arg1: i32):
+        %6 = arith.addi %arg1, %c1_i32 : i32
+        cc.continue %6 : i32
+      }
+    }
+    return
+  }
+}
