@@ -593,6 +593,7 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
     cmake -G Ninja .. \
       -DCMAKE_INSTALL_PREFIX="${AWS_INSTALL_PREFIX}" \
       -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
       -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
       -DAWS_SDK_WARNINGS_ARE_ERRORS=OFF \
       -DAWS_USER_AGENT_CUSTOMIZATION=CUDA-Q/${CUDA_QUANTUM_VERSION} \
