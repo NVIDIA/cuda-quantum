@@ -8,13 +8,11 @@
 
 #include "SampleResult.h"
 #include "cudaq/spin_op.h"
-
 #include <algorithm>
 #include <climits>
 #include <numeric>
 #include <stdexcept>
 #include <string.h>
-
 #include <iostream>
 #include <map>
 #include <vector>
@@ -46,19 +44,22 @@ deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
   auto nBs = data[stride];
   stride++;
 
+  // Each counts entry is serialized as 3 words: {value, length, count}.
+  constexpr std::size_t wordsPerEntry = 3;
   std::size_t remaining = data.size() - stride;
-  if (nBs > remaining / 3)
+  if (nBs > remaining / wordsPerEntry)
     throw std::runtime_error(
         "Invalid serialized sample_result. Counts length exceeds data size.");
 
-  for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
+  for (std::size_t j = stride; j < stride + nBs * wordsPerEntry;
+       j += wordsPerEntry) {
     auto bitstring_as_long = data[j];
     auto size_of_bitstring = data[j + 1];
     auto count = data[j + 2];
     auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
     localCounts.insert({bs, count});
   }
-  stride += nBs * 3;
+  stride += nBs * wordsPerEntry;
 }
 
 static std::string extractNameFromData(std::vector<std::size_t> &data,
