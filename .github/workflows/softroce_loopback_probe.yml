@@ -472,10 +472,10 @@ jobs:
         if: always()
         shell: bash
         run: sudo bash realtime/scripts/setup_softroce_loopback.sh --cleanup --use-netns
+
   gpu_channel_probe:
     name: Run CpuRoceChannel nvidia-target SoftRoCE probe
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_gpu_channel_probe) || github.event_name == 'push' }}
-    needs: [probe, config_cuda_deps]
     runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
       contents: read
@@ -517,7 +517,7 @@ jobs:
         shell: bash
         env:
           DOCKER_BUILDKIT: "1"
-          CHANNEL_PROBE_BASE_IMAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.channel_probe_base_image != '' && inputs.channel_probe_base_image || fromJson(needs.config_cuda_deps.outputs.json).image_hash[format('{0}-gcc12-realtime', 'amd64')] }}
+          CHANNEL_PROBE_BASE_IMAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.channel_probe_base_image != '' && inputs.channel_probe_base_image || 'ghcr.io/nvidia/cuda-quantum-devdeps:gcc12-main' }}
         run: |
           if [[ -z "${CHANNEL_PROBE_BASE_IMAGE}" || "${CHANNEL_PROBE_BASE_IMAGE}" == "null" ]]; then
             echo "::error::Could not resolve the amd64-gcc12-realtime devdeps image for the GPU channel probe."
