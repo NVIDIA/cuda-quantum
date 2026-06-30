@@ -35,10 +35,6 @@ struct sample_policy {
   /// @brief The name of the kernel being executed.
   std::string kernelName;
 
-  /// @brief Flag to indicate that a warning about named measurement registers
-  /// in sampling context has already been emitted.
-  bool warnedNamedMeasurements = false;
-
   /// @brief A vector containing information about how to reorder the global
   /// register after execution. Empty means no reordering.
   mutable std::vector<std::size_t> reorderIdx;

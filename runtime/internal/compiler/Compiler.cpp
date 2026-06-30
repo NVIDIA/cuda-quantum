@@ -13,6 +13,7 @@
 #include "common/FmtCore.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
+#include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
@@ -23,6 +24,8 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
+#include "cudaq/algorithms/observe/policy.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ADT/SmallSet.h"
@@ -223,7 +226,11 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       // For quantum devices, we generate a collection of `init` and
       // `num_qubits` functions and their substitutions created
       // from a kernel and arguments that generated a state argument.
-      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp);
+      // Local simulators marshal `i1` vectors as bit-packed `std::vector<bool>`
+      // (argsCreator); remote/emulated targets use `std::vector<char>`.
+      const bool boolVecBitPacked = target->isLocalSimulator;
+      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp,
+                                                         boolVecBitPacked);
       // Must stay in scope as `eraseNonCallableArguments` may populate it
       std::vector<void *> closureArgs;
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
@@ -398,6 +405,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     const std::string &kernelName, const void *modulePtr,
     cudaq::KernelArgs args, bool isEntryPoint,
     std::shared_ptr<mlir::MLIRContext> context) {
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "Compiler::runPassPipeline");
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc, isFullySpecialized] =
@@ -449,7 +457,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
         return mlir::WalkResult::advance();
       });
       if (hasNamedMeasurements) {
-        warnedNamedMeasurements = true;
         std::cerr << "WARNING: Kernel \"" << kernelName
                   << "\" uses named measurement results "
                   << "but is invoked in sampling mode. Support for "
@@ -572,7 +579,8 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 
     auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
     codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
-                       mapping_reorder_idx);
+                       mapping_reorder_idx,
+                       compiled.getMetadata().hasConditionalsOnMeasureResults);
   }
 
   return codes;
@@ -699,4 +707,30 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
     }
   }
   return moduleOp;
+}
+
+cudaq::CompiledModule cudaq_internal::compiler::compileModule(
+    std::unique_ptr<cudaq::CompileTarget> target,
+    const cudaq::SourceModule &src, cudaq::KernelArgs args, bool isEntryPoint) {
+  if (!target->overrideAOTCompilation && src.getFunctionPtr()) {
+    // We are allowed to use the AOT-compiled module as-is, so nothing to do.
+    CUDAQ_INFO("No JIT compilation required. Using AOT-compiled module as-is.");
+    return cudaq::CompiledModule{src};
+  }
+
+  const auto &kernelName = src.getName();
+  auto mlirArt = src.getMlir();
+  if (!mlirArt.has_value()) {
+    mlirArt = CompiledModuleHelper::loadMlirArtifact(src);
+  }
+
+  assert(mlirArt.has_value() &&
+         "Compiler::compileModule requires an MLIR artifact");
+
+  Compiler compiler(std::move(target));
+  auto compiled =
+      compiler.runPassPipeline(kernelName, mlirArt->getOpaqueModulePtr(), args,
+                               isEntryPoint, mlirArt->getContext());
+
+  return compiled;
 }

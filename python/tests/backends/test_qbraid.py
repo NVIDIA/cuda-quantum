@@ -15,11 +15,7 @@ import pytest
 from cudaq import spin
 from network_utils import check_server_connection
 
-try:
-    from utils.mock_qpu.qbraid import startServer
-except ImportError:
-    print("Mock qpu not available, skipping qBraid tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from utils.mock_qpu.qbraid import startServer
 
 port = 62454
 
@@ -27,7 +23,7 @@ port = 62454
 TEST_MACHINE = "qbraid:qbraid:sim:qir-sv"
 TEST_API_KEY = "00000000000000000000000000000000"
 
-# The qbraid mock server in utils/mock_qpu/qbraid/__init__.py doesn't simulate
+# The qbraid mock server in python/tests/utils/mock_qpu/qbraid/__init__.py doesn't simulate
 # quantum mechanics - it only inspects the QASM for `h` and `measure` ops and
 # generates random outcomes for qubits with H. It does NOT model entanglement
 # via CNOT. Assertions below reflect the mock's behavior, not physical truth.

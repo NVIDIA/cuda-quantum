@@ -410,7 +410,7 @@ sample_result::get_marginal(const std::vector<std::size_t> &marginalIndices,
     for ([[maybe_unused]] auto &m : mutableIndices)
       newBits += "0";
     for (int counter = 0; auto &index : mutableIndices) {
-      if (index > bits.size())
+      if (index >= bits.size())
         throw std::runtime_error("Invalid marginal index (" +
                                  std::to_string(index) +
                                  ", size=" + std::to_string(bits.size()));

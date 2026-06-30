@@ -52,6 +52,15 @@ static size_t count_graph_launch_workers(const cudaq_function_table_t *table) {
   return n;
 }
 
+static bool has_host_call_handlers(const cudaq_function_table_t *table) {
+  for (uint32_t i = 0; i < table->count; ++i) {
+    if (table->entries[i].dispatch_mode == CUDAQ_DISPATCH_HOST_CALL &&
+        table->entries[i].handler.host_fn)
+      return true;
+  }
+  return false;
+}
+
 extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
     const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
     const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
@@ -67,32 +76,35 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
     return nullptr;
 
   const size_t num_workers = count_graph_launch_workers(table);
-  if (num_workers == 0)
+  if (num_workers == 0 && !has_host_call_handlers(table))
     return nullptr;
 
   auto *handle = new (std::nothrow) cudaq_host_dispatcher_handle();
   if (!handle)
     return nullptr;
 
-  handle->workers = new (std::nothrow) cudaq_host_dispatch_worker_t[num_workers];
-  handle->idle_mask = new (std::nothrow) atomic_uint64_sys(0);
-  handle->inflight_slot_tags = new (std::nothrow) int[num_workers];
-  if (external_mailbox) {
-    handle->h_mailbox_bank = external_mailbox;
-    handle->owns_mailbox = false;
-  } else {
-    handle->h_mailbox_bank = new (std::nothrow) void *[num_workers];
-    handle->owns_mailbox = true;
-  }
-  if (!handle->workers || !handle->idle_mask || !handle->inflight_slot_tags ||
-      !handle->h_mailbox_bank) {
-    free_handle(handle);
-    return nullptr;
-  }
+  if (num_workers > 0) {
+    handle->workers =
+        new (std::nothrow) cudaq_host_dispatch_worker_t[num_workers];
+    handle->idle_mask = new (std::nothrow) atomic_uint64_sys(0);
+    handle->inflight_slot_tags = new (std::nothrow) int[num_workers];
+    if (external_mailbox) {
+      handle->h_mailbox_bank = external_mailbox;
+      handle->owns_mailbox = false;
+    } else {
+      handle->h_mailbox_bank = new (std::nothrow) void *[num_workers];
+      handle->owns_mailbox = true;
+    }
+    if (!handle->workers || !handle->idle_mask ||
+        !handle->inflight_slot_tags || !handle->h_mailbox_bank) {
+      free_handle(handle);
+      return nullptr;
+    }
 
-  std::memset(handle->inflight_slot_tags, 0, num_workers * sizeof(int));
-  std::memset(handle->workers, 0,
-              num_workers * sizeof(cudaq_host_dispatch_worker_t));
+    std::memset(handle->inflight_slot_tags, 0, num_workers * sizeof(int));
+    std::memset(handle->workers, 0,
+                num_workers * sizeof(cudaq_host_dispatch_worker_t));
+  }
 
   size_t worker_idx = 0;
   for (uint32_t i = 0; i < table->count; ++i) {
@@ -109,6 +121,10 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
         table->entries[i].handler.graph_exec;
     handle->workers[worker_idx].stream = stream;
     handle->workers[worker_idx].function_id = table->entries[i].function_id;
+    // Inherit the sub-routing key like function_id: the dispatch loop matches
+    // GRAPH_LAUNCH workers on (function_id, routing_key), so a 0 here would
+    // break sub-routing when entries share a function_id (0 == no sub-routing).
+    handle->workers[worker_idx].routing_key = table->entries[i].routing_key;
     handle->workers[worker_idx].pre_launch_fn = nullptr;
     handle->workers[worker_idx].pre_launch_data = nullptr;
     handle->workers[worker_idx].post_launch_fn = nullptr;
@@ -117,15 +133,16 @@ extern "C" cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
   }
   handle->num_workers = num_workers;
 
-  handle->idle_mask->store((1ULL << num_workers) - 1,
-                           cuda::std::memory_order_release);
+  if (handle->idle_mask)
+    handle->idle_mask->store((1ULL << num_workers) - 1,
+                             cuda::std::memory_order_release);
 
   // Allocate per-worker GraphIOContext array only when the caller wired
   // separate RX and TX data buffers.  When rx_data == tx_data (in-place),
   // the legacy path writes a raw slot pointer into the mailbox instead.
   void *io_ctxs_host_ptr = nullptr;
   void *io_ctxs_dev_ptr = nullptr;
-  if (ringbuffer->rx_data != ringbuffer->tx_data) {
+  if (num_workers > 0 && ringbuffer->rx_data != ringbuffer->tx_data) {
     size_t io_ctxs_bytes =
         num_workers * sizeof(cudaq::realtime::GraphIOContext);
     if (cudaHostAlloc(&io_ctxs_host_ptr, io_ctxs_bytes,

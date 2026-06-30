@@ -328,15 +328,6 @@ else()
   set(_origin_prefix "$ORIGIN")
 endif()
 
-## Retain all linked libraries (e.g. libcudaq) so that static initializers
-## (ModuleLauncher registry and PythonLauncher registration) run and resolve
-## in the same process. Without --no-as-needed the linker may drop libcudaq
-## and the launcher is never registered.
-if(CUDAQ_FORCE_LINK_FLAG)
-  target_link_options(CUDAQuantumPythonCAPI PRIVATE
-    ${CUDAQ_FORCE_LINK_FLAG})
-endif()
-
 if (NOT SKBUILD)
   list(APPEND CMAKE_INSTALL_RPATH "${_origin_prefix}/../../lib" "${_origin_prefix}/../../lib/plugins")
   set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso

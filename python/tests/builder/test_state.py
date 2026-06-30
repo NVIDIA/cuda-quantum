@@ -50,6 +50,17 @@ def test_state_vector_simple():
     np.isclose(want_state[1], got_state[1].real)
     np.isclose(want_state[2], got_state[2].real)
     np.isclose(want_state[3], got_state[3].real)
+    assert np.isclose(want_state[3], got_state[-1])
+    assert np.isclose(want_state[0], got_state[-4])
+    # got_state[4]: index equals dimension.
+    with pytest.raises(IndexError):
+        got_state[4]
+    # got_state[INT_MAX]: index exceeds dimension.
+    with pytest.raises(IndexError):
+        got_state[2147483647]
+    # got_state[-5]: index below -dimension.
+    with pytest.raises(IndexError):
+        got_state[-5]
 
     # Check the entire vector with numpy.
     got_vector = np.array(got_state, copy=False)
