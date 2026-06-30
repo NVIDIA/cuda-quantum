@@ -15,7 +15,7 @@ inline constexpr std::size_t defaultMaxDecompressedSize = 512UL * 1024 * 1024;
 
 std::string gzipCompress(const std::string &input);
 
-/// Decompress a zlib stream, which produces `maxOutputSize` bytes.
+/// Decompress a `zlib` stream, which produces `maxOutputSize` bytes.
 std::string
 gzipDecompress(const std::string &input,
                std::size_t maxOutputSize = defaultMaxDecompressedSize);
