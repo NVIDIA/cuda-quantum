@@ -8,6 +8,11 @@ on:
         required: false
         type: boolean
         default: false
+      run_gpu_channel_probe:
+        description: "Also run the CpuRoceChannel nvidia-target probe on a GPU runner."
+        required: false
+        type: boolean
+        default: false
       channel_probe_base_image:
         description: "Optional devdeps base image digest/tag override for the channel probe."
         required: false
@@ -30,7 +35,7 @@ concurrency:
 jobs:
   metadata:
     name: Retrieve channel probe build metadata
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_channel_probe) || github.event_name == 'push' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.run_channel_probe || inputs.run_gpu_channel_probe)) || github.event_name == 'push' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -47,7 +52,7 @@ jobs:
 
   cuda_deps:
     name: Load channel probe build dependencies
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_channel_probe) || github.event_name == 'push' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.run_channel_probe || inputs.run_gpu_channel_probe)) || github.event_name == 'push' }}
     needs: metadata
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -66,7 +71,7 @@ jobs:
 
   config_cuda_deps:
     name: Configure channel probe build dependencies
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_channel_probe) || github.event_name == 'push' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && (inputs.run_channel_probe || inputs.run_gpu_channel_probe)) || github.event_name == 'push' }}
     runs-on: ubuntu-latest
     needs: cuda_deps
     outputs:
@@ -452,6 +457,127 @@ jobs:
         shell: bash
         run: |
           uname -a || true
+          ip route show table local || true
+          modinfo rdma_rxe || modinfo rxe || true
+          rdma system show || true
+          ip -br addr || true
+          ip link show type veth || true
+          rdma dev show || true
+          rdma link show || true
+          ibv_devices || true
+          ibv_devinfo || true
+          lsmod | grep -E '(^rdma_rxe|^rxe)' || true
+
+      - name: Cleanup SoftRoCE topology
+        if: always()
+        shell: bash
+        run: sudo bash realtime/scripts/setup_softroce_loopback.sh --cleanup --use-netns
+  gpu_channel_probe:
+    name: Run CpuRoceChannel nvidia-target SoftRoCE probe
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_gpu_channel_probe) || github.event_name == 'push' }}
+    needs: [probe, config_cuda_deps]
+    runs-on: linux-amd64-gpu-a100-latest-1
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install RDMA tooling and packaged RXE modules
+        shell: bash
+        run: |
+          retry() {
+            for n in 1 2 3; do
+              "$@" && return 0
+              sleep $((10 * n * n))
+            done
+            return 1
+          }
+          kernel="$(uname -r)"
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends \
+            iproute2 iputils-ping kmod rdma-core ibverbs-utils libibverbs-dev
+
+          exact_extra="linux-modules-extra-${kernel}"
+          if apt-cache show "$exact_extra" >/dev/null 2>&1; then
+            retry sudo apt-get install -y --no-install-recommends \
+              --allow-change-held-packages \
+              "$exact_extra"
+          else
+            echo "No apt package candidate for running kernel: $exact_extra"
+          fi
+
+          sudo depmod -a "$kernel" || true
+          modinfo rdma_rxe || modinfo rxe || true
+          nvidia-smi
+
+      - name: Build and run nvidia-target device-call probe over SoftRoCE
+        shell: bash
+        env:
+          DOCKER_BUILDKIT: "1"
+          CHANNEL_PROBE_BASE_IMAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.channel_probe_base_image != '' && inputs.channel_probe_base_image || fromJson(needs.config_cuda_deps.outputs.json).image_hash[format('{0}-gcc12-realtime', 'amd64')] }}
+        run: |
+          if [[ -z "${CHANNEL_PROBE_BASE_IMAGE}" || "${CHANNEL_PROBE_BASE_IMAGE}" == "null" ]]; then
+            echo "::error::Could not resolve the amd64-gcc12-realtime devdeps image for the GPU channel probe."
+            exit 1
+          fi
+          echo "Using channel probe base image: ${CHANNEL_PROBE_BASE_IMAGE}"
+
+          docker build \
+            --file docker/release/cudaq.realtime-integration.Dockerfile \
+            --target realtime-integration \
+            --build-arg "base_image=${CHANNEL_PROBE_BASE_IMAGE}" \
+            --build-arg cuda_version=12.6 \
+            --build-arg build_device_call_tests=true \
+            --tag cudaq-realtime-softroce:local \
+            .
+
+          sudo bash realtime/scripts/setup_softroce_loopback.sh \
+            --cleanup-first \
+            --self-loop \
+            --verify-pingpong \
+            --no-exports
+
+          cat > /tmp/cudaq-realtime-softroce-rdma.Dockerfile <<'EOF'
+          FROM cudaq-realtime-softroce:local
+          RUN apt-get update && apt-get install -y --no-install-recommends \
+                ibverbs-providers ibverbs-utils rdma-core \
+              && apt-get clean \
+              && rm -rf /var/lib/apt/lists/*
+          EOF
+          docker build \
+            --file /tmp/cudaq-realtime-softroce-rdma.Dockerfile \
+            --tag cudaq-realtime-softroce-rdma:local \
+            /tmp
+
+          docker run --rm \
+            --gpus all \
+            --privileged \
+            --network host \
+            --ulimit memlock=-1:-1 \
+            cudaq-realtime-softroce-rdma:local \
+            bash -lc '
+              set -euo pipefail
+              nvidia-smi
+              ibv_devices
+              /cuda-quantum/unittests/device_call/cpu_roce_device_call_test.sh \
+                --build-dir /tmp/build-realtime-integration/cudaq \
+                --channel-device rxe_cudaq0 \
+                --channel-ip 10.88.0.1 \
+                --daemon-device rxe_cudaq0 \
+                --daemon-ip 10.88.0.1 \
+                --app \
+                --app-target nvidia
+            '
+
+      - name: Diagnostics
+        if: always()
+        shell: bash
+        run: |
+          uname -a || true
+          nvidia-smi || true
           ip route show table local || true
           modinfo rdma_rxe || modinfo rxe || true
           rdma system show || true
