@@ -5964,7 +5964,11 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     """
 
     verbose = 'verbose' in kwargs and kwargs['verbose']
-    lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
+    # `location` may be absent, explicitly None (e.g. a kernel reconstructed via
+    # `from_json` whose serialized location was null), or empty; in every such
+    # case fall back to the default offset so diagnostics never subscript a
+    # non-`(filename, lineno)` value.
+    lineNumberOffset = kwargs.get('location') or ('', 0)
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
     cudaqAliases = kwargs.get('cudaqAliases', None)
