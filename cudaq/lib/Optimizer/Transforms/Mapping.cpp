@@ -364,32 +364,55 @@ struct RoutingProblem {
   }
 };
 
-/// A single routing decision: a gate mapped onto physical qubits, or a swap
-/// inserted between them. The router records these as it walks the circuit and
-/// the emitter replays them to rewrite the IR.
+// Forward declaration for recursive use in RoutingEvent::If.
+struct RoutingResult;
+
+/// A single routing decision: a gate mapped onto physical qubits, a swap
+/// inserted between them, or an if-op whose branches have their own routing
+/// results. The router records Gate and Swap events; the enrichment step adds
+/// If events. The emitter replays the full trace to rewrite the IR.
 struct RoutingEvent {
-  enum class Kind { Gate, Swap };
+  enum class Kind { Gate, Swap, If };
 
   /// A gate mapped onto the physical qubits `phys`, in operand order.
   static RoutingEvent gate(mlir::Operation *op,
                            ArrayRef<cudaq::Placement::DeviceQ> phys) {
-    return RoutingEvent{
-        Kind::Gate, op,
-        SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
+    RoutingEvent ev;
+    ev.kind = Kind::Gate;
+    ev.op = op;
+    ev.phys.assign(phys.begin(), phys.end());
+    return ev;
   }
   /// A swap inserted between physical qubits `q0` and `q1`.
   static RoutingEvent swap(cudaq::Placement::DeviceQ q0,
                            cudaq::Placement::DeviceQ q1) {
-    return RoutingEvent{Kind::Swap, nullptr, {q0, q1}};
+    RoutingEvent ev;
+    ev.kind = Kind::Swap;
+    ev.phys = {q0, q1};
+    return ev;
+  }
+  /// An if-op whose then/else branches each have their own routing result.
+  static RoutingEvent makeIf(mlir::Operation *op,
+                             std::unique_ptr<RoutingResult> thenRes,
+                             std::unique_ptr<RoutingResult> elseRes = nullptr) {
+    RoutingEvent ev;
+    ev.kind = Kind::If;
+    ev.op = op;
+    ev.thenResult = std::move(thenRes);
+    ev.elseResult = std::move(elseRes);
+    return ev;
   }
 
-  Kind kind;
-  mlir::Operation *op;
+  Kind kind = Kind::Gate;
+  mlir::Operation *op = nullptr;
   SmallVector<cudaq::Placement::DeviceQ, 2> phys;
+  std::unique_ptr<RoutingResult> thenResult;
+  std::unique_ptr<RoutingResult> elseResult;
 };
 
-/// The outcome of routing one layout. The emitter replays `trace` onto the IR.
-/// `swapCount` is the metric used to compare layouts.
+/// The outcome of routing one block. Gate and Swap events come from SABRE; If
+/// events are added by the enrichment step and carry per-branch results.
+/// `swapCount` is the metric used to compare top-level layouts.
 struct RoutingResult {
   /// Virtual-to-physical layout at the start of the walk, before any swap.
   SmallVector<unsigned> initialLayout;
@@ -422,7 +445,7 @@ cudaq::Placement::VirtualQ requireVirtualQ(
 /// borrows. Edges and source successors are captured in MLIR use-list order so
 /// the walk visits successors in the same order as the SSA use-def chains.
 RoutingProblem buildRoutingProblem(
-    Block &block, ArrayRef<cudaq::quake::BorrowWireOp> sources,
+    Block &block, ArrayRef<Value> sources,
     const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
   RoutingProblem problem;
   DenseMap<Operation *, RoutingProblem::NodeRef> nodeIndex;
@@ -485,8 +508,8 @@ RoutingProblem buildRoutingProblem(
   for (auto &node : problem.nodes)
     for (Value wire : cudaq::quake::getQuantumResults(node.op))
       recordWireUsers(wire, node.successors);
-  for (auto borrow : sources)
-    recordWireUsers(borrow.getResult(), problem.sourceUsers);
+  for (auto source : sources)
+    recordWireUsers(source, problem.sourceUsers);
 
   return problem;
 }
@@ -1130,73 +1153,6 @@ private:
 // Emission
 //===----------------------------------------------------------------------===//
 
-/// Rewire all 1Q ops (and nested IfOps) in `region` so they use the correct
-/// physical wires. `entryPhysicals[i]` is the physical qubit for
-/// `entryBlockArgs[i]`; `vqToPhy[vq]` gives the physical qubit for each
-/// virtual qubit; `localPhyToWire` (by value) tracks the live wire per
-/// physical qubit inside the region.
-static void rewireBranchRegion(
-    Region &region, ArrayRef<cudaq::Placement::DeviceQ> entryPhysicals,
-    ArrayRef<Value> entryBlockArgs, SmallVector<Value> localPhyToWire,
-    const SmallVector<unsigned> &vqToPhy,
-    const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
-  for (auto [phy, arg] : llvm::zip_equal(entryPhysicals, entryBlockArgs))
-    localPhyToWire[phy.index] = arg;
-
-  for (Block &block : region) {
-    for (Operation &op : block) {
-      if (auto nestedIf = dyn_cast<cudaq::cc::IfOp>(op)) {
-        SmallVector<cudaq::Placement::DeviceQ> nestedPhys;
-        SmallVector<Value> newLinearArgs;
-        for (auto arg : nestedIf.getLinearArgs()) {
-          auto it = wireToVirtualQ.find(arg);
-          if (it == wireToVirtualQ.end())
-            continue;
-          unsigned phy = vqToPhy[it->second.index];
-          nestedPhys.push_back(cudaq::Placement::DeviceQ(phy));
-          newLinearArgs.push_back(localPhyToWire[phy]);
-        }
-        (void)cudaq::quake::setQuantumOperands(nestedIf.getOperation(), newLinearArgs);
-        auto thenArgs = nestedIf.getThenEntryArguments();
-        rewireBranchRegion(
-            nestedIf.getThenRegion(), nestedPhys,
-            SmallVector<Value>(thenArgs.begin(), thenArgs.end()),
-            localPhyToWire, vqToPhy, wireToVirtualQ);
-        if (nestedIf.hasElse()) {
-          auto elseArgs = nestedIf.getElseEntryArguments();
-          rewireBranchRegion(
-              nestedIf.getElseRegion(), nestedPhys,
-              SmallVector<Value>(elseArgs.begin(), elseArgs.end()),
-              localPhyToWire, vqToPhy, wireToVirtualQ);
-        }
-        unsigned wireIdx = 0;
-        for (Value res : nestedIf->getResults())
-          if (isa<cudaq::quake::WireType>(res.getType()))
-            localPhyToWire[nestedPhys[wireIdx++].index] = res;
-      } else if (cudaq::quake::isSupportedMappingOperation(&op) &&
-                 !isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(op)) {
-        auto wireOps = cudaq::quake::getQuantumOperands(&op);
-        SmallVector<Value> newWires;
-        for (auto wire : wireOps) {
-          auto it = wireToVirtualQ.find(wire);
-          if (it == wireToVirtualQ.end()) {
-            newWires.push_back(wire);
-            continue;
-          }
-          newWires.push_back(localPhyToWire[vqToPhy[it->second.index]]);
-        }
-        (void)cudaq::quake::setQuantumOperands(&op, newWires);
-        for (auto [result, origWire] :
-             llvm::zip_equal(cudaq::quake::getQuantumResults(&op), wireOps)) {
-          auto it = wireToVirtualQ.find(origWire);
-          if (it == wireToVirtualQ.end())
-            continue;
-          localPhyToWire[vqToPhy[it->second.index]] = result;
-        }
-      }
-    }
-  }
-}
 
 
 /// Applies a RoutingResult to the IR. This is the only place routing rewrites
@@ -1204,15 +1160,15 @@ static void rewireBranchRegion(
 /// threading the current wire on each physical qubit.
 class RoutingEmitter {
 public:
-  RoutingEmitter(DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
+  RoutingEmitter(const DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
                  unsigned numPhysical)
       : wireToVirtualQ(wireMap), phyToWire(numPhysical) {}
 
-  /// Apply `result` to `block`. Returns the final wire on each physical qubit,
-  /// which the caller uses to create the return_wire ops.
+  /// Apply `topResult` to `block`. Returns the final wire on each physical
+  /// qubit, which the caller uses to create the return_wire ops.
   ArrayRef<Value> emit(Block &block,
                        ArrayRef<cudaq::quake::BorrowWireOp> sources,
-                       const RoutingResult &result) {
+                       const RoutingResult &topResult) {
     const unsigned numPhy = phyToWire.size();
     SmallVector<unsigned> vqToPhy(sources.size());
     SmallVector<unsigned> phyToVQ(numPhy, UINT_MAX);
@@ -1220,113 +1176,96 @@ public:
     for (auto borrowWire : sources) {
       Value wire = borrowWire.getResult();
       auto vq = requireVirtualQ(wireToVirtualQ, wire);
-      unsigned phy = result.initialLayout[vq.index];
+      unsigned phy = topResult.initialLayout[vq.index];
       borrowWire.setIdentity(phy);
       phyToWire[phy] = wire;
       vqToPhy[vq.index] = phy;
       phyToVQ[phy] = vq.index;
     }
 
-    OpBuilder builder(&block, block.begin());
-    auto wireType = builder.getType<cudaq::quake::WireType>();
+    // Walk the enriched trace for `blk`. Gate/Swap events rewire ops and
+    // insert swaps as before. If events rewire the IfOp's linear args, bind
+    // each branch's entry args into phyToWire, recurse, then restore.
+    std::function<void(Block &, const RoutingResult &)> emitBlock;
+    emitBlock = [&](Block &blk, const RoutingResult &blkResult) {
+      OpBuilder blkBuilder(&blk, blk.begin());
+      auto wireType = blkBuilder.getType<cudaq::quake::WireType>();
 
-    // Build program-order index for each op in the block so we can decide
-    // which trace events precede a given IfOp.
-    DenseMap<Operation *, unsigned> programOrder;
-    unsigned pos = 0;
-    for (Operation &op : block)
-      programOrder[&op] = pos++;
+      for (const RoutingEvent &ev : blkResult.trace) {
+        if (ev.kind == RoutingEvent::Kind::Swap) {
+          auto q0 = ev.phys[0], q1 = ev.phys[1];
+          auto swap = cudaq::quake::SwapOp::create(
+              blkBuilder, blkBuilder.getUnknownLoc(),
+              TypeRange{wireType, wireType}, false, ValueRange{}, ValueRange{},
+              ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
+              DenseBoolArrayAttr{});
+          unsigned vq0 = phyToVQ[q0.index], vq1 = phyToVQ[q1.index];
+          if (vq0 != UINT_MAX)
+            vqToPhy[vq0] = q1.index;
+          if (vq1 != UINT_MAX)
+            vqToPhy[vq1] = q0.index;
+          std::swap(phyToVQ[q0.index], phyToVQ[q1.index]);
+          phyToWire[q0.index] = swap.getResult(0);
+          phyToWire[q1.index] = swap.getResult(1);
+        } else if (ev.kind == RoutingEvent::Kind::Gate) {
+          SmallVector<Value, 2> newOpWires;
+          for (auto phy : ev.phys)
+            newOpWires.push_back(phyToWire[phy.index]);
+          [[maybe_unused]] LogicalResult rewired =
+              cudaq::quake::setQuantumOperands(ev.op, newOpWires);
+          assert(succeeded(rewired) &&
+                 "rewiring with a fixed operand count cannot fail");
+          if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(ev.op))
+            continue;
+          for (auto &&[w, q] : llvm::zip_equal(
+                   cudaq::quake::getQuantumResults(ev.op), ev.phys))
+            phyToWire[q.index] = w;
+        } else { // If
+          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+          SmallVector<unsigned> linPhyIndices;
+          SmallVector<Value> entryWires;
+          for (auto linArg : ifOp.getLinearArgs()) {
+            auto it = wireToVirtualQ.find(linArg);
+            if (it == wireToVirtualQ.end())
+              continue;
+            unsigned phy = vqToPhy[it->second.index];
+            linPhyIndices.push_back(phy);
+            entryWires.push_back(phyToWire[phy]);
+          }
+          (void)cudaq::quake::setQuantumOperands(ifOp, entryWires);
 
-    // Apply one trace event, updating phyToWire and vqToPhy/phyToVQ.
-    auto applyEvent = [&](const RoutingEvent &ev) {
-      if (ev.kind == RoutingEvent::Kind::Swap) {
-        auto q0 = ev.phys[0], q1 = ev.phys[1];
-        auto swap = cudaq::quake::SwapOp::create(
-            builder, builder.getUnknownLoc(), TypeRange{wireType, wireType},
-            false, ValueRange{}, ValueRange{},
-            ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
-            DenseBoolArrayAttr{});
-        unsigned vq0 = phyToVQ[q0.index], vq1 = phyToVQ[q1.index];
-        if (vq0 != UINT_MAX)
-          vqToPhy[vq0] = q1.index;
-        if (vq1 != UINT_MAX)
-          vqToPhy[vq1] = q0.index;
-        std::swap(phyToVQ[q0.index], phyToVQ[q1.index]);
-        phyToWire[q0.index] = swap.getResult(0);
-        phyToWire[q1.index] = swap.getResult(1);
-      } else {
-        SmallVector<Value, 2> newOpWires;
-        for (auto phy : ev.phys)
-          newOpWires.push_back(phyToWire[phy.index]);
-        [[maybe_unused]] LogicalResult rewired =
-            cudaq::quake::setQuantumOperands(ev.op, newOpWires);
-        assert(succeeded(rewired) &&
-               "rewiring with a fixed operand count cannot fail");
-        if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(ev.op))
-          return;
-        for (auto &&[w, q] :
-             llvm::zip_equal(cudaq::quake::getQuantumResults(ev.op), ev.phys))
-          phyToWire[q.index] = w;
+          auto processBranch = [&](Region &region,
+                                   const RoutingResult &branchResult) {
+            auto branchArgs = region.front().getArguments();
+            unsigned wireIdx = 0;
+            for (auto [i, linArg] : llvm::enumerate(ifOp.getLinearArgs())) {
+              if (!wireToVirtualQ.count(linArg))
+                continue;
+              phyToWire[linPhyIndices[wireIdx++]] = branchArgs[i];
+            }
+            emitBlock(region.front(), branchResult);
+            for (auto [idx, phy] : llvm::enumerate(linPhyIndices))
+              phyToWire[phy] = entryWires[idx];
+          };
+
+          processBranch(ifOp.getThenRegion(), *ev.thenResult);
+          if (ev.elseResult)
+            processBranch(ifOp.getElseRegion(), *ev.elseResult);
+
+          unsigned wireIdx = 0;
+          for (Value res : ifOp->getResults())
+            if (isa<cudaq::quake::WireType>(res.getType()))
+              phyToWire[linPhyIndices[wireIdx++]] = res;
+        }
       }
     };
 
-    // Walk block ops in program order, flushing trace events as we go.
-    // At each IfOp, flush all events for gates that appear before it in the
-    // block, then rewire the IfOp's linear args and branch internals.
-    unsigned nextTraceIdx = 0;
-    for (Operation &op : block) {
-      if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
-        unsigned ifPos = programOrder[&op];
-        while (nextTraceIdx < result.trace.size()) {
-          const RoutingEvent &ev = result.trace[nextTraceIdx];
-          if (ev.kind == RoutingEvent::Kind::Gate) {
-            auto it = programOrder.find(ev.op);
-            assert(it != programOrder.end() && "traced gate not in block");
-            if (it->second > ifPos)
-              break;
-          }
-          applyEvent(ev);
-          ++nextTraceIdx;
-        }
-        SmallVector<cudaq::Placement::DeviceQ> linPhys;
-        SmallVector<Value> newLinearArgs;
-        for (auto linArg : ifOp.getLinearArgs()) {
-          auto it = wireToVirtualQ.find(linArg);
-          if (it == wireToVirtualQ.end())
-            continue;
-          unsigned phy = vqToPhy[it->second.index];
-          linPhys.push_back(cudaq::Placement::DeviceQ(phy));
-          newLinearArgs.push_back(phyToWire[phy]);
-        }
-        (void)cudaq::quake::setQuantumOperands(ifOp, newLinearArgs);
-        auto thenArgs = ifOp.getThenEntryArguments();
-        rewireBranchRegion(
-            ifOp.getThenRegion(), linPhys,
-            SmallVector<Value>(thenArgs.begin(), thenArgs.end()),
-            SmallVector<Value>(phyToWire.begin(), phyToWire.end()), vqToPhy,
-            wireToVirtualQ);
-        if (ifOp.hasElse()) {
-          auto elseArgs = ifOp.getElseEntryArguments();
-          rewireBranchRegion(
-              ifOp.getElseRegion(), linPhys,
-              SmallVector<Value>(elseArgs.begin(), elseArgs.end()),
-              SmallVector<Value>(phyToWire.begin(), phyToWire.end()), vqToPhy,
-              wireToVirtualQ);
-        }
-        unsigned wireIdx = 0;
-        for (Value res : ifOp->getResults())
-          if (isa<cudaq::quake::WireType>(res.getType()))
-            phyToWire[linPhys[wireIdx++].index] = res;
-      }
-    }
-    // Flush any remaining trace events (including the case with no IfOps).
-    while (nextTraceIdx < result.trace.size())
-      applyEvent(result.trace[nextTraceIdx++]);
+    emitBlock(block, topResult);
     return phyToWire;
   }
 
 private:
-  DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
+  const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
   SmallVector<Value> phyToWire;
 };
 
@@ -2002,20 +1941,106 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Build the routing problem once (it does not depend on the layout), then
     // search over the seeds for the result with the fewest swaps.
+    SmallVector<Value> sourceValues;
+    for (auto borrow : sources)
+      sourceValues.push_back(borrow.getResult());
     RoutingProblem problem =
-        buildRoutingProblem(block, sources, wireToVirtualQ);
+        buildRoutingProblem(block, sourceValues, wireToVirtualQ);
     RoutingSearchStrategy search(
         *deviceInstance, problem, searchStrategy == SearchStrategy::Sabre,
         extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset,
         minStallSwapBudget, stallSwapBudgetPerQubit);
     RoutingSearchStrategy::Selection selection =
         search.run(seeds, numV, numPhy);
-    RoutingResult &best = selection.result;
     cudaq::Placement &bestLayout = selection.finalLayout;
+
+    // Enrich the flat SABRE trace with If events: for each cc::IfOp, route its
+    // branch blocks (using the placement at that point as the seed) and embed
+    // their results as If events in the trace. Recurse for nested IfOps.
+    std::function<RoutingResult(Block &, RoutingResult)> enrichTrace;
+    enrichTrace = [&](Block &blk, RoutingResult flat) -> RoutingResult {
+      RoutingResult enriched;
+      enriched.initialLayout = flat.initialLayout;
+      enriched.swapCount = flat.swapCount;
+
+      DenseMap<Operation *, unsigned> opToIdx;
+      for (auto [i, ev] : llvm::enumerate(flat.trace))
+        if (ev.kind == RoutingEvent::Kind::Gate)
+          opToIdx[ev.op] = i;
+
+      SmallVector<unsigned> replayVqToPhy(numV);
+      SmallVector<unsigned> replayPhyToVQ(numPhy, UINT_MAX);
+      for (unsigned v = 0; v < numV; ++v) {
+        replayVqToPhy[v] = flat.initialLayout[v];
+        replayPhyToVQ[flat.initialLayout[v]] = v;
+      }
+      unsigned srcIdx = 0;
+
+      // Move events from flat.trace[srcIdx..limit) into enriched.trace,
+      // updating replayVqToPhy/replayPhyToVQ for each Swap along the way.
+      auto flushTo = [&](unsigned limit) {
+        while (srcIdx < limit) {
+          RoutingEvent &ev = flat.trace[srcIdx++];
+          if (ev.kind == RoutingEvent::Kind::Swap) {
+            unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
+            unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
+            if (v0 != UINT_MAX)
+              replayVqToPhy[v0] = p1;
+            if (v1 != UINT_MAX)
+              replayVqToPhy[v1] = p0;
+            std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
+          }
+          enriched.trace.push_back(std::move(ev));
+        }
+      };
+
+      for (Operation &op : blk) {
+        if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
+          // Flush up to (but not including) the next Gate so the If event
+          // lands after all preceding SWAPs.
+          unsigned limit = srcIdx;
+          while (limit < flat.trace.size() &&
+                 flat.trace[limit].kind != RoutingEvent::Kind::Gate)
+            ++limit;
+          flushTo(limit);
+
+          SmallVector<SmallVector<unsigned>> branchSeeds = {
+              SmallVector<unsigned>(replayVqToPhy)};
+
+          auto routeBranch = [&](Region &region) -> std::unique_ptr<RoutingResult> {
+            SmallVector<Value> branchSources;
+            for (auto arg : region.front().getArguments())
+              if (isa<cudaq::quake::WireType>(arg.getType()))
+                branchSources.push_back(arg);
+            RoutingProblem branchProblem = buildRoutingProblem(
+                region.front(), branchSources, wireToVirtualQ);
+            RoutingSearchStrategy branchSearch(
+                *deviceInstance, branchProblem,
+                searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
+                extendedLayerWeight, decayDelta, roundsDecayReset,
+                minStallSwapBudget, stallSwapBudgetPerQubit);
+            auto branchSel = branchSearch.run(branchSeeds, numV, numPhy);
+            return std::make_unique<RoutingResult>(
+                enrichTrace(region.front(), std::move(branchSel.result)));
+          };
+
+          enriched.trace.push_back(RoutingEvent::makeIf(
+              &op, routeBranch(ifOp.getThenRegion()),
+              ifOp.hasElse() ? routeBranch(ifOp.getElseRegion()) : nullptr));
+        } else if (auto it = opToIdx.find(&op); it != opToIdx.end()) {
+          flushTo(it->second + 1);
+        }
+      }
+      flushTo(flat.trace.size());
+      return enriched;
+    };
+
+    RoutingResult topResult =
+        enrichTrace(block, std::move(selection.result));
 
     // Emit the selected result onto the IR exactly once.
     RoutingEmitter emitter(wireToVirtualQ, numPhy);
-    auto phyToWire = emitter.emit(block, sources, best);
+    auto phyToWire = emitter.emit(block, sources, topResult);
     sortTopologically(&block);
 
     // Ensure that the original measurement ordering is still honored by moving
@@ -2037,7 +2062,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       if (s->getUsers().empty()) {
         s->erase();
       } else {
-        Value finalWire = phyToWire[best.initialLayout[i]];
+        Value finalWire = phyToWire[topResult.initialLayout[i]];
         cudaq::quake::ReturnWireOp::create(builder, finalWire.getLoc(),
                                            finalWire);
       }
