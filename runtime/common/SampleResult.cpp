@@ -10,17 +10,26 @@
 #include "cudaq/spin_op.h"
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
+#include <stdexcept>
 #include <string.h>
 
 #include <iostream>
 #include <map>
 #include <vector>
 
-static std::string longToBitString(int size, long x) {
+static std::string longToBitString(std::size_t size, long x) {
+  if (size > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+    throw std::runtime_error("Invalid serialized sample_result. Bitstring "
+                             "length exceeds supported range.");
+
   std::string s(size, '0');
-  int counter = 0;
+  std::size_t counter = 0;
   do {
+    if (counter >= s.size())
+      throw std::runtime_error("Invalid serialized sample_result. Bitstring "
+                               "value does not fit declared length.");
     s[counter] = '0' + (x & 1);
     counter++;
   } while (x >>= 1);
@@ -31,8 +40,16 @@ static std::string longToBitString(int size, long x) {
 static void
 deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
                   std::unordered_map<std::string, std::size_t> &localCounts) {
+  if (stride >= data.size())
+    throw std::runtime_error(
+        "Invalid serialized sample_result. Missing counts length.");
   auto nBs = data[stride];
   stride++;
+
+  std::size_t remaining = data.size() - stride;
+  if (nBs > remaining / 3)
+    throw std::runtime_error(
+        "Invalid serialized sample_result. Counts length exceeds data size.");
 
   for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
     auto bitstring_as_long = data[j];
@@ -46,7 +63,14 @@ deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
 
 static std::string extractNameFromData(std::vector<std::size_t> &data,
                                        std::size_t &stride) {
+  if (stride >= data.size())
+    throw std::runtime_error(
+        "Invalid serialized sample_result. Missing register name length.");
   auto nChars = data[stride++];
+
+  if (nChars > data.size() - stride)
+    throw std::runtime_error("Invalid serialized sample_result. Register name "
+                             "length exceeds data size.");
 
   std::string name(data.begin() + stride, data.begin() + stride + nChars);
 
