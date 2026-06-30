@@ -84,6 +84,11 @@ if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
 endif()
 
+# Enable the ensmallen optimizer by default. Requires BLAS.
+if (NOT DEFINED CUDAQ_ENABLE_ENSMALLEN)
+  set(CUDAQ_ENABLE_ENSMALLEN ON CACHE BOOL "Enable building the ensmallen optimizer (requires BLAS).")
+endif()
+
 # CUDAQ_ENABLE_ALL_BACKEND, if defined, becomes the default value used for
 # every per-backend CUDAQ_ENABLE_<NAME>_BACKEND flag below. Individual
 # per-backend flags can still be overridden on the command line to opt in
@@ -690,6 +695,19 @@ configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
 
 # Check optional dependencies
 # ==============================================================================
+
+if (CUDAQ_ENABLE_ENSMALLEN)
+  if (DEFINED ENV{BLAS_INSTALL_PREFIX})
+    find_library(BLAS_LIBRARIES blas
+      HINTS "$ENV{BLAS_INSTALL_PREFIX}" "$ENV{BLAS_INSTALL_PREFIX}/lib")
+  endif()
+  find_package(BLAS)
+  if (NOT BLAS_FOUND)
+    message(WARNING "BLAS not found — disabling ensmallen optimizer. "
+      "Install BLAS or set BLAS_INSTALL_PREFIX to enable it.")
+    set(CUDAQ_ENABLE_ENSMALLEN OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
 
 find_package(OpenSSL)
 if (CUDAQ_ENABLE_REST AND NOT OPENSSL_FOUND)
