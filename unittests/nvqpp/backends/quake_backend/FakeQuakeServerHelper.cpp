@@ -14,6 +14,8 @@
 #include <fstream>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
+#include <string_view>
 #include <thread>
 
 namespace cudaq {
@@ -26,7 +28,29 @@ public:
 
   RestHeaders getHeaders() override { return RestHeaders(); }
 
-  void initialize(BackendConfig config) override {}
+  void initialize(BackendConfig config) override { backendConfig = config; }
+
+  void updatePassPipeline(const std::filesystem::path &,
+                          std::string &passPipeline) override {
+    auto iter = backendConfig.find("emulate");
+    if (iter == backendConfig.end() || iter->second != "true")
+      return;
+
+    // `quake_fake` sends value-semantic wireset IR to the mock server when
+    // running remotely. For `--emulate`, keep the IR in the normal ref-semantic
+    // form so the shared local JIT lowers it through its regular QIR path.
+    constexpr std::string_view wiresetPipeline =
+        ",factor-quantum-alloc,dqe,cable-rough-in,canonicalize,memtoreg)"
+        ",canonicalize,cse,add-wireset,func.func(assign-wire-indices)"
+        ",qubit-mapping{device=bypass}"
+        ",decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}";
+    const auto pos = passPipeline.find(wiresetPipeline);
+    if (pos == std::string::npos)
+      throw std::runtime_error(
+          "quake_fake emulation pipeline does not contain wireset lowering");
+
+    passPipeline.replace(pos, wiresetPipeline.size(), ")");
+  }
 
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
