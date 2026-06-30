@@ -12,6 +12,7 @@
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <cstring>
