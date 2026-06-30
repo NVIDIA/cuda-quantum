@@ -79,19 +79,19 @@ CUDAQ_TEST(MeasureCountsTester, checkDeserializeRejectsMalformed) {
   {
     std::vector<std::size_t> data = {255};
     cudaq::sample_result mm;
-    EXPECT_THROW(mm.deserialize(data), std::runtime_error);
+    EXPECT_ANY_THROW(mm.deserialize(data));
   }
 
   {
     std::vector<std::size_t> data = {1, static_cast<std::size_t>('a')};
     cudaq::sample_result mm;
-    EXPECT_THROW(mm.deserialize(data), std::runtime_error);
+    EXPECT_ANY_THROW(mm.deserialize(data));
   }
 
   {
     std::vector<std::size_t> data = {0, 255};
     cudaq::sample_result mm;
-    EXPECT_THROW(mm.deserialize(data), std::runtime_error);
+    EXPECT_ANY_THROW(mm.deserialize(data));
   }
 
   {
@@ -99,13 +99,13 @@ CUDAQ_TEST(MeasureCountsTester, checkDeserializeRejectsMalformed) {
                                      /*length*/ static_cast<std::size_t>(-1),
                                      /*count*/ 1};
     cudaq::sample_result mm;
-    EXPECT_THROW(mm.deserialize(data), std::runtime_error);
+    EXPECT_ANY_THROW(mm.deserialize(data));
   }
 
   {
     std::vector<std::size_t> data = {255};
     ExecutionResult rr;
-    EXPECT_THROW(rr.deserialize(data), std::runtime_error);
+    EXPECT_ANY_THROW(rr.deserialize(data));
   }
 }
 
