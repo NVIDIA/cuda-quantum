@@ -10,11 +10,11 @@
 #include "cudaq/spin_op.h"
 #include <algorithm>
 #include <climits>
+#include <iostream>
+#include <map>
 #include <numeric>
 #include <stdexcept>
 #include <string.h>
-#include <iostream>
-#include <map>
 #include <vector>
 
 static std::string longToBitString(std::size_t size, long x) {
