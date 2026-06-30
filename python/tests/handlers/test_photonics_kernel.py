@@ -38,6 +38,32 @@ def test_qudit():
     state = cudaq.get_state(kernel)
     state.dump()
     assert 4 == state.__len__()
+    # Flat-index access.
+    assert state[0] == 0.0
+    assert state[1] == 0.0
+    assert state[2] == 0.0
+    assert state[3] == 1.0
+    # state[4]: index equals state length.
+    with pytest.raises(IndexError):
+        state[4]
+    # state[INT_MAX]: index exceeds state length.
+    with pytest.raises(IndexError):
+        state[2147483647]
+    # Basis-state access.
+    assert state.amplitude([0]) == 0.0
+    assert state.amplitude([1]) == 0.0
+    assert state.amplitude([2]) == 0.0
+    assert state.amplitude([3]) == 1.0
+    # amplitude([4]): digit equals qudit level.
+    with pytest.raises(
+            IndexError,
+            match=r"\[photonics\] basis-state value is out of bounds\."):
+        state.amplitude([4])
+    # amplitude([-1]): negative qudit digit.
+    with pytest.raises(
+            IndexError,
+            match=r"\[photonics\] basis-state value is out of bounds\."):
+        state.amplitude([-1])
 
 
 def test_compilation_unsupported():
