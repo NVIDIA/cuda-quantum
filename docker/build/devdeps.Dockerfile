@@ -167,12 +167,12 @@ COPY --from=prereqs /usr/local/aws "$AWS_INSTALL_PREFIX"
 
 # Install additional dependencies required to build and test CUDA-Q.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).tar.gz \
-    && tar xf cmake-3.28.4* && mv cmake-3.28.4-linux-$(uname -m)/ /usr/local/cmake-3.28/ && rm -rf cmake-3.28.4* \
+    && wget https://github.com/Kitware/CMake/releases/download/v4.0.7/cmake-4.0.7-linux-$(uname -m).tar.gz \
+    && tar xf cmake-4.0.7* && mv cmake-4.0.7-linux-$(uname -m)/ /usr/local/cmake-4.0/ && rm -rf cmake-4.0.7* \
     # NOTE: removing ca-certificates also remove python3-pip.
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ENV PATH="${PATH}:/usr/local/cmake-3.28/bin"
+ENV PATH="${PATH}:/usr/local/cmake-4.0/bin"
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git gdb ninja-build file lldb ccache libatomic1 \

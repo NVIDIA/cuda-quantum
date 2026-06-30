@@ -67,7 +67,7 @@ ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 RUN dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9\
         ninja-build cmake python3-devel ccache
 
-RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).sh -o cmake-install.sh \
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v4.0.7/cmake-4.0.7-linux-$(uname -m).sh -o cmake-install.sh \
     && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
     && rm cmake-install.sh
 

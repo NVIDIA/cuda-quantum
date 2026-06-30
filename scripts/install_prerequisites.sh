@@ -42,7 +42,7 @@
 
 # Centralized version / source definitions used by both installation and lockfile
 # generation. Keeping these here avoids duplication between code paths.
-CMAKE_VERSION=3.26.4
+CMAKE_VERSION=4.0.7
 CMAKE_MACOS_TARBALL_URL="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-macos-universal.tar.gz"
 CMAKE_LINUX_INSTALLER_URL_BASE="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-"
 

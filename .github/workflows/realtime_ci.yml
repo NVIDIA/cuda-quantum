@@ -85,10 +85,20 @@ jobs:
           # Install cmake for building a test example that uses the installed CUDA Quantum Realtime
           # Install cmake depending on distro
           if [[ "${{ matrix.distro }}" == "ubi9" ]]; then
-            retry_dnf install -y cmake
+            # cmake shipped with ubi9 is too old (3.20), so use the Kitware .sh installer.
+            retry_dnf install -y wget
+            wget -q https://github.com/Kitware/CMake/releases/download/v4.0.7/cmake-4.0.7-linux-$(uname -m).sh -O cmake-install.sh
+            bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+            rm cmake-install.sh
           else
+            # TODO: use official apt repo once upgraded to Ubuntu 26.04.
             retry apt update
-            retry apt install -y --no-install-recommends cmake
+            retry apt install -y --no-install-recommends ca-certificates gpg wget
+            wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
+              | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
+              | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+            retry apt update && retry apt install -y --no-install-recommends kitware-archive-keyring cmake
           fi
           # Build the test example that uses the installed CUDA Quantum Realtime
           cd realtime/examples/gpu_dispatch
@@ -122,7 +132,7 @@ jobs:
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           run: |
-            # Note: HSB requires cmake 3.20+
+            # TODO: use official apt repo once upgraded to Ubuntu 26.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
@@ -192,7 +202,12 @@ jobs:
       - name: Test CUDA Quantum Realtime
         shell: bash
         run: |
-          # Install cmake for ctest
-          apt update && apt install -y --no-install-recommends cmake 
+          # TODO: use official apt repo once upgraded to Ubuntu 26.04.
+          apt update && apt install -y --no-install-recommends ca-certificates gpg wget
+          wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
+            | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
+            | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+          apt update && apt install -y --no-install-recommends kitware-archive-keyring cmake
           cd /workspace/realtime/build
           ctest -V
