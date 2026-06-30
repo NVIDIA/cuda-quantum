@@ -117,6 +117,30 @@ All options default to ``False`` / ``0``.
      - Prevent the decomposer from introducing remnant edges that would
        otherwise be needed to satisfy the decomposition.
 
+Hyper-edges appear when a single fault trips both an ``X``-type and a ``Z``-type parity
+check. The circuit below prepares a Bell pair (the ``+1`` eigenstate of both
+``XX`` and ``ZZ``) and measures each stabilizer with its own ancilla. A ``Y``
+error on a data qubit anti-commutes with both checks and flips the data
+readout, so one mechanism flips three detectors at once. The accompanying
+single-qubit ``X`` and ``Z`` errors seed the graph-like edges that the
+hyper-edge decomposes into (since ``Y = X · Z``):
+
+.. tab:: Python
+
+   .. literalinclude:: ../../snippets/python/using/examples/dem/dem_from_kernel.py
+        :language: python
+        :start-after: [Begin Options Kernel]
+        :end-before: [End Options Kernel]
+
+.. tab:: C++
+
+   .. literalinclude:: ../../snippets/cpp/using/examples/dem/dem_from_kernel.cpp
+        :language: cpp
+        :start-after: [Begin Options Kernel]
+        :end-before: [End Options Kernel]
+
+Generate the DEM with and without ``decompose_errors``:
+
 .. tab:: Python
 
    Pass any option as a keyword argument after the kernel arguments:
@@ -135,6 +159,25 @@ All options default to ``False`` / ``0``.
         :language: cpp
         :start-after: [Begin Options]
         :end-before: [End Options]
+
+Without decomposition the ``Y`` error is a single three-detector hyper-edge
+(``D0 D1 D2``), printed alongside the graph-like ``X`` edge (``D0 D2``) and
+``Z`` edge (``D1``):
+
+.. code-block:: text
+
+    error(0.02000000000000000042) D0 D1 D2
+    error(0.01000000000000000021) D0 D2
+    error(0.01000000000000000021) D1
+
+With ``decompose_errors=True`` the hyper-edge is written as the product of
+two graph-like components, separated by ``^``:
+
+.. code-block:: text
+
+    error(0.01000000000000000021) D0 D2
+    error(0.02000000000000000042) D0 D2 ^ D1
+    error(0.01000000000000000021) D1
 
 Limitations
 ------------
