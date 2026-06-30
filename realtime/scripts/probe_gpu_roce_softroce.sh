@@ -95,8 +95,7 @@ EOF
 fi
 
 if ! command -v ibv_devices >/dev/null 2>&1; then
-  echo "ERROR: ibv_devices is not available; install rdma-core/ibverbs-utils." >&2
-  exit 2
+  echo "WARNING: ibv_devices is not available; will use 'rdma link' for device check." >&2
 fi
 
 if ! command -v nvidia-smi >/dev/null 2>&1; then
@@ -106,16 +105,20 @@ else
 fi
 
 if $SETUP_SOFTROCE; then
+  # Skip --verify-pingpong: DOCA's libibverbs drops RXE (software RoCE) provider
+  # support, so ibv_uc_pingpong cannot find the RXE device. The kernel rdma link
+  # state is used for verification instead.
   sudo bash "${SCRIPT_DIR}/setup_softroce_loopback.sh" \
     --cleanup-first \
     --self-loop \
-    --verify-pingpong \
     --no-exports
 fi
 
-if ! ibv_devices | awk 'NR > 2 { print $1 }' | grep -qx "${DEVICE}"; then
-  echo "ERROR: ${DEVICE} is not visible through ibv_devices." >&2
-  ibv_devices >&2 || true
+# Use 'rdma link' instead of ibv_devices: DOCA's libibverbs does not include the
+# RXE userspace provider, so ibv_devices cannot enumerate software RoCE devices.
+if ! rdma link show 2>/dev/null | awk '{print $2}' | cut -d/ -f1 | grep -qx "${DEVICE}"; then
+  echo "ERROR: ${DEVICE} is not visible through 'rdma link show'." >&2
+  rdma link show >&2 || true
   exit 2
 fi
 

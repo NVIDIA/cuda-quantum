@@ -11,6 +11,15 @@
 # while routing the device_call transport through CpuRoceChannel over SoftRoCE.
 # This does not use DOCA/GpuRoceTransceiver. It checks whether GPU-side tests can
 # funnel through the CPU RoCE transport on a single developer machine.
+#
+# KNOWN LIMITATION (DOCA hosts):
+# On hosts where DOCA SDK is installed, DOCA's ibverbs-providers package replaces
+# the stock Ubuntu ibverbs-providers and removes the RXE (software RDMA) userspace
+# provider (librxe-rdmav*.so). As a result, ibv_get_device_list() returns zero
+# devices even when the kernel rdma_rxe module is loaded and rdma link show shows
+# rxe_cudaq0 as ACTIVE. CpuRoceTransceiver will fail with "ibv device not found".
+# This probe is intended to run on hosts WITHOUT DOCA (e.g. a plain developer
+# desktop), where the stock ibverbs-providers includes the RXE provider.
 
 set -euo pipefail
 
@@ -110,14 +119,27 @@ if $SETUP_SOFTROCE; then
   sudo bash "${SCRIPT_DIR}/setup_softroce_loopback.sh" "${setup_args[@]}"
 fi
 
-if ! ibv_devices | awk 'NR > 2 { print $1 }' | grep -qx "${DEVICE}"; then
-  echo "ERROR: ${DEVICE} is not visible through ibv_devices." >&2
-  echo "This usually means the host libibverbs provider stack cannot see RXE." >&2
-  ibv_devices >&2 || true
+# Use 'rdma link' instead of ibv_devices: DOCA's libibverbs does not include the
+# RXE userspace provider, so ibv_devices cannot enumerate software RoCE devices.
+if ! rdma link show 2>/dev/null | awk '{print $2}' | cut -d/ -f1 | grep -qx "${DEVICE}"; then
+  echo "ERROR: ${DEVICE} is not visible through 'rdma link show'." >&2
+  echo "This usually means the RXE device was not created by setup_softroce_loopback.sh." >&2
+  rdma link show >&2 || true
   exit 2
 fi
 
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
+
+# On DOCA hosts, DOCA's libibverbs lacks the RXE userspace provider.
+# install_rxe_provider.sh installs Ubuntu's libibverbs to /opt/ubuntu-ibverbs/lib/
+# alongside Ubuntu's librxe-rdmav34.so. Prepend that path so the daemon uses
+# the Ubuntu libibverbs stack (which exports @IBVERBS_PRIVATE_34 and can load rxe).
+UBUNTU_IBVERBS_LIB="/opt/ubuntu-ibverbs/lib"
+if [[ -d "${UBUNTU_IBVERBS_LIB}" ]]; then
+  export LD_LIBRARY_PATH="${UBUNTU_IBVERBS_LIB}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+  echo "NOTE: Prepending ${UBUNTU_IBVERBS_LIB} to LD_LIBRARY_PATH for RXE support on DOCA host."
+fi
+
 rm -f "${LOG_FILE}"
 
 echo "=== CPU RoCE GPU-targeted device_call over SoftRoCE probe ==="
