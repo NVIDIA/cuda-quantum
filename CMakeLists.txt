@@ -710,11 +710,16 @@ if (CUDAQ_ENABLE_ENSMALLEN)
 endif()
 
 find_package(OpenSSL)
-if (CUDAQ_ENABLE_REST AND NOT OPENSSL_FOUND)
-  message(FATAL_ERROR "OpenSSL is required when CUDAQ_ENABLE_REST is enabled "
-    "(the default). Install OpenSSL, set OPENSSL_ROOT_DIR, or pass "
-    "-DCUDAQ_ENABLE_REST=OFF to disable REST support.")
+if (CUDAQ_ENABLE_REST)
+  if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found — disabling REST. "
+      "OpenSSL is required when CUDAQ_ENABLE_REST is enabled (the default). "
+      "Install OpenSSL, set OPENSSL_ROOT_DIR, or pass -DCUDAQ_ENABLE_REST=OFF "
+      "to disable REST support.")
+    set(CUDAQ_ENABLE_REST OFF CACHE BOOL "" FORCE)
+  endif()
 endif()
+
 if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
