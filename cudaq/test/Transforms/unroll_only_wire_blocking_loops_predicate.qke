@@ -1,0 +1,190 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: cudaq-opt --cc-loop-unroll=unroll-only-wire-blocking-loops=true --canonicalize %s | FileCheck %s
+// clang-format on
+
+// These predicate-level inputs isolate selective unrolling from the later
+// wire-conversion pipeline. Dynamic quantum data access in a loop body should
+// force that loop to unroll. Classical data access, including loops over
+// measurement-result containers, should not.
+
+module {
+
+  func.func @measurement_result_loop(%arg0: !cc.measure_handle, %arg1: !cc.measure_handle) -> i1 attributes {"cudaq-kernel", no_this} {
+    %false = arith.constant false
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i32 = arith.constant 1 : i32
+    %c2_i32 = arith.constant 2 : i32
+    %c2_i64 = arith.constant 2 : i64
+    %0 = cc.alloca !cc.array<!cc.measure_handle x 2>
+    %1 = cc.cast %0 : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+    cc.store %arg0, %1 : !cc.ptr<!cc.measure_handle>
+    %2 = cc.compute_ptr %0[1] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+    cc.store %arg1, %2 : !cc.ptr<!cc.measure_handle>
+    %3 = cc.cast %0 : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+    %4 = cc.stdvec_init %3, %c2_i64 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+    %5:2 = cc.loop while ((%arg2 = %c0_i32, %arg3 = %false) -> (i32, i1)) {
+      %6 = arith.cmpi slt, %arg2, %c2_i32 : i32
+      cc.condition %6(%arg2, %arg3 : i32, i1)
+    } do {
+    ^bb0(%arg2: i32, %arg3: i1):
+      %6 = cc.stdvec_data %4 : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+      %7 = cc.cast signed %arg2 : (i32) -> i64
+      %8 = cc.compute_ptr %6[%7] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.ptr<!cc.measure_handle>
+      %9 = cc.load %8 : !cc.ptr<!cc.measure_handle>
+      %10 = quake.discriminate %9 : (!cc.measure_handle) -> i1
+      %11 = arith.xori %arg3, %10 : i1
+      cc.continue %arg2, %11 : i32, i1
+    } step {
+    ^bb0(%arg2: i32, %arg3: i1):
+      %6 = arith.addi %arg2, %c1_i32 : i32
+      cc.continue %6, %arg3 : i32, i1
+    }
+    return %5#1 : i1
+  }
+
+// Expect the measurement-result loop to stay rolled; it only indexes classical
+// data.
+// CHECK-LABEL:   func.func @measurement_result_loop(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.measure_handle,
+// CHECK-SAME:      %[[ARG1:.*]]: !cc.measure_handle) -> i1 attributes {"cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant false
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 1 : i32
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 2 : i32
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.measure_handle x 2>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.store %[[ARG0]], %[[CAST_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[ALLOCA_0]][1] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.store %[[ARG1]], %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[LOOP_0:.*]]:2 = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]], %[[VAL_1:.*]] = %[[CONSTANT_0]]) -> (i32, i1)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[CONSTANT_3]] : i32
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]], %[[VAL_1]] : i32, i1)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i32, %[[VAL_3:.*]]: i1):
+// CHECK:             %[[CAST_1:.*]] = cc.cast signed %[[VAL_2]] : (i32) -> i64
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[ALLOCA_0]]{{\[}}%[[CAST_1]]] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>, i64) -> !cc.ptr<!cc.measure_handle>
+// CHECK:             %[[LOAD_0:.*]] = cc.load %[[COMPUTE_PTR_1]] : !cc.ptr<!cc.measure_handle>
+// CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[LOAD_0]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[XORI_0:.*]] = arith.xori %[[VAL_3]], %[[DISCRIMINATE_0]] : i1
+// CHECK:             cc.continue %[[VAL_2]], %[[XORI_0]] : i32, i1
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_4:.*]]: i32, %[[VAL_5:.*]]: i1):
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_4]], %[[CONSTANT_2]] : i32
+// CHECK:             cc.continue %[[ADDI_0]], %[[VAL_5]] : i32, i1
+// CHECK:           }
+// CHECK:           return %[[VAL_6:.*]]#1 : i1
+// CHECK:         }
+
+  func.func @parent_dependent_nested_loop() attributes {"cudaq-kernel", no_this} {
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i32 = arith.constant 1 : i32
+    %c2_i32 = arith.constant 2 : i32
+    %0 = quake.alloca !quake.ref
+    %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
+    %2 = quake.alloca !quake.ref
+    %3 = quake.unwrap %2 : (!quake.ref) -> !quake.wire
+    quake.wrap %1 to %0 : !quake.wire, !quake.ref
+    quake.wrap %3 to %2 : !quake.wire, !quake.ref
+    %4 = quake.concat %0, %2 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+    cc.scope {
+      %5 = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+        %6 = arith.cmpi slt, %arg0, %c2_i32 : i32
+        cc.condition %6(%arg0 : i32)
+      } do {
+      ^bb0(%arg0: i32):
+        %6 = arith.subi %c2_i32, %arg0 : i32
+        %7 = cc.loop while ((%arg1 = %c0_i32) -> (i32)) {
+          %8 = arith.cmpi slt, %arg1, %6 : i32
+          cc.condition %8(%arg1 : i32)
+        } do {
+        ^bb0(%arg1: i32):
+          %8 = arith.addi %arg0, %arg1 : i32
+          %9 = cc.cast signed %8 : (i32) -> i64
+          %10 = quake.extract_ref %4[%9] : (!quake.veq<2>, i64) -> !quake.ref
+          %11 = quake.unwrap %10 : (!quake.ref) -> !quake.wire
+          %12 = quake.h %11 : (!quake.wire) -> !quake.wire
+          quake.wrap %12 to %10 : !quake.wire, !quake.ref
+          cc.continue %arg1 : i32
+        } step {
+        ^bb0(%arg1: i32):
+          %8 = arith.addi %arg1, %c1_i32 : i32
+          cc.continue %8 : i32
+        }
+        cc.continue %arg0 : i32
+      } step {
+      ^bb0(%arg0: i32):
+        %6 = arith.addi %arg0, %c1_i32 : i32
+        cc.continue %6 : i32
+      }
+    }
+    return
+  }
+
+// Expect both parent-dependent quantum-indexing loops to unroll into concrete
+// operations.
+// CHECK-LABEL:   func.func @parent_dependent_nested_loop() attributes {"cudaq-kernel", no_this} {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[H_0]] to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_1:.*]] = quake.h %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[H_1]] to %[[ALLOCA_1]] : !quake.wire, !quake.ref
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H_2:.*]] = quake.h %[[UNWRAP_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[H_2]] to %[[ALLOCA_1]] : !quake.wire, !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+  func.func @blocking_dynamic_subveq() attributes {"cudaq-kernel", no_this} {
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i32 = arith.constant 1 : i32
+    %c2_i32 = arith.constant 2 : i32
+    %0 = quake.alloca !quake.ref
+    %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
+    %2 = quake.alloca !quake.ref
+    %3 = quake.unwrap %2 : (!quake.ref) -> !quake.wire
+    quake.wrap %1 to %0 : !quake.wire, !quake.ref
+    quake.wrap %3 to %2 : !quake.wire, !quake.ref
+    %4 = quake.concat %0, %2 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+    cc.scope {
+      %5 = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+        %6 = arith.cmpi slt, %arg0, %c2_i32 : i32
+        cc.condition %6(%arg0 : i32)
+      } do {
+      ^bb0(%arg0: i32):
+        %6 = cc.cast signed %arg0 : (i32) -> i64
+        %7 = quake.subveq %4, %6, %6 : (!quake.veq<2>, i64, i64) -> !quake.veq<1>
+        quake.mz %7 : (!quake.veq<1>) -> !cc.stdvec<!cc.measure_handle>
+        cc.continue %arg0 : i32
+      } step {
+      ^bb0(%arg0: i32):
+        %6 = arith.addi %arg0, %c1_i32 : i32
+        cc.continue %6 : i32
+      }
+    }
+    return
+  }
+
+// Expect the dynamic `subveq` loop to unroll into concrete subveq/mz
+// operations.
+// CHECK-LABEL:   func.func @blocking_dynamic_subveq() attributes {"cudaq-kernel", no_this} {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           %[[SUBVEQ_0:.*]] = quake.subveq %[[CONCAT_0]], 0, 0 : (!quake.veq<2>) -> !quake.veq<1>
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[SUBVEQ_0]] : (!quake.veq<1>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[SUBVEQ_1:.*]] = quake.subveq %[[CONCAT_0]], 1, 1 : (!quake.veq<2>) -> !quake.veq<1>
+// CHECK:           %[[MZ_1:.*]] = quake.mz %[[SUBVEQ_1]] : (!quake.veq<1>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           return
+// CHECK:         }
+}
