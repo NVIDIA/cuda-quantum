@@ -476,9 +476,9 @@ if (CUDAQ_STATIC_DEPS)
   message(STATUS "Static external dependencies enabled.")
 endif()
 
-# ZLIB is required when we build LLVM with zlib support.
-# ZLIB support in LLVM is good to have e.g. for the linker,
-# since some binaries will use zlib compression to store symbols.
+# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
+# good to have e.g. for the linker, since some binaries will use zlib
+# compression to store symbols.
 find_package(ZLIB REQUIRED)
 include(ExternalProject)
 
@@ -692,6 +692,11 @@ configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
 # ==============================================================================
 
 find_package(OpenSSL)
+if (CUDAQ_ENABLE_REST AND NOT OPENSSL_FOUND)
+  message(FATAL_ERROR "OpenSSL is required when CUDAQ_ENABLE_REST is enabled "
+    "(the default). Install OpenSSL, set OPENSSL_ROOT_DIR, or pass "
+    "-DCUDAQ_ENABLE_REST=OFF to disable REST support.")
+endif()
 if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
