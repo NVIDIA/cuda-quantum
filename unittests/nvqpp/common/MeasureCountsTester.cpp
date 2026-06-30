@@ -32,6 +32,16 @@ CUDAQ_TEST(MeasureCountsTester, checkCount) {
   EXPECT_EQ(0, mc.count("1111"));
 }
 
+CUDAQ_TEST(MeasureCountsTester, checkMarginalIndexBounds) {
+  ExecutionResult r{CountsDictionary{{"00", 400}, {"11", 600}}};
+  cudaq::sample_result result(r);
+  // Both valid boundary indices must remain accepted.
+  EXPECT_NO_THROW(result.get_marginal({0}));
+  EXPECT_NO_THROW(result.get_marginal({1}));
+  // Index 2 equals the bitstring width and is therefore out of bounds.
+  EXPECT_ANY_THROW(result.get_marginal({2}));
+}
+
 CUDAQ_TEST(MeasureCountsTester, checkExpValZ) {
   ExecutionResult r{CountsDictionary{{"0", 400}, {"1", 600}}};
   cudaq::sample_result mc(r);
