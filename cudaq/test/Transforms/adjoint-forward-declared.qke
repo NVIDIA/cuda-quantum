@@ -19,7 +19,7 @@ module {
   func.func private @test(!quake.ref)
 
   // CHECK-LABEL: func.func @do_apply
-  // CHECK: quake.apply <adj> @test
+  // CHECK: quake.apply<adj> @test
   func.func @do_apply(%arg : !quake.ref) {
     quake.apply <adj> @test %arg : (!quake.ref) -> ()
     return
