@@ -435,6 +435,10 @@ def test_sample_marginalize():
     marginal_result = sample_result.get_marginal_counts([1, 2, 3])
     assert marginal_result.most_probable() == "101"
 
+    # Index 4 equals the bitstring width and is therefore out of bounds.
+    with pytest.raises(RuntimeError):
+        sample_result.get_marginal_counts([4])
+
 
 def test_swap_2q():
     """
