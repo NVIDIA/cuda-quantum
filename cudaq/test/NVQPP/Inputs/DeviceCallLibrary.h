@@ -716,8 +716,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
 // translation unit in this prototype.
 #define CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(name)                                  \
   namespace {                                                                  \
-  ::cudaq::realtime::DeviceCallService *                                       \
-  __cudaq_device_call_get_service();                                           \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service();     \
   }                                                                            \
   extern "C" ::cudaq::realtime::DeviceCallServicePluginInfo                    \
   CUDAQ_DEVICE_CALL_SERVICE_PLUGIN_INFO_NAME(name)() {                         \
@@ -752,8 +751,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedDeviceCallService<       \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq::realtime::DeviceCallService *                                       \
-  __cudaq_device_call_get_service() {                                          \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service() {    \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
   } /* close anonymous namespace */
@@ -766,8 +764,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedHostDispatchService<     \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq::realtime::DeviceCallService *                                       \
-  __cudaq_device_call_get_service() {                                          \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service() {    \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
   } /* close anonymous namespace */
