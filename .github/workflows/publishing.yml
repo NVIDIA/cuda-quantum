@@ -1017,24 +1017,13 @@ jobs:
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash github-repo/scripts/validate_installation.sh $backends_to_test | tee /tmp/validation.out
 
-          # Check that the tests included the nvidia-mgpu backend:
-          # Grab the first line where "Testing on nvidia target..." starts
-          # The first should be okay, since any target being tested against
-          # nvidia should be using all the options for the validation script.
-          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
+      - name: Verify cusvsim libraries are included
+        shell: bash
+        run: |
+          # The nvidia target is backed by the cusvsim libraries; fail if missing.
+          bash github-repo/scripts/validate_cusvsim_libraries.sh "$CUDA_QUANTUM_PATH"
 
-          # From that line, extract the block until the next "Testing on" or EOF
-          nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
-
-          # Check if "fp32,mgpu" is present
-          if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
-            echo "::error::Missing tests for nvidia fp32,mgpu backend."
-            echo "Observed target options:"
-            echo "$nvidia_block"
-            exit 1
-          fi
-
-      - name: MPI validation 
+      - name: MPI validation
         shell: bash
         run: |
           status_sum=0 && set +e # Allow script to keep going through errors
@@ -1210,16 +1199,11 @@ jobs:
             bash validate_installation.sh | tee /tmp/validation.out
           "
 
-          # Check that the tests included the nvidia-mgpu backend:
-          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
-          nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
-
-          if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
-            echo "::error::Missing tests for nvidia fp32,mgpu backend."
-            echo "Observed target options:"
-            echo "$nvidia_block"
-            exit 1
-          fi
+      - name: Verify cusvsim libraries are included
+        shell: bash
+        run: |
+          # The nvidia target is backed by the cusvsim libraries; fail if missing.
+          bash scripts/validate_cusvsim_libraries.sh /home/cudaqtest/.cudaq
 
   wheel_validation_piponly:
     name: Wheel validation, pip only
@@ -1316,9 +1300,17 @@ jobs:
 
           set -e # Re-enable exit code error checking
           if [ "$status_sum" -ne "0" ]; then
-            echo "::error::Error running validation script" 
+            echo "::error::Error running validation script"
             exit $status_sum
           fi
+
+      - name: Verify cusvsim libraries are included
+        shell: bash
+        run: |
+          # Assert the single-device cusvsim libraries ship in the wheel
+          # (mgpu needs MPI and is not asserted here).
+          bash scripts/validate_cusvsim_libraries.sh /opt/cudaq-venv \
+            libnvqir-cusvsim-fp64.so libnvqir-cusvsim-fp32.so
 
   metapackage_validation_conda:
     name: Python metapackage validation, conda environment
