@@ -10,7 +10,9 @@
 
 #include "cudaq/ADT/GraphCSR.h"
 #include "cudaq/Support/Graph.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include <limits>
 
 namespace cudaq {
 
@@ -23,17 +25,40 @@ public:
   using Qubit = GraphCSR::Node;
   using Path = mlir::SmallVector<Qubit>;
 
+  /// Distance returned for qubits in different connected components.
+  static constexpr unsigned unreachableDistance =
+      std::numeric_limits<unsigned>::max();
+
   /// Read device connectivity info from a file. The input format is the same
   /// as the Graph dump() format.
   static Device file(llvm::StringRef filename) {
     Device device;
+    if (llvm::Error error = tryFile(filename, device)) {
+      llvm::errs() << llvm::toString(std::move(error)) << '\n';
+      device = {};
+    }
+    return device;
+  }
 
+  /// Populate `device` from a connectivity file, returning an error when the
+  /// file cannot be read or a qubit index exceeds the declared node count.
+  /// `device` must be empty.
+  static llvm::Error tryFile(llvm::StringRef filename, Device &device) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuffer =
         llvm::MemoryBuffer::getFile(filename);
-    if (std::error_code EC = fileBuffer.getError()) {
-      llvm::errs() << "Error reading file: " << EC.message() << "\n";
-      return device;
-    }
+    if (std::error_code EC = fileBuffer.getError())
+      return llvm::createStringError(
+          EC, "error reading device topology file: %s", EC.message().c_str());
+
+    auto validateQubitIndex = [&device](unsigned index) -> llvm::Error {
+      const unsigned numQubits = device.getNumQubits();
+      if (index < numQubits)
+        return llvm::Error::success();
+      return llvm::createStringError(
+          llvm::inconvertibleErrorCode(),
+          "device topology qubit index %u is out of range for %u nodes", index,
+          numQubits);
+    };
 
     llvm::StringRef fileContent = fileBuffer->get()->getBuffer();
     while (!fileContent.empty()) {
@@ -54,9 +79,13 @@ public:
         if (!line.consumeInteger(/*Radix=*/10, v1)) {
           line = line.ltrim();
           if (line.consume_front("--> {")) {
+            if (llvm::Error error = validateQubitIndex(v1))
+              return std::move(error);
             line = line.ltrim();
             unsigned v2 = 0;
             while (!line.consumeInteger(10, v2)) {
+              if (llvm::Error error = validateQubitIndex(v2))
+                return std::move(error);
               // Create an edge, but make sure it doesn't already exist
               bool edgeAlreadyExists = false;
               for (auto edge : device.topology.getNeighbours(Qubit(v1))) {
@@ -76,7 +105,7 @@ public:
     }
 
     device.computeAllPairShortestPaths();
-    return device;
+    return llvm::Error::success();
   }
 
   /// Create a device with a path topology.
@@ -168,23 +197,38 @@ public:
   /// Returns the number of physical qubits in the device.
   unsigned getNumQubits() const { return topology.getNumNodes(); }
 
-  /// Returns the distance between two qubits.
+  /// Returns the distance between two qubits, or `unreachableDistance` when no
+  /// path exists.
   unsigned getDistance(Qubit src, Qubit dst) const {
+    if (src == dst)
+      return 0;
     unsigned pairID = getPairID(src.index, dst.index);
-    return src == dst ? 0 : shortestPaths[pairID].size() - 1;
+    PathRef path = shortestPaths[pairID];
+    return path.empty() ? unreachableDistance : path.size() - 1;
+  }
+
+  /// Returns true when two qubits belong to the same connected component.
+  bool hasPath(Qubit src, Qubit dst) const {
+    return getDistance(src, dst) != unreachableDistance;
   }
 
   mlir::ArrayRef<Qubit> getNeighbours(Qubit src) const {
     return topology.getNeighbours(src);
   }
 
+  /// Returns true when two qubits are directly coupled by the device.
   bool areConnected(Qubit q0, Qubit q1) const {
     return getDistance(q0, q1) == 1;
   }
 
-  /// Returns a shortest path between two qubits.
+  /// Returns a shortest path between two qubits, or an empty path when no path
+  /// exists.
   Path getShortestPath(Qubit src, Qubit dst) const {
+    if (src == dst)
+      return Path{src};
     unsigned pairID = getPairID(src.index, dst.index);
+    if (shortestPaths[pairID].empty())
+      return {};
     if (src.index > dst.index)
       return Path(llvm::reverse(shortestPaths[pairID]));
     return Path(shortestPaths[pairID]);
@@ -214,14 +258,15 @@ private:
     return (u * getNumQubits()) - (((u - 1) * u) / 2) + v - u;
   }
 
-  /// Compute the shortest path between every qubit. This assumes that there
-  /// exists at least one path between every source and destination pair. I.e.
-  /// the graph cannot be bipartite.
+  /// Compute the shortest path between every qubit. Disconnected pairs are
+  /// represented by empty paths.
   void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
     auto countPathNodes = [](llvm::ArrayRef<Qubit> parents, Qubit src,
                              Qubit dst) {
+      if (!parents[dst.index].isValid())
+        return std::size_t{0};
       std::size_t count = 2;
       auto p = parents[dst.index];
       while (p != src) {
@@ -246,6 +291,8 @@ private:
       auto &parents = allParents[n];
       // Reconstruct the paths
       for (auto m = n + 1; m < numNodes; ++m) {
+        if (!parents[m].isValid())
+          continue;
         path.clear();
         path.push_back(Qubit(m));
         auto p = parents[m];
