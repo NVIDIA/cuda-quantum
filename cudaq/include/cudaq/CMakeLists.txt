@@ -9,6 +9,3 @@
 include(HandleLLVMOptions)
 add_subdirectory(Optimizer)
 add_subdirectory(Support)
-if(CUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS)
-  add_subdirectory(Synthesis)
-endif()

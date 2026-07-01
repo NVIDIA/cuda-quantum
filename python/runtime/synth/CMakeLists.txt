@@ -6,13 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Python bindings for the Clifford+T rotation synthesis library
-# (cudaq-synth). Skip silently if the cudaq-synth target was not built 
-# (GMP/MPFR not found at configure time).
-if(NOT TARGET cudaq-synth)
-  return()
-endif()
-
+# Python bindings for the Clifford+T rotation synthesis library (cudaq-synth).
 nanobind_add_module(_cudaq_synth
   py_synth.cpp)
 

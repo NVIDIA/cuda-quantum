@@ -6,26 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_path(GMP_INCLUDE_DIR NAMES gmp.h)
-find_path(MPFR_INCLUDE_DIR NAMES mpfr.h)
+find_path(GMP_INCLUDE_DIR NAMES gmp.h HINTS "${GMP_ROOT}/include")
+find_path(MPFR_INCLUDE_DIR NAMES mpfr.h HINTS "${MPFR_ROOT}/include")
 
-if(APPLE)
-  set(_synth_saved_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-  find_library(GMP_LIBRARIES NAMES gmp libgmp)
-  find_library(MPFR_LIBRARIES NAMES mpfr libmpfr)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_synth_saved_suffixes})
-else()
-  find_library(GMP_LIBRARIES NAMES gmp libgmp)
-  find_library(MPFR_LIBRARIES NAMES mpfr libmpfr)
-endif()
+set(_synth_saved_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+set(CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_SHARED_LIBRARY_SUFFIX})
+find_library(GMP_LIBRARIES NAMES gmp libgmp HINTS "${GMP_ROOT}/lib")
+find_library(MPFR_LIBRARIES NAMES mpfr libmpfr HINTS "${MPFR_ROOT}/lib")
+set(CMAKE_FIND_LIBRARY_SUFFIXES ${_synth_saved_suffixes})
 
 if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARIES OR
    NOT MPFR_INCLUDE_DIR OR NOT MPFR_LIBRARIES)
   message(FATAL_ERROR
-    "CUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS=ON but GMP/MPFR not found. "
-    "Install libgmp-dev and libmpfr-dev, or pass "
-    "-DCUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS=OFF.")
+    "The GMP/MPFR shared libraries were not found. They are required to "
+    "build CUDA-Q (Clifford+T rotation synthesis). Run "
+    "scripts/install_prerequisites.sh to build them from source, or install "
+    "them via your package manager (e.g. libgmp-dev and libmpfr-dev on apt) "
+    "and/or set GMP_INSTALL_PREFIX / MPFR_INSTALL_PREFIX.")
 endif()
 
 add_cudaq_library(cudaq-synth
@@ -51,10 +48,21 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   endif()
 endif()
 
-target_include_directories(cudaq-synth
-  PUBLIC
-    ${GMP_INCLUDE_DIR}
-    ${MPFR_INCLUDE_DIR}
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+target_include_directories(cudaq-synth SYSTEM PUBLIC
+  $<BUILD_INTERFACE:${GMP_INCLUDE_DIR}>
+  $<BUILD_INTERFACE:${MPFR_INCLUDE_DIR}>
 )
+target_include_directories(cudaq-synth PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+foreach(_synth_dep IN LISTS GMP_LIBRARIES MPFR_LIBRARIES)
+  get_filename_component(_synth_dep_dir "${_synth_dep}" DIRECTORY)
+  get_filename_component(_synth_dep_name "${_synth_dep}" NAME_WE)
+  if(APPLE)
+    file(GLOB _synth_dep_files
+      "${_synth_dep_dir}/${_synth_dep_name}.dylib"
+      "${_synth_dep_dir}/${_synth_dep_name}.*.dylib")
+  else()
+    file(GLOB _synth_dep_files "${_synth_dep_dir}/${_synth_dep_name}.so*")
+  endif()
+  install(FILES ${_synth_dep_files} DESTINATION lib)
+endforeach()
