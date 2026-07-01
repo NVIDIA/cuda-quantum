@@ -20,6 +20,7 @@ add_subdirectory(test)
 
 install (DIRECTORY cudaq DESTINATION include 
             FILES_MATCHING PATTERN "*.h" 
+            PATTERN "device_call_service.h" EXCLUDE
             PATTERN "nlopt-src" EXCLUDE)
 install (DIRECTORY include/cudaq DESTINATION include FILES_MATCHING PATTERN "*.h")
 install (DIRECTORY common DESTINATION include FILES_MATCHING PATTERN "*.h")
