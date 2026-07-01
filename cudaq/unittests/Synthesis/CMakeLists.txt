@@ -6,11 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-if(NOT TARGET cudaq-synth)
-  message(STATUS "Synthesis unit tests skipped: cudaq-synth target not built")
-  return()
-endif()
-
 include(GoogleTest)
 
 function(add_synthesis_test target_name source_file)

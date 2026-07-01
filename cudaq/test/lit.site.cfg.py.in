@@ -56,11 +56,6 @@ config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
 if cmake_boolvar_to_bool(config.test_remote_sim):
   config.available_features.add('remote-sim')
 
-# Is the Clifford+T synthesis library (GMP/MPFR) built in?
-config.cudaq_has_clifford_t_synthesis = "@CUDAQ_HAS_CLIFFORD_T_SYNTHESIS@"
-if cmake_boolvar_to_bool(config.cudaq_has_clifford_t_synthesis):
-  config.available_features.add('clifford-t-synthesis')
-
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 

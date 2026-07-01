@@ -6,13 +6,13 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// REQUIRES: clifford-t-synthesis
 
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
 
 // gridsynth output is stochastic. We assert only structural invariants.
-// No rotation ops survive, and a minimum of T gates is emitted.
+// No rotation ops survive. The Clifford+T sequence is outlined into a
+// per-angle helper at the top of the module and the kernel calls it.
 // At epsilon=1e-3 the decomposition emits dozens of T gates.
 // 15 is a safety floor robust to gridsynth variance.
 
@@ -23,6 +23,9 @@ func.func @rz_pi_over_4() {
   return
 }
 
+// CHECK-LABEL: func.func private @__cliffordt_rz_
+// CHECK-COUNT-15: quake.t
+
 // CHECK-LABEL: func.func @rz_pi_over_4
 // CHECK:         quake.alloca
-// CHECK-COUNT-15: quake.t
+// CHECK:         call @__cliffordt_rz_
