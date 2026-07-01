@@ -937,6 +937,61 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  realtime_validation:
+    name: Realtime validation (${{ matrix.arch }}, ${{ matrix.info_file }})
+    needs: assets
+    if: ${{ fromJson(needs.assets.outputs.docker_images).info_files[0] != null }}
+    # These correctness tests use the smallest GPU runner available on both architectures.
+    runs-on: linux-${{ matrix.arch }}-gpu-l4-latest-1
+    permissions:
+      packages: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        info_file: ${{ fromJson(needs.assets.outputs.docker_images).info_files }}
+
+    container:
+      image: ${{ fromJson(needs.assets.outputs.docker_images)[matrix.info_file].image_hash }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+      options: --user root
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+        TERM: xterm
+
+    steps:
+      - name: Run realtime integration tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /workspaces/cuda-quantum
+
+          # Do not silently pass if the realtime label is missing or empty.
+          ctest --test-dir build --no-tests=error -L realtime -V 2>&1 \
+            | tee /tmp/realtime_ctest.out
+          if grep -q '\[  SKIPPED \]' /tmp/realtime_ctest.out; then
+            echo "::error::Unexpected skipped realtime test."
+            exit 1
+          fi
+
+          "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v \
+            --show-skipped --show-unsupported build/cudaq/test \
+            --param nvqpp_site_config=build/cudaq/test/lit.site.cfg.py \
+            --filter 'device_call_realtime' 2>&1 \
+            | tee /tmp/device_call_realtime.out
+          if grep -Eq '^(SKIPPED|UNSUPPORTED):' \
+              /tmp/device_call_realtime.out; then
+            echo "::error::Unexpected skipped or unsupported realtime test."
+            exit 1
+          fi
+
+          # Check the CPU transport and device-call runtime built with libibverbs.
+          test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-cpu-transport.a"
+          test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-device-call-runtime.so"
+
   image_validation_config:
     name: Configure image validation
     needs: cudaq_images
@@ -1483,7 +1538,7 @@ jobs:
 
   create_release:
     name: CUDA-Q Release
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, metapackage_validation_macos, cudaq_realtime_installers]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, metapackage_validation_macos, cudaq_realtime_installers, realtime_validation]
     if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
@@ -1563,7 +1618,7 @@ jobs:
 
   clean_up:
     name: Clean up
-    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, cudaq_realtime_installers, image_validation, installer_validation, metapackage_validation_conda, metapackage_validation_macos, wheel_validation_piponly, create_release]
+    needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, cudaq_realtime_installers, realtime_validation, image_validation, installer_validation, metapackage_validation_conda, metapackage_validation_macos, wheel_validation_piponly, create_release]
     # Force this job to run even when some of the dependencies above are skipped.
     if: always() && !cancelled() && needs.assets.result != 'skipped' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-latest

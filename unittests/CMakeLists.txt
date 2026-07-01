@@ -51,9 +51,10 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA::cudart_static
       gtest_main)
 
-  gtest_discover_tests(test_device_call_dispatch
-    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
-    DISCOVERY_TIMEOUT 120)
+  add_test(NAME test_device_call_dispatch COMMAND test_device_call_dispatch)
+  set_tests_properties(test_device_call_dispatch PROPERTIES
+    LABELS "gpu_required;realtime"
+    RESOURCE_LOCK "gpu")
 
   # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
   # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
@@ -243,4 +244,3 @@ add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
-

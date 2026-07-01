@@ -24,6 +24,10 @@ on:
         required: false
         type: string
         description: The CUDA version with which the development dependencies were built.
+      cudaq_enable_projects:
+        required: false
+        type: string
+        description: Optional semicolon-separated list passed to CUDAQ_ENABLE_PROJECTS for cuda-quantum-dev builds.
       environment:
         required: false
         type: string
@@ -363,6 +367,7 @@ jobs:
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Debug"
+            cudaq_enable_projects=${{ inputs.cudaq_enable_projects }}
             git_source_sha=${{ github.sha }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -380,6 +385,7 @@ jobs:
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg cudaq_enable_projects="${{ inputs.cudaq_enable_projects }}" \
             --build-arg git_source_sha=${{ github.sha }} \
             --target ccache-export \
             --output type=local,dest=/tmp/ccache-export \
@@ -633,6 +639,7 @@ jobs:
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
             install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
+            cudaq_enable_projects=${{ inputs.cudaq_enable_projects }}
             git_source_sha=${{ github.sha }}
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
@@ -649,6 +656,7 @@ jobs:
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=${{ steps.prereqs.outputs.devdeps_image }} \
             --build-arg install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}" \
+            --build-arg cudaq_enable_projects="${{ inputs.cudaq_enable_projects }}" \
             --build-arg git_source_sha=${{ github.sha }} \
             --target ccache-export \
             --output type=local,dest=/tmp/ccache-export \
