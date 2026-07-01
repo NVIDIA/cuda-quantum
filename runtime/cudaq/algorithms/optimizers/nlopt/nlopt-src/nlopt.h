@@ -20,7 +20,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 // C++ style wrapper around NLopt API
-// nlopt.hpp is AUTOMATICALLY GENERATED from nlopt-in.hpp - edit the latter!
+// nlopt.h is AUTOMATICALLY GENERATED from nlopt-in.h - edit the latter!
 #ifndef NLOPT_HPP
 #define NLOPT_HPP
 #include <nlopt.h>
