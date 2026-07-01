@@ -11,24 +11,18 @@
 #include <cstdint>
 #include <cstring>
 
-// The logical result is `bias + popcount(bits)`. The original 10-bit test
-// vector contains six set bits, so a bias of 15 produces the expected 21.
-extern "C" __device__ int nativeCountPackedBits(const bool *bits,
-                                                std::uint64_t count,
-                                                std::uint64_t bias) {
-  int total = static_cast<int>(bias);
-  for (std::uint64_t i = 0; i < count; ++i)
-    total += bits[i];
-  return total;
+// Realtime lowering retains references to the logical call targets. These
+// link-only definitions must never execute because dispatch uses the raw
+// handlers registered below.
+extern "C" __device__ int nativeCountPackedBits(const bool *, std::uint64_t,
+                                                std::uint64_t) {
+  __trap();
+  return 0;
 }
 
-extern "C" __device__ void nativeIsEven(bool *result, std::uint64_t resultCount,
-                                        const int *values,
-                                        std::uint64_t valueCount) {
-  const std::uint64_t count =
-      resultCount < valueCount ? resultCount : valueCount;
-  for (std::uint64_t i = 0; i < count; ++i)
-    result[i] = values[i] % 2 == 0;
+extern "C" __device__ void nativeIsEven(bool *, std::uint64_t, const int *,
+                                        std::uint64_t) {
+  __trap();
 }
 
 namespace {
@@ -42,6 +36,8 @@ __device__ std::int32_t nativeCountPackedBitsHandler(const void *input,
       argLen < sizeof(std::uint64_t))
     return -1;
 
+  // The `(vector<bool>, uint64_t) -> int` signature marshals a bit count and
+  // packed bytes, followed by alignment padding and the scalar bias.
   const auto *const bytes = static_cast<const std::uint8_t *>(input);
   const auto bitCount = *reinterpret_cast<const std::uint64_t *>(bytes);
   std::uint64_t offset = sizeof(std::uint64_t);
@@ -50,6 +46,8 @@ __device__ std::int32_t nativeCountPackedBitsHandler(const void *input,
     return -1;
 
   std::int32_t total = 0;
+  // Compute the population count directly from the LSB-first packed payload
+  // without first unpacking it into a Boolean array.
   for (std::uint64_t i = 0; i < bitCount; ++i)
     total += (bytes[offset + i / 8] >> (i % 8)) & 1u;
   offset += packedBytes;
@@ -57,7 +55,8 @@ __device__ std::int32_t nativeCountPackedBitsHandler(const void *input,
   if (offset > argLen || sizeof(std::uint64_t) > argLen - offset)
     return -1;
 
-  total += *reinterpret_cast<const std::uint64_t *>(bytes + offset);
+  const auto bias = *reinterpret_cast<const std::uint64_t *>(bytes + offset);
+  total += bias;
   offset += sizeof(std::uint64_t);
   if (offset != argLen)
     return -1;
@@ -74,6 +73,9 @@ __device__ std::int32_t nativeIsEvenHandler(const void *input, void *output,
   if (!input || !resultLen || argLen < 2 * sizeof(std::uint64_t))
     return -1;
 
+  // The `(vector<bool>&, const vector<int>&) -> void` signature marshals the
+  // output and input counts followed by the integer values. The response
+  // contains the output Boolean vector as packed bytes.
   const auto *const bytes = static_cast<const std::uint8_t *>(input);
   const auto resultCount = *reinterpret_cast<const std::uint64_t *>(bytes);
   const auto valueCount =
@@ -94,6 +96,8 @@ __device__ std::int32_t nativeIsEvenHandler(const void *input, void *output,
     packed[i] = 0;
   const auto *const values =
       reinterpret_cast<const int *>(bytes + 2 * sizeof(std::uint64_t));
+  // Check each integer for evenness and set its corresponding LSB-first bit in
+  // the packed Boolean result.
   for (std::uint64_t i = 0; i < valueCount; ++i)
     if (values[i] % 2 == 0)
       packed[i / 8] |= std::uint8_t{1} << (i % 8);

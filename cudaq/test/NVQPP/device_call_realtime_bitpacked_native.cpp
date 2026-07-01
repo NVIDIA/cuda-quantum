@@ -20,11 +20,13 @@
 #include <cstdio>
 #include <vector>
 
-// The native handler returns `bias + popcount(bits)`. For example, the
-// original 10-bit case has six set bits and bias 15, so it returns 21.
+// `bits` contains the Boolean values to count, and `bias` is added to the
+// number of true values to produce the integer result.
 extern "C" int nativeCountPackedBits(const std::vector<bool> &bits,
                                      std::uint64_t bias);
 
+// `values` contains the integers to check, and the pre-sized `result` receives
+// one Boolean per input indicating whether that value is even.
 extern "C" void nativeIsEven(std::vector<bool> &result,
                              const std::vector<int> &values);
 
