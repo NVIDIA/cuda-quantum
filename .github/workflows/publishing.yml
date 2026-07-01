@@ -28,6 +28,8 @@ on:
   workflow_run:
     workflows:
       - Deployments
+      - Deployments - devdeps nightly
+      - Deployments - devcontainer nightly
     types:
       - completed
     # NOTE: If you add branches here, also update the branch check in

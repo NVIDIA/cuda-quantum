@@ -87,7 +87,7 @@ name: CUDA Quantum cached dev images
 
 jobs:
   metadata:
-    name: Metadata
+    name: Metadata (${{ inputs.matrix_key || inputs.build_config_id || 'dev image' }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -195,7 +195,7 @@ jobs:
             org.opencontainers.image.description=Dev tools for building and testing CUDA Quantum
 
   build:
-    name: Caching
+    name: Caching (${{ inputs.matrix_key || inputs.build_config_id || 'dev image' }})
     needs: metadata
     runs-on: ${{ needs.metadata.outputs.runner }}
     timeout-minutes: 600
@@ -458,7 +458,7 @@ jobs:
           key: ${{ steps.cache.outputs.tar_cache }}
 
   finalize:
-    name: Finalize
+    name: Finalize (${{ inputs.matrix_key || inputs.build_config_id || 'dev image' }})
     runs-on: ubuntu-latest
     if: always() && !cancelled()
     needs: [metadata, build]
