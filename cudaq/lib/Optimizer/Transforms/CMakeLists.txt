@@ -103,14 +103,10 @@ target_include_directories(OptTransforms SYSTEM
 
 register_cudaq_mlir_lib(OptTransforms)
 
-if(TARGET cudaq-synth)
-  target_link_libraries(OptTransforms PRIVATE cudaq-synth)
-  target_compile_definitions(obj.OptTransforms PRIVATE
-    CUDAQ_HAS_CLIFFORD_T_SYNTHESIS)
-  target_include_directories(obj.OptTransforms PRIVATE
-    $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set_source_files_properties(CliffordTSynthesis.cpp PROPERTIES
-      COMPILE_OPTIONS "-Wno-maybe-uninitialized")
-  endif()
+target_link_libraries(OptTransforms PRIVATE cudaq-synth)
+target_include_directories(obj.OptTransforms SYSTEM PRIVATE
+  $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set_source_files_properties(CliffordTSynthesis.cpp PROPERTIES
+    COMPILE_OPTIONS "-Wno-maybe-uninitialized")
 endif()
