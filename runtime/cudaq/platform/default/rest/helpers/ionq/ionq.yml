@@ -39,10 +39,15 @@ target-arguments:
   - key: debias
     required: false
     type: string
-    platform-arg: debias 
+    platform-arg: debias
     help-string: "Specify debiasing."
   - key: sharpen
     required: false
     type: string
     platform-arg: sharpen
     help-string: "Specify sharpening."
+  - key: memory
+    required: false
+    type: string
+    platform-arg: memory
+    help-string: "When `true`, fetches per-shot bitstrings for QPU or noisy-simulator runs and exposes them via `sample_result.get_sequential_data()`. Adds one extra HTTPS round-trip per completed job. Default is `false`."

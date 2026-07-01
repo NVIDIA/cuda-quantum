@@ -55,10 +55,6 @@ public:
   /// server's response to a job submission.
   std::string constructGetResultsPath(ServerMessage &postResponse);
 
-  /// @brief Constructs the URL for retrieving the results of a job based on a
-  /// job ID.
-  std::string constructGetResultsPath(std::string &jobId);
-
   /// @brief Retrieves the results of a job using the provided path.
   ServerMessage getResults(std::string &resultsGetPath);
 
@@ -89,6 +85,13 @@ private:
 
   /// @brief Helper method to check if a key exists in the configuration.
   bool keyExists(const std::string &key) const;
+
+  /// @brief Extract the job shots URL from jobs returned by IonQ API.
+  std::string getShotsUrl(ServerMessage &jobs) const;
+
+  /// @brief Check if per shot output was requested by user and can be
+  /// extracted.
+  bool shotWiseOutputIsNeeded(ServerMessage &jobs) const;
 };
 
 // Initialize the IonQ server helper with a given backend configuration
@@ -127,6 +130,21 @@ void IonQServerHelper::initialize(BackendConfig config) {
     backendConfig["sharpen"] = config["sharpen"];
   if (config.find("format") != config.end())
     backendConfig["format"] = config["format"];
+
+  // Per-shot bitstring fetching is opt-in (default off).
+  // Accept common boolean spellings since this string may originate from
+  // Python kwargs (lowercased to "true"/"false" by py_runtime_target.cpp)
+  // or from a C++ caller constructing BackendConfig by hand.
+  if (config.find("memory") != config.end()) {
+    const auto &v = config["memory"];
+    std::string vLower;
+    for (char c : v) {
+      vLower += (c >= 'A' && c <= 'Z') ? (c - 'A' + 'a') : c;
+    }
+    backendConfig["memory"] = (vLower == "true" || v == "1") ? "true" : "false";
+  } else {
+    backendConfig["memory"] = "false";
+  }
 }
 
 // Implementation of the getValueOrDefault function
@@ -307,22 +325,6 @@ IonQServerHelper::constructGetResultsPath(ServerMessage &postResponse) {
   return resultsPath;
 }
 
-// Overloaded version of constructGetResultsPath for jobId input
-std::string IonQServerHelper::constructGetResultsPath(std::string &jobId) {
-  if (!keyExists("job_path"))
-    throw std::runtime_error("Key 'job_path' doesn't exist in backendConfig.");
-
-  // Construct the results path
-  std::string resultsPath = backendConfig.at("job_path") + jobId + "/results";
-
-  // If sharpen is true, add it to the query parameters
-  if (keyExists("sharpen") && backendConfig["sharpen"] == "true")
-    resultsPath += "?sharpen=true";
-
-  // Return the results path
-  return resultsPath;
-}
-
 // Get the results from a given path
 ServerMessage IonQServerHelper::getResults(std::string &resultsGetPath) {
   RestHeaders headers = getHeaders();
@@ -372,6 +374,40 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return jobs[0].at("status").get<std::string>() == "completed";
 }
 
+std::string IonQServerHelper::getShotsUrl(ServerMessage &jobs) const {
+  if (!keyExists("url"))
+    throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
+
+  if (!jobs.empty() && jobs[0].contains("results") &&
+      jobs[0]["results"].contains("shots") &&
+      jobs[0]["results"]["shots"].contains("url"))
+    return backendConfig.at("url") +
+           jobs[0]["results"]["shots"]["url"].get<std::string>();
+
+  return {};
+}
+
+bool IonQServerHelper::shotWiseOutputIsNeeded(ServerMessage &jobs) const {
+  // `initialize()` always seeds backendConfig["memory"], so a missing
+  // key would indicate a programming error rather than user input.
+  if (backendConfig.at("memory") != "true")
+    return false;
+
+  if (jobs.empty())
+    return false;
+
+  auto &job = jobs[0];
+  // IonQ's API uses the literal string "simulator" for the ideal-cloud sim;
+  // any other value ("qpu.aria-1", "qpu.forte-enterprise-1", ...) is a QPU
+  // for which per shot data is meaningful.
+  bool isQpu =
+      job.contains("target") && job["target"].get<std::string>() != "simulator";
+  bool hasNoise = job.contains("noise") && job["noise"].contains("model") &&
+                  job["noise"]["model"].get<std::string>() != "ideal";
+
+  return isQpu || hasNoise;
+}
+
 // Process the results from a job
 cudaq::sample_result
 IonQServerHelper::processResults(ServerMessage &postJobResponse,
@@ -402,17 +438,18 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
                info.registerName);
   }
 
-  cudaq::CountsDictionary counts;
-
-  // Process the results
+  // Convert an integer to an nQubits-length bitstring (LSB first)
   assert(nQubits <= 64);
-  for (const auto &element : results.items()) {
-    // Convert base-10 ASCII key to bitstring and perform endian swap
-    uint64_t s = std::stoull(element.key());
-    std::string newkey = std::bitset<64>(s).to_string();
-    std::reverse(newkey.begin(), newkey.end()); // perform endian swap
-    newkey.resize(nQubits);
+  auto intToBitString = [nQubits](uint64_t val) {
+    std::string bits(nQubits, '0');
+    for (int q = 0; q < nQubits; q++)
+      bits[q] = ((val >> q) & 1) ? '1' : '0';
+    return bits;
+  };
 
+  cudaq::CountsDictionary counts;
+  for (const auto &element : results.items()) {
+    std::string newkey = intToBitString(std::stoull(element.key()));
     double value = element.value().get<double>();
     std::size_t count = static_cast<std::size_t>(value * shots);
     counts[newkey] = count;
@@ -444,12 +481,13 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
 
   // Get a reduced list of qubit numbers that were in the original program
   // so that we can slice the output data and extract the bits that the user
-  // was interested in. Sort by QIR qubit number.
+  // was interested in. Sort by qubit number.
   std::vector<std::size_t> qubitNumbers;
   qubitNumbers.reserve(output_names.size());
   for (auto &[result, info] : output_names) {
     qubitNumbers.push_back(info.qubitNum);
   }
+  std::sort(qubitNumbers.begin(), qubitNumbers.end());
 
   // For each original counts entry in the full sample results, reduce it
   // down to the user component and add to userGlobal. If qubitNumbers is empty,
@@ -469,10 +507,69 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
     execResults.emplace_back(regCounts, info.registerName);
   }
 
+  if (shotWiseOutputIsNeeded(jobs)) {
+    auto shotsUrl = getShotsUrl(jobs);
+    if (shotsUrl.empty()) {
+      // memory=true was an explicit user request, so surface the failure
+      // at WARN level rather than INFO.
+      CUDAQ_WARN("IonQ per shot results url is missing for job {}. "
+                 "sample_result.get_sequential_data() will be empty.",
+                 jobID);
+    } else {
+      try {
+        auto shotsResults = getResults(shotsUrl);
+
+        // IonQ's /results/shots endpoint returns a JSON array of
+        // decimal-string-encoded integers (one per shot), e.g. `["3","3","0"]`.
+        std::vector<std::string> fullBitStrings;
+        fullBitStrings.reserve(shotsResults.size());
+        for (const auto &element : shotsResults)
+          fullBitStrings.push_back(
+              intToBitString(std::stoull(element.get<std::string>())));
+
+        // Global register: extract the marginal over user qubits if compiler-
+        // generated qubits are present, otherwise use the full bitstring.
+        if (!execResults.empty()) {
+          if (qubitNumbers.empty()) {
+            execResults[0].sequentialData = fullBitStrings;
+          } else {
+            std::vector<std::string> globalSeqData;
+            globalSeqData.reserve(fullBitStrings.size());
+            for (const auto &bs : fullBitStrings) {
+              std::string marginal;
+              marginal.reserve(qubitNumbers.size());
+              for (auto idx : qubitNumbers)
+                marginal += bs[idx];
+              globalSeqData.push_back(std::move(marginal));
+            }
+            execResults[0].sequentialData = std::move(globalSeqData);
+          }
+        }
+
+        std::size_t regIdx = 1;
+        for (const auto &[result, info] : output_names) {
+          if (regIdx >= execResults.size())
+            break;
+          std::vector<std::string> regSeqData;
+          regSeqData.reserve(fullBitStrings.size());
+          for (const auto &bs : fullBitStrings)
+            regSeqData.push_back(std::string{bs[info.qubitNum]});
+          execResults[regIdx].sequentialData = std::move(regSeqData);
+          regIdx++;
+        }
+      } catch (const std::exception &e) {
+        // memory=true was an explicit user request, so surface the failure
+        // at WARN level rather than INFO.
+        CUDAQ_WARN("IonQ per shot results unavailable for job {} (url={}): {}. "
+                   "sample_result.get_sequential_data() will be empty.",
+                   jobID, shotsUrl, e.what());
+      }
+    }
+  }
+
   // Return a sample result including the global register and all individual
   // registers.
-  auto ret = cudaq::sample_result(execResults);
-  return ret;
+  return cudaq::sample_result(execResults);
 }
 
 // Get the headers for the API requests

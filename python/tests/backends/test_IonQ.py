@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os
+import cudaq, pytest, os, requests
 from cudaq import spin
 import numpy as np
 from typing import List
@@ -346,6 +346,182 @@ def test_2q_unitary_synthesis():
 
     counts = cudaq.sample(ctrl_z_kernel)
     assert counts["0010011"] == 1000
+
+
+@pytest.mark.parametrize(
+    "mock_target,mock_noise,memory,expect_shots",
+    [
+        # Per-shot data SHOULD be returned: QPU target, or noisy simulator.
+        ("aria-1", "", True, ['110', '110', '110']),
+        ("simulator", "aria-1", True, ['110', '110', '110']),
+        # memory=False short-circuits even when the server would otherwise have it.
+        ("aria-1", "", False, []),
+        ("simulator", "aria-1", False, []),
+        # Per-shot data should be SKIPPED for ideal-simulator runs, even when
+        # the user explicitly asks for memory=True. Per-shot data must
+        # return false here so we don't pay the extra round-trip.
+        ("simulator", "", True, []),
+        ("simulator", "ideal", True, []),
+        # And no target field at all in the response is treated as not-a-QPU.
+        ("", "", True, []),
+    ])
+def test_per_shot_output(mock_target, mock_noise, memory, expect_shots):
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target={mock_target}")
+        requests.post(
+            f"{url}/_mock_server_config_noise_model?noise={mock_noise}")
+
+        cudaq.set_target("ionq",
+                         url=url,
+                         noise='forte-enterprise-1',
+                         memory=memory)
+
+        @cudaq.kernel
+        def prep_110():
+            qubits = cudaq.qvector(3)
+            x(qubits[0])
+            cx(qubits[0], qubits[1])
+
+        results = cudaq.sample(prep_110, shots_count=3)
+        assert results.get_sequential_data() == expect_shots
+    finally:
+        # Unconditionally reset both mock-server fields so a later parametrize
+        # case doesn't inherit stale state.
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+
+def test_per_shot_output_global_marginal_and_named_registers():
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_and_measure_subset():
+            qubits = cudaq.qvector(4)
+            x(qubits[0])
+            x(qubits[2])
+            x(qubits[3])
+            high = mz(qubits[3])
+            low = mz(qubits[1])
+
+        results = cudaq.sample(prep_and_measure_subset, shots_count=3)
+
+        # Full per-shot data is 1011. The global register retains
+        # only measured qubits, sorted by qubit index: q1 then q3.
+        assert results.get_sequential_data() == ['01', '01', '01']
+        assert results.get_sequential_data("high") == ['1', '1', '1']
+        assert results.get_sequential_data("low") == ['0', '0', '0']
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+
+def test_per_shot_output_interleaved_mixed_sequences():
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        # Bit strings 1010, 1111, 1010, 1111 encoded as IonQ decimal strings.
+        requests.post(
+            f"{url}/_mock_server_config_shots_payload?payload=5,15,5,15")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_and_measure_subset():
+            qubits = cudaq.qvector(4)
+            x(qubits[0])
+            x(qubits[2])
+            x(qubits[3])
+            high = mz(qubits[3])
+            low = mz(qubits[1])
+
+        results = cudaq.sample(prep_and_measure_subset, shots_count=4)
+
+        # Global register keeps measured qubits sorted by qubit index: q1,q3.
+        assert results.get_sequential_data() == ['00', '11', '00', '11']
+        assert results.get_sequential_data("high") == ['0', '1', '0', '1']
+        assert results.get_sequential_data("low") == ['0', '1', '0', '1']
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_payload?payload=")
+
+
+def test_per_shot_output_warns_when_shots_url_is_missing(capfd):
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=false")
+        requests.post(f"{url}/_mock_server_config_shots_results?available=true")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_missing_shots_url():
+            qubit = cudaq.qubit()
+            x(qubit)
+
+        results = cudaq.sample(prep_missing_shots_url, shots_count=3)
+        captured = capfd.readouterr()
+        logs = captured.out + captured.err
+
+        assert results["1"] == 3
+        assert results.get_sequential_data() == []
+        assert "IonQ per shot results url is missing for job" in logs
+        assert "get_sequential_data() will be empty." in logs
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=true")
+        requests.post(f"{url}/_mock_server_config_shots_results?available=true")
+
+
+def test_per_shot_output_warns_when_results_are_unavailable(capfd):
+
+    url = "http://localhost:{}".format(port)
+
+    try:
+        requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=true")
+        requests.post(
+            f"{url}/_mock_server_config_shots_results?available=false")
+
+        cudaq.set_target("ionq", url=url, memory=True)
+
+        @cudaq.kernel
+        def prep_unavailable_shot_results():
+            qubit = cudaq.qubit()
+            x(qubit)
+
+        results = cudaq.sample(prep_unavailable_shot_results, shots_count=3)
+        captured = capfd.readouterr()
+        logs = captured.out + captured.err
+
+        assert results["1"] == 3
+        assert results.get_sequential_data() == []
+        assert "IonQ per shot results unavailable for job" in logs
+        assert "get_sequential_data() will be empty." in logs
+    finally:
+        requests.post(f"{url}/_mock_server_config_target?target=")
+        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+        requests.post(f"{url}/_mock_server_config_shots_url?available=true")
+        requests.post(f"{url}/_mock_server_config_shots_results?available=true")
 
 
 @pytest.mark.skip_macos_arm64_jit
