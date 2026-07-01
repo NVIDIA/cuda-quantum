@@ -52,7 +52,7 @@ static async_sample_result sample_async_impl(
   // The noise_model is passed by value to runSamplingAsync, which captures
   // it in the async task to ensure proper lifetime and handles setting/
   // resetting it to avoid dangling pointers and global state pollution.
-  return details::runSamplingAsync(
+  return detail::runSamplingAsync(
       // Notes:
       // (1) no Python data access is allowed in this lambda body.
       // (2) This lambda might be executed multiple times, e.g, when

@@ -272,3 +272,55 @@ def test_synthesized_kernel_does_not_cache():
     for _ in range(2):
         assert cudaq.sample(synth_a, shots_count=1).count("111") == 1
         assert cudaq.sample(synth_b, shots_count=1).count("1111") == 1
+
+
+def test_kernel_with_unused_argument():
+    """A kernel that takes an argument but never uses it must still run
+    correctly for varying arg values. (The current predicate marks this kind
+    of kernel as fully-synthesized and bypasses the cache; correctness is
+    preserved, only the perf optimization is lost.)"""
+
+    @cudaq.kernel
+    def k(n: int) -> bool:
+        q = cudaq.qubit()
+        x(q)
+        return mz(q)
+
+    assert k(5) is True
+    assert k(7) is True
+    # Documented limitation: cache slot stays empty because every formal
+    # arg is dead, so isFullySynthesized() reports true.
+    assert (not hasattr(k, '_compiled_module') or k._compiled_module.name == "")
+
+
+def test_captured_kernel_change_reflected_after_first_launch():
+    """A kernel that captures another kernel from its enclosing scope must
+    not cache: rebinding the captured name to a different body has to take
+    effect on the next call, not be masked by a stale JIT artifact."""
+
+    @cudaq.kernel
+    def inner(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def outer() -> bool:
+        q = cudaq.qubit()
+        inner(q)
+        return mz(q)
+
+    # v1: inner flips |0> -> |1>.
+    assert outer() is True
+
+    # Rebind `inner` to a no-op body. The lifted capture in `outer` must
+    # resolve to this new definition on the next launch.
+    @cudaq.kernel
+    def inner(q: cudaq.qubit):
+        pass
+
+    assert outer() is False
+
+    # The parent kernel must not have been cached — caching would freeze the
+    # captured-kernel body inside the JIT artifact and the rebind above would
+    # silently no-op.
+    assert (not hasattr(outer, '_compiled_module') or
+            outer._compiled_module.name == "")

@@ -17,8 +17,6 @@ config:
   link-libs: ["-lcudaq-quera-qpu"]
   # Allow evolve API in C++
   preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
-  # Library mode is only for simulators, physical backends must turn this off
-  library-mode: false
 
 target-arguments:
   - key: machine

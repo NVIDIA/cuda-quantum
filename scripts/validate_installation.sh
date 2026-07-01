@@ -234,11 +234,6 @@ do
     if [ -n "$intended_target" ]; then
         echo "Intended for execution on $intended_target backend."
     fi
-    use_library_mode=$(sed -e '/^$/,$d' "$ex" | grep -o '^//[[:space:]]*nvq++.*-library-mode' | head -1)
-    if [ -n "$use_library_mode" ]; then
-        nvqpp_extra_options="--library-mode"
-    fi
-
     for t in $requested_backends
     do
         # Skipping dynamics examples if target is not dynamics and ex is dynamics
@@ -282,6 +277,7 @@ do
         get_target_options() {
             case "$1" in
                 nvidia) echo "fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu" ;;
+                nvidia-legacy) echo "fp32 fp64 fp32,mqpu fp64,mqpu" ;;
                 tensornet) echo "fp32 fp64" ;;
                 tensornet-mps) echo "fp32 fp64" ;;
                 *) echo "" ;;

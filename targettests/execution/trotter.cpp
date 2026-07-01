@@ -52,7 +52,7 @@ int STEPS = 4; // set to around 100 for `nvidia` target
 // Compile and run with:
 // clang-format off
 // ```
-// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x --target nvidia && ./trotter.x
+// nvq++ -v trotter_kernel_mode.cpp -o trotter.x --target nvidia && ./trotter.x
 // ```
 // clang-format on
 

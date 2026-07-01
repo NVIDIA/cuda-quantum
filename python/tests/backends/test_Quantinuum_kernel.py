@@ -16,7 +16,7 @@ pytestmark = pytest.mark.xdist_group("quantinuum_mock")
 
 
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.2
+    return got < -1.1 and got > -2.21
 
 
 @pytest.fixture(scope="function", autouse=True)

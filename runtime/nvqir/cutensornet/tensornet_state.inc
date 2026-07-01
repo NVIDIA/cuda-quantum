@@ -847,7 +847,7 @@ TensorNetState<ScalarType>::computeExpVals(
                                       /*cudaStream*/ 0));
   }
 
-  if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {
+  if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::info)) {
     double flops = 0.0;
     HANDLE_CUTN_ERROR(cutensornetExpectationGetInfo(
         m_cutnHandle, tensorNetworkExpectation,
@@ -997,7 +997,7 @@ std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
         workDesc, /*cudaStream*/ 0));
   }
 
-  if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {
+  if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::info)) {
     double flops = 0.0;
     HANDLE_CUTN_ERROR(cutensornetExpectationGetInfo(
         m_cutnHandle, tensorNetworkExpectation,

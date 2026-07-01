@@ -10,10 +10,13 @@
 
 #include "kernel_builder.h"
 #include <complex>
+#include <functional>
+#include <span>
+#include <stdexcept>
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 
 /// @brief Convert the provided angles to those rotation angles
 /// used for the gray code implementation.
@@ -35,7 +38,7 @@ void applyRotation(Kernel &&kernel, RotationFunctor &&rotationFunctor,
     return;
   }
 
-  auto ctrlIds = details::getControlIndices(gcRank);
+  auto ctrlIds = detail::getControlIndices(gcRank);
   for (auto [i, ctrlIdx] : cudaq::enumerate(ctrlIds)) {
     rotationFunctor(kernel, thetas[i], qubits[target]);
     kernel.template x<cudaq::ctrl>(qubits[controls[ctrlIdx]], qubits[target]);
@@ -51,7 +54,8 @@ std::vector<double> getAlphaZ(const std::span<double> data,
 /// the `kth` qubit.
 std::vector<double> getAlphaY(const std::span<double> data,
                               std::size_t numQubits, std::size_t k);
-} // namespace details
+
+} // namespace detail
 
 /// @brief Decompose the input state vector data to a set of
 /// controlled operations and rotations. This function takes as input
@@ -106,11 +110,11 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
   }
 
   for (std::size_t k = mutableQubits.size(); k > 0; k--) {
-    auto alphaYk = details::getAlphaY(stateAbs, mutableQubits.size(), k);
+    auto alphaYk = detail::getAlphaY(stateAbs, mutableQubits.size(), k);
     std::vector<std::size_t> controls(mutableQubits.begin() + k,
                                       mutableQubits.end());
     auto target = mutableQubits[k - 1];
-    details::applyRotation(
+    detail::applyRotation(
         kernel,
         [](auto &&kernel, auto &&theta, auto &&qubit) {
           kernel.ry(theta, qubit);
@@ -120,12 +124,12 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
 
   if (omegaNonZero) {
     for (std::size_t k = mutableQubits.size(); k > 0; k--) {
-      auto alphaZk = details::getAlphaZ(omega, mutableQubits.size(), k);
+      auto alphaZk = detail::getAlphaZ(omega, mutableQubits.size(), k);
       std::vector<std::size_t> controls(mutableQubits.begin() + k,
                                         mutableQubits.end());
       auto target = mutableQubits[k - 1];
       if (!alphaZk.empty())
-        details::applyRotation(
+        detail::applyRotation(
             kernel,
             [](auto &&kernel, auto &&theta, auto &&qubit) {
               kernel.rz(theta, qubit);
@@ -140,11 +144,124 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
 /// `unique_ptr`.
 auto from_state(const std::span<std::complex<double>> data) {
   auto numQubits = std::log2(data.size());
-  std::vector<details::KernelBuilderType> empty;
+  std::vector<detail::KernelBuilderType> empty;
   auto kernel = std::make_unique<kernel_builder<>>(empty);
   auto qubits = kernel->qalloc(numQubits);
   from_state(*kernel.get(), qubits, data);
   return kernel;
 }
+
+namespace contrib {
+
+/// @brief Pauli axis for ``cudaq::contrib::angular_encode`` rotations
+/// \f$R_P(\theta) = e^{-i \theta P / 2}\f$.
+enum class RotationAxis { X, Y, Z };
+
+namespace detail {
+
+template <typename Kernel>
+void applyAxisRotation(Kernel &kernel, RotationAxis axis, QuakeValue theta,
+                       QuakeValue qubit) {
+  switch (axis) {
+  case RotationAxis::X:
+    kernel.rx(theta, qubit);
+    break;
+  case RotationAxis::Y:
+    kernel.ry(theta, qubit);
+    break;
+  case RotationAxis::Z:
+    kernel.rz(theta, qubit);
+    break;
+  }
+}
+
+template <typename Kernel>
+void applyAxisRotation(Kernel &kernel, RotationAxis axis, double theta,
+                       QuakeValue qubit) {
+  switch (axis) {
+  case RotationAxis::X:
+    kernel.rx(theta, qubit);
+    break;
+  case RotationAxis::Y:
+    kernel.ry(theta, qubit);
+    break;
+  case RotationAxis::Z:
+    kernel.rz(theta, qubit);
+    break;
+  }
+}
+
+inline void validateAngularEncodeSizes(std::optional<std::size_t> qSize,
+                                       std::size_t numAngles) {
+  if (qSize && *qSize != numAngles)
+    throw std::runtime_error(
+        "cudaq.contrib.angular_encode: number of angles must match the "
+        "number of qubits");
+}
+
+} // namespace detail
+
+/// @brief Encode classical features as single-qubit rotation gates.
+///
+/// Angular (rotation) encoding maps a classical angle vector
+/// \f$\boldsymbol{\theta} = (\theta_0, \ldots, \theta_{n-1})\f$ to an
+/// \f$n\f$-qubit product state by applying one parameterized rotation per
+/// qubit. Starting from \f$|0\rangle^{\otimes n}\f$, the encoded state is
+/// \f[
+///   |\psi\rangle
+///   = \bigotimes_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle
+///   = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle_i,
+/// \f]
+/// where the product applies \f$R_{\mathrm{axis}}(\theta_i)\f$ on qubit \f$i\f$
+/// and leaves other qubits unchanged. CUDA-Q uses
+/// \f$R_P(\theta) = e^{-i \theta P / 2}\f$ for \f$P \in \{X, Y, Z\}\f$,
+/// implemented as ``rx``, ``ry``, or ``rz`` for ``RotationAxis::X``, ``Y``,
+/// or ``Z`` respectively. For example, ``RotationAxis::Y`` gives
+/// \f$R_Y(\theta_i)|0\rangle = \cos(\theta_i/2)|0\rangle +
+/// \sin(\theta_i/2)|1\rangle\f$ on qubit \f$i\f$.
+///
+/// For use with ``cudaq::kernel_builder`` only (not ``__qpu__`` kernels).
+///
+/// @param kernel The kernel builder recording the circuit.
+/// @param q A ``qvector`` register to encode into.
+/// @param angles Rotation angles \f$\theta_i\f$ as a ``std::vector<double>``
+/// kernel argument.
+/// @param rotation Rotation axis (default ``RotationAxis::Y``).
+template <typename Kernel>
+void angular_encode(Kernel &&kernel, QuakeValue &q, QuakeValue &angles,
+                    RotationAxis rotation = RotationAxis::Y) {
+  if (!angles.isStdVec())
+    throw std::runtime_error(
+        "cudaq.contrib.angular_encode: angles must be std::vector<double>");
+
+  std::function<void(QuakeValue &)> body = [&](QuakeValue &i) {
+    detail::applyAxisRotation(kernel, rotation, angles[i], q[i]);
+  };
+  kernel.for_loop(0, q.size(), std::move(body));
+}
+
+/// @copydoc angular_encode
+///
+/// Overload for a fixed list of angles known at kernel-build time. When
+/// ``q`` has a compile-time size, the length of ``angles`` must match the
+/// number of qubits.
+template <typename Kernel>
+void angular_encode(Kernel &&kernel, QuakeValue &q,
+                    std::span<const double> angles,
+                    RotationAxis rotation = RotationAxis::Y) {
+  detail::validateAngularEncodeSizes(q.constantSize(), angles.size());
+  for (std::size_t i = 0; i < angles.size(); ++i)
+    detail::applyAxisRotation(kernel, rotation, angles[i], q[i]);
+}
+
+/// @copydoc angular_encode
+template <typename Kernel>
+void angular_encode(Kernel &&kernel, QuakeValue &q,
+                    const std::vector<double> &angles,
+                    RotationAxis rotation = RotationAxis::Y) {
+  angular_encode(kernel, q, std::span<const double>(angles), rotation);
+}
+
+} // namespace contrib
 
 } // namespace cudaq

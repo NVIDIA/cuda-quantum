@@ -911,7 +911,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<double> paramVec(params, params + numParams);
@@ -952,7 +952,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<float> paramVec(params, params + numParams);
@@ -1069,8 +1069,9 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
   auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
-  if (numQubits >= 64)
-    throw std::invalid_argument("Too many qubits (>=64), not supported");
+  // 4^N matrix entries must fit in size_t; 4^32 == 2^64 overflows.
+  if (numQubits >= 32)
+    throw std::invalid_argument("Too many qubits (>=32), not supported");
   auto nToPowTwo = (1ULL << numQubits);
   auto numElements = nToPowTwo * nToPowTwo;
   std::vector<std::complex<double>> unitaryMatrix(unitary,
@@ -1085,8 +1086,9 @@ void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
   auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
-  if (numQubits >= 64)
-    throw std::invalid_argument("Too many qubits (>=64), not supported");
+  // 4^N matrix entries must fit in size_t; 4^32 == 2^64 overflows.
+  if (numQubits >= 32)
+    throw std::invalid_argument("Too many qubits (>=32), not supported");
   auto nToPowTwo = (1ULL << numQubits);
 
   std::vector<std::vector<std::complex<double>>> unitaryConj2D;

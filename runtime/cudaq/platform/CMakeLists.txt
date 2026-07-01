@@ -17,7 +17,7 @@ endif()
 
 add_subdirectory(fermioniq)
 
-if (AWSSDK_ROOT)
+if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
   add_subdirectory(quera)
 endif()
 

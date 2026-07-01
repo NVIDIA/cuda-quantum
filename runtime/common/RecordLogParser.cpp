@@ -12,6 +12,28 @@
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/runtime/logger/logger.h"
 
+namespace {
+std::size_t getTypeByteSize(const std::string &type) {
+  if (type == "i1")
+    return sizeof(bool);
+  if (type == "i8")
+    return sizeof(std::int8_t);
+  if (type == "i16")
+    return sizeof(std::int16_t);
+  if (type == "i32")
+    return sizeof(std::int32_t);
+  if (type == "i64")
+    return sizeof(std::int64_t);
+  if (type == "f32")
+    return sizeof(float);
+  if (type == "f64")
+    return sizeof(double);
+  if (type == "error")
+    throw std::runtime_error("Unsupported element type in struct type.");
+  throw std::runtime_error("Unsupported data type: " + type);
+}
+} // namespace
+
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
   CUDAQ_DBG("Parsing log:\n{}", outputLog);
@@ -82,7 +104,7 @@ void cudaq::RecordLogParser::handleHeader(
 void cudaq::RecordLogParser::handleMetadata(
     const std::vector<std::string> &entries) {
   if (entries.size() < 2 || entries.size() > 3)
-    cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
+    throw std::runtime_error("Invalid METADATA record");
   if (entries.size() == 3) {
     if (entries[1] == cudaq::opt::qir1_0::RequiredResultsAttrName ||
         entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
@@ -120,6 +142,8 @@ void cudaq::RecordLogParser::handleOutput(
         (containerMeta.m_type == ContainerType::ARRAY &&
          containerMeta.elementCount == 0);
     if (isUninitializedContainer) {
+      validateRootContainer(ContainerType::ARRAY,
+                            ContainerStorage::PREALLOCATED);
       // NOTE: This is a temporary workaround until all backends consistently
       // use the new transformation pass that wraps result records inside an
       // array record output. For now, we permit "naked" RESULT records, i.e.,
@@ -177,6 +201,9 @@ void cudaq::RecordLogParser::handleOutput(
     return;
   }
   if (recType == "ARRAY") {
+    validateRootContainer(ContainerType::ARRAY,
+                          recLabel.empty() ? ContainerStorage::FLAT
+                                           : ContainerStorage::PREALLOCATED);
     containerMeta.m_type = ContainerType::ARRAY;
     containerMeta.elementCount = std::stoul(recValue);
     if (!recLabel.empty()) {
@@ -187,6 +214,9 @@ void cudaq::RecordLogParser::handleOutput(
     return;
   }
   if (recType == "TUPLE") {
+    validateRootContainer(ContainerType::TUPLE,
+                          recLabel.empty() ? ContainerStorage::FLAT
+                                           : ContainerStorage::PREALLOCATED);
     containerMeta.m_type = ContainerType::TUPLE;
     containerMeta.elementCount = std::stoul(recValue);
     if (!recLabel.empty()) {
@@ -216,27 +246,46 @@ void cudaq::RecordLogParser::handleOutput(
     if (containerMeta.processedElements == containerMeta.elementCount) {
       containerMeta.reset();
     }
-  } else
+  } else {
+    if (containerMeta.elementCount == 0)
+      validateRootContainer(ContainerType::NONE);
     processSingleRecord(recValue, recLabel);
+  }
 }
 
-cudaq::details::DataHandlerBase &
+void cudaq::RecordLogParser::validateRootContainer(ContainerType type) {
+  if (rootContainerType.has_value() && rootContainerType.value() != type)
+    throw std::runtime_error("Inconsistent root result types");
+  rootContainerType = type;
+}
+
+void cudaq::RecordLogParser::validateRootContainer(
+    ContainerType type, ContainerStorage containerStorage) {
+  validateRootContainer(type);
+  if (rootContainerStorage.has_value() &&
+      rootContainerStorage.value() != containerStorage)
+    throw std::runtime_error(
+        "Inconsistent root result storage representations");
+  rootContainerStorage = containerStorage;
+}
+
+cudaq::detail::DataHandlerBase &
 cudaq::RecordLogParser::getDataHandler(const std::string &dataType) {
   // Static handlers for different data types
-  static details::DataHandler<bool> boolHandler(
-      std::make_unique<details::BooleanConverter>());
-  static details::DataHandler<std::int8_t> i8Handler(
-      std::make_unique<details::IntegerConverter<std::int8_t>>());
-  static details::DataHandler<std::int16_t> i16Handler(
-      std::make_unique<details::IntegerConverter<std::int16_t>>());
-  static details::DataHandler<std::int32_t> i32Handler(
-      std::make_unique<details::IntegerConverter<std::int32_t>>());
-  static details::DataHandler<std::int64_t> i64Handler(
-      std::make_unique<details::IntegerConverter<std::int64_t>>());
-  static details::DataHandler<float> f32Handler(
-      std::make_unique<details::FloatConverter<float>>());
-  static details::DataHandler<double> f64Handler(
-      std::make_unique<details::FloatConverter<double>>());
+  static detail::DataHandler<bool> boolHandler(
+      std::make_unique<detail::BooleanConverter>());
+  static detail::DataHandler<std::int8_t> i8Handler(
+      std::make_unique<detail::IntegerConverter<std::int8_t>>());
+  static detail::DataHandler<std::int16_t> i16Handler(
+      std::make_unique<detail::IntegerConverter<std::int16_t>>());
+  static detail::DataHandler<std::int32_t> i32Handler(
+      std::make_unique<detail::IntegerConverter<std::int32_t>>());
+  static detail::DataHandler<std::int64_t> i64Handler(
+      std::make_unique<detail::IntegerConverter<std::int64_t>>());
+  static detail::DataHandler<float> f32Handler(
+      std::make_unique<detail::FloatConverter<float>>());
+  static detail::DataHandler<double> f64Handler(
+      std::make_unique<detail::FloatConverter<double>>());
   // Map data type to the corresponding handler
   if (dataType == "i1")
     return boolHandler;
@@ -256,7 +305,7 @@ cudaq::RecordLogParser::getDataHandler(const std::string &dataType) {
 }
 
 void cudaq::RecordLogParser::preallocateArray() {
-  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  cudaq::detail::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
   containerMeta.dataOffset =
       dh.allocateArray(bufferHandler, containerMeta.elementCount);
 }
@@ -267,9 +316,20 @@ void cudaq::RecordLogParser::preallocateTuple() {
         "Data layout information missing for the struct / tuple type.");
   if (dataLayoutInfo.second.size() != containerMeta.tupleTypes.size())
     throw std::runtime_error("Tuple size mismatch in kernel and label.");
+  const std::size_t tupleSize = dataLayoutInfo.first.value();
+  for (std::size_t i = 0; i < dataLayoutInfo.second.size(); ++i) {
+    const std::size_t offset = dataLayoutInfo.second[i];
+    const std::size_t end = i + 1 < dataLayoutInfo.second.size()
+                                ? dataLayoutInfo.second[i + 1]
+                                : tupleSize;
+    if (offset >= tupleSize || end <= offset || end > tupleSize)
+      throw std::runtime_error("Invalid tuple layout");
+    if (getTypeByteSize(containerMeta.tupleTypes[i]) > end - offset)
+      throw std::runtime_error("Tuple element exceeds its layout slot");
+  }
   containerMeta.dataOffset = bufferHandler.getBufferSize();
   // Directly allocate memory for the tuple, update offsets
-  bufferHandler.resizeBuffer(dataLayoutInfo.first.value());
+  bufferHandler.resizeBuffer(tupleSize);
   containerMeta.tupleOffsets = dataLayoutInfo.second;
 }
 
@@ -288,7 +348,7 @@ void cudaq::RecordLogParser::processSingleRecord(const std::string &recValue,
     else if (currentOutput == OutputType::DOUBLE)
       label = "f64";
   }
-  cudaq::details::DataHandlerBase &dh = getDataHandler(label);
+  cudaq::detail::DataHandlerBase &dh = getDataHandler(label);
   dh.addRecord(bufferHandler, recValue);
 }
 
@@ -297,7 +357,7 @@ void cudaq::RecordLogParser::processArrayEntry(const std::string &recValue,
   std::size_t index = containerMeta.extractIndex(recLabel);
   if (index >= containerMeta.elementCount)
     throw std::runtime_error("Array index out of bounds");
-  cudaq::details::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
+  cudaq::detail::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
   dh.insertIntoArray(bufferHandler, containerMeta.dataOffset, index, recValue);
 }
 
@@ -306,7 +366,7 @@ void cudaq::RecordLogParser::processTupleEntry(const std::string &recValue,
   std::size_t index = containerMeta.extractIndex(recLabel);
   if (index >= containerMeta.elementCount)
     throw std::runtime_error("Tuple index out of bounds");
-  cudaq::details::DataHandlerBase &dh =
+  cudaq::detail::DataHandlerBase &dh =
       getDataHandler(containerMeta.tupleTypes[index]);
   dh.insertIntoTuple(
       bufferHandler,

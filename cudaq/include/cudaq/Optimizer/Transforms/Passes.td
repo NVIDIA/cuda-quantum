@@ -282,7 +282,8 @@ def CombineMeasurements :
     }
     ```
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def CombineQuantumAllocations :
@@ -302,7 +303,8 @@ def CombineQuantumAllocations :
     combined deallocation will be added to each exit block.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
@@ -323,6 +325,14 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
+def DeadQuantumElimination : Pass<"dqe"> {
+  let summary = "Dead quantum elimination (DQE).";
+  let description = [{
+    Eliminate any clearly dead quantum (`!quake.ref` or `!quake.wire`)
+    allocations from the IR. (quantum here means some flavor of qudit.)
+  }];
 }
 
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
@@ -902,6 +912,15 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
     necessary when synthesizing quantum circuits from CUDA-Q kernels, such
     as when generating a QIR base profile. A quantum circuit requires all loops
     be completely unrolled.
+
+    The unroll-only-wire-blocking-loops option opts in to selective unrolling
+    for a value-semantics (wire) pipeline: only loops that still access
+    quantum data by dynamic reference or slice (blocking wire conversion) are
+    unrolled. Counted loops whose quantum accesses can be represented with
+    static wireset indices are left rolled. A loop that blocks wire
+    conversion but cannot be unrolled (e.g. a non-constant trip
+    count) is a dead end and is reported as an error. This option defaults to
+    false, leaving the pass behavior unchanged for all existing pipelines.
   }];
 
   let dependentDialects = ["mlir::arith::ArithDialect",
@@ -914,7 +933,12 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
       "signal-failure-if-any-loop-cannot-be-completely-unrolled", "bool",
       /*default=*/"false", "Signal failure if pass can't unroll all loops.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
-      "Allow unrolling of loop with early exit (i.e. break statement).">
+      "Allow unrolling of loop with early exit (i.e. break statement).">,
+    Option<"unrollOnlyWireBlockingLoops", "unroll-only-wire-blocking-loops",
+      "bool", /*default=*/"false",
+      "Unroll only loops that block wire conversion; keep counted loops "
+      "whose quantum accesses can be represented with static wireset indices "
+      "rolled (and error on a blocking loop that cannot be unrolled).">
   ];
 }
 
@@ -984,14 +1008,32 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
       "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), "
       "file(/path/to/file), bypass">,
-    Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
+    Option<"extendedLayerSize", "extended-layer-size", "unsigned",
            /*default=*/"20", "Extended layer size">,
-    Option<"extendedLayerWeight", "extendedLayerWeight", "float",
+    Option<"extendedLayerWeight", "extended-layer-weight", "float",
            /*default=*/"0.5", "Extended layer weight">,
-    Option<"decayDelta", "decayDelta", "float", /*default=*/"0.5",
+    Option<"decayDelta", "decay-delta", "float", /*default=*/"0.5",
            "Decay delta">,
-    Option<"roundsDecayReset", "roundsDecayReset", "unsigned", /*default=*/"5",
-           "Number of rounds before decay is reset">,
+    Option<"roundsDecayReset", "rounds-decay-reset", "unsigned",
+           /*default=*/"5", "Number of rounds before decay is reset">,
+    Option<"minStallSwapBudget", "min-stall-swap-budget", "unsigned",
+           /*default=*/"64",
+           "Release valve floor: minimum number of consecutive swaps that "
+           "route no gate before a stuck front layer is force-routed along a "
+           "shortest path (advanced)">,
+    Option<"stallSwapBudgetPerQubit", "stall-swap-budget-per-qubit", "unsigned",
+           /*default=*/"4",
+           "Release valve scaling: per-device-qubit stall budget. The budget "
+           "used is max(min-stall-swap-budget, stall-swap-budget-per-qubit * "
+           "numQubits) (advanced)">,
+    Option<"placement", "placement", "std::string",
+           /*default=*/"\"identity\"",
+           "Initial placement strategy: auto (propose identity and greedy "
+           "seeds, select by routed swap count), identity, greedy">,
+    Option<"search", "search", "std::string", /*default=*/"\"none\"",
+           "Layout search strategy: sabre (SABRE forward-backward-forward "
+           "reverse-traversal refinement of each seed), none (single forward "
+           "route per seed; legacy mapping is placement=identity search=none)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
            "internal compiler errors">
@@ -1030,7 +1072,8 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     SSA semantics. A use can destroy the value itself, therefore it is required
     that `wire` values be threads in and out of each and every use.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"classicalValues", "classical", "bool",
@@ -1104,7 +1147,8 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     "Minimumn percentage of rz ops in subcircuit to run phase folding">,
   ];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
 }
 
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
@@ -1144,6 +1188,25 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
+  }];
+}
+
+def PyFrontendCleanup : Pass<"py-frontend-cleanup", "mlir::func::FuncOp"> {
+  let summary = "Clean up IR residue specific to the Python AST bridge.";
+  let description = [{
+    This pass tidies up IR constructs produced only by the Python front-end
+    (the AST bridge). It runs as part of the Python AOT pipeline and must be
+    followed by `canonicalize`, which completes the folds it exposes.
+
+    Currently it folds `quake.veq_size` of a `cc.if` result whose branches may
+    yield an empty veq (`cc.undef`/`cc.poison`). When the `cc.if` condition is
+    not a compile-time constant the `cc.if` cannot be folded away, leaving a
+    `quake.veq_size` that reads a possibly-undef veq. The pass hoists the
+    `quake.veq_size` into both branches as an extra `i64` result so each
+    computes the size of its own branch-local veq. It only exposes those
+    branch-local veqs; the resulting folds (`quake.veq_size` of an undef/poison
+    veq to 0, or of a sized veq to a constant) are performed by the Quake
+    canonicalization patterns.
   }];
 }
 
@@ -1365,9 +1428,12 @@ def ResourceCountPreprocess :
 
   let options = [
     Option<"countGate", "count-gate",
-      "std::function<void(std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t)>",
-      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t){}",
-      "Closure that receives gate name, control qubit indices, target qubit indices, and multiplicity">,
+      "std::function<void(std::string,std::vector<std::size_t>,std::vector"
+      "<std::size_t>,size_t)>",
+      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector"
+      "<std::size_t>,size_t){}",
+      "Closure that receives gate name, control qubit indices, target qubit "
+      "indices, and multiplicity">,
     Option<"dumpPreprocessed", "dump-preprocessed", "bool", /*default=*/"false",
       "Dump preprocessed gates instead of counting them (useful for testing)">,
   ];
@@ -1539,7 +1605,7 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   }];
 
   let dependentDialects = ["mlir::cf::ControlFlowDialect",
-                           "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
+    "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

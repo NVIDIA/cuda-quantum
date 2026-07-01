@@ -49,13 +49,11 @@ public:
     std::string name = kernelName;
     const auto packed = args.getPacked();
     std::string strArgs = packed ? (char *)packed->data.data() : "";
-    std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt,
-                       mapping_reorder_idx);
+    codes.push_back(KernelExecution{.name = name, .code = strArgs});
 
     if (executionContext) {
       executor->setShots(executionContext->shots);
-      cudaq::details::future future;
+      cudaq::detail::future future;
       future = executor->execute(codes);
       // Keep this asynchronous if requested
       if (executionContext->asyncExec) {

@@ -56,7 +56,12 @@ public:
     auto *initBlock = rewriter.getInsertionBlock();
     Value stackSave;
     auto ptrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-    if (scopeOp.hasAllocation(/*quantumAllocs=*/false)) {
+    if (scopeOp.hasQuantumAllocation())
+      if (auto fn = scopeOp->getParentOfType<func::FuncOp>())
+        fn->setAttr(cudaq::opt::disableQubitCombineAttrName,
+                    UnitAttr::get(scopeOp.getContext()));
+
+    if (scopeOp.hasClassicalAllocation()) {
       auto call = func::CallOp::create(rewriter, loc, ptrTy,
                                        cudaq::llvmStackSave, ArrayRef<Value>{});
       stackSave = call.getResult(0);

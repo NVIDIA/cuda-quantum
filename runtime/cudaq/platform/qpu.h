@@ -15,7 +15,6 @@
 #include "common/ThunkInterface.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/policies.h"
-#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/remote_capabilities.h"
 
 namespace mlir {
@@ -55,13 +54,31 @@ protected:
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
 
-  /// @brief Check if the current execution context is a `spin_op` observation
-  /// and perform state-preparation circuit measurement based on the `spin_op`
-  /// terms.
-  void handleObservation(ExecutionContext &context) const;
-
   [[nodiscard]] static KernelThunkResultType
   runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
+
+  /// @brief Re-throw an exception the kernel deferred during execution, if any.
+  /// Subclasses must call this immediately after invoking a kernel, from the
+  /// C++ frame above the JIT/AOT boundary. It exists because on some platforms
+  /// (macOS arm64) a C++ exception cannot unwind through a JIT-compiled kernel
+  /// frame; the simulator records the error on the execution context instead of
+  /// throwing across that boundary (see
+  /// ExecutionContext::deferredKernelException). No-op when nothing was
+  /// deferred.
+  static void rethrowDeferredKernelException();
+
+  /// @brief RAII marker for the window in which a JIT/AOT-compiled kernel frame
+  /// is executing. While alive it sets `ExecutionContext::inKernelLaunch` on
+  /// the active context, so the simulator defers (rather than throws)
+  /// exceptions that would otherwise have to unwind through the kernel frame.
+  /// Launchers wrap the raw kernel invocation in this scope and call
+  /// rethrowDeferredKernelException() immediately afterwards.
+  struct InKernelLaunchScope {
+    InKernelLaunchScope();
+    ~InKernelLaunchScope();
+    InKernelLaunchScope(const InKernelLaunchScope &) = delete;
+    InKernelLaunchScope &operator=(const InKernelLaunchScope &) = delete;
+  };
 
 public:
   /// The constructor, initializes the execution queue
@@ -144,44 +161,39 @@ public:
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
-  virtual sample_result launchKernel(sample_policy &policy,
-                                     const AnyModule &module, KernelArgs args);
+  virtual sample_result launchKernel(const sample_policy &policy,
+                                     const CompiledModule &module,
+                                     KernelArgs args);
 
-  virtual async_sample_result launchKernel(async_sample_policy &policy,
-                                           const AnyModule &module,
+  virtual async_sample_result launchKernel(const async_sample_policy &policy,
+                                           const CompiledModule &module,
                                            KernelArgs args);
+
+  virtual observe_result launchKernel(const observe_policy &policy,
+                                      const CompiledModule &module,
+                                      KernelArgs args);
+
+  virtual async_observe_result launchKernel(const async_observe_policy &policy,
+                                            const CompiledModule &module,
+                                            KernelArgs args);
 
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
-  /// Get the compile target of the QPU
-  // Overload for sample policy
+  /// Get the compile target of the QPU for the given policy.
+  ///
+  /// By default, fall back to other_policies compile target.
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
-  getCompileTarget(sample_policy &policy);
+  getCompileTarget(const sample_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const observe_policy &policy);
   // Overload for currently unsupported policies (to be removed).
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
-  getCompileTarget(ExecutionContext *context);
-
-  [[nodiscard]] virtual CompiledModule
-  compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
-
-  [[nodiscard]] virtual CompiledModule compileModule(sample_policy &,
-                                                     const SourceModule &src,
-                                                     KernelArgs args,
-                                                     bool isEntryPoint);
+  getCompileTarget(const other_policies &policy, ExecutionContext *context);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
   virtual void onRandomSeedSet(std::size_t seed) {}
-};
-
-struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
-  virtual ~ModuleLauncher() = default;
-
-  /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
-  /// CompiledModule.
-  virtual CompiledModule compileModule(const SourceModule &src, KernelArgs args,
-                                       bool isEntryPoint) = 0;
 };
 
 } // namespace cudaq

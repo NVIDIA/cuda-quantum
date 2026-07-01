@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // RUN: if %anyon_avail; then nvq++ --target anyon --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %ionq_avail; then nvq++ --target ionq  --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %iqm_avail; then nvq++ --target iqm   --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi

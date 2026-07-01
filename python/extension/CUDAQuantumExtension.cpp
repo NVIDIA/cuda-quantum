@@ -18,6 +18,7 @@
 #include "runtime/common/py_SampleResult.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
 #include "runtime/cudaq/algorithms/py_evolve.h"
+#include "runtime/cudaq/algorithms/py_observe.h"
 #include "runtime/cudaq/algorithms/py_observe_async.h"
 #include "runtime/cudaq/algorithms/py_optimizer.h"
 #include "runtime/cudaq/algorithms/py_resource_count.h"
@@ -67,12 +68,7 @@ using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
-extern "C" void cudaq_ensure_default_launcher_linked(void);
-
 NB_MODULE(_quakeDialects, m) {
-  // Ensure the TU that registers PythonLauncher ("default") is linked so
-  // kernel launches work without an explicit set_target().
-  cudaq_ensure_default_launcher_linked();
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);
@@ -138,6 +134,7 @@ NB_MODULE(_quakeDialects, m) {
   bindCountResources(cudaqRuntime);
   bindDemFromKernel(cudaqRuntime);
   bindPySample(cudaqRuntime);
+  bindPyObserve(cudaqRuntime);
   bindSampleAsync(cudaqRuntime);
   bindSamplePTSBE(cudaqRuntime);
   bindObserveAsync(cudaqRuntime);

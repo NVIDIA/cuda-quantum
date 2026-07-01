@@ -9,11 +9,15 @@
 #pragma once
 
 #include "cudaq/utils/cudaq_utils.h"
+#include <charconv>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <optional>
 #include <stdexcept>
+#include <string_view>
+#include <system_error>
 #include <type_traits>
 
 namespace cudaq {
@@ -24,7 +28,7 @@ enum struct RecordType { HEADER, METADATA, OUTPUT, START, END };
 enum struct OutputType { RESULT, BOOL, INT, DOUBLE };
 enum struct ContainerType { NONE, ARRAY, TUPLE };
 
-namespace details {
+namespace detail {
 
 //===----------------------------------------------------------------------===//
 // Type conversion infrastructure for string-to-value parsing
@@ -128,22 +132,22 @@ public:
     T *startPtr = innerBuffer;
     T *end0Ptr = innerBuffer + arrSize;
     T *end1Ptr = end0Ptr;
-    /// Store the pointers into the outer vector (buffer)
-    T **ptrLoc = reinterpret_cast<T **>(buffer.data() + vectorOffset);
-    ptrLoc[0] = startPtr;
-    ptrLoc[1] = end0Ptr;
-    ptrLoc[2] = end1Ptr;
+    /// Store the pointers into the outer vector (buffer) without assuming the
+    /// byte offset is suitably aligned for a T** access.
+    T *pointers[] = {startPtr, end0Ptr, end1Ptr};
+    std::memcpy(buffer.data() + vectorOffset, pointers, sizeof(pointers));
     return vectorOffset;
   }
 
   template <typename T>
   void insertIntoArray(size_t offset, std::size_t index, T value) {
     if constexpr (std::is_same_v<T, bool>) {
-      auto v = reinterpret_cast<std::vector<bool> *>(buffer.data() + offset);
+      auto *v = reinterpret_cast<std::vector<bool> *>(buffer.data() + offset);
       (*v)[index] = value;
     } else {
-      T **ptrLoc = reinterpret_cast<T **>(buffer.data() + offset);
-      ptrLoc[0][index] = value;
+      T *innerBuffer = nullptr;
+      std::memcpy(&innerBuffer, buffer.data() + offset, sizeof(innerBuffer));
+      innerBuffer[index] = value;
     }
   }
 
@@ -157,6 +161,8 @@ public:
 
   template <typename T>
   void insertIntoTuple(size_t offset, T value) {
+    if (offset > buffer.size() || sizeof(T) > buffer.size() - offset)
+      throw std::runtime_error("Tuple element exceeds result buffer");
     std::memcpy(buffer.data() + offset, &value, sizeof(T));
   }
 
@@ -218,11 +224,20 @@ public:
 
   /// Parse string like "[0]" for array index, and ".0" for tuple index.
   std::size_t extractIndex(const std::string &label) {
-    if ((label[0] == '[') && (label[label.size() - 1] == ']'))
-      return std::stoi(label.substr(1, label.size() - 2));
-    if (label[0] == '.')
-      return std::stoi(label.substr(1, label.size() - 1));
-    throw std::runtime_error("Index not found in label");
+    std::string_view index;
+    if (label.size() >= 3 && label.front() == '[' && label.back() == ']')
+      index = std::string_view(label).substr(1, label.size() - 2);
+    else if (label.size() >= 2 && label.front() == '.')
+      index = std::string_view(label).substr(1);
+    else
+      throw std::runtime_error("Index not found in label");
+
+    std::size_t value = 0;
+    const auto [end, error] =
+        std::from_chars(index.data(), index.data() + index.size(), value);
+    if (error != std::errc{} || end != index.data() + index.size())
+      throw std::runtime_error("Invalid index in label");
+    return value;
   }
 
   ContainerType m_type = ContainerType::ARRAY;
@@ -254,10 +269,10 @@ public:
 template <typename T>
 class DataHandler : public DataHandlerBase {
 private:
-  std::unique_ptr<details::TypeConverterBase<T>> converter;
+  std::unique_ptr<detail::TypeConverterBase<T>> converter;
 
 public:
-  DataHandler(std::unique_ptr<details::TypeConverterBase<T>> conv)
+  DataHandler(std::unique_ptr<detail::TypeConverterBase<T>> conv)
       : converter(std::move(conv)) {}
   void addRecord(BufferHandler &bh, const std::string &value) override {
     bh.addPrimitiveRecord<T>(converter->convert(value));
@@ -278,7 +293,7 @@ public:
   }
 };
 
-} // namespace details
+} // namespace detail
 
 namespace {
 // Simplify look up of the required number of results by using a common
@@ -314,6 +329,13 @@ public:
   std::size_t getBufferSize() const { return bufferHandler.getBufferSize(); }
 
 private:
+  /// Result-buffer storage for aggregate roots. FLAT appends element bytes;
+  /// PREALLOCATED reserves the host layout before indexed insertion. This is
+  /// separate from `RecordSchemaType` for implicit `RESULT` arrays which are
+  /// materialized as a pre-allocated `vector<bool>` even when no labeled schema
+  /// was declared.
+  enum struct ContainerStorage { FLAT, PREALLOCATED };
+
   /// Process different types of records
   void handleHeader(const std::vector<std::string> &);
   void handleMetadata(const std::vector<std::string> &);
@@ -330,15 +352,21 @@ private:
   /// appropriate type and store in the pre-allocated buffer
   void processArrayEntry(const std::string &, const std::string &);
   void processTupleEntry(const std::string &, const std::string &);
+  /// Require every root result in a log to use one container shape.
+  void validateRootContainer(ContainerType);
+  /// Require every aggregate root to use one storage representation.
+  void validateRootContainer(ContainerType, ContainerStorage);
   /// Get data handler for the specified type
-  details::DataHandlerBase &getDataHandler(const std::string &dataType);
+  detail::DataHandlerBase &getDataHandler(const std::string &dataType);
 
   RecordSchemaType schema = RecordSchemaType::ORDERED;
   OutputType currentOutput;
+  std::optional<ContainerType> rootContainerType;
+  std::optional<ContainerStorage> rootContainerStorage;
   /// Manages the underlying buffer storage
-  details::BufferHandler bufferHandler;
+  detail::BufferHandler bufferHandler;
   /// Tracks container metadata during decoding
-  details::ContainerMetadata containerMeta;
+  detail::ContainerMetadata containerMeta;
   /// Data layout information
   std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
       dataLayoutInfo = {std::nullopt, {}};

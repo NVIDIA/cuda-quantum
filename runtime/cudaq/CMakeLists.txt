@@ -16,6 +16,7 @@ add_library(${LIBRARY_NAME}
     realtime.cpp
     target_control.cpp
     algorithms/draw.cpp
+    algorithms/encoding.cpp
     algorithms/evolve.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
@@ -65,8 +66,7 @@ if (CUDA_FOUND)
       cudaq-operator
       cudaq-common
       cudaq-nlopt
-      cudaq-ensmallen
-      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq-ensmallen>
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE
@@ -93,8 +93,7 @@ else()
       cudaq-operator
       cudaq-common
       cudaq-nlopt
-      cudaq-ensmallen
-      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq-ensmallen>
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE

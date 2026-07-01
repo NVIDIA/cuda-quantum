@@ -48,7 +48,9 @@ if cmake_boolvar_to_bool(config.cuda_found):
 config.cudaq_has_clifford_t_synthesis = "@CUDAQ_HAS_CLIFFORD_T_SYNTHESIS@"
 if cmake_boolvar_to_bool(config.cudaq_has_clifford_t_synthesis):
   config.available_features.add('clifford-t-synthesis')
+config.cuda_gpu_available = os.system("nvidia-smi >/dev/null 2>&1") == 0
 if (cmake_boolvar_to_bool(config.cuda_found) and
+    config.cuda_gpu_available and
     config.cudaq_device_call_realtime_libs and
     all(os.path.exists(lib)
         for lib in config.cudaq_device_call_realtime_libs)):

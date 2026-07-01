@@ -12,7 +12,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 
-cudaq::details::RunResultSpan cudaq::details::runTheKernel(
+cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
     const std::string &kernel_name, const std::string &original_name,
     std::size_t shots,

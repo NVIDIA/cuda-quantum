@@ -42,7 +42,7 @@ using namespace mlir;
 // FIXME: include the header file and type out the namespace in every definition
 // below as appropriate and get rid of wrapping the entire file in this
 // namespace.
-namespace cudaq::details {
+namespace cudaq::detail {
 
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
@@ -1038,13 +1038,13 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addPass(cudaq::opt::createCCToLLVM());
     pm.addPass(createCanonicalizerPass());
 
-    auto enablePrintMLIREachPass =
-        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+    auto printEachPass =
+        cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
     auto disableThreading =
         cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-    if (enablePrintMLIREachPass || disableThreading) {
+    if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading) {
       module->getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
+      if (printEachPass == cudaq::PrintEachPassMode::All)
         pm.enableIRPrinting();
     }
 
@@ -1212,4 +1212,4 @@ std::ostream &operator<<(std::ostream &stream,
   return stream << builder.to_quake();
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

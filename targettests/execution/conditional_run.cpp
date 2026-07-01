@@ -9,7 +9,7 @@
 // clang-format off
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: nvq++ --enable-mlir %s -o %t && %t
+// RUN: nvq++ %s -o %t && %t
 // clang-format on
 
 // The test here is the assert statement.

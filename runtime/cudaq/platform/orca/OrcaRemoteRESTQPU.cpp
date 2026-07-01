@@ -62,8 +62,9 @@ void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   executor->setServerHelper(serverHelper.get());
 }
 
-KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
-    const std::string &kernelName, KernelThunkType kernelFunc, void *args) {
+KernelThunkResultType
+cudaq::OrcaRemoteRESTQPU::launchKernelCommon(const std::string &kernelName,
+                                             void *args) {
 
   CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
              kernelName, qpu_id);
@@ -84,7 +85,7 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
         ctx->name == "tracer"))
     throw std::runtime_error(ctx->name + " is not supported on this target");
 
-  details::future future;
+  detail::future future;
   future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested

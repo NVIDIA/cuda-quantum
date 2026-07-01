@@ -8,9 +8,12 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "common/Environment.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,10 +41,12 @@ class Compiler {
   /// `-mlir-disable-threading` for `cudaq-opt`.
   bool disableMLIRthreading = false;
 
-  /// @brief Flag indicating whether we should enable MLIR printing before and
-  /// after each pass. This is similar to `-mlir-print-ir-before-all` and
-  /// `-mlir-print-ir-after-all` in `cudaq-opt`.
-  bool enablePrintMLIREachPass = false;
+  /// @brief Whether to enable MLIR printing before and after each pass.
+  ///
+  /// This is similar to `-mlir-print-ir-before-all` and
+  /// `-mlir-print-ir-after-all` in `cudaq-opt`. Printing can be enabled for all
+  /// passes or just during specialization.
+  cudaq::PrintEachPassMode printEachPass = cudaq::PrintEachPassMode::None;
 
   /// @brief Flag indicating whether we should enable MLIR pass statistics
   /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
@@ -56,9 +61,6 @@ class Compiler {
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
-  /// Whether compilation emitted a named measurement warning.
-  bool warnedNamedMeasurements = false;
-
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
                                            mlir::MLIRContext *,
@@ -71,9 +73,9 @@ class Compiler {
                      const std::string &kernelName);
 
   /// Build the module, merge closures, and synthesize arguments.
-  std::pair<mlir::ModuleOp, mlir::func::FuncOp>
+  std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>
   prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
-                cudaq::KernelArgs args);
+                cudaq::KernelArgs args, bool isEntryPoint);
 
   /// Delay combine-measurements for emulation, then run the main pass
   /// pipeline.  Returns
@@ -86,15 +88,14 @@ class Compiler {
   cudaq::CompiledModule assembleCompiledModule(
       const std::string &kernelName,
       std::vector<std::pair<std::string, mlir::ModuleOp>> &modules,
-      bool needJit, bool runCombineMeasurements,
+      bool needJit, bool isFullySpecialized, bool isEntryPoint,
+      bool runCombineMeasurements,
       std::optional<cudaq::Resources> resourceCounts,
       cudaq::CompiledModule::CompilationMetadata metadata,
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  /// Whether compilation emitted a warning about the presence of named
-  /// measurements.
-  bool hasWarnedNamedMeasurements() const { return warnedNamedMeasurements; }
+  const cudaq::CompileTarget &getTarget() const { return *target; }
 
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
@@ -113,26 +114,13 @@ public:
   /// context lifetime must be managed by the caller.
   cudaq::CompiledModule
   runPassPipeline(const std::string &kernelName, const void *modulePtr,
-                  cudaq::KernelArgs args,
+                  cudaq::KernelArgs args, bool isEntryPoint,
                   std::shared_ptr<mlir::MLIRContext> context = nullptr);
 
   /// @brief Emit target-specific code for each `MlirArtifact` in the
   /// `CompiledModule` and produce `KernelExecution` objects.
   std::vector<cudaq::KernelExecution>
   emitKernelExecutions(const cudaq::CompiledModule &compiled);
-
-  /// Compile the quake code passed via ModuleOp and lower it to the code format
-  /// required for the specific backend.
-  ///
-  /// The lowering process is controllable via the configuration file in the
-  /// platform directory for the targeted backend.
-  ///
-  /// Unchecked assumption: there are no other references to \p module (within
-  /// the scope of this launch instance). It can be disposed and/or modified by
-  /// this call in any way necessary without breaking some other kernel launch.
-  std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(const std::string &kernelName, const void *modulePtr,
-                 cudaq::KernelArgs args);
 };
 
 /// Get the pass pipeline string for the given compile target.
@@ -143,5 +131,12 @@ public:
 /// finalizeStage are fixed stages interleaved between the config-provided
 /// stages. Pass empty strings to skip them.
 std::string getPassPipeline(const cudaq::CompileTarget &target);
+
+/// Compile a source module for the given policy, compile target and
+/// arguments.
+cudaq::CompiledModule
+compileModule(std::unique_ptr<cudaq::CompileTarget> target,
+              const cudaq::SourceModule &src, cudaq::KernelArgs args,
+              bool isEntryPoint = true);
 
 } // namespace cudaq_internal::compiler

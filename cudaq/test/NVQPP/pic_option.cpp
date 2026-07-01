@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir -c %s -v -fPIC -o %t
+// RUN: nvq++ -c %s -v -fPIC -o %t
 
 #include "cudaq.h"
 

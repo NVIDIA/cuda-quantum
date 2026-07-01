@@ -52,7 +52,7 @@ void bindComplexMatrix(nanobind::module_ &mod) {
           "numpy.ndarray.")
       .def(
           "to_numpy",
-          [](complex_matrix &op) { return details::cmat_to_numpy(op); },
+          [](complex_matrix &op) { return detail::cmat_to_numpy(op); },
           "Convert to a NumPy array.")
       .def(
           "num_rows", [](complex_matrix &m) { return m.rows(); },
@@ -87,7 +87,7 @@ void bindComplexMatrix(nanobind::module_ &mod) {
            "Returns the string representation of the matrix.")
       .def(
           "to_numpy",
-          [](complex_matrix &m) { return details::cmat_to_numpy(m); },
+          [](complex_matrix &m) { return detail::cmat_to_numpy(m); },
           "Convert :class:`ComplexMatrix` to numpy.ndarray.");
 }
 

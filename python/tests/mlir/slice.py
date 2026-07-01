@@ -28,8 +28,8 @@ def test_static_case():
 
     print(static_empty_slice)
 
-    #result = cudaq.run(static_empty_slice, shots_count=10)
-    #print(result)
+    result = cudaq.run(static_empty_slice, shots_count=10)
+    print(result)
 
 
 def test_another_case():
@@ -47,8 +47,8 @@ def test_another_case():
 
     print(static_notempty_slice)
 
-    #result = cudaq.run(static_notempty_slice, shots_count=10)
-    #print(result)
+    result = cudaq.run(static_notempty_slice, shots_count=10)
+    print(result)
 
 
 def test_dynamic_case():
@@ -68,8 +68,8 @@ def test_dynamic_case():
 
     print(dynamic_empty_slice)
 
-    #result = cudaq.run(dynamic_empty_slice, shots_count=10)
-    #print(result)
+    result = cudaq.run(dynamic_empty_slice, shots_count=10)
+    print(result)
 
 
 def test_another_dynamic_case():
@@ -91,8 +91,8 @@ def test_another_dynamic_case():
 
     print(dynamic_notempty_slice)
 
-    #result = cudaq.run(dynamic_notempty_slice, shots_count=10)
-    #print(result)
+    result = cudaq.run(dynamic_notempty_slice, shots_count=10)
+    print(result)
 
 
 # leave for gdb debugging
@@ -132,16 +132,16 @@ if __name__ == "__main__":
 # CHECK:             %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i64
 # CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CAST_0]], %[[CONSTANT_1]] : i64
 # CHECK:             %[[CMPI_0:.*]] = arith.cmpi sge, %[[SUBI_0]], %[[CONSTANT_0]] : i64
-# CHECK:             %[[IF_0:.*]] = cc.if(%[[CMPI_0]]) -> !quake.veq<?> {
+# CHECK:             %[[IF_0:.*]]:2 = cc.if(%[[CMPI_0]]) -> (!quake.veq<?>, i64) {
 # CHECK:               %[[SUBVEQ_0:.*]] = quake.subveq %[[ALLOCA_0]], 0, %[[SUBI_0]] : (!quake.veq<5>, i64) -> !quake.veq<?>
-# CHECK:               cc.continue %[[SUBVEQ_0]] : !quake.veq<?>
+# CHECK:               %[[VEQ_SIZE_0:.*]] = quake.veq_size %[[SUBVEQ_0]] : (!quake.veq<?>) -> i64
+# CHECK:               cc.continue %[[SUBVEQ_0]], %[[VEQ_SIZE_0]] : !quake.veq<?>, i64
 # CHECK:             } else {
 # CHECK:               %[[UNDEF_0:.*]] = cc.undef !quake.veq<?>
-# CHECK:               cc.continue %[[UNDEF_0]] : !quake.veq<?>
+# CHECK:               cc.continue %[[UNDEF_0]], %[[CONSTANT_0]] : !quake.veq<?>, i64
 # CHECK:             }
-# CHECK:             %[[VEQ_SIZE_0:.*]] = quake.veq_size %[[IF_0]] : (!quake.veq<?>) -> i64
 # CHECK:             %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
-# CHECK:               %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_0]], %[[VEQ_SIZE_0]] : i64
+# CHECK:               %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_0]], %[[IF_0]]#1 : i64
 # CHECK:               cc.condition %[[CMPI_1]](%[[VAL_0]] : i64)
 # CHECK:             } do {
 
@@ -170,15 +170,15 @@ if __name__ == "__main__":
 # CHECK:             %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i64
 # CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CAST_0]], %[[CONSTANT_1]] : i64
 # CHECK:             %[[CMPI_1:.*]] = arith.cmpi sge, %[[SUBI_0]], %[[CONSTANT_0]] : i64
-# CHECK:             %[[IF_0:.*]] = cc.if(%[[CMPI_1]]) -> !quake.veq<?> {
+# CHECK:             %[[IF_0:.*]]:2 = cc.if(%[[CMPI_1]]) -> (!quake.veq<?>, i64) {
 # CHECK:               %[[SUBVEQ_0:.*]] = quake.subveq %[[ALLOCA_0]], 0, %[[SUBI_0]] : (!quake.veq<5>, i64) -> !quake.veq<?>
-# CHECK:               cc.continue %[[SUBVEQ_0]] : !quake.veq<?>
+# CHECK:               %[[VEQ_SIZE_0:.*]] = quake.veq_size %[[SUBVEQ_0]] : (!quake.veq<?>) -> i64
+# CHECK:               cc.continue %[[SUBVEQ_0]], %[[VEQ_SIZE_0]] : !quake.veq<?>, i64
 # CHECK:             } else {
 # CHECK:               %[[UNDEF_0:.*]] = cc.undef !quake.veq<?>
-# CHECK:               cc.continue %[[UNDEF_0]] : !quake.veq<?>
+# CHECK:               cc.continue %[[UNDEF_0]], %[[CONSTANT_0]] : !quake.veq<?>, i64
 # CHECK:             }
-# CHECK:             %[[VEQ_SIZE_0:.*]] = quake.veq_size %[[IF_0]] : (!quake.veq<?>) -> i64
 # CHECK:             %[[LOOP_1:.*]] = cc.loop while ((%[[VAL_3:.*]] = %[[CONSTANT_0]]) -> (i64)) {
-# CHECK:               %[[CMPI_2:.*]] = arith.cmpi slt, %[[VAL_3]], %[[VEQ_SIZE_0]] : i64
+# CHECK:               %[[CMPI_2:.*]] = arith.cmpi slt, %[[VAL_3]], %[[IF_0]]#1 : i64
 # CHECK:               cc.condition %[[CMPI_2]](%[[VAL_3]] : i64)
 # CHECK:             } do {

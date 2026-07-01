@@ -27,7 +27,7 @@ using namespace cudaq;
 
 static std::vector<nanobind::object>
 readRunResults(mlir::ModuleOp module, mlir::Type ty,
-               details::RunResultSpan &results, std::size_t count) {
+               detail::RunResultSpan &results, std::size_t count) {
   std::vector<nanobind::object> ret;
   std::size_t byteSize = results.lengthInBytes / count;
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
@@ -57,7 +57,7 @@ getFuncOpAndCheckResult(mlir::ModuleOp mod, const std::string &shortName) {
   return fn;
 }
 
-static details::RunResultSpan
+static detail::RunResultSpan
 pyRunTheKernel(const std::string &name, quantum_platform &platform,
                mlir::ModuleOp mod, CompiledModule *compiled,
                std::size_t shots_count, std::size_t qpu_id,
@@ -84,7 +84,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   }
   auto layoutInfo =
       cudaq_internal::compiler::getLayoutInfo(name, mod.getOperation());
-  auto results = details::runTheKernel(
+  auto results = detail::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
             clean_launch_module(name, mod, opaques, compiled);
@@ -95,7 +95,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
 }
 
 static std::vector<nanobind::object>
-pyReadResults(details::RunResultSpan results, mlir::ModuleOp mod,
+pyReadResults(detail::RunResultSpan results, mlir::ModuleOp mod,
               std::size_t shots_count, const std::string &name) {
   auto returnTy = recoverReturnType(mod, name);
   return readRunResults(mod, returnTy, results, shots_count);
@@ -122,7 +122,7 @@ run_impl(const std::string &shortName, MlirModule module,
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
-  details::RunResultSpan span;
+  detail::RunResultSpan span;
   {
     nanobind::gil_scoped_release release;
     span = pyRunTheKernel(shortName, platform, mod, compiled, shots_count,
@@ -180,7 +180,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
     return result;
   }
 
-  std::promise<details::RunResultSpan> spanPromise;
+  std::promise<detail::RunResultSpan> spanPromise;
   auto spanFuture = spanPromise.get_future();
 
   std::promise<std::string> errorPromise;

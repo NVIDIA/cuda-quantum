@@ -21,6 +21,17 @@ public:
   /// Hook to update the pass pipeline before compilation.
   virtual void updatePassPipeline(std::string &passPipeline) const {}
 
+  /// Whether to recompile the kernel in the presence of an AOT-compiled module.
+  ///
+  /// If this is `false` and an AOT-compiled kernel (in the form of a function
+  /// pointer) is provided, then compilation will be skipped and all other
+  /// options in this class will be ignored.
+  ///
+  /// If this is `true`, the AOT-compiled module (if it exists) will be
+  /// discarded and compilation will start from scratch, according to the
+  /// options in this class.
+  bool overrideAOTCompilation = false;
+
   /// Resolved MLIR pass-pipeline and `codegen` settings.
   struct PipelineConfig {
     /// If set, override compilation pipeline with this string.
@@ -37,12 +48,22 @@ public:
     /// Optional pass pipeline to run after code generation.
     std::string postCodeGenPasses;
 
-    /// Backend data provides target pass pipeline fields.
-    bool hasConfiguredPassPipeline = false;
-    /// Standard `jit-finalize-pipeline` is part of `passPipeline`.
-    bool runsStandardFinalize = false;
+    /// Whether to skip the target lowering compilation pipeline.
+    ///
+    /// Local analysis contexts set this to true: they JIT the kernel directly
+    /// for an analysis simulator. The target lowering pipeline would otherwise
+    /// erase operations such as noise or QEC, or fail to legalize them during
+    /// code generation.
+    bool skipTargetLoweringPipeline = false;
+
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
+
+    /// Whether to run the replace-state-with-kernel pass.
+    ///
+    /// Allows targets that do not support get_state (e.g. remote QPUs)
+    /// to emulate its behavior by inserting the corresponding kernel calls.
+    bool replaceStateWithKernel = false;
 
     /// Whether to run the add-measurements pass.
     bool addMeasurements = false;
@@ -59,6 +80,9 @@ public:
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
+
+  /// Whether device calls are supported by the target.
+  bool supportDeviceCalls = false;
 
   /// Whether to retrieve mapping reorder indices from MLIR and store it as
   /// compiled metadata.
@@ -84,13 +108,16 @@ public:
   /// artifact and do not need a QIR/QASM payload for the remote backend.
   bool emitTargetCode = true;
 
-  /// Whether to run the target lowering pipeline before building artifacts.
-  ///
-  /// Local analysis contexts set this to false: they JIT the kernel directly
-  /// for an analysis simulator. The target lowering pipeline would otherwise
-  /// erase operations such as noise or QEC, or fail to legalize them during
-  /// code generation.
-  bool runTargetLoweringPipeline = true;
+  /// Whether to fully specialize the kernel.
+  bool fullySpecialize = true;
+
+  /// Whether this target is a local simulator (not remote, not emulated). On
+  /// this path `i1` vector arguments are packed as bit-packed
+  /// `std::vector<bool>`.
+  bool isLocalSimulator = false;
+
+  /// Set the `changeSemantics` flag for the argument synthesis pass.
+  bool argumentSynthChangeSemantics = true;
 
   /// When set, emit one lowered module per non-identity Pauli term of this
   /// observable. The resulting `CompiledModule` will contain a compilation

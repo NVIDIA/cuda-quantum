@@ -8,7 +8,7 @@
 
 // clang-format off
 // Simulators
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 //
 // Quantum emulators
 // RUN: nvq++ -fkernel-exec-kind=2 -target quantinuum --emulate %s -o %t && %t | FileCheck %s

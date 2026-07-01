@@ -500,6 +500,13 @@ Negating the polarity of control qubits is similarly supported when using :code:
 Measurements on Qubits
 =============================
 
+The measurement operations :code:`mz`, :code:`mx`, and :code:`my` return a
+measurement handle rather than a bare classical value:
+:code:`cudaq::measure_handle` in C++ (also available as the alias
+:code:`cudaq::measure_result`), and the :code:`measure_handle` type in
+Python. See :doc:`../using/examples/measuring_kernels` for how to discriminate
+handles and the host-device boundary rule.
+
 :code:`mz`
 ---------------------
 
@@ -649,10 +656,10 @@ operations, each operating on 2 qubits.
       :end-before: [End Docs]
 
 
-.. note:: 
+.. note::
 
   When a custom operation is used on hardware backends, it is synthesized to a
-  set of native quantum operations. Currently, only 1-qubit and 2-qubit custom 
+  set of native quantum operations. Currently, only up to 5-qubit custom
   operations are supported on hardware backends.
 
 

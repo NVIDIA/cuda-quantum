@@ -15,8 +15,6 @@ config:
   link-libs: ["-lcudaq-pasqal-qpu", "-lcudaq-serverhelper-pasqal"]
   # Allow evolve API in C++
   preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
-  # Library mode is only for simulators, physical backends must turn this off
-  library-mode: false
   # Tell NVQ++ to generate glue code to set the target backend name
   gen-target-backend: true
 

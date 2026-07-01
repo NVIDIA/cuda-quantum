@@ -14,9 +14,9 @@
 // Use qpp-cpu explicitly because the custatevec simulator calls
 // cudaDeviceSynchronize(), which conflicts with the persistent dispatch kernel.
 // RUN: rm -rf %t && mkdir -p %t
-// RUN: cd %t && nvq++ --target qpp-cpu -frealtime-lowering --enable-mlir -I%S/Inputs %s %cudaq_lib_dir/%cudaq_shlibprefixcudaq-test-device-call-realtime-scalar-gpu-dispatch%cudaq_shlibext -o %t/app-gpu
+// RUN: cd %t && nvq++ --target qpp-cpu -frealtime-lowering -I%S/Inputs %s %cudaq_lib_dir/%cudaq_shlibprefixcudaq-test-device-call-realtime-scalar-gpu-dispatch%cudaq_shlibext -o %t/app-gpu
 // RUN: LD_LIBRARY_PATH=%cudaq_lib_dir:${LD_LIBRARY_PATH} %t/app-gpu --cudaq-device-call=shared-memory | FileCheck --check-prefix=SHM %s
-// RUN: cd %t && nvq++ --target qpp-cpu -frealtime-lowering --enable-mlir -I%S/Inputs %s %cudaq_lib_dir/%cudaq_shlibprefixcudaq-test-device-call-realtime-scalar-host-dispatch%cudaq_shlibext -o %t/app-host
+// RUN: cd %t && nvq++ --target qpp-cpu -frealtime-lowering -I%S/Inputs %s %cudaq_lib_dir/%cudaq_shlibprefixcudaq-test-device-call-realtime-scalar-host-dispatch%cudaq_shlibext -o %t/app-host
 // RUN: LD_LIBRARY_PATH=%cudaq_lib_dir:${LD_LIBRARY_PATH} %t/app-host --cudaq-device-call=host-dispatch | FileCheck --check-prefix=HOST %s
 // clang-format on
 
