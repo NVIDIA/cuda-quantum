@@ -38,8 +38,9 @@ struct dem_options {
   /// Threshold (in [0,1]) for approximating disjoint-error products.
   /// Set to 0 to disable approximation.
   double approximate_disjoint_errors_threshold = 0.0;
-  /// Silently skip error mechanisms that cannot be decomposed instead of
-  /// raising an exception.
+  /// When decomposition fails for an error mechanism, insert it into the DEM
+  /// undecomposed (as a hyper-edge) instead of raising an exception.
+  /// Only relevant when decompose_errors is true.
   bool ignore_decomposition_failures = false;
   /// Prevent the decomposer from introducing remnant edges that would otherwise
   /// be needed to satisfy the decomposition.
