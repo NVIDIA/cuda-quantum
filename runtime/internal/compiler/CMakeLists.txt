@@ -57,9 +57,7 @@ if(APPLE)
     "$<TARGET_FILE:OptTransforms>"
     "$<TARGET_FILE:OptimBuilder>"
     "$<TARGET_FILE:cudaq-qir-verifier>")
-  if(TARGET cudaq-synth)
-    target_link_libraries(cudaq-mlir-runtime PRIVATE cudaq-synth)
-  endif()
+  target_link_libraries(cudaq-mlir-runtime PRIVATE cudaq-synth)
 else()
   target_link_libraries(cudaq-mlir-runtime
     PRIVATE
