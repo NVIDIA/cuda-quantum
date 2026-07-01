@@ -367,7 +367,8 @@ struct RoutingProblem {
 /// A single routing decision: a gate mapped onto physical qubits, a swap
 /// inserted between them, or an if-op. The router records Gate and Swap events;
 /// the enrichment step adds If events. The emitter replays the full trace to
-/// rewrite the IR. Branch results for If events live in the block map, not here.
+/// rewrite the IR. Branch results for If events live in the block map, not
+/// here.
 struct RoutingEvent {
   enum class Kind { Gate, Swap, If };
 
@@ -387,9 +388,9 @@ struct RoutingEvent {
   /// point the if is reached; branch results are in the caller's block map.
   static RoutingEvent makeIf(mlir::Operation *op,
                              ArrayRef<cudaq::Placement::DeviceQ> phys) {
-    return RoutingEvent{Kind::If, op,
-                        SmallVector<cudaq::Placement::DeviceQ, 2>(
-                            phys.begin(), phys.end())};
+    return RoutingEvent{
+        Kind::If, op,
+        SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
   }
 
   Kind kind;
@@ -429,7 +430,6 @@ cudaq::Placement::VirtualQ requireVirtualQ(
   llvm::report_fatal_error(
       "mapper invariant violated: quantum wire has no virtual qubit");
 }
-
 
 /// Build the routing problem from `block`. The nodes are the routable
 /// operations that `isSupportedMappingOperation` accepts, other than the source
@@ -535,8 +535,7 @@ RoutingProblem buildReverseProblem(const RoutingProblem &forward) {
                         RoutingProblem::NodeRef fwdSucc, unsigned &count) {
     if (shouldIncludeInReverse(forward[fwdSucc])) {
       ++count;
-      reverse.nodes[fwdToRev[fwdSucc.index].index].successors.push_back(
-          revSrc);
+      reverse.nodes[fwdToRev[fwdSucc.index].index].successors.push_back(revSrc);
     } else {
       for (RoutingProblem::NodeRef s : forward[fwdSucc].successors)
         addReverseEdges(revSrc, s, count);
@@ -1146,7 +1145,6 @@ private:
 // Emission
 //===----------------------------------------------------------------------===//
 
-
 /// Applies a RoutingResult to the IR. This is the only place routing rewrites
 /// the circuit. It rewires each mapped operation and inserts the swaps,
 /// threading the current wire on each physical qubit.
@@ -1155,8 +1153,8 @@ public:
   RoutingEmitter(const DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
                  unsigned numPhysical,
                  const DenseMap<Block *, RoutingResult> &blockMap)
-      : wireToVirtualQ(wireMap), phyToWire(numPhysical), blockResults(blockMap) {
-  }
+      : wireToVirtualQ(wireMap), phyToWire(numPhysical),
+        blockResults(blockMap) {}
 
   /// Apply `result` to `block`. Returns the final wire on each physical qubit,
   /// which the caller uses to create the return_wire ops.
@@ -1203,8 +1201,8 @@ public:
                  "rewiring with a fixed operand count cannot fail");
           if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(ev.op))
             continue;
-          for (auto &&[w, q] : llvm::zip_equal(
-                   cudaq::quake::getQuantumResults(ev.op), ev.phys))
+          for (auto &&[w, q] :
+               llvm::zip_equal(cudaq::quake::getQuantumResults(ev.op), ev.phys))
             phyToWire[q.index] = w;
         } else { // If
           auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
@@ -1229,8 +1227,7 @@ public:
             return branchResult;
           };
 
-          const RoutingResult &thenResult =
-              processBranch(ifOp.getThenRegion());
+          const RoutingResult &thenResult = processBranch(ifOp.getThenRegion());
           if (ifOp.hasElse())
             processBranch(ifOp.getElseRegion());
 
@@ -1676,27 +1673,47 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Reject any cc::IfOp branch that contains a 2Q gate — Stage 1 only
     // handles 1Q gates inside branches (no placement reconciliation needed).
-    auto branchCheckResult = func.walk([&](cudaq::cc::IfOp ifOp) {
-      for (Region *region : {&ifOp.getThenRegion(), &ifOp.getElseRegion()}) {
-        for (Block &b : *region) {
-          for (Operation &op : b) {
+    auto findTwoQGateInBranch = [](cudaq::cc::IfOp ifOp) -> Operation * {
+      for (Region *region : {&ifOp.getThenRegion(), &ifOp.getElseRegion()})
+        for (Block &b : *region)
+          for (Operation &op : b)
             if (isa<cudaq::quake::OperatorInterface>(op) &&
                 !isa<cudaq::cc::IfOp>(op) &&
-                cudaq::quake::getQuantumOperands(&op).size() > 1) {
-              if (nonComposable) {
-                op.emitOpError(
-                    "mapper cannot handle 2-qubit gates inside branches");
-                signalPassFailure();
-              }
-              return WalkResult::interrupt();
-            }
-          }
-        }
+                cudaq::quake::getQuantumOperands(&op).size() > 1)
+              return &op;
+      return nullptr;
+    };
+    auto branchCheckResult = func.walk([&](cudaq::cc::IfOp ifOp) {
+      Operation *twoQGate = findTwoQGateInBranch(ifOp);
+      if (!twoQGate)
+        return WalkResult::advance();
+      if (nonComposable) {
+        twoQGate->emitOpError(
+            "mapper cannot handle 2-qubit gates inside branches");
+        signalPassFailure();
       }
-      return WalkResult::advance();
+      return WalkResult::interrupt();
     });
     if (branchCheckResult.wasInterrupted()) {
       LLVM_DEBUG(llvm::dbgs() << "NYI: 2-qubit gates inside branches\n");
+      return;
+    }
+
+    // Reject measurements not directly inside the function — measure order must
+    // be preserved and cannot yet be reconciled across branches or loops.
+    auto measureCheckResult =
+        func.walk([&](cudaq::quake::MeasurementInterface meas) {
+          if (isa<func::FuncOp>(meas->getParentOp()))
+            return WalkResult::advance();
+          if (nonComposable) {
+            meas->emitOpError(
+                "mapper cannot handle measurements inside branches or loops");
+            signalPassFailure();
+          }
+          return WalkResult::interrupt();
+        });
+    if (measureCheckResult.wasInterrupted()) {
+      LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
       return;
     }
 
@@ -1755,8 +1772,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
               // cc.continue operands correspond positionally to parentOp
               // results. On the first branch, insert; on the else branch,
               // verify the ordering matches.
-              for (auto [operand, res] :
-                   llvm::zip_equal(cont->getOperands(), parentOp->getResults())) {
+              for (auto [operand, res] : llvm::zip_equal(
+                       cont->getOperands(), parentOp->getResults())) {
                 if (!isa<cudaq::quake::WireType>(operand.getType()))
                   continue;
                 auto contVQ = requireVirtualQ(wireToVirtualQ, operand);
@@ -1776,8 +1793,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                 if (region->empty())
                   continue;
                 assert(region->hasOneBlock());
-                for (auto [linArg, regionArg] :
-                     llvm::zip_equal(linearArgs, region->front().getArguments()))
+                for (auto [linArg, regionArg] : llvm::zip_equal(
+                         linearArgs, region->front().getArguments()))
                   wireToVirtualQ.insert({regionArg, wireToVirtualQ[linArg]});
                 analyzeBlock(region->front(), /*doCollectInteractions=*/false,
                              &op);
@@ -1795,8 +1812,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                                << isa<cudaq::quake::NullWireOp>(&op) << '\n';
                   llvm::errs() << "isAllReferences() = "
                                << cudaq::quake::isAllReferences(&op) << '\n';
-                  llvm::errs() << "isWrapped() = "
-                               << cudaq::quake::isWrapped(&op) << '\n';
+                  llvm::errs()
+                      << "isWrapped() = " << cudaq::quake::isWrapped(&op)
+                      << '\n';
                   func.emitError("The mapper requires value semantics.");
                   signalPassFailure();
                 }
@@ -1841,7 +1859,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                                              virtualOperands[1].index);
               }
               if (failed(recordQuantumResults(op, wireOperands, virtualOperands,
-                                              wireToVirtualQ, finalQubitWire))) {
+                                              wireToVirtualQ,
+                                              finalQubitWire))) {
                 analysisOk = false;
                 return;
               }
