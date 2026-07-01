@@ -83,21 +83,6 @@ RUN cd /cuda-quantum && git init && \
         fi; \
     done && git submodule init && git submodule
 
-## [Source Dependencies]
-ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
-ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
-ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
-RUN if [ "$toolchain" = "llvm" ]; then \
-        export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
-        apt-get update && apt-get install -y --no-install-recommends clang lld && \
-        CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
-        (apt-get remove -y clang lld || true); \
-    else \
-        export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
-        bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
-    fi && \
-    apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
         # Pre-built binaries for doxygen are (only) available for x86_64.
@@ -112,6 +97,21 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
         rm -rf repo && apt-get remove -y make cmake flex bison g++ && \
         apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
+
+## [Source Dependencies]
+ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
+ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
+ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
+RUN if [ "$toolchain" = "llvm" ]; then \
+        export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
+        apt-get update && apt-get install -y --no-install-recommends clang lld && \
+        CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
+        (apt-get remove -y clang lld || true); \
+    else \
+        export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
+        bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
+    fi && \
+    apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # [CUDA-Q Dev Environment]
 FROM ${base_image}
