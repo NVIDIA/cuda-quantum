@@ -224,7 +224,11 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       // For quantum devices, we generate a collection of `init` and
       // `num_qubits` functions and their substitutions created
       // from a kernel and arguments that generated a state argument.
-      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp);
+      // Local simulators marshal `i1` vectors as bit-packed `std::vector<bool>`
+      // (argsCreator); remote/emulated targets use `std::vector<char>`.
+      const bool boolVecBitPacked = target->isLocalSimulator;
+      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp,
+                                                         boolVecBitPacked);
       // Must stay in scope as `eraseNonCallableArguments` may populate it
       std::vector<void *> closureArgs;
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
@@ -451,7 +455,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
         return mlir::WalkResult::advance();
       });
       if (hasNamedMeasurements) {
-        warnedNamedMeasurements = true;
         std::cerr << "WARNING: Kernel \"" << kernelName
                   << "\" uses named measurement results "
                   << "but is invoked in sampling mode. Support for "

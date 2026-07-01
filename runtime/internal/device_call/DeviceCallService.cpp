@@ -143,14 +143,13 @@ private:
       CUDAQ_DBG("[device-call] requesting host dispatch function table");
       if (service.getHostDispatchTable(result) != 0) {
         reset();
-        throw std::runtime_error(
-            "host device_call service graph table hook failed");
+        throw std::runtime_error("host device_call service table hook failed");
       }
       if (!result.entries || result.count == 0) {
         reset();
         throw DeviceCallError(
             DeviceCallStatus::InvalidArgument,
-            "host device_call service exported no graph table entries");
+            "host device_call service exported no table entries");
       }
       return result;
     }();

@@ -12,6 +12,8 @@ CUDA-Q Realtime has been tested with the following NVIDIA products:
 
 Prerequisites
 ---------------------
+The network transport bridge for `cudaq-realtime` is provided by the NVQLink reference architecture, based on the Holoscan Sensor Bridge FPGA IP.
+Users may also implement their own transport layer and make it accessible to `cudaq-realtime` as a bridge implementation.
 
 .. tab:: Using Holoscan Sensor Bridge
 
@@ -26,6 +28,23 @@ Prerequisites
 
   - CUDA Runtime with version 12.6+ or 13.x
 
+.. _realtime-hsb-fpga-artifacts:
+
+HSB FPGA IP core and RFSoC bit-file
+-----------------------------------
+
+We offer two artifacts to developers seeking to use `cudaq-realtime` with their FPGA systems:
+
+1. The open-source HSB FPGA IP core, ``nv_hsb_ip``, can be incorporated in a developer's FPGA design to enable that design to define an NVQLink-connected device.
+   This core is available as RTL in the `HSB FPGA IP core source <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/nv_hsb_ip>`__.
+2. The RFSoC PYNQ example is a fully packaged example for the Real Digital RFSoC 4x2 evaluation board, using Vivado part ``xczu48dr-ffvg1517-2-e``.
+   Use the `RFSoC PYNQ source <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/pynq>`__ if you want to build or modify the design in Vivado.
+   Use the pre-built ``nvqlink_rfsoc_v2603.bit`` bit-file in the `HSB 2.6.0-EA artifact directory <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__ if you want to program the supported board without rebuilding it.
+
+When building the RFSoC project from source, use the released ``fpga`` tree from the Holoscan Sensor Bridge repository, including both ``fpga/pynq`` and the sibling ``fpga/nv_hsb_ip`` directory.
+Do not mix ``nv_hsb_ip`` or RFSoC PYNQ files from an older HSB release with the packaged RFSoC example.
+For another RFSoC part or board, update the Vivado part and constraints in ``fpga/pynq/rfsoc-pynq/build/build.tcl`` and rebuild the bit-file.
+
 Setup
 ---------------------
 
@@ -39,8 +58,8 @@ Setup
 
   - Follow the instructions given by the installer for post-installation steps to set environment variables.
 
-  - Load HSB IP bit-file to the FPGA.
-    The bit-file for supported FPGA vendors can be found `here <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__.
+  - Program the FPGA with HSB.
+    See :ref:`realtime-hsb-fpga-artifacts` for the reusable ``nv_hsb_ip`` RTL source, the RFSoC PYNQ source example, and the pre-built RFSoC bit-file.
 
   .. note:: 
 
@@ -114,7 +133,7 @@ The validation includes checking the data correctness and measuring the round-tr
 
 .. tab:: Using Custom Networking Layer
 
-  To measure the latency with a custom networking implementation, a stimulus (data generation) tool must the implemented that sends data to CUDA-Q realtime according to the custom networking protocol.
+  To measure latency with a custom networking implementation, implement a stimulus (data generation) tool that sends data to CUDA-Q Realtime according to the custom networking protocol.
   
   For example, in the HSB-based implementation, we use the `ptp_timestamp` field in the `RPCHeader` / `RPCResponse` (see the message protocol documentation) to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA) stores the 'send' timestamp in the `RPCHeader` (incoming message), which will be echoed by the GPU in the outgoing `RPCResponse` after processing it (e.g., with the RPC handler). Using the Integrated Logic Analyzer timestamp when the FPGA receives the response from the GPU, we can compute the round-trip latency.
   `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hololink_fpga_playback.cpp>`__ contains an example of such a data generation tool.
