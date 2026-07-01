@@ -1057,6 +1057,9 @@ latest
             model](#the-device-call-model){.reference .internal}
         -   [Selecting a channel](#selecting-a-channel){.reference
             .internal}
+        -   [Extending an in-process
+            service](#extending-an-in-process-service){.reference
+            .internal}
         -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
             channel](#the-cpu-roce-channel){.reference .internal}
             -   [Wire pattern
@@ -1919,6 +1922,39 @@ host path and can dispatch service entries as either
 handlers or [`CUDAQ_DISPATCH_GRAPH_LAUNCH`{.docutils .literal
 .notranslate}]{.pre} workers. The remainder of this page documents the
 [`cpu_roce`{.docutils .literal .notranslate}]{.pre} channel.
+:::
+
+::: {#extending-an-in-process-service .section}
+## Extending an in-process service[¶](#extending-an-in-process-service "Permalink to this heading"){.headerlink}
+
+Realtime-enabled CUDA-Q installations expose the service extension
+interface in [`<cudaq/realtime/device_call_service.h>`{.docutils
+.literal .notranslate}]{.pre}. A plugin implements the abstract
+[`DeviceCallService`{.docutils .literal .notranslate}]{.pre} provider
+and returns one owned [`DeviceCallServiceSession`{.docutils .literal
+.notranslate}]{.pre} for the requested host or GPU dispatch mode.
+Returning null rejects an unsupported mode.
+
+The session owns its function table and any associated graphs, streams,
+or mapped mailbox. Its [`dispatchTable()`{.docutils .literal
+.notranslate}]{.pre} result must remain valid until CUDA-Q calls
+[`stop()`{.docutils .literal .notranslate}]{.pre} and destroys the
+session. CUDA-Q constructs the selected [`DeviceCallChannel`{.docutils
+.literal .notranslate}]{.pre} from that table, starts the service
+session after the channel is ready, and stops and destroys the channel
+before stopping the service session.
+
+The service interface does not own or replace the transport. Ring
+allocation, frame leasing, request publication, response completion, and
+transport shutdown remain responsibilities of
+[`DeviceCallChannel`{.docutils .literal .notranslate}]{.pre}.
+
+Plugins export [`cudaqGetDeviceCallServicePluginInfo`{.docutils .literal
+.notranslate}]{.pre}, which returns the long-lived provider. Downstream
+CMake projects should link the exported
+[`cudaq::cudaq-device-call-runtime`{.docutils .literal
+.notranslate}]{.pre} target to receive the public header and runtime
+implementation.
 :::
 
 ::: {#the-cpu-roce-channel .section}

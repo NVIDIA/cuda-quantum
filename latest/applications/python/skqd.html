@@ -669,6 +669,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/realtime/device_call.html">Device Call Channels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#the-device-call-model">The <code class="docutils literal notranslate"><span class="pre">device_call</span></code> model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#selecting-a-channel">Selecting a channel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#extending-an-in-process-service">Extending an in-process service</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#the-cpu-roce-channel">The <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/device_call.html#wire-pattern-fpga-compatible">Wire pattern (FPGA-compatible)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/device_call.html#connection-setup">Connection setup</a></li>
@@ -1420,12 +1421,12 @@ Generating Krylov state U^11...
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code></p>
 <p>This substantial acceleration comes from: - <strong>Parallel Pauli string evaluation</strong> across thousands of basis states simultaneously - <strong>Vectorized matrix element computation</strong> leveraging CUDA cores - <strong>GPU-optimized sparse linear algebra</strong> via cuSPARSE library for eigenvalue solving</p>
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
-<p><img alt="dd8fde2cd2e94d3d90e5dd53d9a76977" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
+<p><img alt="cb83eea7e92e4e848fc5cbe77853b93d" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
 </section>
 <section id="Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">
 <h2>Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node<a class="headerlink" href="#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node" title="Permalink to this heading">¶</a></h2>
 <p>The plots below were generated using <code class="docutils literal notranslate"><span class="pre">distributed_eigsh()</span></code> with the Hamiltonian of an active site of a GPCR (G protein-coupled receptor) molecule. This demonstrates scaling behavior on a problem with a much larger computational subspace than the 22-qubit demo above.</p>
-<div style="display: flex; gap: 10px;"><p><img alt="34dc3aaec34d40dea1ce0c6425869281" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="34a9fba4a974473cbd7de91ed6e14189" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
+<div style="display: flex; gap: 10px;"><p><img alt="28d31118645946e69db279fdf00d3ee2" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="e252e09e79de4fb4b2110e6d1e6dd7e4" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
 </div><section id="Saving-Hamiltonian-Data">
 <h3>Saving Hamiltonian Data<a class="headerlink" href="#Saving-Hamiltonian-Data" title="Permalink to this heading">¶</a></h3>
 <p>To run the multi-GPU solver, we first save the Hamiltonian data (pauli words, coefficients) and the sampled basis states so they can be loaded by each MPI rank.</p>

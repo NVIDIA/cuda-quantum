@@ -1086,6 +1086,9 @@ latest
         -   [Selecting a
             channel](../../using/realtime/device_call.html#selecting-a-channel){.reference
             .internal}
+        -   [Extending an in-process
+            service](../../using/realtime/device_call.html#extending-an-in-process-service){.reference
+            .internal}
         -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
             channel](../../using/realtime/device_call.html#the-cpu-roce-channel){.reference
             .internal}
@@ -1902,14 +1905,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![533b07c257964dd286d08ad8da1f34b6](../../_images/gate-fuse.png)
+![126040701cb145638459657f26f14639](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![f2220bae53f04c7abb8dde585288fe8e](../../_images/gatefusion.png)
+![b5c5781fbec445b186397eb958df4be6](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -1071,6 +1071,9 @@ latest
         -   [Selecting a
             channel](../../using/realtime/device_call.html#selecting-a-channel){.reference
             .internal}
+        -   [Extending an in-process
+            service](../../using/realtime/device_call.html#extending-an-in-process-service){.reference
+            .internal}
         -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
             channel](../../using/realtime/device_call.html#the-cpu-roce-channel){.reference
             .internal}
@@ -2415,7 +2418,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![dd8fde2cd2e94d3d90e5dd53d9a76977](../../_images/speedup.png){.no-scaled-link
+![cb83eea7e92e4e848fc5cbe77853b93d](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2429,9 +2432,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![34dc3aaec34d40dea1ce0c6425869281](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![28d31118645946e69db279fdf00d3ee2](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![34a9fba4a974473cbd7de91ed6e14189](../../_images/efficiency.jpeg){.no-scaled-link
+![e252e09e79de4fb4b2110e6d1e6dd7e4](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

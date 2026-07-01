@@ -666,6 +666,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Device Call Channels</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#the-device-call-model">The <code class="docutils literal notranslate"><span class="pre">device_call</span></code> model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#selecting-a-channel">Selecting a channel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extending-an-in-process-service">Extending an in-process service</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#the-cpu-roce-channel">The <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#wire-pattern-fpga-compatible">Wire pattern (FPGA-compatible)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#connection-setup">Connection setup</a></li>
@@ -1110,6 +1111,27 @@ in-process service and are not covered in depth here. <code class="docutils lite
 <code class="docutils literal notranslate"><span class="pre">libcudaq-realtime</span></code> host path and can dispatch service entries as either
 <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code> handlers or <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_GRAPH_LAUNCH</span></code> workers.
 The remainder of this page documents the <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel.</p>
+</section>
+<section id="extending-an-in-process-service">
+<h2>Extending an in-process service<a class="headerlink" href="#extending-an-in-process-service" title="Permalink to this heading">¶</a></h2>
+<p>Realtime-enabled CUDA-Q installations expose the service extension interface
+in <code class="docutils literal notranslate"><span class="pre">&lt;cudaq/realtime/device_call_service.h&gt;</span></code>. A plugin implements the abstract
+<code class="docutils literal notranslate"><span class="pre">DeviceCallService</span></code> provider and returns one owned <code class="docutils literal notranslate"><span class="pre">DeviceCallServiceSession</span></code>
+for the requested host or GPU dispatch mode. Returning null rejects an
+unsupported mode.</p>
+<p>The session owns its function table and any associated graphs, streams, or
+mapped mailbox. Its <code class="docutils literal notranslate"><span class="pre">dispatchTable()</span></code> result must remain valid until CUDA-Q
+calls <code class="docutils literal notranslate"><span class="pre">stop()</span></code> and destroys the session. CUDA-Q constructs the selected
+<code class="docutils literal notranslate"><span class="pre">DeviceCallChannel</span></code> from that table, starts the service session after the
+channel is ready, and stops and destroys the channel before stopping the
+service session.</p>
+<p>The service interface does not own or replace the transport. Ring allocation,
+frame leasing, request publication, response completion, and transport
+shutdown remain responsibilities of <code class="docutils literal notranslate"><span class="pre">DeviceCallChannel</span></code>.</p>
+<p>Plugins export <code class="docutils literal notranslate"><span class="pre">cudaqGetDeviceCallServicePluginInfo</span></code>, which returns the
+long-lived provider. Downstream CMake projects should link the exported
+<code class="docutils literal notranslate"><span class="pre">cudaq::cudaq-device-call-runtime</span></code> target to receive the public header and
+runtime implementation.</p>
 </section>
 <section id="the-cpu-roce-channel">
 <h2>The <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel<a class="headerlink" href="#the-cpu-roce-channel" title="Permalink to this heading">¶</a></h2>

@@ -1074,6 +1074,9 @@ latest
         -   [Selecting a
             channel](../realtime/device_call.html#selecting-a-channel){.reference
             .internal}
+        -   [Extending an in-process
+            service](../realtime/device_call.html#extending-an-in-process-service){.reference
+            .internal}
         -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
             channel](../realtime/device_call.html#the-cpu-roce-channel){.reference
             .internal}
