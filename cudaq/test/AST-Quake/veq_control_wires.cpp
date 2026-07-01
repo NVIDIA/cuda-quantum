@@ -18,13 +18,16 @@ struct veq_control {
   void operator()() __qpu__ {
     cudaq::qvector ctrls(3);
     cudaq::qubit target;
-    x<cudaq::ctrl>(ctrls, target); // Multi-controlled X, whole register as controls.
+    x<cudaq::ctrl>(ctrls,
+                   target); // Multi-controlled X, whole register as controls.
     mz(target);
   }
 };
 
 // The whole-register control should expand to one multi-control wire op with
-// three static control wires and no `quake.alloca` or `quake.veq` in the kernel.
+// three static control wires and no `quake.alloca` or `quake.veq` in the
+// kernel.
+// clang-format off
 // CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__veq_control() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -52,3 +55,4 @@ struct veq_control {
 // CHECK:           return
 // CHECK-NOT:       {{quake\.alloca|!quake\.veq|!quake\.ref}}
 // CHECK:         }
+// clang-format on

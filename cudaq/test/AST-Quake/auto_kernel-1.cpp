@@ -21,6 +21,7 @@ struct ak1 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak1(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32{{.*}}) -> i1 attributes
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i32
@@ -33,3 +34,4 @@ struct ak1 {
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i8>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_6]] : (i8) -> i1
 // CHECK:           return %[[VAL_8]] : i1
+// clang-format on
