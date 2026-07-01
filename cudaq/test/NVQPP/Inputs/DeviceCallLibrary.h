@@ -47,6 +47,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <stdexcept>
@@ -105,6 +106,105 @@ __host__ __device__ constexpr std::uint64_t scalarAlignment() {
     return sizeof(std::uint16_t);
   else
     return 1;
+}
+
+__host__ __device__ constexpr std::uint64_t
+packedByteCount(std::uint64_t bitCount) {
+  return bitCount / 8 + (bitCount % 8 != 0);
+}
+
+template <typename>
+inline constexpr bool unsupported_schema_type = false;
+
+template <typename T>
+consteval cudaq_type_desc_t scalarTypeDescriptor() {
+  using S = scalar_storage_t<T>;
+  std::uint8_t typeId = 0;
+  if constexpr (std::is_same_v<S, float>)
+    typeId = CUDAQ_TYPE_FLOAT32;
+  else if constexpr (std::is_same_v<S, double>)
+    typeId = CUDAQ_TYPE_FLOAT64;
+  else if constexpr (std::is_integral_v<S> && sizeof(S) == sizeof(std::uint8_t))
+    typeId = CUDAQ_TYPE_UINT8;
+  else if constexpr (std::is_integral_v<S> && sizeof(S) == sizeof(std::int32_t))
+    typeId = CUDAQ_TYPE_INT32;
+  else if constexpr (std::is_integral_v<S> && sizeof(S) == sizeof(std::int64_t))
+    typeId = CUDAQ_TYPE_INT64;
+  else
+    static_assert(unsupported_schema_type<S>,
+                  "unsupported scalar device_call schema type");
+  return {typeId, {0}, sizeof(S), 1};
+}
+
+template <typename T>
+consteval cudaq_type_desc_t arrayTypeDescriptor() {
+  using Element = std::remove_cv_t<T>;
+  std::uint8_t typeId = 0;
+  if constexpr (std::is_same_v<Element, bool>)
+    typeId = CUDAQ_TYPE_BIT_PACKED;
+  else if constexpr (std::is_same_v<Element, std::uint8_t>)
+    typeId = CUDAQ_TYPE_ARRAY_UINT8;
+  else if constexpr (std::is_integral_v<Element> &&
+                     sizeof(Element) == sizeof(std::int32_t))
+    typeId = CUDAQ_TYPE_ARRAY_INT32;
+  else if constexpr (std::is_same_v<Element, float>)
+    typeId = CUDAQ_TYPE_ARRAY_FLOAT32;
+  else if constexpr (std::is_same_v<Element, double>)
+    typeId = CUDAQ_TYPE_ARRAY_FLOAT64;
+  else
+    static_assert(unsupported_schema_type<Element>,
+                  "unsupported array device_call schema type");
+  // Arrays are dynamically sized; their logical element count and payload
+  // byte count are carried by each request rather than fixed in the table.
+  return {typeId, {0}, 0, 0};
+}
+
+template <auto Fn>
+struct HandlerSchema;
+
+template <typename R, typename... Args, R (*Fn)(Args...)>
+struct HandlerSchema<Fn> {
+  static consteval cudaq_handler_schema_t make() {
+    cudaq_handler_schema_t schema{};
+    appendArgument<0>(schema);
+    if constexpr (!std::is_void_v<R>)
+      schema.results[schema.num_results++] = scalarTypeDescriptor<R>();
+    return schema;
+  }
+
+private:
+  template <std::size_t Index>
+  static consteval void appendArgument(cudaq_handler_schema_t &schema) {
+    if constexpr (Index < sizeof...(Args)) {
+      using Arg = std::tuple_element_t<Index, std::tuple<Args...>>;
+      using S = scalar_storage_t<Arg>;
+      if constexpr (std::is_pointer_v<S>) {
+        static_assert(Index + 1 < sizeof...(Args),
+                      "cudaq device_call array pointer requires a following "
+                      "element count");
+        using LengthArg = std::tuple_element_t<Index + 1, std::tuple<Args...>>;
+        static_assert(std::is_integral_v<scalar_storage_t<LengthArg>> &&
+                          sizeof(scalar_storage_t<LengthArg>) ==
+                              sizeof(std::uint64_t),
+                      "cudaq device_call array element count must be 64-bit");
+        using Element = array_element_t<Arg>;
+        const auto descriptor = arrayTypeDescriptor<Element>();
+        if constexpr (is_output_array_pointer<Arg>::value)
+          schema.results[schema.num_results++] = descriptor;
+        else
+          schema.args[schema.num_args++] = descriptor;
+        appendArgument<Index + 2>(schema);
+      } else {
+        schema.args[schema.num_args++] = scalarTypeDescriptor<Arg>();
+        appendArgument<Index + 1>(schema);
+      }
+    }
+  }
+};
+
+template <auto Fn>
+consteval cudaq_handler_schema_t makeHandlerSchema() {
+  return HandlerSchema<Fn>::make();
 }
 
 // --- Decode helpers ----------------------------------------------------------
@@ -242,37 +342,88 @@ private:
         if constexpr (is_output_array_pointer<Arg>::value) {
           // Output array (non-const pointer): elements are written into the TX
           // result buffer rather than read from the RX argument buffer.
-          if (byRefResultLen > maxResultLen ||
-              elementCount > (maxResultLen - byRefResultLen) / sizeof(Element))
+          if (byRefResultLen > maxResultLen)
             return -1; // result buffer too small
-          const auto arrayBytes =
-              static_cast<std::uint32_t>(elementCount * sizeof(Element));
+          if constexpr (!std::is_same_v<Element, bool>)
+            if (elementCount >
+                (maxResultLen - byRefResultLen) / sizeof(Element))
+              return -1; // result buffer too small
+          const std::uint64_t arrayBytes = [&] {
+            if constexpr (std::is_same_v<Element, bool>)
+              return packedByteCount(elementCount);
+            return elementCount * sizeof(Element);
+          }();
+          if (arrayBytes > maxResultLen - byRefResultLen)
+            return -1; // result buffer too small
           if (arrayBytes && !output)
             return -1; // result buffer too small
-          if (arrayBytes) {
-            auto *outBytes = static_cast<std::uint8_t *>(output);
-            elements = reinterpret_cast<Pointer>(outBytes + byRefResultLen);
+
+          if constexpr (std::is_same_v<Element, bool>) {
+            auto *boolElements =
+                static_cast<bool *>(malloc(elementCount * sizeof(bool)));
+            if (elementCount && !boolElements)
+              return -1;
+            for (std::uint64_t i = 0; i < elementCount; ++i)
+              boolElements[i] = false;
+            const auto rc = decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen + arrayBytes, decoded..., boolElements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
+            if (rc == 0 && arrayBytes) {
+              auto *const packed =
+                  static_cast<std::uint8_t *>(output) + byRefResultLen;
+              for (std::uint64_t i = 0; i < arrayBytes; ++i)
+                packed[i] = 0;
+              for (std::uint64_t i = 0; i < elementCount; ++i)
+                if (boolElements[i])
+                  packed[i / 8] |= std::uint8_t{1} << (i % 8);
+            }
+            free(boolElements);
+            return rc;
+          } else {
+            if (arrayBytes) {
+              auto *outBytes = static_cast<std::uint8_t *>(output);
+              elements = reinterpret_cast<Pointer>(outBytes + byRefResultLen);
+            }
+            return decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen + arrayBytes, decoded..., elements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
           }
-          return decodeAndInvoke<Index + 2>(
-              args, argLen, offset, output, maxResultLen, resultLen,
-              byRefResultLen + arrayBytes, decoded..., elements,
-              static_cast<scalar_storage_t<LengthArg>>(elementCount));
         } else {
-          // Input array (const pointer): elements are read directly from the
-          // RX argument buffer with no copy.
-          if (elementCount > (argLen - offset) / sizeof(Element))
-            return -1; // malformed payload
-          const Element *const constElements =
-              reinterpret_cast<const Element *>(args + offset);
-          offset += elementCount * sizeof(Element);
-          if constexpr (std::is_const_v<std::remove_pointer_t<Pointer>>)
-            elements = constElements;
-          else
-            elements = const_cast<Element *>(constElements);
-          return decodeAndInvoke<Index + 2>(
-              args, argLen, offset, output, maxResultLen, resultLen,
-              byRefResultLen, decoded..., elements,
-              static_cast<scalar_storage_t<LengthArg>>(elementCount));
+          if constexpr (std::is_same_v<Element, bool>) {
+            const std::uint64_t arrayBytes = packedByteCount(elementCount);
+            if (arrayBytes > argLen - offset)
+              return -1; // malformed payload
+            auto *boolElements =
+                static_cast<bool *>(malloc(elementCount * sizeof(bool)));
+            if (elementCount && !boolElements)
+              return -1;
+            for (std::uint64_t i = 0; i < elementCount; ++i)
+              boolElements[i] = ((args[offset + i / 8] >> (i % 8)) & 1u) != 0;
+            offset += arrayBytes;
+            const auto rc = decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen, decoded..., boolElements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
+            free(boolElements);
+            return rc;
+          } else {
+            // Non-boolean input arrays are read directly from the RX buffer.
+            if (elementCount > (argLen - offset) / sizeof(Element))
+              return -1; // malformed payload
+            const Element *const constElements =
+                reinterpret_cast<const Element *>(args + offset);
+            offset += elementCount * sizeof(Element);
+            if constexpr (std::is_const_v<std::remove_pointer_t<Pointer>>)
+              elements = constElements;
+            else
+              elements = const_cast<Element *>(constElements);
+            return decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen, decoded..., elements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
+          }
         }
       } else {
         // Scalar argument: decode one value from the buffer and recurse.
@@ -296,7 +447,7 @@ __device__ void fillEntry(cudaq_function_entry_t &entry,
       reinterpret_cast<void *>(&DeviceCallWrapper<Fn>::call);
   entry.function_id = functionId;
   entry.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-  entry.schema = {};
+  entry.schema = makeHandlerSchema<Fn>();
 }
 
 inline cudaError_t reportCudaError(cudaError_t err, const char *expr) {
@@ -634,8 +785,7 @@ struct GeneratedHostDispatchGraphTable {
       return 1;
 
     for (std::uint32_t i = 0; i < Count; ++i) {
-      if (reportCudaError(createHostDispatchGraph(&graphExecs[i],
-                                                  d_mailbox + i,
+      if (reportCudaError(createHostDispatchGraph(&graphExecs[i], d_mailbox + i,
                                                   d_entries, Count),
                           "createHostDispatchGraph") != cudaSuccess)
         return 1;
@@ -717,8 +867,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
 // translation unit in this prototype.
 #define CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(name)                                  \
   namespace {                                                                  \
-  ::cudaq::realtime::DeviceCallService *                                       \
-  __cudaq_device_call_get_service();                                           \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service();     \
   }                                                                            \
   extern "C" ::cudaq::realtime::DeviceCallServicePluginInfo                    \
   CUDAQ_DEVICE_CALL_SERVICE_PLUGIN_INFO_NAME(name)() {                         \
@@ -753,8 +902,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedDeviceCallService<       \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq::realtime::DeviceCallService *                                       \
-  __cudaq_device_call_get_service() {                                          \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service() {    \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
   } /* close anonymous namespace */
@@ -767,8 +915,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedHostDispatchService<     \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq::realtime::DeviceCallService *                                       \
-  __cudaq_device_call_get_service() {                                          \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service() {    \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
   } /* close anonymous namespace */
