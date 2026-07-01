@@ -6,7 +6,6 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// REQUIRES: clifford-t-synthesis
 
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
@@ -24,10 +23,6 @@ func.func @rx_pi_over_4() {
   return
 }
 
-// CHECK-LABEL: func.func @rx_pi_over_4
-// CHECK:         quake.alloca
-// CHECK-COUNT-15: quake.t
-
 func.func @ry_pi_over_4() {
   %q = quake.alloca !quake.ref
   %a = arith.constant 0.7853981633974483 : f64
@@ -35,6 +30,15 @@ func.func @ry_pi_over_4() {
   return
 }
 
+// CHECK-LABEL: func.func private @__cliffordt_rz_
+// CHECK-COUNT-15: quake.t
+
+// CHECK-LABEL: func.func @rx_pi_over_4
+// CHECK:         quake.alloca
+// CHECK:         quake.h
+// CHECK:         call @__cliffordt_rz_
+// CHECK:         quake.h
+
 // CHECK-LABEL: func.func @ry_pi_over_4
 // CHECK:         quake.alloca
-// CHECK-COUNT-15: quake.t
+// CHECK:         call @__cliffordt_rz_

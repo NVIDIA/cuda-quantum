@@ -10,11 +10,7 @@ import math
 
 import pytest
 
-synth = pytest.importorskip(
-    "cudaq.synth",
-    reason="cudaq.synth not built (requires GMP/MPFR and "
-    "CUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS=ON)",
-)
+from cudaq import synth
 
 GATE_ALPHABET = set("HSTXWI")
 
