@@ -80,12 +80,12 @@ public:
           line = line.ltrim();
           if (line.consume_front("--> {")) {
             if (llvm::Error error = validateQubitIndex(v1))
-              return std::move(error);
+              return error;
             line = line.ltrim();
             unsigned v2 = 0;
             while (!line.consumeInteger(10, v2)) {
               if (llvm::Error error = validateQubitIndex(v2))
-                return std::move(error);
+                return error;
               // Create an edge, but make sure it doesn't already exist
               bool edgeAlreadyExists = false;
               for (auto edge : device.topology.getNeighbours(Qubit(v1))) {
