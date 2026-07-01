@@ -9,6 +9,7 @@
 add_library(cudaq-device-call-runtime-headers INTERFACE)
 target_include_directories(cudaq-device-call-runtime-headers INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
   $<INSTALL_INTERFACE:include>)
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
@@ -65,6 +66,10 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   install(TARGETS cudaq-device-call-runtime
           EXPORT cudaq-targets
           DESTINATION lib)
+
+  install(FILES
+          ${CMAKE_SOURCE_DIR}/runtime/cudaq/realtime/device_call_service.h
+          DESTINATION include/cudaq/realtime)
 
   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
           DESTINATION include)

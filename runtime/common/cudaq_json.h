@@ -21,6 +21,7 @@ namespace cudaq {
 /// that includes nlohmann/json.hpp directly.
 class cudaq_json {
 public:
+  cudaq_json();
   cudaq_json(const cudaq_json &);
   cudaq_json(cudaq_json &&) noexcept;
   cudaq_json &operator=(const cudaq_json &);

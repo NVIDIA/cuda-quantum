@@ -66,8 +66,7 @@ if (CUDA_FOUND)
       cudaq-operator
       cudaq-common
       cudaq-nlopt
-      cudaq-ensmallen
-      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq-ensmallen>
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE
@@ -94,8 +93,7 @@ else()
       cudaq-operator
       cudaq-common
       cudaq-nlopt
-      cudaq-ensmallen
-      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq-ensmallen>
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE

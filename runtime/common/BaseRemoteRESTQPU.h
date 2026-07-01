@@ -14,7 +14,6 @@
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
 #include "common/ServerHelper.h"
-#include "cudaq_internal/compiler/Compiler.h"
 #include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Target/TargetConfig.h"
@@ -56,8 +55,6 @@ inline observe_result observeResultFromCounts(const observe_policy &policy,
 
 class BaseRemoteRESTQPU : public QPU {
 protected:
-  using Compiler = cudaq_internal::compiler::Compiler;
-
   /// The number of shots
   std::optional<int> nShots;
 
@@ -249,6 +246,7 @@ public:
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), targetConfig, backendConfig, emulate);
     target->pipelineConfig.replaceStateWithKernel = true;
+    target->overrideAOTCompilation = true;
     if (ctx && ctx->name == "resource-count") {
       target->emitResourceCounts = true;
     } else if (ctx && ctx->name == "dem") {
@@ -267,6 +265,7 @@ public:
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
     target->pipelineConfig.replaceStateWithKernel = true;
+    target->overrideAOTCompilation = true;
     return target;
   }
 
@@ -274,46 +273,10 @@ public:
   getCompileTarget(const observe_policy &policy) override {
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), targetConfig, backendConfig, emulate);
+    target->overrideAOTCompilation = true;
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
     return target;
-  }
-
-  /// @brief Build the list of kernel executions for the given module under
-  /// a specific sampling policy. Source modules are lowered through the
-  /// configured pass pipeline; pre-compiled modules are emitted directly.
-  /// The resolved kernel name is returned via @p kernelName.
-  template <typename Policy>
-  std::pair<std::string, std::vector<cudaq::KernelExecution>>
-  compileKernelExecutions(Policy &policy, const AnyModule &module,
-                          KernelArgs args) {
-    Compiler compiler(getCompileTarget(policy));
-    std::string kernelName;
-    std::optional<CompiledModule> compiled;
-    if (std::holds_alternative<SourceModule>(module)) {
-      const auto &src = std::get<SourceModule>(module);
-      kernelName = src.getName();
-      CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-      auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
-
-      compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
-                                          std::move(context));
-    } else {
-      compiled = std::get<CompiledModule>(module);
-      kernelName = compiled->getName();
-      CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-    }
-
-    auto codes = compiler.emitKernelExecutions(*compiled);
-
-    // Propagate metadata from the compiled artifact to the execution context.
-    if (auto ctx = getExecutionContext()) {
-      ctx->hasConditionalsOnMeasureResults =
-          compiled->getMetadata().hasConditionalsOnMeasureResults;
-    }
-
-    return {kernelName, codes};
   }
 
   void completeLaunchKernel(const std::string &kernelName,
@@ -323,9 +286,11 @@ public:
     // Check to see if we are simply drawing the circuit. If so, perform the
     // trace here and then return.
     if (executionContext->name == "tracer" && codes.size() == 1) {
+      assert(codes[0].jit);
       cudaq::ExecutionContext context("tracer");
       context.executionManager = cudaq::getDefaultExecutionManager();
-      assert(codes[0].jit);
+      context.hasConditionalsOnMeasureResults =
+          codes[0].hasConditionalsOnMeasureResults;
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->kernelTrace = std::move(context.kernelTrace);
@@ -333,9 +298,11 @@ public:
     }
 
     if (executionContext->name == "resource-count") {
+      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
-      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
+      context.hasConditionalsOnMeasureResults =
+          codes[0].hasConditionalsOnMeasureResults;
       nvqir::resource_counter::prepopulate(
           std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
@@ -344,14 +311,19 @@ public:
     }
 
     if (executionContext->name == "dem") {
+      assert(codes.size() == 1 && codes[0].jit);
       cudaq::ExecutionContext context("dem");
       context.executionManager = cudaq::getDefaultExecutionManager();
       context.noiseModel = executionContext->noiseModel;
       context.qpuId = executionContext->qpuId;
-      assert(codes.size() == 1 && codes[0].jit);
+      context.dem_opts = executionContext->dem_opts;
+      context.hasConditionalsOnMeasureResults =
+          codes[0].hasConditionalsOnMeasureResults;
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->dem_text = std::move(context.dem_text);
+      executionContext->measurement_matrices =
+          std::move(context.measurement_matrices);
       return;
     }
 
@@ -487,6 +459,8 @@ public:
     // observe) one time each.
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
+      context.hasConditionalsOnMeasureResults =
+          codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
@@ -507,7 +481,7 @@ public:
   }
 
   async_observe_result
-  completeLaunchKernel(async_observe_policy &policy,
+  completeLaunchKernel(const async_observe_policy &policy,
                        const std::string &kernelName,
                        std::vector<cudaq::KernelExecution> &&codes) {
     std::size_t localShots = 1000;
@@ -545,6 +519,8 @@ public:
     std::vector<cudaq::ExecutionResult> results;
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
+      context.hasConditionalsOnMeasureResults =
+          codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);

@@ -855,7 +855,10 @@ class PyASTBridge(ast.NodeVisitor):
             type) or F32Type.isinstance(type) or ComplexType.isinstance(type)
 
     def __isSupportedNumpyFunction(self, id):
-        return id in ['sin', 'cos', 'sqrt', 'ceil', 'exp']
+        return id in [
+            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'arcsin', 'arccos',
+            'arctan', 'sqrt', 'ceil', 'floor', 'exp', 'log'
+        ]
 
     def __isSupportedVectorFunction(self, id):
         return id in ['front', 'back', 'append']
@@ -3631,6 +3634,38 @@ class PyASTBridge(ast.NodeVisitor):
                             return
                         self.pushValue(math.SqrtOp(value).result)
                         return
+                    if node.func.attr == 'tan':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.TanOp(value).result)
+                        return
+                    if node.func.attr in ['asin', 'arcsin']:
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.AsinOp(value).result)
+                        return
+                    if node.func.attr in ['acos', 'arccos']:
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.AcosOp(value).result)
+                        return
+                    if node.func.attr in ['atan', 'arctan']:
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.AtanOp(value).result)
+                        return
                     if node.func.attr == 'exp':
                         if ComplexType.isinstance(value.type):
                             # Note: using `complex.ExpOp` results in a "can't
@@ -3654,6 +3689,14 @@ class PyASTBridge(ast.NodeVisitor):
                             return
                         self.pushValue(math.ExpOp(value).result)
                         return
+                    if node.func.attr == 'log':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.LogOp(value).result)
+                        return
                     if node.func.attr == 'ceil':
                         if ComplexType.isinstance(value.type):
                             self.emitFatalError(
@@ -3661,6 +3704,14 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"supported for complex numbers", node)
                             return
                         self.pushValue(math.CeilOp(value).result)
+                        return
+                    if node.func.attr == 'floor':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.FloorOp(value).result)
                         return
 
                     self.emitFatalError(
@@ -5913,7 +5964,11 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     """
 
     verbose = 'verbose' in kwargs and kwargs['verbose']
-    lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
+    # `location` may be absent, explicitly None (e.g. a kernel reconstructed via
+    # `from_json` whose serialized location was null), or empty; in every such
+    # case fall back to the default offset so diagnostics never subscript a
+    # non-`(filename, lineno)` value.
+    lineNumberOffset = kwargs.get('location') or ('', 0)
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
     cudaqAliases = kwargs.get('cudaqAliases', None)
