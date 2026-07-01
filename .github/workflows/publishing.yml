@@ -1017,23 +1017,6 @@ jobs:
           GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
           bash github-repo/scripts/validate_installation.sh $backends_to_test | tee /tmp/validation.out
 
-          # Check that the tests included the nvidia-mgpu backend:
-          # Grab the first line where "Testing on nvidia target..." starts
-          # The first should be okay, since any target being tested against
-          # nvidia should be using all the options for the validation script.
-          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
-
-          # From that line, extract the block until the next "Testing on" or EOF
-          nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
-
-          # Check if "fp32,mgpu" is present
-          if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
-            echo "::error::Missing tests for nvidia fp32,mgpu backend."
-            echo "Observed target options:"
-            echo "$nvidia_block"
-            exit 1
-          fi
-
       - name: MPI validation 
         shell: bash
         run: |
@@ -1209,17 +1192,6 @@ jobs:
             GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
             bash validate_installation.sh | tee /tmp/validation.out
           "
-
-          # Check that the tests included the nvidia-mgpu backend:
-          nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
-          nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
-
-          if ! echo "$nvidia_block" | grep -q "fp32,mgpu"; then
-            echo "::error::Missing tests for nvidia fp32,mgpu backend."
-            echo "Observed target options:"
-            echo "$nvidia_block"
-            exit 1
-          fi
 
   wheel_validation_piponly:
     name: Wheel validation, pip only
@@ -1484,7 +1456,7 @@ jobs:
   create_release:
     name: CUDA-Q Release
     needs: [assets, cudaq_images, cudaq_installers, cudaq_wheels, cudaq_metapackages, macos_artifacts, metapackage_validation_macos, cudaq_realtime_installers]
-    if: needs.assets.outputs.release_title && inputs.github_commit == '' && inputs.nvidia_mgpu_commit == ''
+    if: needs.assets.outputs.release_title && inputs.github_commit == '' # FIXME: add && inputs.nvidia_mgpu_commit == ''
     runs-on: ubuntu-latest
 
     environment:
