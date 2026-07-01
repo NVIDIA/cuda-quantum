@@ -253,7 +253,4 @@ add_subdirectory(target_config)
 add_subdirectory(logger)
 add_subdirectory(backends)
 add_subdirectory(ptsbe)
-if(TARGET cudaq-synth)
-  add_subdirectory(Synthesis)
-endif()
 
