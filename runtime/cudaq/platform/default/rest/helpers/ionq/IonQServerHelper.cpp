@@ -390,7 +390,7 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
         "ServerMessage doesn't tell us how many qubits there were");
 
   auto nQubits = jobs[0].at("qubits").get<int>();
-  if (nQubits < 0 || nQubits > 64)
+  if (nQubits <= 0 || nQubits > 64)
     throw std::runtime_error("Invalid number of qubits in ServerMessage: " +
                              std::to_string(nQubits));
   CUDAQ_DBG("nQubits is : {}", nQubits);
