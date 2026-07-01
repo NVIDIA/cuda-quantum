@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
 #include <cudaq.h>
 #include <iostream>
 
@@ -24,13 +32,13 @@ std::vector<int> random_bitstring(int qubit_count) {
   return vector_of_bits;
 }
 
-__qpu__ void oracle(cudaq::qview<> qvector, cudaq::qubit &auxillary_qubit,
+__qpu__ void oracle(cudaq::qview<> qvector, cudaq::qubit &auxiliary_qubit,
                     std::vector<int> &hidden_bitstring) {
   for (auto i = 0; i < hidden_bitstring.size(); i++) {
     if (hidden_bitstring[i] == 1)
       // Apply a `cx` gate with the current qubit as
-      // the control and the auxillary qubit as the target.
-      x<cudaq::ctrl>(qvector[i], auxillary_qubit);
+      // the control and the auxiliary qubit as the target.
+      x<cudaq::ctrl>(qvector[i], auxiliary_qubit);
   }
 }
 
@@ -38,24 +46,24 @@ __qpu__ void bernstein_vazirani(std::vector<int> &hidden_bitstring) {
   // Allocate the specified number of qubits - this
   // corresponds to the length of the hidden bitstring.
   cudaq::qvector qvector(hidden_bitstring.size());
-  // Allocate an extra auxillary qubit.
-  cudaq::qubit auxillary_qubit;
+  // Allocate an extra auxiliary qubit.
+  cudaq::qubit auxiliary_qubit;
 
-  // Prepare the auxillary qubit.
-  h(auxillary_qubit);
-  z(auxillary_qubit);
+  // Prepare the auxiliary qubit.
+  h(auxiliary_qubit);
+  z(auxiliary_qubit);
 
   // Place the rest of the qubits in a superposition state.
   h(qvector);
 
   // Query the oracle.
-  oracle(qvector, auxillary_qubit, hidden_bitstring);
+  oracle(qvector, auxiliary_qubit, hidden_bitstring);
 
   // Apply another set of Hadamards to the qubits.
   h(qvector);
 
   // Apply measurement gates to just the `qubits`
-  // (excludes the auxillary qubit).
+  // (excludes the auxiliary qubit).
   mz(qvector);
 }
 
