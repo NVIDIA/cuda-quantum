@@ -7,4 +7,6 @@
 # ============================================================================ #
 
 add_subdirectory(nlopt)
-add_subdirectory(ensmallen)
+if (CUDAQ_ENABLE_ENSMALLEN)
+  add_subdirectory(ensmallen)
+endif()

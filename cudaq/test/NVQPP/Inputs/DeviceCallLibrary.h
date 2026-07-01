@@ -37,9 +37,9 @@
 //   2. Calls `foo(a, b)` directly (same device module, zero overhead).
 //   3. Writes the returned `int` into the TX byte buffer.
 
-#include "cudaq_internal/device_call/DeviceCallService.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/device_call_service.h"
 
 #include <cuda_runtime.h>
 
@@ -48,10 +48,17 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <memory>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 
 namespace cudaq_internal::device_call::detail {
+
+using cudaq::realtime::DeviceCallDispatchMode;
+using cudaq::realtime::DeviceCallDispatchTable;
+using cudaq::realtime::DeviceCallService;
+using cudaq::realtime::DeviceCallServiceSession;
 
 // Canonical payload storage for the first prototype ABI. References and
 // cv-qualification are erased before packing/unpacking so the wire format uses
@@ -305,8 +312,56 @@ inline cudaError_t reportCudaError(cudaError_t err, const char *expr) {
 // Parameterized by the per-TU table-init kernel and entry count, so each
 // translation unit gets its own instantiation (and its own dispatch stream).
 template <auto InitTableKernel, std::uint32_t Count>
-struct GeneratedDeviceCallService : public DeviceCallService {
+struct GeneratedDeviceCallSession : public DeviceCallServiceSession {
   static inline cudaStream_t dispatchStream = nullptr;
+
+  GeneratedDeviceCallSession() {
+    if constexpr (Count == 0)
+      throw std::runtime_error("device_call service exported no functions");
+
+    const auto bytes = Count * sizeof(cudaq_function_entry_t);
+    void *allocated = nullptr;
+    if (cudaMalloc(&allocated, bytes) != cudaSuccess)
+      throw std::runtime_error("failed to allocate device_call function table");
+    deviceEntries = static_cast<cudaq_function_entry_t *>(allocated);
+
+    if (cudaMemset(deviceEntries, 0, bytes) != cudaSuccess) {
+      cudaFree(deviceEntries);
+      deviceEntries = nullptr;
+      throw std::runtime_error(
+          "failed to initialize device_call function table");
+    }
+
+    InitTableKernel<<<1, 1>>>(deviceEntries);
+    if (reportCudaError(cudaGetLastError(), "device_call_init_table launch") !=
+            cudaSuccess ||
+        reportCudaError(cudaDeviceSynchronize(),
+                        "device_call_init_table synchronize") != cudaSuccess) {
+      cudaFree(deviceEntries);
+      deviceEntries = nullptr;
+      throw std::runtime_error("failed to populate device_call function table");
+    }
+
+    table.mode = DeviceCallDispatchMode::Gpu;
+    table.entries = deviceEntries;
+    table.count = Count;
+    table.launchFn = &launchDispatchKernel;
+    table.synchronizeFn = &synchronizeDispatchKernel;
+  }
+
+  ~GeneratedDeviceCallSession() override {
+    stop();
+    if (deviceEntries)
+      reportCudaError(cudaFree(deviceEntries), "cudaFree device_call table");
+  }
+
+  const DeviceCallDispatchTable &dispatchTable() const noexcept override {
+    return table;
+  }
+
+  void stop() noexcept override {
+    reportCudaError(synchronizeDispatchKernel(), "synchronizeDispatchKernel");
+  }
 
   static cudaError_t getDispatchStream(cudaStream_t *stream) {
     if (!stream)
@@ -353,28 +408,19 @@ struct GeneratedDeviceCallService : public DeviceCallService {
     return syncErr != cudaSuccess ? syncErr : destroyErr;
   }
 
-  int create(const void *, std::size_t) override { return 0; }
-  int destroy() noexcept override { return 0; }
-  std::uint32_t getFunctionCount() const override { return Count; }
-  int start() override { return 0; }
-  int stop() noexcept override {
-    return reportCudaError(synchronizeDispatchKernel(),
-                           "synchronizeDispatchKernel") != cudaSuccess;
-  }
-  int populateTable(cudaq_function_entry_t *entries, std::uint32_t capacity,
-                    cudaStream_t stream) override {
-    if (!entries || capacity < Count)
-      return 1;
-    InitTableKernel<<<1, 1, 0, stream>>>(entries);
-    return reportCudaError(cudaGetLastError(),
-                           "device_call_init_table launch") != cudaSuccess;
-  }
-  cudaq_dispatch_launch_fn_t getDeviceDispatchLaunch() const override {
-    return &launchDispatchKernel;
-  }
-  DeviceCallDispatchSynchronizeFn
-  getDeviceDispatchSynchronize() const override {
-    return &synchronizeDispatchKernel;
+private:
+  cudaq_function_entry_t *deviceEntries = nullptr;
+  DeviceCallDispatchTable table;
+};
+
+template <auto InitTableKernel, std::uint32_t Count>
+struct GeneratedDeviceCallService : public DeviceCallService {
+  std::unique_ptr<DeviceCallServiceSession>
+  createDispatchSession(DeviceCallDispatchMode mode) override {
+    if (mode != DeviceCallDispatchMode::Gpu)
+      return nullptr;
+    return std::make_unique<
+        GeneratedDeviceCallSession<InitTableKernel, Count>>();
   }
 
   static DeviceCallService *getService() {
@@ -395,7 +441,7 @@ using DeviceCallAbiHandler = std::int32_t (*)(const void *, void *,
 // `realtime/unittests/test_host_dispatcher.cu`; this kernel adds function-table
 // dispatch on top of that base pattern.
 //
-// Launch protocol (performed by `GeneratedHostDispatchService` before each
+// Launch protocol (performed for `GeneratedHostDispatchSession` before each
 // `cudaGraphLaunch`):
 //   1. Host fills `GraphIOContext { rx_slot, tx_slot, tx_flag, ... }`.
 //   2. Host writes `GraphIOContext*` into the pinned mailbox slot.
@@ -608,30 +654,44 @@ struct GeneratedHostDispatchGraphTable {
 };
 
 template <auto InitTableKernel, std::uint32_t Count>
-struct GeneratedHostDispatchService : public DeviceCallService {
+struct GeneratedHostDispatchSession : public DeviceCallServiceSession {
   using Table = GeneratedHostDispatchGraphTable<InitTableKernel, Count>;
-  int create(const void *, std::size_t) override { return 0; }
 
-  int destroy() noexcept override {
-    Table::teardown();
-    return 0;
-  }
-
-  std::uint32_t getFunctionCount() const override { return Count; }
-
-  int getHostDispatchTable(DeviceCallHostDispatchTable &table) override {
+  GeneratedHostDispatchSession() {
+    if constexpr (Count == 0)
+      throw std::runtime_error("device_call service exported no functions");
     if (Table::setup() != 0)
-      return 1;
+      throw std::runtime_error("host device_call service table setup failed");
+    table.mode = DeviceCallDispatchMode::Host;
     table.entries = Table::h_entries;
     table.count = Count;
     table.deviceId = 0;
     table.mailbox = Table::h_mailbox;
-    return 0;
   }
 
-  int stop() noexcept override {
+  ~GeneratedHostDispatchSession() override { stop(); }
+
+  const DeviceCallDispatchTable &dispatchTable() const noexcept override {
+    return table;
+  }
+
+  void stop() noexcept override {
     Table::teardown();
-    return 0;
+    table = {};
+  }
+
+private:
+  DeviceCallDispatchTable table;
+};
+
+template <auto InitTableKernel, std::uint32_t Count>
+struct GeneratedHostDispatchService : public DeviceCallService {
+  std::unique_ptr<DeviceCallServiceSession>
+  createDispatchSession(DeviceCallDispatchMode mode) override {
+    if (mode != DeviceCallDispatchMode::Host)
+      return nullptr;
+    return std::make_unique<
+        GeneratedHostDispatchSession<InitTableKernel, Count>>();
   }
 
   static DeviceCallService *getService() {
@@ -656,14 +716,14 @@ struct GeneratedHostDispatchService : public DeviceCallService {
 // translation unit in this prototype.
 #define CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(name)                                  \
   namespace {                                                                  \
-  ::cudaq_internal::device_call::DeviceCallService *                           \
+  ::cudaq::realtime::DeviceCallService *                                       \
   __cudaq_device_call_get_service();                                           \
   }                                                                            \
-  extern "C" ::cudaq_internal::device_call::DeviceCallServicePluginInfo        \
+  extern "C" ::cudaq::realtime::DeviceCallServicePluginInfo                    \
   CUDAQ_DEVICE_CALL_SERVICE_PLUGIN_INFO_NAME(name)() {                         \
     return {#name, &__cudaq_device_call_get_service};                          \
   }                                                                            \
-  extern "C" ::cudaq_internal::device_call::DeviceCallServicePluginInfo        \
+  extern "C" ::cudaq::realtime::DeviceCallServicePluginInfo                    \
   cudaqGetDeviceCallServicePluginInfo() {                                      \
     return CUDAQ_DEVICE_CALL_SERVICE_PLUGIN_INFO_NAME(name)();                 \
   }                                                                            \
@@ -683,8 +743,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
       entries[__COUNTER__ - __cudaq_device_call_counter_begin - 1],            \
       cudaq::realtime::fnv1a_hash(#function));
 
-// Finish the table and export the service plugin info entry point. The CUDA-Q
-// runtime owns function table allocation and dispatch session lifecycle.
+// Finish the table and export the service plugin info entry point.
 #define CUDAQ_DEVICE_CALL_LIBRARY_END()                                        \
   } /* close __cudaq_device_call_init_table */                                 \
   constexpr std::uint32_t __cudaq_device_call_count =                          \
@@ -693,7 +752,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedDeviceCallService<       \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq_internal::device_call::DeviceCallService *                           \
+  ::cudaq::realtime::DeviceCallService *                                       \
   __cudaq_device_call_get_service() {                                          \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
@@ -707,7 +766,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedHostDispatchService<     \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq_internal::device_call::DeviceCallService *                           \
+  ::cudaq::realtime::DeviceCallService *                                       \
   __cudaq_device_call_get_service() {                                          \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
