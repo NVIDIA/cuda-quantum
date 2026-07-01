@@ -67,31 +67,11 @@ func.func @test_03() {
 
 quake.wire_set @wires_04[10]
 
-func.func @test_04() {
-  %cond = cc.undef i1
-  %0 = quake.borrow_wire @wires_04[0] : !quake.wire
-  %1 = quake.borrow_wire @wires_04[1] : !quake.wire
-  %2:2 = cc.if (%cond) ((%a = %0, %b = %1)) -> (!quake.wire, !quake.wire) {
-    // expected-error @+1 {{mapper cannot handle 2-qubit gates inside branches}}
-    %r:2 = quake.x [%a] %b : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    cc.continue %r#0, %r#1 : !quake.wire, !quake.wire
-  } else {
-    cc.continue %a, %b : !quake.wire, !quake.wire
-  }
-  quake.return_wire %2#0 : !quake.wire
-  quake.return_wire %2#1 : !quake.wire
-  return
-}
-
-// -----
-
-quake.wire_set @wires_05[10]
-
 // A measured wire reused by a later quantum op is a mid-circuit measurement the
 // mapper cannot preserve while it defers measurements to the end.
-func.func @test_05() {
-  %0 = quake.borrow_wire @wires_05[0] : !quake.wire
-  %1 = quake.borrow_wire @wires_05[1] : !quake.wire
+func.func @test_04() {
+  %0 = quake.borrow_wire @wires_04[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_04[1] : !quake.wire
   %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   // expected-error @+1 {{unsupported mid-circuit measurement}}
   %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
@@ -103,15 +83,15 @@ func.func @test_05() {
 
 // -----
 
-quake.wire_set @wires_06[10]
+quake.wire_set @wires_05[10]
 
 // A measurement result feeding control flow through a store/load is the
 // adaptive/feed-forward shape CUDA-Q lowering produces, and is unsupported. The
 // feedback diagnostic is reported on the function, not the measurement op.
 // expected-error @+1 {{unsupported measurement-dependent behavior}}
-func.func @test_06() {
-  %0 = quake.borrow_wire @wires_06[0] : !quake.wire
-  %1 = quake.borrow_wire @wires_06[1] : !quake.wire
+func.func @test_05() {
+  %0 = quake.borrow_wire @wires_05[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_05[1] : !quake.wire
   %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
   %b = quake.discriminate %meas : (!quake.measure) -> i1
@@ -122,6 +102,26 @@ func.func @test_06() {
     %tmp = cc.alloca i1
   }
   quake.return_wire %wire : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_06[10]
+
+func.func @test_06() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires_06[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_06[1] : !quake.wire
+  %2:2 = cc.if (%cond) ((%a = %0, %b = %1)) -> (!quake.wire, !quake.wire) {
+    // expected-error @+1 {{mapper cannot handle 2-qubit gates inside branches}}
+    %r:2 = quake.x [%a] %b : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %r#0, %r#1 : !quake.wire, !quake.wire
+  } else {
+    cc.continue %a, %b : !quake.wire, !quake.wire
+  }
+  quake.return_wire %2#0 : !quake.wire
   quake.return_wire %2#1 : !quake.wire
   return
 }

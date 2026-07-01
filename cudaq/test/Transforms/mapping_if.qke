@@ -199,3 +199,40 @@ func.func @test_if_after_swap() attributes {"cudaq-kernel"} {
   quake.return_wire %4#1 : !quake.wire
   return
 }
+
+// Two wires pass through an if where both branches return them in reversed order
+// (cc.continue %b, %a).  result#0 carries vq1's wire (initially on phy1) and
+// result#1 carries vq0's wire (initially on phy0).  A CNOT then uses result#0
+// as control and a third wire as target.  Since result#0 is vq1 (phy1) and
+// the third wire is vq2 (phy2), they are adjacent on path(3) and no SWAP is
+// needed.  If the pass incorrectly maps result#0 → vq0 (phy0), it inserts an
+// unnecessary SWAP, and the [%[[IF]]#0] check below would fail.
+//
+// CHECK-LABEL: func.func @test_if_swapped_continue()
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[IF:.*]]:2 = cc.if({{.*}}) ((%[[A:.*]] = %[[Q0]], %[[B:.*]] = %[[Q1]])) -> (!quake.wire, !quake.wire) {
+// CHECK:     cc.continue %[[B]], %[[A]] : !quake.wire, !quake.wire
+// CHECK:   } else {
+// CHECK:     cc.continue %[[B]], %[[A]] : !quake.wire, !quake.wire
+// CHECK:   }
+// CHECK:   quake.x [%[[IF]]#0] %[[Q2]]
+func.func @test_if_swapped_continue() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  // Both branches return wires in reversed order: result#0 = vq1, result#1 = vq0.
+  %3:2 = cc.if (%cond) ((%a = %0, %b = %1)) -> (!quake.wire, !quake.wire) {
+    cc.continue %b, %a : !quake.wire, !quake.wire
+  } else {
+    cc.continue %b, %a : !quake.wire, !quake.wire
+  }
+  // result#0 is vq1 (phy1); wire %2 is vq2 (phy2) — adjacent, no SWAP needed.
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %3#1 : !quake.wire
+  quake.return_wire %4#0 : !quake.wire
+  quake.return_wire %4#1 : !quake.wire
+  return
+}
