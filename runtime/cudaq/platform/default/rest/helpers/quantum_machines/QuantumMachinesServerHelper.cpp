@@ -210,7 +210,6 @@ public:
     return std::chrono::seconds(1);
   }
 
-
   std::string extractOutputLog(ServerMessage &postJobResponse,
                                std::string &jobId) override {
     CUDAQ_INFO("extractOutputLog: {}, {}", jobId, postJobResponse.dump());
@@ -224,8 +223,8 @@ public:
     std::string mappingMode = backendConfig["qubit_mapping_mode"];
     if (mappingMode == "backend") {
       // Adding a simple "tail": do not run any qubit mapping.
-      passPipeline += ",func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)";
-      CUDAQ_INFO("After removing mapping pass, updated pass pipeline: {}", passPipeline);
+      //passPipeline += ",func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)";
+      CUDAQ_INFO("Backend qubit mapping, full pass pipeline: {}", passPipeline);
       return;
     }
     std::filesystem::path qpuConfigPath = platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
@@ -256,9 +255,14 @@ public:
       throw std::runtime_error("qubit_mapping_mode: " + mappingMode + " is not supported. Supported modes are 'local-file', 'local-get-latest', and 'backend'.");
     }
     // Add the pipelines that ar responsible for qubit mapping, and adjust he file path
-    passPipeline += ",func.func(expand-control-veqs,add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)";
-    passPipeline =
-        std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), machineconfigFilePath);
+    //passPipeline += ",func.func(expand-control-veqs,add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)";
+    const std::string needle = "qubit-mapping{device=bypass}";
+    auto pos = passPipeline.find(needle);
+    if (pos != std::string::npos) {
+      passPipeline.replace(pos, needle.size(),
+          "qubit-mapping{device=file(" + machineconfigFilePath + ") placement=greedy}");
+    }
+    //passPipeline = std::regex_replace(passPipeline, std::regex("qubit-mapping{device=bypass}"), "qubit-mapping{device=file("+machineconfigFilePath+") placement=greedy}");
     CUDAQ_INFO("Updated pass pipeline: {}", passPipeline);
   }
 };
