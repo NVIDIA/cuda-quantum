@@ -36,6 +36,7 @@ __qpu__ void kernel_1() {
   custom_cnot(q, r);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
@@ -43,6 +44,7 @@ __qpu__ void kernel_1() {
 // CHECK:           quake.custom_unitary_call @__nvqpp__mlirgen__function_custom_cnot_generator_2._Z23custom_cnot_generator_{{.*}}vectorId{{.*}} %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void kernel_2() {
   cudaq::qubit q, r;
@@ -50,6 +52,7 @@ __qpu__ void kernel_2() {
   custom_x<cudaq::ctrl>(q, r);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_2._Z8kernel_2v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
@@ -57,6 +60,7 @@ __qpu__ void kernel_2() {
 // CHECK:           quake.custom_unitary_call @__nvqpp__mlirgen__function_custom_x_generator_1._Z20custom_x_generator_{{.*}}vectorId{{.*}} {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void kernel_3() {
   cudaq::qubit q, r;
@@ -64,6 +68,7 @@ __qpu__ void kernel_3() {
   custom_swap(q, r);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_3._Z8kernel_3v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
@@ -71,6 +76,7 @@ __qpu__ void kernel_3() {
 // CHECK:           quake.custom_unitary_call @__nvqpp__mlirgen__function_custom_swap_generator_2._Z23custom_swap_generator_{{.*}}vectorId{{.*}} %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void kernel_4() {
   cudaq::qvector q(4);
@@ -78,6 +84,7 @@ __qpu__ void kernel_4() {
   custom_swap<cudaq::ctrl>(q[0], q[1], q[2], q[3]);
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_4._Z8kernel_4v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
@@ -103,6 +110,7 @@ __qpu__ void kernel_4() {
 // CHECK:           quake.custom_unitary_call @__nvqpp__mlirgen__function_custom_swap_generator_2._Z23custom_swap_generator_{{.*}}vectorId{{.*}} {{\[}}%[[VAL_13]], %[[VAL_14]]] %[[VAL_15]], %[[VAL_16]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void kernel_5() {
   auto q = cudaq::qubit();
@@ -111,6 +119,7 @@ __qpu__ void kernel_5() {
   custom_s<cudaq::adj>(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_5._Z8kernel_5v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
@@ -118,6 +127,7 @@ __qpu__ void kernel_5() {
 // CHECK:           quake.custom_unitary_call @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_{{.*}}vectorId{{.*}}<adj> %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void kernel_6() {
   cudaq::qvector q(3);
@@ -125,6 +135,7 @@ __qpu__ void kernel_6() {
   toffoli(q[0], q[1], q[2]);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_6._Z8kernel_6v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
@@ -149,3 +160,4 @@ __qpu__ void kernel_6() {
 // CHECK:           quake.custom_unitary_call @__nvqpp__mlirgen__function_toffoli_generator_3._Z19toffoli_generator_{{.*}}vectorId{{.*}} %[[VAL_11]], %[[VAL_12]], %[[VAL_13]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

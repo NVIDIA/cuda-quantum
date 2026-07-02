@@ -84,6 +84,7 @@ __qpu__ std::vector<bool> branch_vec_test() {
   return cudaq::to_bools(mz(data));
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__K9() : () -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_1:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<i1>) -> i64
@@ -256,3 +257,4 @@ __qpu__ std::vector<bool> branch_vec_test() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_branch_vec_test._Z15branch_vec_testv.run.entry()
 // CHECK:           %{{.*}} = constant @function_branch_vec_test._Z15branch_vec_testv.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
+// clang-format on

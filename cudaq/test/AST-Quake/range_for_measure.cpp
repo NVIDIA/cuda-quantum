@@ -52,9 +52,11 @@ struct range_for_measure_auto {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__range_for_measure_auto()
 // CHECK:           quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           cc.store %{{.*}}, %{{.*}} : !cc.ptr<!cc.measure_handle>
+// clang-format on
 
 // A named `std::vector<measure_handle>` bound straight from a multi-qubit `mz`.
 // The descriptor slot stores the `mz` result, so the vector is bound and the

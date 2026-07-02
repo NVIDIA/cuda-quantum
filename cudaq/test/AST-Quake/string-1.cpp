@@ -51,7 +51,7 @@ void RzArcTan2(bool input, std::string basis) __qpu__ {
 // CHECK:           return
 // CHECK:         }
 // clang-format on
-		
+
 int main() {
   RzArcTan2(true, {});
   return 0;

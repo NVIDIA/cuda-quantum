@@ -28,6 +28,7 @@ __qpu__ uint64_t foo() {
   return qubit_values_to_integer(results);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qubit_values_to_integer.
 // CHECK-SAME:      (%[[VAL_0:.*]]: !cc.stdvec<!cc.measure_handle>) -> i64 attributes {"cudaq-kernel", no_this}
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -87,3 +88,4 @@ __qpu__ uint64_t foo() {
 // CHECK:           %[[VAL_12:.*]] = call @__nvqpp__mlirgen__function_qubit_values_to_integer.
 // CHECK:           return %[[VAL_12]] : i64
 // CHECK:         }
+// clang-format on

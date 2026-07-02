@@ -18,6 +18,7 @@ __qpu__ void range_qubit() {
   }
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_range_qubit
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 10 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -46,3 +47,4 @@ __qpu__ void range_qubit() {
 // CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
+// clang-format on
