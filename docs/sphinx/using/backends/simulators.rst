@@ -38,6 +38,12 @@ technical details and code examples for using each circuit simulator.
      - multi-GPU multi-node
      - single (default) / double
      - 33+
+   * - `nvidia-legacy`
+     - State Vector
+     - Legacy state vector simulator that does not support multi-GPU, gate fusion, or trajectory sampling. Can perform better at low qubit counts.
+     - Single GPU
+     - single (default) / double
+     - < 33 / 32 (64 GB)
    * - `tensornet` *
      - Tensor Network
      - Shallow-depth (low-entanglement) and high width circuits (exact)

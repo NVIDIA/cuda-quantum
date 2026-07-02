@@ -32,6 +32,7 @@ struct ctrlHeisenberg {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__heisenbergU(
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ctrlHeisenberg(
@@ -41,6 +42,7 @@ struct ctrlHeisenberg {
 // CHECK:           %[[VAL_8:.*]] = quake.concat %[[VAL_2]], %[[VAL_3]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
 // CHECK:           quake.apply @__nvqpp__mlirgen__heisenbergU [%[[VAL_8]]] %{{.*}} : (!quake.veq<2>, !quake.veq<?>) -> ()
 // CHECK:           return
+// clang-format on
 
 struct givens {
   void operator()(double lambda, cudaq::qubit &q, cudaq::qubit &r) __qpu__ {
@@ -64,12 +66,14 @@ __qpu__ void qnppx(double theta, cudaq::qubit &q, cudaq::qubit &r,
   x<cudaq::ctrl>(s, t);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__givens(
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qnppx
 // CHECK:           %[[VAL_7:.*]] = quake.concat %{{.*}}, %{{.*}} : (!quake.ref, !quake.ref) -> !quake.veq<2>
 // CHECK:           quake.apply @__nvqpp__mlirgen__givens [%[[VAL_7]]] %{{.*}}, %{{.*}}, %{{.*}} : (!quake.veq<2>, f64, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
+// clang-format on
 
 __qpu__ void magic_func(cudaq::qvector<> &q) {
   auto nQubits = q.size();
@@ -91,12 +95,14 @@ struct ctrlHeisenbergVersion2 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_magic_func
 // CHECK-SAME:      ._Z[[mangle:[^(]*]](
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ctrlHeisenbergVersion2(
 // CHECK:           quake.apply @__nvqpp__mlirgen__function_magic_func._Z[[mangle]] [%{{.*}}] %{{.*}} : (!quake.ref, !quake.veq<?>) -> ()
 // CHECK:           return
+// clang-format on
 
 __qpu__ void qnppx2(double theta, cudaq::qubit &q, cudaq::qubit &r,
                     cudaq::qubit &s, cudaq::qubit &t) {
@@ -107,6 +113,7 @@ __qpu__ void qnppx2(double theta, cudaq::qubit &q, cudaq::qubit &r,
   x<cudaq::ctrl>(s, t);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_qnppx2
 // CHECK-SAME:       %{{[^:]*}}: f64{{.*}}, %[[VAL_1:.*]]: !quake.ref{{.*}}, %[[VAL_2:.*]]: !quake.ref{{.*}}, %[[VAL_3:.*]]: !quake.ref{{.*}}, %[[VAL_4:.*]]: !quake.ref{{.*}})
 // CHECK:           %[[VAL_7:.*]] = quake.concat %[[VAL_1]], %[[VAL_4]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
@@ -116,3 +123,4 @@ __qpu__ void qnppx2(double theta, cudaq::qubit &q, cudaq::qubit &r,
 // CHECK:           quake.x [%[[VAL_2]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           quake.x [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
+// clang-format on

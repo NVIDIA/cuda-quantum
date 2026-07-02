@@ -49,7 +49,7 @@ CMAKE_LINUX_INSTALLER_URL_BASE="https://github.com/Kitware/CMake/releases/downlo
 NINJA_VERSION=1.11.1
 NINJA_TARBALL_URL="https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz"
 
-ZLIB_VERSION=1.3.1
+ZLIB_VERSION=1.3.2
 ZLIB_TARBALL_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
 
 BLAS_VERSION=3.11.0
@@ -58,11 +58,11 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
 
-OPENSSL_VERSION=3.6.2
+OPENSSL_VERSION=3.6.3
 OPENSSL_TARBALL_URL="https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
 
-CURL_VERSION=8.20.0
-CURL_VERSION_UNDERSCORE=curl-8_20_0
+CURL_VERSION=8.21.0
+CURL_VERSION_UNDERSCORE=curl-8_21_0
 CURL_TARBALL_URL="https://github.com/curl/curl/releases/download/${CURL_VERSION_UNDERSCORE}/curl-${CURL_VERSION}.tar.gz"
 CACERT_URL="https://curl.se/ca/cacert.pem"
 CACERT_SHA256_URL="${CACERT_URL}.sha256"
@@ -205,13 +205,31 @@ echo "Building prerequisites in $PREREQS_BUILD_DIR"
 # Remove below if you wish to debug pre-req build failures
 trap "rm -rf $PREREQS_BUILD_DIR" EXIT
 
+# Retry a command, clearing package-manager metadata between attempts. The CUDA
+# yum repo CDN intermittently serves a stale repomd.xml that points at rotated
+# repodata files, producing 404s; clearing metadata forces a fresh fetch.
+function retry {
+  local n=0 max=5 delay=15
+  until "$@"; do
+    n=$((n+1))
+    if [ "$n" -ge "$max" ]; then
+      echo "Command failed after $max attempts: $*" >&2
+      return 1
+    fi
+    echo "Attempt $n/$max failed; clearing repo metadata and retrying in ${delay}s..." >&2
+    if [ -x "$(command -v dnf)" ]; then dnf clean all || true
+    elif [ -x "$(command -v apt-get)" ]; then apt-get clean || true; fi
+    sleep "$delay"
+  done
+}
+
 function temp_install_if_command_unknown {
   if [ ! -x "$(command -v $1)" ]; then
     if [ -x "$(command -v apt-get)" ]; then
-      if [ -z "$PKG_UNINSTALL" ]; then apt-get update; fi
-      apt-get install -y --no-install-recommends $2
+      if [ -z "$PKG_UNINSTALL" ]; then retry apt-get update; fi
+      retry apt-get install -y --no-install-recommends $2
     elif [ -x "$(command -v dnf)" ]; then
-      dnf install -y --nobest --setopt=install_weak_deps=False $2
+      retry dnf install -y --nobest --setopt=install_weak_deps=False $2
     elif [ -x "$(command -v brew)" ]; then
       HOMEBREW_NO_AUTO_UPDATE=1 brew install $2
     else

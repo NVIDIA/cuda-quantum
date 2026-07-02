@@ -8,9 +8,12 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "common/Environment.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,10 +41,12 @@ class Compiler {
   /// `-mlir-disable-threading` for `cudaq-opt`.
   bool disableMLIRthreading = false;
 
-  /// @brief Flag indicating whether we should enable MLIR printing before and
-  /// after each pass. This is similar to `-mlir-print-ir-before-all` and
-  /// `-mlir-print-ir-after-all` in `cudaq-opt`.
-  bool enablePrintMLIREachPass = false;
+  /// @brief Whether to enable MLIR printing before and after each pass.
+  ///
+  /// This is similar to `-mlir-print-ir-before-all` and
+  /// `-mlir-print-ir-after-all` in `cudaq-opt`. Printing can be enabled for all
+  /// passes or just during specialization.
+  cudaq::PrintEachPassMode printEachPass = cudaq::PrintEachPassMode::None;
 
   /// @brief Flag indicating whether we should enable MLIR pass statistics
   /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
@@ -55,9 +60,6 @@ class Compiler {
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
-
-  /// Whether compilation emitted a named measurement warning.
-  bool warnedNamedMeasurements = false;
 
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
@@ -93,10 +95,6 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  /// Whether compilation emitted a warning about the presence of named
-  /// measurements.
-  bool hasWarnedNamedMeasurements() const { return warnedNamedMeasurements; }
-
   const cudaq::CompileTarget &getTarget() const { return *target; }
 
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
@@ -133,5 +131,12 @@ public:
 /// finalizeStage are fixed stages interleaved between the config-provided
 /// stages. Pass empty strings to skip them.
 std::string getPassPipeline(const cudaq::CompileTarget &target);
+
+/// Compile a source module for the given policy, compile target and
+/// arguments.
+cudaq::CompiledModule
+compileModule(std::unique_ptr<cudaq::CompileTarget> target,
+              const cudaq::SourceModule &src, cudaq::KernelArgs args,
+              bool isEntryPoint = true);
 
 } // namespace cudaq_internal::compiler

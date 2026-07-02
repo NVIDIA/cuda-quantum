@@ -8,9 +8,9 @@
 
 #include "cudaq_internal/device_call/DeviceCallChannel.h"
 #include "cudaq_internal/device_call/DeviceCallError.h"
-#include "cudaq_internal/device_call/DeviceCallService.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/device_call_service.h"
 
 #include "cudaq/runtime/logger/logger.h"
 
@@ -35,6 +35,12 @@
 namespace {
 
 using namespace cudaq_internal::device_call;
+using cudaq::realtime::DeviceCallDispatchMode;
+using cudaq::realtime::DeviceCallDispatchTable;
+using cudaq::realtime::DeviceCallService;
+using cudaq::realtime::DeviceCallServicePluginInfo;
+using cudaq::realtime::DeviceCallServicePluginInfoFn;
+using cudaq::realtime::DeviceCallServiceSession;
 
 constexpr const char GpuDispatchChannelName[] = "device_dispatch";
 constexpr const char HostDispatchChannelName[] = "host_dispatch";

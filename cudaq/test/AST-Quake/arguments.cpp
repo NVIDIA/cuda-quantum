@@ -29,6 +29,7 @@ __qpu__ void test_kernel() {
   kernel_a(0xDeadBeefu, 0xCafeBabeu);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_kernel._Z11test_kernelv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3405691582 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 3735928559 : i64
@@ -74,4 +75,4 @@ __qpu__ void test_kernel() {
 // CHECK:           call @__nvqpp__mlirgen__function_kernel_a._Z8kernel_alm(%[[VAL_1]], %[[VAL_0]]) : (i64, i64) -> ()
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

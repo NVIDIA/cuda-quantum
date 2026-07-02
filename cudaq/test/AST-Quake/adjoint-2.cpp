@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --apply-op-specialization --canonicalize | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
@@ -28,6 +30,7 @@ struct kernel_beta {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__kernel_gamma.adj(
 // CHECK-SAME:                                      %[[VAL_0:.*]]: !quake.ref) {
 // CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -51,6 +54,7 @@ struct kernel_beta {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct kernel_gamma {
   void operator()(cudaq::qubit &qb) __qpu__ {
@@ -70,6 +74,7 @@ struct kernel_delta {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__kernel_alpha.adj(
 // CHECK-SAME:                                      %[[VAL_0:.*]]: !quake.ref) {
 // CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 3 : i32
@@ -98,4 +103,4 @@ struct kernel_delta {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_beta
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_gamma
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_delta
-
+// clang-format on

@@ -11,12 +11,13 @@
 #include <cudaq.h>
 
 struct T {
-   void operator()(int N) __qpu__ {
-      cudaq::qvector Q(N);
-      x(Q);
-   }
+  void operator()(int N) __qpu__ {
+    cudaq::qvector Q(N);
+    x(Q);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__T(
 // CHECK-SAME:         %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -42,16 +43,18 @@ struct T {
 // CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct S {
-   void operator()() __qpu__ {
-      int arr[3] = {4, 8, 10};
-      T{}(arr[0]);
-      T{}(arr[1]);
-      T{}(arr[2]);
-   }
+  void operator()() __qpu__ {
+    int arr[3] = {4, 8, 10};
+    T{}(arr[0]);
+    T{}(arr[1]);
+    T{}(arr[2]);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__S() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 4 : i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i32
@@ -77,16 +80,18 @@ struct S {
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_15]]) : (i32) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct S1 {
-   void operator()() __qpu__ {
-      int arr[] = {4, 8, 10};
-      T{}(arr[0]);
-      T{}(arr[1]);
-      T{}(arr[2]);
-   }
+  void operator()() __qpu__ {
+    int arr[] = {4, 8, 10};
+    T{}(arr[0]);
+    T{}(arr[1]);
+    T{}(arr[2]);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__S1() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 4 : i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i32
@@ -112,4 +117,4 @@ struct S1 {
 // CHECK:           call @__nvqpp__mlirgen__T(%[[VAL_15]]) : (i32) -> ()
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

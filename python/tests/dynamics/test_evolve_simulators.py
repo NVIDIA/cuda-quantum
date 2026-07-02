@@ -332,6 +332,27 @@ def test_evolve_async():
                                atol=0.15)
 
 
+@pytest.mark.parametrize("target", ["density-matrix-cpu", "qpp-cpu"])
+@pytest.mark.parametrize("initial_state",
+                         [InitialState.ZERO, InitialState.UNIFORM])
+def test_evolve_async_initial_state_enum(target, initial_state):
+    cudaq.set_target(target)
+
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    steps = np.linspace(0, 0.1, 3)
+
+    expected = cudaq.evolve(hamiltonian, dimensions, Schedule(steps, ["time"]),
+                            initial_state)
+    evolution_result = cudaq.evolve_async(hamiltonian, dimensions,
+                                          Schedule(steps, ["time"]),
+                                          initial_state).get()
+
+    np.testing.assert_allclose(np.array(evolution_result.final_state()),
+                               np.array(expected.final_state()),
+                               atol=1e-12)
+
+
 def test_evolve_no_intermediate_results():
     """Test evolve with store_intermediate_results=NONE 
     to verify the else branch in evolve_single is working."""

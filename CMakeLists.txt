@@ -84,6 +84,16 @@ if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
 endif()
 
+# Enable the ensmallen optimizer by default. Requires BLAS.
+if (NOT DEFINED CUDAQ_ENABLE_ENSMALLEN)
+  set(CUDAQ_ENABLE_ENSMALLEN ON CACHE BOOL "Enable building the ensmallen optimizer (requires BLAS).")
+endif()
+
+# Enable the NLopt optimizer by default.
+if (NOT DEFINED CUDAQ_ENABLE_NLOPT)
+  set(CUDAQ_ENABLE_NLOPT ON CACHE BOOL "Enable building the NLopt optimizer.")
+endif()
+
 # CUDAQ_ENABLE_ALL_BACKEND, if defined, becomes the default value used for
 # every per-backend CUDAQ_ENABLE_<NAME>_BACKEND flag below. Individual
 # per-backend flags can still be overridden on the command line to opt in
@@ -263,9 +273,9 @@ option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Be
 
 # Sub-projects that can be enabled independently, in the style of
 # LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python")
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
-    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set).")
+    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
 
 # Back-compat: if CUDAQ_ENABLE_PROJECTS wasn't given, derive it from the
 # legacy per-project flags so existing build scripts keep working, and warn
@@ -476,9 +486,9 @@ if (CUDAQ_STATIC_DEPS)
   message(STATUS "Static external dependencies enabled.")
 endif()
 
-# ZLIB is required when we build LLVM with zlib support.
-# ZLIB support in LLVM is good to have e.g. for the linker,
-# since some binaries will use zlib compression to store symbols.
+# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
+# good to have e.g. for the linker, since some binaries will use zlib
+# compression to store symbols.
 find_package(ZLIB REQUIRED)
 include(ExternalProject)
 
@@ -691,7 +701,30 @@ configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
 # Check optional dependencies
 # ==============================================================================
 
+if (CUDAQ_ENABLE_ENSMALLEN)
+  if (DEFINED ENV{BLAS_INSTALL_PREFIX})
+    find_library(BLAS_LIBRARIES blas
+      HINTS "$ENV{BLAS_INSTALL_PREFIX}" "$ENV{BLAS_INSTALL_PREFIX}/lib")
+  endif()
+  find_package(BLAS)
+  if (NOT BLAS_FOUND)
+    message(WARNING "BLAS not found — disabling ensmallen optimizer. "
+      "Install BLAS or set BLAS_INSTALL_PREFIX to enable it.")
+    set(CUDAQ_ENABLE_ENSMALLEN OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
+
 find_package(OpenSSL)
+if (CUDAQ_ENABLE_REST)
+  if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found — disabling REST. "
+      "OpenSSL is required when CUDAQ_ENABLE_REST is enabled (the default). "
+      "Install OpenSSL, set OPENSSL_ROOT_DIR, or pass -DCUDAQ_ENABLE_REST=OFF "
+      "to disable REST support.")
+    set(CUDAQ_ENABLE_REST OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
+
 if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
@@ -824,6 +857,13 @@ if (CUDAQ_REALTIME_DIR)
       "CUDAQ_REALTIME_DIR requires CUDA support, but CUDA was not found.")
   endif()
 
+  if ("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    message(WARNING
+      "Both CUDAQ_REALTIME_DIR and 'realtime' in CUDAQ_ENABLE_PROJECTS were provided. "
+      "Using CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} and skipping the source-tree realtime build.")
+    list(REMOVE_ITEM CUDAQ_ENABLE_PROJECTS "realtime")
+  endif()
+
   find_package(cudaq-realtime CONFIG REQUIRED
     PATHS "${CUDAQ_REALTIME_DIR}"
     NO_DEFAULT_PATH)
@@ -841,9 +881,17 @@ if (CUDAQ_REALTIME_DIR)
 
   set(CUDAQ_ENABLE_REALTIME TRUE)
   message(STATUS "CUDA-Q realtime integration enabled from: ${CUDAQ_REALTIME_DIR}")
+elseif ("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  if (NOT CUDA_FOUND)
+    message(FATAL_ERROR
+      "The \"realtime\" project requires CUDA support, but CUDA was not found.")
+  endif()
+
+  set(CUDAQ_ENABLE_REALTIME TRUE)
+  message(STATUS "CUDA-Q realtime integration enabled from the source tree.")
 else()
   message(STATUS
-    "CUDA-Q realtime integration disabled. Set CUDAQ_REALTIME_DIR to an installed cudaq-realtime prefix to enable it.")
+    "CUDA-Q realtime integration disabled. Include \"realtime\" in CUDAQ_ENABLE_PROJECTS to enable it.")
 endif()
 
 # Code coverage setup
@@ -868,6 +916,9 @@ endif()
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(cudaq)
 endif()
+if("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(realtime)
+endif()
 if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(runtime)
 endif()
@@ -877,7 +928,16 @@ if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(Python 3 COMPONENTS Interpreter Development)
   find_package(Python3 COMPONENTS Interpreter Development)
 
-  add_subdirectory(tpls/nanobind)
+  # Locate nanobind via find_package. Default to the vendored copy under
+  # tpls/nanobind unless the user points nanobind_DIR (or CMAKE_PREFIX_PATH)
+  # at an alternative install (e.g. one from `pip install nanobind`).
+  # No version constraint here: the vendored tree has no
+  # nanobind-config-version.cmake (that file is only emitted by an install),
+  # so requesting a version would always fail against the in-tree copy.
+  if (NOT nanobind_DIR)
+    set(nanobind_DIR "${CMAKE_SOURCE_DIR}/tpls/nanobind/cmake")
+  endif()
+  find_package(nanobind CONFIG REQUIRED)
 
   add_subdirectory(python)
 endif()
@@ -939,6 +999,8 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   if (NOT CUDAQ_DISABLE_RUNTIME)
     add_subdirectory(targettests)
     add_subdirectory(unittests)
+    add_subdirectory(cudaq/unittests)
+    add_subdirectory(cudaq/test/Unit)
     add_subdirectory(docs)
   endif()
   umbrella_lit_testsuite_end(check-all)

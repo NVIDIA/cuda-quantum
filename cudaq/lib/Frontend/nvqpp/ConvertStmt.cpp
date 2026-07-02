@@ -226,9 +226,34 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             }
             auto iterVar = popValue();
             Value atOffset = cc::LoadOp::create(builder, loc, addr);
-            if (isBool)
+            if (isBool) {
               atOffset = cc::CastOp::create(builder, loc, builder.getI1Type(),
                                             atOffset);
+            } else if (isa<cc::MeasureHandleType>(atOffset.getType())) {
+              // `for (bool b : mz(reg))` binds an `i1` loop variable to a
+              // container of `!cc.measure_handle`. Mirror
+              // `measure_handle::operator bool()` and lower the handle through
+              // `quake.discriminate` before storing into the `i1` slot.
+              // Without it the `cc.store` value type (`!cc.measure_handle`) and
+              // pointer element type (`i1`) disagree and the verifier rejects
+              // the module. A `measure_handle` loop variable
+              // (`for (auto b : mz(reg))`) keeps the handle and is unaffected.
+              if (auto iterPtrTy = dyn_cast<cc::PointerType>(iterVar.getType()))
+                if (iterPtrTy.getElementType() == builder.getI1Type()) {
+                  llvm::SmallPtrSet<Value, 4> visited;
+                  if (isBoundHandleVector(buffer, visited)) {
+                    atOffset = cudaq::quake::DiscriminateOp::create(
+                        builder, loc, builder.getI1Type(), atOffset);
+                  } else {
+                    reportClangError(
+                        x, mangler, "discriminating an unbound measure_handle");
+                    // Substitute a well-typed `i1` so the shared store below
+                    // stays valid, and let traversal succeed.
+                    atOffset = arith::ConstantIntOp::create(
+                        builder, loc, builder.getI1Type(), /*value=*/0);
+                  }
+                }
+            }
             cc::StoreOp::create(builder, loc, atOffset, iterVar);
           }
         }

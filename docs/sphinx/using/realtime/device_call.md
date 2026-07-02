@@ -51,8 +51,34 @@ Additional options:
 - `--cudaq-device-call-timeout-ms=<ms>`: per-dispatch timeout
 
 The built-in channels (`shared-memory`, `host-dispatch`, `gpu-dispatch`) run an
-in-process service and are not covered in depth here. The remainder of this page
-documents the `cpu_roce` channel.
+in-process service and are not covered in depth here. `host-dispatch` uses the
+`libcudaq-realtime` host path and can dispatch service entries as either
+`CUDAQ_DISPATCH_HOST_CALL` handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH` workers.
+The remainder of this page documents the `cpu_roce` channel.
+
+## Extending an in-process service
+
+Realtime-enabled CUDA-Q installations expose the service extension interface
+in `<cudaq/realtime/device_call_service.h>`. A plugin implements the abstract
+`DeviceCallService` provider and returns one owned `DeviceCallServiceSession`
+for the requested host or GPU dispatch mode. Returning null rejects an
+unsupported mode.
+
+The session owns its function table and any associated graphs, streams, or
+mapped mailbox. Its `dispatchTable()` result must remain valid until CUDA-Q
+calls `stop()` and destroys the session. CUDA-Q constructs the selected
+`DeviceCallChannel` from that table, starts the service session after the
+channel is ready, and stops and destroys the channel before stopping the
+service session.
+
+The service interface does not own or replace the transport. Ring allocation,
+frame leasing, request publication, response completion, and transport
+shutdown remain responsibilities of `DeviceCallChannel`.
+
+Plugins export `cudaqGetDeviceCallServicePluginInfo`, which returns the
+long-lived provider. Downstream CMake projects should link the exported
+`cudaq::cudaq-device-call-runtime` target to receive the public header and
+runtime implementation.
 
 ## The `cpu_roce` channel
 
