@@ -6,8 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %s -o %t && %t 2>&1 | FileCheck --check-prefix=CHECK-SIM %s
 // RUN: nvq++ --target qci --emulate %s -o %t && %t 2>&1 | FileCheck --check-prefix=CHECK-EMUL %s
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/ptsbe/PTSBESample.h>
@@ -44,6 +46,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-SIM: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-SIM-NOT: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-SIM: before cudaq::run
@@ -51,10 +54,12 @@ int main() {
 // CHECK-SIM: before cudaq::ptsbe::sample
 // CHECK-SIM: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-SIM-NOT: WARNING: Kernel "test_kernel" uses named measurement results
+// clang-format on
 
-
+// clang-format off
 // CHECK-EMUL: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-EMUL-NOT: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-EMUL: before cudaq::run
 // CHECK-EMUL-NOT: WARNING: Kernel "test_kernel" uses named measurement results
 // CHECK-EMUL: before cudaq::ptsbe::sample
+// clang-format on

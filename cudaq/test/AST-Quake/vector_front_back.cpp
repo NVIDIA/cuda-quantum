@@ -13,11 +13,11 @@
 #include <cudaq.h>
 
 __qpu__ void testFrontFloat() {
-    std::vector<float> vec_float{0.0, 1.0, 2.0, 3.0};
-    auto zero = vec_float.front();
+  std::vector<float> vec_float{0.0, 1.0, 2.0, 3.0};
+  auto zero = vec_float.front();
 }
 
-
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_testFrontFloat._Z14testFrontFloatv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3.000000e+00 : f32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2.000000e+00 : f32
@@ -38,14 +38,14 @@ __qpu__ void testFrontFloat() {
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<f32>
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on
 
 __qpu__ void testFrontBool() {
-    std::vector<bool> vec_bool{0,1,0,1};
-    bool zero = vec_bool.front();
+  std::vector<bool> vec_bool{0, 1, 0, 1};
+  bool zero = vec_bool.front();
 }
 
-
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_testFrontBool._Z13testFrontBoolv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant true
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant false
@@ -64,13 +64,14 @@ __qpu__ void testFrontBool() {
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<i1>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void testBackFloat() {
-    std::vector<float> vec_float{0.0, 1.0, 2.0, 3.0};
-    float three = vec_float.back();
+  std::vector<float> vec_float{0.0, 1.0, 2.0, 3.0};
+  float three = vec_float.back();
 }
 
-
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_testBackFloat
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3.000000e+00 : f32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2.000000e+00 : f32
@@ -91,13 +92,14 @@ __qpu__ void testBackFloat() {
 // CHECK:           cc.store %[[VAL_16]], %[[VAL_17]] : !cc.ptr<f32>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void testBackBool() {
-    std::vector<bool> vec_bool{0,1,0,1};
-    bool one = vec_bool.back();
+  std::vector<bool> vec_bool{0, 1, 0, 1};
+  bool one = vec_bool.back();
 }
 
-
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_testBackBool
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant true
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant false
@@ -116,3 +118,4 @@ __qpu__ void testBackBool() {
 // CHECK:           cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<i1>
 // CHECK:           return
 // CHECK:         }
+// clang-format on

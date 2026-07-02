@@ -10,10 +10,9 @@
 
 #include <cudaq.h>
 
-__qpu__ void f() {
-   cudaq::qvector v = cudaq::state{1.0, 2.0, 3.0, 4.0};
-}
+__qpu__ void f() { cudaq::qvector v = cudaq::state{1.0, 2.0, 3.0, 4.0}; }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f._Z1fv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 1.000000e+00 : f64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2.000000e+00 : f64
@@ -37,12 +36,14 @@ __qpu__ void f() {
 // CHECK:           quake.delete_state %[[VAL_11]] : !cc.ptr<!quake.state>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void g() {
-   cudaq::qvector v;
-   std::vector<double> dv = {5.0, 6.0, 7.0, 8.0};
+  cudaq::qvector v;
+  std::vector<double> dv = {5.0, 6.0, 7.0, 8.0};
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_g._Z1gv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 8.000000e+00 : f64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 7.000000e+00 : f64
@@ -60,4 +61,4 @@ __qpu__ void g() {
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on
