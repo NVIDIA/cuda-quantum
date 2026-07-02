@@ -12,7 +12,6 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Hash.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -306,100 +305,18 @@ static Value marshalArrayArgument(OpBuilder &builder, Location loc,
   cursor = writeLengthPrefix(builder, loc, cursor, requestBuffer, arrayLength);
 
   if (payloadElementTy.isInteger(1)) {
+    // Boolean payloads use the least-significant-bit first bit-packed
+    // encoding. Use intrinsics (`__nvqpp_RealtimePackBits` and
+    // `__nvqpp_RealtimePackMeasurements`) to pack.
     Value packedBytes =
         computeArrayPayloadSize(builder, loc, arrayLength, payloadElementTy);
-    auto sourcePtrTy = cudaq::cc::PointerType::get(sourceElementTy);
-    Value eight = i64Constant(builder, loc, 8);
-
-    // Pack one output byte per outer iteration and keep the partially packed
-    // byte as an SSA loop-carried value. The explicit least-significant-bit
-    // first encoding is independent of the native data layout on either
-    // endpoint. This intentionally avoids a separate zeroing pass and the
-    // per-logical-bit load/OR/store sequence that would repeatedly update the
-    // same request byte. Measurement discrimination remains fused with packing
-    // so handle vectors need no temporary bool buffer.
-    //
-    // Pseudocode for the generated loops:
-    //   for (byte = 0; byte < packedBytes; ++byte) {
-    //     packed = 0;
-    //     bits = min(arrayLength - byte * 8, 8);
-    //     for (bit = 0; bit < bits; ++bit)
-    //       packed |= loadAndDiscriminateIfNeeded(data[byte * 8 + bit]) << bit;
-    //     request[cursor + byte] = packed;
-    //   }
-    cudaq::opt::factory::createInvariantLoop(
-        builder, loc, packedBytes,
-        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-          Value byteIndex = block.getArgument(0);
-          Value byteStart =
-              arith::MulIOp::create(builder, loc, byteIndex, eight);
-          Value remaining =
-              arith::SubIOp::create(builder, loc, arrayLength, byteStart);
-          Value isPartial = arith::CmpIOp::create(
-              builder, loc, arith::CmpIPredicate::ult, remaining, eight);
-          Value bitsInByte = arith::SelectOp::create(
-              builder, loc, builder.getI64Type(), isPartial, remaining, eight);
-          Value zeroIndex = i64Constant(builder, loc, 0);
-          Value one = i64Constant(builder, loc, 1);
-          Value zeroByte = arith::ConstantIntOp::create(builder, loc, 0, 8);
-          auto packLoop = cudaq::cc::LoopOp::create(
-              builder, loc, TypeRange{builder.getI64Type(), i8Ty},
-              ValueRange{zeroIndex, zeroByte}, /*postCondition=*/false,
-              [&](OpBuilder &builder, Location loc, Region &region) {
-                cudaq::cc::RegionBuilderGuard guard(
-                    builder, loc, region,
-                    TypeRange{builder.getI64Type(), i8Ty});
-                Block &block = *builder.getBlock();
-                Value keepPacking = arith::CmpIOp::create(
-                    builder, loc, arith::CmpIPredicate::slt,
-                    block.getArgument(0), bitsInByte);
-                cudaq::cc::ConditionOp::create(builder, loc, keepPacking,
-                                               block.getArguments());
-              },
-              [&](OpBuilder &builder, Location loc, Region &region) {
-                cudaq::cc::RegionBuilderGuard guard(
-                    builder, loc, region,
-                    TypeRange{builder.getI64Type(), i8Ty});
-                Block &block = *builder.getBlock();
-                Value bitIndex = block.getArgument(0);
-                Value packedByte = block.getArgument(1);
-                Value logicalIndex =
-                    arith::AddIOp::create(builder, loc, byteStart, bitIndex);
-                Value elementPtr = cudaq::cc::ComputePtrOp::create(
-                    builder, loc, sourcePtrTy, data,
-                    ArrayRef<cudaq::cc::ComputePtrArg>{logicalIndex});
-                Value element =
-                    cudaq::cc::LoadOp::create(builder, loc, elementPtr)
-                        .getResult();
-                if (isa<cudaq::cc::MeasureHandleType>(sourceElementTy))
-                  element = cudaq::quake::DiscriminateOp::create(
-                      builder, loc, builder.getI1Type(), element);
-                Value bit = arith::ExtUIOp::create(builder, loc, i8Ty, element);
-                Value shift =
-                    arith::TruncIOp::create(builder, loc, i8Ty, bitIndex);
-                Value shifted = arith::ShLIOp::create(builder, loc, bit, shift);
-                Value nextPackedByte =
-                    arith::OrIOp::create(builder, loc, packedByte, shifted);
-                cudaq::cc::ContinueOp::create(
-                    builder, loc, ValueRange{bitIndex, nextPackedByte});
-              },
-              [&](OpBuilder &builder, Location loc, Region &region) {
-                cudaq::cc::RegionBuilderGuard guard(
-                    builder, loc, region,
-                    TypeRange{builder.getI64Type(), i8Ty});
-                Block &block = *builder.getBlock();
-                Value nextBit = arith::AddIOp::create(
-                    builder, loc, block.getArgument(0), one);
-                cudaq::cc::ContinueOp::create(
-                    builder, loc, ValueRange{nextBit, block.getArgument(1)});
-              });
-          packLoop->setAttr("invariant", builder.getUnitAttr());
-          Value dstOffset =
-              arith::AddIOp::create(builder, loc, cursor, byteIndex);
-          Value dstPtr = bytePtrAt(builder, loc, requestBuffer, dstOffset);
-          cudaq::cc::StoreOp::create(builder, loc, packLoop.getResult(1),
-                                     dstPtr);
-        });
+    Value dstPtr = typedPtrAt(builder, loc, requestBuffer, cursor,
+                              cudaq::cc::ArrayType::get(i8Ty));
+    StringRef packFunc = isa<cudaq::cc::MeasureHandleType>(sourceElementTy)
+                             ? cudaq::realtimePackMeasurements
+                             : cudaq::realtimePackBits;
+    func::CallOp::create(builder, loc, TypeRange{}, packFunc,
+                         ValueRange{dstPtr, data, arrayLength});
     return arith::AddIOp::create(builder, loc, cursor, packedBytes);
   }
 
@@ -447,60 +364,12 @@ static void copyResponseToStdvec(OpBuilder &builder, Location loc,
 static void unpackResponseToBoolStdvec(OpBuilder &builder, Location loc,
                                        Value responseBuffer,
                                        Value logicalLength, Value stdvec) {
-  auto i8Ty = builder.getI8Type();
-  Type elementTy = getStdvecSourceElementType(stdvec);
-  assert(elementTy.isInteger(1));
+  assert(getStdvecSourceElementType(stdvec).isInteger(1));
+  // Boolean responses use the least-significant-bit first bit-packed
+  // encoding. Use `__nvqpp_RealtimeUnpackBits` intrinsic to unpack.
   Value data = getStdvecData(builder, loc, stdvec);
-  auto elementPtrTy = cudaq::cc::PointerType::get(elementTy);
-  Value packedBytes =
-      computeArrayPayloadSize(builder, loc, logicalLength, elementTy);
-  Value eight = i64Constant(builder, loc, 8);
-  Value one = arith::ConstantIntOp::create(builder, loc, 1, 8);
-
-  // Load each response byte once, then extract all of its logical bits. The
-  // byte-oriented outer loop avoids reloading the same packed byte for every
-  // destination bool while preserving the canonical LSB-first wire order.
-  //
-  // Pseudocode for the generated loops:
-  //   for (byte = 0; byte < packedBytes; ++byte) {
-  //     packed = responseBuffer[byte];
-  //     bits = min(logicalLength - byte * 8, 8);
-  //     for (bit = 0; bit < bits; ++bit)
-  //       data[byte * 8 + bit] = (packed >> bit) & 1;
-  //   }
-  cudaq::opt::factory::createInvariantLoop(
-      builder, loc, packedBytes,
-      [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-        Value byteIndex = block.getArgument(0);
-        Value byteStart = arith::MulIOp::create(builder, loc, byteIndex, eight);
-        Value remaining =
-            arith::SubIOp::create(builder, loc, logicalLength, byteStart);
-        Value isPartial = arith::CmpIOp::create(
-            builder, loc, arith::CmpIPredicate::ult, remaining, eight);
-        Value bitsInByte = arith::SelectOp::create(
-            builder, loc, builder.getI64Type(), isPartial, remaining, eight);
-        Value srcPtr = bytePtrAt(builder, loc, responseBuffer, byteIndex);
-        Value packedByte =
-            cudaq::cc::LoadOp::create(builder, loc, srcPtr).getResult();
-        cudaq::opt::factory::createInvariantLoop(
-            builder, loc, bitsInByte,
-            [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-              Value bitIndex = block.getArgument(0);
-              Value logicalIndex =
-                  arith::AddIOp::create(builder, loc, byteStart, bitIndex);
-              Value shift =
-                  arith::TruncIOp::create(builder, loc, i8Ty, bitIndex);
-              Value shifted =
-                  arith::ShRUIOp::create(builder, loc, packedByte, shift);
-              Value masked = arith::AndIOp::create(builder, loc, shifted, one);
-              Value bit = arith::TruncIOp::create(builder, loc,
-                                                  builder.getI1Type(), masked);
-              Value dstPtr = cudaq::cc::ComputePtrOp::create(
-                  builder, loc, elementPtrTy, data,
-                  ArrayRef<cudaq::cc::ComputePtrArg>{logicalIndex});
-              cudaq::cc::StoreOp::create(builder, loc, bit, dstPtr);
-            });
-      });
+  func::CallOp::create(builder, loc, TypeRange{}, cudaq::realtimeUnpackBits,
+                       ValueRange{data, responseBuffer, logicalLength});
 }
 
 /// Emit a call to the realtime frame release ABI:
@@ -767,7 +636,8 @@ public:
          {cudaq::runtime::deviceCallAcquireRealtimeFrame,
           cudaq::runtime::deviceCallDispatchRealtimeFrame,
           cudaq::runtime::deviceCallSafelyReleaseRealtimeFrame,
-          cudaq::llvmMemCopyIntrinsic}) {
+          cudaq::llvmMemCopyIntrinsic, cudaq::realtimePackBits,
+          cudaq::realtimePackMeasurements, cudaq::realtimeUnpackBits}) {
       if (failed(irBuilder.loadIntrinsic(module, name))) {
         module.emitError(std::string{"could not load "} + name);
         signalPassFailure();

@@ -1261,12 +1261,17 @@ def RealtimeDeviceCall : Pass<"realtime-device-call", "mlir::ModuleOp"> {
     `__cudaq_device_call_safely_release_realtime_frame`, so the final
     executable must be linked against a runtime that provides this leased
     frame API.
+
+    Boolean vector payloads are marshaled through the private
+    `__nvqpp_RealtimePackBits`, `__nvqpp_RealtimePackMeasurements`, and
+    `__nvqpp_RealtimeUnpackBits` intrinsic functions. Run the `inline`
+    pass afterwards to expand these helpers at their call sites.
   }];
 
   // The lowering materializes `cc` and `arith` ops for payload sizing and
   // marshaling, `func` calls/declarations for the runtime ABI, and may
-  // materialize `quake.discriminate` when converting measurement-handle
-  // vectors to boolean payload bytes.
+  // materialize `quake.discriminate` (within the loaded packing intrinsics)
+  // when converting measurement-handle vectors to boolean payload bytes.
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
                            "mlir::func::FuncDialect",
                            "cudaq::quake::QuakeDialect"];
