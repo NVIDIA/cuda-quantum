@@ -55,9 +55,10 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
       approximate_disjoint_errors_threshold (float, optional): Threshold
           for approximating disjoint-error products; set to ``0`` to
           disable. Default ``0.0``.
-      ignore_decomposition_failures (bool, optional): Skip error mechanisms
-          that cannot be decomposed instead of raising an exception.
-          Default ``False``.
+      ignore_decomposition_failures (bool, optional): When decomposition
+          fails for an error mechanism, insert it into the DEM undecomposed
+          (as a hyper-edge) instead of raising an exception. Only relevant
+          when ``decompose_errors`` is ``True``. Default ``False``.
       block_decomposition_from_introducing_remnant_edges (bool, optional):
           Prevent the decomposer from introducing remnant edges.
           Default ``False``.
