@@ -941,8 +941,7 @@ jobs:
     name: Realtime validation (${{ matrix.arch }}, ${{ matrix.info_file }})
     needs: assets
     if: ${{ fromJson(needs.assets.outputs.docker_images).info_files[0] != null }}
-    # These correctness tests use the smallest GPU runner available on both architectures.
-    runs-on: linux-${{ matrix.arch }}-gpu-l4-latest-1
+    runs-on: linux-${{ matrix.arch }}-gpu-a100-latest-1
     permissions:
       packages: read
 
