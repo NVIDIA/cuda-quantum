@@ -99,3 +99,12 @@ def test_amplitude_encode_zero_vector():
 def test_amplitude_encode_2d_rejected():
     with pytest.raises(ValueError, match="1D vector"):
         cudaq.contrib.amplitude_encode(np.eye(2), pad=0)
+
+
+def test_amplitude_encode_2d_list_rejected():
+    # A nested list/tuple must be rejected like the equivalent 2-D array,
+    # rather than being silently flattened into a 1-D vector.
+    with pytest.raises(ValueError, match="1D vector"):
+        cudaq.contrib.amplitude_encode([[0.5, 0.5], [0.5, 0.5]], pad=0)
+    with pytest.raises(ValueError, match="1D vector"):
+        cudaq.contrib.amplitude_encode(((0.5, 0.5), (0.5, 0.5)), pad=0)
