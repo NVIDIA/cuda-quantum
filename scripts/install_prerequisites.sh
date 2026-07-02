@@ -59,10 +59,12 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 # Both are LGPL v3 (see https://gmplib.org/ and https://www.mpfr.org/). They
 # are built as shared libraries only and linked dynamically.
 GMP_VERSION=6.3.0
-GMP_TARBALL_URL="https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz"
+GMP_TARBALL_URLS="https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz \
+https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz"
 
 MPFR_VERSION=4.2.2
-MPFR_TARBALL_URL="https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz"
+MPFR_TARBALL_URLS="https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz \
+https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz"
 
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
@@ -173,11 +175,11 @@ if $lock_mode; then
   # [GMP / MPFR]
   add_lock_line "gmp" \
     "type=tar" \
-    "url=${GMP_TARBALL_URL}" \
+    "url=${GMP_TARBALL_URLS%% *}" \
     "version=${GMP_VERSION}"
   add_lock_line "mpfr" \
     "type=tar" \
-    "url=${MPFR_TARBALL_URL}" \
+    "url=${MPFR_TARBALL_URLS%% *}" \
     "version=${MPFR_VERSION}"
 
   # [OpenSSL] (and its private Perl used only for the build)
@@ -240,6 +242,19 @@ function retry {
     elif [ -x "$(command -v apt-get)" ]; then apt-get clean || true; fi
     sleep "$delay"
   done
+}
+
+
+function download_first {
+  for url in "$@"; do
+    echo "Downloading ${url}..."
+    if retry wget --tries=1 "${url}"; then
+      return 0
+    fi
+    echo "Failed to download from ${url}; trying next mirror..." >&2
+  done
+  echo "Failed to download from all mirrors: $*" >&2
+  return 1
 }
 
 function temp_install_if_command_unknown {
@@ -401,7 +416,7 @@ if [ -n "$GMP_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep gmp)" ]; 
 
     pushd "$PREREQS_BUILD_DIR"
 
-    wget "${GMP_TARBALL_URL}"
+    download_first ${GMP_TARBALL_URLS}
     tar -xf "gmp-${GMP_VERSION}.tar.xz" && cd "gmp-${GMP_VERSION}"
     gmp_host_flags=""
     if [ "$(uname -m)" = "x86_64" ]; then
@@ -431,7 +446,7 @@ if [ -n "$MPFR_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep mpfr)" ]
 
     pushd "$PREREQS_BUILD_DIR"
 
-    wget "${MPFR_TARBALL_URL}"
+    download_first ${MPFR_TARBALL_URLS}
     tar -xf "mpfr-${MPFR_VERSION}.tar.xz" && cd "mpfr-${MPFR_VERSION}"
     if [ "$(uname)" = "Darwin" ]; then
       mpfr_ldflags="-Wl,-rpath,$GMP_INSTALL_PREFIX/lib"
