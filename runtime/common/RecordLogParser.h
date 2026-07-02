@@ -11,9 +11,11 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -29,6 +31,41 @@ enum struct OutputType { RESULT, BOOL, INT, DOUBLE };
 enum struct ContainerType { NONE, ARRAY, TUPLE };
 
 namespace detail {
+
+template <typename T>
+T parseInteger(const std::string &value) {
+  static_assert(std::is_integral_v<T> && !std::is_same_v<T, bool>);
+  if (value.empty())
+    throw std::runtime_error("Invalid integer value");
+
+  std::string_view input(value);
+  if (input.front() == '+') {
+    input.remove_prefix(1);
+    if (input.empty() || input.front() == '+' || input.front() == '-')
+      throw std::runtime_error("Invalid integer value");
+  }
+
+  std::int64_t parsed = 0;
+  const auto [end, error] =
+      std::from_chars(input.data(), input.data() + input.size(), parsed);
+  if (error != std::errc{} || end != input.data() + input.size() ||
+      parsed < static_cast<std::int64_t>(std::numeric_limits<T>::min()) ||
+      parsed > static_cast<std::int64_t>(std::numeric_limits<T>::max()))
+    throw std::runtime_error("Invalid integer value");
+  return static_cast<T>(parsed);
+}
+
+inline std::size_t parseSize(std::string_view value) {
+  if (value.empty())
+    throw std::runtime_error("Invalid size value");
+
+  std::size_t parsed = 0;
+  const auto [end, error] =
+      std::from_chars(value.data(), value.data() + value.size(), parsed);
+  if (error != std::errc{} || end != value.data() + value.size())
+    throw std::runtime_error("Invalid size value");
+  return parsed;
+}
 
 //===----------------------------------------------------------------------===//
 // Type conversion infrastructure for string-to-value parsing
@@ -57,10 +94,7 @@ template <typename T>
 class IntegerConverter : public TypeConverterBase<T> {
 public:
   T convert(const std::string &value) const override {
-    if constexpr (sizeof(T) <= 4)
-      return static_cast<T>(std::stoi(value));
-    else
-      return static_cast<T>(std::stoll(value));
+    return parseInteger<T>(value);
   }
 };
 
@@ -68,10 +102,29 @@ template <typename T>
 class FloatConverter : public TypeConverterBase<T> {
 public:
   T convert(const std::string &value) const override {
-    if constexpr (std::is_same_v<T, float>)
-      return std::stof(value);
-    else
-      return std::stod(value);
+    if (value.empty())
+      throw std::runtime_error("Invalid floating-point value");
+
+    std::string_view input(value);
+    bool negative = false;
+    if (input.front() == '+' || input.front() == '-') {
+      negative = input.front() == '-';
+      input.remove_prefix(1);
+      if (input.empty() || input.front() == '+' || input.front() == '-')
+        throw std::runtime_error("Invalid floating-point value");
+    }
+
+    // `from_chars` accepts `inf`/`infinity`/`nan` case-insensitively.
+    // Non-finite values are allowed on purpose: the runtime records doubles via
+    // `ostringstream`, which emits lowercase "inf"/"nan". Do not add an
+    // `isfinite()` reject here or it will drop the runtime's own output.
+    T parsed = 0;
+    const auto [end, error] =
+        std::from_chars(input.data(), input.data() + input.size(), parsed,
+                        std::chars_format::general);
+    if (error != std::errc{} || end != input.data() + input.size())
+      throw std::runtime_error("Invalid floating-point value");
+    return negative ? -parsed : parsed;
   }
 };
 
@@ -200,8 +253,8 @@ public:
     if ((isArray == std::string::npos) || (lessThan == std::string::npos) ||
         (greaterThan == std::string::npos) || (x == std::string::npos))
       throw std::runtime_error("Array label missing keyword");
-    if (elementCount != static_cast<size_t>(std::stoi(
-                            label.substr(x + 2, greaterThan - x - 2))))
+    if (elementCount !=
+        parseSize(std::string_view(label).substr(x + 2, greaterThan - x - 2)))
       throw std::runtime_error("Array size mismatch in value and label.");
     arrayType = label.substr(lessThan + 1, x - lessThan - 2);
   }
@@ -337,7 +390,8 @@ private:
   enum struct ContainerStorage { FLAT, PREALLOCATED };
 
   /// Process different types of records
-  void handleHeader(const std::vector<std::string> &);
+  void handleHeader(const std::vector<std::string> &,
+                    std::optional<RecordSchemaType> &);
   void handleMetadata(const std::vector<std::string> &);
   /// Central dispatcher that handles different output types including scalar
   /// values, arrays, and tuples.
