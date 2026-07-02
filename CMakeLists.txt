@@ -89,6 +89,11 @@ if (NOT DEFINED CUDAQ_ENABLE_ENSMALLEN)
   set(CUDAQ_ENABLE_ENSMALLEN ON CACHE BOOL "Enable building the ensmallen optimizer (requires BLAS).")
 endif()
 
+# Enable the NLopt optimizer by default.
+if (NOT DEFINED CUDAQ_ENABLE_NLOPT)
+  set(CUDAQ_ENABLE_NLOPT ON CACHE BOOL "Enable building the NLopt optimizer.")
+endif()
+
 # CUDAQ_ENABLE_ALL_BACKEND, if defined, becomes the default value used for
 # every per-backend CUDAQ_ENABLE_<NAME>_BACKEND flag below. Individual
 # per-backend flags can still be overridden on the command line to opt in

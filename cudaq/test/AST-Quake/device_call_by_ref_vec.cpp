@@ -15,7 +15,6 @@
 void fillVector(std::vector<int> &out, int seed);
 void readVector(const std::vector<int> &in, int seed);
 
-
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_byRefVecKernel._Z14byRefVecKernel{{.*}}(
 // CHECK-SAME:      %[[ARG0:.*]]: !cc.stdvec<i32>,

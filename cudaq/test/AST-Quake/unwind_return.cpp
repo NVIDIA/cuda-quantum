@@ -39,6 +39,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_kernel._Z11test_kerneli(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i32
@@ -51,3 +52,4 @@ int main() {
 // CHECK:           %[[VAL_28:.*]] = cc.undef i32
 // CHECK:           return %[[VAL_28]] : i32
 // CHECK:         }
+// clang-format on

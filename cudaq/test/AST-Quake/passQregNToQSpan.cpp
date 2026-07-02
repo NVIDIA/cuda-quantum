@@ -10,17 +10,16 @@
 
 #include "cudaq.h"
 
-__qpu__ void mcx(cudaq::qview<> qubits) {
-
-}
+__qpu__ void mcx(cudaq::qview<> qubits) {}
 
 struct entry {
- void operator()() __qpu__ {
+  void operator()() __qpu__ {
     cudaq::qarray<3> q;
     mcx(q);
- }
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_mcx.
 // CHECK-SAME:      (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes {
 // CHECK:           return
@@ -32,4 +31,4 @@ struct entry {
 // CHECK:           call @__nvqpp__mlirgen__function_mcx._Z3mcxN5cudaq5{{.*}}(%[[VAL_2]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

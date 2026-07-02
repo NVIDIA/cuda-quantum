@@ -19,6 +19,7 @@ int main() {
   };
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0(
 // CHECK-SAME:                                             %[[VAL_0:.*]]: f64,
 // CHECK-SAME:                                             %[[VAL_1:.*]]: !cc.ptr<i8>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -33,4 +34,4 @@ int main() {
 // CHECK:           quake.exp_pauli (%[[VAL_6]]) %[[VAL_3]] to %[[VAL_1]] : (f64, !quake.veq<4>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on
