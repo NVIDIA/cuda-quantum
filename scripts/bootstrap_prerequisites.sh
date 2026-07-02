@@ -485,6 +485,11 @@ if [ -n "$GMP_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep gmp)" ]; 
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown m4 m4
+    if [ -x "$(command -v apt-get)" ]; then
+      temp_install_if_command_unknown xz xz-utils
+    else
+      temp_install_if_command_unknown xz xz
+    fi
 
     pushd "$PREREQS_BUILD_DIR"
 
@@ -515,6 +520,11 @@ if [ -n "$MPFR_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep mpfr)" ]
     echo "Installing MPFR..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
+    if [ -x "$(command -v apt-get)" ]; then
+      temp_install_if_command_unknown xz xz-utils
+    else
+      temp_install_if_command_unknown xz xz
+    fi
 
     pushd "$PREREQS_BUILD_DIR"
 
