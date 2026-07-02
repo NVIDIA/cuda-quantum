@@ -218,6 +218,7 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dem-options">DEM Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -1150,7 +1151,7 @@ and the other predefined noise channels.</p>
 <span class="c1"># text with `stim.DetectorErrorModel(dem)` to drive a decoder.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 <span class="n">dem</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">dem</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1162,7 +1163,7 @@ and the other predefined noise channels.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
 </pre></div>
 </div>
 </div>
@@ -1183,6 +1184,193 @@ error(0.01000000000000000021) D4 L0
 error(0.01000000000000000021) D5 L0
 </pre></div>
 </div>
+<section id="dem-options">
+<h2>DEM Options<a class="headerlink" href="#dem-options" title="Permalink to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> accepts optional parameters that are forwarded to the Stim
+error analyzer (C++: <code class="docutils literal notranslate"><span class="pre">cudaq::dem_options</span></code> struct; Python: keyword arguments).
+All options default to <code class="docutils literal notranslate"><span class="pre">False</span></code> / <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 44%" />
+<col style="width: 56%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code></p></td>
+<td><p>Decompose hyper-edge error mechanisms into pairs of two-detector edges.
+Required when feeding the DEM to minimum-weight perfect matching decoders.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fold_loops</span></code></p></td>
+<td><p>Fold loop bodies in the circuit for a more compact DEM. CUDA-Q kernels
+are compiled to a flat (loop-free) Stim circuit, so this option has no
+effect in practice.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">allow_gauge_detectors</span></code></p></td>
+<td><p>Allow detectors whose parity is not determined by the circuit.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">approximate_disjoint_errors_threshold</span></code></p></td>
+<td><p>Threshold in [0, 1] for approximating disjoint-error products.
+Set to <code class="docutils literal notranslate"><span class="pre">0.0</span></code> (the default) to disable approximation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ignore_decomposition_failures</span></code></p></td>
+<td><p>When decomposition fails for an error mechanism, insert it into the DEM
+undecomposed (as a hyper-edge) instead of raising an exception. Only
+relevant when <code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">block_decomposition_from_introducing_remnant_edges</span></code></p></td>
+<td><p>Prevent the decomposer from introducing remnant edges that would
+otherwise be needed to satisfy the decomposition.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Hyper-edges appear when a single fault trips both an <code class="docutils literal notranslate"><span class="pre">X</span></code>-type and a <code class="docutils literal notranslate"><span class="pre">Z</span></code>-type parity
+check. The circuit below prepares a Bell pair (the <code class="docutils literal notranslate"><span class="pre">+1</span></code> eigenstate of both
+<code class="docutils literal notranslate"><span class="pre">XX</span></code> and <code class="docutils literal notranslate"><span class="pre">ZZ</span></code>) and measures each stabilizer with its own ancilla. A <code class="docutils literal notranslate"><span class="pre">Y</span></code>
+error on a data qubit anti-commutes with both checks and flips the data
+readout, so one mechanism flips three detectors at once. The accompanying
+single-qubit <code class="docutils literal notranslate"><span class="pre">X</span></code> and <code class="docutils literal notranslate"><span class="pre">Z</span></code> errors seed the graph-like edges that the
+hyper-edge decomposes into (since <code class="docutils literal notranslate"><span class="pre">Y</span> <span class="pre">=</span> <span class="pre">X</span> <span class="pre">·</span> <span class="pre">Z</span></code>):</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># A hyper-edge arises naturally when one fault trips both an</span>
+<span class="c1"># X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+&gt;,</span>
+<span class="c1"># the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its</span>
+<span class="c1"># own ancilla. A Y error anti-commutes with both checks and flips the data</span>
+<span class="c1"># readout, lighting up three detectors at once. Because Y = X * Z, that</span>
+<span class="c1"># hyper-edge decomposes into the separate X and Z edges seeded by the</span>
+<span class="c1"># accompanying single-qubit errors.</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">correlated_checks</span><span class="p">():</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">z_anc</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">x_anc</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+
+    <span class="c1"># Prepare |00&gt; + |11&gt;</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">XError</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">ZError</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">YError</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># ZZ parity check: the data qubits control the ancilla.</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">z_anc</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">z_anc</span><span class="p">)</span>
+    <span class="n">z_syndrome</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">z_anc</span><span class="p">)</span>
+
+    <span class="c1"># XX parity check: the ancilla controls the data, read out in the X basis.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">)</span>
+    <span class="n">x_syndrome</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">x_anc</span><span class="p">)</span>
+
+    <span class="n">final</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">z_syndrome</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">x_syndrome</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">final</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">final</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// A hyperedge arises naturally when one fault trips both an</span>
+<span class="c1">// X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+&gt;,</span>
+<span class="c1">// the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its</span>
+<span class="c1">// own ancilla. A Y error anticommutes with both checks and flips the data</span>
+<span class="c1">// readout, lighting up three detectors at once. Because Y = X * Z, that</span>
+<span class="c1">// hyperedge decomposes into the separate X and Z edges seeded by the</span>
+<span class="c1">// accompanying single-qubit errors.</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">correlated_checks</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">z_anc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">x_anc</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Prepare |00&gt; + |11&gt;</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">apply_noise</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">x_error</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">apply_noise</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">z_error</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">apply_noise</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">y_error</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+<span class="w">  </span><span class="c1">// ZZ parity check: the data qubits control the ancilla.</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">z_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">z_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">z_syndrome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">z_anc</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// XX parity check: the ancilla controls the data, read out in the X basis.</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">x_syndrome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">x_anc</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">final</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">detector</span><span class="p">(</span><span class="n">z_syndrome</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">detector</span><span class="p">(</span><span class="n">x_syndrome</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">detector</span><span class="p">(</span><span class="k">final</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="k">final</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Generate the DEM with and without <code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code>:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<p>Pass any option as a keyword argument after the kernel arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pass DEM options as keyword arguments to control the Stim error analyzer.</span>
+<span class="c1"># decompose_errors=True splits hyper-edge mechanisms (three or more detectors)</span>
+<span class="c1"># into pairs of graph-like edges, which is required by most MWPM decoders.</span>
+<span class="n">dem_raw</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">dem_decomposed</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span>
+    <span class="n">correlated_checks</span><span class="p">,</span>
+    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
+    <span class="n">decompose_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Raw DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_raw</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_decomposed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<p>Construct a <code class="docutils literal notranslate"><span class="pre">cudaq::dem_options</span></code> value and pass it as the third
+argument (after the noise model):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Pass a cudaq::dem_options struct to control the Stim error analyzer.</span>
+<span class="w">  </span><span class="c1">// decompose_errors=true splits hyperedge mechanisms (three or more detectors)</span>
+<span class="w">  </span><span class="c1">// into pairs of graphlike edges, which is required by most MWPM decoders.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_raw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">decompose_errors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">opts</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Raw DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_raw</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Without decomposition the <code class="docutils literal notranslate"><span class="pre">Y</span></code> error is a single three-detector hyper-edge
+(<code class="docutils literal notranslate"><span class="pre">D0</span> <span class="pre">D1</span> <span class="pre">D2</span></code>), printed alongside the graph-like <code class="docutils literal notranslate"><span class="pre">X</span></code> edge (<code class="docutils literal notranslate"><span class="pre">D0</span> <span class="pre">D2</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">Z</span></code> edge (<code class="docutils literal notranslate"><span class="pre">D1</span></code>):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>error(0.02000000000000000042) D0 D1 D2
+error(0.01000000000000000021) D0 D2
+error(0.01000000000000000021) D1
+</pre></div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">decompose_errors=True</span></code> the hyper-edge is written as the product of
+two graph-like components, separated by <code class="docutils literal notranslate"><span class="pre">^</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>error(0.01000000000000000021) D0 D2
+error(0.02000000000000000042) D0 D2 ^ D1
+error(0.01000000000000000021) D1
+</pre></div>
+</div>
+</section>
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
@@ -1192,7 +1380,7 @@ Clifford circuits; a non-Clifford gate raises a diagnostic.</p></li>
 <li><p><strong>No measurement-conditional control flow.</strong> Branching on a measurement result
 changes the measurement count shot-to-shot and breaks the detector matrix
 model; such kernels are rejected.</p></li>
-<li><p><strong>Independent Pauli noise.</strong> Each error mechanism is assumed independent..</p></li>
+<li><p><strong>Independent Pauli noise.</strong> Each error mechanism is assumed independent.</p></li>
 <li><p><strong>Pre-decomposition.</strong> The DEM reflects the abstract kernel circuit, not the
 hardware-decomposed circuit.</p></li>
 </ul>

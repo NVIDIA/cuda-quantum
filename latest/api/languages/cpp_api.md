@@ -229,6 +229,9 @@ latest
     -   [Detector Error
         Models](../../using/examples/dem_from_kernel.html){.reference
         .internal}
+        -   [DEM
+            Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -12538,6 +12541,120 @@ discriminate a vector of handles.
         signature the Argument Mapper function object that maps the
         parameters to concrete arguments for the quantum kernel.
     :::
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1dem__options .target}[[struct]{.pre}]{.k}[ ]{.w}[[[dem_options]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq11dem_optionsE "Permalink to this definition"){.headerlink}\
+
+:   Options forwarded to
+    [`stim::ErrorAnalyzer::circuit_to_detector_error_model`{.docutils
+    .literal .notranslate}]{.pre} when generating a Detector Error Model
+    (DEM) from a kernel.
+
+    ::: {.breathe-sectiondef .docutils .container}
+    Public Members
+
+    []{#structcudaq_1_1dem__options_1aba7e4e4b6d270880aa471962334271d1 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[decompose_errors]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options16decompose_errorsE "Permalink to this definition"){.headerlink}\
+
+    :   Decompose hyper-edge error mechanisms into pairs of two-detector
+        edges.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a4ddd6ec1bbfbd2f17402ed4cecfc12bd .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[fold_loops]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options10fold_loopsE "Permalink to this definition"){.headerlink}\
+
+    :   Fold loop bodies in the circuit for a more compact DEM.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a2051675feb7c9c9ca74405c944f7c051 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[allow_gauge_detectors]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options21allow_gauge_detectorsE "Permalink to this definition"){.headerlink}\
+
+    :   Allow detectors whose parity is not determined by the circuit.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1abbac197648f702c3a8dc264a72475eac .target}[[double]{.pre}]{.kt}[ ]{.w}[[[approximate_disjoint_errors_threshold]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[¶](#_CPPv4N5cudaq11dem_options37approximate_disjoint_errors_thresholdE "Permalink to this definition"){.headerlink}\
+
+    :   Threshold (in \[0,1\]) for approximating disjoint-error
+        products. Set to 0 to disable approximation.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a00b985d8bad25d910f177f344ec0a012 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[ignore_decomposition_failures]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options29ignore_decomposition_failuresE "Permalink to this definition"){.headerlink}\
+
+    :   When decomposition fails for an error mechanism, insert it into
+        the DEM undecomposed (as a hyper-edge) instead of raising an
+        exception. Only relevant when decompose_errors is true.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a77c3570e3971dfffad04c1109112f242 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[block_decomposition_from_introducing_remnant_edges]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options50block_decomposition_from_introducing_remnant_edgesE "Permalink to this definition"){.headerlink}\
+
+    :   Prevent the decomposer from introducing remnant edges that would
+        otherwise be needed to satisfy the decomposition.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a00307bf104a7b5ddd47746d1b2aebf98 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[return_measurement_matrices]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options27return_measurement_matricesE "Permalink to this definition"){.headerlink}\
+
+    :   When true, the DEM execution also populates
+        [`ExecutionContext::measurement_matrices`{.docutils .literal
+        .notranslate}]{.pre}.
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1aa6d642af4c2fd345877890f5a7ea64f1 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[dem_options]{.pre}]{.n}](#_CPPv4N5cudaq11dem_optionsE "cudaq::dem_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and
+    return the resulting model as a UTF-8 string in Stim's standard
+    [file
+    format](https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md){.reference
+    .external}.
+
+    ::: {.admonition .note}
+    Note
+
+    The active CUDA-Q target / platform is not modified; the analysis
+    simulator is purely an internal override.
+    :::
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** -- Any callable that can be invoked with
+            [`args`{.docutils .literal .notranslate}]{.pre} (CUDA-Q
+            kernel, lambda, or kernel-builder).
+
+        -   **noise** -- Optional noise model layered on per
+            [[[`cudaq::noise_model`{.docutils .literal
+            .notranslate}]{.pre}]{.std
+            .std-ref}](#classcudaq_1_1noise__model){.reference
+            .internal} semantics.
+
+        -   **options** -- Options forwarded to the Stim error analyzer
+            (see [[[`cudaq::dem_options`{.docutils .literal
+            .notranslate}]{.pre}]{.std
+            .std-ref}](#structcudaq_1_1dem__options){.reference
+            .internal}).
+
+        -   **args** -- Arguments forwarded to the kernel invocation.
 
 ```{=html}
 <!-- -->

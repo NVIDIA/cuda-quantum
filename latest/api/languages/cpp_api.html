@@ -220,6 +220,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#dem-options">DEM Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -8127,6 +8128,77 @@ like this:</p>
 </dd></dl>
 
 </div>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_optionsE">
+<span class="target" id="structcudaq_1_1dem__options"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">dem_options</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_optionsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Options forwarded to <code class="docutils literal notranslate"><span class="pre">stim::ErrorAnalyzer::circuit_to_detector_error_model</span></code> when generating a Detector Error Model (DEM) from a kernel. </p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options16decompose_errorsE">
+<span class="target" id="structcudaq_1_1dem__options_1aba7e4e4b6d270880aa471962334271d1"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">decompose_errors</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options16decompose_errorsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Decompose hyper-edge error mechanisms into pairs of two-detector edges. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options10fold_loopsE">
+<span class="target" id="structcudaq_1_1dem__options_1a4ddd6ec1bbfbd2f17402ed4cecfc12bd"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">fold_loops</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options10fold_loopsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Fold loop bodies in the circuit for a more compact DEM. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options21allow_gauge_detectorsE">
+<span class="target" id="structcudaq_1_1dem__options_1a2051675feb7c9c9ca74405c944f7c051"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">allow_gauge_detectors</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options21allow_gauge_detectorsE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Allow detectors whose parity is not determined by the circuit. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options37approximate_disjoint_errors_thresholdE">
+<span class="target" id="structcudaq_1_1dem__options_1abbac197648f702c3a8dc264a72475eac"></span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">approximate_disjoint_errors_threshold</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.0</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options37approximate_disjoint_errors_thresholdE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Threshold (in [0,1]) for approximating disjoint-error products. Set to 0 to disable approximation. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options29ignore_decomposition_failuresE">
+<span class="target" id="structcudaq_1_1dem__options_1a00b985d8bad25d910f177f344ec0a012"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ignore_decomposition_failures</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options29ignore_decomposition_failuresE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>When decomposition fails for an error mechanism, insert it into the DEM undecomposed (as a hyper-edge) instead of raising an exception. Only relevant when decompose_errors is true. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options50block_decomposition_from_introducing_remnant_edgesE">
+<span class="target" id="structcudaq_1_1dem__options_1a77c3570e3971dfffad04c1109112f242"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">block_decomposition_from_introducing_remnant_edges</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options50block_decomposition_from_introducing_remnant_edgesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Prevent the decomposer from introducing remnant edges that would otherwise be needed to satisfy the decomposition. </p>
+</dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options27return_measurement_matricesE">
+<span class="target" id="structcudaq_1_1dem__options_1a00307bf104a7b5ddd47746d1b2aebf98"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">return_measurement_matrices</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options27return_measurement_matricesE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>When true, the DEM execution also populates <code class="docutils literal notranslate"><span class="pre">ExecutionContext::measurement_matrices</span></code>. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dem_8h_1aa6d642af4c2fd345877890f5a7ea64f1"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">dem_from_kernel</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args" title="cudaq::dem_from_kernel::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">noise</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11dem_optionsE" title="cudaq::dem_options"><span class="n"><span class="pre">dem_options</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">options</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args" title="cudaq::dem_from_kernel::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and return the resulting model as a UTF-8 string in Stim’s standard <a class="reference external" href="https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md"> file format</a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The active CUDA-Q target / platform is not modified; the analysis simulator is purely an internal override.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – Any callable that can be invoked with <code class="docutils literal notranslate"><span class="pre">args</span></code> (CUDA-Q kernel, lambda, or kernel-builder). </p></li>
+<li><p><strong>noise</strong> – Optional noise model layered on per <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1noise__model"><span class="std std-ref"><span class="pre">cudaq::noise_model</span></span></a></code> semantics. </p></li>
+<li><p><strong>options</strong> – Options forwarded to the Stim error analyzer (see <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1dem__options"><span class="std std-ref"><span class="pre">cudaq::dem_options</span></span></a></code>). </p></li>
+<li><p><strong>args</strong> – Arguments forwarded to the kernel invocation. </p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="cpp function">

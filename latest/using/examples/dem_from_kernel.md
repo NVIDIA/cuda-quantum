@@ -207,6 +207,7 @@ latest
                 Data](ptsbe.html#inspecting-execution-data){.reference
                 .internal}
     -   [Detector Error Models](#){.current .reference .internal}
+        -   [DEM Options](#dem-options){.reference .internal}
         -   [Limitations](#limitations){.reference .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
@@ -1961,7 +1962,7 @@ Python
     # text with `stim.DetectorErrorModel(dem)` to drive a decoder.
     noise = cudaq.NoiseModel()
     dem = cudaq.dem_from_kernel(memory_experiment, 2, noise_model=noise)
-    print(dem)
+    print(f"Memory experiment DEM:\n{dem}")
 :::
 :::
 :::
@@ -1978,7 +1979,7 @@ C++
       cudaq::noise_model noise;
       std::string dem =
           cudaq::dem_from_kernel(memory_experiment, &noise, /*rounds=*/2);
-      std::printf("%s\n", dem.c_str());
+      std::printf("Memory experiment DEM:\n%s\n", dem.c_str());
 :::
 :::
 :::
@@ -2014,6 +2015,254 @@ the logical observable [`L0`{.docutils .literal .notranslate}]{.pre}:
 :::
 :::
 
+::: {#dem-options .section}
+## DEM Options[¶](#dem-options "Permalink to this heading"){.headerlink}
+
+[`dem_from_kernel`{.docutils .literal .notranslate}]{.pre} accepts
+optional parameters that are forwarded to the Stim error analyzer (C++:
+[`cudaq::dem_options`{.docutils .literal .notranslate}]{.pre} struct;
+Python: keyword arguments). All options default to [`False`{.docutils
+.literal .notranslate}]{.pre} / [`0`{.docutils .literal
+.notranslate}]{.pre}.
+
++------------------------------+---------------------------------------+
+| Option                       | Description                           |
++==============================+=======================================+
+| [                            | Decompose hyper-edge error mechanisms |
+| `decompose_errors`{.docutils | into pairs of two-detector edges.     |
+| .literal                     | Required when feeding the DEM to      |
+| .notranslate}]{.pre}         | minimum-weight perfect matching       |
+|                              | decoders.                             |
++------------------------------+---------------------------------------+
+| [`fold_loops`{.docutils      | Fold loop bodies in the circuit for a |
+| .literal                     | more compact DEM. CUDA-Q kernels are  |
+| .notranslate}]{.pre}         | compiled to a flat (loop-free) Stim   |
+|                              | circuit, so this option has no effect |
+|                              | in practice.                          |
++------------------------------+---------------------------------------+
+| [`allo                       | Allow detectors whose parity is not   |
+| w_gauge_detectors`{.docutils | determined by the circuit.            |
+| .literal                     |                                       |
+| .notranslate}]{.pre}         |                                       |
++------------------------------+---------------------------------------+
+| [`approximate_disjoint       | Threshold in \[0, 1\] for             |
+| _errors_threshold`{.docutils | approximating disjoint-error          |
+| .literal                     | products. Set to [`0.0`{.docutils     |
+| .notranslate}]{.pre}         | .literal .notranslate}]{.pre} (the    |
+|                              | default) to disable approximation.    |
++------------------------------+---------------------------------------+
+| [`ignore_decom               | When decomposition fails for an error |
+| position_failures`{.docutils | mechanism, insert it into the DEM     |
+| .literal                     | undecomposed (as a hyper-edge)        |
+| .notranslate}]{.pre}         | instead of raising an exception. Only |
+|                              | relevant when                         |
+|                              | [`decompose_errors`{.docutils         |
+|                              | .literal .notranslate}]{.pre} is      |
+|                              | [`True`{.docutils .literal            |
+|                              | .notranslate}]{.pre}.                 |
++------------------------------+---------------------------------------+
+| [`block                      | Prevent the decomposer from           |
+| _decomposition_from_introduc | introducing remnant edges that would  |
+| ing_remnant_edges`{.docutils | otherwise be needed to satisfy the    |
+| .literal                     | decomposition.                        |
+| .notranslate}]{.pre}         |                                       |
++------------------------------+---------------------------------------+
+
+Hyper-edges appear when a single fault trips both an [`X`{.docutils
+.literal .notranslate}]{.pre}-type and a [`Z`{.docutils .literal
+.notranslate}]{.pre}-type parity check. The circuit below prepares a
+Bell pair (the [`+1`{.docutils .literal .notranslate}]{.pre} eigenstate
+of both [`XX`{.docutils .literal .notranslate}]{.pre} and
+[`ZZ`{.docutils .literal .notranslate}]{.pre}) and measures each
+stabilizer with its own ancilla. A [`Y`{.docutils .literal
+.notranslate}]{.pre} error on a data qubit anti-commutes with both
+checks and flips the data readout, so one mechanism flips three
+detectors at once. The accompanying single-qubit [`X`{.docutils .literal
+.notranslate}]{.pre} and [`Z`{.docutils .literal .notranslate}]{.pre}
+errors seed the graph-like edges that the hyper-edge decomposes into
+(since [`Y`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`=`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`X`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`·`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`Z`{.docutils .literal .notranslate}]{.pre}):
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # A hyper-edge arises naturally when one fault trips both an
+    # X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+>,
+    # the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its
+    # own ancilla. A Y error anti-commutes with both checks and flips the data
+    # readout, lighting up three detectors at once. Because Y = X * Z, that
+    # hyper-edge decomposes into the separate X and Z edges seeded by the
+    # accompanying single-qubit errors.
+    @cudaq.kernel
+    def correlated_checks():
+        data = cudaq.qvector(2)
+        z_anc = cudaq.qubit()
+        x_anc = cudaq.qubit()
+
+        # Prepare |00> + |11>
+        h(data[0])
+        x.ctrl(data[0], data[1])
+
+        cudaq.apply_noise(cudaq.XError, 0.01, data[0])
+        cudaq.apply_noise(cudaq.ZError, 0.01, data[0])
+        cudaq.apply_noise(cudaq.YError, 0.02, data[0])
+
+        # ZZ parity check: the data qubits control the ancilla.
+        x.ctrl(data[0], z_anc)
+        x.ctrl(data[1], z_anc)
+        z_syndrome = mz(z_anc)
+
+        # XX parity check: the ancilla controls the data, read out in the X basis.
+        h(x_anc)
+        x.ctrl(x_anc, data[0])
+        x.ctrl(x_anc, data[1])
+        h(x_anc)
+        x_syndrome = mz(x_anc)
+
+        final = mz(data)
+        cudaq.detector(z_syndrome)
+        cudaq.detector(x_syndrome)
+        cudaq.detector(final[0], final[1])
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // A hyperedge arises naturally when one fault trips both an
+    // X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+>,
+    // the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its
+    // own ancilla. A Y error anticommutes with both checks and flips the data
+    // readout, lighting up three detectors at once. Because Y = X * Z, that
+    // hyperedge decomposes into the separate X and Z edges seeded by the
+    // accompanying single-qubit errors.
+    __qpu__ void correlated_checks() {
+      cudaq::qvector data(2);
+      cudaq::qubit z_anc;
+      cudaq::qubit x_anc;
+
+      // Prepare |00> + |11>
+      h(data[0]);
+      x<cudaq::ctrl>(data[0], data[1]);
+
+      cudaq::apply_noise<cudaq::x_error>(0.01, data[0]);
+      cudaq::apply_noise<cudaq::z_error>(0.01, data[0]);
+      cudaq::apply_noise<cudaq::y_error>(0.02, data[0]);
+
+      // ZZ parity check: the data qubits control the ancilla.
+      x<cudaq::ctrl>(data[0], z_anc);
+      x<cudaq::ctrl>(data[1], z_anc);
+      auto z_syndrome = mz(z_anc);
+
+      // XX parity check: the ancilla controls the data, read out in the X basis.
+      h(x_anc);
+      x<cudaq::ctrl>(x_anc, data[0]);
+      x<cudaq::ctrl>(x_anc, data[1]);
+      h(x_anc);
+      auto x_syndrome = mz(x_anc);
+
+      auto final = mz(data);
+      cudaq::detector(z_syndrome);
+      cudaq::detector(x_syndrome);
+      cudaq::detector(final[0], final[1]);
+    }
+:::
+:::
+:::
+:::
+
+Generate the DEM with and without [`decompose_errors`{.docutils .literal
+.notranslate}]{.pre}:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+Pass any option as a keyword argument after the kernel arguments:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    # Pass DEM options as keyword arguments to control the Stim error analyzer.
+    # decompose_errors=True splits hyper-edge mechanisms (three or more detectors)
+    # into pairs of graph-like edges, which is required by most MWPM decoders.
+    dem_raw = cudaq.dem_from_kernel(correlated_checks, noise_model=noise)
+    dem_decomposed = cudaq.dem_from_kernel(
+        correlated_checks,
+        noise_model=noise,
+        decompose_errors=True,
+    )
+    print(f"Raw DEM:\n{dem_raw}")
+    print(f"Decomposed DEM:\n{dem_decomposed}")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+Construct a [`cudaq::dem_options`{.docutils .literal
+.notranslate}]{.pre} value and pass it as the third argument (after the
+noise model):
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      // Pass a cudaq::dem_options struct to control the Stim error analyzer.
+      // decompose_errors=true splits hyperedge mechanisms (three or more detectors)
+      // into pairs of graphlike edges, which is required by most MWPM decoders.
+      std::string dem_raw = cudaq::dem_from_kernel(correlated_checks, &noise);
+      cudaq::dem_options opts;
+      opts.decompose_errors = true;
+      std::string dem_decomposed =
+          cudaq::dem_from_kernel(correlated_checks, &noise, opts);
+      std::printf("Raw DEM:\n%s\n", dem_raw.c_str());
+      std::printf("Decomposed DEM:\n%s\n", dem_decomposed.c_str());
+:::
+:::
+:::
+:::
+
+Without decomposition the [`Y`{.docutils .literal .notranslate}]{.pre}
+error is a single three-detector hyper-edge ([`D0`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`D1`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`D2`{.docutils .literal .notranslate}]{.pre}), printed
+alongside the graph-like [`X`{.docutils .literal .notranslate}]{.pre}
+edge ([`D0`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`D2`{.docutils .literal .notranslate}]{.pre}) and
+[`Z`{.docutils .literal .notranslate}]{.pre} edge ([`D1`{.docutils
+.literal .notranslate}]{.pre}):
+
+::: {.highlight-text .notranslate}
+::: highlight
+    error(0.02000000000000000042) D0 D1 D2
+    error(0.01000000000000000021) D0 D2
+    error(0.01000000000000000021) D1
+:::
+:::
+
+With [`decompose_errors=True`{.docutils .literal .notranslate}]{.pre}
+the hyper-edge is written as the product of two graph-like components,
+separated by [`^`{.docutils .literal .notranslate}]{.pre}:
+
+::: {.highlight-text .notranslate}
+::: highlight
+    error(0.01000000000000000021) D0 D2
+    error(0.02000000000000000042) D0 D2 ^ D1
+    error(0.01000000000000000021) D1
+:::
+:::
+:::
+
 ::: {#limitations .section}
 ## Limitations[¶](#limitations "Permalink to this heading"){.headerlink}
 
@@ -2027,7 +2276,7 @@ the logical observable [`L0`{.docutils .literal .notranslate}]{.pre}:
     breaks the detector matrix model; such kernels are rejected.
 
 -   **Independent Pauli noise.** Each error mechanism is assumed
-    independent..
+    independent.
 
 -   **Pre-decomposition.** The DEM reflects the abstract kernel circuit,
     not the hardware-decomposed circuit.

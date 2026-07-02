@@ -229,6 +229,9 @@ latest
     -   [Detector Error
         Models](../../using/examples/dem_from_kernel.html){.reference
         .internal}
+        -   [DEM
+            Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -2418,7 +2421,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![cb83eea7e92e4e848fc5cbe77853b93d](../../_images/speedup.png){.no-scaled-link
+![3768b08771ed48cb87d967945cd1b9c0](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2432,9 +2435,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![28d31118645946e69db279fdf00d3ee2](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![6a510cbb81d14e759e3e403cf57a97fa](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![e252e09e79de4fb4b2110e6d1e6dd7e4](../../_images/efficiency.jpeg){.no-scaled-link
+![daa1797a611941dfb4a7728b975ae88f](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

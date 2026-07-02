@@ -229,6 +229,9 @@ latest
     -   [Detector Error
         Models](../../using/examples/dem_from_kernel.html){.reference
         .internal}
+        -   [DEM
+            Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -2811,9 +2814,13 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         -   **ignore_decomposition_failures**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Skip error mechanisms that
-            cannot be decomposed instead of raising an exception.
-            Default [`False`{.docutils .literal .notranslate}]{.pre}.
+            .external}*,* *optional*) -- When decomposition fails for an
+            error mechanism, insert it into the DEM undecomposed (as a
+            hyper-edge) instead of raising an exception. Only relevant
+            when [`decompose_errors`{.docutils .literal
+            .notranslate}]{.pre} is [`True`{.docutils .literal
+            .notranslate}]{.pre}. Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **block_decomposition_from_introducing_remnant_edges**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference

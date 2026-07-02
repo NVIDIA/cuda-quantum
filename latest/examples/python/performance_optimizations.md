@@ -225,6 +225,9 @@ latest
     -   [Detector Error
         Models](../../using/examples/dem_from_kernel.html){.reference
         .internal}
+        -   [DEM
+            Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -1905,14 +1908,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![126040701cb145638459657f26f14639](../../_images/gate-fuse.png)
+![111945f7f17744f8bd2a26d59d3816c3](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![b5c5781fbec445b186397eb958df4be6](../../_images/gatefusion.png)
+![1604069bfc4e45f8ae402ddc866b46b9](../../_images/gatefusion.png)
 :::
 :::
 :::

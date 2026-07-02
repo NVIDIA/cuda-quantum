@@ -220,6 +220,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#dem-options">DEM Options</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -1702,9 +1703,10 @@ is not determined by the circuit. Default <code class="docutils literal notransl
 <li><p><strong>approximate_disjoint_errors_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Threshold
 for approximating disjoint-error products; set to <code class="docutils literal notranslate"><span class="pre">0</span></code> to
 disable. Default <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p></li>
-<li><p><strong>ignore_decomposition_failures</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Skip error mechanisms
-that cannot be decomposed instead of raising an exception.
-Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>ignore_decomposition_failures</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – When decomposition
+fails for an error mechanism, insert it into the DEM undecomposed
+(as a hyper-edge) instead of raising an exception. Only relevant
+when <code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 <li><p><strong>block_decomposition_from_introducing_remnant_edges</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Prevent the decomposer from introducing remnant edges.
 Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 <li><p><strong>return_measurement_matrices</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – When True, also return

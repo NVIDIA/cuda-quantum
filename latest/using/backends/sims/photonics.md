@@ -225,6 +225,9 @@ latest
     -   [Detector Error
         Models](../../examples/dem_from_kernel.html){.reference
         .internal}
+        -   [DEM
+            Options](../../examples/dem_from_kernel.html#dem-options){.reference
+            .internal}
         -   [Limitations](../../examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
