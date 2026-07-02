@@ -23,16 +23,16 @@
 #include <iostream>
 
 __qpu__ void test() {
-    cudaq::qvector q(2);
-    cudaq::exp_pauli(1.0, q, "XX");
+  cudaq::qvector q(2);
+  cudaq::exp_pauli(1.0, q, "XX");
 }
 
 __qpu__ void test_param(cudaq::pauli_word w) {
-    cudaq::qvector q(2);
-    cudaq::exp_pauli(1.0, q, w);
+  cudaq::qvector q(2);
+  cudaq::exp_pauli(1.0, q, w);
 }
 
-void printCounts(cudaq::sample_result& result) {
+void printCounts(cudaq::sample_result &result) {
   std::vector<std::string> values{};
   for (auto &&[bits, counts] : result) {
     values.push_back(bits);

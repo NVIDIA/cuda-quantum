@@ -8,4 +8,3 @@
 
 static constexpr char MESSAGE[] = "Hello, World!";
 static constexpr int RETURN_CODE = 0;
-

@@ -35,6 +35,7 @@ struct VectorOfStaticVeq {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfStaticVeq() -> !cc.stdvec<i1> attributes {
 // CHECK:           %[[VAL_11:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
@@ -49,6 +50,7 @@ struct VectorOfStaticVeq {
 // CHECK:           %[[VAL_13:.*]] = cc.stdvec_init %[[VAL_12]], %[[VAL_10]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
 // CHECK:           return %[[VAL_13]] : !cc.stdvec<i1>
 // CHECK:         }
+// clang-format on
 
 struct VectorOfDynamicVeq {
   std::vector<bool> operator()(unsigned i, unsigned j) __qpu__ {
@@ -60,6 +62,7 @@ struct VectorOfDynamicVeq {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorOfDynamicVeq(
 // CHECK-SAME:        %[[VAL_0:.*]]: i32{{.*}}, %[[VAL_1:.*]]: i32{{.*}}) -> !cc.stdvec<i1> attributes {
 // CHECK:           %[[VAL_15:.*]] = arith.constant 1 : i64
@@ -83,4 +86,4 @@ struct VectorOfDynamicVeq {
 // CHECK:           %[[VAL_17:.*]] = cc.stdvec_init %[[VAL_16]], %[[VAL_14]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
 // CHECK:           return %[[VAL_17]] : !cc.stdvec<i1>
 // CHECK:         }
-
+// clang-format on
