@@ -69,7 +69,7 @@ QPU access, built-in applications, multi-GPU execution, and Python
 CUDA-Q Getting Started
 
 CUDA-Q is NVIDIA's unified quantum-classical programming model for CPUs, GPUs, and QPUs.
-Supports Python and C++. Docs: https://nvidia.github.io/cuda-quantum/
+Supports Python and C++. Docs: https://nvidia.github.io/cuda-quantum/latest/
 
 Choose a topic:
   /cudaq-guide install         Install CUDA-Q
@@ -93,7 +93,7 @@ Choose a topic:
 ## Limitations
 
 - Guidance targets CUDA-Q Python/C++ workflows, with authoring details focused
-  on CUDA-Q 0.14.x decorator-mode Python APIs.
+  on decorator-mode Python APIs used in CUDA-Q 0.14 and 0.15.
 - GPU and multi-GPU support depends on local CUDA-Q, CUDA Toolkit, driver, MPI,
   and hardware availability.
 - QPU access and target options are provider-specific and may change; verify
@@ -107,6 +107,9 @@ Choose a topic:
   `qpp-cpu`.
 - **Kernel compile error:** read [references/authoring.md](references/authoring.md)
   and check the restricted kernel-language subset.
+- **Version-specific behavior differs:** compare `cudaq.__version__` with the
+  latest documentation, then review relevant documentation or source changes
+  when debugging an installed version that is not the latest release.
 - **QPU submission fails:** verify provider credentials are set as environment
   variables or through a secrets manager, never hardcoded.
 - **Documentation lookup fails:** retry transient MCP or repository lookup once,

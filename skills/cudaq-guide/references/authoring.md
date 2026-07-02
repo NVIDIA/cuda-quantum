@@ -1,8 +1,10 @@
 # CUDA-Q Authoring Reference
 
 Use this reference for `/cudaq-guide author` and for debugging Python
-`@cudaq.kernel` code. It targets the CUDA-Q 0.14.x Python API; re-check
-version-sensitive behavior against the installed `cudaq.__version__`.
+`@cudaq.kernel` code. It targets the CUDA-Q 0.14 and 0.15 Python APIs;
+re-check version-sensitive behavior against the installed `cudaq.__version__`.
+If the installed version differs from the latest documentation, review the
+relevant documentation or source changes while debugging.
 
 For porting Qiskit code to CUDA-Q, use the `qiskit-to-cudaq` skill. That skill
 contains Qiskit gate mappings, Qiskit-vs-CUDA-Q bit ordering, precision
@@ -15,12 +17,12 @@ comparison guidance, framework-decoupling patterns, and port validation.
 Decorator mode (`@cudaq.kernel`) is the default. Do not use
 `cudaq.make_kernel()` builder mode without explicit user permission.
 
-Builder mode is legacy in CUDA-Q 0.14 with uneven feature support: no
-`mz(list)`, no qview slicing, no `x.ctrl`, no `cudaq.adjoint` on builder
-kernels, `apply_call` on subkernels has bugs, and `QuakeValue.__getitem__`
-rejects NumPy ints. Count-key ordering also differs between modes. If a case
-appears to need builder mode, describe the advantage and tradeoff and wait for
-confirmation.
+Builder mode has uneven feature support across CUDA-Q 0.14/0.15-era Python
+APIs: no `mz(list)`, no qview slicing, no `x.ctrl`, no `cudaq.adjoint` on
+builder kernels, `apply_call` on subkernels can be fragile, and
+`QuakeValue.__getitem__` rejects NumPy ints. Count-key ordering also differs
+between modes. If a case appears to need builder mode, describe the advantage
+and tradeoff and wait for confirmation.
 
 ### Avoid unnecessary restrictions
 
@@ -87,8 +89,11 @@ counts = {k: v for k, v in result.items()}
 - Multi-control gate forms: `x.ctrl(c, t)`, `x.ctrl([c1, c2], t)`,
   `x.ctrl(c1, c2, t)`, and analogous forms for `y`, `z`, `h`, `rx`, `ry`,
   `rz`, `r1`, and `swap`.
-- `mz(qubit)` returning a Python-typed `bool`, usable in conditions and return
-  lists.
+- `mz(qubit)`, `mx(qubit)`, and `my(qubit)` captured into variables for
+  mid-circuit conditions and typed returns. CUDA-Q 0.14 treats captures as
+  bool-like in common Python workflows; CUDA-Q 0.15 documents them as
+  measurement handles that are discriminated when used in boolean conditions or
+  returned through a typed `list[bool]` / `int` kernel result.
 - `mz(qview)` without return capture for sampling through `cudaq.sample`.
 - `reset(qubit)`.
 - Float arithmetic with mixed int/float promotion.
@@ -351,7 +356,7 @@ def my_kernel(args...) -> int:
     return res
 ```
 
-Reference examples in CUDA-Q 0.14 source:
+Reference examples in the CUDA-Q source:
 `docs/sphinx/examples/python/measuring_kernels.py` and
 `sample_to_run_migration.py`.
 
@@ -432,9 +437,13 @@ Inverse-emission rules:
 
 ## Resource Metrics
 
-`cudaq.estimate_resources(K, *args)` returns a resources object with
-`count()` for total gate count and `count_controls(gate_name, num_controls)` for
-the number of gate invocations with exactly that many controls.
+`cudaq.estimate_resources(K, *args)` returns a resources object. Across
+CUDA-Q 0.14/0.15, `count()` reports total gate count and
+`count_controls(gate_name, num_controls)` reports gate invocations with exactly
+that many controls. Newer builds may also expose arity-indexed fields such as
+`gate_count_by_arity`, `gate_count_for_arity`, `depth_for_arity`,
+`multi_qubit_gate_count`, and `multi_qubit_depth`; prefer those when present
+and fall back to `count_controls` for older installations.
 
 ```python
 resources = cudaq.estimate_resources(K, *args)
@@ -511,13 +520,15 @@ For new algorithms with no source-framework reference:
 4. Use `cudaq.get_state` to inspect intermediate distributions when feasible.
 
 When task accuracy depends on a specific CUDA-Q version, check
-`cudaq.__version__` and official CUDA-Q documentation for that version.
+`cudaq.__version__`, the latest official CUDA-Q documentation, and any relevant
+documentation or source changes between the installed version and latest.
 
 ## External References
 
-1. CUDA-Q 0.14 documentation: <https://nvidia.github.io/cuda-quantum/0.14.0/>
+1. CUDA-Q latest documentation: <https://nvidia.github.io/cuda-quantum/latest/>.
 2. CUDA-Q examples for `cudaq.run`, `List[bool]`, and mid-circuit measurement:
    `docs/sphinx/examples/python/measuring_kernels.py` and
    `sample_to_run_migration.py` in the CUDA-Q source tree.
 3. CUDA-Q Academic examples: <https://github.com/NVIDIA/cuda-q-academic>.
-4. CUDA-Q 0.14 source-tree tests: `python/tests/kernel/test_kernel_features.py`.
+4. CUDA-Q source-tree tests: `python/tests/kernel/test_kernel_features.py` and
+   `python/tests/kernel/test_measure_handle.py` when present.

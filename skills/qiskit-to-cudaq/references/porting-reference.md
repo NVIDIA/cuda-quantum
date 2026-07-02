@@ -47,17 +47,19 @@ Framework-free ports:
 | `qc.ch(c, t)` | `h.ctrl(c, t)` | Direct |
 | `qc.crx/cry/crz(theta, c, t)` | `rx.ctrl(theta, c, t)`, `ry.ctrl(...)`, `rz.ctrl(...)` | Control and target order matters |
 | `qc.cp(theta, c, t)` | `r1.ctrl(theta, c, t)` | Controlled phase; symmetric mathematically |
-| `qc.rzz(theta, i, j)` | `cx(q[i], q[j]); rz(theta, q[j]); cx(q[i], q[j])` | No native `rzz` in CUDA-Q 0.14 |
+| `qc.u/UGate/u3(theta, phi, lam, q)` | `u3(theta, phi, lam, q)` when available; otherwise decompose to rotations | Check the installed CUDA-Q version |
+| `qc.cu/CUGate/cu3(theta, phi, lam, gamma, c, t)` | `u3.ctrl(theta, phi, lam, c, t)` when available, with global-phase handling if needed; otherwise decompose | Do not assume a separate `cu3` helper exists |
+| `qc.rzz(theta, i, j)` | `cx(q[i], q[j]); rz(theta, q[j]); cx(q[i], q[j])` | Decomposition works across 0.14/0.15; prefer native `rzz` only if available in the installed API |
 | `qc.rxx(theta, i, j)` | H on both qubits, RZZ decomposition, H on both qubits | |
 | `qc.ryy(theta, i, j)` | Sdg and H basis changes around RZZ decomposition | |
 | `qc.mcx([c...], t)` | `x.ctrl([c...], t)` | Arbitrary arity |
 | `qc.mcry(theta, [c...], t)` | `ry.ctrl(theta, [c...], t)` | Arbitrary arity |
 | `qc.mcp(theta, [c...], t)` | `r1.ctrl(theta, [c...], t)` | Preferred for many-control phase |
-| `MCXGate(..., ctrl_state="010")` | X-wrap open controls before and after the controlled operation | No native `ctrl_state` argument |
+| `MCXGate(..., ctrl_state="010")` | X-wrap open controls before and after the controlled operation | No Qiskit-style `ctrl_state` argument; `~control` syntax may be available in the installed CUDA-Q version |
 | `qc.swap(a, b)` | `swap(a, b)` | Direct |
 | `qc.cswap(c, a, b)` | `swap.ctrl(c, a, b)` | Also accepts list/variadic controls |
 | Final `qc.measure(q, c)` | `mz(qubits)` and `cudaq.sample` | See bit-ordering guidance |
-| Mid-circuit `qc.measure(q, c)` | `b = mz(q)` plus `cudaq.run` and typed return | Use when the measurement result drives control flow or must be returned |
+| Mid-circuit `qc.measure(q, c)` | `b = mz(q)` plus `cudaq.run` and typed return | Use when the measurement result drives control flow or must be returned; newer CUDA-Q documents `mz` captures as measurement handles that discriminate in boolean contexts or typed returns |
 | `qc.reset(q)` | `reset(q)` | Unconditional reset |
 | `qc.append(U, qubits)` | Implement `U` as a CUDA-Q kernel/function and call it | |
 | `qc.inverse()` | `cudaq.adjoint(K, *args)` at top level | Hand-roll inverse if `K` is used inside `cudaq.control` |
@@ -198,7 +200,9 @@ append records in reverse order while negating rotation angles. Self-inverse
 gates such as H, X, CX, and CSWAP keep angle 0.
 
 Native-gate dispatch avoids per-circuit transpile cost and precision loss from
-transpiling through `{u3, cx, swap}`.
+unnecessary transpilation. When `u3` / controlled `u3` exists in the installed
+CUDA-Q API, emit it directly; otherwise decompose through supported rotations,
+`cx`, and `swap`.
 
 ## Port Validation Gate
 
@@ -211,16 +215,21 @@ For every port:
 5. Use stochastic tolerance only when shot noise is expected to dominate.
 6. Re-run every previously failing configuration after changes.
 
+When installed CUDA-Q behavior differs from the latest documentation while
+debugging, review relevant documentation or source changes between the
+installed version and latest before changing the port.
+
 When stuck, copy subcircuit conventions from the exact source module being
 ported. IQFT direction, qubit order, and gate flavor can differ across
 implementations with similar names.
 
 ## External References
 
-- CUDA-Q 0.14 documentation: <https://nvidia.github.io/cuda-quantum/0.14.0/>
-- CUDA-Q examples: <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.14.0/docs/sphinx/examples/python>
+- CUDA-Q latest documentation: <https://nvidia.github.io/cuda-quantum/latest/>
+- CUDA-Q examples in the local/source tree: `docs/sphinx/examples/python`
 - CUDA-Q Academic: <https://github.com/NVIDIA/cuda-q-academic>
-- CUDA-Q 0.14 tests: `python/tests/kernel/test_kernel_features.py`
+- CUDA-Q tests: `python/tests/kernel/test_kernel_features.py` and
+  `python/tests/kernel/test_measure_handle.py` when present
 - Companion skill: `cudaq-guide` (`/cudaq-guide author`) for execution API
   selection, kernel-language constraints, shared kernel patterns, resource
   metrics, and debugging workflow.

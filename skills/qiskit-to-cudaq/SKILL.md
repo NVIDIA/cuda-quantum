@@ -44,6 +44,9 @@ test sizes, and documents any unavoidable CUDA-Q limitations.
 - When using CUDA-Q documentation or repository MCP connectors, verify the
   connector is available before relying on it; otherwise use local docs or the
   source tree.
+- When debugging and the installed CUDA-Q version differs from the latest
+  documentation, review relevant documentation or source changes before
+  treating a behavior difference as a porting bug.
 
 ## Workflow
 
@@ -95,8 +98,8 @@ you need any of the following:
 
 ## Limitations
 
-- Guidance targets CUDA-Q 0.14.x decorator-mode Python APIs. Re-check behavior
-  against the installed CUDA-Q version for version-sensitive features.
+- Guidance targets CUDA-Q 0.14/0.15 decorator-mode Python APIs. Re-check
+  behavior against the installed CUDA-Q version for version-sensitive features.
 - Some CUDA-Q kernel-language constructs are constrained compared with normal
   Python; use the companion `cudaq-guide` skill for core CUDA-Q authoring
   constraints and shared kernel patterns.
@@ -137,10 +140,15 @@ Use this format when diagnosing failures:
   once, then fall back to local docs/source or official CUDA-Q docs. Do not
   change the port based on unverified MCP results.
 
+- **Error:** CUDA-Q behavior conflicts with documentation while debugging.
+  **Cause:** The installed CUDA-Q version may differ from the latest
+  documentation.
+  **Solution:** Check `cudaq.__version__`, then review relevant documentation or
+  source changes between the installed version and latest before changing the
+  port.
+
 ## References
 
 - [Detailed porting reference](references/porting-reference.md)
-- CUDA-Q 0.14 documentation: <https://nvidia.github.io/cuda-quantum/0.14.0/>
-- CUDA-Q Academic examples: <https://github.com/NVIDIA/cuda-q-academic>
 - Companion skill: `cudaq-guide` (`/cudaq-guide author`) for CUDA-Q authoring
   patterns, kernel-language constraints, execution APIs, and debugging workflow.

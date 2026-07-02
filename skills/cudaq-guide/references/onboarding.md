@@ -76,18 +76,9 @@ QIR -> JIT), route to `/cudaq-compiler` if that skill is available.
 
 ## GPU Simulation
 
-To recommend the best simulation backend, consult the CUDA-Q simulator
-documentation:
+To recommend the best simulation backend, consult the latest CUDA-Q simulator
+backend table and detailed backend sections:
 <https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html>.
-
-| Target | Description | Use when |
-|---|---|---|
-| `nvidia` | Single-GPU state vector via cuStateVec, up to roughly 30 qubits | Default choice for most single-GPU simulations |
-| `nvidia --target-option fp64` | Double-precision single GPU | Higher numerical precision is needed, for example chemistry or sensitive observables |
-| `nvidia --target-option mgpu` | Multi-GPU statevector that pools memory across GPUs | One circuit exceeds single-GPU memory; requires MPI |
-| `nvidia --target-option mqpu` | Multi-QPU mode with one virtual QPU per GPU | Many independent circuits in parallel, such as parameter sweeps or VQE gradients |
-| `tensornet` | Tensor-network simulator | Shallow or low-entanglement circuits where qubit count exceeds statevector feasibility |
-| `qpp-cpu` | CPU-only fallback with OpenMP | No GPU, macOS, or small local tests |
 
 ## QPU
 
@@ -103,23 +94,17 @@ Which QPU technology are you targeting?
   4. Cloud / multi-platform (AWS Braket, Scaleway)
 ```
 
-Step 2: once they pick a technology, ask which provider, then read the
-corresponding doc file and walk through it step by step.
+Step 2: once they pick a technology, ask which provider, then use the latest
+CUDA-Q provider listings and examples:
 
-| Technology | Provider | Doc file |
-|---|---|---|
-| Ion trap | IonQ | `docs/sphinx/using/backends/hardware/iontrap.rst` (IonQ section) |
-| Ion trap | Quantinuum | `docs/sphinx/using/backends/hardware/iontrap.rst` (Quantinuum section) |
-| Superconducting | IQM | `docs/sphinx/using/backends/hardware/superconducting.rst` (IQM section) |
-| Superconducting | OQC | `docs/sphinx/using/backends/hardware/superconducting.rst` (OQC section) |
-| Superconducting | Anyon | `docs/sphinx/using/backends/hardware/superconducting.rst` (Anyon section) |
-| Superconducting | TII | `docs/sphinx/using/backends/hardware/superconducting.rst` (TII section) |
-| Superconducting | QCI | `docs/sphinx/using/backends/hardware/superconducting.rst` (QCI section) |
-| Neutral atom | Infleqtion | `docs/sphinx/using/backends/hardware/neutralatom.rst` (Infleqtion section) |
-| Neutral atom | QuEra | `docs/sphinx/using/backends/hardware/neutralatom.rst` (QuEra section) |
-| Neutral atom | Pasqal | `docs/sphinx/using/backends/hardware/neutralatom.rst` (Pasqal section) |
-| Cloud | AWS Braket | `docs/sphinx/using/backends/cloud/braket.rst` |
-| Cloud | Scaleway | `docs/sphinx/using/backends/cloud/scaleway.rst` |
+- Hardware provider index:
+  <https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware.html>
+- Cloud backend index:
+  <https://nvidia.github.io/cuda-quantum/latest/using/backends/cloud.html>
+- Provider examples:
+  <https://nvidia.github.io/cuda-quantum/latest/using/examples/hardware_providers.html>
+
+Then walk through that provider's setup steps.
 
 After walking through the provider steps, always close with:
 
