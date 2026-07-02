@@ -6,8 +6,11 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=greedy search=none' %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=auto   search=none' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=auto     search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=auto     search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=greedy   search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=greedy   search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=identity'  %s 2>&1 | FileCheck --check-prefix=IDENTITY %s
 
 quake.wire_set @wires[2147483647]
 
@@ -48,3 +51,5 @@ func.func @ghz_star() {
 // CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[7] : !quake.wire
 // CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_0]]] %[[BORROW_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
 // CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[BORROW_WIRE_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+// IDENTITY: cannot place two-qubit interaction between virtual qubits 0 and 1 on disconnected device topology
