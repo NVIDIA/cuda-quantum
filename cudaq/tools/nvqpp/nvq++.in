@@ -828,11 +828,11 @@ if ${ENABLE_REALTIME_LOWERING}; then
 	RUN_OPT=true
 fi
 if ${RUN_OPT}; then
-	DISTRIBUTED_DEVICE_CALL_OPTIONS="${INSERT_DEFAULT_DEVICE_CALL_IMPL}"
 	if ${ENABLE_REALTIME_LOWERING}; then
-		DISTRIBUTED_DEVICE_CALL_OPTIONS="${DISTRIBUTED_DEVICE_CALL_OPTIONS} realtime=1"
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "realtime-device-call,canonicalize,cse")
+	else
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call{${INSERT_DEFAULT_DEVICE_CALL_IMPL}},canonicalize,cse")
 	fi
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call{${DISTRIBUTED_DEVICE_CALL_OPTIONS}},canonicalize,cse")
 fi
 
 # If TARGET_PASS_PIPELINE is set, then use that exact pipeline (while still
