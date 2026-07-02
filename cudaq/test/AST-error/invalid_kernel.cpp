@@ -12,42 +12,48 @@
 #include <set>
 
 struct InvalidKernel1 {
-  void operator()(void *m) __qpu__ { // expected-error{{kernel argument type not supported}}
+  // expected-error@+1{{kernel argument type not supported}}
+  void operator()(void *m) __qpu__ {
     cudaq::qvector reg(4);
     x(reg);
   }
 };
 
 struct InvalidKernel2 {
-  void operator()(int *m) __qpu__ { // expected-error{{kernel argument type not supported}}
+  // expected-error@+1{{kernel argument type not supported}}
+  void operator()(int *m) __qpu__ {
     cudaq::qvector reg(4);
     x(reg);
   }
 };
 
 struct InvalidKernel2_1 {
-  void operator()(int &m) __qpu__ { // expected-error{{kernel argument type not supported}}
+  // expected-error@+1{{kernel argument type not supported}}
+  void operator()(int &m) __qpu__ {
     cudaq::qvector reg(4);
     x(reg);
   }
 };
 
 struct InvalidKernel2_2 {
-  void operator()(const int &m) __qpu__ { // expected-error{{kernel argument type not supported}}
+  // expected-error@+1{{kernel argument type not supported}}
+  void operator()(const int &m) __qpu__ {
     cudaq::qvector reg(4);
     x(reg);
   }
 };
 
 struct InvalidKernel3_1 {
-  void operator()(const std::set<int> &m) __qpu__ { // expected-error{{kernel argument type not supported}}
+  // expected-error@+1{{kernel argument type not supported}}
+  void operator()(const std::set<int> &m) __qpu__ {
     cudaq::qvector reg(4);
     x(reg);
   }
 };
 
 struct InvalidKernel4 {
-   std::vector<int*> operator()() __qpu__ { // expected-error{{kernel result type not supported}}
+  // expected-error@+1{{kernel result type not supported}}
+  std::vector<int *> operator()() __qpu__ {
     cudaq::qvector reg(4);
     x(reg);
     return {};

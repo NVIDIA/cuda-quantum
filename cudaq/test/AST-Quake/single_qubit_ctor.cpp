@@ -10,6 +10,7 @@
 
 #include <cudaq.h>
 
+// clang-format off
 // CHECK-LABEL: module attributes {
 // CHECK-SAME:  quake.mangled_name_map = {__nvqpp__mlirgen__super{{.*}} = "_ZN5superclEd"}
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__super
@@ -31,6 +32,7 @@
 // CHECK:     return %[[VAL_6]] : i1
 // CHECK:   }
 // CHECK: }
+// clang-format on
 
 struct super {
   bool operator()(double inputPi) __qpu__ {

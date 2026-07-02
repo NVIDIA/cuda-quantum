@@ -18,6 +18,7 @@ __qpu__ void foo() {
   auto result = mz(qubits);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo._Z3foov() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
@@ -31,3 +32,4 @@ __qpu__ void foo() {
 // CHECK:           quake.mz %[[VAL_3]] name "result%{{.*}}" : (!quake.ref) -> !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+// clang-format on

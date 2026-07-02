@@ -28,6 +28,7 @@ int main() {
   k(bell);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0
 // CHECK-SAME:        (%[[VAL_0:.*]]: !quake.veq<?>{{.*}}) attributes
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
@@ -45,4 +46,4 @@ int main() {
 // CHECK:           call @__nvqpp__mlirgen__Z4mainE3$_0(%[[VAL_4]]) : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on
