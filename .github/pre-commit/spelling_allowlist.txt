@@ -434,6 +434,7 @@ uccsd
 unary
 uncomputation
 uncompute
+undecomposed
 unitaries
 unitarity
 unitary
