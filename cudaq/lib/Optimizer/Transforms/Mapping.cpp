@@ -371,11 +371,18 @@ computeVirtualComponents(const VirtualInteractionGraph &interactions,
       });
 }
 
-/// On a disconnected device the plain greedy seed can strand an interacting
-/// group across islands (un-routable). This offers an alternative that keeps
-/// each group inside one island via best-fit-decreasing bin-packing;
-/// `std::nullopt` means no such packing was found, so `auto` falls back to its
-/// other seeds.
+/// Seed that keeps each interacting group of virtual qubits inside a single
+/// device island. On a disconnected device the plain greedy seed can strand a
+/// group across islands, leaving an un-routable two-qubit gate. This seed
+/// avoids that.
+///
+/// The placement rule is best-fit decreasing, a standard bin-packing
+/// heuristic: virtual qubit interaction groups (the "items") are taken
+/// largest-first and each is placed in the island of physical qubits (the
+/// "bin") with the smallest remaining capacity that still fits, whose capacity
+/// then shrinks. A group that fits nowhere yields `std::nullopt`. It is not a
+/// completeness guarantee. It can return `std::nullopt` even when some valid
+/// packing exists, in which case `auto` falls back to its other seeds.
 std::optional<SmallVector<unsigned>>
 buildBestFitComponentSeed(unsigned numV, const cudaq::Device &device,
                           const VirtualInteractionGraph &interactions,
@@ -387,18 +394,17 @@ buildBestFitComponentSeed(unsigned numV, const cudaq::Device &device,
   // seed wins and would alter established placement behavior.
   if (deviceComponents.size() <= 1)
     return std::nullopt;
-
   SmallVector<SmallVector<unsigned>> virtualComponents =
       computeVirtualComponents(interactions, userVirtualQubits);
   if (virtualComponents.empty())
     return std::nullopt;
-
+  // Pack the largest, hardest-to-fit groups first. Ties break on lowest index
+  // so the seed is deterministic.
   llvm::sort(virtualComponents, [](const auto &lhs, const auto &rhs) {
     if (lhs.size() != rhs.size())
       return lhs.size() > rhs.size();
     return lhs.front() < rhs.front();
   });
-
   // A hot interaction component can make the normal greedy seed consume the
   // only region large enough for a later component. Best-fit decreasing gives
   // `auto` a deterministic alternative without changing the greedy strategy.
@@ -407,33 +413,42 @@ buildBestFitComponentSeed(unsigned numV, const cudaq::Device &device,
   const unsigned unassignedDeviceQubit = device.getNumQubits();
   SmallVector<unsigned> seed(numV, unassignedDeviceQubit);
   SmallVector<bool> usedDeviceQubits(device.getNumQubits(), false);
-
   for (const auto &virtualComponent : virtualComponents) {
+    // `availableDeviceQubits.size()` is an out-of-range sentinel meaning "no
+    // candidate found yet".
     unsigned bestComponent = availableDeviceQubits.size();
     for (unsigned componentId = 0; componentId < availableDeviceQubits.size();
          ++componentId) {
       const auto &deviceQubits = availableDeviceQubits[componentId];
       if (deviceQubits.size() < virtualComponent.size())
         continue;
+      // Among islands large enough, keep the smallest so that larger
+      // islands stay free for larger groups. Ties break on lowest front index
+      // for determinism. Clause 1 matches the sentinel first, so the `||`
+      // short-circuits before the subscripts below can index with it.
       if (bestComponent == availableDeviceQubits.size() ||
           deviceQubits.size() < availableDeviceQubits[bestComponent].size() ||
           (deviceQubits.size() == availableDeviceQubits[bestComponent].size() &&
            deviceQubits.front() < availableDeviceQubits[bestComponent].front()))
         bestComponent = componentId;
     }
+    // A surviving sentinel means no island was large enough for this group.
     if (bestComponent == availableDeviceQubits.size())
       return std::nullopt;
-
     auto &deviceQubits = availableDeviceQubits[bestComponent];
     for (auto &&[index, virtualQubit] : llvm::enumerate(virtualComponent)) {
       unsigned deviceQubit = deviceQubits[index];
       seed[virtualQubit] = deviceQubit;
       usedDeviceQubits[deviceQubit] = true;
     }
+    // Shrink this island's remaining capacity so the next (smaller) group
+    // best-fits against what is left.
     deviceQubits.erase(deviceQubits.begin(),
                        deviceQubits.begin() + virtualComponent.size());
   }
-
+  // Idle and single-qubit-only virtuals took part in no interaction group, so
+  // they were never placed above. Give each a leftover device qubit so every
+  // virtual qubit ends up mapped.
   SmallVector<unsigned> remainingDeviceQubits;
   for (unsigned p = 0; p < device.getNumQubits(); ++p)
     if (!usedDeviceQubits[p])
@@ -442,7 +457,6 @@ buildBestFitComponentSeed(unsigned numV, const cudaq::Device &device,
   for (unsigned v = 0; v < numV; ++v)
     if (seed[v] == unassignedDeviceQubit)
       seed[v] = remainingDeviceQubits[nextRemaining++];
-
   return seed;
 }
 
@@ -1939,18 +1953,17 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         buildPlacementSeeds(placementStrategy, numV, *deviceInstance,
                             interactions, userVirtualQubits);
     std::optional<std::pair<unsigned, unsigned>> identityBlockedInteraction;
-    seeds.erase(llvm::remove_if(seeds,
-                                [&](ArrayRef<unsigned> seed) {
-                                  auto blocked = findUnroutableInteraction(
-                                      seed, *deviceInstance, interactions);
-                                  if (!blocked)
-                                    return false;
-                                  if (placementStrategy ==
-                                      PlacementStrategy::Identity)
-                                    identityBlockedInteraction = blocked;
-                                  return true;
-                                }),
-                seeds.end());
+    auto shouldDiscardSeed = [&](ArrayRef<unsigned> seed) {
+      auto blocked =
+          findUnroutableInteraction(seed, *deviceInstance, interactions);
+      if (!blocked)
+        return false;
+      if (placementStrategy == PlacementStrategy::Identity &&
+          !identityBlockedInteraction)
+        identityBlockedInteraction = blocked;
+      return true;
+    };
+    llvm::erase_if(seeds, shouldDiscardSeed);
     if (seeds.empty()) {
       if (identityBlockedInteraction) {
         func.emitError("cannot place two-qubit interaction between virtual "
