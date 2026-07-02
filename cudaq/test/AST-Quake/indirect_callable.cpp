@@ -12,15 +12,16 @@
 
 __qpu__ int rando_qernel(double);
 
-__qpu__ void superstar_qernel(const cudaq::qkernel<int(double)>& bob, double dub) {
-   auto size = bob(dub);
-   cudaq::qvector q(size);
-   mz(q);
+__qpu__ void superstar_qernel(const cudaq::qkernel<int(double)> &bob,
+                              double dub) {
+  auto size = bob(dub);
+  cudaq::qvector q(size);
+  mz(q);
 }
 
 void meanwhile_on_safari() {
-   cudaq::qkernel<int(double)> tiger{rando_qernel};
-   superstar_qernel(tiger, 11.0);
+  cudaq::qkernel<int(double)> tiger{rando_qernel};
+  superstar_qernel(tiger, 11.0);
 }
 
 // clang-format off

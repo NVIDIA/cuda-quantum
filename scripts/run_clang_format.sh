@@ -35,7 +35,16 @@ clang_format_executable=${clang_format_executable:-clang-format}
 cd $(git rev-parse --show-toplevel)
 
 # Run Clang Format
-git ls-files -- '*.cpp' '*.h' ':!:tpls/*' ':!:test' ':!:targettests' | xargs $clang_format_executable -i
+# Exclusions are read dynamically from the clang-format hook in .pre-commit-config.yaml
+mapfile -t excludes < <(python3 -c "
+import re
+text = open('.pre-commit-config.yaml').read()
+m = re.search(r\"id: clang-format.*?exclude: '\\^\\((.+?)\\)/'\", text, re.DOTALL)
+if m:
+    for d in m.group(1).split('|'):
+        print(':!:' + d + '/*')
+")
+git ls-files -- '*.cpp' '*.h' '*.hpp' "${excludes[@]}" | xargs $clang_format_executable -i
 
 # Take us back to where we were
 cd -

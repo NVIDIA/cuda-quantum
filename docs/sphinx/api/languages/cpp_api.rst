@@ -339,6 +339,10 @@ Algorithms
 .. doxygenclass:: cudaq::gradients::forward_difference
     :members:
 
+.. doxygenstruct:: cudaq::dem_options
+    :members:
+
+.. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, const cudaq::noise_model *noise, const cudaq::dem_options &options, Args &&...args)
 .. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, const cudaq::noise_model *noise, Args &&...args)
 .. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, Args &&...args)
 

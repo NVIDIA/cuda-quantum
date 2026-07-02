@@ -74,3 +74,45 @@ CUDAQ_TEST(MeasureCountsTester, checkMeasureCountsSerialize) {
 
   EXPECT_TRUE(mm == mc);
 }
+
+CUDAQ_TEST(MeasureCountsTester, checkDeserializeRejectsMalformed) {
+  {
+    std::vector<std::size_t> data = {255};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {1, static_cast<std::size_t>('a')};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {0, 255};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {0, 1, /*value*/ 1,
+                                     /*length*/ static_cast<std::size_t>(-1),
+                                     /*count*/ 1};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {255};
+    ExecutionResult rr;
+    EXPECT_ANY_THROW(rr.deserialize(data));
+  }
+}
+
+CUDAQ_TEST(MeasureCountsTester, checkDeserializeAcceptsValid) {
+  ExecutionResult r{CountsDictionary{{"01", 400}, {"11", 600}}};
+  auto data = r.serialize();
+  ExecutionResult rr;
+  EXPECT_NO_THROW(rr.deserialize(data));
+  EXPECT_TRUE(rr == r);
+}

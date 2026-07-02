@@ -6,5 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && echo skipping
+// clang-format on
 #include "../execution/conditional_run.cpp"

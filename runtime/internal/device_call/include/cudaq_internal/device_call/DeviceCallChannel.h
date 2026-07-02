@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/Registry.h"
-#include "cudaq_internal/device_call/DeviceCallTypes.h"
+#include "cudaq/realtime/device_call_service.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -46,7 +46,7 @@ struct DeviceCallChannelCreateArgs {
   // Starts the realtime dispatch loop for local shared-memory channels.
   cudaq_dispatch_launch_fn_t launchFn = nullptr;
   // Optional service-provided synchronization hook for dispatch shutdown.
-  DeviceCallDispatchSynchronizeFn synchronizeFn = nullptr;
+  cudaq::realtime::DeviceCallDispatchSynchronizeFn synchronizeFn = nullptr;
   // Pinned host mailbox used by realtime host-dispatch graph launch. The host
   // dispatcher fills `mailbox[worker_id]` with a GraphIOContext device pointer
   // before launching the corresponding graph handler; the graph kernel reads

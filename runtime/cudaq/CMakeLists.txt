@@ -65,8 +65,8 @@ if (CUDA_FOUND)
       dl
       cudaq-operator
       cudaq-common
-      cudaq-nlopt
-      cudaq-ensmallen
+      $<$<BOOL:${CUDAQ_ENABLE_NLOPT}>:cudaq-nlopt>
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq-ensmallen>
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE
@@ -92,8 +92,8 @@ else()
       dl
       cudaq-operator
       cudaq-common
-      cudaq-nlopt
-      cudaq-ensmallen
+      $<$<BOOL:${CUDAQ_ENABLE_NLOPT}>:cudaq-nlopt>
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq-ensmallen>
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE

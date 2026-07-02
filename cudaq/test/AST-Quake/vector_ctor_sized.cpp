@@ -14,15 +14,14 @@
 
 __qpu__ void test() {
   cudaq::qubit q;
-  std::vector<double> angle(2);   
+  std::vector<double> angle(2);
   angle[0] = M_PI_2;
   angle[1] = M_PI_4;
   ry(angle[0], q);
   ry(angle[1], q);
-
 }
 
-
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test._Z4testv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 0.78539816339744828 : f64
 // CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1.5707963267948966 : f64
@@ -40,3 +39,4 @@ __qpu__ void test() {
 // CHECK:           quake.ry (%[[VAL_13]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

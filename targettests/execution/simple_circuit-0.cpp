@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ -v %s -o %t --target quantinuum --emulate && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
@@ -27,4 +29,4 @@ int main() {
   return 0;
 }
 
-//CHECK-NOT: 00
+// CHECK-NOT: 00

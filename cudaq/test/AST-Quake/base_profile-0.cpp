@@ -23,7 +23,8 @@ struct kernel {
 
     // This scope block is intentionally blank and is used for robustness
     // testing.
-    {}
+    {
+    }
 
     auto b0 = mz(q[0]);
     auto b1 = mz(q[1]);
