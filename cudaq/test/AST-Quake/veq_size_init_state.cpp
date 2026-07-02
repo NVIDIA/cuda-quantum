@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize --cc-loop-normalize --cc-loop-unroll | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
@@ -19,6 +21,7 @@ struct kernel {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel() attributes
 // CHECK-DAG:       %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
 // CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
@@ -57,3 +60,4 @@ struct kernel {
 // CHECK:           %[[VAL_23:.*]] = quake.mz %[[VAL_14]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on

@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --unwind-lowering --canonicalize | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
@@ -19,29 +21,30 @@ void g3();
 void g4();
 
 struct C {
-   	void operator()() __qpu__ {
-    	cudaq::qvector r(2);
-    	g1();
-      	for (int i = 0; i < 10; ++i) {
-	 		if (f1(i)) {
-	    		cudaq::qubit q;
-	    		x<cudaq::ctrl>(q,r[0]);
-	    		break;
-	 		}
-	 		x<cudaq::ctrl>(r[0],r[1]);
-	 		g2();
-	 		if (f2(i)) {
-	    		y(r[1]);
-	    		continue;
-	 		}
-	 		g3();
-	 		z(r);
-      	}
-      	g4();
-      	mz(r);
-   	}
+  void operator()() __qpu__ {
+    cudaq::qvector r(2);
+    g1();
+    for (int i = 0; i < 10; ++i) {
+      if (f1(i)) {
+        cudaq::qubit q;
+        x<cudaq::ctrl>(q, r[0]);
+        break;
+      }
+      x<cudaq::ctrl>(r[0], r[1]);
+      g2();
+      if (f2(i)) {
+        y(r[1]);
+        continue;
+      }
+      g3();
+      z(r);
+    }
+    g4();
+    mz(r);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__C()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -106,31 +109,33 @@ struct C {
 // CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct D {
-   	void operator()() __qpu__ {
-      	cudaq::qvector r(2);
-      	g1();
-      	for (int i = 0; i < 10; ++i) {
-	 		if (f1(i)) {
-	    		cudaq::qubit q;
-	    		x<cudaq::ctrl>(q,r[0]);
-	    		continue;
-	 		}
-	 		x<cudaq::ctrl>(r[0],r[1]);
-	 		g2();
-	 		if (f2(i)) {
-	    		y(r[1]);
-	    		break;
-	 		}
-	 		g3();
-	 		z(r);
-      	}
-      	g4();
-      	mz(r);
-   }
+  void operator()() __qpu__ {
+    cudaq::qvector r(2);
+    g1();
+    for (int i = 0; i < 10; ++i) {
+      if (f1(i)) {
+        cudaq::qubit q;
+        x<cudaq::ctrl>(q, r[0]);
+        continue;
+      }
+      x<cudaq::ctrl>(r[0], r[1]);
+      g2();
+      if (f2(i)) {
+        y(r[1]);
+        break;
+      }
+      g3();
+      z(r);
+    }
+    g4();
+    mz(r);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__D() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -195,31 +200,33 @@ struct D {
 // CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct E {
-   void operator()() __qpu__ {
-    	cudaq::qvector r(2);
-      	g1();
-      	for (int i = 0; i < 10; ++i) {
-	 		if (f1(i)) {
-	    		cudaq::qubit q;
-	    		x<cudaq::ctrl>(q,r[0]);
-	    		return;
-	 		}
-	 		x<cudaq::ctrl>(r[0],r[1]);
-	 		g2();
-	 		if (f2(i)) {
-	    		y(r[1]);
-	    		break;
-	 		}
-	 		g3();
-	 		z(r);
-      	}
-      	g4();
-      	mz(r);
-   }
+  void operator()() __qpu__ {
+    cudaq::qvector r(2);
+    g1();
+    for (int i = 0; i < 10; ++i) {
+      if (f1(i)) {
+        cudaq::qubit q;
+        x<cudaq::ctrl>(q, r[0]);
+        return;
+      }
+      x<cudaq::ctrl>(r[0], r[1]);
+      g2();
+      if (f2(i)) {
+        y(r[1]);
+        break;
+      }
+      g3();
+      z(r);
+    }
+    g4();
+    mz(r);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__E() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -283,31 +290,33 @@ struct E {
 // CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return
+// clang-format on
 
 struct F {
-	void operator()() __qpu__ {
-      	cudaq::qvector r(2);
-      	g1();
-      	for (int i = 0; i < 10; ++i) {
-	 		if (f1(i)) {
-	    		cudaq::qubit q;
-	    		x<cudaq::ctrl>(q,r[0]);
-	    		continue;
-	 		}
-	 		x<cudaq::ctrl>(r[0],r[1]);
-	 		g2();
-	 		if (f2(i)) {
-	    		y(r[1]);
-	    		return;
-	 		}
-	 		g3();
-	 		z(r);
-      	}
-      	g4();
-      	mz(r);
-   }
+  void operator()() __qpu__ {
+    cudaq::qvector r(2);
+    g1();
+    for (int i = 0; i < 10; ++i) {
+      if (f1(i)) {
+        cudaq::qubit q;
+        x<cudaq::ctrl>(q, r[0]);
+        continue;
+      }
+      x<cudaq::ctrl>(r[0], r[1]);
+      g2();
+      if (f2(i)) {
+        y(r[1]);
+        return;
+      }
+      g3();
+      z(r);
+    }
+    g4();
+    mz(r);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__F() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -373,3 +382,4 @@ struct F {
 // CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return
+// clang-format on

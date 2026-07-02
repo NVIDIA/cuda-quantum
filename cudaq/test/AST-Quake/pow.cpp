@@ -16,9 +16,10 @@ __qpu__ float magic_func(int i, int j, float f, float g) {
   return std::pow(g, h);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_magic_func._Z10magic_funciiff(
 // CHECK:           %[[VAL_6:.*]] = math.ipowi %{{.*}}, %{{.*}} : i32
 // CHECK:           %[[VAL_16:.*]] = math.fpowi %{{.*}}, %{{.*}} : f32, i32
 // CHECK:           %[[VAL_20:.*]] = math.powf %{{.*}}, %{{.*}} : f32
 // CHECK:         }
-
+// clang-format on

@@ -15,7 +15,8 @@
 struct kernel {
 
   void operator()() __qpu__ {
-    cudaq::qvector q(std::vector<cudaq::complex>({ M_SQRT1_2, M_SQRT1_2, 0., 0.}));
+    cudaq::qvector q(
+        std::vector<cudaq::complex>({M_SQRT1_2, M_SQRT1_2, 0., 0.}));
     [[maybe_unused]] auto result = mz(q);
   }
 };

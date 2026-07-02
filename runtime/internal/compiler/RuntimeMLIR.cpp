@@ -755,12 +755,14 @@ cudaq_internal::compiler::getEntryPointName(OwningOpRef<ModuleOp> &module) {
 
 void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
   auto *ctx = pm.getContext();
-  auto enablePrintEachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+  auto printEachPass =
+      cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   auto disableThreading =
       cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  if (enablePrintEachPass || disableThreading)
+  if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading)
     ctx->disableMultithreading();
-  if (enablePrintEachPass)
+  // Enable IR printing indiscriminately. ::ArgSynthesis variant is handled in
+  // Compiler::prepareModule.
+  if (printEachPass == cudaq::PrintEachPassMode::All)
     pm.enableIRPrinting();
 }

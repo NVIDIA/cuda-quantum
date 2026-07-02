@@ -31,6 +31,7 @@ __qpu__ std::vector<bool> kernel() {
   return cudaq::to_bools(mz(q));
 }
 
+// clang-format off
 // CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel._Z6kernelv() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -104,6 +105,7 @@ __qpu__ std::vector<bool> kernel() {
 // CHECK:           quake.return_wire %[[W3]] : !quake.wire
 // CHECK:           return %[[RESULT]] : !cc.stdvec<i1>
 // CHECK:         }
+// clang-format on
 
 // The inner loop unrolls first, exposing outer-induction-variable-dependent
 // flattened indices. The same pass must then unroll the outer loop when it
@@ -118,6 +120,7 @@ __qpu__ std::vector<bool> rectangular_flattened_index() {
   return cudaq::to_bools(mz(q));
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_rectangular_flattened_index._Z27rectangular_flattened_indexv() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
@@ -153,6 +156,7 @@ __qpu__ std::vector<bool> rectangular_flattened_index() {
 // CHECK:           quake.return_wire %[[W5]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // The middle loop does not access quantum data, but it separates the inner loop
 // from the grandparent induction variable that bounds it. The outer and inner
@@ -178,6 +182,7 @@ __qpu__ std::vector<bool> grandparent_bound_separator() {
 
 // The grandparent-dependent separator case should unroll the outer and inner
 // loops while preserving the non-blocking middle loop as fixed-wire loops.
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_grandparent_bound_separator._Z27grandparent_bound_separatorv() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
 // CHECK:           %[[Q0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
@@ -214,3 +219,4 @@ __qpu__ std::vector<bool> grandparent_bound_separator() {
 // CHECK:           quake.return_wire %[[W3]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+// clang-format on
