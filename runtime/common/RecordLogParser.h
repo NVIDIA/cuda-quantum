@@ -9,12 +9,12 @@
 #pragma once
 
 #include "cudaq/utils/cudaq_utils.h"
+#include <cctype>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
 #include <limits>
 #include <optional>
 #include <stdexcept>
@@ -102,29 +102,34 @@ template <typename T>
 class FloatConverter : public TypeConverterBase<T> {
 public:
   T convert(const std::string &value) const override {
-    if (value.empty())
+    // The `<charconv>` float overloads are annotated as introduced in
+    // macOS 26.0 and are unavailable at CUDA-Q's macOS 13.0 deployment
+    // target. Use `std::stof`/`std::stod` and enforce the same
+    // "full-token, no leading whitespace" grammar via an explicit
+    // length check and an `isspace` prefix guard. `stof`/`stod` accept
+    // `inf`/`infinity`/`nan` case-insensitively; those non-finite
+    // spellings are the runtime's own output (see the `ostringstream`
+    // emitter) and must round-trip.
+    if (value.empty() ||
+        std::isspace(static_cast<unsigned char>(value.front())))
       throw std::runtime_error("Invalid floating-point value");
 
-    std::string_view input(value);
-    bool negative = false;
-    if (input.front() == '+' || input.front() == '-') {
-      negative = input.front() == '-';
-      input.remove_prefix(1);
-      if (input.empty() || input.front() == '+' || input.front() == '-')
+    try {
+      std::size_t parsedLength = 0;
+      T parsed{};
+      if constexpr (std::is_same_v<T, float>)
+        parsed = std::stof(value, &parsedLength);
+      else
+        parsed = std::stod(value, &parsedLength);
+      if (parsedLength != value.size())
         throw std::runtime_error("Invalid floating-point value");
-    }
-
-    // `from_chars` accepts `inf`/`infinity`/`nan` case-insensitively.
-    // Non-finite values are allowed on purpose: the runtime records doubles via
-    // `ostringstream`, which emits lowercase "inf"/"nan". Do not add an
-    // `isfinite()` reject here or it will drop the runtime's own output.
-    T parsed = 0;
-    const auto [end, error] =
-        std::from_chars(input.data(), input.data() + input.size(), parsed,
-                        std::chars_format::general);
-    if (error != std::errc{} || end != input.data() + input.size())
+      return parsed;
+    } catch (const std::logic_error &) {
+      // `std::invalid_argument` (no conversion) and `std::out_of_range`
+      // (overflow/underflow) both derive from `std::logic_error`; the
+      // record grammar treats them identically.
       throw std::runtime_error("Invalid floating-point value");
-    return negative ? -parsed : parsed;
+    }
   }
 };
 

@@ -526,6 +526,7 @@ CUDAQ_TEST(ParserTester, checkStrictValueValidation) {
       "OUTPUT\tDOUBLE\t1junk\tf64\n",
       "OUTPUT\tDOUBLE\t+-1\tf64\n",
       "OUTPUT\tDOUBLE\t1e99999\tf64\n",
+      "OUTPUT\tDOUBLE\t 1\tf64\n",
       "OUTPUT\tARRAY\t1junk\tarray<i32 x 1>\n",
       "OUTPUT\tARRAY\t1\tarray<i32 x 1junk>\n",
       "OUTPUT\tARRAY\t" + sizeOverflow + "\tarray<i32 x 1>\n",
