@@ -8,19 +8,19 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-
 #include <cudaq.h>
 
 struct testBoolLiteral {
   bool operator()() __qpu__ {
     cudaq::qubit q;
-    h(q);    
+    h(q);
     bool bit = false;
     bit = mz(q);
     return bit;
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__testBoolLiteral() -> i1 attributes
 // CHECK:           %[[VAL_0:.*]] = arith.constant false
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
@@ -35,4 +35,4 @@ struct testBoolLiteral {
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_2]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i1>
 // CHECK:           return %[[VAL_4]] : i1
-
+// clang-format on

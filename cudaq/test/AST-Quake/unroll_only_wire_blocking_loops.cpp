@@ -28,6 +28,7 @@ __qpu__ bool keeps_wire_compatible_loop() {
   return mz(a) ^ mz(b);
 }
 
+// clang-format off
 // CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_keeps_wire_compatible_loop
@@ -50,6 +51,7 @@ __qpu__ bool keeps_wire_compatible_loop() {
 // CHECK:           quake.return_wire
 // CHECK:           quake.return_wire
 // CHECK:           return
+// clang-format on
 
 // Loops that index quantum data by the induction variable block wire
 // conversion, so they are unrolled.
@@ -62,6 +64,7 @@ __qpu__ bool unrolls_wire_blocking_loop() {
   return mz(q[0]) ^ mz(q[1]) ^ mz(q[2]);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_unrolls_wire_blocking_loop
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       quake.alloca
@@ -86,6 +89,7 @@ __qpu__ bool unrolls_wire_blocking_loop() {
 // CHECK:           quake.return_wire
 // CHECK-NOT:       cc.loop
 // CHECK:           return
+// clang-format on
 
 // Loops over measurement data do not access quantum data, so they stay rolled.
 __qpu__ bool keeps_measurement_data_loop() {
@@ -102,6 +106,7 @@ __qpu__ bool keeps_measurement_data_loop() {
   return parity;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_keeps_measurement_data_loop
 // CHECK-NOT:       quake.alloca
 // CHECK-NOT:       quake.unwrap
@@ -140,3 +145,4 @@ __qpu__ bool keeps_measurement_data_loop() {
 // CHECK:           quake.return_wire %[[W1]] : !quake.wire
 // CHECK:           quake.return_wire %[[W2]] : !quake.wire
 // CHECK:           return %[[LOOP]]#0 : i1
+// clang-format on

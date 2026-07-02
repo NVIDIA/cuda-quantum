@@ -26,15 +26,14 @@
 #include <cstdio>
 #include <vector>
 
-extern "C" int countTrueBits(const std::vector<bool> &bits,
-                             std::uint64_t bias);
-extern "C" int countTrueMeasures(
-    const std::vector<cudaq::measure_result> &bits, std::uint64_t bias);
+extern "C" int countTrueBits(const std::vector<bool> &bits, std::uint64_t bias);
+extern "C" int countTrueMeasures(const std::vector<cudaq::measure_result> &bits,
+                                 std::uint64_t bias);
 extern "C" int sumIntVector(const std::vector<int> &values, int bias);
 extern "C" void incrementIntVector(std::vector<int> &out,
                                    const std::vector<int> &values, int delta);
 extern "C" void integerToBinaryVector(std::vector<bool> &out,
-                                       std::uint64_t value);
+                                      std::uint64_t value);
 extern "C" float sumFloatVector(const std::vector<float> &values, float bias);
 
 __qpu__ int boolVectorKernel(std::vector<bool> bits) {

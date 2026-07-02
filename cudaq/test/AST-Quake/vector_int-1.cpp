@@ -22,6 +22,7 @@ __qpu__ void touringLondon() {
   return;
 }
 
+// clang-format off
 // CHECK-LABEL:  func.func @__nvqpp__mlirgen__function_doubleDeckerBus._Z15doubleDeckerBusv() -> !cc.stdvec<i32> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i64
@@ -51,3 +52,4 @@ __qpu__ void touringLondon() {
 // CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.veq<?>[%[[VAL_10]] : i64]
 // CHECK:           return
 // CHECK:         }
+// clang-format on

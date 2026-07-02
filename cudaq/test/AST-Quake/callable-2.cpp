@@ -6,17 +6,19 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
+// clang-format on
 
 #include <cudaq.h>
 
 struct test5_callee {
   void operator()(std::function<void(cudaq::qubit &)> &&callback,
                   cudaq::qvector<> &s) __qpu__ {
-     callback(s[0]);
-     callback(s[1]);
-     callback(s[2]);
+    callback(s[0]);
+    callback(s[1]);
+    callback(s[2]);
   }
 };
 
@@ -36,6 +38,7 @@ struct test5_caller {
   }
 };
 
+// clang-format off
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__test5_callee
 // CHECK-SAME:   (%[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}})
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %
@@ -86,3 +89,4 @@ struct test5_caller {
 // LIFT: call @__nvqpp__mlirgen__test5_callable{{.*}}(%[[VAL_0]]) : (!quake.ref) -> ()
 // LIFT: return
 // LIFT: }
+// clang-format on

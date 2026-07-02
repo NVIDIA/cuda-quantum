@@ -18,6 +18,7 @@ __qpu__ void test(cudaq::qview<> a, cudaq::qview<> b) {
   }
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_uma.
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test.
@@ -51,3 +52,4 @@ __qpu__ void test(cudaq::qview<> a, cudaq::qview<> b) {
 // CHECK:             cc.continue
 // CHECK:           }
 // CHECK:           return
+// clang-format on
