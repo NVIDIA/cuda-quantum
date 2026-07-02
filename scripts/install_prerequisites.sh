@@ -59,12 +59,12 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 # Both are LGPL v3 (see https://gmplib.org/ and https://www.mpfr.org/). They
 # are built as shared libraries only and linked dynamically.
 GMP_VERSION=6.3.0
-GMP_TARBALL_URLS="https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz \
-https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz"
+GMP_TARBALL_URLS="https://ftp.gnu.org/gnu/gmp/gmp-${GMP_VERSION}.tar.xz \
+https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz"
 
 MPFR_VERSION=4.2.2
-MPFR_TARBALL_URLS="https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz \
-https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz"
+MPFR_TARBALL_URLS="https://ftp.gnu.org/gnu/mpfr/mpfr-${MPFR_VERSION}.tar.xz \
+https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz"
 
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
@@ -246,13 +246,15 @@ function retry {
 
 
 function download_first {
+  local filename="$1"; shift
   for url in "$@"; do
     echo "Downloading ${url}..."
-    if retry wget --tries=1 "${url}"; then
+    if retry wget --tries=1 -O "${filename}" "${url}"; then
       return 0
     fi
     echo "Failed to download from ${url}; trying next mirror..." >&2
   done
+  rm -f "${filename}"
   echo "Failed to download from all mirrors: $*" >&2
   return 1
 }
@@ -416,7 +418,7 @@ if [ -n "$GMP_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep gmp)" ]; 
 
     pushd "$PREREQS_BUILD_DIR"
 
-    download_first ${GMP_TARBALL_URLS}
+    download_first "gmp-${GMP_VERSION}.tar.xz" ${GMP_TARBALL_URLS}
     tar -xf "gmp-${GMP_VERSION}.tar.xz" && cd "gmp-${GMP_VERSION}"
     gmp_host_flags=""
     if [ "$(uname -m)" = "x86_64" ]; then
@@ -446,7 +448,7 @@ if [ -n "$MPFR_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep mpfr)" ]
 
     pushd "$PREREQS_BUILD_DIR"
 
-    download_first ${MPFR_TARBALL_URLS}
+    download_first "mpfr-${MPFR_VERSION}.tar.xz" ${MPFR_TARBALL_URLS}
     tar -xf "mpfr-${MPFR_VERSION}.tar.xz" && cd "mpfr-${MPFR_VERSION}"
     if [ "$(uname)" = "Darwin" ]; then
       mpfr_ldflags="-Wl,-rpath,$GMP_INSTALL_PREFIX/lib"
