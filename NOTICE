@@ -49,20 +49,20 @@ License at <https://github.com/wjakob/nanobind/blob/master/LICENSE>
 ----------------------------------------------------------------
 
 Ensmallen
-https://github.com/mlpack/ensmallen
+<https://github.com/mlpack/ensmallen>
 
 Copyright (c) 2011–2018, ensmallen contributors
 
 This software is licensed under the BSD 3-Clause License.
 The incorporated source code and its license can be found as a submodule on the CUDA-Q repository.
-https://github.com/mlpack/ensmallen/blob/master/LICENSE.txt
+<https://github.com/mlpack/ensmallen/blob/master/LICENSE.txt>
 
 ----------------------------------------------------------------
 
 Armadillo - Apache License 2.0
 <https://gitlab.com/conradsnicta/armadillo-code>
 
-Copyright 2008-2023 Conrad Sanderson (https://conradsanderson.id.au)
+Copyright 2008-2023 Conrad Sanderson (<https://conradsanderson.id.au>)
 Copyright 2008-2016 National ICT Australia (NICTA)
 Copyright 2017-2023 Data61 / CSIRO
 The incorporated source code and its license can be found as a submodule on the CUDA-Q repository.
@@ -172,6 +172,32 @@ zlib - custom license
 
 (C) 1995-2026 Jean-loup Gailly and Mark Adler
 License at <https://github.com/madler/zlib/blob/master/LICENSE>
+
+----------------------------------------------------------------
+
+GNU Multiple Precision Arithmetic Library (GMP) - GNU LGPL v3 (dual licensed GNU GPL v2)
+<https://gmplib.org/>
+
+Copyright 1991-2023 Free Software Foundation, Inc.
+GMP is used under the terms of the GNU Lesser General Public License v3.
+The unmodified GMP shared library is redistributed with CUDA-Q and is
+exclusively linked dynamically. It can be replaced with a compatible
+version by substituting the shared library file.
+Source code at <https://gmplib.org/download/gmp/>
+License at <https://gmplib.org/manual/Copying.html>
+
+----------------------------------------------------------------
+
+GNU MPFR - GNU LGPL v3 or later
+<https://www.mpfr.org/>
+
+Copyright 2000-2025 Free Software Foundation, Inc.
+MPFR is used under the terms of the GNU Lesser General Public License v3.
+The unmodified MPFR shared library is redistributed with CUDA-Q and is
+exclusively linked dynamically. It can be replaced with a compatible
+version by substituting the shared library file.
+Source code at <https://www.mpfr.org/mpfr-current/>
+License at <https://www.gnu.org/licenses/lgpl-3.0.html>
 
 ----------------------------------------------------------------
 
