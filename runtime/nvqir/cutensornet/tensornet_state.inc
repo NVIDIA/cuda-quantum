@@ -280,7 +280,8 @@ TensorNetState<ScalarType>::prepareSample(
   // limit # of pathfinding threads to 1 and can therefore cause significant
   // performance impact
   if (m_deterministic) {
-    const int32_t rndSeed = m_randomEngine();
+    const int32_t rndSeed =
+        1 + (m_randomEngine() % std::numeric_limits<int32_t>::max());
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
         m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
         &rndSeed, sizeof(rndSeed)));
@@ -373,7 +374,8 @@ TensorNetState<ScalarType>::executeSample(
       // threads. If m_deterministic is not set, there is some possibility of a
       // small deviation in sampling results from finite precision on a
       // different contraction path
-      const int32_t rndSeed = m_randomEngine();
+      const int32_t rndSeed =
+          1 + (m_randomEngine() % std::numeric_limits<int32_t>::max());
       HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
           m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
           &rndSeed, sizeof(rndSeed)));
