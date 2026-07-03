@@ -365,12 +365,12 @@ struct RoutingProblem {
 };
 
 /// A single routing decision: a gate mapped onto physical qubits, a swap
-/// inserted between them, or an if-op. The router records Gate and Swap events;
-/// the enrichment step adds If events. The emitter replays the full trace to
-/// rewrite the IR. Branch results for If events live in the block map, not
-/// here.
+/// inserted between them, an if-op, or a loop-op. The router records Gate and
+/// Swap events; the enrichment step adds If and Loop events. The emitter
+/// replays the full trace to rewrite the IR. Body results for If/Loop events
+/// live in the block map, not here.
 struct RoutingEvent {
-  enum class Kind { Gate, Swap, If };
+  enum class Kind { Gate, Swap, If, Loop };
 
   /// A gate mapped onto the physical qubits `phys`, in operand order.
   static RoutingEvent gate(mlir::Operation *op,
@@ -392,6 +392,14 @@ struct RoutingEvent {
         Kind::If, op,
         SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
   }
+  /// A loop-op. `phys` holds the physical qubit for each wire initialArg at
+  /// the point the loop is reached; body results are in the caller's block map.
+  static RoutingEvent makeLoop(mlir::Operation *op,
+                               ArrayRef<cudaq::Placement::DeviceQ> phys) {
+    return RoutingEvent{
+        Kind::Loop, op,
+        SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
+  }
 
   Kind kind;
   mlir::Operation *op;
@@ -408,6 +416,9 @@ struct RoutingResult {
   /// Computed by enrichTrace; not set on raw SABRE output.
   SmallVector<unsigned> exitLayout;
   SmallVector<RoutingEvent> trace;
+  /// Restoration SWAPs to emit before the block terminator (loop bodies only).
+  /// Contains the body's Swap events in reverse order for layout restoration.
+  SmallVector<RoutingEvent> cleanUpTrace;
   unsigned swapCount = 0;
 };
 
@@ -450,6 +461,10 @@ RoutingProblem buildRoutingProblem(
       for (auto linArg : ifOp.getLinearArgs())
         if (isa<cudaq::quake::WireType>(linArg.getType()))
           node.qubits.push_back(requireVirtualQ(wireToVirtualQ, linArg));
+    } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
+      for (auto initArg : loopOp.getInitialArgs())
+        if (isa<cudaq::quake::WireType>(initArg.getType()))
+          node.qubits.push_back(requireVirtualQ(wireToVirtualQ, initArg));
     } else {
       if (!cudaq::quake::isSupportedMappingOperation(&op))
         continue;
@@ -476,7 +491,7 @@ RoutingProblem buildRoutingProblem(
         out.push_back(it->second);
   };
   for (auto &node : problem.nodes) {
-    auto wireResults = isa<cudaq::cc::IfOp>(node.op)
+    auto wireResults = isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(node.op)
                            ? node.op->getResults()
                            : cudaq::quake::getQuantumResults(node.op);
     for (Value wire : wireResults)
@@ -725,9 +740,13 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 
-  // IfOps are opaque: pass through with their current qubit layout.
+  // IfOps and LoopOps are opaque: pass through with their current qubit layout.
   if (isa<cudaq::cc::IfOp>(node.op)) {
     result.trace.push_back(RoutingEvent::makeIf(node.op, deviceQubits));
+    return success();
+  }
+  if (isa<cudaq::cc::LoopOp>(node.op)) {
+    result.trace.push_back(RoutingEvent::makeLoop(node.op, deviceQubits));
     return success();
   }
 
@@ -1204,7 +1223,7 @@ public:
           for (auto &&[w, q] :
                llvm::zip_equal(cudaq::quake::getQuantumResults(ev.op), ev.phys))
             phyToWire[q.index] = w;
-        } else { // If
+        } else if (ev.kind == RoutingEvent::Kind::If) {
           auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
           SmallVector<Value> entryWires;
           for (auto phy : ev.phys)
@@ -1236,8 +1255,76 @@ public:
               auto vq = wireToVirtualQ.find(res)->second;
               phyToWire[thenResult.exitLayout[vq.index]] = res;
             }
+        } else { // Loop
+          auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+          auto *bodyBlock = loopOp.getDoEntryBlock();
+          // Rewire each wire initialArg to the current physical wire.
+          unsigned phyIdx = 0;
+          for (auto [i, initArg] : llvm::enumerate(loopOp.getInitialArgs())) {
+            if (!isa<cudaq::quake::WireType>(initArg.getType()))
+              continue;
+            loopOp->setOperand(i, phyToWire[ev.phys[phyIdx++].index]);
+          }
+          // Thread body block args into phyToWire and emit the body.
+          phyIdx = 0;
+          for (auto bodyArg : bodyBlock->getArguments()) {
+            if (!isa<cudaq::quake::WireType>(bodyArg.getType()))
+              continue;
+            phyToWire[ev.phys[phyIdx++].index] = bodyArg;
+          }
+          emitBlock(*bodyBlock);
+          // Update body cc.continue operands to use the restored wires.
+          auto *contOp = bodyBlock->getTerminator();
+          phyIdx = 0;
+          for (unsigned j = 0; j < loopOp.getInitialArgs().size(); ++j) {
+            if (!isa<cudaq::quake::WireType>(
+                    loopOp.getInitialArgs()[j].getType()))
+              continue;
+            contOp->setOperand(j, phyToWire[ev.phys[phyIdx++].index]);
+          }
+          // For for-loops: emit the step block and update its cc.continue.
+          if (loopOp.hasStep()) {
+            auto *stepBlock = loopOp.getStepBlock();
+            phyIdx = 0;
+            for (auto stepArg : stepBlock->getArguments()) {
+              if (!isa<cudaq::quake::WireType>(stepArg.getType()))
+                continue;
+              phyToWire[ev.phys[phyIdx++].index] = stepArg;
+            }
+            emitBlock(*stepBlock);
+            auto *stepContOp = stepBlock->getTerminator();
+            phyIdx = 0;
+            for (unsigned j = 0; j < loopOp.getInitialArgs().size(); ++j) {
+              if (!isa<cudaq::quake::WireType>(
+                      loopOp.getInitialArgs()[j].getType()))
+                continue;
+              stepContOp->setOperand(j, phyToWire[ev.phys[phyIdx++].index]);
+            }
+          }
+          // Update phyToWire with the loop results.
+          phyIdx = 0;
+          for (Value res : loopOp->getResults()) {
+            if (!isa<cudaq::quake::WireType>(res.getType()))
+              continue;
+            phyToWire[ev.phys[phyIdx++].index] = res;
+          }
         }
       }
+      // Emit restoration SWAPs (cleanUpTrace) before the block terminator.
+      if (!blkResult.cleanUpTrace.empty()) {
+        OpBuilder cleanBuilder(blk.getTerminator());
+        for (const RoutingEvent &cleanEv : blkResult.cleanUpTrace) {
+          auto q0 = cleanEv.phys[0], q1 = cleanEv.phys[1];
+          auto swap = cudaq::quake::SwapOp::create(
+              cleanBuilder, cleanBuilder.getUnknownLoc(),
+              TypeRange{wireType, wireType}, false, ValueRange{}, ValueRange{},
+              ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
+              DenseBoolArrayAttr{});
+          phyToWire[q0.index] = swap.getResult(0);
+          phyToWire[q1.index] = swap.getResult(1);
+        }
+      }
+      sortTopologically(&blk);
     };
 
     emitBlock(block);
@@ -1671,31 +1758,29 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
     SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
-    // Reject any cc::IfOp branch that contains a 2Q gate — Stage 1 only
-    // handles 1Q gates inside branches (no placement reconciliation needed).
-    auto findTwoQGateInBranch = [](cudaq::cc::IfOp ifOp) -> Operation * {
-      for (Region *region : {&ifOp.getThenRegion(), &ifOp.getElseRegion()})
-        for (Block &b : *region)
-          for (Operation &op : b)
-            if (isa<cudaq::quake::OperatorInterface>(op) &&
-                !isa<cudaq::cc::IfOp>(op) &&
-                cudaq::quake::getQuantumOperands(&op).size() > 1)
-              return &op;
-      return nullptr;
-    };
-    auto branchCheckResult = func.walk([&](cudaq::cc::IfOp ifOp) {
-      Operation *twoQGate = findTwoQGateInBranch(ifOp);
-      if (!twoQGate)
-        return WalkResult::advance();
-      if (nonComposable) {
-        twoQGate->emitOpError(
-            "mapper cannot handle 2-qubit gates inside branches");
-        signalPassFailure();
+
+    // Reject loop bodies that are not yet supported: multi-block, else
+    // regions, or break statements.
+    auto loopCheckResult = func.walk([&](cudaq::cc::LoopOp loopOp) {
+      if (!loopOp.getBodyRegion().hasOneBlock() || loopOp.hasPythonElse()) {
+        if (nonComposable) {
+          loopOp.emitOpError(
+              "mapper cannot handle loops with multi-block or else");
+          signalPassFailure();
+        }
+        return WalkResult::interrupt();
       }
-      return WalkResult::interrupt();
+      if (loopOp.hasBreakInBody()) {
+        if (nonComposable) {
+          loopOp.emitOpError("mapper cannot handle loops with break statements");
+          signalPassFailure();
+        }
+        return WalkResult::interrupt();
+      }
+      return WalkResult::advance();
     });
-    if (branchCheckResult.wasInterrupted()) {
-      LLVM_DEBUG(llvm::dbgs() << "NYI: 2-qubit gates inside branches\n");
+    if (loopCheckResult.wasInterrupted()) {
+      LLVM_DEBUG(llvm::dbgs() << "NYI: complex loop body in mapper\n");
       return;
     }
 
@@ -1802,6 +1887,41 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                   return;
               }
               for (Value res : ifOp->getResults())
+                if (isa<cudaq::quake::WireType>(res.getType()))
+                  finalQubitWire[wireToVirtualQ[res].index] = res;
+            } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
+              auto *whileBlock = loopOp.getWhileBlock();
+              auto *bodyBlock = loopOp.getDoEntryBlock();
+              // Map loop initialArgs → while block args.
+              for (auto [initArg, whileArg] : llvm::zip_equal(
+                       loopOp.getInitialArgs(), whileBlock->getArguments())) {
+                if (!isa<cudaq::quake::WireType>(initArg.getType()))
+                  continue;
+                wireToVirtualQ.insert(
+                    {whileArg, requireVirtualQ(wireToVirtualQ, initArg)});
+              }
+              // cc.condition in the while block forwards iter args to the body
+              // and to the loop exit. Map those → body block args and results.
+              auto condOp = cast<cudaq::cc::ConditionOp>(
+                  whileBlock->getTerminator());
+              for (auto [forwarded, bodyArg, loopResult] :
+                   llvm::zip_equal(condOp.getResults(),
+                                   bodyBlock->getArguments(),
+                                   loopOp->getResults())) {
+                if (!isa<cudaq::quake::WireType>(forwarded.getType()))
+                  continue;
+                auto vq = requireVirtualQ(wireToVirtualQ, forwarded);
+                wireToVirtualQ.insert({bodyArg, vq});
+                wireToVirtualQ.insert({loopResult, vq});
+              }
+              // parentOp=nullptr: cc.continue in the body is a back-edge,
+              // not a loop exit, so we don't map it to the loop results.
+              analyzeBlock(*bodyBlock, /*doCollectInteractions=*/false, nullptr);
+              if (!analysisOk)
+                return;
+              // Overwrite finalQubitWire with the loop results; the body
+              // analysis may have updated them to body-internal wire values.
+              for (Value res : loopOp->getResults())
                 if (isa<cudaq::quake::WireType>(res.getType()))
                   finalQubitWire[wireToVirtualQ[res].index] = res;
             } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
@@ -2008,7 +2128,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
             result.trace.push_back(std::move(ev));
           } else if (ev.kind == RoutingEvent::Kind::Gate) {
             result.trace.push_back(std::move(ev));
-          } else { // If
+          } else if (ev.kind == RoutingEvent::Kind::If) {
             auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
             SmallVector<SmallVector<unsigned>> branchSeeds = {
                 SmallVector<unsigned>(replayVqToPhy)};
@@ -2028,10 +2148,59 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                   minStallSwapBudget, stallSwapBudgetPerQubit);
               auto branchSel = branchSearch.run(branchSeeds, numV, numPhy);
               buildBlockResults(region->front(), std::move(branchSel.result));
+              // Populate cleanUpTrace and restore exitLayout to entry so both
+              // branches always exit with the same layout.
+              RoutingResult &branchResult = blockResults[&region->front()];
+              for (const RoutingEvent &swapEv : llvm::reverse(branchResult.trace))
+                if (swapEv.kind == RoutingEvent::Kind::Swap)
+                  branchResult.cleanUpTrace.push_back(swapEv);
+              branchResult.exitLayout = branchResult.initialLayout;
             }
             assert(!ifOp.hasElse() ||
                    blockResults[&ifOp.getThenRegion().front()].exitLayout ==
                        blockResults[&ifOp.getElseRegion().front()].exitLayout);
+            result.trace.push_back(std::move(ev));
+          } else { // Loop
+            auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+            auto *bodyBlock = loopOp.getDoEntryBlock();
+            SmallVector<Value> bodySources;
+            for (auto bodyArg : bodyBlock->getArguments())
+              if (isa<cudaq::quake::WireType>(bodyArg.getType()))
+                bodySources.push_back(bodyArg);
+            RoutingProblem bodyProblem =
+                buildRoutingProblem(*bodyBlock, bodySources, wireToVirtualQ);
+            RoutingSearchStrategy bodySearch(
+                *deviceInstance, bodyProblem,
+                searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
+                extendedLayerWeight, decayDelta, roundsDecayReset,
+                minStallSwapBudget, stallSwapBudgetPerQubit);
+            auto bodySel = bodySearch.run(
+                {SmallVector<unsigned>(replayVqToPhy)}, numV, numPhy);
+            buildBlockResults(*bodyBlock, std::move(bodySel.result));
+            RoutingResult &bodyResult = blockResults[bodyBlock];
+            for (const RoutingEvent &swapEv : llvm::reverse(bodyResult.trace))
+              if (swapEv.kind == RoutingEvent::Kind::Swap)
+                bodyResult.cleanUpTrace.push_back(swapEv);
+            // Route the step block if present (for-loop style). The step block
+            // receives wires in the restored (entry) layout, so we seed it with
+            // replayVqToPhy, the same layout used for the body.
+            if (loopOp.hasStep()) {
+              auto *stepBlock = loopOp.getStepBlock();
+              SmallVector<Value> stepSources;
+              for (auto stepArg : stepBlock->getArguments())
+                if (isa<cudaq::quake::WireType>(stepArg.getType()))
+                  stepSources.push_back(stepArg);
+              RoutingProblem stepProblem = buildRoutingProblem(
+                  *stepBlock, stepSources, wireToVirtualQ);
+              RoutingSearchStrategy stepSearch(
+                  *deviceInstance, stepProblem,
+                  searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
+                  extendedLayerWeight, decayDelta, roundsDecayReset,
+                  minStallSwapBudget, stallSwapBudgetPerQubit);
+              auto stepSel = stepSearch.run(
+                  {SmallVector<unsigned>(replayVqToPhy)}, numV, numPhy);
+              buildBlockResults(*stepBlock, std::move(stepSel.result));
+            }
             result.trace.push_back(std::move(ev));
           }
         }
