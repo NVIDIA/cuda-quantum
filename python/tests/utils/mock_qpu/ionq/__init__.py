@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
 import uuid, base64, ctypes
@@ -165,5 +166,6 @@ async def getResults(jobId: str):
 
 
 def startServer(port):
+    cudaq.set_random_seed(13)
     import uvicorn
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

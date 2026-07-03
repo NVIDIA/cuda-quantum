@@ -6,19 +6,22 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --expand-measurements --unrolling-pipeline | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
 struct C {
-   void operator()() __qpu__ {
-      cudaq::qvector r(2);
-      cudaq::qubit w;
-      auto singleQubit = mz(w);
-      auto myRegister = mz(r);
-   }
+  void operator()() __qpu__ {
+    cudaq::qvector r(2);
+    cudaq::qubit w;
+    auto singleQubit = mz(w);
+    auto myRegister = mz(r);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__C()
 // CHECK-DAG:       %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
@@ -29,4 +32,4 @@ struct C {
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] name "myRegister%[[VAL_1]]" : (!quake.ref) -> !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

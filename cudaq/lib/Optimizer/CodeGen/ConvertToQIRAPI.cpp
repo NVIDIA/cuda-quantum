@@ -1648,10 +1648,21 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
 
   // If we see a `quake.apply` operation at this point, something has gone wrong
   // and we were unable to autogenerate the function that we should be calling.
-  // So we replace the apply with a trap and the results with poison values.
+  // Reaching codegen means the kernel is fully processed, so a lingering apply
+  // is unambiguously unlowerable (e.g. its callee was only forward-declared and
+  // never supplied a body; see issue #4268). Emit a diagnostic here, then
+  // replace the apply with a trap and the results with poison values so the IR
+  // remains well formed.
   LogicalResult
   matchAndRewrite(cudaq::quake::ApplyOp apply, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    if (auto callee = apply.getCallee())
+      apply.emitError("could not generate the specialized form of kernel '")
+          << callee->getRootReference().getValue()
+          << "'; its body was not available (it may be only forward-declared)";
+    else
+      apply.emitError("could not generate the specialized form of an applied "
+                      "kernel; its body was not available");
     auto loc = apply.getLoc();
     Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
     func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,

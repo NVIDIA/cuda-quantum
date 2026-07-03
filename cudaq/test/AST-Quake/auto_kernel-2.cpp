@@ -20,6 +20,7 @@ struct ak2 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak2
 // CHECK-SAME: () -> !cc.stdvec<i1> attributes {
 // CHECK:           %[[VAL_22:.*]] = arith.constant 1 : i64
@@ -34,4 +35,4 @@ struct ak2 {
 // CHECK-NOT:   func.func {{.*}} @_ZNKSt14_Bit_referencecvbEv() -> i1
 // CHECK-LABEL: func.func private @__nvqpp_vectorCopyCtor(
 // CHECK-NOT:   func.func {{.*}} @_ZNKSt14_Bit_referencecvbEv() -> i1
-
+// clang-format on

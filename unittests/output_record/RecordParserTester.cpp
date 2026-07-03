@@ -458,6 +458,63 @@ CUDAQ_TEST(ParserTester, checkFailureCases) {
   }
 }
 
+CUDAQ_TEST(ParserTester, checkMetadataValidation) {
+  cudaq::RecordLogParser validParser;
+  EXPECT_NO_THROW(validParser.parse("METADATA\tentry_point\n"));
+
+  for (const auto &log : {"METADATA\n", "METADATA\tkey\tvalue\textra\n"}) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkNumericValidation) {
+  const std::vector<std::string> invalidLogs = {
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[99999999999]\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[abc]\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[]\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkContainerValidation) {
+  const std::vector<std::string> invalidLogs = {
+      // A scalar root cannot be followed by an implicit RESULT array.
+      "OUTPUT\tINT\t1\n"
+      "OUTPUT\tRESULT\t0\n",
+      // A scalar root cannot be followed by an explicit array.
+      "OUTPUT\tINT\t1\n"
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t9\t[0]\n",
+      // Flat and preallocated array representations cannot be mixed.
+      "OUTPUT\tARRAY\t1\n"
+      "OUTPUT\tINT\t7\ti32\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tBOOL\t1\t[0]\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkTupleLayoutValidation) {
+  const std::pair<std::size_t, std::vector<std::size_t>> layout{2, {0, 1}};
+  cudaq::RecordLogParser parser(layout);
+  const std::string log = "OUTPUT\tTUPLE\t2\ttuple<i8, i32>\n"
+                          "OUTPUT\tINT\t1\t.0\n"
+                          "OUTPUT\tINT\t9\t.1\n";
+  EXPECT_ANY_THROW(parser.parse(log));
+
+  cudaq::detail::BufferHandler buffer;
+  buffer.resizeBuffer(2);
+  EXPECT_ANY_THROW(buffer.insertIntoTuple<std::int32_t>(1, 9));
+}
+
 CUDAQ_TEST(ParserTester, checkResultType) {
   const std::string log =
       "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."

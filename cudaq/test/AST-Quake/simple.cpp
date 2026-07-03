@@ -8,7 +8,9 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
+// clang-format off
 // RUN: cudaq-quake --emit-llvm-file %s | cudaq-opt | FileCheck %s && FileCheck --check-prefix=LLVM %s < simple.ll
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -25,6 +27,7 @@ struct ghz {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -64,6 +67,7 @@ struct ghz {
 // CHECK:           %[[VAL_22:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 int main() {
   // Run the kernel in NISQ mode (i.e. run and

@@ -297,7 +297,8 @@ public:
   }
 };
 
-// Z = SS
+// Z = SS = S<adj>S<adj>
+// I = SS<adj> = S<adj>S
 class DoubleSOp : public OpRewritePattern<cudaq::quake::SOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -362,6 +363,17 @@ public:
       }
     }
 
+    if (qop.isAdj() != prev.isAdj()) {
+      // Opposite adjoints cancel. Forward the wires entering the pair to users
+      // of the second operation, then erase the first operation.
+      SmallVector<Value> replacementWires;
+      replacementWires.append(prevCtls.begin(), prevCtls.end());
+      replacementWires.append(prevTrgs.begin(), prevTrgs.end());
+      rewriter.replaceOp(qop, replacementWires);
+      rewriter.eraseOp(prev);
+      return success();
+    }
+
     // Rewrite the back-to-back S gates.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n' << prev << '\n');
     rewriter.replaceOpWithNewOp<cudaq::quake::ZOp>(
@@ -373,6 +385,8 @@ public:
 };
 
 // S = TT
+// S<adj> = T<adj>T<adj>
+// I = TT<adj> = T<adj>T
 class DoubleTOp : public OpRewritePattern<cudaq::quake::TOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -437,11 +451,22 @@ public:
       }
     }
 
+    if (qop.isAdj() != prev.isAdj()) {
+      // Opposite adjoints cancel. Forward the wires entering the pair to users
+      // of the second operation, then erase the first operation.
+      SmallVector<Value> replacementWires;
+      replacementWires.append(prevCtls.begin(), prevCtls.end());
+      replacementWires.append(prevTrgs.begin(), prevTrgs.end());
+      rewriter.replaceOp(qop, replacementWires);
+      rewriter.eraseOp(prev);
+      return success();
+    }
+
     // Rewrite the back-to-back S gates.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n' << prev << '\n');
     rewriter.replaceOpWithNewOp<cudaq::quake::SOp>(
-        qop, qop.getResultTypes(), UnitAttr{}, ValueRange{}, prevCtls, prevTrgs,
-        DenseBoolArrayAttr{});
+        qop, qop.getResultTypes(), qop.getIsAdjAttr(), ValueRange{}, prevCtls,
+        prevTrgs, DenseBoolArrayAttr{});
     rewriter.eraseOp(prev);
     return success();
   }
@@ -455,6 +480,11 @@ public:
   LogicalResult matchAndRewrite(cudaq::quake::XOp qop,
                                 PatternRewriter &rewriter) const override {
     if (qop.getNegatedQubitControls())
+      return failure();
+
+    // The uncontrolled rewrite is equal up to global phase. Under control,
+    // that phase is relative between control branches and is observable.
+    if (!qop.getControls().empty())
       return failure();
 
     auto targets = qop.getTargets();
