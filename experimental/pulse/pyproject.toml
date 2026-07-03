@@ -1,0 +1,69 @@
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.
+# All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "nanobind>=2.0",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cudaq-pulse"
+version = "0.1.0"
+description = "Pulse-level MLIR dialect and programming model for quantum control"
+authors = [{name = "NVIDIA Corporation"}]
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.7"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "hypothesis",
+    "matplotlib>=3.7",
+]
+
+[tool.scikit-build]
+cmake.build-type = "Release"
+wheel.packages = ["core/frontend/cudaq_pulse"]
+wheel.install-dir = "cudaq_pulse"
+
+[tool.scikit-build.cmake.define]
+CMAKE_PREFIX_PATH = {env = "MLIR_DIR", default = ""}
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP"]
+
+[tool.mypy]
+strict = true
+python_version = "3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+markers = [
+    "gpu: requires GPU runtime",
+    "slow: long-running tests",
+]
