@@ -279,7 +279,6 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
   if (done) {
     // if the job failed exit with an exception
-    auto jobStatus = getJobResponse["status"].get<std::string>();
     if (jobStatus != "ready") {
       CUDAQ_INFO("getJobResponse: {}", getJobResponse.dump());
       auto jobMessage = getJobResponse["message"].get<std::string>();
@@ -340,7 +339,8 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
     // are ordered accordingly. As result the bitstrings are ordered according
     // to the physical qubit numbering.
     for (std::string key : counts["measurement_keys"]) {
-      if (!key.starts_with("m_QB")) {
+      // keys must not be empty and end with a digit
+      if (key.empty() || !std::isdigit(key.back())) {
         throw std::runtime_error("Malformed measurement key received: " + key);
       }
       mxKeys[key] = i++;
