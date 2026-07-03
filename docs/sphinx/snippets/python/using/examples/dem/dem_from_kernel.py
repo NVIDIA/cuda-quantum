@@ -102,3 +102,24 @@ dem_decomposed = cudaq.dem_from_kernel(
 print(f"Raw DEM:\n{dem_raw}")
 print(f"Decomposed DEM:\n{dem_decomposed}")
 # [End Options]
+
+print()
+# [Begin Measurement Matrices]
+# Set return_measurement_matrices=True to also obtain the sparse
+# measurements-to-detectors (m2d) and measurements-to-observables (m2o)
+# matrices. The function then returns a 3-tuple instead of a plain string.
+# Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their
+# columns are indexed by measurement in chronological order.
+dem_text, m2d, m2o = cudaq.dem_from_kernel(
+    memory_experiment,
+    2,
+    noise_model=noise,
+    return_measurement_matrices=True,
+)
+# m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means
+# measurement m contributes to detector d. m2o has shape
+# `(num_observables, num_measurements)` with the same convention for observables.
+print(f"m2d shape: {m2d.shape}")
+print(f"m2o shape: {m2o.shape}")
+print(f"m2d:\n{m2d.toarray()}")
+# [End Measurement Matrices]
