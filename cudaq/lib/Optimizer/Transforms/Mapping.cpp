@@ -2011,7 +2011,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
     SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
-
     // Reject loop bodies that are not yet supported: multi-block, else
     // regions, or break statements.
     auto loopCheckResult = func.walk([&](cudaq::cc::LoopOp loopOp) {
@@ -2025,7 +2024,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
       if (loopOp.hasBreakInBody()) {
         if (nonComposable) {
-          loopOp.emitOpError("mapper cannot handle loops with break statements");
+          loopOp.emitOpError(
+              "mapper cannot handle loops with break statements");
           signalPassFailure();
         }
         return WalkResult::interrupt();
@@ -2151,12 +2151,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
               }
               // cc.condition in the while block forwards iter args to the body
               // and to the loop exit. Map those → body block args and results.
-              auto condOp = cast<cudaq::cc::ConditionOp>(
-                  whileBlock->getTerminator());
-              for (auto [forwarded, bodyArg, loopResult] :
-                   llvm::zip_equal(condOp.getResults(),
-                                   bodyBlock->getArguments(),
-                                   loopOp->getResults())) {
+              auto condOp =
+                  cast<cudaq::cc::ConditionOp>(whileBlock->getTerminator());
+              for (auto [forwarded, bodyArg, loopResult] : llvm::zip_equal(
+                       condOp.getResults(), bodyBlock->getArguments(),
+                       loopOp->getResults())) {
                 if (!isa<cudaq::quake::WireType>(forwarded.getType()))
                   continue;
                 auto vq = requireVirtualQ(wireToVirtualQ, forwarded);
@@ -2165,7 +2164,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
               }
               // parentOp=nullptr: cc.continue in the body is a back-edge,
               // not a loop exit, so we don't map it to the loop results.
-              analyzeBlock(*bodyBlock, /*doCollectInteractions=*/false, nullptr);
+              analyzeBlock(*bodyBlock, /*doCollectInteractions=*/false,
+                           nullptr);
               if (!analysisOk)
                 return;
               // Overwrite finalQubitWire with the loop results; the body
@@ -2415,7 +2415,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
               // Populate cleanUpTrace and restore exitLayout to entry so both
               // branches always exit with the same layout.
               RoutingResult &branchResult = blockResults[&region->front()];
-              for (const RoutingEvent &swapEv : llvm::reverse(branchResult.trace))
+              for (const RoutingEvent &swapEv :
+                   llvm::reverse(branchResult.trace))
                 if (swapEv.kind == RoutingEvent::Kind::Swap)
                   branchResult.cleanUpTrace.push_back(swapEv);
               branchResult.exitLayout = branchResult.initialLayout;
@@ -2454,8 +2455,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
               for (auto stepArg : stepBlock->getArguments())
                 if (isa<cudaq::quake::WireType>(stepArg.getType()))
                   stepSources.push_back(stepArg);
-              RoutingProblem stepProblem = buildRoutingProblem(
-                  *stepBlock, stepSources, wireToVirtualQ);
+              RoutingProblem stepProblem =
+                  buildRoutingProblem(*stepBlock, stepSources, wireToVirtualQ);
               RoutingSearchStrategy stepSearch(
                   *deviceInstance, stepProblem,
                   searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
