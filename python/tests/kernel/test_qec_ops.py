@@ -14,7 +14,7 @@ _DETECTOR_EMPTY = ("detector requires at least one "
 _OBSERVABLE_EMPTY = ("logical_observable requires at least one "
                      "cudaq.measure_handle argument")
 _OBS_IDX_NOT_INT = ("logical_observable requires observable_index "
-                    "to be an integer literal")
+                    "to be an integer")
 _OBS_IDX_RANGE = ("logical_observable observable_index must be in "
                   "the range [0, 2^63 - 1]")
 
@@ -86,11 +86,12 @@ def test_detectors_one_arg_rejected():
 
 
 # ---------------------------------------------------------------------------
-# `observable_index` must be a Python integer literal in `[0, 2^63 - 1]`.
+# `observable_index` accepts any runtime integer expression; literal values
+# must be in `[0, 2^63 - 1]` and non-integer values are rejected.
 # ---------------------------------------------------------------------------
 
 
-def test_observable_runtime_idx_rejected():
+def test_observable_runtime_idx_accepted():
 
     @cudaq.kernel
     def k(idx: int):
@@ -98,21 +99,45 @@ def test_observable_runtime_idx_rejected():
         handles = mz(qs)
         cudaq.logical_observable(handles, observable_index=idx)
 
-    with pytest.raises(RuntimeError) as e:
-        k.compile()
-    assert _OBS_IDX_NOT_INT in str(e.value)
+    k.compile()
+    assert "qec.observable" in str(k) and "index" in str(k)
+
+
+def test_observable_loop_idx_accepted():
+
+    @cudaq.kernel
+    def k(nobs: int):
+        qs = cudaq.qvector(4)
+        handles = mz(qs)
+        for obs in range(nobs):
+            cudaq.logical_observable(handles, observable_index=obs)
+
+    k.compile()
+    assert "qec.observable" in str(k) and "index" in str(k)
 
 
 _MODULE_OBS_IDX = 5
 
 
-def test_observable_module_var_rejected():
+def test_observable_module_var_accepted():
 
     @cudaq.kernel
     def k():
         qs = cudaq.qvector(3)
         handles = mz(qs)
         cudaq.logical_observable(handles, observable_index=_MODULE_OBS_IDX)
+
+    k.compile()
+    assert "qec.observable" in str(k) and "index" in str(k)
+
+
+def test_observable_float_idx_rejected():
+
+    @cudaq.kernel
+    def k():
+        qs = cudaq.qvector(2)
+        handles = mz(qs)
+        cudaq.logical_observable(handles, observable_index=1.5)
 
     with pytest.raises(RuntimeError) as e:
         k.compile()

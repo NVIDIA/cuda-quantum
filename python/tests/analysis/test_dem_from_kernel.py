@@ -151,6 +151,29 @@ def test_memory_experiment_two_rounds():
     assert summary == {"errors": 4, "detectors": 3, "observables": 1}
 
 
+def test_runtime_observable_index_loop():
+    """One logical observable per loop iteration via a runtime
+    `observable_index` — the natural pattern for codes with k logical
+    qubits. Each iteration must land in its own `OBSERVABLE_INCLUDE`."""
+
+    @cudaq.kernel
+    def kernel(nobs: int):
+        qs = cudaq.qvector(3)
+        for i in range(3):
+            cudaq.apply_noise(cudaq.XError, 0.05, qs[i])
+        m = mz(qs)
+        for obs in range(nobs):
+            cudaq.logical_observable(m[obs], observable_index=obs)
+
+    noise = cudaq.NoiseModel()
+    dem_text = cudaq.dem_from_kernel(kernel, 3, noise_model=noise)
+    summary = _summary(dem_text)
+    assert summary == {"errors": 3, "detectors": 0, "observables": 3}
+    # Each qubit's error flips a distinct observable.
+    for obs in range(3):
+        assert f"L{obs}" in dem_text
+
+
 def test_non_clifford_raises():
     """Non-Clifford gate triggers a Clifford-only diagnostic from Stim."""
 

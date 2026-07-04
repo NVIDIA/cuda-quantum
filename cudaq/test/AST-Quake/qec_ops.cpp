@@ -173,20 +173,20 @@ struct ObservableVectorIndexed {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVectorIndexed()
+// CHECK:           %[[VAL_C2:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
 // CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
 // CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
 // CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:           qec.observable %[[VAL_HSL]] index 2 : !cc.stdvec<!cc.measure_handle>
+// CHECK:           qec.observable %[[VAL_HSL]] index %[[VAL_C2]] : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
 
 // ---------------------------------------------------------------------------
-// `cudaq::logical_observable(vec, constexpr_var)` — index is any C++
-// compile-time constant, evaluated via Clang's AST constant evaluator.
-// Covers `constexpr` named values, simple expressions like `2 + 1`, and
-// templated non-type parameters.
+// `cudaq::logical_observable(vec, constexpr_var)` — index from a named
+// `constexpr` value. The index is an ordinary value expression; the local
+// variable is materialized and its loaded value feeds the op.
 // ---------------------------------------------------------------------------
 
 struct ObservableConstexprIndex {
@@ -200,7 +200,11 @@ struct ObservableConstexprIndex {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableConstexprIndex()
-// CHECK:           qec.observable %{{.*}} index 5 : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_C5:.*]] = arith.constant 5 : i64
+// CHECK:           %[[VAL_IA:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[VAL_C5]], %[[VAL_IA]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_IL:.*]] = cc.load %[[VAL_IA]] : !cc.ptr<i64>
+// CHECK:           qec.observable %{{.*}} index %[[VAL_IL]] : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -215,7 +219,62 @@ struct ObservableExpressionIndex {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableExpressionIndex()
-// CHECK:           qec.observable %{{.*}} index 3 : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_C3:.*]] = arith.constant 3 : i64
+// CHECK:           qec.observable %{{.*}} index %[[VAL_C3]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           return
+// CHECK:         }
+// clang-format on
+
+// ---------------------------------------------------------------------------
+// `cudaq::logical_observable(vec, idx)` — runtime index from a kernel
+// argument.
+// ---------------------------------------------------------------------------
+
+struct ObservableDynamicIndex {
+  void operator()(std::size_t idx) __qpu__ {
+    cudaq::qvector qs(3);
+    auto handles = mz(qs);
+    cudaq::logical_observable(handles, idx);
+  }
+};
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableDynamicIndex(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64)
+// CHECK:           %[[VAL_IA:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[ARG0]], %[[VAL_IA]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
+// CHECK:           %[[VAL_IL:.*]] = cc.load %[[VAL_IA]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.observable %[[VAL_HSL]] index %[[VAL_IL]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           return
+// CHECK:         }
+// clang-format on
+
+// ---------------------------------------------------------------------------
+// `cudaq::logical_observable(vec, obs)` — one observable per loop
+// iteration, the natural form for codes with k logical qubits.
+// ---------------------------------------------------------------------------
+
+struct ObservableLoopIndex {
+  void operator()(std::size_t k) __qpu__ {
+    cudaq::qvector qs(4);
+    auto handles = mz(qs);
+    for (std::size_t obs = 0; obs < k; ++obs)
+      cudaq::logical_observable(handles, obs);
+  }
+};
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableLoopIndex(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64)
+// CHECK:           cc.loop while {
+// CHECK:           } do {
+// CHECK:             %[[VAL_OBS:.*]] = cc.load %{{.*}} : !cc.ptr<i64>
+// CHECK:             %[[VAL_HSL:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:             qec.observable %[[VAL_HSL]] index %[[VAL_OBS]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:             cc.continue
+// CHECK:           } step {
 // CHECK:           return
 // CHECK:         }
 // clang-format on

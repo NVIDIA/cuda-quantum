@@ -57,6 +57,21 @@ struct threeMzMultiDetector {
   }
 };
 
+// One logical observable per loop iteration with a runtime
+// `observable_index` — the natural pattern for codes with k logical
+// qubits. Every observable spans all three measurements, but each loop
+// iteration must land in its own OBSERVABLE_INCLUDE.
+struct loopIndexedObservables {
+  void operator()(std::size_t nobs) __qpu__ {
+    cudaq::qvector qs(3);
+    for (std::size_t i = 0; i < 3; ++i)
+      cudaq::apply_noise<cudaq::x_error>(0.05, qs[i]);
+    auto m = mz(qs);
+    for (std::size_t obs = 0; obs < nobs; ++obs)
+      cudaq::logical_observable(m, obs);
+  }
+};
+
 // Multi-round memory experiment with cross-round detectors and a final
 // logical observable.
 struct memoryExperimentTwoRounds {
@@ -344,6 +359,10 @@ int main() {
   // Three noisy measurements with multi-handle detector and observable.
   runCase("THREE_MZ", threeMzMultiDetector{});
 
+  // Loop-emitted observables with a runtime index: the three identical
+  // error mechanisms merge into one, flipping observables L0, L1 and L2.
+  runCase("LOOP_OBS", loopIndexedObservables{}, std::size_t{3});
+
   // Memory experiment, two rounds, three cross-round detectors plus one
   // multi-target observable.
   runCase("MEM_EXP_2R", memoryExperimentTwoRounds{});
@@ -398,6 +417,7 @@ int main() {
 // CHECK: BUILDER errors=0 detectors=3 observables=1
 // CHECK: SINGLE_NOISY errors=1 detectors=1 observables=0
 // CHECK: THREE_MZ errors=2 detectors=1 observables=1
+// CHECK: LOOP_OBS errors=1 detectors=0 observables=3
 // CHECK: MEM_EXP_2R errors=4 detectors=3 observables=1
 // CHECK: VECTORIZED errors=4 detectors=3 observables=1
 // CHECK: CORRELATED_XX_RAW hyperedge=1 caret=0

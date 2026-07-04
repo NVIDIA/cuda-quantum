@@ -52,17 +52,21 @@ def QEC_DetectorsOp : QECOp<"pair_detectors"> {
   }];
 }
 
-def QEC_ObservableOp : QECOp<"observable"> {
+def QEC_ObservableOp : QECOp<"observable", [AttrSizedOperandSegments]> {
   let summary = "Declare a logical observable over measurement results.";
   let description = [{
     Declares a logical observable as a binary sum of measurement results.
     Operands may be individual `!cc.measure_handle` values or a
-    `!cc.stdvec<!cc.measure_handle>` collection.
+    `!cc.stdvec<!cc.measure_handle>` collection. The optional `i64`
+    `observableIndex` operand selects which logical observable the
+    measurements contribute to; when omitted, observable 0 is used. The
+    index may be any runtime value (e.g. a loop induction variable); it is
+    consumed when the kernel executes.
   }];
   let arguments = (ins
     Variadic<AnyTypeOf<[cc_MeasureHandleType,
                         StdvecOf<[cc_MeasureHandleType]>]>>:$measurements,
-    DefaultValuedOptionalAttr<I64Attr, "0">:$observableIndex
+    Optional<I64>:$observableIndex
   );
   let assemblyFormat = [{
     $measurements (`index` $observableIndex^)? `:` type($measurements)

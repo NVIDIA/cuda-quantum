@@ -1290,7 +1290,7 @@ class PyKernel(object):
                 observable_index, bool):
             emitFatalError(
                 "kernel.logical_observable requires observable_index "
-                "to be an integer literal")
+                "to be an integer")
         if observable_index < 0 or observable_index > (1 << 63) - 1:
             emitFatalError(
                 "kernel.logical_observable observable_index must be in "
@@ -1300,10 +1300,11 @@ class PyKernel(object):
                 self.__qecOperandValue(m, "logical_observable")
                 for m in measurements
             ]
-            # Skip the attribute at the default 0 so the printed IR omits
-            # the optional `index 0` literal at the spec shape.
-            idxAttr = None if observable_index == 0 else observable_index
-            qec.ObservableOp(values, observableIndex=idxAttr)
+            # Skip the operand at the default 0 so the printed IR omits
+            # the optional `index` clause at the spec shape.
+            idxValue = None if observable_index == 0 else self.getConstantInt(
+                observable_index)
+            qec.ObservableOp(values, observableIndex=idxValue)
 
     def detectors(self, prev, curr):
         """Define N detectors by pairing two measurement vectors

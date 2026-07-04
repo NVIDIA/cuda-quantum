@@ -2417,8 +2417,9 @@ struct ObservableOpConversion
         getQIRResultPtrType(getTypeConverter(), rewriter.getContext());
     auto [buf, count] = packMeasurementHandles(loc, rewriter, resultPtrTy,
                                                adaptor.getMeasurements());
-    Value obsIdx = arith::ConstantIntOp::create(rewriter, loc,
-                                                op.getObservableIndex(), 64);
+    Value obsIdx = adaptor.getObservableIndex();
+    if (!obsIdx)
+      obsIdx = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
     rewriter.replaceOpWithNewOp<func::CallOp>(op, TypeRange{},
                                               cudaq::opt::QIRLogicalObservable,
                                               ValueRange{buf, count, obsIdx});

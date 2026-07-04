@@ -2718,29 +2718,30 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "logical_observable" && inCudaqDirect) {
-      std::int64_t obsIndex = 0;
+      Value obsIndex;
       const bool hasIndexParam =
           func->getNumParams() == 2 &&
           func->getParamDecl(1)->getType()->isIntegerType();
       if (hasIndexParam) {
+        // The index is a runtime `i64` operand. When it happens to be a
+        // compile-time constant, validate the range up front; otherwise it
+        // is checked when the kernel executes.
         const clang::Expr *idxExpr = x->getArg(1);
-        auto evaluated = idxExpr->getIntegerConstantExpr(*astContext);
-        if (!evaluated) {
-          reportClangError(
-              x, mangler,
-              "`cudaq::logical_observable` requires a compile-time constant "
-              "`observable_index`");
-          return false;
+        if (auto evaluated = idxExpr->getIntegerConstantExpr(*astContext)) {
+          if ((evaluated->isSigned() && evaluated->isNegative()) ||
+              evaluated->getActiveBits() > 63) {
+            reportClangError(x, mangler,
+                             "`cudaq::logical_observable` `observable_index` "
+                             "must be in the range [0, 2^63 - 1]");
+            return false;
+          }
         }
-        if ((evaluated->isSigned() && evaluated->isNegative()) ||
-            evaluated->getActiveBits() > 63) {
-          reportClangError(x, mangler,
-                           "`cudaq::logical_observable` `observable_index` "
-                           "must be in the range [0, 2^63 - 1]");
-          return false;
-        }
-        obsIndex = evaluated->getSExtValue();
+        obsIndex = args.back();
         args.pop_back();
+        if (!obsIndex.getType().isInteger(64))
+          obsIndex = cudaq::cc::CastOp::create(builder, loc,
+                                               builder.getI64Type(), obsIndex,
+                                               cudaq::cc::CastOpMode::Unsigned);
       }
 
       SmallVector<Value> measurements;
@@ -2750,11 +2751,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         measurements.push_back(loadHandleVectorIfPointer(builder, loc, v));
       }
 
-      // Skip the `observableIndex` attribute for the default 0 so the
-      // printed IR matches the spec shape (no `index 0` literal).
-      auto idxAttr =
-          (obsIndex == 0) ? IntegerAttr{} : builder.getI64IntegerAttr(obsIndex);
-      qec::ObservableOp::create(builder, loc, measurements, idxAttr);
+      qec::ObservableOp::create(builder, loc, measurements, obsIndex);
       return true;
     }
 

@@ -613,6 +613,7 @@ void detector(MeasArgs &&...ms) {
 /// with `k` logical qubits should pair a single
 /// `std::vector<cudaq::measure_result>` with an explicit `observable_index`
 /// for each observable `0..k-1` (see the `(vector, std::size_t)` overload).
+/// The index may be any runtime value (e.g. a loop induction variable).
 template <typename... MeasArgs>
   requires(sizeof...(MeasArgs) >= 1) &&
           (detail::any_measure_result_or_vec<MeasArgs> && ...)
