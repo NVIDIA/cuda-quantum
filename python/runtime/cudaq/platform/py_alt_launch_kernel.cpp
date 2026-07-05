@@ -55,6 +55,7 @@
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <optional>
 
 using namespace mlir;
 
@@ -1276,7 +1277,22 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                    "default-constructed (uninstalled) module.")
       .def_prop_ro("is_fully_specialized",
                    &cudaq::CompiledModule::isFullySpecialized,
-                   "Whether all arguments have been specialized.");
+                   "Whether all arguments have been specialized.")
+      .def_prop_ro(
+          "mlir_module",
+          [](const cudaq::CompiledModule &cm) -> std::optional<MlirModule> {
+            auto mlirArt = cm.getMlir();
+            if (!mlirArt)
+              return std::nullopt;
+            auto moduleOp =
+                cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+                    *mlirArt);
+            return wrap(moduleOp);
+          },
+          "The MLIR module for this compiled kernel.")
+      .def("__repr__", [](const cudaq::CompiledModule &cm) {
+        return "CompiledModule(name=\"" + cm.getName() + "\")";
+      });
 
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");

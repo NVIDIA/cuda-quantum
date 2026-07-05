@@ -11,6 +11,7 @@
 #include "common/RuntimeTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform/qpu.h"
 #include <filesystem>
 #include <map>
 #include <string>
@@ -105,6 +106,9 @@ public:
   /// @brief Set the current target.
   void setTarget(const std::string &targetName,
                  std::map<std::string, std::string> extraConfig = {});
+
+  /// @brief Get the (unique) QPU for the current target.
+  cudaq::QPU &getTargetQPU();
 
   /// @brief Reset the target back to the default.
   void resetTarget();
