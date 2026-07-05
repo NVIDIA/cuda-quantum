@@ -18,9 +18,6 @@
 using atomic_int_sys = cuda::std::atomic<int>;
 using atomic_uint64_sys = cuda::std::atomic<uint64_t>;
 
-static inline atomic_int_sys *as_atomic_int(void *p) {
-  return static_cast<atomic_int_sys *>(p);
-}
 static inline atomic_int_sys *as_atomic_int(volatile int *p) {
   // `const_cast` drops the flag's `volatile` qualifier (`reinterpret_cast`
   // can't cast away cv-qualifiers) so it can be written as a plain atomic.
