@@ -47,6 +47,18 @@ add_cudaq_unittest("AnalysisPassUnitTests" "analysis-passes"
 
 create_cudaq_unittest_check_target("AnalysisPassUnitTests" "analysis-passes")
 
+add_cudaq_unittest("DeviceUnitTests" "device-unit-tests"
+    SOURCES
+        DeviceTest.cpp
+    INCLUDES
+    LINKED_LIBS
+        MLIRIR
+    COMPILE_OPTS
+      -fno-rtti
+)
+
+create_cudaq_unittest_check_target("DeviceUnitTests" "device-unit-tests")
+
 add_cudaq_unittest("test_quake_synth" "quake-synth"
     SOURCES
         QuakeSynthTester.cpp

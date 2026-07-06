@@ -44,7 +44,7 @@ target_include_directories(hsb_bridge_cpu PRIVATE
 
 target_link_libraries(hsb_bridge_cpu PRIVATE
   cudaq-realtime-cpu-transport     # CpuRoceTransceiver + C wrapper
-  cudaq-realtime-host-dispatch     # cudaq_host_dispatcher_loop (HOST_CALL path)
+  cudaq-realtime-host-dispatch     # cudaq_host_ring_dispatch_loop (HOST_CALL path)
   Threads::Threads
 )
 

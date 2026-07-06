@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Device.h"
@@ -19,6 +20,7 @@
 #include "llvm/Support/ScopedPrinter.h"
 #include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/Diagnostics.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MAPPINGFUNC
@@ -137,8 +139,13 @@ private:
     distanceSum.assign(n, 0);
     physDegree.assign(n, 0);
     for (unsigned p = 0; p < n; ++p) {
-      for (unsigned q = 0; q < n; ++q)
-        distanceSum[p] += device.getDistance(Qubit(p), Qubit(q));
+      for (unsigned q = 0; q < n; ++q) {
+        unsigned distance = device.getDistance(Qubit(p), Qubit(q));
+        // Any finite shortest path has fewer than `n` edges, so `n` keeps
+        // unreachable qubits less central without risking sentinel overflow.
+        distanceSum[p] +=
+            distance == cudaq::Device::unreachableDistance ? n : distance;
+      }
       physDegree[p] =
           static_cast<unsigned>(device.getNeighbours(Qubit(p)).size());
     }
@@ -234,10 +241,19 @@ private:
     unsigned bestCost = 0;
     for (unsigned p : freePhysicals) {
       unsigned cost = 0;
+      bool reachable = true;
       for (const auto &edge : interactions.neighbors(v))
-        if (placedVirtual[edge.first])
-          cost += edge.second *
-                  device.getDistance(Qubit(p), Qubit(vrToPhy[edge.first]));
+        if (placedVirtual[edge.first]) {
+          unsigned distance =
+              device.getDistance(Qubit(p), Qubit(vrToPhy[edge.first]));
+          if (distance == cudaq::Device::unreachableDistance) {
+            reachable = false;
+            break;
+          }
+          cost += edge.second * distance;
+        }
+      if (!reachable)
+        continue;
       bool better = bestPhy == n || cost < bestCost ||
                     (cost == bestCost && isMoreCentralPhysical(p, bestPhy));
       if (better) {
@@ -245,7 +261,10 @@ private:
         bestCost = cost;
       }
     }
-    return bestPhy;
+    // The greedy prefix may exhaust the device component containing `v`'s
+    // placed neighbors. Return a complete (possibly unroutable) seed so the
+    // later filter can discard it in favor of another candidate.
+    return bestPhy == n ? bestFreePhysical() : bestPhy;
   }
 
   /// Map virtual `v` onto physical `p`, marking `v` placed and `p` taken. The
@@ -287,13 +306,176 @@ private:
   SmallVector<unsigned> unplacedUserVirtuals;
 };
 
+/// One generic flood-fill so the device graph and the virtual interaction
+/// graph are decomposed by the same code path instead of two near-copies.
+/// BFS connected-component decomposition over a graph of `n` nodes.
+/// `isActive(u)` returns false to exclude node `u` from the decomposition.
+/// `forNeighbors(u, visit)` calls `visit(v)` for each neighbor `v` of `u`.
+/// Returns sorted components in ascending node-index order.
+template <typename IsActive, typename ForNeighbors>
+static SmallVector<SmallVector<unsigned>>
+computeComponents(unsigned n, IsActive isActive, ForNeighbors forNeighbors) {
+  SmallVector<SmallVector<unsigned>> components;
+  SmallVector<bool> visited(n, false);
+  for (unsigned start = 0; start < n; ++start) {
+    if (visited[start] || !isActive(start))
+      continue;
+    SmallVector<unsigned> component;
+    SmallVector<unsigned> worklist{start};
+    visited[start] = true;
+    for (std::size_t cursor = 0; cursor < worklist.size(); ++cursor) {
+      unsigned current = worklist[cursor];
+      component.push_back(current);
+      forNeighbors(current, [&](unsigned next) {
+        if (visited[next] || !isActive(next))
+          return;
+        visited[next] = true;
+        worklist.push_back(next);
+      });
+    }
+    llvm::sort(component);
+    components.push_back(std::move(component));
+  }
+  return components;
+}
+
+/// Physical islands of mutually reachable qubits. A two-qubit gate can never be
+/// routed (even with swaps) across different islands, so placement and
+/// rejection both reason in terms of these.
+SmallVector<SmallVector<unsigned>>
+computeDeviceComponents(const cudaq::Device &device) {
+  using Qubit = cudaq::Device::Qubit;
+  const unsigned n = device.getNumQubits();
+  return computeComponents(
+      n, [](unsigned) { return true; },
+      [&](unsigned current, auto visit) {
+        for (auto neighbor : device.getNeighbours(Qubit(current)))
+          visit(neighbor.index);
+      });
+}
+
+/// Groups of qubits that must be co-located because they interact, directly or
+/// transitively. Idle and single-qubit-only qubits are excluded: they add no
+/// placement constraint and must not consume island capacity.
+SmallVector<SmallVector<unsigned>>
+computeVirtualComponents(const VirtualInteractionGraph &interactions,
+                         ArrayRef<bool> userVirtualQubits) {
+  const unsigned n = userVirtualQubits.size();
+  return computeComponents(
+      n,
+      [&](unsigned u) {
+        return userVirtualQubits[u] && interactions.weightedDegree(u) != 0;
+      },
+      [&](unsigned current, auto visit) {
+        for (const auto &edge : interactions.neighbors(current))
+          visit(edge.first);
+      });
+}
+
+/// Seed that keeps each interacting group of virtual qubits inside a single
+/// device island. On a disconnected device the plain greedy seed can strand a
+/// group across islands, leaving an un-routable two-qubit gate. This seed
+/// avoids that.
+///
+/// The placement rule is best-fit decreasing, a standard bin-packing
+/// heuristic: virtual qubit interaction groups (the "items") are taken
+/// largest-first and each is placed in the island of physical qubits (the
+/// "bin") with the smallest remaining capacity that still fits, whose capacity
+/// then shrinks. A group that fits nowhere yields `std::nullopt`. It is not a
+/// completeness guarantee. It can return `std::nullopt` even when some valid
+/// packing exists, in which case `auto` falls back to its other seeds.
+std::optional<SmallVector<unsigned>>
+buildBestFitComponentSeed(unsigned numV, const cudaq::Device &device,
+                          const VirtualInteractionGraph &interactions,
+                          ArrayRef<bool> userVirtualQubits) {
+  SmallVector<SmallVector<unsigned>> deviceComponents =
+      computeDeviceComponents(device);
+  // This fallback exists only to keep interacting qubits within disconnected
+  // device regions. Adding it on a connected device could change which `auto`
+  // seed wins and would alter established placement behavior.
+  if (deviceComponents.size() <= 1)
+    return std::nullopt;
+  SmallVector<SmallVector<unsigned>> virtualComponents =
+      computeVirtualComponents(interactions, userVirtualQubits);
+  if (virtualComponents.empty())
+    return std::nullopt;
+  // Pack the largest, hardest-to-fit groups first. Ties break on lowest index
+  // so the seed is deterministic.
+  llvm::sort(virtualComponents, [](const auto &lhs, const auto &rhs) {
+    if (lhs.size() != rhs.size())
+      return lhs.size() > rhs.size();
+    return lhs.front() < rhs.front();
+  });
+  // A hot interaction component can make the normal greedy seed consume the
+  // only region large enough for a later component. Best-fit decreasing gives
+  // `auto` a deterministic alternative without changing the greedy strategy.
+  SmallVector<SmallVector<unsigned>> availableDeviceQubits =
+      std::move(deviceComponents);
+  const unsigned unassignedDeviceQubit = device.getNumQubits();
+  SmallVector<unsigned> seed(numV, unassignedDeviceQubit);
+  SmallVector<bool> usedDeviceQubits(device.getNumQubits(), false);
+  for (const auto &virtualComponent : virtualComponents) {
+    // `availableDeviceQubits.size()` is an out-of-range sentinel meaning "no
+    // candidate found yet".
+    unsigned bestComponent = availableDeviceQubits.size();
+    for (unsigned componentId = 0; componentId < availableDeviceQubits.size();
+         ++componentId) {
+      const auto &deviceQubits = availableDeviceQubits[componentId];
+      if (deviceQubits.size() < virtualComponent.size())
+        continue;
+      // Among islands large enough, keep the smallest so that larger
+      // islands stay free for larger groups. Ties break on lowest front index
+      // for determinism. Clause 1 matches the sentinel first, so the `||`
+      // short-circuits before the subscripts below can index with it.
+      if (bestComponent == availableDeviceQubits.size() ||
+          deviceQubits.size() < availableDeviceQubits[bestComponent].size() ||
+          (deviceQubits.size() == availableDeviceQubits[bestComponent].size() &&
+           deviceQubits.front() < availableDeviceQubits[bestComponent].front()))
+        bestComponent = componentId;
+    }
+    // A surviving sentinel means no island was large enough for this group.
+    if (bestComponent == availableDeviceQubits.size())
+      return std::nullopt;
+    auto &deviceQubits = availableDeviceQubits[bestComponent];
+    for (auto &&[index, virtualQubit] : llvm::enumerate(virtualComponent)) {
+      unsigned deviceQubit = deviceQubits[index];
+      seed[virtualQubit] = deviceQubit;
+      usedDeviceQubits[deviceQubit] = true;
+    }
+    // Shrink this island's remaining capacity so the next (smaller) group
+    // best-fits against what is left.
+    deviceQubits.erase(deviceQubits.begin(),
+                       deviceQubits.begin() + virtualComponent.size());
+  }
+  // Idle and single-qubit-only virtuals took part in no interaction group, so
+  // they were never placed above. Give each a leftover device qubit so every
+  // virtual qubit ends up mapped.
+  SmallVector<unsigned> remainingDeviceQubits;
+  for (unsigned p = 0; p < device.getNumQubits(); ++p)
+    if (!usedDeviceQubits[p])
+      remainingDeviceQubits.push_back(p);
+  unsigned nextRemaining = 0;
+  for (unsigned v = 0; v < numV; ++v)
+    if (seed[v] == unassignedDeviceQubit)
+      seed[v] = remainingDeviceQubits[nextRemaining++];
+  return seed;
+}
+
+/// The identity, greedy, and component seeds can coincide; de-dupe so the
+/// router never pays to route the same layout twice.
+void pushSeedIfNew(SmallVector<SmallVector<unsigned>> &seeds,
+                   SmallVector<unsigned> seed) {
+  if (llvm::find(seeds, seed) == seeds.end())
+    seeds.push_back(std::move(seed));
+}
+
 /// Generate the seed layouts to try, in deterministic order. Each seed only
-/// proposes a starting vrToPhy. The router decides the rest. `interactions` is
-/// required for the greedy strategies and ignored for identity.
+/// proposes a starting virtual-to-physical qubit mapping. The router decides
+/// the rest.
 SmallVector<SmallVector<unsigned>>
 buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
                     const cudaq::Device &device,
-                    const std::optional<VirtualInteractionGraph> &interactions,
+                    const VirtualInteractionGraph &interactions,
                     ArrayRef<bool> userVirtualQubits) {
   SmallVector<SmallVector<unsigned>> seeds;
 
@@ -307,18 +489,42 @@ buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
 
   if (strategy == PlacementStrategy::Auto ||
       strategy == PlacementStrategy::Greedy) {
-    assert(interactions.has_value() &&
-           "greedy placement requires collected interactions");
     SmallVector<unsigned> greedy =
-        GreedyInitialPlacer(device, *interactions, userVirtualQubits).run();
+        GreedyInitialPlacer(device, interactions, userVirtualQubits).run();
     // For `auto`, greedy degenerates to identity when there are no interactions
     // to place, so skip the duplicate rather than route the identity layout
     // twice.
-    if (strategy == PlacementStrategy::Greedy || greedy != seeds.front())
-      seeds.push_back(std::move(greedy));
+    pushSeedIfNew(seeds, std::move(greedy));
+    if (strategy == PlacementStrategy::Auto)
+      if (auto componentSeed = buildBestFitComponentSeed(
+              numV, device, interactions, userVirtualQubits))
+        pushSeedIfNew(seeds, std::move(*componentSeed));
   }
 
   return seeds;
+}
+
+/// A seed is usable only if every active two-qubit interaction has both
+/// endpoints in the same device island. Returns the first offending virtual
+/// pair so a doomed seed is rejected with a precise diagnostic.
+std::optional<std::pair<unsigned, unsigned>>
+findUnroutableInteraction(ArrayRef<unsigned> seed, const cudaq::Device &device,
+                          const VirtualInteractionGraph &interactions) {
+  using Qubit = cudaq::Device::Qubit;
+  for (unsigned v = 0, end = seed.size(); v < end; ++v) {
+    std::optional<unsigned> firstUnroutableNeighbor;
+    for (const auto &edge : interactions.neighbors(v)) {
+      unsigned u = edge.first;
+      if (u <= v)
+        continue;
+      if (!device.hasPath(Qubit(seed[v]), Qubit(seed[u])) &&
+          (!firstUnroutableNeighbor || u < *firstUnroutableNeighbor))
+        firstUnroutableNeighbor = u;
+    }
+    if (firstUnroutableNeighbor)
+      return std::make_pair(v, *firstUnroutableNeighbor);
+  }
+  return std::nullopt;
 }
 
 //===----------------------------------------------------------------------===//
@@ -363,11 +569,13 @@ struct RoutingProblem {
   }
 };
 
-/// A single routing decision: a gate mapped onto physical qubits, or a swap
-/// inserted between them. The router records these as it walks the circuit and
-/// the emitter replays them to rewrite the IR.
+/// A single routing decision: a gate mapped onto physical qubits, a swap
+/// inserted between them, an if-op, or a loop-op. The router records Gate and
+/// Swap events; the enrichment step adds If and Loop events. The emitter
+/// replays the full trace to rewrite the IR. Body results for If/Loop events
+/// live in the block map, not here.
 struct RoutingEvent {
-  enum class Kind { Gate, Swap };
+  enum class Kind { Gate, Swap, If, Loop };
 
   /// A gate mapped onto the physical qubits `phys`, in operand order.
   static RoutingEvent gate(mlir::Operation *op,
@@ -381,18 +589,41 @@ struct RoutingEvent {
                            cudaq::Placement::DeviceQ q1) {
     return RoutingEvent{Kind::Swap, nullptr, {q0, q1}};
   }
+  /// An if-op. `phys` holds the physical qubit for each wire linear arg at the
+  /// point the if is reached; branch results are in the caller's block map.
+  static RoutingEvent makeIf(mlir::Operation *op,
+                             ArrayRef<cudaq::Placement::DeviceQ> phys) {
+    return RoutingEvent{
+        Kind::If, op,
+        SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
+  }
+  /// A loop-op. `phys` holds the physical qubit for each wire initialArg at
+  /// the point the loop is reached; body results are in the caller's block map.
+  static RoutingEvent makeLoop(mlir::Operation *op,
+                               ArrayRef<cudaq::Placement::DeviceQ> phys) {
+    return RoutingEvent{
+        Kind::Loop, op,
+        SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
+  }
 
   Kind kind;
   mlir::Operation *op;
   SmallVector<cudaq::Placement::DeviceQ, 2> phys;
 };
 
-/// The outcome of routing one layout. The emitter replays `trace` onto the IR.
-/// `swapCount` is the metric used to compare layouts.
+/// The outcome of routing one block. Gate and Swap events come from SABRE; If
+/// events are added by the enrichment step and carry per-branch results.
+/// `swapCount` is the metric used to compare top-level layouts.
 struct RoutingResult {
   /// Virtual-to-physical layout at the start of the walk, before any swap.
   SmallVector<unsigned> initialLayout;
+  /// Virtual-to-physical layout at the end of the walk, after all swaps.
+  /// Computed by enrichTrace; not set on raw SABRE output.
+  SmallVector<unsigned> exitLayout;
   SmallVector<RoutingEvent> trace;
+  /// Restoration SWAPs to emit before the block terminator (loop bodies only).
+  /// Contains the body's Swap events in reverse order for layout restoration.
+  SmallVector<RoutingEvent> cleanUpTrace;
   unsigned swapCount = 0;
 };
 
@@ -421,24 +652,33 @@ cudaq::Placement::VirtualQ requireVirtualQ(
 /// borrows. Edges and source successors are captured in MLIR use-list order so
 /// the walk visits successors in the same order as the SSA use-def chains.
 RoutingProblem buildRoutingProblem(
-    Block &block, ArrayRef<cudaq::quake::BorrowWireOp> sources,
+    Block &block, ArrayRef<Value> sources,
     const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
   RoutingProblem problem;
   DenseMap<Operation *, RoutingProblem::NodeRef> nodeIndex;
 
   for (Operation &op : block) {
-    if (isa<cudaq::quake::BorrowWireOp>(op) ||
-        !cudaq::quake::isSupportedMappingOperation(&op))
+    if (isa<cudaq::quake::BorrowWireOp>(op))
       continue;
     RoutingProblem::Node node;
     node.op = &op;
-    for (auto wire : cudaq::quake::getQuantumOperands(&op))
-      node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
-    node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
-    node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
-    // A two-qubit gate the router has to make adjacent: a unitary on two wires,
-    // not a measurement or a sink.
-    node.isTwoQ = node.isUnitary && node.qubits.size() == 2;
+    if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
+      for (auto linArg : ifOp.getLinearArgs())
+        if (isa<cudaq::quake::WireType>(linArg.getType()))
+          node.qubits.push_back(requireVirtualQ(wireToVirtualQ, linArg));
+    } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
+      for (auto initArg : loopOp.getInitialArgs())
+        if (isa<cudaq::quake::WireType>(initArg.getType()))
+          node.qubits.push_back(requireVirtualQ(wireToVirtualQ, initArg));
+    } else {
+      if (!cudaq::quake::isSupportedMappingOperation(&op))
+        continue;
+      for (auto wire : cudaq::quake::getQuantumOperands(&op))
+        node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
+      node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
+      node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
+      node.isTwoQ = node.isUnitary && node.qubits.size() == 2;
+    }
     nodeIndex[&op] = RoutingProblem::NodeRef(problem.nodes.size());
     problem.nodes.push_back(std::move(node));
   }
@@ -455,11 +695,16 @@ RoutingProblem buildRoutingProblem(
       if (auto it = nodeIndex.find(use.getOwner()); it != nodeIndex.end())
         out.push_back(it->second);
   };
-  for (auto &node : problem.nodes)
-    for (Value wire : cudaq::quake::getQuantumResults(node.op))
-      recordWireUsers(wire, node.successors);
-  for (auto borrow : sources)
-    recordWireUsers(borrow.getResult(), problem.sourceUsers);
+  for (auto &node : problem.nodes) {
+    auto wireResults = isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(node.op)
+                           ? node.op->getResults()
+                           : cudaq::quake::getQuantumResults(node.op);
+    for (Value wire : wireResults)
+      if (isa<cudaq::quake::WireType>(wire.getType()))
+        recordWireUsers(wire, node.successors);
+  }
+  for (auto source : sources)
+    recordWireUsers(source, problem.sourceUsers);
 
   return problem;
 }
@@ -501,18 +746,29 @@ RoutingProblem buildReverseProblem(const RoutingProblem &forward) {
     reverse.nodes.push_back(makeReverseNode(node));
   }
 
+  // Splice out IfOps transitively so unitary gates on either side of an IfOp
+  // still form a dependency edge in the reverse problem.
+  std::function<void(RoutingProblem::NodeRef, RoutingProblem::NodeRef,
+                     unsigned &)>
+      addReverseEdges;
+  addReverseEdges = [&](RoutingProblem::NodeRef revSrc,
+                        RoutingProblem::NodeRef fwdSucc, unsigned &count) {
+    if (shouldIncludeInReverse(forward[fwdSucc])) {
+      ++count;
+      reverse.nodes[fwdToRev[fwdSucc.index].index].successors.push_back(revSrc);
+    } else {
+      for (RoutingProblem::NodeRef s : forward[fwdSucc].successors)
+        addReverseEdges(revSrc, s, count);
+    }
+  };
+
   for (unsigned i = 0, end = forward.nodes.size(); i < end; ++i) {
     const RoutingProblem::Node &node = forward.nodes[i];
     if (!shouldIncludeInReverse(node))
       continue;
     unsigned unitarySuccessors = 0;
-    for (RoutingProblem::NodeRef s : node.successors) {
-      if (!shouldIncludeInReverse(forward[s]))
-        continue;
-      ++unitarySuccessors;
-      // Processing the consumer in reverse makes this producer ready.
-      reverse.nodes[fwdToRev[s.index].index].successors.push_back(fwdToRev[i]);
-    }
+    for (RoutingProblem::NodeRef s : node.successors)
+      addReverseEdges(fwdToRev[i], s, unitarySuccessors);
     // Each result wire that does not feed a unitary is a reverse-circuit input.
     for (unsigned k = unitarySuccessors; k < node.qubits.size(); ++k)
       reverse.sourceUsers.push_back(fwdToRev[i]);
@@ -689,6 +945,16 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 
+  // IfOps and LoopOps are opaque: pass through with their current qubit layout.
+  if (isa<cudaq::cc::IfOp>(node.op)) {
+    result.trace.push_back(RoutingEvent::makeIf(node.op, deviceQubits));
+    return success();
+  }
+  if (isa<cudaq::cc::LoopOp>(node.op)) {
+    result.trace.push_back(RoutingEvent::makeLoop(node.op, deviceQubits));
+    return success();
+  }
+
   // Record the placement. The emitter rewires the operation when it applies
   // the result.
   result.trace.push_back(RoutingEvent::gate(node.op, deviceQubits));
@@ -762,7 +1028,13 @@ double SabreRouter::computeLayerCost(ArrayRef<NodeRef> layer) {
     const RoutingProblem::Node &node = problem[n];
     auto phy0 = placement.getPhy(node.qubits[0]);
     auto phy1 = placement.getPhy(node.qubits[1]);
-    cost += device.getDistance(phy0, phy1) - 1;
+    unsigned distance = device.getDistance(phy0, phy1);
+    // Invariant: findUnroutableInteraction admits only layouts whose two-qubit
+    // interactions are intra-component, and swaps never cross components, so a
+    // routed gate always has a finite distance here.
+    assert(distance != cudaq::Device::unreachableDistance &&
+           "front-layer gate spans disconnected device components");
+    cost += distance - 1;
   }
   return cost / layer.size();
 }
@@ -838,6 +1110,11 @@ void SabreRouter::forceClosestGate() {
       continue;
     unsigned d = device.getDistance(placement.getPhy(node.qubits[0]),
                                     placement.getPhy(node.qubits[1]));
+    // Co-island by construction (see `computeLayerCost` /
+    // `findUnroutableInteraction`): a stalled front-layer gate is always
+    // reachable, never unreachableDistance.
+    assert(d != cudaq::Device::unreachableDistance &&
+           "stalled front-layer gate spans disconnected device components");
     if (d < bestDist) {
       bestDist = d;
       closest = n;
@@ -1108,9 +1385,11 @@ private:
 /// threading the current wire on each physical qubit.
 class RoutingEmitter {
 public:
-  RoutingEmitter(DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
-                 unsigned numPhysical)
-      : wireToVirtualQ(wireMap), phyToWire(numPhysical) {}
+  RoutingEmitter(const DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
+                 unsigned numPhysical,
+                 const DenseMap<Block *, RoutingResult> &blockMap)
+      : wireToVirtualQ(wireMap), phyToWire(numPhysical),
+        blockResults(blockMap) {}
 
   /// Apply `result` to `block`. Returns the final wire on each physical qubit,
   /// which the caller uses to create the return_wire ops.
@@ -1131,47 +1410,153 @@ public:
       phyToWire[phy] = wire;
     }
 
-    OpBuilder builder(&block, block.begin());
-    auto wireType = builder.getType<cudaq::quake::WireType>();
-    for (const RoutingEvent &ev : result.trace) {
-      if (ev.kind == RoutingEvent::Kind::Gate) {
-        // Rewire the operation onto its physical qubits.
-        SmallVector<Value, 2> newOpWires;
-        for (auto phy : ev.phys)
-          newOpWires.push_back(phyToWire[phy.index]);
-        // The operand count is unchanged, so this cannot fail.
-        [[maybe_unused]] LogicalResult rewired =
-            cudaq::quake::setQuantumOperands(ev.op, newOpWires);
-        assert(succeeded(rewired) &&
-               "rewiring with a fixed operand count cannot fail");
-        if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(ev.op))
-          continue;
-        for (auto &&[w, q] :
-             llvm::zip_equal(cudaq::quake::getQuantumResults(ev.op), ev.phys))
-          phyToWire[q.index] = w;
-      } else {
-        // Insert the swap and advance both wires past it.
-        auto q0 = ev.phys[0];
-        auto q1 = ev.phys[1];
-        auto swap = cudaq::quake::SwapOp::create(
-            builder, builder.getUnknownLoc(), TypeRange{wireType, wireType},
-            false, ValueRange{}, ValueRange{},
-            ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
-            DenseBoolArrayAttr{});
-        phyToWire[q0.index] = swap.getResult(0);
-        phyToWire[q1.index] = swap.getResult(1);
+    std::function<void(Block &)> emitBlock;
+    emitBlock = [&](Block &blk) {
+      const RoutingResult &blkResult = blockResults.at(&blk);
+      OpBuilder blkBuilder(&blk, blk.begin());
+      auto wireType = blkBuilder.getType<cudaq::quake::WireType>();
+
+      for (const RoutingEvent &ev : blkResult.trace) {
+        if (ev.kind == RoutingEvent::Kind::Swap) {
+          auto q0 = ev.phys[0], q1 = ev.phys[1];
+          auto swap = cudaq::quake::SwapOp::create(
+              blkBuilder, blkBuilder.getUnknownLoc(),
+              TypeRange{wireType, wireType}, false, ValueRange{}, ValueRange{},
+              ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
+              DenseBoolArrayAttr{});
+          phyToWire[q0.index] = swap.getResult(0);
+          phyToWire[q1.index] = swap.getResult(1);
+        } else if (ev.kind == RoutingEvent::Kind::Gate) {
+          SmallVector<Value, 2> newOpWires;
+          for (auto phy : ev.phys)
+            newOpWires.push_back(phyToWire[phy.index]);
+          [[maybe_unused]] LogicalResult rewired =
+              cudaq::quake::setQuantumOperands(ev.op, newOpWires);
+          assert(succeeded(rewired) &&
+                 "rewiring with a fixed operand count cannot fail");
+          if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(ev.op))
+            continue;
+          for (auto &&[w, q] :
+               llvm::zip_equal(cudaq::quake::getQuantumResults(ev.op), ev.phys))
+            phyToWire[q.index] = w;
+        } else if (ev.kind == RoutingEvent::Kind::If) {
+          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+          SmallVector<Value> entryWires;
+          for (auto phy : ev.phys)
+            entryWires.push_back(phyToWire[phy.index]);
+          (void)cudaq::quake::setQuantumOperands(ifOp, entryWires);
+
+          auto processBranch = [&](Region &region) {
+            const RoutingResult &branchResult =
+                blockResults.at(&region.front());
+            unsigned phyIdx = 0;
+            for (auto [i, linArg] : llvm::enumerate(ifOp.getLinearArgs())) {
+              if (!wireToVirtualQ.count(linArg))
+                continue;
+              phyToWire[ev.phys[phyIdx++].index] =
+                  region.front().getArgument(i);
+            }
+            emitBlock(region.front());
+            for (auto [i, phy] : llvm::enumerate(ev.phys))
+              phyToWire[phy.index] = entryWires[i];
+            return branchResult;
+          };
+
+          const RoutingResult &thenResult = processBranch(ifOp.getThenRegion());
+          if (ifOp.hasElse())
+            processBranch(ifOp.getElseRegion());
+
+          for (Value res : ifOp->getResults())
+            if (isa<cudaq::quake::WireType>(res.getType())) {
+              auto vq = wireToVirtualQ.find(res)->second;
+              phyToWire[thenResult.exitLayout[vq.index]] = res;
+            }
+        } else { // Loop
+          auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+          auto *bodyBlock = loopOp.getDoEntryBlock();
+          // Rewire each wire initialArg to the current physical wire.
+          unsigned phyIdx = 0;
+          for (auto [i, initArg] : llvm::enumerate(loopOp.getInitialArgs())) {
+            if (!isa<cudaq::quake::WireType>(initArg.getType()))
+              continue;
+            loopOp->setOperand(i, phyToWire[ev.phys[phyIdx++].index]);
+          }
+          // Thread body block args into phyToWire and emit the body.
+          phyIdx = 0;
+          for (auto bodyArg : bodyBlock->getArguments()) {
+            if (!isa<cudaq::quake::WireType>(bodyArg.getType()))
+              continue;
+            phyToWire[ev.phys[phyIdx++].index] = bodyArg;
+          }
+          emitBlock(*bodyBlock);
+          // Update body cc.continue operands to use the restored wires.
+          auto *contOp = bodyBlock->getTerminator();
+          phyIdx = 0;
+          for (unsigned j = 0; j < loopOp.getInitialArgs().size(); ++j) {
+            if (!isa<cudaq::quake::WireType>(
+                    loopOp.getInitialArgs()[j].getType()))
+              continue;
+            contOp->setOperand(j, phyToWire[ev.phys[phyIdx++].index]);
+          }
+          // For for-loops: emit the step block and update its cc.continue.
+          if (loopOp.hasStep()) {
+            auto *stepBlock = loopOp.getStepBlock();
+            phyIdx = 0;
+            for (auto stepArg : stepBlock->getArguments()) {
+              if (!isa<cudaq::quake::WireType>(stepArg.getType()))
+                continue;
+              phyToWire[ev.phys[phyIdx++].index] = stepArg;
+            }
+            emitBlock(*stepBlock);
+            auto *stepContOp = stepBlock->getTerminator();
+            phyIdx = 0;
+            for (unsigned j = 0; j < loopOp.getInitialArgs().size(); ++j) {
+              if (!isa<cudaq::quake::WireType>(
+                      loopOp.getInitialArgs()[j].getType()))
+                continue;
+              stepContOp->setOperand(j, phyToWire[ev.phys[phyIdx++].index]);
+            }
+          }
+          // Update phyToWire with the loop results.
+          phyIdx = 0;
+          for (Value res : loopOp->getResults()) {
+            if (!isa<cudaq::quake::WireType>(res.getType()))
+              continue;
+            phyToWire[ev.phys[phyIdx++].index] = res;
+          }
+        }
       }
-    }
+      // Emit restoration SWAPs (cleanUpTrace) before the block terminator.
+      if (!blkResult.cleanUpTrace.empty()) {
+        OpBuilder cleanBuilder(blk.getTerminator());
+        for (const RoutingEvent &cleanEv : blkResult.cleanUpTrace) {
+          auto q0 = cleanEv.phys[0], q1 = cleanEv.phys[1];
+          auto swap = cudaq::quake::SwapOp::create(
+              cleanBuilder, cleanBuilder.getUnknownLoc(),
+              TypeRange{wireType, wireType}, false, ValueRange{}, ValueRange{},
+              ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
+              DenseBoolArrayAttr{});
+          phyToWire[q0.index] = swap.getResult(0);
+          phyToWire[q1.index] = swap.getResult(1);
+        }
+      }
+      sortTopologically(&blk);
+    };
+
+    emitBlock(block);
     return phyToWire;
   }
 
 private:
-  DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
+  const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
   SmallVector<Value> phyToWire;
+  const DenseMap<Block *, RoutingResult> &blockResults;
 };
 
-std::pair<bool, std::optional<cudaq::Device>>
-deviceFromString(llvm::StringRef deviceString) {
+llvm::Error deviceFromString(llvm::StringRef deviceString, bool &deviceBypass,
+                             std::optional<cudaq::Device> &deviceInstance) {
+  deviceBypass = false;
+  deviceInstance.reset();
   std::size_t deviceDim[2];
   deviceDim[0] = deviceDim[1] = 0;
 
@@ -1199,20 +1584,29 @@ deviceFromString(llvm::StringRef deviceString) {
         // Make sure the file exists before continuing
         if (!llvm::sys::fs::exists(deviceFilename)) {
           llvm::errs() << "Path " << deviceFilename << " does not exist\n";
-          return std::make_pair(false, std::nullopt);
+          return llvm::Error::success();
         }
       } else {
         llvm::errs() << "Missing closing ')' in device option\n";
-        return std::make_pair(false, std::nullopt);
+        return llvm::Error::success();
       }
     } else {
       llvm::errs() << "Filename must be provided in device option like "
                       "file(/full/path/to/device_file.txt): "
                    << deviceString << '\n';
-      return std::make_pair(false, std::nullopt);
+      return llvm::Error::success();
     }
 
-    return std::make_pair(false, cudaq::Device::file(deviceFilename));
+    // Shortest paths retain views into Device-owned storage, so parse directly
+    // into the pass member instead of moving a temporary through the error
+    // path.
+    deviceInstance.emplace();
+    if (llvm::Error error =
+            cudaq::Device::tryFile(deviceFilename, *deviceInstance)) {
+      deviceInstance.reset();
+      return error;
+    }
+    return llvm::Error::success();
   } else {
     if (deviceString.consume_front("(")) {
       deviceString = deviceString.ltrim();
@@ -1226,7 +1620,7 @@ deviceFromString(llvm::StringRef deviceString) {
       while (deviceString.consume_front(",")) {
         if (argCount == 2) {
           llvm::errs() << "Too many arguments provided for device\n";
-          return std::make_pair(false, std::nullopt);
+          return llvm::Error::success();
         }
         deviceString = deviceString.ltrim();
         deviceString.consumeInteger(/*Radix=*/10, deviceDim[1]);
@@ -1236,27 +1630,36 @@ deviceFromString(llvm::StringRef deviceString) {
 
       if (!deviceString.consume_front(")")) {
         llvm::errs() << "Missing closing ')' in device option\n";
-        return std::make_pair(false, std::nullopt);
+        return llvm::Error::success();
       }
     }
 
     if (deviceTopoStr == "path") {
-      return std::make_pair(false, cudaq::Device::path(deviceDim[0]));
+      deviceInstance = cudaq::Device::path(deviceDim[0]);
     } else if (deviceTopoStr == "ring") {
-      return std::make_pair(false, cudaq::Device::ring(deviceDim[0]));
+      deviceInstance = cudaq::Device::ring(deviceDim[0]);
     } else if (deviceTopoStr == "star") {
-      return std::make_pair(false,
-                            cudaq::Device::star(deviceDim[0], deviceDim[1]));
+      deviceInstance = cudaq::Device::star(deviceDim[0], deviceDim[1]);
     } else if (deviceTopoStr == "grid") {
-      return std::make_pair(false,
-                            cudaq::Device::grid(deviceDim[0], deviceDim[1]));
+      deviceInstance = cudaq::Device::grid(deviceDim[0], deviceDim[1]);
     } else if (deviceTopoStr == "bypass") {
-      return std::make_pair(true, std::nullopt);
+      deviceBypass = true;
     } else {
       llvm::errs() << "Unknown device option: " << deviceTopoStr << '\n';
-      return std::make_pair(false, std::nullopt);
     }
+    return llvm::Error::success();
   }
+}
+
+LogicalResult initializeDevice(llvm::StringRef deviceString, bool nonComposable,
+                               MLIRContext *context, bool &deviceBypass,
+                               std::optional<cudaq::Device> &deviceInstance) {
+  if (llvm::Error error =
+          deviceFromString(deviceString, deviceBypass, deviceInstance)) {
+    emitError(UnknownLoc::get(context), llvm::toString(std::move(error)));
+    return failure();
+  }
+  return success(deviceInstance || deviceBypass || !nonComposable);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1270,13 +1673,8 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
   bool deviceBypass = false;
 
   virtual LogicalResult initialize(MLIRContext *context) override {
-    std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
-    if (deviceInstance || deviceBypass || !nonComposable) {
-      return success();
-    }
-
-    signalPassFailure();
-    return failure();
+    return initializeDevice(device, nonComposable, context, deviceBypass,
+                            deviceInstance);
   }
 
   /// Create an adjacency matrix attribute for a WireSetOp.
@@ -1330,6 +1728,13 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
     if (deviceBypass)
       return;
 
+    // A composable run tolerates an unset device (the default "-" or an
+    // unparsable device option) as a no-op; `initialize` already fails a
+    // non-composable run before it reaches here. Guard the deref regardless so
+    // a bad device string cannot crash the pass.
+    if (!deviceInstance)
+      return;
+
     insertWireSetOpForDevice(*deviceInstance, mod);
   }
 };
@@ -1369,13 +1774,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   std::optional<cudaq::Device> deviceInstance;
 
   virtual LogicalResult initialize(MLIRContext *context) override {
-    std::tie(deviceBypass, deviceInstance) = deviceFromString(device);
-    if (deviceInstance || deviceBypass || !nonComposable) {
-      return success();
-    }
-
-    signalPassFailure();
-    return failure();
+    return initializeDevice(device, nonComposable, context, deviceBypass,
+                            deviceInstance);
   }
 
   /// Add `op` and all of its users into `opsToMoveToEnd`. `op` may not be
@@ -1441,6 +1841,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
   void runOnOperation() override {
     if (deviceBypass)
+      return;
+
+    // See MappingPrep::runOnOperation: a composable run with no device is a
+    // no-op, so never dereference an unset device.
+    if (!deviceInstance)
       return;
 
     auto func = getOperation();
@@ -1553,6 +1958,22 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     const std::size_t deviceNumQubits = deviceInstance->getNumQubits();
 
+    // Borrow identities index device-sized tables (`sources`,
+    // `userVirtualQubits`, `interactions`) during the scan below, so a circuit
+    // that needs more qubits than the device provides must be rejected before
+    // those writes go out of bounds. `highestIdentity` is the largest identity
+    // in the function.
+    if (*highestIdentity >= deviceNumQubits) {
+      if (nonComposable) {
+        func.emitOpError(
+            "Too many qubits [" + std::to_string(*highestIdentity + 1) +
+            "] for device [" + std::to_string(deviceNumQubits) + "]");
+        signalPassFailure();
+      }
+      LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
+      return;
+    }
+
     SmallVector<cudaq::quake::BorrowWireOp> sources(deviceNumQubits);
     SmallVector<cudaq::quake::ReturnWireOp> returnsToRemove;
     DenseMap<Value, cudaq::Placement::VirtualQ> wireToVirtualQ;
@@ -1560,8 +1981,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     DenseMap<std::size_t, Value> finalQubitWire;
     Operation *lastSource = nullptr;
 
-    // Resolve the placement and search strategies before deciding whether to
-    // collect interaction data.
+    // Resolve the placement and search strategies before scanning the circuit.
     std::optional<PlacementStrategy> parsedPlacement =
         parsePlacementStrategy(this->placement);
     if (!parsedPlacement) {
@@ -1591,125 +2011,275 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
     SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
-    bool collectInteractions = placementStrategy != PlacementStrategy::Identity;
-
-    // Two-qubit interaction data for placement, collected during the scan.
-    std::optional<VirtualInteractionGraph> interactions;
-    SmallVector<bool> userVirtualQubits;
-    if (collectInteractions) {
-      interactions.emplace(deviceNumQubits);
-      userVirtualQubits.assign(deviceNumQubits, false);
+    // Reject loop bodies that are not yet supported: multi-block, else
+    // regions, or break statements.
+    auto loopCheckResult = func.walk([&](cudaq::cc::LoopOp loopOp) {
+      if (!loopOp.getBodyRegion().hasOneBlock() || loopOp.hasPythonElse()) {
+        if (nonComposable) {
+          loopOp.emitOpError(
+              "mapper cannot handle loops with multi-block or else");
+          signalPassFailure();
+        }
+        return WalkResult::interrupt();
+      }
+      if (loopOp.hasBreakInBody()) {
+        if (nonComposable) {
+          loopOp.emitOpError(
+              "mapper cannot handle loops with break statements");
+          signalPassFailure();
+        }
+        return WalkResult::interrupt();
+      }
+      return WalkResult::advance();
+    });
+    if (loopCheckResult.wasInterrupted()) {
+      LLVM_DEBUG(llvm::dbgs() << "NYI: complex loop body in mapper\n");
+      return;
     }
 
-    for (Operation &op : block.getOperations()) {
-      if (auto qop = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
-        // Assign a new virtual qubit to the resulting wire.
-        auto id = qop.getIdentity();
-        wireToVirtualQ[qop.getResult()] = cudaq::Placement::VirtualQ(id);
-        finalQubitWire[id] = qop.getResult();
-        sources[id] = qop;
-        if (collectInteractions)
-          userVirtualQubits[id] = true;
-        lastSource = &op;
-      } else if (dyn_cast<cudaq::quake::NullWireOp>(op)) {
-        if (nonComposable) {
-          op.emitOpError(
-              "the mapper requires borrow operations and prohibits null wires");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
-        return;
-      } else if (dyn_cast<cudaq::quake::AllocaOp>(op)) {
-        if (nonComposable) {
-          op.emitOpError("the mapper requires borrow operations and prohibits "
-                         "reference semantics");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
-        return;
-      } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
-        // Make sure the operation is using value semantics.
-        if (!cudaq::quake::isLinearValueForm(&op)) {
+    // Reject measurements not directly inside the function — measure order must
+    // be preserved and cannot yet be reconciled across branches or loops.
+    auto measureCheckResult =
+        func.walk([&](cudaq::quake::MeasurementInterface meas) {
+          if (isa<func::FuncOp>(meas->getParentOp()))
+            return WalkResult::advance();
           if (nonComposable) {
-            llvm::errs() << "This is not SSA form: " << op << '\n';
-            llvm::errs() << "isa<cudaq::quake::NullWireOp>() = "
-                         << isa<cudaq::quake::NullWireOp>(&op) << '\n';
-            llvm::errs() << "isAllReferences() = "
-                         << cudaq::quake::isAllReferences(&op) << '\n';
-            llvm::errs() << "isWrapped() = " << cudaq::quake::isWrapped(&op)
-                         << '\n';
-            func.emitError("The mapper requires value semantics.");
+            meas->emitOpError(
+                "mapper cannot handle measurements inside branches or loops");
             signalPassFailure();
           }
-          LLVM_DEBUG(llvm::dbgs() << "operation is not in proper value form");
-          return;
-        }
-
-        // Get the wire operands and their virtual qubits.
-        auto wireOperands = cudaq::quake::getQuantumOperands(&op);
-        auto maybeVirtualOperands =
-            lookupVirtualOperands(op, wireOperands, wireToVirtualQ);
-        if (!maybeVirtualOperands)
-          return;
-        SmallVector<cudaq::Placement::VirtualQ, 2> virtualOperands =
-            std::move(*maybeVirtualOperands);
-
-        // Since `quake.return_wire` operations do not generate new wires, we
-        // don't need to further analyze.
-        if (auto rop = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
-          returnsToRemove.push_back(rop);
-          continue;
-        }
-
-        // Check if the operator uses at most two qubits. N.B: Measurements do
-        // not have this restriction.
-        if (!op.hasTrait<cudaq::QuantumMeasure>() && wireOperands.size() > 2) {
-          if (nonComposable) {
-            func.emitError("Cannot map a kernel with operators that use more "
-                           "than two qubits.");
-            signalPassFailure();
-          }
-          LLVM_DEBUG(llvm::dbgs() << "operator with >2 qubits not expected");
-          return;
-        }
-
-        // Save which qubits are measured.
-        if (isa<cudaq::quake::MeasurementInterface>(op))
-          for (auto virtualQ : virtualOperands)
-            userQubitsMeasured.push_back(virtualQ.index);
-
-        // Record two-qubit interactions for placement.
-        if (collectInteractions &&
-            !isa<cudaq::quake::MeasurementInterface>(op) &&
-            wireOperands.size() == 2) {
-          unsigned v0 = virtualOperands[0].index;
-          unsigned v1 = virtualOperands[1].index;
-          interactions->addInteraction(v0, v1);
-        }
-
-        // Map the result wires to the appropriate virtual qubits.
-        if (failed(recordQuantumResults(op, wireOperands, virtualOperands,
-                                        wireToVirtualQ, finalQubitWire)))
-          return;
-      } else if (!cudaq::quake::getQuantumOperands(&op).empty() ||
-                 !cudaq::quake::getQuantumResults(&op).empty()) {
-        if (nonComposable) {
-          op.emitOpError("is not supported by the mapper");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "unsupported quantum operation in mapper\n");
-        return;
-      }
+          return WalkResult::interrupt();
+        });
+    if (measureCheckResult.wasInterrupted()) {
+      LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
+      return;
     }
 
-    if (sources.size() > deviceNumQubits) {
-      if (nonComposable) {
-        func.emitOpError("Too many qubits [" + std::to_string(sources.size()) +
-                         "] for device [" + std::to_string(deviceNumQubits) +
-                         "]");
-        signalPassFailure();
+    // Two-qubit interaction data for placement and disconnected-device
+    // reachability checks. Always built: the disconnected-topology seed check
+    // consults it for every placement strategy, including identity.
+    VirtualInteractionGraph interactions(deviceNumQubits);
+    SmallVector<bool> userVirtualQubits(deviceNumQubits, false);
+
+    // Recursive analysis: walk `b` and all IfOp branch regions, populating
+    // wireToVirtualQ, finalQubitWire, sources, and interaction data.
+    // parentOp is the enclosing cc::IfOp when recursing into a branch; null at
+    // the top level. cc.continue uses it to set (first branch) or verify (else
+    // branch) the parent's wire result VQs directly in wireToVirtualQ.
+    bool analysisOk = true;
+    std::function<void(Block &, bool, Operation *)> analyzeBlock =
+        [&](Block &b, bool doCollectInteractions, Operation *parentOp) {
+          if (!analysisOk)
+            return;
+          for (Operation &op : b.getOperations()) {
+            if (auto qop = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
+              auto id = qop.getIdentity();
+              wireToVirtualQ[qop.getResult()] = cudaq::Placement::VirtualQ(id);
+              finalQubitWire[id] = qop.getResult();
+              sources[id] = qop;
+              if (doCollectInteractions)
+                userVirtualQubits[id] = true;
+              lastSource = &op;
+            } else if (dyn_cast<cudaq::quake::NullWireOp>(op)) {
+              if (nonComposable) {
+                op.emitOpError("the mapper requires borrow operations and "
+                               "prohibits null wires");
+                signalPassFailure();
+              }
+              LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
+              analysisOk = false;
+              return;
+            } else if (dyn_cast<cudaq::quake::AllocaOp>(op)) {
+              if (nonComposable) {
+                op.emitOpError(
+                    "the mapper requires borrow operations and prohibits "
+                    "reference semantics");
+                signalPassFailure();
+              }
+              LLVM_DEBUG(llvm::dbgs()
+                         << "quantum reference semantics not expected");
+              analysisOk = false;
+              return;
+            } else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
+              if (!parentOp)
+                continue;
+              // cc.continue operands correspond positionally to parentOp
+              // results. On the first branch, insert; on the else branch,
+              // verify the ordering matches.
+              for (auto [operand, res] : llvm::zip_equal(
+                       cont->getOperands(), parentOp->getResults())) {
+                if (!isa<cudaq::quake::WireType>(operand.getType()))
+                  continue;
+                auto contVQ = requireVirtualQ(wireToVirtualQ, operand);
+                auto [it, inserted] = wireToVirtualQ.insert({res, contVQ});
+                if (!inserted && it->second.index != contVQ.index) {
+                  parentOp->emitOpError("then and else branches return qubits "
+                                        "in different orders");
+                  if (nonComposable)
+                    signalPassFailure();
+                  analysisOk = false;
+                  return;
+                }
+              }
+            } else if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
+              auto linearArgs = ifOp.getLinearArgs();
+              for (Region *region : ifOp.getRegions()) {
+                if (region->empty())
+                  continue;
+                assert(region->hasOneBlock());
+                for (auto [linArg, regionArg] : llvm::zip_equal(
+                         linearArgs, region->front().getArguments()))
+                  wireToVirtualQ.insert({regionArg, wireToVirtualQ[linArg]});
+                analyzeBlock(region->front(), /*doCollectInteractions=*/false,
+                             &op);
+                if (!analysisOk)
+                  return;
+              }
+              for (Value res : ifOp->getResults())
+                if (isa<cudaq::quake::WireType>(res.getType()))
+                  finalQubitWire[wireToVirtualQ[res].index] = res;
+            } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
+              auto *whileBlock = loopOp.getWhileBlock();
+              auto *bodyBlock = loopOp.getDoEntryBlock();
+              // Map loop initialArgs → while block args.
+              for (auto [initArg, whileArg] : llvm::zip_equal(
+                       loopOp.getInitialArgs(), whileBlock->getArguments())) {
+                if (!isa<cudaq::quake::WireType>(initArg.getType()))
+                  continue;
+                wireToVirtualQ.insert(
+                    {whileArg, requireVirtualQ(wireToVirtualQ, initArg)});
+              }
+              // cc.condition in the while block forwards iter args to the body
+              // and to the loop exit. Map those → body block args and results.
+              auto condOp =
+                  cast<cudaq::cc::ConditionOp>(whileBlock->getTerminator());
+              for (auto [forwarded, bodyArg, loopResult] : llvm::zip_equal(
+                       condOp.getResults(), bodyBlock->getArguments(),
+                       loopOp->getResults())) {
+                if (!isa<cudaq::quake::WireType>(forwarded.getType()))
+                  continue;
+                auto vq = requireVirtualQ(wireToVirtualQ, forwarded);
+                wireToVirtualQ.insert({bodyArg, vq});
+                wireToVirtualQ.insert({loopResult, vq});
+              }
+              // parentOp=nullptr: cc.continue in the body is a back-edge,
+              // not a loop exit, so we don't map it to the loop results.
+              analyzeBlock(*bodyBlock, /*doCollectInteractions=*/false,
+                           nullptr);
+              if (!analysisOk)
+                return;
+              // Overwrite finalQubitWire with the loop results; the body
+              // analysis may have updated them to body-internal wire values.
+              for (Value res : loopOp->getResults())
+                if (isa<cudaq::quake::WireType>(res.getType()))
+                  finalQubitWire[wireToVirtualQ[res].index] = res;
+            } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
+              if (!cudaq::quake::isLinearValueForm(&op)) {
+                if (nonComposable) {
+                  llvm::errs() << "This is not SSA form: " << op << '\n';
+                  llvm::errs() << "isa<cudaq::quake::NullWireOp>() = "
+                               << isa<cudaq::quake::NullWireOp>(&op) << '\n';
+                  llvm::errs() << "isAllReferences() = "
+                               << cudaq::quake::isAllReferences(&op) << '\n';
+                  llvm::errs()
+                      << "isWrapped() = " << cudaq::quake::isWrapped(&op)
+                      << '\n';
+                  func.emitError("The mapper requires value semantics.");
+                  signalPassFailure();
+                }
+                LLVM_DEBUG(llvm::dbgs()
+                           << "operation is not in proper value form");
+                analysisOk = false;
+                return;
+              }
+              auto wireOperands = cudaq::quake::getQuantumOperands(&op);
+              // Reject gates the two-qubit coupling-graph model cannot validate
+              // before resolving their placement.
+              if (auto gate = dyn_cast<cudaq::quake::OperatorInterface>(op);
+                  gate &&
+                  gate.getControls().size() + gate.getTargets().size() > 2) {
+                op.emitOpError(
+                    "qubit mapping is defined over a two-qubit coupling graph; "
+                    "decompose multi-qubit gates before mapping");
+                signalPassFailure();
+                analysisOk = false;
+                return;
+              }
+              auto maybeVirtualOperands =
+                  lookupVirtualOperands(op, wireOperands, wireToVirtualQ);
+              if (!maybeVirtualOperands) {
+                analysisOk = false;
+                return;
+              }
+              SmallVector<cudaq::Placement::VirtualQ, 2> virtualOperands =
+                  std::move(*maybeVirtualOperands);
+              if (auto rop = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
+                returnsToRemove.push_back(rop);
+                continue;
+              }
+              if (isa<cudaq::quake::MeasurementInterface>(op))
+                for (auto virtualQ : virtualOperands)
+                  userQubitsMeasured.push_back(virtualQ.index);
+              if (doCollectInteractions &&
+                  !isa<cudaq::quake::MeasurementInterface>(op) &&
+                  wireOperands.size() == 2) {
+                interactions.addInteraction(virtualOperands[0].index,
+                                            virtualOperands[1].index);
+              }
+              if (failed(recordQuantumResults(op, wireOperands, virtualOperands,
+                                              wireToVirtualQ,
+                                              finalQubitWire))) {
+                analysisOk = false;
+                return;
+              }
+            } else if (!cudaq::quake::getQuantumOperands(&op).empty() ||
+                       !cudaq::quake::getQuantumResults(&op).empty()) {
+              if (nonComposable) {
+                op.emitOpError("is not supported by the mapper");
+                signalPassFailure();
+              }
+              LLVM_DEBUG(llvm::dbgs()
+                         << "unsupported quantum operation in mapper\n");
+              analysisOk = false;
+              return;
+            }
+          }
+        };
+    analyzeBlock(block, /*doCollectInteractions=*/true, nullptr);
+    if (!analysisOk)
+      return;
+
+    const unsigned numV = sources.size();
+    const unsigned numPhy = deviceInstance->getNumQubits();
+
+    SmallVector<SmallVector<unsigned>> seeds =
+        buildPlacementSeeds(placementStrategy, numV, *deviceInstance,
+                            interactions, userVirtualQubits);
+    std::optional<std::pair<unsigned, unsigned>> identityBlockedInteraction;
+    auto shouldDiscardSeed = [&](ArrayRef<unsigned> seed) {
+      auto blocked =
+          findUnroutableInteraction(seed, *deviceInstance, interactions);
+      if (!blocked)
+        return false;
+      if (placementStrategy == PlacementStrategy::Identity &&
+          !identityBlockedInteraction)
+        identityBlockedInteraction = blocked;
+      return true;
+    };
+    llvm::erase_if(seeds, shouldDiscardSeed);
+    if (seeds.empty()) {
+      if (identityBlockedInteraction) {
+        func.emitError("cannot place two-qubit interaction between virtual "
+                       "qubits " +
+                       std::to_string(identityBlockedInteraction->first) +
+                       " and " +
+                       std::to_string(identityBlockedInteraction->second) +
+                       " on disconnected device topology");
+      } else {
+        func.emitError("could not find a routable initial layout for "
+                       "disconnected device topology");
       }
-      LLVM_DEBUG(llvm::dbgs() << "exceeded available qubits for target");
+      signalPassFailure();
       return;
     }
 
@@ -1772,29 +2342,146 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
     }
 
-    const unsigned numV = sources.size();
-    const unsigned numPhy = deviceInstance->getNumQubits();
-
-    SmallVector<SmallVector<unsigned>> seeds =
-        buildPlacementSeeds(placementStrategy, numV, *deviceInstance,
-                            interactions, userVirtualQubits);
-
     // Build the routing problem once (it does not depend on the layout), then
     // search over the seeds for the result with the fewest swaps.
+    SmallVector<Value> sourceValues;
+    for (auto borrow : sources)
+      sourceValues.push_back(borrow.getResult());
     RoutingProblem problem =
-        buildRoutingProblem(block, sources, wireToVirtualQ);
+        buildRoutingProblem(block, sourceValues, wireToVirtualQ);
     RoutingSearchStrategy search(
         *deviceInstance, problem, searchStrategy == SearchStrategy::Sabre,
         extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset,
         minStallSwapBudget, stallSwapBudgetPerQubit);
     RoutingSearchStrategy::Selection selection =
         search.run(seeds, numV, numPhy);
-    RoutingResult &best = selection.result;
     cudaq::Placement &bestLayout = selection.finalLayout;
 
+    // For each block (outer and all branch blocks), store its RoutingResult in
+    // blockResults. Routes branch blocks using the placement at the point each
+    // cc::IfOp is reached as the seed. Recurses for nested IfOps.
+    DenseMap<Block *, RoutingResult> blockResults;
+    std::function<void(Block &, RoutingResult)> buildBlockResults;
+    buildBlockResults = [&](Block &blk, RoutingResult flat) {
+      RoutingResult result;
+      result.initialLayout = flat.initialLayout;
+      result.swapCount = flat.swapCount;
+
+      SmallVector<unsigned> replayVqToPhy(numV);
+      SmallVector<unsigned> replayPhyToVQ(numPhy, UINT_MAX);
+      for (unsigned v = 0; v < numV; ++v) {
+        replayVqToPhy[v] = flat.initialLayout[v];
+        replayPhyToVQ[flat.initialLayout[v]] = v;
+      }
+      unsigned srcIdx = 0;
+
+      // flushTo processes all trace events up to limit, routing branch blocks
+      // inline when a Kind::If event is encountered.
+      std::function<void(unsigned)> flushTo;
+      flushTo = [&](unsigned limit) {
+        while (srcIdx < limit) {
+          RoutingEvent &ev = flat.trace[srcIdx++];
+          if (ev.kind == RoutingEvent::Kind::Swap) {
+            unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
+            unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
+            if (v0 != UINT_MAX)
+              replayVqToPhy[v0] = p1;
+            if (v1 != UINT_MAX)
+              replayVqToPhy[v1] = p0;
+            std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
+            result.trace.push_back(std::move(ev));
+          } else if (ev.kind == RoutingEvent::Kind::Gate) {
+            result.trace.push_back(std::move(ev));
+          } else if (ev.kind == RoutingEvent::Kind::If) {
+            auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+            SmallVector<SmallVector<unsigned>> branchSeeds = {
+                SmallVector<unsigned>(replayVqToPhy)};
+            for (Region *region : ifOp.getRegions()) {
+              if (region->empty())
+                continue;
+              SmallVector<Value> branchSources;
+              for (auto arg : region->front().getArguments())
+                if (isa<cudaq::quake::WireType>(arg.getType()))
+                  branchSources.push_back(arg);
+              RoutingProblem branchProblem = buildRoutingProblem(
+                  region->front(), branchSources, wireToVirtualQ);
+              RoutingSearchStrategy branchSearch(
+                  *deviceInstance, branchProblem,
+                  searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
+                  extendedLayerWeight, decayDelta, roundsDecayReset,
+                  minStallSwapBudget, stallSwapBudgetPerQubit);
+              auto branchSel = branchSearch.run(branchSeeds, numV, numPhy);
+              buildBlockResults(region->front(), std::move(branchSel.result));
+              // Populate cleanUpTrace and restore exitLayout to entry so both
+              // branches always exit with the same layout.
+              RoutingResult &branchResult = blockResults[&region->front()];
+              for (const RoutingEvent &swapEv :
+                   llvm::reverse(branchResult.trace))
+                if (swapEv.kind == RoutingEvent::Kind::Swap)
+                  branchResult.cleanUpTrace.push_back(swapEv);
+              branchResult.exitLayout = branchResult.initialLayout;
+            }
+            assert(!ifOp.hasElse() ||
+                   blockResults[&ifOp.getThenRegion().front()].exitLayout ==
+                       blockResults[&ifOp.getElseRegion().front()].exitLayout);
+            result.trace.push_back(std::move(ev));
+          } else { // Loop
+            auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+            auto *bodyBlock = loopOp.getDoEntryBlock();
+            SmallVector<Value> bodySources;
+            for (auto bodyArg : bodyBlock->getArguments())
+              if (isa<cudaq::quake::WireType>(bodyArg.getType()))
+                bodySources.push_back(bodyArg);
+            RoutingProblem bodyProblem =
+                buildRoutingProblem(*bodyBlock, bodySources, wireToVirtualQ);
+            RoutingSearchStrategy bodySearch(
+                *deviceInstance, bodyProblem,
+                searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
+                extendedLayerWeight, decayDelta, roundsDecayReset,
+                minStallSwapBudget, stallSwapBudgetPerQubit);
+            auto bodySel = bodySearch.run(
+                {SmallVector<unsigned>(replayVqToPhy)}, numV, numPhy);
+            buildBlockResults(*bodyBlock, std::move(bodySel.result));
+            RoutingResult &bodyResult = blockResults[bodyBlock];
+            for (const RoutingEvent &swapEv : llvm::reverse(bodyResult.trace))
+              if (swapEv.kind == RoutingEvent::Kind::Swap)
+                bodyResult.cleanUpTrace.push_back(swapEv);
+            // Route the step block if present (for-loop style). The step block
+            // receives wires in the restored (entry) layout, so we seed it with
+            // replayVqToPhy, the same layout used for the body.
+            if (loopOp.hasStep()) {
+              auto *stepBlock = loopOp.getStepBlock();
+              SmallVector<Value> stepSources;
+              for (auto stepArg : stepBlock->getArguments())
+                if (isa<cudaq::quake::WireType>(stepArg.getType()))
+                  stepSources.push_back(stepArg);
+              RoutingProblem stepProblem =
+                  buildRoutingProblem(*stepBlock, stepSources, wireToVirtualQ);
+              RoutingSearchStrategy stepSearch(
+                  *deviceInstance, stepProblem,
+                  searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
+                  extendedLayerWeight, decayDelta, roundsDecayReset,
+                  minStallSwapBudget, stallSwapBudgetPerQubit);
+              auto stepSel = stepSearch.run(
+                  {SmallVector<unsigned>(replayVqToPhy)}, numV, numPhy);
+              buildBlockResults(*stepBlock, std::move(stepSel.result));
+            }
+            result.trace.push_back(std::move(ev));
+          }
+        }
+      };
+
+      flushTo(flat.trace.size());
+      result.exitLayout =
+          SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
+      blockResults[&blk] = std::move(result);
+    };
+
+    buildBlockResults(block, std::move(selection.result));
+
     // Emit the selected result onto the IR exactly once.
-    RoutingEmitter emitter(wireToVirtualQ, numPhy);
-    auto phyToWire = emitter.emit(block, sources, best);
+    RoutingEmitter emitter(wireToVirtualQ, numPhy, blockResults);
+    auto phyToWire = emitter.emit(block, sources, blockResults[&block]);
     sortTopologically(&block);
 
     // Ensure that the original measurement ordering is still honored by moving
@@ -1816,7 +2503,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       if (s->getUsers().empty()) {
         s->erase();
       } else {
-        Value finalWire = phyToWire[best.initialLayout[i]];
+        Value finalWire = phyToWire[blockResults[&block].initialLayout[i]];
         cudaq::quake::ReturnWireOp::create(builder, finalWire.getLoc(),
                                            finalWire);
       }

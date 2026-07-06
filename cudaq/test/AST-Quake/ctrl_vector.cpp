@@ -22,6 +22,7 @@ struct lower_ctrl_as_qreg {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__lower_ctrl_as_qreg() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
@@ -32,6 +33,7 @@ struct lower_ctrl_as_qreg {
 // CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct test_two_control_call {
   void operator()() __qpu__ {
@@ -46,6 +48,7 @@ struct test_two_control_call {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test_two_control_call() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref):
@@ -64,6 +67,7 @@ struct test_two_control_call {
 // CHECK:          quake.h
 // CHECK:          quake.x
 // CHECK:          return
+// clang-format on
 
 struct unmarked_lambda {
   void operator()() __qpu__ {
@@ -78,6 +82,7 @@ struct unmarked_lambda {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__unmarked_lambda() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
 // CHECK:           ^bb0(%[[VAL_1:.*]]: !quake.ref):
@@ -90,19 +95,23 @@ struct unmarked_lambda {
 // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct direct_unmarked_lambda {
   void operator()() __qpu__ {
     cudaq::qarray<4> qs;
     cudaq::qubit qb;
-    cudaq::control([](cudaq::qubit &qb) {
-      h<cudaq::ctrl>(qb);
-      y<cudaq::ctrl>(qb);
-    }, qs, qb);
+    cudaq::control(
+        [](cudaq::qubit &qb) {
+          h<cudaq::ctrl>(qb);
+          y<cudaq::ctrl>(qb);
+        },
+        qs, qb);
     mz(qb);
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__direct_unmarked_lambda() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
@@ -115,3 +124,4 @@ struct direct_unmarked_lambda {
 // CHECK:           %[[VAL_5:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+// clang-format on

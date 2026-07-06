@@ -1,0 +1,238 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                        //
+//                                                                             //
+// This source code and the accompanying materials are made available under    //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt --qubit-mapping=device=path\(3\) %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+// Single wire through an if/else; each branch applies a different 1-qubit gate.
+// The wire must flow borrow_wire -> if arg -> gate -> continue -> if result.
+//
+// CHECK-LABEL: func.func @test_if_single_wire() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[IF:.*]] = cc.if({{.*}}) ((%[[A:.*]] = %[[Q0]])) -> !quake.wire {
+// CHECK:     %[[HR:.*]] = quake.h %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[HR]] : !quake.wire
+// CHECK:   } else {
+// CHECK:     %[[XR:.*]] = quake.x %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[XR]] : !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[IF]]
+func.func @test_if_single_wire() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1:1 = cc.if (%cond) ((%a = %0)) -> (!quake.wire) {
+    %r = quake.h %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  } else {
+    %r = quake.x %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  }
+  quake.return_wire %1#0 : !quake.wire
+  return
+}
+
+// CNOTs before and after an if. SABRE inserts one SWAP for the first CNOT(0,2).
+// After that SWAP, VQ0 sits on phy1 and VQ2 on phy2 (adjacent), so the second
+// CNOT requires no additional SWAP.
+//
+// CHECK-LABEL: func.func @test_cnot_if_cnot() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[SW:.*]]:2 = quake.swap %[[Q0]], %[[Q1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:   %[[CX1:.*]]:2 = quake.x [%[[SW]]#1] %[[Q2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:   %[[IF:.*]] = cc.if({{.*}}) ((%[[A:.*]] = %[[CX1]]#0)) -> !quake.wire {
+// CHECK:     %[[HR:.*]] = quake.h %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[HR]] : !quake.wire
+// CHECK:   } else {
+// CHECK:     %[[TR:.*]] = quake.t %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[TR]] : !quake.wire
+// CHECK:   }
+// CHECK:   %[[CX2:.*]]:2 = quake.x [%[[IF]]] %[[CX1]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NOT: quake.swap
+func.func @test_cnot_if_cnot() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:1 = cc.if (%cond) ((%a = %3#0)) -> (!quake.wire) {
+    %r = quake.h %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  } else {
+    %r = quake.t %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  }
+  %5:2 = quake.x [%4#0] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
+  return
+}
+
+// Two sequential ifs on the same wire with a 1Q gate between them. The Z gate
+// must consume the first if's result, and the second if must consume the Z result.
+//
+// CHECK-LABEL: func.func @test_two_ifs() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[IF1:.*]] = cc.if({{.*}}) ((%[[A:.*]] = %[[Q0]])) -> !quake.wire {
+// CHECK:     %[[HR:.*]] = quake.h %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[HR]] : !quake.wire
+// CHECK:   } else {
+// CHECK:     %[[XR:.*]] = quake.x %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[XR]] : !quake.wire
+// CHECK:   }
+// CHECK:   %[[ZR:.*]] = quake.z %[[IF1]] : (!quake.wire) -> !quake.wire
+// CHECK:   %[[IF2:.*]] = cc.if({{.*}}) ((%[[B:.*]] = %[[ZR]])) -> !quake.wire {
+// CHECK:     %[[TR:.*]] = quake.t %[[B]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[TR]] : !quake.wire
+// CHECK:   } else {
+// CHECK:     %[[SR:.*]] = quake.s %[[B]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[SR]] : !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[IF2]]
+func.func @test_two_ifs() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1:1 = cc.if (%cond) ((%a = %0)) -> (!quake.wire) {
+    %r = quake.h %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  } else {
+    %r = quake.x %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  }
+  %2 = quake.z %1#0 : (!quake.wire) -> !quake.wire
+  %3:1 = cc.if (%cond) ((%a = %2)) -> (!quake.wire) {
+    %r = quake.t %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  } else {
+    %r = quake.s %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  }
+  quake.return_wire %3#0 : !quake.wire
+  return
+}
+
+// Nested if: inner if inside the then-branch of an outer if. The outer then-arg
+// must thread into the inner if's linear arg, and the inner if's result must
+// flow to the outer cc.continue.
+//
+// CHECK-LABEL: func.func @test_nested_if() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[OUTER:.*]] = cc.if({{.*}}) ((%[[A:.*]] = %[[Q0]])) -> !quake.wire {
+// CHECK:     %[[INNER:.*]] = cc.if({{.*}}) ((%[[B:.*]] = %[[A]])) -> !quake.wire {
+// CHECK:       %[[HR:.*]] = quake.h %[[B]] : (!quake.wire) -> !quake.wire
+// CHECK:       cc.continue %[[HR]] : !quake.wire
+// CHECK:     } else {
+// CHECK:       %[[XR:.*]] = quake.x %[[B]] : (!quake.wire) -> !quake.wire
+// CHECK:       cc.continue %[[XR]] : !quake.wire
+// CHECK:     }
+// CHECK:     cc.continue %[[INNER]] : !quake.wire
+// CHECK:   } else {
+// CHECK:     %[[ZR:.*]] = quake.z %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[ZR]] : !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[OUTER]]
+func.func @test_nested_if() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1:1 = cc.if (%cond) ((%a = %0)) -> (!quake.wire) {
+    %inner:1 = cc.if (%cond) ((%b = %a)) -> (!quake.wire) {
+      %r = quake.h %b : (!quake.wire) -> !quake.wire
+      cc.continue %r : !quake.wire
+    } else {
+      %r = quake.x %b : (!quake.wire) -> !quake.wire
+      cc.continue %r : !quake.wire
+    }
+    cc.continue %inner#0 : !quake.wire
+  } else {
+    %r = quake.z %a : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  }
+  quake.return_wire %1#0 : !quake.wire
+  return
+}
+
+// Two wires through an if/else after a 2-qubit gate forces a SWAP.
+// Virtual qubits 0 and 2 are non-adjacent on path(3), so SABRE routes via
+// SWAP(phy0,phy1); the CNOT then runs on adjacent phy1,phy2. Both post-CNOT
+// wires are correctly threaded into the if's linear args.
+//
+// CHECK-LABEL: func.func @test_if_after_swap() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[SW:.*]]:2 = quake.swap %[[Q0]], %[[Q1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:   %[[CX:.*]]:2 = quake.x [%[[SW]]#1] %[[Q2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:   %[[IF:.*]]:2 = cc.if({{.*}}) ((%[[A:.*]] = %[[CX]]#0, %[[B:.*]] = %[[CX]]#1)) -> (!quake.wire, !quake.wire) {
+// CHECK:     %[[HR:.*]] = quake.h %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     %[[TR:.*]] = quake.t %[[B]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[HR]], %[[TR]] : !quake.wire, !quake.wire
+// CHECK:   } else {
+// CHECK:     %[[ZR:.*]] = quake.z %[[A]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[ZR]], %[[B]] : !quake.wire, !quake.wire
+// CHECK:   }
+func.func @test_if_after_swap() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  // CNOT(0,2) is non-adjacent on path(3) — SABRE inserts a SWAP first.
+  %3:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // Both wires then pass through an if that applies single-qubit gates.
+  %4:2 = cc.if (%cond) ((%a = %3#0, %b = %3#1)) -> (!quake.wire, !quake.wire) {
+    %ra = quake.h %a : (!quake.wire) -> !quake.wire
+    %rb = quake.t %b : (!quake.wire) -> !quake.wire
+    cc.continue %ra, %rb : !quake.wire, !quake.wire
+  } else {
+    %ra = quake.z %a : (!quake.wire) -> !quake.wire
+    cc.continue %ra, %b : !quake.wire, !quake.wire
+  }
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %4#0 : !quake.wire
+  quake.return_wire %4#1 : !quake.wire
+  return
+}
+
+// Two wires pass through an if where both branches return them in reversed order
+// (cc.continue %b, %a).  result#0 carries vq1's wire (initially on phy1) and
+// result#1 carries vq0's wire (initially on phy0).  A CNOT then uses result#0
+// as control and a third wire as target.  Since result#0 is vq1 (phy1) and
+// the third wire is vq2 (phy2), they are adjacent on path(3) and no SWAP is
+// needed.  If the pass incorrectly maps result#0 → vq0 (phy0), it inserts an
+// unnecessary SWAP, and the [%[[IF]]#0] check below would fail.
+//
+// CHECK-LABEL: func.func @test_if_swapped_continue()
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[IF:.*]]:2 = cc.if({{.*}}) ((%[[A:.*]] = %[[Q0]], %[[B:.*]] = %[[Q1]])) -> (!quake.wire, !quake.wire) {
+// CHECK:     cc.continue %[[B]], %[[A]] : !quake.wire, !quake.wire
+// CHECK:   } else {
+// CHECK:     cc.continue %[[B]], %[[A]] : !quake.wire, !quake.wire
+// CHECK:   }
+// CHECK:   quake.x [%[[IF]]#0] %[[Q2]]
+func.func @test_if_swapped_continue() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  // Both branches return wires in reversed order: result#0 = vq1, result#1 = vq0.
+  %3:2 = cc.if (%cond) ((%a = %0, %b = %1)) -> (!quake.wire, !quake.wire) {
+    cc.continue %b, %a : !quake.wire, !quake.wire
+  } else {
+    cc.continue %b, %a : !quake.wire, !quake.wire
+  }
+  // result#0 is vq1 (phy1); wire %2 is vq2 (phy2) — adjacent, no SWAP needed.
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %3#1 : !quake.wire
+  quake.return_wire %4#0 : !quake.wire
+  quake.return_wire %4#1 : !quake.wire
+  return
+}

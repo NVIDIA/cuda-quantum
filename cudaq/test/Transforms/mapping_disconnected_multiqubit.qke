@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The rejection is topology-independent until the mapper can validate a
+// multi-qubit operator against its two-qubit coupling graph.
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_pair.txt)' %s -verify-diagnostics
+// RUN: cudaq-opt '--qubit-mapping=device=ring(3)' %s -verify-diagnostics
+
+quake.wire_set @wires[2147483647]
+
+func.func @ccx() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  // expected-error @+1 {{qubit mapping is defined over a two-qubit coupling graph; decompose multi-qubit gates before mapping}}
+  %0:3 = quake.x [%q0, %q1] %q2 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+  quake.return_wire %0#0 : !quake.wire
+  quake.return_wire %0#1 : !quake.wire
+  quake.return_wire %0#2 : !quake.wire
+  return
+}

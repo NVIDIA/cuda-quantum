@@ -12,9 +12,7 @@
 
 struct S1 {
   // expected-error@+1{{may not use quantum types in non-kernel functions}}
-  void operator()(cudaq::qview<> q) {
-    mz(q);
-  }
+  void operator()(cudaq::qview<> q) { mz(q); }
 };
 
 struct S2 {
@@ -35,9 +33,7 @@ struct S3 {
 
 struct S4 {
   // expected-error@+1{{may not use quantum types in non-kernel functions}}
-  void operator()(cudaq::qarray<4> r) {
-    mz(r);
-  }
+  void operator()(cudaq::qarray<4> r) { mz(r); }
 };
 
 struct S5 {
@@ -47,4 +43,3 @@ struct S5 {
     mz(r);
   }
 };
-
