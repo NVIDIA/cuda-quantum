@@ -106,12 +106,6 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   }
   cudaq::opt::createPipelineTransformsForPythonToOpenQASM(pm);
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
-  const bool enablePrintMLIRBeforeAndAfterEachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-  if (enablePrintMLIRBeforeAndAfterEachPass) {
-    ctx->disableMultithreading();
-    pm.enableIRPrinting();
-  }
   if (failed(cudaq_internal::compiler::runPassManager(pm, compiled_module)))
     throw std::runtime_error("Pass pipeline failed.");
   std::string result;

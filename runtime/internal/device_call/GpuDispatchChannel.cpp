@@ -339,7 +339,7 @@ private:
   int deviceId = 0;
   DeviceCallChannelConfig channelConfig;
   cudaq_dispatch_launch_fn_t launchFn = nullptr;
-  DeviceCallDispatchSynchronizeFn synchronizeFn = nullptr;
+  cudaq::realtime::DeviceCallDispatchSynchronizeFn synchronizeFn = nullptr;
   RingBufferWrapper ringBuffer;
   bool started = false;
   cudaq_dispatch_manager_t *dispatchManager = nullptr;

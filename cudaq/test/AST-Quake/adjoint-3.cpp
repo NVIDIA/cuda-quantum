@@ -6,8 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --apply-op-specialization | FileCheck --check-prefix=ADJOINT %s
+// clang-format on
 
 #include <cudaq.h>
 
@@ -42,6 +44,7 @@ struct QernelZero {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__statePrep_A
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__QernelZero
 
@@ -61,7 +64,7 @@ struct QernelZero {
 // CHECK:                 func.call @__nvqpp__mlirgen__statePrep_A{{.*}}(%[[VAL_10]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
 // CHECK:               cc.continue
 // CHECK:             } step {
-
+// clang-format on
 
 struct run_circuit {
 
@@ -87,6 +90,7 @@ struct run_circuit {
   }
 };
 
+// clang-format off
 // ADJOINT-LABEL:   func.func private @__nvqpp__mlirgen__statePrep_A.adj(
 // ADJOINT-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64) {
 // ADJOINT-DAG:     %[[VAL_2:.*]] = arith.constant -1 : i64
@@ -170,3 +174,4 @@ struct run_circuit {
 // ADJOINT:             func.call @__nvqpp__mlirgen__statePrep_A.adj(%
 // ADJOINT:             func.call @__nvqpp__mlirgen__QernelZero(%
 // ADJOINT:             func.call @__nvqpp__mlirgen__statePrep_A(%
+// clang-format on

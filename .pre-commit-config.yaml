@@ -35,7 +35,7 @@ repos:
         name: C++ formatting (clang-format-22)
         types_or: [c++, c]
         files: '\.(cpp|h|hpp)$'
-        exclude: '^(cudaq/test|targettests|tpls|runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src)/'
+        exclude: '^(tpls|runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src)/'
         args: ['-i']  # In-place formatting
 
   - repo: https://github.com/google/yapf

@@ -1073,8 +1073,8 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   // Get additional debug values
   auto disableMLIRthreading =
       cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  auto enablePrintMLIREachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+  auto printEachPass =
+      cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
 
   auto &platform = cudaq::get_platform();
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
@@ -1141,9 +1141,9 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-  if (disableMLIRthreading || enablePrintMLIREachPass)
+  if (disableMLIRthreading || printEachPass == cudaq::PrintEachPassMode::All)
     context->disableMultithreading();
-  if (enablePrintMLIREachPass)
+  if (printEachPass == cudaq::PrintEachPassMode::All)
     pm.enableIRPrinting();
   bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, cloned));
   timingScope.stop();
@@ -1155,10 +1155,10 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
 }
 
 static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
-  auto enablePrintMLIREachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+  auto printEachPass =
+      cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   auto context = mod.getContext();
-  if (enablePrintMLIREachPass) {
+  if (printEachPass == cudaq::PrintEachPassMode::All) {
     context->disableMultithreading();
     pm.enableIRPrinting();
   }

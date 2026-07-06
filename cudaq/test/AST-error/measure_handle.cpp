@@ -17,12 +17,16 @@
 // expected-note@* 0+ {{}}
 
 struct BoundaryDirectParam {
+  // clang-format off
   // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
   void operator()(cudaq::measure_handle h) __qpu__ { (void)h; }
+  // clang-format on
 };
 
 struct BoundaryDirectReturn {
-  // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  // clang-format off
+  // expected-error@+2{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  // clang-format on
   cudaq::measure_handle operator()() __qpu__ {
     cudaq::qubit q;
     return mz(q);
@@ -30,32 +34,38 @@ struct BoundaryDirectReturn {
 };
 
 struct BoundaryVectorParam {
+  // clang-format off
   // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
   void operator()(std::vector<cudaq::measure_handle> h) __qpu__ { (void)h; }
+  // clang-format on
 };
 
 struct BoundaryTupleParam {
-  // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
-  void operator()(std::tuple<int, cudaq::measure_handle> h) __qpu__ {
-    (void)h;
-  }
+  // clang-format off
+  // expected-error@+2{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  // clang-format on
+  void operator()(std::tuple<int, cudaq::measure_handle> h) __qpu__ { (void)h; }
 };
 
 struct BoundaryPairParam {
-  // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
-  void operator()(std::pair<bool, cudaq::measure_handle> h) __qpu__ {
-    (void)h;
-  }
+  // clang-format off
+  // expected-error@+2{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  // clang-format on
+  void operator()(std::pair<bool, cudaq::measure_handle> h) __qpu__ { (void)h; }
 };
 
 struct BoundaryPointerParam {
+  // clang-format off
   // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
   void operator()(cudaq::measure_handle *h) __qpu__ { (void)h; }
+  // clang-format on
 };
 
 struct BoundaryReferenceParam {
+  // clang-format off
   // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
   void operator()(cudaq::measure_handle &h) __qpu__ { (void)h; }
+  // clang-format on
 };
 
 struct MeasureHandleHolder {
@@ -63,13 +73,18 @@ struct MeasureHandleHolder {
 };
 
 struct BoundaryAggregateParam {
+  // clang-format off
   // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
   void operator()(MeasureHandleHolder s) __qpu__ { (void)s; }
+  // clang-format on
 };
 
 struct BoundaryPairOfVectorParam {
-  // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
-  void operator()(std::pair<int, std::vector<cudaq::measure_handle>> p) __qpu__ {
+  // clang-format off
+  // expected-error@+2{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  // clang-format on
+  void
+  operator()(std::pair<int, std::vector<cudaq::measure_handle>> p) __qpu__ {
     (void)p;
   }
 };
@@ -79,8 +94,10 @@ void sink(std::int64_t);
 struct ToIntegerDirectRejected {
   void operator()() __qpu__ {
     cudaq::qvector q(8);
+    // clang-format off
     // expected-error@+1{{`cudaq::to_integer` accepts `std::vector<bool>`; wrap measurement results with `cudaq::to_bools(...)` first}}
     sink(cudaq::to_integer(mz(q)));
+    // clang-format on
   }
 };
 
