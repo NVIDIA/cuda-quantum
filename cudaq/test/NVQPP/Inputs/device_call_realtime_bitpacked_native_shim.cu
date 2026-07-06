@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "DeviceCallLibrary.h"
-
 #include <cstdint>
 #include <cstring>
 
