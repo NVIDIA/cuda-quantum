@@ -32,6 +32,19 @@ std::size_t getTypeByteSize(const std::string &type) {
     throw std::runtime_error("Unsupported element type in struct type.");
   throw std::runtime_error("Unsupported data type: " + type);
 }
+
+void validateOutputRecord(
+    const std::vector<std::string> &entries,
+    const std::optional<cudaq::RecordSchemaType> &declaredSchema) {
+  if (entries.size() < 3 || entries.size() > 4)
+    throw std::runtime_error("Invalid OUTPUT record");
+  if (declaredSchema.has_value()) {
+    const std::size_t expectedFields =
+        declaredSchema.value() == cudaq::RecordSchemaType::LABELED ? 4 : 3;
+    if (entries.size() != expectedFields)
+      throw std::runtime_error("Unexpected record size for schema");
+  }
+}
 } // namespace
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
@@ -43,6 +56,13 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
 
   // Collect log from a single shot and process it only if it is successful.
   bool processingShot = false;
+  // Track whether we have seen framed output (between START and END) or not
+  bool sawFramedOutput = false;
+  bool sawUnframedOutput = false;
+  bool sawOutput = false;
+  // Keep explicit declarations separate: `schema` is also inferred from
+  // legacy labeled container records.
+  std::optional<RecordSchemaType> declaredSchema;
   // Maintain the starting index of each shot's data
   std::size_t shotStart = 0;
 
@@ -53,22 +73,39 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
       continue;
 
     const std::string &recordType = entries[0];
-    if (recordType == "HEADER")
-      handleHeader(entries);
-    else if (recordType == "METADATA")
+    if (recordType == "HEADER") {
+      if (sawOutput)
+        throw std::runtime_error("HEADER record after output");
+      handleHeader(entries, declaredSchema);
+    } else if (recordType == "METADATA")
       handleMetadata(entries);
     else if (recordType == "START") {
+      if (entries.size() != 1)
+        throw std::runtime_error("Invalid START record");
+      if (processingShot)
+        throw std::runtime_error("Nested START record");
+      if (sawUnframedOutput)
+        throw std::runtime_error("Mixed framed and unframed output");
       processingShot = true;
       shotStart = 0;
     } else if (recordType == "OUTPUT") {
-      if (processingShot)
+      validateOutputRecord(entries, declaredSchema);
+      sawOutput = true;
+      if (processingShot) {
+        sawFramedOutput = true;
         shotStart = shotStart == 0 ? idx : shotStart;
-      else
+      } else {
+        if (sawFramedOutput)
+          throw std::runtime_error("Mixed framed and unframed output");
+        sawUnframedOutput = true;
         handleOutput(entries);
+      }
     } else if (recordType == "END") {
-      if (entries.size() < 2)
-        throw std::runtime_error("Missing shot status");
-      if (entries[1] == "0") {
+      if (entries.size() != 2)
+        throw std::runtime_error("Invalid END record");
+      if (!processingShot)
+        throw std::runtime_error("END record without START");
+      if (detail::parseSize(entries[1]) == 0) {
         if (processingShot) {
           // Successful shot, process it
           for (std::size_t j = shotStart; j < idx; ++j)
@@ -84,19 +121,28 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
       throw std::runtime_error("Invalid record type: " + recordType);
     }
   }
+
+  if (processingShot)
+    throw std::runtime_error("Unterminated shot");
 }
 
 void cudaq::RecordLogParser::handleHeader(
-    const std::vector<std::string> &entries) {
-  if (entries.size() < 3)
+    const std::vector<std::string> &entries,
+    std::optional<RecordSchemaType> &declaredSchema) {
+  if (entries.size() != 3)
     throw std::runtime_error("Invalid HEADER record");
   if (entries[1] == "schema_id") {
+    RecordSchemaType parsedSchema;
     if (entries[2] == "labeled")
-      schema = RecordSchemaType::LABELED;
+      parsedSchema = RecordSchemaType::LABELED;
     else if (entries[2] == "ordered")
-      schema = RecordSchemaType::ORDERED;
+      parsedSchema = RecordSchemaType::ORDERED;
     else
       throw std::runtime_error("Unknown schema type");
+    if (declaredSchema.has_value() && declaredSchema != parsedSchema)
+      throw std::runtime_error("Conflicting schema declarations");
+    declaredSchema = parsedSchema;
+    schema = parsedSchema;
   }
   /// TODO: Handle schema version if needed
 }
@@ -108,6 +154,7 @@ void cudaq::RecordLogParser::handleMetadata(
   if (entries.size() == 3) {
     if (entries[1] == cudaq::opt::qir1_0::RequiredResultsAttrName ||
         entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
+      detail::parseSize(entries[2]);
       metadata[ResultCountMetadataName] = entries[2];
     } else {
       metadata[entries[1]] = entries[2];
@@ -119,10 +166,6 @@ void cudaq::RecordLogParser::handleMetadata(
 
 void cudaq::RecordLogParser::handleOutput(
     const std::vector<std::string> &entries) {
-  if (entries.size() < 3)
-    throw std::runtime_error("Insufficient data in a record");
-  if ((schema == RecordSchemaType::LABELED) && (entries.size() != 4))
-    throw std::runtime_error("Unexpected record size for a labeled record");
   const std::string &recType = entries[1];
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
@@ -154,7 +197,7 @@ void cudaq::RecordLogParser::handleOutput(
       // `qir-base` profile.
       containerMeta.m_type = ContainerType::ARRAY;
       containerMeta.elementCount =
-          std::stoul(metadata[ResultCountMetadataName]);
+          detail::parseSize(metadata[ResultCountMetadataName]);
       containerMeta.arrayType = "i1";
       preallocateArray();
     }
@@ -205,7 +248,7 @@ void cudaq::RecordLogParser::handleOutput(
                           recLabel.empty() ? ContainerStorage::FLAT
                                            : ContainerStorage::PREALLOCATED);
     containerMeta.m_type = ContainerType::ARRAY;
-    containerMeta.elementCount = std::stoul(recValue);
+    containerMeta.elementCount = detail::parseSize(recValue);
     if (!recLabel.empty()) {
       schema = RecordSchemaType::LABELED;
       containerMeta.extractArrayInfo(recLabel);
@@ -218,7 +261,7 @@ void cudaq::RecordLogParser::handleOutput(
                           recLabel.empty() ? ContainerStorage::FLAT
                                            : ContainerStorage::PREALLOCATED);
     containerMeta.m_type = ContainerType::TUPLE;
-    containerMeta.elementCount = std::stoul(recValue);
+    containerMeta.elementCount = detail::parseSize(recValue);
     if (!recLabel.empty()) {
       schema = RecordSchemaType::LABELED;
       containerMeta.extractTupleInfo(recLabel);
