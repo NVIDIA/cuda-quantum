@@ -45,8 +45,10 @@ Single-GPU
 .. _nvidia-backend:
 
 
-The :code:`nvidia` backend  provides a state vector simulator accelerated with -
-the :code:`cuStateVec` library. The `cuStateVec documentation <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/index.html>`__ provides a detailed explanation for how the simulations are performed on the GPU.
+The :code:`nvidia` backend provides single- and multi-GPU state-vector
+simulators accelerated with the `cuStateVec` library, version 1.14 or newer.
+The `cuStateVec documentation <https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/index.html>`__
+provides more information about GPU-accelerated state-vector simulation.
 
 The :code:`nvidia` target supports multiple configurable options including specification of floating point precision.
 
@@ -106,14 +108,14 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
     - Value
     - Description
   * - ``CUDAQ_FUSION_MAX_QUBITS``
-    - positive integer
-    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator as specified :ref:`here <gate-fusion-table>`.
+    - integer (maximum effective value: 10)
+    - The max number of qubits used for gate fusion. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator as specified :ref:`here <gate-fusion-table>`.
   * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
-    - integer greater than or equal to -1
-    - The max number of qubits used for diagonal gate fusion. The default value is set to `-1` and the fusion size will be automatically adjusted for the better performance. If 0, the gate fusion for diagonal gates is disabled.
+    - integer greater than or equal to -1 (maximum effective value: 20)
+    - The max number of qubits used for diagonal gate fusion. Values greater than 20 are clamped to 20. The default value is set to `-1` and the fusion size will be automatically adjusted for better performance. If 0, gate fusion for diagonal gates is disabled.
   * - ``CUDAQ_FUSION_NUM_HOST_THREADS``
-    - positive integer
-    - Number of CPU threads used for circuit processing. The default value is `8`.
+    - positive integer (maximum effective value: 32)
+    - Number of CPU threads used for circuit processing. Values greater than 32 are clamped to 32. The default value is `8`.
   * - ``CUDAQ_MAX_CPU_MEMORY_GB``
     - non-negative integer, or `NONE`
     - CPU memory size (in GB) allowed for state-vector migration. `NONE` means unlimited (up to physical memory constraints). Default is 0GB (disabled, variable is not set to any value).
@@ -123,6 +125,9 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
   * - ``CUDAQ_ALLOW_FP32_EMULATED``
     - `TRUE` (`1`, `ON`) or `FALSE` (`0`, `OFF`)
     - [Blackwell (compute capability 10.0+) only] Enable or disable floating point math emulation. If enabled, allows `FP32` emulation kernels using `BFloat16` (`BF16`) whenever possible. Enabled by default. 
+  * - ``CUDAQ_GPU_RNG_THRESHOLD``
+    - non-negative integer
+    - The minimum random-number count that uses GPU generation. The default is 100,000; 0 selects GPU generation for every request.
   * - ``CUDAQ_ENABLE_MEMPOOL``
     - `TRUE` (`1`, `ON`) or `FALSE` (`0`, `OFF`)
     - Enable or disable `CUDA memory pool <https://developer.nvidia.com/blog/using-cuda-stream-ordered-memory-allocator-part-1/#memory_pools>`__ for state vector allocation/deallocation. Enabled by default. 
@@ -134,14 +139,10 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 
 .. note:: 
 
-    In host-device simulation, `CUDAQ_MAX_CPU_MEMORY_GB` is not 0, the backend automatically switching between inner product (default) and operator matrix-based 
-    methods for expectation calculations (`cudaq::observe`) depending on whether a clone of the state can be allocated or not. 
-
-    For example, when `CUDAQ_MAX_GPU_MEMORY_GB` is unconstrained, the quantum state vector would consume all device memory before utilizing host memory.
-    Thus, the backend would fall back to the operator matrix-based approach as cloning the state is not possible. 
-    For performance reason, only Pauli operator matrices of up to 8 qubits (identity padding not included) are allowed in this mode.
-    This constrain can be relaxed by setting the `CUDAQ_MATRIX_EXP_VAL_MAX_SIZE` environment variable. 
-    Users would need to take into account the full operator matrix size when increasing this setting.
+    The ``CUDAQ_MATRIX_EXP_VAL_MAX_SIZE`` environment variable has been removed.
+    The ``nvidia`` state-vector backend now evaluates Pauli expectations directly
+    on host-migrated states without a dense-matrix fallback, so migrated Pauli
+    terms no longer require a separate width limit.
 
 
 Multi-GPU multi-node 
@@ -218,7 +219,10 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
 .. note:: 
 
-  This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as an MPI installation. If you do not have these dependencies installed, you may encounter either an error stating `invalid simulator requested` (missing CUDA libraries), or an error along the lines of `failed to launch kernel` (missing MPI installation). See the section :ref:`dependencies-and-compatibility` for more information about how to install dependencies.
+  This backend requires an NVIDIA GPU, compatible CUDA runtime libraries,
+  `cuStateVec` 1.14 or newer, and an MPI installation. Missing CUDA or
+  `cuStateVec` libraries may result in an `invalid simulator requested` error. See
+  :ref:`dependencies-and-compatibility` for installation instructions.
   
   The number of processes and nodes should be always power-of-2. 
 
@@ -240,17 +244,17 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - string
     - The shared library name for inter-process communication. The default value is `libmpi.so`.
   * - ``CUDAQ_MGPU_COMM_PLUGIN_TYPE``
-    - `AUTO`, `EXTERNAL`, `OpenMPI`, or `MPICH` 
-    - Selecting :code:`cuStateVec` `CommPlugin` for inter-process communication. The default is `AUTO`. If `EXTERNAL` is selected, `CUDAQ_MGPU_LIB_MPI` should point to an implementation of :code:`cuStateVec` `CommPlugin` interface.
+    - `AUTO`, `SELF`, `EXTERNAL`, `OpenMPI`, or `MPICH`
+    - Select the communicator provider. The default `AUTO` uses activated CUDA-Q MPI when available and otherwise detects OpenMPI or MPICH from `CUDAQ_MGPU_LIB_MPI`. `SELF` requires and uses activated CUDA-Q MPI across all ranks. `OpenMPI`, `MPICH`, and `EXTERNAL` always use the corresponding ``cuStateVecEx`` provider and bypass CUDA-Q MPI. If `EXTERNAL` is selected, `CUDAQ_MGPU_LIB_MPI` must point to a ``cuStateVecEx`` communicator module. Custom communicators set with :code:`cudaq::mpi::set_communicator` are supported only by CUDA-Q-backed `AUTO` and `SELF`.
   * - ``CUDAQ_MGPU_NQUBITS_THRESH``
     - positive integer
     - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
   * - ``CUDAQ_MGPU_FUSE``
-    - positive integer
-    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator as specified :ref:`here <gate-fusion-table>`. 
+    - integer (maximum effective value: 10)
+    - The max number of qubits used for gate fusion. Values greater than 10 are clamped to 10, while a non-positive value disables gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator as specified :ref:`here <gate-fusion-table>`.
   * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
-    - positive integer
-    - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
+    - non-negative integer
+    - Specify the number of global device-index bits that use GPUDirect P2P communication. A value of 0 disables P2P communication.
   * - ``CUDAQ_GPU_FABRIC``
     - `MNNVL`, `NVL`, `NONE`, or NVLink domain size (power of 2 integer)
     - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`); or a specific NVLink domain size.
@@ -327,4 +331,4 @@ environment variable to another integer value as shown below.
 .. note:: 
   
   On multi-node systems without `MNNVL` support, the `nvidia` target in `mgpu` mode may fail to allocate memory. 
-  Users can disable `MNNVL` fabric-based memory sharing by setting the environment variable `UBACKEND_USE_FABRIC_HANDLE=0`.  
+  Users can disable GPU-fabric P2P memory sharing by setting the environment variable `CUDAQ_GPU_FABRIC=NONE`.

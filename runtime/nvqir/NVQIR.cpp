@@ -140,7 +140,10 @@ void toggleDynamicQubitManagement() { qubitPtrIsIndex = !qubitPtrIsIndex; }
 
 /// @brief Tell the simulator we are about to finalize MPI.
 void tearDownBeforeMPIFinalize() {
-  getCircuitSimulatorInternal()->tearDownBeforeMPIFinalize();
+  if (activeAnalysisSimulator)
+    activeAnalysisSimulator->tearDownBeforeMPIFinalize();
+  else if (simulator)
+    simulator->tearDownBeforeMPIFinalize();
 }
 
 /// @brief Store allocated Qubit pointers

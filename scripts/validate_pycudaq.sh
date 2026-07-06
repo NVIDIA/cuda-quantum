@@ -188,7 +188,7 @@ requires_unavailable_gpu_target() {
     targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
     for t in $targets; do
         case "$t" in
-            nvidia|nvidia-legacy|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
                 echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
@@ -328,7 +328,7 @@ cd "$test_workdir"
 if $is_macos; then
     echo "Skipping GPU target verification on macOS (CPU-only)"
 else
-    for tgt in nvidia nvidia-legacy nvidia-fp64 nvidia-mgpu tensornet; do
+    for tgt in nvidia nvidia-fp64 nvidia-mgpu tensornet; do
         python3 -c "import cudaq; cudaq.set_target('${tgt}')"
         if [ $? -ne 0 ]; then
             echo -e "\e[01;31mPython trivial test for target ${tgt} failed.\e[0m" >&2

@@ -172,8 +172,6 @@ vector of handles.
 
 .. doxygentypedef:: cudaq::state_data
 
-.. doxygenclass:: cudaq::CusvState
-
 .. doxygenclass:: nvqir::MPSSimulationState
 
 .. doxygenclass:: nvqir::TensorNetSimulationState

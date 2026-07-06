@@ -44,6 +44,13 @@ CUDAQ_TEST(EncodingTester, alreadyPowerOfTwo) {
   EXPECT_NEAR(0.0, encoded[3].real(), 1e-6);
 }
 
+CUDAQ_TEST(EncodingTester, singleElement) {
+  const state encoded = amplitude_encode(std::vector<double>{1.0});
+  EXPECT_EQ(encoded.get_num_qubits(), 0u);
+  EXPECT_NEAR(encoded[0].real(), 1.0, 1e-6);
+  EXPECT_NEAR(encoded[0].imag(), 0.0, 1e-6);
+}
+
 CUDAQ_TEST(EncodingTester, stateRoundTrip) {
   const state first = amplitude_encode(std::vector<double>{0.5, 0.5, 0.5});
   const state again = amplitude_encode(first);
