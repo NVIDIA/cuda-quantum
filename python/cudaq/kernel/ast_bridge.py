@@ -3299,9 +3299,9 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.id == 'exp_pauli':
                 if len(node.args) == 3:
                     # Both supported forms can have three arguments:
-                    #   exp_pauli(theta, target, pauli_word)
-                    #   exp_pauli(theta, pauli_word, qubit)
-                    # Distinguish them by the second operand's type.
+                    #   `exp_pauli(theta, target, pauli_word)`
+                    #   `exp_pauli(theta, pauli_word, qubit)`
+                    # Distinguish them by the second `operand`'s type.
                     theta, second, third = self.__groupValues(
                         node.args, [1, 1, 1])
                     if self.isQuantumType(second.type):
@@ -3314,7 +3314,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                 targets).result
                 else:
                     # C++-compatible variadic form:
-                    #   exp_pauli(theta, pauli_word, qubit, ...)
+                    #   `exp_pauli(theta, pauli_word, qubit, ...)`
                     theta, pauliWord, targets = self.__groupValues(
                         node.args, [1, 1, (1, -1)])
                     checkControlAndTargetTypes([], targets)
