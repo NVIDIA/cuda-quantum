@@ -25,8 +25,8 @@ Instructions:
 - Default to GPU-accelerated targets (`nvidia`) unless the user is on
   macOS/Apple Silicon, mentions no GPU, or explicitly asks for CPU-only
   simulation. In those cases use `qpp-cpu`.
-- Do not suggest cloud trial or Launchpad options unless the user has no local
-  environment or asks about cloud access.
+- Do not suggest cloud options unless the user has no local environment, asks
+  about cloud access, or needs classroom/workshop access for students.
 
 Platform notes:
 
@@ -49,6 +49,19 @@ Platform notes:
   ```
 
   CUDA-Q and the CUDA Toolkit are pre-installed.
+
+Classroom / academic access:
+
+When the user is teaching a course or running a workshop and students need
+access without local setup, recommend:
+
+- Brev academic workspaces: same NVIDIA Application Hub / Brev CLI flow as
+  above, with CUDA-Q pre-installed.
+- CUDA-Q Academic (<https://github.com/NVIDIA/cuda-q-academic>): ready-made
+  course notebooks runnable locally or in the cloud via qBraid, CoCalc, or
+  Google Colab (see `docs/sphinx/using/quick_start.rst`).
+- Amazon Braket notebook instances: managed cloud notebooks with CUDA-Q
+  available, useful when the class also targets Braket QPUs.
 
 ## Test Program
 
