@@ -340,6 +340,8 @@ fi
 
 cp "$repo_root/LICENSE" "$CUDAQ_INSTALL_PREFIX/LICENSE"
 cp "$repo_root/NOTICE" "$CUDAQ_INSTALL_PREFIX/NOTICE"
+mkdir -p "$CUDAQ_INSTALL_PREFIX/LICENSES"
+cp "$repo_root/LICENSES/"* "$CUDAQ_INSTALL_PREFIX/LICENSES/"
 cp "$repo_root/scripts/cudaq_set_env.sh" "$CUDAQ_INSTALL_PREFIX/set_env.sh"
 
 # The CUDA-Q installation as built above is not fully self-contained;
