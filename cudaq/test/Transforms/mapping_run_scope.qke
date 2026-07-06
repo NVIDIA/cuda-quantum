@@ -1,0 +1,84 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(4) placement=identity search=none' %s | FileCheck %s
+
+// A `run` entry point (marked `quake.cudaq_run`) has its body wrapped in a
+// cc.scope that yields the returned vector, so the quantum ops and their
+// measurements live inside the scope rather than directly in the function. The
+// mapper must descend into that scope and map the circuit; previously it saw
+// the measurements as "inside a branch" and silently backed out, shipping an
+// unmapped circuit. CX between wires 0 and 3 on path(4) forces routing swaps.
+
+module attributes {quake.cudaq_run} {
+  quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+  func.func @kernel.run() attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [!cc.stdvec<i1>]} {
+    %c4_i64 = arith.constant 4 : i64
+    %0 = cc.scope -> (!cc.stdvec<i1>) {
+      %3 = quake.borrow_wire @wires[0] : !quake.wire
+      %4 = quake.borrow_wire @wires[1] : !quake.wire
+      %5 = quake.borrow_wire @wires[2] : !quake.wire
+      %6 = quake.borrow_wire @wires[3] : !quake.wire
+      %7 = quake.h %3 : (!quake.wire) -> !quake.wire
+      %8:2 = quake.x [%7] %6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %9 = cc.alloca !cc.array<i8 x 4>
+      %measOut, %wires = quake.mz %8#0 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+      %10 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+      %11 = cc.cast %9 : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+      %12 = cc.cast unsigned %10 : (i1) -> i8
+      cc.store %12, %11 : !cc.ptr<i8>
+      %measOut_0, %wires_1 = quake.mz %4 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+      %13 = quake.discriminate %measOut_0 : (!cc.measure_handle) -> i1
+      %14 = cc.compute_ptr %9[1] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+      %15 = cc.cast unsigned %13 : (i1) -> i8
+      cc.store %15, %14 : !cc.ptr<i8>
+      %measOut_2, %wires_3 = quake.mz %5 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+      %16 = quake.discriminate %measOut_2 : (!cc.measure_handle) -> i1
+      %17 = cc.compute_ptr %9[2] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+      %18 = cc.cast unsigned %16 : (i1) -> i8
+      cc.store %18, %17 : !cc.ptr<i8>
+      %measOut_4, %wires_5 = quake.mz %8#1 : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
+      %19 = quake.discriminate %measOut_4 : (!cc.measure_handle) -> i1
+      %20 = cc.compute_ptr %9[3] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+      %21 = cc.cast unsigned %19 : (i1) -> i8
+      cc.store %21, %20 : !cc.ptr<i8>
+      %22 = cc.cast %9 : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<!cc.array<i8 x ?>>
+      %23 = cc.stdvec_init %22, %c4_i64 : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.stdvec<i1>
+      quake.return_wire %wires : !quake.wire
+      quake.return_wire %wires_1 : !quake.wire
+      quake.return_wire %wires_3 : !quake.wire
+      quake.return_wire %wires_5 : !quake.wire
+      cc.continue %23 : !cc.stdvec<i1>
+    }
+    %1 = cc.stdvec_size %0 : (!cc.stdvec<i1>) -> i64
+    %2 = cc.stdvec_data %0 : (!cc.stdvec<i1>) -> !cc.ptr<i8>
+    call @__quantum__rt__bool_span_record_output(%2, %1) : (!cc.ptr<i8>, i64) -> ()
+    return
+  }
+  func.func private @__quantum__rt__bool_span_record_output(!cc.ptr<i8>, i64)
+}
+
+// Mapping ran (attributes present) instead of backing out, the mapped body
+// stays inside the cc.scope using the mapped wire set with routing swaps, and
+// the returned vector plumbing is preserved.
+// CHECK-LABEL:   func.func @kernel.run() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [2, 0, 1, 3], mapping_v2p = [2, 0, 1, 3], quake.cudaq_run = {{.*}}} {
+// CHECK:           %[[VAL_0:.*]] = cc.scope -> (!cc.stdvec<i1>) {
+// CHECK:             %[[W0:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:             %[[W1:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:             %[[W2:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:             %[[W3:.*]] = quake.borrow_wire @mapped_wireset
+// CHECK:             %[[H:.*]] = quake.h %[[W0]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[S0:.*]]:2 = quake.swap %[[H]], %[[W1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[S1:.*]]:2 = quake.swap %[[S0]]#1, %[[W2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[CX:.*]]:2 = quake.x {{\[}}%[[S1]]#1] %[[W3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             quake.mz %[[CX]]#0
+// CHECK:             cc.continue %{{.*}} : !cc.stdvec<i1>
+// CHECK:           }
+// CHECK:           call @__quantum__rt__bool_span_record_output
+// CHECK:           return
+// CHECK:         }
