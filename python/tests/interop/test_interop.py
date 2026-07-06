@@ -357,6 +357,34 @@ def test_py_kernel_from_cpp_with_returns():
     cudaq_test_cpp_algo.run6(foo)
 
 
+def test_measure_handles_survive_python_callback():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def measure(qs: cudaq.qview) -> list[cudaq.measure_handle]:
+        return mz(qs)
+
+    dem, m2d_rows, num_measurements = \
+        cudaq_test_cpp_algo.run_measure_handle_callback(measure)
+    assert dem.strip() == 'detector D0'
+    assert m2d_rows == [[0]]
+    assert num_measurements == 2
+
+
+def test_measure_handle_created_before_python_callback_survives():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
+
+    @cudaq.kernel
+    def callback(qs: cudaq.qview):
+        x(qs)
+
+    assert cudaq_test_cpp_algo.run_measure_handle_lifetime(callback)
+
+
 def test_cpp_kernel_from_builder_apply_call():
     """Test that a kernel builder can call a decorator that itself calls C++ kernels."""
     pytest.importorskip('cudaq_test_cpp_algo')
