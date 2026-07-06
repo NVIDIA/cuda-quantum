@@ -83,6 +83,8 @@ while getopts ":c:f:Fi:p:qv:" opt; do
 done
 OPTIND=$__optind__
 
+license_compliance_script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate_license_compliance.sh"
+
 # Sanitize environment: unset variables that could leak build-tree or
 # system-installed CUDA-Q libraries into the validation environment.
 # Without this, DYLD_LIBRARY_PATH from a prior build step can cause the
@@ -323,6 +325,20 @@ status_sum=0
 test_workdir=$(mktemp -d)
 echo "Running tests from isolated directory: $test_workdir"
 cd "$test_workdir"
+
+# GMP and MPFR are redistributed with the wheel under the LGPL v3; verify
+# the license texts ship with the wheel, all linking to them is dynamic,
+# and the libraries can be replaced.
+if [ -f "$license_compliance_script" ]; then
+    bash "$license_compliance_script" --wheel
+    if [ $? -ne 0 ]; then
+        echo -e "\e[01;31mLicense compliance validation failed.\e[0m" >&2
+        status_sum=$((status_sum + 1))
+    fi
+else
+    echo -e "\e[01;31mError: validate_license_compliance.sh not found next to this script.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
 
 # Verify that the necessary GPU targets are installed and usable (Linux only)
 if $is_macos; then

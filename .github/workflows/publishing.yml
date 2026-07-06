@@ -1311,6 +1311,7 @@ jobs:
           cp -R docs/sphinx/targets "$workdir/targets"
           rm -rf "$workdir/examples/python" "$workdir/applications/python" "$workdir/targets/python"
           cp scripts/validate_installation.sh "$workdir/"
+          cp scripts/validate_license_compliance.sh "$workdir/"
           chown -R cudaqtest "$workdir"
 
           touch "$GITHUB_STEP_SUMMARY"
@@ -1497,6 +1498,7 @@ jobs:
           # Setup files for validate_pycudaq.sh script
           # Important: Notebooks are *not* validated by validate_pycudaq.sh.
           cp    $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
+          cp    $GITHUB_WORKSPACE/scripts/validate_license_compliance.sh .
           cp -r $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples/
           cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
           cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
