@@ -25,14 +25,36 @@ def pytest_configure(config):
         "markers",
         "skip_macos_arm64_jit: skip on macOS ARM64 due to JIT exception handling bug (llvm-project#49036)"
     )
+    config.addinivalue_line(
+        "markers",
+        "skip_arm64_jit: skip on any ARM64 platform (macOS or Linux aarch64) due to "
+        "JIT exception handling bug where C++ exceptions thrown through LLVM-compiled "
+        "frames terminate the process instead of propagating to Python (llvm-project#49036)"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
-    """Apply skip marker to tests marked with skip_macos_arm64_jit on macOS ARM64."""
-    if sys.platform == 'darwin' and platform.machine() == 'arm64':
-        skip_marker = pytest.mark.skip(
-            reason=
-            "JIT exception handling broken on macOS ARM64 (llvm-project#49036)")
-        for item in items:
+    """Apply skip markers for ARM64 JIT exception-handling limitations."""
+    # platform.machine() == 'arm64'   on macOS ARM64
+    # platform.machine() == 'aarch64' on Linux ARM64
+    is_arm64 = platform.machine() in ('arm64', 'aarch64')
+    is_darwin = sys.platform == 'darwin'
+
+    for item in items:
+        # Original behaviour unchanged: skip_macos_arm64_jit fires only on macOS ARM64.
+        if is_darwin and is_arm64:
             if item.get_closest_marker('skip_macos_arm64_jit'):
-                item.add_marker(skip_marker)
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason=
+                        "JIT exception handling broken on macOS ARM64 (llvm-project#49036)"
+                    ))
+
+        # New: skip_arm64_jit fires on ANY ARM64 (macOS or Linux aarch64).
+        if is_arm64:
+            if item.get_closest_marker('skip_arm64_jit'):
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason=
+                        "JIT exception handling broken on ARM64 (llvm-project#49036)"
+                    ))

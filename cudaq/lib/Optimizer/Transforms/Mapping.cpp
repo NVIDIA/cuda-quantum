@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Device.h"
@@ -568,11 +569,13 @@ struct RoutingProblem {
   }
 };
 
-/// A single routing decision: a gate mapped onto physical qubits, or a swap
-/// inserted between them. The router records these as it walks the circuit and
-/// the emitter replays them to rewrite the IR.
+/// A single routing decision: a gate mapped onto physical qubits, a swap
+/// inserted between them, or an if-op. The router records Gate and Swap events;
+/// the enrichment step adds If events. The emitter replays the full trace to
+/// rewrite the IR. Branch results for If events live in the block map, not
+/// here.
 struct RoutingEvent {
-  enum class Kind { Gate, Swap };
+  enum class Kind { Gate, Swap, If };
 
   /// A gate mapped onto the physical qubits `phys`, in operand order.
   static RoutingEvent gate(mlir::Operation *op,
@@ -586,17 +589,29 @@ struct RoutingEvent {
                            cudaq::Placement::DeviceQ q1) {
     return RoutingEvent{Kind::Swap, nullptr, {q0, q1}};
   }
+  /// An if-op. `phys` holds the physical qubit for each wire linear arg at the
+  /// point the if is reached; branch results are in the caller's block map.
+  static RoutingEvent makeIf(mlir::Operation *op,
+                             ArrayRef<cudaq::Placement::DeviceQ> phys) {
+    return RoutingEvent{
+        Kind::If, op,
+        SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
+  }
 
   Kind kind;
   mlir::Operation *op;
   SmallVector<cudaq::Placement::DeviceQ, 2> phys;
 };
 
-/// The outcome of routing one layout. The emitter replays `trace` onto the IR.
-/// `swapCount` is the metric used to compare layouts.
+/// The outcome of routing one block. Gate and Swap events come from SABRE; If
+/// events are added by the enrichment step and carry per-branch results.
+/// `swapCount` is the metric used to compare top-level layouts.
 struct RoutingResult {
   /// Virtual-to-physical layout at the start of the walk, before any swap.
   SmallVector<unsigned> initialLayout;
+  /// Virtual-to-physical layout at the end of the walk, after all swaps.
+  /// Computed by enrichTrace; not set on raw SABRE output.
+  SmallVector<unsigned> exitLayout;
   SmallVector<RoutingEvent> trace;
   unsigned swapCount = 0;
 };
@@ -626,24 +641,29 @@ cudaq::Placement::VirtualQ requireVirtualQ(
 /// borrows. Edges and source successors are captured in MLIR use-list order so
 /// the walk visits successors in the same order as the SSA use-def chains.
 RoutingProblem buildRoutingProblem(
-    Block &block, ArrayRef<cudaq::quake::BorrowWireOp> sources,
+    Block &block, ArrayRef<Value> sources,
     const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
   RoutingProblem problem;
   DenseMap<Operation *, RoutingProblem::NodeRef> nodeIndex;
 
   for (Operation &op : block) {
-    if (isa<cudaq::quake::BorrowWireOp>(op) ||
-        !cudaq::quake::isSupportedMappingOperation(&op))
+    if (isa<cudaq::quake::BorrowWireOp>(op))
       continue;
     RoutingProblem::Node node;
     node.op = &op;
-    for (auto wire : cudaq::quake::getQuantumOperands(&op))
-      node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
-    node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
-    node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
-    // A two-qubit gate the router has to make adjacent: a unitary on two wires,
-    // not a measurement or a sink.
-    node.isTwoQ = node.isUnitary && node.qubits.size() == 2;
+    if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
+      for (auto linArg : ifOp.getLinearArgs())
+        if (isa<cudaq::quake::WireType>(linArg.getType()))
+          node.qubits.push_back(requireVirtualQ(wireToVirtualQ, linArg));
+    } else {
+      if (!cudaq::quake::isSupportedMappingOperation(&op))
+        continue;
+      for (auto wire : cudaq::quake::getQuantumOperands(&op))
+        node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
+      node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
+      node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
+      node.isTwoQ = node.isUnitary && node.qubits.size() == 2;
+    }
     nodeIndex[&op] = RoutingProblem::NodeRef(problem.nodes.size());
     problem.nodes.push_back(std::move(node));
   }
@@ -660,11 +680,16 @@ RoutingProblem buildRoutingProblem(
       if (auto it = nodeIndex.find(use.getOwner()); it != nodeIndex.end())
         out.push_back(it->second);
   };
-  for (auto &node : problem.nodes)
-    for (Value wire : cudaq::quake::getQuantumResults(node.op))
-      recordWireUsers(wire, node.successors);
-  for (auto borrow : sources)
-    recordWireUsers(borrow.getResult(), problem.sourceUsers);
+  for (auto &node : problem.nodes) {
+    auto wireResults = isa<cudaq::cc::IfOp>(node.op)
+                           ? node.op->getResults()
+                           : cudaq::quake::getQuantumResults(node.op);
+    for (Value wire : wireResults)
+      if (isa<cudaq::quake::WireType>(wire.getType()))
+        recordWireUsers(wire, node.successors);
+  }
+  for (auto source : sources)
+    recordWireUsers(source, problem.sourceUsers);
 
   return problem;
 }
@@ -706,18 +731,29 @@ RoutingProblem buildReverseProblem(const RoutingProblem &forward) {
     reverse.nodes.push_back(makeReverseNode(node));
   }
 
+  // Splice out IfOps transitively so unitary gates on either side of an IfOp
+  // still form a dependency edge in the reverse problem.
+  std::function<void(RoutingProblem::NodeRef, RoutingProblem::NodeRef,
+                     unsigned &)>
+      addReverseEdges;
+  addReverseEdges = [&](RoutingProblem::NodeRef revSrc,
+                        RoutingProblem::NodeRef fwdSucc, unsigned &count) {
+    if (shouldIncludeInReverse(forward[fwdSucc])) {
+      ++count;
+      reverse.nodes[fwdToRev[fwdSucc.index].index].successors.push_back(revSrc);
+    } else {
+      for (RoutingProblem::NodeRef s : forward[fwdSucc].successors)
+        addReverseEdges(revSrc, s, count);
+    }
+  };
+
   for (unsigned i = 0, end = forward.nodes.size(); i < end; ++i) {
     const RoutingProblem::Node &node = forward.nodes[i];
     if (!shouldIncludeInReverse(node))
       continue;
     unsigned unitarySuccessors = 0;
-    for (RoutingProblem::NodeRef s : node.successors) {
-      if (!shouldIncludeInReverse(forward[s]))
-        continue;
-      ++unitarySuccessors;
-      // Processing the consumer in reverse makes this producer ready.
-      reverse.nodes[fwdToRev[s.index].index].successors.push_back(fwdToRev[i]);
-    }
+    for (RoutingProblem::NodeRef s : node.successors)
+      addReverseEdges(fwdToRev[i], s, unitarySuccessors);
     // Each result wire that does not feed a unitary is a reverse-circuit input.
     for (unsigned k = unitarySuccessors; k < node.qubits.size(); ++k)
       reverse.sourceUsers.push_back(fwdToRev[i]);
@@ -893,6 +929,12 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
   if (!node.isMeasure && deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
+
+  // IfOps are opaque: pass through with their current qubit layout.
+  if (isa<cudaq::cc::IfOp>(node.op)) {
+    result.trace.push_back(RoutingEvent::makeIf(node.op, deviceQubits));
+    return success();
+  }
 
   // Record the placement. The emitter rewires the operation when it applies
   // the result.
@@ -1324,9 +1366,11 @@ private:
 /// threading the current wire on each physical qubit.
 class RoutingEmitter {
 public:
-  RoutingEmitter(DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
-                 unsigned numPhysical)
-      : wireToVirtualQ(wireMap), phyToWire(numPhysical) {}
+  RoutingEmitter(const DenseMap<Value, cudaq::Placement::VirtualQ> &wireMap,
+                 unsigned numPhysical,
+                 const DenseMap<Block *, RoutingResult> &blockMap)
+      : wireToVirtualQ(wireMap), phyToWire(numPhysical),
+        blockResults(blockMap) {}
 
   /// Apply `result` to `block`. Returns the final wire on each physical qubit,
   /// which the caller uses to create the return_wire ops.
@@ -1347,15 +1391,32 @@ public:
       phyToWire[phy] = wire;
     }
 
-    OpBuilder builder(&block, block.begin());
-    auto wireType = builder.getType<cudaq::quake::WireType>();
-    for (const RoutingEvent &ev : result.trace) {
-      if (ev.kind == RoutingEvent::Kind::Gate) {
-        // Rewire the operation onto its physical qubits.
+    emitBlock(block);
+    return phyToWire;
+  }
+
+private:
+  /// Emit the swaps and rewire the operations for a single block, recursing
+  /// into the regions of any `if` operations encountered along the way.
+  void emitBlock(Block &blk) {
+    const RoutingResult &blkResult = blockResults.at(&blk);
+    OpBuilder blkBuilder(&blk, blk.begin());
+    auto wireType = blkBuilder.getType<cudaq::quake::WireType>();
+
+    for (const RoutingEvent &ev : blkResult.trace) {
+      if (ev.kind == RoutingEvent::Kind::Swap) {
+        auto q0 = ev.phys[0], q1 = ev.phys[1];
+        auto swap = cudaq::quake::SwapOp::create(
+            blkBuilder, blkBuilder.getUnknownLoc(),
+            TypeRange{wireType, wireType}, false, ValueRange{}, ValueRange{},
+            ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
+            DenseBoolArrayAttr{});
+        phyToWire[q0.index] = swap.getResult(0);
+        phyToWire[q1.index] = swap.getResult(1);
+      } else if (ev.kind == RoutingEvent::Kind::Gate) {
         SmallVector<Value, 2> newOpWires;
         for (auto phy : ev.phys)
           newOpWires.push_back(phyToWire[phy.index]);
-        // The operand count is unchanged, so this cannot fail.
         [[maybe_unused]] LogicalResult rewired =
             cudaq::quake::setQuantumOperands(ev.op, newOpWires);
         assert(succeeded(rewired) &&
@@ -1365,25 +1426,43 @@ public:
         for (auto &&[w, q] :
              llvm::zip_equal(cudaq::quake::getQuantumResults(ev.op), ev.phys))
           phyToWire[q.index] = w;
-      } else {
-        // Insert the swap and advance both wires past it.
-        auto q0 = ev.phys[0];
-        auto q1 = ev.phys[1];
-        auto swap = cudaq::quake::SwapOp::create(
-            builder, builder.getUnknownLoc(), TypeRange{wireType, wireType},
-            false, ValueRange{}, ValueRange{},
-            ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
-            DenseBoolArrayAttr{});
-        phyToWire[q0.index] = swap.getResult(0);
-        phyToWire[q1.index] = swap.getResult(1);
+      } else { // If
+        auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+        SmallVector<Value> entryWires;
+        for (auto phy : ev.phys)
+          entryWires.push_back(phyToWire[phy.index]);
+        (void)cudaq::quake::setQuantumOperands(ifOp, entryWires);
+
+        auto processBranch = [&](Region &region) {
+          const RoutingResult &branchResult = blockResults.at(&region.front());
+          unsigned phyIdx = 0;
+          for (auto [i, linArg] : llvm::enumerate(ifOp.getLinearArgs())) {
+            if (!wireToVirtualQ.count(linArg))
+              continue;
+            phyToWire[ev.phys[phyIdx++].index] = region.front().getArgument(i);
+          }
+          emitBlock(region.front());
+          for (auto [i, phy] : llvm::enumerate(ev.phys))
+            phyToWire[phy.index] = entryWires[i];
+          return branchResult;
+        };
+
+        const RoutingResult &thenResult = processBranch(ifOp.getThenRegion());
+        if (ifOp.hasElse())
+          processBranch(ifOp.getElseRegion());
+
+        for (Value res : ifOp->getResults())
+          if (isa<cudaq::quake::WireType>(res.getType())) {
+            auto vq = wireToVirtualQ.find(res)->second;
+            phyToWire[thenResult.exitLayout[vq.index]] = res;
+          }
       }
     }
-    return phyToWire;
   }
 
-private:
-  DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
+  const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
   SmallVector<Value> phyToWire;
+  const DenseMap<Block *, RoutingResult> &blockResults;
 };
 
 llvm::Error deviceFromString(llvm::StringRef deviceString, bool &deviceBypass,
@@ -1672,6 +1751,231 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     return success();
   }
 
+  /// Recursively analyze `b` and all IfOp branch regions, populating
+  /// wireToVirtualQ, finalQubitWire, sources, and interaction data. `parentOp`
+  /// is the enclosing cc::IfOp when recursing into a branch; null at the top
+  /// level. cc.continue uses it to set (first branch) or verify (else branch)
+  /// the parent's wire result VQs directly in wireToVirtualQ. Clears
+  /// `analysisOk` on the first unsupported construct.
+  void
+  analyzeBlock(Block &b, bool doCollectInteractions, Operation *parentOp,
+               bool &analysisOk,
+               SmallVectorImpl<cudaq::quake::BorrowWireOp> &sources,
+               SmallVectorImpl<cudaq::quake::ReturnWireOp> &returnsToRemove,
+               DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
+               SmallVectorImpl<std::size_t> &userQubitsMeasured,
+               DenseMap<std::size_t, Value> &finalQubitWire,
+               Operation *&lastSource, VirtualInteractionGraph &interactions,
+               SmallVectorImpl<bool> &userVirtualQubits) {
+    if (!analysisOk)
+      return;
+    for (Operation &op : b.getOperations()) {
+      if (auto qop = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
+        auto id = qop.getIdentity();
+        wireToVirtualQ[qop.getResult()] = cudaq::Placement::VirtualQ(id);
+        finalQubitWire[id] = qop.getResult();
+        sources[id] = qop;
+        if (doCollectInteractions)
+          userVirtualQubits[id] = true;
+        lastSource = &op;
+      } else if (dyn_cast<cudaq::quake::NullWireOp>(op)) {
+        if (nonComposable) {
+          op.emitOpError("the mapper requires borrow operations and "
+                         "prohibits null wires");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
+        analysisOk = false;
+        return;
+      } else if (dyn_cast<cudaq::quake::AllocaOp>(op)) {
+        if (nonComposable) {
+          op.emitOpError("the mapper requires borrow operations and prohibits "
+                         "reference semantics");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
+        analysisOk = false;
+        return;
+      } else if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(op)) {
+        if (!parentOp)
+          continue;
+        // cc.continue operands correspond positionally to parentOp
+        // results. On the first branch, insert; on the else branch,
+        // verify the ordering matches.
+        for (auto [operand, res] :
+             llvm::zip_equal(cont->getOperands(), parentOp->getResults())) {
+          if (!isa<cudaq::quake::WireType>(operand.getType()))
+            continue;
+          auto contVQ = requireVirtualQ(wireToVirtualQ, operand);
+          auto [it, inserted] = wireToVirtualQ.insert({res, contVQ});
+          if (!inserted && it->second.index != contVQ.index) {
+            parentOp->emitOpError("then and else branches return qubits "
+                                  "in different orders");
+            if (nonComposable)
+              signalPassFailure();
+            analysisOk = false;
+            return;
+          }
+        }
+      } else if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
+        auto linearArgs = ifOp.getLinearArgs();
+        for (Region *region : ifOp.getRegions()) {
+          if (region->empty())
+            continue;
+          assert(region->hasOneBlock());
+          for (auto [linArg, regionArg] :
+               llvm::zip_equal(linearArgs, region->front().getArguments()))
+            wireToVirtualQ.insert({regionArg, wireToVirtualQ[linArg]});
+          analyzeBlock(region->front(), /*doCollectInteractions=*/false, &op,
+                       analysisOk, sources, returnsToRemove, wireToVirtualQ,
+                       userQubitsMeasured, finalQubitWire, lastSource,
+                       interactions, userVirtualQubits);
+          if (!analysisOk)
+            return;
+        }
+        for (Value res : ifOp->getResults())
+          if (isa<cudaq::quake::WireType>(res.getType()))
+            finalQubitWire[wireToVirtualQ[res].index] = res;
+      } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
+        if (!cudaq::quake::isLinearValueForm(&op)) {
+          if (nonComposable) {
+            llvm::errs() << "This is not SSA form: " << op << '\n';
+            llvm::errs() << "isa<cudaq::quake::NullWireOp>() = "
+                         << isa<cudaq::quake::NullWireOp>(&op) << '\n';
+            llvm::errs() << "isAllReferences() = "
+                         << cudaq::quake::isAllReferences(&op) << '\n';
+            llvm::errs() << "isWrapped() = " << cudaq::quake::isWrapped(&op)
+                         << '\n';
+            getOperation().emitError("The mapper requires value semantics.");
+            signalPassFailure();
+          }
+          LLVM_DEBUG(llvm::dbgs() << "operation is not in proper value form");
+          analysisOk = false;
+          return;
+        }
+        auto wireOperands = cudaq::quake::getQuantumOperands(&op);
+        auto maybeVirtualOperands =
+            lookupVirtualOperands(op, wireOperands, wireToVirtualQ);
+        if (!maybeVirtualOperands) {
+          analysisOk = false;
+          return;
+        }
+        SmallVector<cudaq::Placement::VirtualQ, 2> virtualOperands =
+            std::move(*maybeVirtualOperands);
+        if (auto rop = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
+          returnsToRemove.push_back(rop);
+          continue;
+        }
+        if (auto gate = dyn_cast<cudaq::quake::OperatorInterface>(op);
+            gate && gate.getControls().size() + gate.getTargets().size() > 2) {
+          op.emitOpError(
+              "qubit mapping is defined over a two-qubit coupling graph; "
+              "decompose multi-qubit gates before mapping");
+          signalPassFailure();
+          LLVM_DEBUG(llvm::dbgs() << "operator with >2 qubits not expected");
+          analysisOk = false;
+          return;
+        }
+        if (isa<cudaq::quake::MeasurementInterface>(op))
+          for (auto virtualQ : virtualOperands)
+            userQubitsMeasured.push_back(virtualQ.index);
+        if (doCollectInteractions && isa<cudaq::quake::OperatorInterface>(op) &&
+            wireOperands.size() == 2) {
+          interactions.addInteraction(virtualOperands[0].index,
+                                      virtualOperands[1].index);
+        }
+        if (failed(recordQuantumResults(op, wireOperands, virtualOperands,
+                                        wireToVirtualQ, finalQubitWire))) {
+          analysisOk = false;
+          return;
+        }
+      } else if (!cudaq::quake::getQuantumOperands(&op).empty() ||
+                 !cudaq::quake::getQuantumResults(&op).empty()) {
+        if (nonComposable) {
+          op.emitOpError("is not supported by the mapper");
+          signalPassFailure();
+        }
+        LLVM_DEBUG(llvm::dbgs() << "unsupported quantum operation in mapper\n");
+        analysisOk = false;
+        return;
+      }
+    }
+  }
+
+  /// For `blk` (outer or a branch block), store its RoutingResult in
+  /// `blockResults`. Routes branch blocks using the placement at the point each
+  /// cc::IfOp is reached as the seed. Recurses for nested IfOps.
+  void buildBlockResults(
+      Block &blk, RoutingResult flat, unsigned numV, unsigned numPhy,
+      SearchStrategy searchStrategy,
+      const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
+      DenseMap<Block *, RoutingResult> &blockResults) {
+    RoutingResult result;
+    result.initialLayout = flat.initialLayout;
+    result.swapCount = flat.swapCount;
+
+    SmallVector<unsigned> replayVqToPhy(numV);
+    SmallVector<unsigned> replayPhyToVQ(numPhy, UINT_MAX);
+    for (unsigned v = 0; v < numV; ++v) {
+      replayVqToPhy[v] = flat.initialLayout[v];
+      replayPhyToVQ[flat.initialLayout[v]] = v;
+    }
+    unsigned srcIdx = 0;
+
+    // flushTo processes all trace events up to limit, routing branch blocks
+    // inline when a Kind::If event is encountered.
+    std::function<void(unsigned)> flushTo;
+    flushTo = [&](unsigned limit) {
+      while (srcIdx < limit) {
+        RoutingEvent &ev = flat.trace[srcIdx++];
+        if (ev.kind == RoutingEvent::Kind::Swap) {
+          unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
+          unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
+          if (v0 != UINT_MAX)
+            replayVqToPhy[v0] = p1;
+          if (v1 != UINT_MAX)
+            replayVqToPhy[v1] = p0;
+          std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::Gate) {
+          result.trace.push_back(std::move(ev));
+        } else { // If
+          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+          SmallVector<SmallVector<unsigned>> branchSeeds = {
+              SmallVector<unsigned>(replayVqToPhy)};
+          for (Region *region : ifOp.getRegions()) {
+            if (region->empty())
+              continue;
+            SmallVector<Value> branchSources;
+            for (auto arg : region->front().getArguments())
+              if (isa<cudaq::quake::WireType>(arg.getType()))
+                branchSources.push_back(arg);
+            RoutingProblem branchProblem = buildRoutingProblem(
+                region->front(), branchSources, wireToVirtualQ);
+            RoutingSearchStrategy branchSearch(
+                *deviceInstance, branchProblem,
+                searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
+                extendedLayerWeight, decayDelta, roundsDecayReset,
+                minStallSwapBudget, stallSwapBudgetPerQubit);
+            auto branchSel = branchSearch.run(branchSeeds, numV, numPhy);
+            buildBlockResults(region->front(), std::move(branchSel.result),
+                              numV, numPhy, searchStrategy, wireToVirtualQ,
+                              blockResults);
+          }
+          assert(!ifOp.hasElse() ||
+                 blockResults[&ifOp.getThenRegion().front()].exitLayout ==
+                     blockResults[&ifOp.getElseRegion().front()].exitLayout);
+          result.trace.push_back(std::move(ev));
+        }
+      }
+    };
+
+    flushTo(flat.trace.size());
+    result.exitLayout =
+        SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
+    blockResults[&blk] = std::move(result);
+  }
+
   void runOnOperation() override {
     if (deviceBypass)
       return;
@@ -1844,107 +2148,64 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
     SearchStrategy searchStrategy = parsedSearch.value_or(SearchStrategy::None);
 
-    // Two-qubit interaction data for placement and disconnected-device
-    // reachability checks, collected during the scan.
+    // Reject any cc::IfOp branch that contains a 2Q gate — Stage 1 only
+    // handles 1Q gates inside branches (no placement reconciliation needed).
+    auto findTwoQGateInBranch = [](cudaq::cc::IfOp ifOp) -> Operation * {
+      for (Region *region : {&ifOp.getThenRegion(), &ifOp.getElseRegion()})
+        for (Block &b : *region)
+          for (Operation &op : b)
+            if (isa<cudaq::quake::OperatorInterface>(op) &&
+                !isa<cudaq::cc::IfOp>(op) &&
+                cudaq::quake::getQuantumOperands(&op).size() > 1)
+              return &op;
+      return nullptr;
+    };
+    auto branchCheckResult = func.walk([&](cudaq::cc::IfOp ifOp) {
+      Operation *twoQGate = findTwoQGateInBranch(ifOp);
+      if (!twoQGate)
+        return WalkResult::advance();
+      if (nonComposable) {
+        twoQGate->emitOpError(
+            "mapper cannot handle 2-qubit gates inside branches");
+        signalPassFailure();
+      }
+      return WalkResult::interrupt();
+    });
+    if (branchCheckResult.wasInterrupted()) {
+      LLVM_DEBUG(llvm::dbgs() << "NYI: 2-qubit gates inside branches\n");
+      return;
+    }
+
+    // Reject measurements not directly inside the function — measure order must
+    // be preserved and cannot yet be reconciled across branches or loops.
+    auto measureCheckResult =
+        func.walk([&](cudaq::quake::MeasurementInterface meas) {
+          if (isa<func::FuncOp>(meas->getParentOp()))
+            return WalkResult::advance();
+          if (nonComposable) {
+            meas->emitOpError(
+                "mapper cannot handle measurements inside branches or loops");
+            signalPassFailure();
+          }
+          return WalkResult::interrupt();
+        });
+    if (measureCheckResult.wasInterrupted()) {
+      LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
+      return;
+    }
+
+    // Interaction data is required by every placement strategy: greedy and
+    // auto use it to build seeds, while identity uses it to reject interactions
+    // that cross disconnected device components.
     VirtualInteractionGraph interactions(deviceNumQubits);
     SmallVector<bool> userVirtualQubits(deviceNumQubits, false);
 
-    for (Operation &op : block.getOperations()) {
-      if (auto qop = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
-        // Assign a new virtual qubit to the resulting wire.
-        auto id = qop.getIdentity();
-        wireToVirtualQ[qop.getResult()] = cudaq::Placement::VirtualQ(id);
-        finalQubitWire[id] = qop.getResult();
-        sources[id] = qop;
-        userVirtualQubits[id] = true;
-        lastSource = &op;
-      } else if (dyn_cast<cudaq::quake::NullWireOp>(op)) {
-        if (nonComposable) {
-          op.emitOpError(
-              "the mapper requires borrow operations and prohibits null wires");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
-        return;
-      } else if (dyn_cast<cudaq::quake::AllocaOp>(op)) {
-        if (nonComposable) {
-          op.emitOpError("the mapper requires borrow operations and prohibits "
-                         "reference semantics");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
-        return;
-      } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
-        // Make sure the operation is using value semantics.
-        if (!cudaq::quake::isLinearValueForm(&op)) {
-          if (nonComposable) {
-            llvm::errs() << "This is not SSA form: " << op << '\n';
-            llvm::errs() << "isa<cudaq::quake::NullWireOp>() = "
-                         << isa<cudaq::quake::NullWireOp>(&op) << '\n';
-            llvm::errs() << "isAllReferences() = "
-                         << cudaq::quake::isAllReferences(&op) << '\n';
-            llvm::errs() << "isWrapped() = " << cudaq::quake::isWrapped(&op)
-                         << '\n';
-            func.emitError("The mapper requires value semantics.");
-            signalPassFailure();
-          }
-          LLVM_DEBUG(llvm::dbgs() << "operation is not in proper value form");
-          return;
-        }
-
-        // Get the wire operands and reject gates the coupling-graph model
-        // cannot validate before resolving their placement.
-        auto wireOperands = cudaq::quake::getQuantumOperands(&op);
-        if (auto gate = dyn_cast<cudaq::quake::OperatorInterface>(op);
-            gate && gate.getControls().size() + gate.getTargets().size() > 2) {
-          op.emitOpError(
-              "qubit mapping is defined over a two-qubit coupling graph; "
-              "decompose multi-qubit gates before mapping");
-          signalPassFailure();
-          return;
-        }
-
-        auto maybeVirtualOperands =
-            lookupVirtualOperands(op, wireOperands, wireToVirtualQ);
-        if (!maybeVirtualOperands)
-          return;
-        SmallVector<cudaq::Placement::VirtualQ, 2> virtualOperands =
-            std::move(*maybeVirtualOperands);
-
-        // Since `quake.return_wire` operations do not generate new wires, we
-        // don't need to further analyze.
-        if (auto rop = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
-          returnsToRemove.push_back(rop);
-          continue;
-        }
-
-        // Save which qubits are measured.
-        if (isa<cudaq::quake::MeasurementInterface>(op))
-          for (auto virtualQ : virtualOperands)
-            userQubitsMeasured.push_back(virtualQ.index);
-
-        // Record two-qubit interactions for placement.
-        if (isa<cudaq::quake::OperatorInterface>(op) &&
-            wireOperands.size() == 2) {
-          unsigned v0 = virtualOperands[0].index;
-          unsigned v1 = virtualOperands[1].index;
-          interactions.addInteraction(v0, v1);
-        }
-
-        // Map the result wires to the appropriate virtual qubits.
-        if (failed(recordQuantumResults(op, wireOperands, virtualOperands,
-                                        wireToVirtualQ, finalQubitWire)))
-          return;
-      } else if (!cudaq::quake::getQuantumOperands(&op).empty() ||
-                 !cudaq::quake::getQuantumResults(&op).empty()) {
-        if (nonComposable) {
-          op.emitOpError("is not supported by the mapper");
-          signalPassFailure();
-        }
-        LLVM_DEBUG(llvm::dbgs() << "unsupported quantum operation in mapper\n");
-        return;
-      }
-    }
+    bool analysisOk = true;
+    analyzeBlock(block, /*doCollectInteractions=*/true, nullptr, analysisOk,
+                 sources, returnsToRemove, wireToVirtualQ, userQubitsMeasured,
+                 finalQubitWire, lastSource, interactions, userVirtualQubits);
+    if (!analysisOk)
+      return;
 
     const unsigned numV = sources.size();
     const unsigned numPhy = deviceInstance->getNumQubits();
@@ -2041,20 +2302,28 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Build the routing problem once (it does not depend on the layout), then
     // search over the seeds for the result with the fewest swaps.
+    SmallVector<Value> sourceValues;
+    for (auto borrow : sources)
+      sourceValues.push_back(borrow.getResult());
     RoutingProblem problem =
-        buildRoutingProblem(block, sources, wireToVirtualQ);
+        buildRoutingProblem(block, sourceValues, wireToVirtualQ);
     RoutingSearchStrategy search(
         *deviceInstance, problem, searchStrategy == SearchStrategy::Sabre,
         extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset,
         minStallSwapBudget, stallSwapBudgetPerQubit);
     RoutingSearchStrategy::Selection selection =
         search.run(seeds, numV, numPhy);
-    RoutingResult &best = selection.result;
     cudaq::Placement &bestLayout = selection.finalLayout;
 
+    // For each block (outer and all branch blocks), store its RoutingResult in
+    // blockResults.
+    DenseMap<Block *, RoutingResult> blockResults;
+    buildBlockResults(block, std::move(selection.result), numV, numPhy,
+                      searchStrategy, wireToVirtualQ, blockResults);
+
     // Emit the selected result onto the IR exactly once.
-    RoutingEmitter emitter(wireToVirtualQ, numPhy);
-    auto phyToWire = emitter.emit(block, sources, best);
+    RoutingEmitter emitter(wireToVirtualQ, numPhy, blockResults);
+    auto phyToWire = emitter.emit(block, sources, blockResults[&block]);
     sortTopologically(&block);
 
     // Ensure that the original measurement ordering is still honored by moving
@@ -2076,7 +2345,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       if (s->getUsers().empty()) {
         s->erase();
       } else {
-        Value finalWire = phyToWire[best.initialLayout[i]];
+        Value finalWire = phyToWire[blockResults[&block].initialLayout[i]];
         cudaq::quake::ReturnWireOp::create(builder, finalWire.getLoc(),
                                            finalWire);
       }
