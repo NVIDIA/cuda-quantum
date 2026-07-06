@@ -223,6 +223,27 @@ def test_nested_list4_int():
     assert '1111111111111111' in counts
 
 
+def test_struct_list_int_negative():
+    # Regression test for issue 4846
+    from dataclasses import dataclass
+
+    @dataclass(slots=True)
+    class Args:
+        values: list[int]
+
+    @cudaq.kernel
+    def kernel(args: Args):
+        q = cudaq.qvector(2)
+        if args.values[0] < 0:
+            x(q[0])
+        if args.values[1] > 5:
+            x(q[1])
+
+    counts = cudaq.sample(kernel, Args([-3, 10]))
+    assert len(counts) == 1
+    assert '11' in counts
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
