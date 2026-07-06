@@ -185,6 +185,9 @@ exclusively linked dynamically. It can be replaced with a compatible
 version by substituting the shared library file.
 Source code at <https://gmplib.org/download/gmp/>
 License at <https://gmplib.org/manual/Copying.html>
+The full license text is distributed with CUDA-Q in the files
+LICENSES/LICENSE.LGPLv3 (GNU LGPL v3) and LICENSES/LICENSE.GPLv3 (GNU GPL v3,
+incorporated by reference by the LGPL v3), located alongside this NOTICE.
 
 ----------------------------------------------------------------
 
@@ -198,6 +201,9 @@ exclusively linked dynamically. It can be replaced with a compatible
 version by substituting the shared library file.
 Source code at <https://www.mpfr.org/mpfr-current/>
 License at <https://www.gnu.org/licenses/lgpl-3.0.html>
+The full license text is distributed with CUDA-Q in the files
+LICENSES/LICENSE.LGPLv3 (GNU LGPL v3) and LICENSES/LICENSE.GPLv3 (GNU GPL v3,
+incorporated by reference by the LGPL v3), located alongside this NOTICE.
 
 ----------------------------------------------------------------
 
