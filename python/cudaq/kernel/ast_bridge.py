@@ -3297,11 +3297,28 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id == 'exp_pauli':
-                # Note: C++ also has a constructor that takes an `f64`,
-                # `string`, any any number of qubits. We don't support this
-                # here.
-                theta, target, pauliWord = self.__groupValues(
-                    node.args, [1, 1, 1])
+                if len(node.args) == 3:
+                    # Both supported forms can have three arguments:
+                    #   `exp_pauli(theta, target, pauli_word)`
+                    #   `exp_pauli(theta, pauli_word, qubit)`
+                    # Distinguish them by the second `operand`'s type.
+                    theta, second, third = self.__groupValues(
+                        node.args, [1, 1, 1])
+                    if self.isQuantumType(second.type):
+                        target, pauliWord = second, third
+                    else:
+                        pauliWord = second
+                        targets = [third]
+                        checkControlAndTargetTypes([], targets)
+                        target = quake.ConcatOp(self.getVeqType(),
+                                                targets).result
+                else:
+                    # C++-compatible variadic form:
+                    #   `exp_pauli(theta, pauli_word, qubit, ...)`
+                    theta, pauliWord, targets = self.__groupValues(
+                        node.args, [1, 1, (1, -1)])
+                    checkControlAndTargetTypes([], targets)
+                    target = quake.ConcatOp(self.getVeqType(), targets).result
                 theta = self.changeOperandToType(self.getFloatType(), theta)
                 processQuantumOperation("ExpPauli", [], [target], [], [theta],
                                         broadcast=False,

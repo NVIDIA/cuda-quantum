@@ -387,32 +387,6 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
 
 //==============================================================================
-// Host dispatcher path (CUDAQ_DISPATCH_PATH_HOST)
-//==============================================================================
-// When config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST, start() uses these
-// instead of launch_fn. The realtime lib calls them; implementation is in
-// libcudaq-realtime-host-dispatch.
-
-typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
-
-// Start the host dispatcher loop in a new thread. Call from
-// cudaq_dispatcher_start when dispatch_path is CUDAQ_DISPATCH_PATH_HOST.
-// Returns a handle for stop, or NULL on error. If external_mailbox is non-NULL,
-// uses it instead of allocating internally.
-cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
-    const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
-    const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
-    uint64_t *stats, void **external_mailbox);
-
-// Stop the host dispatcher thread and free resources.
-void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle);
-
-// Release a worker back to the idle pool (handle-level, called by API layer).
-cudaq_status_t
-cudaq_host_dispatcher_release_worker(cudaq_host_dispatcher_handle_t *handle,
-                                     int worker_id);
-
-//==============================================================================
 // Ring buffer slot helpers (producer / consumer side)
 //==============================================================================
 // These encapsulate the RPC wire format and flag-signalling protocol so that

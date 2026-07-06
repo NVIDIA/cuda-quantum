@@ -527,12 +527,23 @@ def evolve(
                                max_batch_size)
     else:
         if isinstance(initial_state, Sequence):
+
+            def evolve_one(ham, state, collapse_ops):
+                schedule.reset()
+                return evolve_single(ham, dimensions, schedule, state,
+                                     collapse_ops, observables,
+                                     store_intermediate_results, integrator,
+                                     shots_count)
+
+            if isinstance(hamiltonian, Sequence):
+                return [
+                    evolve_one(ham, state, collapse_ops)
+                    for ham, state, collapse_ops in zip(
+                        hamiltonian, initial_state, collapse_operators)
+                ]
             return [
-                evolve_single(ham, dimensions, schedule, state, collapse_ops,
-                              observables, store_intermediate_results,
-                              integrator, shots_count)
-                for ham, state, collapse_ops in zip(hamiltonian, initial_state,
-                                                    collapse_operators)
+                evolve_one(hamiltonian, state, collapse_operators)
+                for state in initial_state
             ]
         else:
             return evolve_single(hamiltonian, dimensions, schedule,

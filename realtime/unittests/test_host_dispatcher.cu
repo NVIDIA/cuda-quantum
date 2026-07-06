@@ -17,7 +17,7 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/host_dispatcher.h"
+#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
 
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
@@ -246,8 +246,10 @@ bool create_double_graph(void** d_mailbox_slot, cudaGraph_t* graph_out,
 }
 
 //==============================================================================
-// Test fixture: drives host_dispatcher_loop directly (not C API) for full
-// control over idle_mask, enabling worker recycling and backpressure tests.
+// Test fixture: drives the slim 3-thread ring loop (cudaq_host_ring_dispatch_loop)
+// over a standalone GRAPH_LAUNCH engine, for full control over idle_mask,
+// enabling worker recycling and backpressure tests.  In-place ring
+// (rx_data == tx_data): the raw-mailbox graphs write the response into the RX slot.
 //==============================================================================
 
 static constexpr std::size_t kMaxWorkers = 8;
@@ -270,10 +272,6 @@ protected:
     CUDA_CHECK(cudaHostGetDevicePointer(
         reinterpret_cast<void**>(&d_mailbox_bank_), h_mailbox_bank_, 0));
 
-    idle_mask_ = new cuda::std::atomic<uint64_t>(0);
-    live_dispatched_ = new cuda::std::atomic<uint64_t>(0);
-    inflight_slot_tags_ = new int[kMaxWorkers]();
-    shutdown_flag_ = new cuda::std::atomic<int>(0);
     stats_counter_ = 0;
 
     function_table_ = new cudaq_function_entry_t[kMaxWorkers];
@@ -283,26 +281,29 @@ protected:
     ringbuffer_.rx_flags = rx_flags_dev_;
     ringbuffer_.tx_flags = tx_flags_dev_;
     ringbuffer_.rx_data = rx_data_dev_;
-    ringbuffer_.tx_data = tx_data_dev_;
+    ringbuffer_.tx_data = rx_data_dev_; // in-place: the graph writes into the RX slot
     ringbuffer_.rx_stride_sz = slot_size_;
     ringbuffer_.tx_stride_sz = slot_size_;
     ringbuffer_.rx_flags_host = rx_flags_host_;
     ringbuffer_.tx_flags_host = tx_flags_host_;
     ringbuffer_.rx_data_host = rx_data_host_;
-    ringbuffer_.tx_data_host = tx_data_host_;
+    ringbuffer_.tx_data_host = rx_data_host_;
+
+    config_.num_slots = static_cast<uint32_t>(num_slots_);
+    config_.slot_size = static_cast<uint32_t>(slot_size_);
   }
 
   void TearDown() override {
     if (!loop_stopped_) {
-      shutdown_flag_->store(1, cuda::std::memory_order_release);
+      shutdown_flag_ = 1;
       __sync_synchronize();
       if (loop_thread_.joinable())
         loop_thread_.join();
     }
+    if (engine_)
+      cudaq_graph_launch_engine_destroy(engine_);
 
     for (auto& w : worker_info_) {
-      if (w.stream)
-        cudaStreamDestroy(w.stream);
       if (w.graph_exec)
         cudaGraphExecDestroy(w.graph_exec);
       if (w.graph)
@@ -313,30 +314,18 @@ protected:
     free_ring_buffer(tx_flags_host_, tx_data_host_);
     if (h_mailbox_bank_)
       cudaFreeHost(h_mailbox_bank_);
-    delete idle_mask_;
-    delete live_dispatched_;
-    delete[] inflight_slot_tags_;
-    delete shutdown_flag_;
     delete[] function_table_;
   }
 
   struct WorkerInfo {
     cudaGraphExec_t graph_exec = nullptr;
     cudaGraph_t graph = nullptr;
-    cudaStream_t stream = nullptr;
   };
 
+  // Register a GRAPH_LAUNCH entry; the engine creates the worker stream from it.
   void AddWorker(std::uint32_t function_id, cudaGraphExec_t exec,
                  cudaGraph_t graph) {
-    cudaStream_t stream = nullptr;
-    ASSERT_EQ(cudaStreamCreate(&stream), cudaSuccess);
-
-    cudaq_host_dispatch_worker_t w{};
-    w.graph_exec = exec;
-    w.stream = stream;
-    w.function_id = function_id;
-    workers_.push_back(w);
-    worker_info_.push_back({exec, graph, stream});
+    worker_info_.push_back({exec, graph});
 
     std::size_t idx = function_table_count_;
     function_table_[idx].handler.graph_exec = exec;
@@ -346,32 +335,20 @@ protected:
   }
 
   void StartLoop() {
-    idle_mask_->store((1ULL << workers_.size()) - 1,
-                      cuda::std::memory_order_release);
+    table_.entries = function_table_;
+    table_.count = static_cast<uint32_t>(function_table_count_);
 
-    config_.ringbuffer.rx_flags_host = rx_flags_host_;
-    config_.ringbuffer.tx_flags_host = tx_flags_host_;
-    config_.ringbuffer.rx_data_host = rx_data_host_;
-    config_.ringbuffer.rx_data = rx_data_dev_;
-    config_.ringbuffer.tx_data_host = tx_data_host_;
-    config_.ringbuffer.tx_data = tx_data_dev_;
-    config_.ringbuffer.tx_stride_sz = slot_size_;
-    config_.ringbuffer.tx_flags = tx_flags_dev_;
-    config_.config.num_slots = static_cast<uint32_t>(num_slots_);
-    config_.config.slot_size = static_cast<uint32_t>(slot_size_);
-    config_.function_table.entries = function_table_;
-    config_.function_table.count = static_cast<uint32_t>(function_table_count_);
-    config_.workers = workers_.data();
-    config_.num_workers = workers_.size();
-    config_.h_mailbox_bank = h_mailbox_bank_;
-    config_.shutdown_flag = shutdown_flag_;
-    config_.stats_counter = &stats_counter_;
-    config_.live_dispatched = live_dispatched_;
-    config_.idle_mask = idle_mask_;
-    config_.inflight_slot_tags = inflight_slot_tags_;
+    // Build the standalone engine (one worker per GRAPH_LAUNCH entry); it owns
+    // the worker streams / idle_mask and uses our caller-supplied pinned mailbox.
+    cudaq_status_t st = CUDAQ_OK;
+    engine_ = cudaq_graph_launch_engine_create(&ringbuffer_, &table_, &config_,
+                                               h_mailbox_bank_, &st);
+    ASSERT_EQ(st, CUDAQ_OK);
+    ASSERT_NE(engine_, nullptr);
 
     loop_thread_ = std::thread([this]() {
-      cudaq_host_dispatcher_loop(&config_);
+      cudaq_host_ring_dispatch_loop(&ringbuffer_, &table_, &config_, engine_,
+                                    &shutdown_flag_, &stats_counter_);
     });
   }
 
@@ -401,15 +378,18 @@ protected:
   }
 
   void StopLoop() {
-    shutdown_flag_->store(1, cuda::std::memory_order_release);
+    shutdown_flag_ = 1;
     __sync_synchronize();
     if (loop_thread_.joinable())
       loop_thread_.join();
     loop_stopped_ = true;
   }
 
+  // Return a worker to the idle pool by poking the engine's idle_mask directly
+  // (simulates the recycle the loop's stream sweep does once a graph completes).
   void RestoreWorker(int worker_id) {
-    idle_mask_->fetch_or(1ULL << worker_id, cuda::std::memory_order_release);
+    static_cast<cuda::std::atomic<uint64_t>*>(engine_->idle_mask)
+        ->fetch_or(1ULL << worker_id, cuda::std::memory_order_release);
   }
 
   void ClearSlot(std::size_t slot) {
@@ -456,20 +436,18 @@ protected:
   void** h_mailbox_bank_ = nullptr;
   void** d_mailbox_bank_ = nullptr;
 
-  cuda::std::atomic<uint64_t>* idle_mask_ = nullptr;
-  cuda::std::atomic<uint64_t>* live_dispatched_ = nullptr;
-  int* inflight_slot_tags_ = nullptr;
-  cuda::std::atomic<int>* shutdown_flag_ = nullptr;
+  volatile int shutdown_flag_ = 0;
   uint64_t stats_counter_ = 0;
   bool loop_stopped_ = false;
 
   cudaq_function_entry_t* function_table_ = nullptr;
   std::size_t function_table_count_ = 0;
-  std::vector<cudaq_host_dispatch_worker_t> workers_;
   std::vector<WorkerInfo> worker_info_;
 
   cudaq_ringbuffer_t ringbuffer_{};
-  cudaq_host_dispatch_loop_ctx_t config_;
+  cudaq_function_table_t table_{};
+  cudaq_dispatcher_config_t config_;
+  cudaq_graph_launch_engine_t* engine_ = nullptr;
   std::thread loop_thread_;
 };
 
@@ -898,8 +876,6 @@ TEST_F(HostDispatcherLoopTest, BackpressureWhenAllBusy) {
   VerifyResponse(0, expected0, 4);
   VerifyResponse(1, expected1, 4);
 
-  EXPECT_EQ(live_dispatched_->load(cuda::std::memory_order_acquire), 2u);
-
   StopLoop();
   EXPECT_EQ(stats_counter_, 2u);
 }
@@ -947,9 +923,6 @@ TEST_F(HostDispatcherLoopTest, StatsCounterAccuracy) {
 
     RestoreWorker(0);
   }
-
-  EXPECT_EQ(live_dispatched_->load(cuda::std::memory_order_acquire),
-            static_cast<uint64_t>(kNumRpcs));
 
   StopLoop();
   EXPECT_EQ(stats_counter_, static_cast<uint64_t>(kNumRpcs));
@@ -1001,9 +974,6 @@ TEST_F(HostDispatcherLoopTest, MultiSlotRoundRobin) {
         static_cast<std::uint8_t>(i * 4 + 5)};
     VerifyResponse(static_cast<std::size_t>(i), expected, 4);
   }
-
-  EXPECT_EQ(live_dispatched_->load(cuda::std::memory_order_acquire),
-            static_cast<uint64_t>(kNumSlots));
 
   StopLoop();
   EXPECT_EQ(stats_counter_, static_cast<uint64_t>(kNumSlots));
@@ -1329,10 +1299,6 @@ protected:
     CUDA_CHECK(cudaHostGetDevicePointer(&tmp_dev, tmp, 0));
     shutdown_flag_dev_ = static_cast<volatile int*>(tmp_dev);
 
-    host_loop_shutdown_atomic_ =
-        reinterpret_cast<cuda::std::atomic<int>*>(
-            const_cast<int*>(shutdown_flag_host_));
-
     CUDA_CHECK(cudaMalloc(&device_loop_stats_, sizeof(uint64_t)));
     CUDA_CHECK(cudaMemset(device_loop_stats_, 0, sizeof(uint64_t)));
 
@@ -1410,49 +1376,38 @@ protected:
 
     ASSERT_EQ(cudaq_dispatcher_start(device_dispatcher_), CUDAQ_OK);
 
-    host_workers_.push_back(cudaq_host_dispatch_worker_t{});
-    cudaStream_t host_stream = nullptr;
-    CUDA_CHECK(cudaStreamCreate(&host_stream));
-    host_workers_[0].graph_exec = host_graph_exec_;
-    host_workers_[0].stream = host_stream;
-    host_workers_[0].function_id = HOST_GRAPH_FN_ID;
+    std::memset(&host_ringbuffer_, 0, sizeof(host_ringbuffer_));
+    host_ringbuffer_.rx_flags = rx_flags_dev_;
+    host_ringbuffer_.tx_flags = tx_flags_dev_;
+    host_ringbuffer_.rx_data = rx_data_dev_;
+    host_ringbuffer_.tx_data = tx_data_dev_;
+    host_ringbuffer_.rx_stride_sz = kSharedRingSlotSize;
+    host_ringbuffer_.tx_stride_sz = kSharedRingSlotSize;
+    host_ringbuffer_.rx_flags_host = rx_flags_host_;
+    host_ringbuffer_.tx_flags_host = tx_flags_host_;
+    host_ringbuffer_.rx_data_host = rx_data_host_;
+    host_ringbuffer_.tx_data_host = tx_data_host_;
 
-    host_idle_mask_ = new cuda::std::atomic<uint64_t>(1ULL);
-    host_live_dispatched_ = new cuda::std::atomic<uint64_t>(0);
-    host_inflight_slot_tags_ = new int[host_workers_.size()];
-    for (size_t i = 0; i < host_workers_.size(); ++i)
-      host_inflight_slot_tags_[i] = -1;
+    host_table_.entries = function_table_dev_;
+    host_table_.count = 2;
 
-    std::memset(&host_ctx_, 0, sizeof(host_ctx_));
-    host_ctx_.ringbuffer.rx_flags = rx_flags_dev_;
-    host_ctx_.ringbuffer.tx_flags = tx_flags_dev_;
-    host_ctx_.ringbuffer.rx_data = rx_data_dev_;
-    host_ctx_.ringbuffer.tx_data = tx_data_dev_;
-    host_ctx_.ringbuffer.rx_stride_sz = kSharedRingSlotSize;
-    host_ctx_.ringbuffer.tx_stride_sz = kSharedRingSlotSize;
-    host_ctx_.ringbuffer.rx_flags_host = rx_flags_host_;
-    host_ctx_.ringbuffer.tx_flags_host = tx_flags_host_;
-    host_ctx_.ringbuffer.rx_data_host = rx_data_host_;
-    host_ctx_.ringbuffer.tx_data_host = tx_data_host_;
+    std::memset(&host_config_, 0, sizeof(host_config_));
+    host_config_.num_slots = static_cast<uint32_t>(kSharedRingNumSlots);
+    host_config_.slot_size = static_cast<uint32_t>(kSharedRingSlotSize);
+    host_config_.shared_ring_mode = 1;
 
-    host_ctx_.config.num_slots = static_cast<uint32_t>(kSharedRingNumSlots);
-    host_ctx_.config.slot_size = static_cast<uint32_t>(kSharedRingSlotSize);
-    host_ctx_.config.shared_ring_mode = 1;
+    cudaq_status_t engine_st = CUDAQ_OK;
+    host_engine_ = cudaq_graph_launch_engine_create(
+        &host_ringbuffer_, &host_table_, &host_config_, h_mailbox_bank_,
+        &engine_st);
+    ASSERT_EQ(engine_st, CUDAQ_OK);
+    ASSERT_NE(host_engine_, nullptr);
 
-    host_ctx_.function_table.entries = function_table_dev_;
-    host_ctx_.function_table.count = 2;
-    host_ctx_.workers = host_workers_.data();
-    host_ctx_.num_workers = host_workers_.size();
-    host_ctx_.h_mailbox_bank = h_mailbox_bank_;
-    host_ctx_.shutdown_flag = host_loop_shutdown_atomic_;
-    host_ctx_.stats_counter = &host_loop_stats_;
-    host_ctx_.live_dispatched = host_live_dispatched_;
-    host_ctx_.idle_mask = host_idle_mask_;
-    host_ctx_.inflight_slot_tags = host_inflight_slot_tags_;
-    host_ctx_.skip_stream_sweep = false;
-
-    host_loop_thread_ =
-        std::thread([this]() { cudaq_host_dispatcher_loop(&host_ctx_); });
+    host_loop_thread_ = std::thread([this]() {
+      cudaq_host_ring_dispatch_loop(&host_ringbuffer_, &host_table_,
+                                    &host_config_, host_engine_,
+                                    shutdown_flag_host_, &host_loop_stats_);
+    });
   }
 
   void TearDown() override {
@@ -1461,6 +1416,11 @@ protected:
 
     if (host_loop_thread_.joinable())
       host_loop_thread_.join();
+
+    if (host_engine_) {
+      cudaq_graph_launch_engine_destroy(host_engine_);
+      host_engine_ = nullptr;
+    }
 
     if (device_dispatcher_) {
       cudaq_dispatcher_stop(device_dispatcher_);
@@ -1478,15 +1438,6 @@ protected:
       cudaGraphExecDestroy(host_graph_exec_);
     if (host_graph_)
       cudaGraphDestroy(host_graph_);
-    for (auto& w : host_workers_) {
-      if (w.stream)
-        cudaStreamDestroy(w.stream);
-    }
-    host_workers_.clear();
-
-    delete host_idle_mask_;
-    delete host_live_dispatched_;
-    delete[] host_inflight_slot_tags_;
 
     if (function_table_host_)
       cudaFreeHost(function_table_host_);
@@ -1572,12 +1523,11 @@ protected:
   void** h_mailbox_bank_ = nullptr;
   void* d_mailbox_bank_void_ = nullptr;
   void** d_mailbox_bank_ = nullptr;
-  std::vector<cudaq_host_dispatch_worker_t> host_workers_;
-  cuda::std::atomic<uint64_t>* host_idle_mask_ = nullptr;
-  cuda::std::atomic<uint64_t>* host_live_dispatched_ = nullptr;
-  int* host_inflight_slot_tags_ = nullptr;
+  cudaq_ringbuffer_t host_ringbuffer_{};
+  cudaq_function_table_t host_table_{};
+  cudaq_dispatcher_config_t host_config_{};
+  cudaq_graph_launch_engine_t* host_engine_ = nullptr;
   uint64_t host_loop_stats_ = 0;
-  cudaq_host_dispatch_loop_ctx_t host_ctx_{};
   std::thread host_loop_thread_;
 };
 
