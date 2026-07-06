@@ -7,6 +7,8 @@
 # ============================================================================ #
 
 import math
+import subprocess
+import sys
 
 import cudaq
 import pytest
@@ -110,3 +112,48 @@ def test_exp_pauli_variadic_targets_must_be_qubits():
     with pytest.raises(RuntimeError,
                        match="invalid argument type for target operand"):
         test.compile()
+
+
+def _run_exp_pauli_runtime_error_case(case):
+
+    if case == "word_length":
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(1)
+            exp_pauli(1.0, "XYZ", q[0])
+    elif case == "duplicate_targets":
+
+        @cudaq.kernel
+        def test():
+            q = cudaq.qvector(1)
+            exp_pauli(1.0, "XX", q[0], q[0])
+    else:
+        raise ValueError(f"unknown runtime error case: {case}")
+
+    with pytest.raises(RuntimeError):
+        cudaq.sample(test)
+
+
+def _assert_runtime_error_in_subprocess(case):
+    result = subprocess.run([sys.executable, __file__, case],
+                            capture_output=True,
+                            text=True,
+                            timeout=120)
+    assert result.returncode == 0, (
+        f"runtime error case {case} failed in subprocess\n"
+        f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}")
+
+
+def test_exp_pauli_word_length_must_match_individual_targets():
+    # Runtime exceptions can leave a simulator unusable, so isolate the check.
+    _assert_runtime_error_in_subprocess("word_length")
+
+
+def test_exp_pauli_individual_targets_must_be_unique():
+    # Runtime exceptions can leave a simulator unusable, so isolate the check.
+    _assert_runtime_error_in_subprocess("duplicate_targets")
+
+
+if __name__ == "__main__":
+    _run_exp_pauli_runtime_error_case(sys.argv[1])
