@@ -164,7 +164,6 @@ def sample(kernel,
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.kernelName = kernel_name
     ctx.explicitMeasurements = explicit_measurements
-    ctx.allowJitEngineCaching = True
     policy = cudaq_runtime.SamplePolicy(ctx, kernel_name, explicit_measurements)
 
     counts = cudaq_runtime.SampleResult()
@@ -190,7 +189,6 @@ def sample(kernel,
                   "loop.")
             break
     cudaq_runtime.unset_noise()
-    ctx.unset_jit_engine()
     return counts
 
 
