@@ -919,6 +919,35 @@ Detailed information about supported drivers for different CUDA versions and be 
 
     For more information, please refer to `Binary Compatibility documentation <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility>`_.
 
+.. _dynamic-linking-gmp-mpfr:
+
+Dynamic linking to GMP and MPFR
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CUDA-Q binary distributions include the `GMP <https://gmplib.org/>`__ and
+`MPFR <https://www.mpfr.org/>`__ shared libraries, which are used by the
+Clifford+T rotation synthesis library. Both libraries are unmodified and are
+licensed under the GNU Lesser General Public License v3. The full license
+texts are included in the `LICENSES` folder distributed with CUDA-Q, and the
+corresponding copyright notices are listed in the `NOTICE` file.
+
+CUDA-Q links to GMP and MPFR exclusively dynamically, and the two libraries
+can be replaced with compatible versions without rebuilding CUDA-Q by
+substituting the shared library files (`libgmp.so*` and `libmpfr.so*` on
+Linux, `libgmp*.dylib` and `libmpfr*.dylib` on macOS):
+
+- Docker image and installer - the libraries are located in the `lib`
+  folder of the CUDA-Q installation directory, that is
+  `${CUDA_QUANTUM_PATH}/lib`.
+- Python wheels - the libraries are located in the `lib` folder that is
+  installed next to the `cudaq` package in your Python environment's
+  `site-packages` directory.
+
+Alternatively, when building CUDA-Q from source, you can link against your
+own GMP and MPFR builds instead of the ones built by
+`scripts/install_prerequisites.sh`. Please see :doc:`data_center_install` for more
+information.
+
 .. _post-installation:
 
 Next Steps
