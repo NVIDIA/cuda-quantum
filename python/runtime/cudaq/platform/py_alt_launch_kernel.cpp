@@ -211,13 +211,17 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
         // into the struct.
         auto asList = nanobind::cast<nanobind::list>(value);
         void *values = handleVectorElements<style>(ty.getElementType(), asList);
-        // synthesis path stores a span {ptr, size_t}; argsCreator stores the
-        // full std::vector header {ptr, ptr, ptr}. The copied size does not
-        // depend on the element type.
-        constexpr std::size_t copySize =
-            sizeof(std::conditional_t<style == cudaq::PackingStyle::synthesis,
-                                      std::pair<char *, std::size_t>,
-                                      std::vector<char>>);
+        // synthesis reads only a {ptr, size} span prefix (element-type
+        // independent); argsCreator copies the full host std::vector header, and
+        // std::vector<bool> is bit-packed and larger than std::vector<char>, so
+        // bool is sized separately.
+        std::size_t copySize;
+        if constexpr (style == cudaq::PackingStyle::synthesis)
+          copySize = sizeof(std::pair<char *, std::size_t>);
+        else
+          copySize = ty.getElementType().isInteger(1)
+                         ? sizeof(std::vector<bool>)
+                         : sizeof(std::vector<char>);
         std::memcpy(((char *)data) + offset, values, copySize);
       })
       .Default([&](mlir::Type ty) {
