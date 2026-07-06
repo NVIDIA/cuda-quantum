@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -1942,8 +1943,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // Sanity checks and create a wire to virtual qubit mapping.
-    Block &block = *blocks.begin();
+    // `run` requires some special handling: it wraps its body in a top-level
+    // `cc.scope` that must be looked into, and the order of measurements
+    // doesn't matter so measurements within nested operations is allowable
+    const bool isRunEntry = func->hasAttr(cudaq::runtime::enableCudaqRun);
+
+    // Handle the special wrapping for `run` launches
+    Block *bodyBlock = &blocks.front();
+    if (isRunEntry) {
+      auto scope = *bodyBlock->getOps<cudaq::cc::ScopeOp>().begin();
+      bodyBlock = &scope.getInitRegion().front();
+    }
+    Block &block = *bodyBlock;
 
     if (deviceInstance->getNumQubits() == 0) {
       if (nonComposable) {
@@ -2038,21 +2049,26 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Reject measurements not directly inside the function — measure order must
-    // be preserved and cannot yet be reconciled across branches or loops.
-    auto measureCheckResult =
-        func.walk([&](cudaq::quake::MeasurementInterface meas) {
-          if (isa<func::FuncOp>(meas->getParentOp()))
-            return WalkResult::advance();
-          if (nonComposable) {
-            meas->emitOpError(
-                "mapper cannot handle measurements inside branches or loops");
-            signalPassFailure();
-          }
-          return WalkResult::interrupt();
-        });
-    if (measureCheckResult.wasInterrupted()) {
-      LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
-      return;
+    // be preserved and cannot yet be reconciled across branches or loops. This
+    // does not apply to `run` entry points, whose per-shot output log records
+    // results by measurement rather than by global register order, so skip the
+    // check there.
+    if (!isRunEntry) {
+      auto measureCheckResult =
+          func.walk([&](cudaq::quake::MeasurementInterface meas) {
+            if (isa<func::FuncOp>(meas->getParentOp()))
+              return WalkResult::advance();
+            if (nonComposable) {
+              meas->emitOpError(
+                  "mapper cannot handle measurements inside branches or loops");
+              signalPassFailure();
+            }
+            return WalkResult::interrupt();
+          });
+      if (measureCheckResult.wasInterrupted()) {
+        LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
+        return;
+      }
     }
 
     // Two-qubit interaction data for placement and disconnected-device
@@ -2321,14 +2337,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
     }
 
-    // Save the order of the measurements. They are not allowed to change.
+    // Save the order of the measurements. They are not allowed to change. For
+    // `run` this ordering does not matter (results are recorded by index), and
+    // the measurements may live inside branch/loop regions where moving them
+    // out of their region would be invalid, so leave them in place.
     SmallVector<mlir::Operation *> measureOrder;
-    func.walk([&](cudaq::quake::MeasurementInterface measure) {
-      measureOrder.push_back(measure);
-      for (auto user : measure->getUsers())
-        measureOrder.push_back(user);
-      return WalkResult::advance();
-    });
+    if (!isRunEntry)
+      func.walk([&](cudaq::quake::MeasurementInterface measure) {
+        measureOrder.push_back(measure);
+        for (auto user : measure->getUsers())
+          measureOrder.push_back(user);
+        return WalkResult::advance();
+      });
 
     // Create or borrow auxillary qubits if needed. Place them after the last
     // allocated qubit.
