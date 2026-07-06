@@ -246,18 +246,18 @@ __device__ inline bool alignOffset(std::uint64_t &offset,
 // Decodes a single scalar of payload type `T` from `args`, advancing `offset`.
 // alignOffset should be a no-op if the MLIR marshalling packed this scalar at
 // the correct alignment boundary; a non-zero advance signals a marshalling bug.
-// Returns 0 on success or -1 if the buffer is malformed.
+// Returns true on success or false if the buffer is malformed.
 template <typename T>
-__device__ inline std::int32_t
-decodeScalar(const std::uint8_t *args, std::uint64_t argLen,
-             std::uint64_t &offset, scalar_storage_t<T> &out) {
+__device__ inline bool decodeScalar(const std::uint8_t *args,
+                                    std::uint64_t argLen, std::uint64_t &offset,
+                                    scalar_storage_t<T> &out) {
   using S = scalar_storage_t<T>;
   if (!alignOffset(offset, scalarAlignment<T>(), argLen) ||
       sizeof(S) > argLen - offset)
-    return -1; // malformed payload — likely a marshalling mismatch
+    return false; // malformed payload — likely a marshalling mismatch
   out = loadScalar<T>(args, offset);
   offset += sizeof(S);
-  return 0;
+  return true;
 }
 
 // --- Adapter wrappers --------------------------------------------------------
@@ -279,39 +279,46 @@ struct DeviceCallWrapper<Fn> {
                                       std::uint32_t *resultLen) {
     // The realtime payload is exactly the canonical device-call argument
     // buffer.
-    if (!resultLen || (argLen > 0 && !input))
-      return -1; // malformed payload
-
     const auto *const args = static_cast<const std::uint8_t *>(input);
-    return decodeAndInvoke<0>(args, argLen, 0, output, maxResultLen, resultLen,
-                              0);
+    const bool success =
+        resultLen && (argLen == 0 || input) &&
+        decodeAndInvoke<0>(args, argLen, 0, output, maxResultLen, resultLen, 0);
+    // This test-only library has a single error code, -1. Convert the internal
+    // boolean result at the Realtime handler ABI boundary.
+    return success ? 0 : -1;
   }
 
 private:
+  // Returns true when the decoded function is invoked and its result is
+  // stored successfully. Returns false when the result buffer is invalid or
+  // too small.
   template <typename... Decoded>
-  __device__ static std::int32_t
-  invokeDecoded(void *output, std::uint32_t maxResultLen,
-                std::uint32_t *resultLen, std::uint32_t byRefResultLen,
-                Decoded... decoded) {
+  __device__ static bool invokeDecoded(void *output, std::uint32_t maxResultLen,
+                                       std::uint32_t *resultLen,
+                                       std::uint32_t byRefResultLen,
+                                       Decoded... decoded) {
     // The realtime ABI always reports an explicit result length. Void
     // functions either produce no bytes or fill one by-ref result array;
     // scalar functions store one packed result.
     if constexpr (std::is_void_v<R>) {
       Fn(decoded...);
       *resultLen = byRefResultLen;
-      return 0;
+      return true;
     } else {
       if (!output || maxResultLen < sizeof(scalar_storage_t<R>))
-        return -1; // result buffer too small
+        return false; // result buffer too small
       const R result = Fn(decoded...);
       storeScalar(output, result);
       *resultLen = sizeof(scalar_storage_t<R>);
-      return 0;
+      return true;
     }
   }
 
+  // Returns true when all arguments are decoded and the function is invoked
+  // successfully. Returns false for malformed payloads, insufficient result
+  // storage, or allocation failures.
   template <std::size_t Index, typename... Decoded>
-  __device__ static std::int32_t
+  __device__ static bool
   decodeAndInvoke(const std::uint8_t *args, std::uint64_t argLen,
                   std::uint64_t offset, void *output,
                   std::uint32_t maxResultLen, std::uint32_t *resultLen,
@@ -319,7 +326,7 @@ private:
     if constexpr (Index == sizeof...(Args)) {
       // Base case: all arguments decoded; invoke the function.
       if (offset != argLen)
-        return -1; // malformed payload
+        return false; // malformed payload
       return invokeDecoded(output, maxResultLen, resultLen, byRefResultLen,
                            decoded...);
     } else {
@@ -334,42 +341,41 @@ private:
         using LengthArg = std::tuple_element_t<Index + 1, std::tuple<Args...>>;
         using Element = scalar_storage_t<array_element_t<Arg>>;
         std::uint64_t elementCount = 0;
-        if (auto rc =
-                decodeScalar<std::uint64_t>(args, argLen, offset, elementCount))
-          return rc;
+        if (!decodeScalar<std::uint64_t>(args, argLen, offset, elementCount))
+          return false;
         using Pointer = scalar_storage_t<Arg>;
         Pointer elements = nullptr;
         if constexpr (is_output_array_pointer<Arg>::value) {
           // Output array (non-const pointer): elements are written into the TX
           // result buffer rather than read from the RX argument buffer.
           if (byRefResultLen > maxResultLen)
-            return -1; // result buffer too small
+            return false; // result buffer too small
           if constexpr (!std::is_same_v<Element, bool>)
             if (elementCount >
                 (maxResultLen - byRefResultLen) / sizeof(Element))
-              return -1; // result buffer too small
+              return false; // result buffer too small
           const std::uint64_t arrayBytes = [&] {
             if constexpr (std::is_same_v<Element, bool>)
               return packedByteCount(elementCount);
             return elementCount * sizeof(Element);
           }();
           if (arrayBytes > maxResultLen - byRefResultLen)
-            return -1; // result buffer too small
+            return false; // result buffer too small
           if (arrayBytes && !output)
-            return -1; // result buffer too small
+            return false; // result buffer too small
 
           if constexpr (std::is_same_v<Element, bool>) {
             auto *boolElements =
                 static_cast<bool *>(malloc(elementCount * sizeof(bool)));
             if (elementCount && !boolElements)
-              return -1;
+              return false;
             for (std::uint64_t i = 0; i < elementCount; ++i)
               boolElements[i] = false;
-            const auto rc = decodeAndInvoke<Index + 2>(
+            const bool success = decodeAndInvoke<Index + 2>(
                 args, argLen, offset, output, maxResultLen, resultLen,
                 byRefResultLen + arrayBytes, decoded..., boolElements,
                 static_cast<scalar_storage_t<LengthArg>>(elementCount));
-            if (rc == 0 && arrayBytes) {
+            if (success && arrayBytes) {
               auto *const packed =
                   static_cast<std::uint8_t *>(output) + byRefResultLen;
               for (std::uint64_t i = 0; i < arrayBytes; ++i)
@@ -379,7 +385,7 @@ private:
                   packed[i / 8] |= std::uint8_t{1} << (i % 8);
             }
             free(boolElements);
-            return rc;
+            return success;
           } else {
             if (arrayBytes) {
               auto *outBytes = static_cast<std::uint8_t *>(output);
@@ -394,24 +400,24 @@ private:
           if constexpr (std::is_same_v<Element, bool>) {
             const std::uint64_t arrayBytes = packedByteCount(elementCount);
             if (arrayBytes > argLen - offset)
-              return -1; // malformed payload
+              return false; // malformed payload
             auto *boolElements =
                 static_cast<bool *>(malloc(elementCount * sizeof(bool)));
             if (elementCount && !boolElements)
-              return -1;
+              return false;
             for (std::uint64_t i = 0; i < elementCount; ++i)
               boolElements[i] = ((args[offset + i / 8] >> (i % 8)) & 1u) != 0;
             offset += arrayBytes;
-            const auto rc = decodeAndInvoke<Index + 2>(
+            const bool success = decodeAndInvoke<Index + 2>(
                 args, argLen, offset, output, maxResultLen, resultLen,
                 byRefResultLen, decoded..., boolElements,
                 static_cast<scalar_storage_t<LengthArg>>(elementCount));
             free(boolElements);
-            return rc;
+            return success;
           } else {
             // Non-boolean input arrays are read directly from the RX buffer.
             if (elementCount > (argLen - offset) / sizeof(Element))
-              return -1; // malformed payload
+              return false; // malformed payload
             const Element *const constElements =
                 reinterpret_cast<const Element *>(args + offset);
             offset += elementCount * sizeof(Element);
@@ -428,8 +434,8 @@ private:
       } else {
         // Scalar argument: decode one value from the buffer and recurse.
         scalar_storage_t<Arg> value;
-        if (auto rc = decodeScalar<Arg>(args, argLen, offset, value))
-          return rc;
+        if (!decodeScalar<Arg>(args, argLen, offset, value))
+          return false;
         return decodeAndInvoke<Index + 1>(args, argLen, offset, output,
                                           maxResultLen, resultLen,
                                           byRefResultLen, decoded..., value);
