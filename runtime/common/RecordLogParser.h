@@ -9,11 +9,13 @@
 #pragma once
 
 #include "cudaq/utils/cudaq_utils.h"
+#include <cctype>
 #include <charconv>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
+#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -29,6 +31,41 @@ enum struct OutputType { RESULT, BOOL, INT, DOUBLE };
 enum struct ContainerType { NONE, ARRAY, TUPLE };
 
 namespace detail {
+
+template <typename T>
+T parseInteger(const std::string &value) {
+  static_assert(std::is_integral_v<T> && !std::is_same_v<T, bool>);
+  if (value.empty())
+    throw std::runtime_error("Invalid integer value");
+
+  std::string_view input(value);
+  if (input.front() == '+') {
+    input.remove_prefix(1);
+    if (input.empty() || input.front() == '+' || input.front() == '-')
+      throw std::runtime_error("Invalid integer value");
+  }
+
+  std::int64_t parsed = 0;
+  const auto [end, error] =
+      std::from_chars(input.data(), input.data() + input.size(), parsed);
+  if (error != std::errc{} || end != input.data() + input.size() ||
+      parsed < static_cast<std::int64_t>(std::numeric_limits<T>::min()) ||
+      parsed > static_cast<std::int64_t>(std::numeric_limits<T>::max()))
+    throw std::runtime_error("Invalid integer value");
+  return static_cast<T>(parsed);
+}
+
+inline std::size_t parseSize(std::string_view value) {
+  if (value.empty())
+    throw std::runtime_error("Invalid size value");
+
+  std::size_t parsed = 0;
+  const auto [end, error] =
+      std::from_chars(value.data(), value.data() + value.size(), parsed);
+  if (error != std::errc{} || end != value.data() + value.size())
+    throw std::runtime_error("Invalid size value");
+  return parsed;
+}
 
 //===----------------------------------------------------------------------===//
 // Type conversion infrastructure for string-to-value parsing
@@ -57,10 +94,7 @@ template <typename T>
 class IntegerConverter : public TypeConverterBase<T> {
 public:
   T convert(const std::string &value) const override {
-    if constexpr (sizeof(T) <= 4)
-      return static_cast<T>(std::stoi(value));
-    else
-      return static_cast<T>(std::stoll(value));
+    return parseInteger<T>(value);
   }
 };
 
@@ -68,10 +102,34 @@ template <typename T>
 class FloatConverter : public TypeConverterBase<T> {
 public:
   T convert(const std::string &value) const override {
-    if constexpr (std::is_same_v<T, float>)
-      return std::stof(value);
-    else
-      return std::stod(value);
+    // The `<charconv>` float overloads are annotated as introduced in
+    // macOS 26.0 and are unavailable at CUDA-Q's macOS 13.0 deployment
+    // target. Use `std::stof`/`std::stod` and enforce the same
+    // "full-token, no leading whitespace" grammar via an explicit
+    // length check and an `isspace` prefix guard. `stof`/`stod` accept
+    // `inf`/`infinity`/`nan` case-insensitively; those non-finite
+    // spellings are the runtime's own output (see the `ostringstream`
+    // emitter) and must round-trip.
+    if (value.empty() ||
+        std::isspace(static_cast<unsigned char>(value.front())))
+      throw std::runtime_error("Invalid floating-point value");
+
+    try {
+      std::size_t parsedLength = 0;
+      T parsed{};
+      if constexpr (std::is_same_v<T, float>)
+        parsed = std::stof(value, &parsedLength);
+      else
+        parsed = std::stod(value, &parsedLength);
+      if (parsedLength != value.size())
+        throw std::runtime_error("Invalid floating-point value");
+      return parsed;
+    } catch (const std::logic_error &) {
+      // `std::invalid_argument` (no conversion) and `std::out_of_range`
+      // (overflow/underflow) both derive from `std::logic_error`; the
+      // record grammar treats them identically.
+      throw std::runtime_error("Invalid floating-point value");
+    }
   }
 };
 
@@ -200,8 +258,8 @@ public:
     if ((isArray == std::string::npos) || (lessThan == std::string::npos) ||
         (greaterThan == std::string::npos) || (x == std::string::npos))
       throw std::runtime_error("Array label missing keyword");
-    if (elementCount != static_cast<size_t>(std::stoi(
-                            label.substr(x + 2, greaterThan - x - 2))))
+    if (elementCount !=
+        parseSize(std::string_view(label).substr(x + 2, greaterThan - x - 2)))
       throw std::runtime_error("Array size mismatch in value and label.");
     arrayType = label.substr(lessThan + 1, x - lessThan - 2);
   }
@@ -337,7 +395,8 @@ private:
   enum struct ContainerStorage { FLAT, PREALLOCATED };
 
   /// Process different types of records
-  void handleHeader(const std::vector<std::string> &);
+  void handleHeader(const std::vector<std::string> &,
+                    std::optional<RecordSchemaType> &);
   void handleMetadata(const std::vector<std::string> &);
   /// Central dispatcher that handles different output types including scalar
   /// values, arrays, and tuples.

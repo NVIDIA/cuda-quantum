@@ -11,6 +11,7 @@ set(LIBRARY_NAME cudaq-nlopt)
 add_subdirectory(nlopt-src SYSTEM)
 
 add_library(${LIBRARY_NAME} SHARED nlopt.cpp)
+add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_include_directories(${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime)
 target_include_directories(${LIBRARY_NAME} SYSTEM PRIVATE nlopt-src/ nlopt-src/src/api)
