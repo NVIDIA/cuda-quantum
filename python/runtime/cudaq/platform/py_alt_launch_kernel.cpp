@@ -212,9 +212,9 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
         auto asList = nanobind::cast<nanobind::list>(value);
         void *values = handleVectorElements<style>(ty.getElementType(), asList);
         // synthesis reads only a {ptr, size} span prefix (element-type
-        // independent); argsCreator copies the full host std::vector header, and
-        // std::vector<bool> is bit-packed and larger than std::vector<char>, so
-        // bool is sized separately.
+        // independent); argsCreator copies the full host std::vector header,
+        // and std::vector<bool> is bit-packed and larger than
+        // std::vector<char>, so bool is sized separately.
         std::size_t copySize;
         if constexpr (style == cudaq::PackingStyle::synthesis)
           copySize = sizeof(std::pair<char *, std::size_t>);
