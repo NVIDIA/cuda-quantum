@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
 
 #include <atomic>
 #include <cstdio>
@@ -125,7 +126,11 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
   if (dispatcher->running && dispatcher->host_handle) {
-    *dispatcher->shutdown_flag = 1;
+    // `const_cast` drops the flag's `volatile` qualifier (`reinterpret_cast`
+    // can't cast away cv-qualifiers) so it can be written as a plain atomic.
+    reinterpret_cast<std::atomic<int> *>(
+        const_cast<int *>(dispatcher->shutdown_flag))
+        ->store(1, std::memory_order_relaxed);
     cudaq_host_dispatcher_stop(dispatcher->host_handle);
     dispatcher->host_handle = nullptr;
   }
@@ -287,7 +292,11 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST &&
       dispatcher->host_handle) {
-    *dispatcher->shutdown_flag = 1;
+    // `const_cast` drops the flag's `volatile` qualifier (`reinterpret_cast`
+    // can't cast away cv-qualifiers) so it can be written as a plain atomic.
+    reinterpret_cast<std::atomic<int> *>(
+        const_cast<int *>(dispatcher->shutdown_flag))
+        ->store(1, std::memory_order_relaxed);
     cudaq_host_dispatcher_stop(dispatcher->host_handle);
     dispatcher->host_handle = nullptr;
     dispatcher->running = false;

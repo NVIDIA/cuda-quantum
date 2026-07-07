@@ -207,6 +207,68 @@ def test_sample_async():
     assert '1' in sample_result and len(sample_result) == 1
 
 
+def test_conditional_bare_return():
+
+    @cudaq.kernel
+    def kernel(skip: bool):
+        q = cudaq.qubit()
+        if skip:
+            return
+        x(q)
+
+    counts = cudaq.sample(kernel, True, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, False, shots_count=100)
+    assert '1' in counts and len(counts) == 1
+
+
+def test_composite_conditional_bare_return():
+
+    @cudaq.kernel
+    def kernel(value: int):
+        q = cudaq.qubit()
+        if value != 1 and value != 2:
+            return
+        x(q)
+
+    counts = cudaq.sample(kernel, 0, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+    for value in [1, 2]:
+        counts = cudaq.sample(kernel, value, shots_count=100)
+        assert '1' in counts and len(counts) == 1
+
+
+def test_bare_return_in_loop():
+
+    @cudaq.kernel
+    def kernel(n: int):
+        q = cudaq.qubit()
+        for i in range(n):
+            if i == 2:
+                return
+            x(q)
+
+    counts = cudaq.sample(kernel, 1, shots_count=100)
+    assert '1' in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, 3, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+
+def test_function_scope_bare_return():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        return
+        x(q)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
