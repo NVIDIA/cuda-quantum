@@ -93,9 +93,9 @@ private:
 };
 
 /// Builds a deterministic topology-aware initial layout by assigning highly
-/// interacting virtual qubits to central physical qubits first. The greedy
-/// growth and its tie-breaks make the layout a deterministic function of the
-/// interaction counts and the device, so it is reproducible across runs.
+/// interacting virtual qubits to central candidate physical qubits first. The
+/// greedy growth and its tie-breaks make the layout a deterministic function of
+/// the interaction counts and the device, so it is reproducible across runs.
 class GreedyInitialPlacer {
 public:
   GreedyInitialPlacer(const cudaq::Device &device,
@@ -103,7 +103,7 @@ public:
                       ArrayRef<bool> userVirtualQubits)
       : device(device), interactions(interactions),
         userVirtualQubits(userVirtualQubits), n(device.getNumQubits()),
-        placedVirtual(n, false), vrToPhy(n, 0) {}
+        placedVirtual(n, false), vrToPhy(n, n) {}
 
   /// Produce the `vrToPhy` seed layout.
   SmallVector<unsigned> run() {
@@ -115,8 +115,46 @@ public:
       return vrToPhy;
     }
 
-    computeCentrality();
-    initWorklists();
+    SmallVector<unsigned> physicals;
+    physicals.reserve(n);
+    for (unsigned p = 0; p < n; ++p)
+      physicals.push_back(p);
+    SmallVector<unsigned> virtuals;
+    for (unsigned u = 0; u < n; ++u)
+      if (userVirtualQubits[u])
+        virtuals.push_back(u);
+
+    // Stage 1: Greedily place all user virtual qubits.
+    placeGreedily(virtuals, physicals);
+
+    // Stage 2: Assign any still-unplaced virtuals (non-user qubits) to the
+    // remaining free physicals, pairing them in ascending order.
+    assignRemainingVirtuals();
+
+    return vrToPhy;
+  }
+
+  /// Place the supplied virtual qubits using only the supplied physical
+  /// qubits. Entries for virtual qubits outside this placement remain `n`.
+  SmallVector<unsigned> runRestricted(ArrayRef<unsigned> virtuals,
+                                      ArrayRef<unsigned> physicals) {
+    // Deliberately skip stage 2 (`assignRemainingVirtuals`): `virtuals` and
+    // `physicals` here are one island's qubits, not every qubit in the
+    // device, so stage 2 would try to fill in every virtual qubit outside
+    // this island from the handful of physicals this island has left over.
+    placeGreedily(virtuals, physicals);
+    return vrToPhy;
+  }
+
+private:
+  /// The core greedy walk shared by `run` and `runRestricted`: rank the given
+  /// `physicals` by centrality, seed the highest-degree virtual on the most
+  /// central physical, then attach each remaining virtual to its cheapest
+  /// reachable physical. Only `virtuals` are placed, only onto `physicals`.
+  void placeGreedily(ArrayRef<unsigned> virtuals,
+                     ArrayRef<unsigned> physicals) {
+    initWorklists(virtuals, physicals);
+    computeCentrality(physicals);
 
     // Seed the highest-degree virtual qubit onto the most central physical
     // qubit, then grow the layout around it.
@@ -126,40 +164,37 @@ public:
       unsigned v = chooseNextVirtual();
       place(v, bestPhysicalFor(v));
     }
-
-    assignRemainingVirtuals();
-    return vrToPhy;
   }
 
-private:
   /// Physical centrality used to break ties: total distance to every other
-  /// qubit, and connectivity degree.
-  void computeCentrality() {
+  /// candidate physical qubit, and connectivity degree. Callers pass one
+  /// device island's physicals, so every pair is reachable; an unreachable
+  /// pair here would be a caller bug (asserted below).
+  void computeCentrality(ArrayRef<unsigned> physicals) {
     using Qubit = cudaq::Device::Qubit;
     distanceSum.assign(n, 0);
     physDegree.assign(n, 0);
-    for (unsigned p = 0; p < n; ++p) {
-      for (unsigned q = 0; q < n; ++q) {
+    for (unsigned p : physicals) {
+      for (unsigned q : physicals) {
         unsigned distance = device.getDistance(Qubit(p), Qubit(q));
-        // Any finite shortest path has fewer than `n` edges, so `n` keeps
-        // unreachable qubits less central without risking sentinel overflow.
-        distanceSum[p] +=
-            distance == cudaq::Device::unreachableDistance ? n : distance;
+        assert(distance != cudaq::Device::unreachableDistance &&
+               "greedy physical candidates must belong to one device island");
+        distanceSum[p] += distance;
       }
       physDegree[p] =
           static_cast<unsigned>(device.getNeighbours(Qubit(p)).size());
     }
   }
 
-  /// Seed the worklists for the placement walk: every physical is free and
-  /// every user virtual is unplaced, both in ascending order.
-  void initWorklists() {
-    freePhysicals.reserve(n);
-    for (unsigned p = 0; p < n; ++p)
-      freePhysicals.push_back(p);
-    for (unsigned u = 0; u < n; ++u)
-      if (userVirtualQubits[u])
-        unplacedUserVirtuals.push_back(u);
+  /// Seed the placement worklists from the caller's candidate sets. Both are
+  /// kept sorted because `place` erases consumed entries with `lower_bound`,
+  /// and the incoming `virtuals`/`physicals` may be unsorted.
+  void initWorklists(ArrayRef<unsigned> virtuals,
+                     ArrayRef<unsigned> physicals) {
+    freePhysicals.assign(physicals.begin(), physicals.end());
+    unplacedUserVirtuals.assign(virtuals.begin(), virtuals.end());
+    llvm::sort(freePhysicals);
+    llvm::sort(unplacedUserVirtuals);
   }
 
   /// True when physical qubit `a` is more central than `b` and should be
@@ -261,10 +296,11 @@ private:
         bestCost = cost;
       }
     }
-    // The greedy prefix may exhaust the device component containing `v`'s
-    // placed neighbors. Return a complete (possibly unroutable) seed so the
-    // later filter can discard it in favor of another candidate.
-    return bestPhy == n ? bestFreePhysical() : bestPhy;
+    // Within one island every free physical is reachable from `v`'s placed
+    // partners, and the island plan reserves enough capacity, so a candidate
+    // is always found.
+    assert(bestPhy != n && "island plan must provide enough physical qubits");
+    return bestPhy;
   }
 
   /// Map virtual `v` onto physical `p`, marking `v` placed and `p` taken. The
@@ -372,84 +408,106 @@ computeVirtualComponents(const VirtualInteractionGraph &interactions,
       });
 }
 
-/// Seed that keeps each interacting group of virtual qubits inside a single
-/// device island. On a disconnected device the plain greedy seed can strand a
-/// group across islands, leaving an un-routable two-qubit gate. This seed
-/// avoids that.
-///
-/// The placement rule is best-fit decreasing, a standard bin-packing
-/// heuristic: virtual qubit interaction groups (the "items") are taken
-/// largest-first and each is placed in the island of physical qubits (the
-/// "bin") with the smallest remaining capacity that still fits, whose capacity
-/// then shrinks. A group that fits nowhere yields `std::nullopt`. It is not a
-/// completeness guarantee. It can return `std::nullopt` even when some valid
-/// packing exists, in which case `auto` falls back to its other seeds.
-std::optional<SmallVector<unsigned>>
-buildBestFitComponentSeed(unsigned numV, const cudaq::Device &device,
-                          const VirtualInteractionGraph &interactions,
-                          ArrayRef<bool> userVirtualQubits) {
-  SmallVector<SmallVector<unsigned>> deviceComponents =
-      computeDeviceComponents(device);
-  // This fallback exists only to keep interacting qubits within disconnected
-  // device regions. Adding it on a connected device could change which `auto`
-  // seed wins and would alter established placement behavior.
-  if (deviceComponents.size() <= 1)
-    return std::nullopt;
-  SmallVector<SmallVector<unsigned>> virtualComponents =
-      computeVirtualComponents(interactions, userVirtualQubits);
-  if (virtualComponents.empty())
-    return std::nullopt;
-  // Pack the largest, hardest-to-fit groups first. Ties break on lowest index
-  // so the seed is deterministic.
+/// One device island (its physical qubits) and the interacting virtual qubits
+/// packed onto it. Idle and single-qubit-only virtuals impose no island
+/// constraint and are assigned separately, so they never appear here.
+struct IslandPlan {
+  SmallVector<unsigned> physicalQubits;
+  SmallVector<unsigned> virtualQubits;
+};
+
+/// Assign each interacting virtual component wholly to one device island.
+/// Components are packed largest-first into the smallest remaining capacity
+/// that fits. This best-fit-decreasing heuristic is deterministic but not
+/// complete: it can fail even when a different packing exists.
+std::optional<SmallVector<IslandPlan>>
+buildBestFitIslandPlan(SmallVector<SmallVector<unsigned>> deviceComponents,
+                       SmallVector<SmallVector<unsigned>> virtualComponents) {
   llvm::sort(virtualComponents, [](const auto &lhs, const auto &rhs) {
     if (lhs.size() != rhs.size())
       return lhs.size() > rhs.size();
     return lhs.front() < rhs.front();
   });
-  // A hot interaction component can make the normal greedy seed consume the
-  // only region large enough for a later component. Best-fit decreasing gives
-  // `auto` a deterministic alternative without changing the greedy strategy.
-  SmallVector<SmallVector<unsigned>> availableDeviceQubits =
-      std::move(deviceComponents);
+
+  SmallVector<IslandPlan> plan;
+  plan.reserve(deviceComponents.size());
+  for (auto &component : deviceComponents)
+    plan.push_back({std::move(component), {}});
+
+  for (const auto &virtualComponent : virtualComponents) {
+    // `plan.size()` is the "no island chosen yet" sentinel.
+    unsigned bestIsland = plan.size();
+    for (unsigned islandId = 0; islandId < plan.size(); ++islandId) {
+      const auto &island = plan[islandId];
+      const std::size_t remainingCapacity =
+          island.physicalQubits.size() - island.virtualQubits.size();
+      if (remainingCapacity < virtualComponent.size())
+        continue;
+      if (bestIsland == plan.size()) {
+        bestIsland = islandId;
+        continue;
+      }
+      const auto &best = plan[bestIsland];
+      const std::size_t bestRemainingCapacity =
+          best.physicalQubits.size() - best.virtualQubits.size();
+      // Best fit: keep the smallest remaining capacity that still fits so
+      // larger islands stay free for larger components. Ties break on the
+      // island's next free physical (its lowest unassigned index) for
+      // determinism.
+      if (remainingCapacity < bestRemainingCapacity ||
+          (remainingCapacity == bestRemainingCapacity &&
+           island.physicalQubits[island.virtualQubits.size()] <
+               best.physicalQubits[best.virtualQubits.size()]))
+        bestIsland = islandId;
+    }
+    if (bestIsland == plan.size())
+      return std::nullopt;
+    plan[bestIsland].virtualQubits.append(virtualComponent.begin(),
+                                          virtualComponent.end());
+  }
+  return plan;
+}
+
+/// Build a greedy seed that never splits an interacting group of virtual
+/// qubits across device islands. On a single-island (connected) device, one
+/// greedy walk places every virtual qubit over the whole device. On a
+/// multi-island (disconnected) device, each interacting virtual component is
+/// packed onto one island first, then the same greedy heuristic runs again
+/// restricted to that island's qubits.
+std::optional<SmallVector<unsigned>>
+buildGreedySeed(unsigned numV, const cudaq::Device &device,
+                const VirtualInteractionGraph &interactions,
+                ArrayRef<bool> userVirtualQubits) {
+  SmallVector<SmallVector<unsigned>> deviceComponents =
+      computeDeviceComponents(device);
+  SmallVector<SmallVector<unsigned>> virtualComponents =
+      computeVirtualComponents(interactions, userVirtualQubits);
+  if (deviceComponents.size() <= 1 || virtualComponents.empty())
+    return GreedyInitialPlacer(device, interactions, userVirtualQubits).run();
+
+  auto plan = buildBestFitIslandPlan(std::move(deviceComponents),
+                                     std::move(virtualComponents));
+  if (!plan)
+    return std::nullopt;
+
   const unsigned unassignedDeviceQubit = device.getNumQubits();
   SmallVector<unsigned> seed(numV, unassignedDeviceQubit);
   SmallVector<bool> usedDeviceQubits(device.getNumQubits(), false);
-  for (const auto &virtualComponent : virtualComponents) {
-    // `availableDeviceQubits.size()` is an out-of-range sentinel meaning "no
-    // candidate found yet".
-    unsigned bestComponent = availableDeviceQubits.size();
-    for (unsigned componentId = 0; componentId < availableDeviceQubits.size();
-         ++componentId) {
-      const auto &deviceQubits = availableDeviceQubits[componentId];
-      if (deviceQubits.size() < virtualComponent.size())
-        continue;
-      // Among islands large enough, keep the smallest so that larger
-      // islands stay free for larger groups. Ties break on lowest front index
-      // for determinism. Clause 1 matches the sentinel first, so the `||`
-      // short-circuits before the subscripts below can index with it.
-      if (bestComponent == availableDeviceQubits.size() ||
-          deviceQubits.size() < availableDeviceQubits[bestComponent].size() ||
-          (deviceQubits.size() == availableDeviceQubits[bestComponent].size() &&
-           deviceQubits.front() < availableDeviceQubits[bestComponent].front()))
-        bestComponent = componentId;
-    }
-    // A surviving sentinel means no island was large enough for this group.
-    if (bestComponent == availableDeviceQubits.size())
-      return std::nullopt;
-    auto &deviceQubits = availableDeviceQubits[bestComponent];
-    for (auto &&[index, virtualQubit] : llvm::enumerate(virtualComponent)) {
-      unsigned deviceQubit = deviceQubits[index];
+  for (const auto &island : *plan) {
+    if (island.virtualQubits.empty())
+      continue;
+    SmallVector<unsigned> localSeed =
+        GreedyInitialPlacer(device, interactions, userVirtualQubits)
+            .runRestricted(island.virtualQubits, island.physicalQubits);
+    for (unsigned virtualQubit : island.virtualQubits) {
+      unsigned deviceQubit = localSeed[virtualQubit];
       seed[virtualQubit] = deviceQubit;
       usedDeviceQubits[deviceQubit] = true;
     }
-    // Shrink this island's remaining capacity so the next (smaller) group
-    // best-fits against what is left.
-    deviceQubits.erase(deviceQubits.begin(),
-                       deviceQubits.begin() + virtualComponent.size());
   }
-  // Idle and single-qubit-only virtuals took part in no interaction group, so
-  // they were never placed above. Give each a leftover device qubit so every
-  // virtual qubit ends up mapped.
+
+  // Idle and single-qubit-only virtuals impose no island constraint. Assign
+  // them to the remaining physical qubits in ascending order.
   SmallVector<unsigned> remainingDeviceQubits;
   for (unsigned p = 0; p < device.getNumQubits(); ++p)
     if (!usedDeviceQubits[p])
@@ -461,8 +519,8 @@ buildBestFitComponentSeed(unsigned numV, const cudaq::Device &device,
   return seed;
 }
 
-/// The identity, greedy, and component seeds can coincide; de-dupe so the
-/// router never pays to route the same layout twice.
+/// The identity and greedy seeds can coincide; de-dupe so the router never pays
+/// to route the same layout twice.
 void pushSeedIfNew(SmallVector<SmallVector<unsigned>> &seeds,
                    SmallVector<unsigned> seed) {
   if (llvm::find(seeds, seed) == seeds.end())
@@ -489,16 +547,13 @@ buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
 
   if (strategy == PlacementStrategy::Auto ||
       strategy == PlacementStrategy::Greedy) {
-    SmallVector<unsigned> greedy =
-        GreedyInitialPlacer(device, interactions, userVirtualQubits).run();
-    // For `auto`, greedy degenerates to identity when there are no interactions
-    // to place, so skip the duplicate rather than route the identity layout
-    // twice.
-    pushSeedIfNew(seeds, std::move(greedy));
-    if (strategy == PlacementStrategy::Auto)
-      if (auto componentSeed = buildBestFitComponentSeed(
-              numV, device, interactions, userVirtualQubits))
-        pushSeedIfNew(seeds, std::move(*componentSeed));
+    if (auto greedy =
+            buildGreedySeed(numV, device, interactions, userVirtualQubits)) {
+      // For `auto`, greedy degenerates to identity when there are no
+      // interactions to place, so skip the duplicate rather than route the
+      // identity layout twice.
+      pushSeedIfNew(seeds, std::move(*greedy));
+    }
   }
 
   return seeds;
