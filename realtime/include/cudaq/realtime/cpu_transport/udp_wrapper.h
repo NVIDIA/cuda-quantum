@@ -31,8 +31,7 @@
 ///
 /// Deliberately no `ibverbs`, no CUDA: buildable and runnable anywhere.
 
-#ifndef CPU_UDP_WRAPPER_H
-#define CPU_UDP_WRAPPER_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -96,5 +95,3 @@ uint64_t cpu_udp_get_tx_ring_data_addr(cpu_udp_transceiver_t handle);
 #ifdef __cplusplus
 }
 #endif
-
-#endif // CPU_UDP_WRAPPER_H

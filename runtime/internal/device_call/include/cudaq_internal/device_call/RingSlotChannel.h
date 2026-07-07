@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -11,10 +11,8 @@
 // RingSlotChannel -- the transport-independent caller side of the v1
 // ring-slot device_call RPC protocol, shared by CpuRoceChannel (RDMA wire)
 // and UdpChannel (loopback/Ethernet UDP wire).  Everything protocol-shaped
-// lives here so a fix or protocol evolution (e.g. the documented
-// phase2_imm_convention concurrent-dispatch follow-up) lands in exactly one
-// place; the subclasses supply only transport setup/teardown and argument
-// parsing.
+// lives here so a fix or protocol evolution lands in exactly one place; the
+// subclasses supply only transport setup/teardown and argument parsing.
 //
 // Protocol (v1): the service's host dispatcher mirrors its rx slot to its tx
 // slot, and both ends fill RX slots in strict arrival order, so serializing
