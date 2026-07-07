@@ -14,25 +14,39 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/variant.h>
 
+#include <optional>
 #include <string>
+#include <utility>
 #include <variant>
 
 namespace {
 
 using RealArg = std::variant<double, std::string>;
 
-cudaq::synth::Real toReal(const RealArg &arg) {
+/// Converts a Python float or str argument to a Real. `name` is the Python
+/// parameter name, used to build the ValueError message for malformed
+/// strings.
+cudaq::synth::Real toReal(const RealArg &arg, const char *name) {
   if (std::holds_alternative<double>(arg))
     return cudaq::synth::Real(std::get<double>(arg));
-  return cudaq::synth::Real(std::get<std::string>(arg));
+  const std::string &str = std::get<std::string>(arg);
+  std::optional<cudaq::synth::Real> parsed =
+      cudaq::synth::Real::from_string(str);
+  if (!parsed)
+    throw nanobind::value_error(
+        (std::string(name) + ": invalid numeric string '" + str + "'")
+            .c_str());
+  return *std::move(parsed);
 }
 
 std::string gridsynthBinding(RealArg theta, RealArg epsilon,
                              int diophantine_timeout_ms,
                              int factoring_timeout_ms) {
-  cudaq::synth::Real thetaReal = toReal(theta);
-  cudaq::synth::Real epsilonReal = toReal(epsilon);
+  cudaq::synth::Real thetaReal = toReal(theta, "theta");
+  cudaq::synth::Real epsilonReal = toReal(epsilon, "epsilon");
 
+  if (!thetaReal.is_finite())
+    throw nanobind::value_error("theta must be finite");
   if (!(epsilonReal > 0))
     throw nanobind::value_error("epsilon must be strictly positive");
 
@@ -91,7 +105,8 @@ Returns:
     The identity is returned as the single character 'I'.
 
 Raises:
-    ValueError: if epsilon <= 0, or if synthesis fails (degenerate
-        epsilon region or search space exhausted).
+    ValueError: if theta or epsilon is a string that does not parse as a
+        number, if theta is not finite, if epsilon <= 0, or if synthesis
+        fails (degenerate epsilon region or search space exhausted).
 )doc");
 }

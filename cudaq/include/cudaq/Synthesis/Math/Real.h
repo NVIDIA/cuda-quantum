@@ -106,7 +106,15 @@ public:
 
   Real(const std::string &str) {
     mpfr_init2(value_, default_precision_);
-    mpfr_set_str(value_, str.c_str(), 10, MPFR_RNDN);
+    if (mpfr_set_str(value_, str.c_str(), 10, MPFR_RNDN) != 0)
+      mpfr_set_nan(value_);
+  }
+
+  static std::optional<Real> from_string(const std::string &str) {
+    Real result;
+    if (mpfr_set_str(result.value_, str.c_str(), 10, MPFR_RNDN) != 0)
+      return std::nullopt;
+    return result;
   }
 
   Real(const Real &other) {
