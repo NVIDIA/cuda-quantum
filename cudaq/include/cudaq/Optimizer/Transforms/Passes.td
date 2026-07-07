@@ -1437,6 +1437,51 @@ def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
 
+def SinkMeasurements : Pass<"sink-measurements", "mlir::func::FuncOp"> {
+  let summary = "Find measurement ops and sink them as low as they will go";
+  let description = [{
+    This pass finds all measurement ops (e.g., `mz`, `my`, `mx`) in the
+    body of a function and sinks them (move op position lower in basic block)
+    as far down as is functionally correct.
+
+    For example, given the following IR:
+    ```
+    func.func @kernel() {
+      %q = quake.alloca !quake.veq<3>
+      %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+      %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+      %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+      %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+      quake.h %q1 : (!quake.ref) -> ()
+      quake.x %q2 : (!quake.ref) -> ()
+      %bit = quake.discriminate %m : (!quake.measure) -> i1
+      return
+    }
+    ```
+
+    The pass would mutate the above IR into:
+    ```
+    func.func @kernel() {
+      %q = quake.alloca !quake.veq<3>
+      %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+      %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+      %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+      quake.h %q1 : (!quake.ref) -> ()
+      quake.x %q2 : (!quake.ref) -> ()
+      %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
+      %bit = quake.discriminate %m : (!quake.measure) -> i1
+      return
+    }
+    ```
+    which sinks the `mz` op below the two unitary ops because we can prove
+    that the two unitaries' targets (`%q1` and `%q2`) don't consume `%mz` 
+    and they do not alias the `mz` target (`%q0`).
+
+  }];
+
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
+}
+
 def SROA : Pass<"cc-sroa"> {
   let summary = "Scalar replacement of aggregates.";
   let description = [{
