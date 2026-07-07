@@ -326,4 +326,36 @@ TEST(UtilityTest, Sqrt2Constant) {
   EXPECT_NEAR(sq.to_double(), 2.0, 1e-13);
 }
 
+TEST(StringParseTest, FromStringValid) {
+  auto parsed = Real::from_string("1e-4");
+  ASSERT_TRUE(parsed.has_value());
+  EXPECT_NEAR(parsed->to_double(), 1e-4, 1e-18);
+
+  auto negative = Real::from_string("-3.25");
+  ASSERT_TRUE(negative.has_value());
+  EXPECT_NEAR(negative->to_double(), -3.25, 1e-15);
+}
+
+TEST(StringParseTest, FromStringMalformed) {
+  EXPECT_FALSE(Real::from_string("").has_value());
+  EXPECT_FALSE(Real::from_string("abc").has_value());
+  EXPECT_FALSE(Real::from_string("1.2.3").has_value());
+  EXPECT_FALSE(Real::from_string("1e").has_value());
+  EXPECT_FALSE(Real::from_string("1.5x").has_value());
+}
+
+TEST(StringParseTest, FromStringNonFiniteSpellings) {
+  auto nan_val = Real::from_string("nan");
+  ASSERT_TRUE(nan_val.has_value());
+  EXPECT_TRUE(nan_val->is_nan());
+
+  auto inf_val = Real::from_string("inf");
+  ASSERT_TRUE(inf_val.has_value());
+  EXPECT_TRUE(inf_val->is_inf());
+}
+
+TEST(StringParseTest, ConstructorMalformedYieldsNan) {
+  EXPECT_TRUE(Real("not a number").is_nan());
+}
+
 } // namespace
