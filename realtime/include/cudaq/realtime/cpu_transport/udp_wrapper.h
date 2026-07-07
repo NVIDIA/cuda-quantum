@@ -22,14 +22,14 @@
 /// simpler than the RoCE transport, whose TX SGE covers only the actual
 /// frame bytes -- cu_frame_size, not the slot stride; this transport has no
 /// separate frame-size parameter.) Inbound datagrams larger than this end's
-/// slot stride are dropped with a one-time stderr warning, so BOTH ENDS MUST
+/// slot stride are dropped with a one-time `stderr` warning, so BOTH ENDS MUST
 /// USE THE SAME page_size.
 /// Arriving frames fill RX slots in strict ring order (the same FIFO the
 /// RoCE recv-WQE path provides), with back-pressure until the in-order slot
 /// is fully recycled (rx flag cleared by the consumer AND tx response slot
 /// drained).
 ///
-/// Deliberately no ibverbs, no CUDA: buildable and runnable anywhere.
+/// Deliberately no `ibverbs`, no CUDA: buildable and runnable anywhere.
 
 #ifndef CPU_UDP_WRAPPER_H
 #define CPU_UDP_WRAPPER_H
