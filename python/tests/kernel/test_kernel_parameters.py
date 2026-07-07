@@ -236,6 +236,50 @@ def test_pauli_word_dunder_methods():
     assert cudaq.pauli_word('xiz') == cudaq.pauli_word('XIZ')
 
 
+def test_struct_list_int_negative():
+    # Regression test for issue 4846
+    from dataclasses import dataclass
+
+    @dataclass(slots=True)
+    class Args:
+        values: list[int]
+
+    @cudaq.kernel
+    def kernel(args: Args):
+        q = cudaq.qvector(2)
+        if args.values[0] < 0:
+            x(q[0])
+        if args.values[1] > 5:
+            x(q[1])
+
+    counts = cudaq.sample(kernel, Args([-3, 10]))
+    assert len(counts) == 1
+    assert '11' in counts
+
+
+def test_struct_list_bool():
+    # A `list[bool]` struct member is bit-packed (std::vector<bool>), whose host
+    # header is larger than other vectors. Regression test that its full header
+    # is marshaled on the local-simulator (argsCreator) path.
+    from dataclasses import dataclass
+
+    @dataclass(slots=True)
+    class Args:
+        flags: list[bool]
+
+    @cudaq.kernel
+    def kernel(args: Args):
+        q = cudaq.qvector(2)
+        if args.flags[0]:
+            x(q[0])
+        if args.flags[4]:
+            x(q[1])
+
+    counts = cudaq.sample(kernel, Args([True, False, False, False, True]))
+    assert len(counts) == 1
+    assert '11' in counts
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

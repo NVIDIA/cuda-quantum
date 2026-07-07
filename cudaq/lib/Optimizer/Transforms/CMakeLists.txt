@@ -64,6 +64,7 @@ add_cudaq_library(OptTransforms
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp
+  RealtimeDeviceCall.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
   ReplaceStateWithKernel.cpp
