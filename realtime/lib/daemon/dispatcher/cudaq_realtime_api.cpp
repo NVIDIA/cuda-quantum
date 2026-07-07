@@ -210,8 +210,22 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   int device_id = dispatcher->config.device_id;
   if (device_id < 0)
     device_id = 0;
-  if (cudaSetDevice(device_id) != cudaSuccess)
-    return CUDAQ_ERR_CUDA;
+  // The HOST dispatch path may run without a usable CUDA device: HOST_CALL
+  // entries never touch the device, and GRAPH_LAUNCH workers fail at their
+  // own CUDA calls (cudaStreamCreate) when the device is truly needed. Only
+  // the no-device error class is tolerated, though: if devices are
+  // enumerable, a cudaSetDevice failure means `device_id` names a bad device
+  // (e.g. cudaErrorInvalidDevice), and swallowing it would leave host-side
+  // GRAPH_LAUNCH workers silently running on the default device instead of
+  // the configured one.
+  if (cudaSetDevice(device_id) != cudaSuccess) {
+    if (dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST)
+      return CUDAQ_ERR_CUDA;
+    int device_count = 0;
+    if (cudaGetDeviceCount(&device_count) == cudaSuccess && device_count > 0)
+      return CUDAQ_ERR_CUDA;
+    (void)cudaGetLastError();
+  }
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
     dispatcher->host_handle = cudaq_host_dispatcher_start_thread(
