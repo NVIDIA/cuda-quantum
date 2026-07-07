@@ -36,6 +36,15 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     message(STATUS "  - device_call: cpu_roce channel enabled (libibverbs)")
   endif()
 
+  # UDP loopback channel: the RDMA-free stand-in for cpu_roce (development,
+  # CI, and two-process tests on hosts without an RDMA NIC).
+  set(CUDAQ_DEVICE_CALL_UDP_LIB "")
+  if (TARGET cudaq::cudaq-realtime-udp-transport)
+    list(APPEND CUDAQ_DEVICE_CALL_SOURCES UdpChannel.cpp)
+    set(CUDAQ_DEVICE_CALL_UDP_LIB cudaq::cudaq-realtime-udp-transport)
+    message(STATUS "  - device_call: udp channel enabled")
+  endif()
+
   add_library(cudaq-device-call-runtime
     SHARED
       ${CUDAQ_DEVICE_CALL_SOURCES})
@@ -55,6 +64,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       cudaq-common
       cudaq::cudaq-realtime
       ${CUDAQ_DEVICE_CALL_CPU_ROCE_LIB}
+      ${CUDAQ_DEVICE_CALL_UDP_LIB}
       LLVMSupport
       CUDA::cudart_static
       dl)

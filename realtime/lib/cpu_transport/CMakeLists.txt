@@ -23,9 +23,42 @@
 # without GPUs.
 # ==============================================================================
 
+# ------------------------------------------------------------------------------
+# UDP ring transceiver: the loopback/CI stand-in for CpuRoceTransceiver with the
+# same ring contract (see udp_wrapper.h). No ibverbs, no CUDA -- always built.
+# ------------------------------------------------------------------------------
+add_library(cudaq-realtime-udp-transport STATIC
+  udp_transceiver.cpp
+)
+add_library(cudaq::cudaq-realtime-udp-transport ALIAS cudaq-realtime-udp-transport)
+
+target_include_directories(cudaq-realtime-udp-transport
+  PUBLIC
+    $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(cudaq-realtime-udp-transport
+  PUBLIC
+    Threads::Threads
+)
+
+set_target_properties(cudaq-realtime-udp-transport PROPERTIES
+  POSITION_INDEPENDENT_CODE ON
+  ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+)
+
+install(TARGETS cudaq-realtime-udp-transport
+  EXPORT cudaq-realtime-targets
+  COMPONENT realtime-lib
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+message(STATUS "  - cudaq-realtime-udp-transport (CPU UDP transport)")
+
 find_library(IBVERBS_LIBRARY NAMES ibverbs)
 if (NOT IBVERBS_LIBRARY)
-  message(STATUS "  - cpu_transport: libibverbs not found, skipping")
+  message(STATUS "  - cpu_transport: libibverbs not found, skipping RoCE transport")
   return()
 endif()
 

@@ -20,6 +20,31 @@
 # skipped on hosts without libibverbs.
 # ==============================================================================
 
+# ----------------------------------------------------------------------------
+# test_udp_transceiver: loopback tests for the UDP ring transceiver. Pure CPU
+# (no CUDA, no ibverbs), so it builds and runs everywhere. Gated only on the
+# always-built UDP target.
+# ----------------------------------------------------------------------------
+if (TARGET cudaq-realtime-udp-transport)
+  add_executable(test_udp_transceiver test_udp_transceiver.cpp)
+
+  target_include_directories(test_udp_transceiver PRIVATE
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
+  )
+
+  target_link_libraries(test_udp_transceiver PRIVATE
+    GTest::gtest_main
+    cudaq-realtime-udp-transport
+    Threads::Threads
+  )
+
+  add_dependencies(CudaqRealtimeUnitTests test_udp_transceiver)
+  gtest_discover_tests(test_udp_transceiver
+    TEST_PREFIX "test_udp_transceiver."
+  )
+  message(STATUS "  - test_udp_transceiver (UDP loopback ring transceiver)")
+endif()
+
 if (NOT TARGET cudaq-realtime-cpu-transport)
   return()
 endif()
