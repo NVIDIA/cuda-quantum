@@ -47,8 +47,10 @@ add_custom_command(
 )
 
 # cudaq/mlir is excluded: the MLIR machinery in extension/ stages it, and
-# a second producer for the same outputs races it.
-file(GLOB_RECURSE _cudaq_package_sources CONFIGURE_DEPENDS
+# a second producer for the same outputs races it. No CONFIGURE_DEPENDS:
+# a mid-ctest reconfigure relinks libraries under running tests. Adding a
+# python file requires a reconfigure.
+file(GLOB_RECURSE _cudaq_package_sources
   RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
   "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/*.py")
 list(FILTER _cudaq_package_sources EXCLUDE REGEX "^mlir/")
@@ -60,7 +62,7 @@ cudaq_stage_python_sources(CUDAQPythonPackageStaging
 # The pycudaq-mlir lit suite and the interop pytest run from the build tree.
 # mlir/generated holds artifacts lit writes into the source tree at config
 # load; they are discovered from there, not staged.
-file(GLOB_RECURSE _cudaq_test_sources CONFIGURE_DEPENDS
+file(GLOB_RECURSE _cudaq_test_sources
   RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/tests"
   "${CMAKE_CURRENT_SOURCE_DIR}/tests/*")
 list(FILTER _cudaq_test_sources EXCLUDE REGEX
