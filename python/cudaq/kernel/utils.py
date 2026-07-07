@@ -221,7 +221,7 @@ def recover_annotation_of_or_none(name, frame=None):
     """
     Recover the type annotation of the symbol `name` from the enclosing
     context, mirroring the frame walk of `recover_value_of_or_none`. Only
-    annotations stored in a namespace's `__annotations__` (e.g. a module-level
+    annotations stored in a `namespace's` `__annotations__` (e.g. a module-level
     `name: list[float] = []`) are recoverable.
     """
     if '.' in name:
