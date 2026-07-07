@@ -736,14 +736,20 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   // Cache hit: same kernel, same target configuration, same module content.
   if (cacheable && cachedModule->getName() == name &&
       cachedModule->getMetadata().targetHash == targetHash &&
-      cachedModule->getMetadata().moduleHash == moduleHash)
+      cachedModule->getMetadata().moduleHash == moduleHash) {
+    CUDAQ_INFO("Reusing cached module with name {} and hash ({}, {})", name,
+               targetHash, moduleHash);
     return cudaq::streamlinedLaunchModule(*cachedModule, rawArgs);
+  }
 
+  CUDAQ_INFO("Compiling module {}", name);
   mlir::OwningOpRef<ModuleOp> clone = mod.clone();
   auto compiled =
       compileModuleImpl(name, clone.get(), rawArgs, true, std::move(target));
   auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
   if (cacheable) {
+    CUDAQ_INFO("Caching module {} with hash ({}, {})", name, targetHash,
+               moduleHash);
     compiled.setCacheKey(targetHash, moduleHash);
     *cachedModule = std::move(compiled);
   }
