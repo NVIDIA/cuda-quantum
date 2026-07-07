@@ -28,30 +28,36 @@ configuration-matrix:
       # If present, the preceding one will be selected. Otherwise, continue the .so search.
       nvqir-simulation-backend: cusvsim-fp32, custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+      supports-negated-controls: true
   - name: single-gpu-fp64
     option-flags: [fp64]
     config:
       nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+      supports-negated-controls: true
   - name: multi-gpu-fp32
     option-flags: [fp32, mgpu]
     config:
       nvqir-simulation-backend: nvidia-mgpu-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
+      supports-negated-controls: true
   - name: multi-gpu-fp64
     option-flags: [fp64, mgpu]
     config:
       nvqir-simulation-backend: nvidia-mgpu
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+      supports-negated-controls: true
   - name: multi-qpu-fp32
     option-flags: [fp32, mqpu]
     config:
       nvqir-simulation-backend: cusvsim-fp32, custatevec-fp32
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP32"]
       platform-library: mqpu
+      supports-negated-controls: true
   - name: multi-qpu-fp64
     option-flags: [fp64, mqpu]
     config:
       platform-library: mqpu
       nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
       preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
+      supports-negated-controls: true

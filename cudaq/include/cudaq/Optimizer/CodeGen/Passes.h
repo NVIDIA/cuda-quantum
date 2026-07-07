@@ -67,7 +67,8 @@ void registerToQIRAPIPipeline();
 /// Add the convert to QIR API pipeline to \p pm. With the move to LLVM 22, we
 /// now use opaque pointers.
 void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
-                                bool opaquePtr = true);
+                                bool opaquePtr = true,
+                                bool allowNegatedControls = false);
 
 /// The pipeline for lowering Quake code to the execution manager API. This
 /// pipeline should be run before conversion to the LLVM-IR dialect.
@@ -97,7 +98,8 @@ void addJITPipelineConvertToQIR(mlir::PassManager &pm,
 /// The driver always uses full QIR, but it can support other profiles if
 /// necessary. Letting \p convertTo default means full QIR.
 void addAOTPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef convertTo = {});
+                                mlir::StringRef convertTo = {},
+                                bool preserveGateControlPolarity = false);
 
 /// Pipeline builder to convert Quake to Open QASM 2.0
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);

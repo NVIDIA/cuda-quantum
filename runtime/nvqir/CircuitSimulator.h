@@ -120,6 +120,18 @@ protected:
   /// @brief Noise model to apply to the current execution.
   const cudaq::noise_model *noiseModel = nullptr;
 
+  /// @brief Per-control activation values staged for the NEXT enqueued
+  /// controlled gate, set by the NVQIR negated-control entry point and consumed
+  /// (then cleared) by `enqueueGate`. Aligned to that gate's flattened control
+  /// list, using `controlBitValues` convention: 1 activates on
+  /// |1> (the conventional positive control), 0 activates on |0> (a negated
+  /// control). Empty means every control is conventional. Kept as metadata so
+  /// backends that apply negated controls natively can avoid X-conjugation.
+  ///
+  /// NOTE: thread locality. The design relies on
+  /// `getCircuitSimulatorInternal()` returning a per-thread simulator.
+  std::vector<std::uint8_t> pendingControlBitValues;
+
   /// @brief Flag to indicate that a warning about named measurement registers
   /// should be emitted.
   bool warnAboutNamedMeasurements = false;
@@ -139,6 +151,13 @@ public:
   /// this unimplemented, it is meant for subclasses.
   virtual void tearDownBeforeMPIFinalize() {
     // do nothing
+  }
+
+  /// @brief Stage per-control activation values for the next enqueued
+  /// controlled gate. \p controlBitValues is aligned to that gate's flattened
+  /// control list. Consumed once by the next enqueueGate, then cleared.
+  void setControlBitValues(std::vector<std::uint8_t> controlBitValues) {
+    pendingControlBitValues = std::move(controlBitValues);
   }
 
   /// @brief Provide a mechanism for simulators to
@@ -502,6 +521,9 @@ public:
   /// @brief Return a thread_local pointer to this CircuitSimulator
   virtual CircuitSimulator *clone() = 0;
 
+  /// @brief Return true if this simulator supports negated-control natively.
+  virtual bool supportsNegatedControls() const { return false; }
+
   /// Determine the (preferred) precision of the simulator.
   virtual bool isSinglePrecision() const = 0;
   bool isDoublePrecision() const { return !isSinglePrecision(); }
@@ -527,13 +549,15 @@ public:
     const std::vector<std::size_t> controls;
     const std::vector<std::size_t> targets;
     const std::vector<ScalarType> parameters;
+    const std::vector<std::uint8_t> controlBitValues;
     GateApplicationTask(const std::string &name,
                         const std::vector<std::complex<ScalarType>> &m,
                         const std::vector<std::size_t> &c,
                         const std::vector<std::size_t> &t,
-                        const std::vector<ScalarType> &params)
+                        const std::vector<ScalarType> &params,
+                        const std::vector<std::uint8_t> &ctrlBitValues = {})
         : operationName(name), matrix(m), controls(c), targets(t),
-          parameters(params) {}
+          parameters(params), controlBitValues(ctrlBitValues) {}
   };
 
 protected:
@@ -842,6 +866,33 @@ protected:
     // re-throw), stop accumulating further gates.
     if (kernelExecutionDeferred())
       return;
+    // Attach per-control activation values staged immediately before this gate
+    // by the NVQIR negated-control entry point; empty for every ordinary gate.
+    // Consume at the top (before any early return) so it is bound to exactly
+    // this gate and never carries to the next one. Values only reach the
+    // runtime when the target declared native negated-control support and the
+    // codegen pass preserved the polarity; otherwise apply-control-negations
+    // expanded it into X gates at compile time.
+    std::vector<std::uint8_t> controlBitValues;
+    controlBitValues.swap(pendingControlBitValues);
+
+    // If this simulator cannot apply negated controls natively, fall back to
+    // an explicit X-conjugation (X on each negated control, the plain gate,
+    // X again) instead of failing outright. The compiler already avoids this
+    // path for any target that doesn't declare native support, so this is a
+    // safety net for that invariant, not the common case.
+    if (!controlBitValues.empty() && !supportsNegatedControls()) {
+      const auto xMatrix = nvqir::x<ScalarType>().getGate({});
+      for (std::size_t i = 0; i < controlBitValues.size(); ++i)
+        if (controlBitValues[i] == 0)
+          enqueueGate("x", xMatrix, {}, {controls[i]}, {});
+      enqueueGate(name, matrix, controls, targets, params);
+      for (std::size_t i = 0; i < controlBitValues.size(); ++i)
+        if (controlBitValues[i] == 0)
+          enqueueGate("x", xMatrix, {}, {controls[i]}, {});
+      return;
+    }
+
     if (cudaq::isInTracerMode()) {
       std::vector<cudaq::QuditInfo> controlsInfo, targetsInfo;
       for (auto &c : controls)
@@ -875,7 +926,8 @@ protected:
       cudaq::log("{}: matrix={}, controls={}, targets={}, params={}", name,
                  matrix, controls, targets, params);
 
-    gateQueue.emplace(name, matrix, controls, targets, params);
+    gateQueue.emplace(name, matrix, controls, targets, params,
+                      controlBitValues);
   }
 
   /// @brief Provide a base-class method that can be invoked

@@ -14,4 +14,4 @@ gpu-requirements: true
 config:
   nvqir-simulation-backend: cusvsim-fp64, custatevec-fp64
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
-
+  supports-negated-controls: true

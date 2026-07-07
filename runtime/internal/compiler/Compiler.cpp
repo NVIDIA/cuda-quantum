@@ -365,7 +365,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
-                  clonedModule, target->pipelineConfig.codegenTranslation),
+                  clonedModule, target->pipelineConfig.codegenTranslation,
+                  target->supportsNegatedControls),
               resultInfo, isFullySpecialized);
       // The first artifact is the kernel entry point; rename it to the
       // per-module name (relevant for the multi-module observe path where the

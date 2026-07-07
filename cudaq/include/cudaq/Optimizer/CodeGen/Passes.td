@@ -225,7 +225,15 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
     Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"true",
-           "Use opaque pointers.">
+           "Use opaque pointers.">,
+    Option<"allowNegatedControls", "allow-negated-controls", "bool",
+           /*default=*/"false",
+          "Allow built-in gates to carry negated controls to the runtime. "
+          "Only valid for full QIR on targets that support negated controls "
+          "natively. "
+          "When set to `false` (default), built-in operations with negated "
+          "controls are rejected at this stage, serving as a validation "
+          "check that `apply-control-negations` has already executed.">
   ];
 }
 

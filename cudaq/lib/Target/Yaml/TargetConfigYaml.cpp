@@ -73,6 +73,10 @@ static std::string processSimBackendConfig(
     output << "POST_CODEGEN_PASSES=\"" << configValue.PostCodeGenPasses
            << "\"\n";
 
+  if (configValue.SupportsNegatedControls)
+    output << "CUDAQ_TRANSLATE_ARGS=\"${CUDAQ_TRANSLATE_ARGS} "
+              "--preserve-gate-control-polarity\"\n";
+
   if (!configValue.PlatformLibrary.empty())
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
 
@@ -161,6 +165,85 @@ static std::string processSimBackendConfig(
   return output.str();
 }
 
+// Compute the combined feature-flag bitset from the runtime/CLI args, using the
+// same arg-key forms processRuntimeArgs accepts. Shared with
+// `getActiveBackendConfig` so configuration-matrix selection stays consistent.
+static unsigned
+computeFeatureFlag(const cudaq::config::TargetConfig &config,
+                   const std::map<std::string, std::string> &args) {
+  unsigned featureFlag = 0;
+  for (const auto &[argKey, argVal] : args) {
+    const auto iter = std::find_if(
+        config.TargetArguments.begin(), config.TargetArguments.end(),
+        [&](const cudaq::config::TargetArgument &argConfig) {
+          const std::string nvqppArgKey =
+              "--" + config.Name + "-" + argConfig.KeyName;
+          const std::string targetPrefixArgKey =
+              "--target-" + argConfig.KeyName;
+          return llvm::is_contained<llvm::StringRef>(
+              {nvqppArgKey, targetPrefixArgKey, argConfig.KeyName}, argKey);
+        });
+    if (iter == config.TargetArguments.end() ||
+        iter->Type != cudaq::config::ArgumentType::FeatureFlag)
+      continue;
+    llvm::SmallVector<llvm::StringRef> flagStrs;
+    llvm::StringRef(argVal).split(flagStrs, ',', -1, false);
+    for (const auto &flag : flagStrs) {
+      const auto flagIter = stringToFeatureFlag.find(flag.str());
+      if (flagIter == stringToFeatureFlag.end()) {
+        llvm::errs() << "Unknown  feature flag '" << flag << "'\n";
+        abort();
+      }
+      featureFlag += flagIter->second;
+    }
+  }
+  return featureFlag;
+}
+
+// Select the configuration-matrix entry activated by `featureFlag` (exact match
+// or default-implied match), or null if none / no matrix. Shared selection.
+static const cudaq::config::BackendFeatureMap *
+selectConfigMapEntry(const cudaq::config::TargetConfig &config,
+                     unsigned featureFlag) {
+  if (config.ConfigMap.empty())
+    return nullptr;
+  const auto defaultFeatureIter =
+      std::find_if(config.ConfigMap.begin(), config.ConfigMap.end(),
+                   [&](const cudaq::config::BackendFeatureMap &entry) {
+                     return entry.Default.has_value() && entry.Default.value();
+                   });
+  const uint64_t defaultFlag =
+      (defaultFeatureIter != config.ConfigMap.end())
+          ? static_cast<uint64_t>(defaultFeatureIter->Flags)
+          : 0;
+  // Exact match + implicit-default match: with default fp32, `option=mqpu`
+  // resolves the same as `option=fp32,mqpu`. With no option flag, pick default.
+  const auto iter =
+      featureFlag > 0
+          ? std::find_if(config.ConfigMap.begin(), config.ConfigMap.end(),
+                         [&](const cudaq::config::BackendFeatureMap &entry) {
+                           return featureFlag == entry.Flags ||
+                                  (featureFlag | defaultFlag) == entry.Flags;
+                         })
+          : std::find_if(config.ConfigMap.begin(), config.ConfigMap.end(),
+                         [&](const cudaq::config::BackendFeatureMap &entry) {
+                           return entry.Default.has_value() &&
+                                  entry.Default.value();
+                         });
+  return iter != config.ConfigMap.end() ? &*iter : nullptr;
+}
+
+std::optional<cudaq::config::BackendEndConfigEntry>
+cudaq::config::TargetConfig::getActiveBackendConfig(
+    const std::map<std::string, std::string> &args) const {
+  if (const auto *entry =
+          selectConfigMapEntry(*this, computeFeatureFlag(*this, args)))
+    return entry->Config;
+  if (BackendConfig.has_value())
+    return BackendConfig;
+  return std::nullopt;
+}
+
 std::string cudaq::config::processRuntimeArgs(
     const cudaq::config::TargetConfig &config,
     const std::map<std::string, std::string> &args) {
@@ -169,7 +252,7 @@ std::string cudaq::config::processRuntimeArgs(
     output << processSimBackendConfig(config.Name,
                                       config.BackendConfig.value());
 
-  unsigned featureFlag = 0;
+  const unsigned featureFlag = computeFeatureFlag(config, args);
   std::stringstream platformExtraArgs;
   for (const auto &[argKey, argVal] : args) {
     const auto iter = std::find_if(
@@ -184,71 +267,24 @@ std::string cudaq::config::processRuntimeArgs(
           return llvm::is_contained<llvm::StringRef>(
               {nvqppArgKey, targetPrefixArgKey, argConfig.KeyName}, argKey);
         });
-    if (iter != config.TargetArguments.end()) {
-      if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
-        // If this is a platform option (platform argument key is provide),
-        // forward the value to the platform extra arguments.
-        if (!iter->PlatformArgKey.empty())
-          platformExtraArgs << ";" << iter->PlatformArgKey << ";" << argVal;
-      } else {
-        // This is an option flag, construct the value for mapping selection.
-        llvm::SmallVector<llvm::StringRef> flagStrs;
-        llvm::StringRef(argVal).split(flagStrs, ',', -1, false);
-        for (const auto &flag : flagStrs) {
-          const auto iter = stringToFeatureFlag.find(flag.str());
-          if (iter == stringToFeatureFlag.end()) {
-            llvm::errs() << "Unknown  feature flag '" << flag << "'\n";
-            abort();
-          }
-          featureFlag += iter->second;
-        }
-      }
-    }
+    // Feature flags drive configuration-matrix selection (computeFeatureFlag,
+    // applied below). Forward any other platform option to the platform.
+    if (iter != config.TargetArguments.end() &&
+        iter->Type != cudaq::config::ArgumentType::FeatureFlag &&
+        !iter->PlatformArgKey.empty())
+      platformExtraArgs << ";" << iter->PlatformArgKey << ";" << argVal;
   }
 
   if (!config.ConfigMap.empty()) {
-    const auto defaultFeatureIter = std::find_if(
-        config.ConfigMap.begin(), config.ConfigMap.end(),
-        [&](const cudaq::config::BackendFeatureMap &entry) {
-          return entry.Default.has_value() && entry.Default.value();
-        });
-
-    const uint64_t defaultFlag =
-        (defaultFeatureIter != config.ConfigMap.end())
-            ? static_cast<uint64_t>(defaultFeatureIter->Flags)
-            : 0;
-
-    const auto iter = [&]() {
-      // If the command line set the feature flag, find it in the config map.
-      // Otherwise, find the default.
-      return featureFlag > 0
-                 ? std::find_if(
-                       config.ConfigMap.begin(), config.ConfigMap.end(),
-                       [&](const cudaq::config::BackendFeatureMap &entry) {
-                         // Mapping selection: exact match + implicit default
-                         // match. e.g., if the default is fp32, `option=mqpu`
-                         // is the same as `option=fp32,mqpu`. The config map
-                         // entry associated with 'mqpu,fp32' will be activated.
-                         return featureFlag == entry.Flags ||
-                                (featureFlag | defaultFlag) == entry.Flags;
-                       })
-                 : std::find_if(
-                       config.ConfigMap.begin(), config.ConfigMap.end(),
-                       [&](const cudaq::config::BackendFeatureMap &entry) {
-                         // No option flag was provided, find the default
-                         // config.
-                         return entry.Default.has_value() &&
-                                entry.Default.value();
-                       });
-    }();
-    if (iter == config.ConfigMap.end()) {
+    const auto *entry = selectConfigMapEntry(config, featureFlag);
+    if (!entry) {
       llvm::errs() << "Unable to find a config entry for feature flag value "
                    << featureFlag << ".\n";
       llvm::errs() << "This indicates the requested combination of features "
                       "is not supported.\n";
       abort();
     }
-    output << processSimBackendConfig(config.Name, iter->Config);
+    output << processSimBackendConfig(config.Name, entry->Config);
   }
   const auto platformExtraArgsStr = platformExtraArgs.str();
   if (!platformExtraArgsStr.empty())
@@ -335,6 +371,7 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("target-pass-pipeline", info.TargetPassPipeline);
   io.mapOptional("codegen-emission", info.CodegenEmission);
   io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
+  io.mapOptional("supports-negated-controls", info.SupportsNegatedControls);
   io.mapOptional("platform-library", info.PlatformLibrary);
   io.mapOptional("library-mode-execution-manager",
                  info.LibraryModeExecutionManager);

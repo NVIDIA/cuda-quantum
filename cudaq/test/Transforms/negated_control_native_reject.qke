@@ -1,0 +1,33 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api %s -split-input-file -verify-diagnostics
+
+module {
+  func.func @custom_op_negated_control() {
+    %c = quake.alloca !quake.ref
+    %t = quake.alloca !quake.ref
+    // expected-error@+2 {{negated controls are not supported for custom operations.}}
+    // expected-error@+1 {{failed to legalize operation 'quake.custom_unitary_constant'}}
+    quake.custom_unitary_constant @one_q_mat [%c neg [true]] %t : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant private @one_q_mat (dense<[(0.0,0.0), (1.0,0.0), (1.0,0.0), (0.0,0.0)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+}
+
+// -----
+
+func.func @exp_pauli_negated_control() {
+  %c = quake.alloca !quake.ref
+  %t = quake.alloca !quake.ref
+  %theta = arith.constant 1.0 : f64
+  // expected-error@+2 {{negated control qubits not allowed.}}
+  // expected-error@+1 {{failed to legalize operation 'quake.exp_pauli'}}
+  quake.exp_pauli (%theta) [%c neg [true]] %t to "X" : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}

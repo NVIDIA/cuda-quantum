@@ -60,7 +60,19 @@ def ApplyControlNegations :
     For every quantum operation with a negative control, replace that operation 
     with an X operation on the control qubit, the controlled operation with
     positive polarity, and a final X operation on the control qubit. 
+
+    When `preserve-gate-control-polarity` is set, supported built-in gate 
+    negations are left intact; `exp_pauli`, custom unitary, and unsupported 
+    built-in negations are still expanded here.
   }];
+
+  let options = [
+    Option<"preserveGateControlPolarity", "preserve-gate-control-polarity",
+           "bool", /*default=*/"false",
+           "Preserve supported built-in gate control polarity for targets "
+           "that apply negated controls natively; unsupported ops still "
+           "expand to X conjugation.">
+  ];
 }
 
 // ApplyOpSpecialization is a module pass because it may modify the ModuleOp
