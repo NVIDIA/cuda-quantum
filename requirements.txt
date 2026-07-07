@@ -6,27 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Development dependencies for building and testing CUDA-Q
-build
-delocate; sys_platform == "darwin"
-auditwheel; sys_platform == "linux"
-lit==18.1.4
-pytest==9.0.3
-pytest-xdist==3.8.0
-psutil
-numpy==1.26.4
--r requirements.txt
-nbconvert==7.17.1
-llvmlite==0.47.0
-scipy==1.16.3
-requests==2.32.3
-fastapi==0.111.0
-uvicorn==0.29.0
-pydantic==2.12.5
-openfermionpyscf==0.5
-h5py==3.12.1
-matplotlib
-pyspelling==2.10
-pymdown-extensions==10.21.3
-nanobind>=2.12.0
-yapf==0.43.0
+# Single place these versions are pinned; used by the release image,
+# installation validation, and requirements-dev.txt.
+notebook==7.5.6
