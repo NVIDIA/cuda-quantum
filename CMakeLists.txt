@@ -73,6 +73,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
+# Disable scanning since we have no C++20 modules.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # Set warnings as errors by default.
 # Individual targets and the command line invocation can override this behavior.
 if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
