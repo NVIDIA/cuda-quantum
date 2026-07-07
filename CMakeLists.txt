@@ -429,6 +429,10 @@ else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
+if(NOT SKBUILD)
+  install(DIRECTORY LICENSES DESTINATION .)
+endif()
+
 # Platform-specific linker flags
 # --no-as-needed forces linking of all specified libraries (GNU ld only, not available on Apple)
 if(NOT APPLE)
