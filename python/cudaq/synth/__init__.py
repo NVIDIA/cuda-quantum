@@ -43,9 +43,8 @@ class CliffordTSequence:
         stripped = gates.replace("I", "")
         invalid = set(stripped) - self._ALPHABET
         if invalid:
-            raise ValueError(
-                f"invalid gate character(s) {sorted(invalid)}; "
-                "expected only H, S, T, X, W, or I")
+            raise ValueError(f"invalid gate character(s) {sorted(invalid)}; "
+                             "expected only H, S, T, X, W, or I")
         self._gates = stripped
 
     def __str__(self):
