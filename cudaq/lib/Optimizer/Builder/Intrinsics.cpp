@@ -186,6 +186,181 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
+    // Pack a vector of `i1` into the LSB-first bit-packed encoding used by the
+    // realtime `device_call` payload ABI. `%dst` receives one byte for every
+    // eight logical elements of `%src`; a partial final byte is zero padded.
+    //
+    // Pseudocode for the loops:
+    // ```
+    //   for (byte = 0; byte < (len + 7) / 8; ++byte) {
+    //     packed = 0;
+    //     bits = min(len - byte * 8, 8);
+    //     for (bit = 0; bit < bits; ++bit)
+    //       packed |= src[byte * 8 + bit] << bit;
+    //     dst[byte] = packed;
+    //   }
+    // ```
+    {cudaq::realtimePackBits, {}, R"#(
+  func.func private @__nvqpp_RealtimePackBits(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<i1 x ?>>, %len: i64) {
+    %zero = arith.constant 0 : i64
+    %one = arith.constant 1 : i64
+    %seven = arith.constant 7 : i64
+    %eight = arith.constant 8 : i64
+    %emptyByte = arith.constant 0 : i8
+    %roundedLen = arith.addi %len, %seven : i64
+    %packedBytes = arith.divui %roundedLen, %eight : i64
+    %0 = cc.loop while ((%byte = %zero) -> i64) {
+      %cond = arith.cmpi slt, %byte, %packedBytes : i64
+      cc.condition %cond (%byte : i64)
+    } do {
+    ^bb0(%byte: i64):
+      %byteStart = arith.muli %byte, %eight : i64
+      %remaining = arith.subi %len, %byteStart : i64
+      %isPartial = arith.cmpi ult, %remaining, %eight : i64
+      %bitsInByte = arith.select %isPartial, %remaining, %eight : i64
+      %packed:2 = cc.loop while ((%bit = %zero, %acc = %emptyByte) -> (i64, i8)) {
+        %icond = arith.cmpi slt, %bit, %bitsInByte : i64
+        cc.condition %icond (%bit, %acc : i64, i8)
+      } do {
+      ^bb0(%bit: i64, %acc: i8):
+        %idx = arith.addi %byteStart, %bit : i64
+        %srcPtr = cc.compute_ptr %src[%idx] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
+        %element = cc.load %srcPtr : !cc.ptr<i1>
+        %bitByte = arith.extui %element : i1 to i8
+        %shift = arith.trunci %bit : i64 to i8
+        %shifted = arith.shli %bitByte, %shift : i8
+        %newAcc = arith.ori %acc, %shifted : i8
+        cc.continue %bit, %newAcc : i64, i8
+      } step {
+      ^bb0(%bit: i64, %acc: i8):
+        %nextBit = arith.addi %bit, %one : i64
+        cc.continue %nextBit, %acc : i64, i8
+      } {invariant}
+      %dstPtr = cc.compute_ptr %dst[%byte] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+      cc.store %packed#1, %dstPtr : !cc.ptr<i8>
+      cc.continue %byte : i64
+    } step {
+    ^bb0(%byte: i64):
+      %nextByte = arith.addi %byte, %one : i64
+      cc.continue %nextByte : i64
+    } {invariant}
+    return
+  }
+)#"},
+
+    // Same as `__nvqpp_RealtimePackBits`, but the source elements are
+    // measurement handles. Discrimination is fused with the packing so handle
+    // vectors need no temporary bool buffer.
+    {cudaq::realtimePackMeasurements, {}, R"#(
+  func.func private @__nvqpp_RealtimePackMeasurements(%dst: !cc.ptr<!cc.array<i8 x ?>>, %src: !cc.ptr<!cc.array<!cc.measure_handle x ?>>, %len: i64) {
+    %zero = arith.constant 0 : i64
+    %one = arith.constant 1 : i64
+    %seven = arith.constant 7 : i64
+    %eight = arith.constant 8 : i64
+    %emptyByte = arith.constant 0 : i8
+    %roundedLen = arith.addi %len, %seven : i64
+    %packedBytes = arith.divui %roundedLen, %eight : i64
+    %0 = cc.loop while ((%byte = %zero) -> i64) {
+      %cond = arith.cmpi slt, %byte, %packedBytes : i64
+      cc.condition %cond (%byte : i64)
+    } do {
+    ^bb0(%byte: i64):
+      %byteStart = arith.muli %byte, %eight : i64
+      %remaining = arith.subi %len, %byteStart : i64
+      %isPartial = arith.cmpi ult, %remaining, %eight : i64
+      %bitsInByte = arith.select %isPartial, %remaining, %eight : i64
+      %packed:2 = cc.loop while ((%bit = %zero, %acc = %emptyByte) -> (i64, i8)) {
+        %icond = arith.cmpi slt, %bit, %bitsInByte : i64
+        cc.condition %icond (%bit, %acc : i64, i8)
+      } do {
+      ^bb0(%bit: i64, %acc: i8):
+        %idx = arith.addi %byteStart, %bit : i64
+        %srcPtr = cc.compute_ptr %src[%idx] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.ptr<!cc.measure_handle>
+        %handle = cc.load %srcPtr : !cc.ptr<!cc.measure_handle>
+        %element = quake.discriminate %handle : (!cc.measure_handle) -> i1
+        %bitByte = arith.extui %element : i1 to i8
+        %shift = arith.trunci %bit : i64 to i8
+        %shifted = arith.shli %bitByte, %shift : i8
+        %newAcc = arith.ori %acc, %shifted : i8
+        cc.continue %bit, %newAcc : i64, i8
+      } step {
+      ^bb0(%bit: i64, %acc: i8):
+        %nextBit = arith.addi %bit, %one : i64
+        cc.continue %nextBit, %acc : i64, i8
+      } {invariant}
+      %dstPtr = cc.compute_ptr %dst[%byte] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+      cc.store %packed#1, %dstPtr : !cc.ptr<i8>
+      cc.continue %byte : i64
+    } step {
+    ^bb0(%byte: i64):
+      %nextByte = arith.addi %byte, %one : i64
+      cc.continue %nextByte : i64
+    } {invariant}
+    return
+  }
+)#"},
+
+    // Unpack LSB-first bit-packed payload bytes from `%src` into a vector of
+    // `i1`. Each packed byte is loaded once and all of its logical bits are
+    // extracted, preserving the canonical LSB-first order.
+    //
+    // Pseudocode for the loops:
+    // ```
+    //   for (byte = 0; byte < (len + 7) / 8; ++byte) {
+    //     packed = src[byte];
+    //     bits = min(len - byte * 8, 8);
+    //     for (bit = 0; bit < bits; ++bit)
+    //       dst[byte * 8 + bit] = (packed >> bit) & 1;
+    //   }
+    // ```
+    {cudaq::realtimeUnpackBits, {}, R"#(
+  func.func private @__nvqpp_RealtimeUnpackBits(%dst: !cc.ptr<!cc.array<i1 x ?>>, %src: !cc.ptr<!cc.array<i8 x ?>>, %len: i64) {
+    %zero = arith.constant 0 : i64
+    %one = arith.constant 1 : i64
+    %seven = arith.constant 7 : i64
+    %eight = arith.constant 8 : i64
+    %oneByte = arith.constant 1 : i8
+    %roundedLen = arith.addi %len, %seven : i64
+    %packedBytes = arith.divui %roundedLen, %eight : i64
+    %0 = cc.loop while ((%byte = %zero) -> i64) {
+      %cond = arith.cmpi slt, %byte, %packedBytes : i64
+      cc.condition %cond (%byte : i64)
+    } do {
+    ^bb0(%byte: i64):
+      %byteStart = arith.muli %byte, %eight : i64
+      %remaining = arith.subi %len, %byteStart : i64
+      %isPartial = arith.cmpi ult, %remaining, %eight : i64
+      %bitsInByte = arith.select %isPartial, %remaining, %eight : i64
+      %srcPtr = cc.compute_ptr %src[%byte] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+      %packed = cc.load %srcPtr : !cc.ptr<i8>
+      %1 = cc.loop while ((%bit = %zero) -> i64) {
+        %icond = arith.cmpi slt, %bit, %bitsInByte : i64
+        cc.condition %icond (%bit : i64)
+      } do {
+      ^bb0(%bit: i64):
+        %idx = arith.addi %byteStart, %bit : i64
+        %shift = arith.trunci %bit : i64 to i8
+        %shifted = arith.shrui %packed, %shift : i8
+        %masked = arith.andi %shifted, %oneByte : i8
+        %bitVal = arith.trunci %masked : i8 to i1
+        %dstPtr = cc.compute_ptr %dst[%idx] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
+        cc.store %bitVal, %dstPtr : !cc.ptr<i1>
+        cc.continue %bit : i64
+      } step {
+      ^bb0(%bit: i64):
+        %nextBit = arith.addi %bit, %one : i64
+        cc.continue %nextBit : i64
+      } {invariant}
+      cc.continue %byte : i64
+    } step {
+    ^bb0(%byte: i64):
+      %nextByte = arith.addi %byte, %one : i64
+      cc.continue %nextByte : i64
+    } {invariant}
+    return
+  }
+)#"},
+
     // __nvqpp__cudaq_em_allocate
     {cudaq::opt::CudaqEMAllocate,
      {},
