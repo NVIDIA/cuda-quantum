@@ -1245,6 +1245,15 @@ private:
             phyToWire[ev.phys[phyIdx++].index] = region.front().getArgument(i);
           }
           emitBlock(region.front());
+          // Rewire the branch's cc.continue to the wires left on each physical
+          // qubit after in-branch routing and cleanup restoration.
+          auto *contOp = region.front().getTerminator();
+          for (auto [k, operand] : llvm::enumerate(contOp->getOperands())) {
+            if (!isa<cudaq::quake::WireType>(operand.getType()))
+              continue;
+            auto vq = wireToVirtualQ.find(ifOp->getResult(k))->second;
+            contOp->setOperand(k, phyToWire[branchResult.exitLayout[vq.index]]);
+          }
           for (auto [i, phy] : llvm::enumerate(ev.phys))
             phyToWire[phy.index] = entryWires[i];
           return branchResult;
