@@ -228,7 +228,7 @@ def test_pauli_word_dunder_methods():
     assert str(w) == 'XIZ'
     assert repr(w) == "pauli_word('XIZ')"
     assert w == cudaq.pauli_word('XIZ')
-    assert w == 'XIZ'
+    assert w != 'XIZ'
     assert w != cudaq.pauli_word('IZX')
     assert hash(w) == hash(cudaq.pauli_word('XIZ'))
     assert hash(w) != hash(cudaq.pauli_word('IZX'))

@@ -30,12 +30,6 @@ void bindPauliWord(nanobind::module_ &mod) {
             return a.str() == b.str();
           },
           nanobind::is_operator())
-      .def(
-          "__eq__",
-          [](const pauli_word &a, const std::string &b) {
-            return a.str() == b;
-          },
-          nanobind::is_operator())
       .def("__hash__", [](const pauli_word &w) {
         return std::hash<std::string>{}(w.str());
       });
