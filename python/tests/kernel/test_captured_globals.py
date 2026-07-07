@@ -168,10 +168,11 @@ def test_multiple_captured_globals_in_one_kernel():
     assert len(counts) >= 1
 
 
-_CAPTURED_EMPTY = []
+_CAPTURED_EMPTY: list[int] = []
+_CAPTURED_EMPTY_NO_ANNOTATION = []
 
 
-def test_captured_empty_list():
+def test_captured_empty_list_with_annotation():
 
     @cudaq.kernel
     def kernel():
@@ -181,6 +182,19 @@ def test_captured_empty_list():
 
     counts = cudaq.sample(kernel)
     assert '0' in counts
+
+
+def test_captured_empty_list_without_annotation():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(1)
+        if len(_CAPTURED_EMPTY_NO_ANNOTATION) > 0:
+            x(q[0])
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel)
+    assert '_CAPTURED_EMPTY_NO_ANNOTATION' in repr(e)
 
 
 _CAPTURED_PAULI_STRINGS = ['XI', 'ZZ']

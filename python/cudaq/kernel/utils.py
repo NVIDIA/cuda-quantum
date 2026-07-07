@@ -217,6 +217,40 @@ def recover_value_of_or_none(name, frame=None):
         del frame
 
 
+def recover_annotation_of_or_none(name, frame=None):
+    """
+    Recover the type annotation of the symbol `name` from the enclosing
+    context, mirroring the frame walk of `recover_value_of_or_none`. Only
+    annotations stored in a namespace's `__annotations__` (e.g. a module-level
+    `name: list[float] = []`) are recoverable.
+    """
+    if '.' in name:
+        return None
+
+    try:
+        if frame is None:
+            frame = inspect.currentframe()
+            while frame is not None and get_module_name(frame).startswith(
+                    "cudaq.kernel"):
+                frame = frame.f_back
+
+        while frame is not None:
+            for namespace in (frame.f_locals, frame.f_globals):
+                if name in namespace:
+                    annotation = namespace.get('__annotations__', {}).get(name)
+                    if isinstance(annotation, str):
+                        try:
+                            annotation = eval(annotation, frame.f_globals,
+                                              frame.f_locals)
+                        except Exception:
+                            return None
+                    return annotation
+            frame = frame.f_back
+        return None
+    finally:
+        del frame
+
+
 def is_recovered_value_ok(result):
     try:
         if result != None:
@@ -670,10 +704,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
         if len(argInstance) == 0:
             if argTypeToCompareTo == None:
-                # Setting list[int] as a default type for element when the list
-                # is empty. Need to make sure that the list is non-empty for
-                # floats, pauli_words so the type can be inferred.
-                return cc.StdvecType.get(mlirTypeFromPyType(int, ctx), ctx)
+                emitFatalError('Cannot infer runtime argument type')
 
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
             return cc.StdvecType.get(eleTy, ctx)

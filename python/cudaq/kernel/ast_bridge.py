@@ -35,8 +35,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType)
+                    recover_annotation_of_or_none, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType)
 
 State = cudaq_runtime.State
 
@@ -5956,7 +5956,20 @@ class PyASTBridge(ast.NodeVisitor):
             assert not node.id in self.signature.captured_variable_names()
 
             # Append as a new argument
-            argTy = mlirTypeFromPyType(type(value), self.ctx, argInstance=value)
+            if isinstance(value, list) and len(value) == 0:
+                annotation = recover_annotation_of_or_none(
+                    node.id, self.defFrame)
+                if annotation is None:
+                    self.emitFatalError(
+                        f"Cannot infer the element type of the captured empty "
+                        f"list '{node.id}'. Annotate it at module scope (e.g. "
+                        f"`{node.id}: list[float] = []`) so the type can be "
+                        f"recovered.", node)
+                argTy = mlirTypeFromPyType(annotation, self.ctx)
+            else:
+                argTy = mlirTypeFromPyType(type(value),
+                                           self.ctx,
+                                           argInstance=value)
             mlirVal = cudaq_runtime.appendKernelArgument(
                 self.kernelFuncOp, argTy)
             self.signature.add_variable_capture(node.id, argTy)
