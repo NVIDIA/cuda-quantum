@@ -106,18 +106,18 @@ def gridsynth(theta,
     """Synthesize a Clifford+T sequence approximating R_z(theta).
 
     Implements the grid-synthesis algorithm of Ross & Selinger
-    (arXiv:1403.2975, Algorithm 7.6). The returned sequence is in
-    Matsumoto-Amano normal form with minimum T-count up to search
+    `(arXiv:1403.2975, Algorithm 7.6)`. The returned sequence is in
+    `Matsumoto-Amano` normal form with minimum T-count up to search
     timeouts. The synthesized unitary U satisfies
     ``||R_z(theta) - U|| <= epsilon`` in the operator norm.
 
     Args:
-        theta: Target rotation angle (float, or decimal str for
+        theta: Target rotation angle (float, or decimal `str` for
             arbitrary precision).
         epsilon: Approximation precision in operator norm, must be > 0
-            (float, or str).
-        diophantine_timeout_ms: Per-candidate timeout for the Diophantine
-            solver. Higher values improve optimality at the cost of
+            (float, or `str`).
+        `diophantine_timeout_ms`: Per-candidate timeout for the Diophantine
+            solver. Higher values improve `optimality` at the cost of
             worst-case latency. Default 200.
         factoring_timeout_ms: Per-candidate timeout for integer factoring
             inside the Diophantine solver. Default 50.
@@ -125,7 +125,7 @@ def gridsynth(theta,
     Returns:
         A :class:`CliffordTSequence`. ``str()`` of the result is the gate
         string over {H, S, T, X, W} in matrix-multiplication order (see
-        the class docstring); ``to_kernel()`` builds a CUDA-Q kernel for
+        the class `docstring`); ``to_kernel()`` builds a CUDA-Q kernel for
         the sequence.
 
     Raises:
