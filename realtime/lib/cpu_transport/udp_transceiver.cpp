@@ -73,12 +73,15 @@ public:
 
   bool valid() const { return rx_flags && tx_flags && rx_data && tx_data; }
 
-  bool bind(std::uint16_t port) {
+  bool bind(const char *host, std::uint16_t port) {
     if (!openSocket())
       return false;
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (!host || !*host)
+      addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    else if (::inet_pton(AF_INET, host, &addr.sin_addr) != 1)
+      return false;
     addr.sin_port = htons(port);
     if (::bind(fd, reinterpret_cast<const sockaddr *>(&addr), sizeof(addr)) !=
         0)
@@ -277,8 +280,13 @@ void cpu_udp_destroy_transceiver(cpu_udp_transceiver_t handle) {
   delete cast(handle);
 }
 
+int cpu_udp_bind_to(cpu_udp_transceiver_t handle, const char *host,
+                    uint16_t port) {
+  return handle && cast(handle)->bind(host, port) ? 1 : 0;
+}
+
 int cpu_udp_bind(cpu_udp_transceiver_t handle, uint16_t port) {
-  return handle && cast(handle)->bind(port) ? 1 : 0;
+  return cpu_udp_bind_to(handle, /*host=*/nullptr, port);
 }
 
 int cpu_udp_connect(cpu_udp_transceiver_t handle, const char *host,

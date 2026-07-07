@@ -133,6 +133,57 @@ TEST(UdpTransceiverLifecycle, RejectsInvalidArguments) {
   cpu_udp_destroy_transceiver(nullptr);
 }
 
+TEST(UdpTransceiverLifecycle, BindToConfigurableAddress) {
+  // Explicit interface address.
+  cpu_udp_transceiver_t xcvr = cpu_udp_create_transceiver(kPageSize, kNumPages);
+  ASSERT_NE(nullptr, xcvr);
+  EXPECT_EQ(1, cpu_udp_bind_to(xcvr, "127.0.0.1", /*port=*/0));
+  EXPECT_NE(0, cpu_udp_get_port(xcvr));
+  cpu_udp_destroy_transceiver(xcvr);
+
+  // NULL and "" mean loopback.
+  xcvr = cpu_udp_create_transceiver(kPageSize, kNumPages);
+  ASSERT_NE(nullptr, xcvr);
+  EXPECT_EQ(1, cpu_udp_bind_to(xcvr, "", /*port=*/0));
+  cpu_udp_destroy_transceiver(xcvr);
+
+  // A malformed address must fail, not fall back silently.
+  xcvr = cpu_udp_create_transceiver(kPageSize, kNumPages);
+  ASSERT_NE(nullptr, xcvr);
+  EXPECT_EQ(0, cpu_udp_bind_to(xcvr, "not-an-address", /*port=*/0));
+  cpu_udp_destroy_transceiver(xcvr);
+}
+
+TEST(UdpTransceiverLifecycle, DeliversAcrossAnyInterfaceBind) {
+  // Service listening on all interfaces is reachable via loopback.
+  cpu_udp_transceiver_t service =
+      cpu_udp_create_transceiver(kPageSize, kNumPages);
+  ASSERT_NE(nullptr, service);
+  ASSERT_EQ(1, cpu_udp_bind_to(service, "0.0.0.0", /*port=*/0));
+  ASSERT_EQ(1, cpu_udp_start(service));
+
+  cpu_udp_transceiver_t caller =
+      cpu_udp_create_transceiver(kPageSize, kNumPages);
+  ASSERT_NE(nullptr, caller);
+  ASSERT_EQ(1, cpu_udp_connect(caller, "127.0.0.1", cpu_udp_get_port(service)));
+  ASSERT_EQ(1, cpu_udp_start(caller));
+
+  const std::uint64_t txFlags = cpu_udp_get_tx_ring_flag_addr(caller);
+  const std::uint64_t txData = cpu_udp_get_tx_ring_data_addr(caller);
+  std::uint8_t *tx = slotData(txData, 0);
+  std::memset(tx, 0, kPageSize);
+  std::memcpy(tx, "any-if", 6);
+  storeFlag(txFlags, 0, reinterpret_cast<std::uint64_t>(tx));
+
+  const std::uint64_t rxFlags = cpu_udp_get_rx_ring_flag_addr(service);
+  const std::uint64_t rxData = cpu_udp_get_rx_ring_data_addr(service);
+  ASSERT_TRUE(waitForFlag(rxFlags, 0));
+  EXPECT_EQ(0, std::memcmp(slotData(rxData, 0), "any-if", 6));
+
+  cpu_udp_destroy_transceiver(caller);
+  cpu_udp_destroy_transceiver(service);
+}
+
 TEST(UdpTransceiverLifecycle, StartRequiresSocketAndCloseIsIdempotent) {
   cpu_udp_transceiver_t xcvr = cpu_udp_create_transceiver(kPageSize, kNumPages);
   ASSERT_NE(nullptr, xcvr);

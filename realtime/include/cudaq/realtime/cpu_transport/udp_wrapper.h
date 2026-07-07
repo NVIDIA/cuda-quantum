@@ -50,8 +50,8 @@ typedef void *cpu_udp_transceiver_t;
 
 /// Construct a new transceiver with `num_pages` ring slots of `page_size`
 /// bytes each (both rings). Returns NULL on invalid arguments or allocation
-/// failure. Does not open a socket; call cpu_udp_bind() or cpu_udp_connect()
-/// next.
+/// failure. Does not open a socket; call cpu_udp_bind()/cpu_udp_bind_to() or
+/// cpu_udp_connect() next.
 cpu_udp_transceiver_t cpu_udp_create_transceiver(size_t page_size,
                                                  unsigned num_pages);
 
@@ -59,9 +59,15 @@ cpu_udp_transceiver_t cpu_udp_create_transceiver(size_t page_size,
 /// transceiver is still running.
 void cpu_udp_destroy_transceiver(cpu_udp_transceiver_t handle);
 
-/// Service end: bind a loopback UDP endpoint (`port` 0 selects an ephemeral
-/// port; read it back with cpu_udp_get_port). Responses go to the source
+/// Service end: bind a UDP endpoint for receiving requests. `host` selects
+/// the local interface address to listen on ("0.0.0.0" for all interfaces);
+/// NULL or "" binds the loopback interface. `port` 0 selects an ephemeral
+/// port; read it back with cpu_udp_get_port. Responses go to the source
 /// address of the most recent inbound datagram. Returns 1 on success.
+int cpu_udp_bind_to(cpu_udp_transceiver_t handle, const char *host,
+                    uint16_t port);
+
+/// Convenience form of cpu_udp_bind_to that binds the loopback interface.
 int cpu_udp_bind(cpu_udp_transceiver_t handle, uint16_t port);
 
 /// Caller end: connect the socket to the service endpoint. Returns 1 on
