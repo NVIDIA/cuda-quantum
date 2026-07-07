@@ -24,8 +24,6 @@ set(CMAKE_PLATFORM_NO_VERSIONED_SONAME 1)
 
 add_subdirectory(extension)
 
-file(GLOB_RECURSE PYTHON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.py")
-
 if (CUDA_FOUND)
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
@@ -38,21 +36,44 @@ else()
 endif()
 
 set(METADATA_FILE "${CMAKE_BINARY_DIR}/python/cudaq/_metadata.py" )
-add_custom_target(
-  CopyPythonFiles ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_BINARY_DIR}/python
+add_custom_command(
+  OUTPUT "${METADATA_FILE}"
   COMMAND ${CMAKE_COMMAND}
   -DMETADATA_FILE="${METADATA_FILE}"
   -DCUDA_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR}
   -DASSERTIONS_ENABLED=${CUDAQ_ASSERTIONS_ENABLED}
   -P ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
-  DEPENDS ${PYTHON_SOURCES}
-  BYPRODUCTS "${METADATA_FILE}"
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
 )
 
-add_dependencies(CUDAQuantumPythonModules CopyPythonFiles)
+# cudaq/mlir is excluded: the MLIR machinery in extension/ stages it, and
+# a second producer for the same outputs races it.
+file(GLOB_RECURSE _cudaq_package_sources CONFIGURE_DEPENDS
+  RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/*.py")
+list(FILTER _cudaq_package_sources EXCLUDE REGEX "^mlir/")
+cudaq_stage_python_sources(CUDAQPythonPackageStaging
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
+  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq"
+  SOURCES ${_cudaq_package_sources})
+
+# The pycudaq-mlir lit suite and the interop pytest run from the build tree.
+# mlir/generated holds artifacts lit writes into the source tree at config
+# load; they are discovered from there, not staged.
+file(GLOB_RECURSE _cudaq_test_sources CONFIGURE_DEPENDS
+  RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/tests"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/*")
+list(FILTER _cudaq_test_sources EXCLUDE REGEX
+  "^mlir/generated/|__pycache__|\\.pyc$|\\.DS_Store$")
+cudaq_stage_python_sources(CUDAQPythonTestStaging
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests"
+  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/tests"
+  SOURCES ${_cudaq_test_sources})
+
+add_custom_target(CUDAQPythonStaging ALL DEPENDS "${METADATA_FILE}")
+add_dependencies(CUDAQPythonStaging
+  CUDAQPythonPackageStaging CUDAQPythonTestStaging)
+add_dependencies(CUDAQuantumPythonModules CUDAQPythonStaging)
 
 add_subdirectory(runtime/cudaq/domains/plugins)
 
