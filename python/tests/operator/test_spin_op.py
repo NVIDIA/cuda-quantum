@@ -729,6 +729,16 @@ def test_legacy_foreach():
     assert xSupports == [0, 1]
 
 
+def test_legacy_deserialize_size_validation():
+    good = [1.0, 11.0, 0.0, 2.0, 22.0, 0.0, 2.0]
+    op = SpinOperator(good, 1)
+    assert _term_tuples(op) == {("X0", 11.0 + 0j), ("Z0", 22.0 + 0j)}
+
+    bad = [1.0, 11.0, 0.0, 2.0, 22.0, 0.0, 0.0, 2.0]
+    with pytest.raises(RuntimeError):
+        SpinOperator(bad, 1)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
