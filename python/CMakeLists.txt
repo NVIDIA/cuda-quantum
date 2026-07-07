@@ -38,11 +38,13 @@ else()
 endif()
 
 set(METADATA_FILE "${CMAKE_BINARY_DIR}/python/cudaq/_metadata.py" )
+# Excludes cudaq/mlir; see copy_python_files.cmake.
 add_custom_target(
   CopyPythonFiles ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_BINARY_DIR}/python
+  COMMAND ${CMAKE_COMMAND}
+  -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+  -DDESTINATION_DIR=${CMAKE_BINARY_DIR}
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/copy_python_files.cmake
   COMMAND ${CMAKE_COMMAND}
   -DMETADATA_FILE="${METADATA_FILE}"
   -DCUDA_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR}
