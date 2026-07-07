@@ -34,8 +34,7 @@ cudaq::synth::Real toReal(const RealArg &arg, const char *name) {
       cudaq::synth::Real::from_string(str);
   if (!parsed)
     throw nanobind::value_error(
-        (std::string(name) + ": invalid numeric string '" + str + "'")
-            .c_str());
+        (std::string(name) + ": invalid numeric string '" + str + "'").c_str());
   return *std::move(parsed);
 }
 
