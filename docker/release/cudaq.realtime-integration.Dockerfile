@@ -47,7 +47,7 @@ RUN set -euo pipefail; \
     fi
 
 # libibverbs is required by the realtime CPU RoCE transport
-# (cudaq-realtime-cpu-transport). Installing it here ensures the realtime build
+# (cudaq-realtime-cpu-roce-transport). Installing it here ensures the realtime build
 # below actually compiles that library, so the device_call `cpu_roce` channel
 # (runtime/internal/device_call/CpuRoceChannel.cpp) is exercised by this
 # build-only integration check instead of being silently skipped.
