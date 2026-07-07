@@ -9,9 +9,12 @@
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
      "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
-# clear any flags for static linking
-SET(CMAKE_EXE_LINKER_FLAGS "")
-SET(CMAKE_SHARED_LINKER_FLAGS "")
+# clear any flags for static linking, only keeping linker selection flags
+foreach(_flags_var IN ITEMS CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS)
+  string(REGEX MATCHALL "-fuse-ld=[^ ]+|-B[^ ]+" _linker_selection "${${_flags_var}}")
+  string(JOIN " " ${_flags_var} ${_linker_selection})
+endforeach()
+unset(_linker_selection)
 
 # These unit test executables instantiate `__qpu__` kernel functor structs and
 # call `cudaq::sample(myKernel)` directly from C++ test code, with no `nvq++`
