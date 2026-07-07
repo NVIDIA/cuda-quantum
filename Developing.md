@@ -224,9 +224,9 @@ ctest
 ctest -R <test-name>
 ```
 
-On macOS, CTest registers one test per gtest executable rather than one per
-method, avoiding a multi-second per-process startup cost (issue #4857). To
-run a single method, invoke the executable directly:
+On macOS, `ctest` registers one test per `gtest` executable rather than one
+per method, avoiding a multi-second per-process startup cost (issue #4857).
+To run a single method, invoke the executable directly:
 
 ```bash
 ./unittests/nvqpp/test_ptsbe --gtest_filter='TrajectoryDeduplicationTest.EmptyInput'
