@@ -8,4 +8,5 @@
 
 # Single place these versions are pinned; used by the release image,
 # installation validation, and requirements-dev.txt.
+jupyterlab==4.5.7
 notebook==7.5.6
