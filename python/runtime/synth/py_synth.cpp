@@ -59,7 +59,7 @@ NB_MODULE(_cudaq_synth, m) {
 
 Implements the grid-synthesis algorithm of Ross & Selinger (arXiv:1403.2975,
 Algorithm 7.6). The returned gate string is in Matsumoto-Amano normal form
-with minimum T-count.
+with minimum T-count up to search timeouts. 
 
 Precision is measured in the operator norm (a.k.a. spectral norm, the
 induced 2-norm ||A|| = sigma_max(A)). The synthesized unitary U satisfies
