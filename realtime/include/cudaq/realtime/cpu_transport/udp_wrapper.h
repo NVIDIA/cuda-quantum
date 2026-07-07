@@ -9,17 +9,21 @@
 /// @file udp_wrapper.h
 /// @brief C interface to a loopback/Ethernet UDP ring transceiver.
 ///
-/// A development and CI stand-in for CpuRoceTransceiver (roce_wrapper.h) on
-/// hosts without an RDMA NIC: it exposes the same ring-buffer contract the
+/// The plain-UDP counterpart of CpuRoceTransceiver (roce_wrapper.h) for
+/// systems without an RDMA NIC, usable over loopback or a real UDP network:
+/// it exposes the same ring-buffer contract the
 /// RoCE transport provides -- an RX ring the far end's frames land in
 /// (rx_flag[slot] = slot data address when fresh, 0 when free) and a TX ring
 /// whose published slots (tx_flag[slot] = slot data address) are shipped to
 /// the peer and cleared -- so a host dispatcher or DeviceCallChannel wired to
 /// these rings is transport-agnostic between UDP and RoCE.
 ///
-/// Wire behavior: one datagram carries one full slot stride (mirroring the
-/// RoCE TX SGE, which is the whole slot). Inbound datagrams larger than this
-/// end's slot stride are dropped, so BOTH ENDS MUST USE THE SAME page_size.
+/// Wire behavior: one datagram carries one full slot stride. (This is
+/// simpler than the RoCE transport, whose TX SGE covers only the actual
+/// frame bytes -- cu_frame_size, not the slot stride; this transport has no
+/// separate frame-size parameter.) Inbound datagrams larger than this end's
+/// slot stride are dropped with a one-time stderr warning, so BOTH ENDS MUST
+/// USE THE SAME page_size.
 /// Arriving frames fill RX slots in strict ring order (the same FIFO the
 /// RoCE recv-WQE path provides), with back-pressure until the in-order slot
 /// is fully recycled (rx flag cleared by the consumer AND tx response slot

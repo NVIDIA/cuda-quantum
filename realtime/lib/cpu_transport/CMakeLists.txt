@@ -24,8 +24,8 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# UDP ring transceiver: the loopback/CI stand-in for CpuRoceTransceiver with the
-# same ring contract (see udp_wrapper.h). No ibverbs, no CUDA -- always built.
+# UDP ring transceiver: carries the same ring contract as CpuRoceTransceiver
+# over plain UDP (see udp_wrapper.h). No ibverbs, no CUDA -- always built.
 # ------------------------------------------------------------------------------
 add_library(cudaq-realtime-udp-transport STATIC
   udp_transceiver.cpp

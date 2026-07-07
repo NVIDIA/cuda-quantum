@@ -7,7 +7,8 @@
  ******************************************************************************/
 
 /// @file udp_transceiver.cpp
-/// @brief UDP ring transceiver: the loopback stand-in for CpuRoceTransceiver.
+/// @brief UDP ring transceiver: the plain-UDP counterpart of
+/// CpuRoceTransceiver.
 ///
 /// See udp_wrapper.h for the ring contract. The RX thread places one inbound
 /// datagram into one RX ring slot in strict ring order (matching the FIFO
@@ -24,6 +25,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
@@ -165,8 +167,17 @@ private:
                      reinterpret_cast<sockaddr *>(&from), &fromlen);
       if (got <= 0)
         continue; // timeout/EINTR: re-check `running`
-      if (static_cast<std::size_t>(got) > page_size)
-        continue; // stride mismatch with the peer; drop
+      if (static_cast<std::size_t>(got) > page_size) {
+        // Stride mismatch with the peer; drop. Warn once -- a mismatch drops
+        // EVERY request, which otherwise looks like a silent hang upstream.
+        if (!oversize_warned.exchange(true))
+          std::fprintf(stderr,
+                       "[cudaq-udp-transport] dropping %zd-byte datagram: "
+                       "exceeds this end's page_size (%zu); both ends must "
+                       "use the same slot stride (further drops not logged)\n",
+                       got, page_size);
+        continue;
+      }
 
       {
         std::lock_guard<std::mutex> lock(peer_mutex);
@@ -189,8 +200,9 @@ private:
     }
   }
 
-  // Ship published TX slots to the peer as one full-stride datagram each
-  // (mirroring the RoCE TX SGE, which covers the whole slot) and clear them.
+  // Ship published TX slots to the peer as one full-stride datagram each and
+  // clear them (this transport has no per-message frame size; see the "Wire
+  // behavior" note in udp_wrapper.h).
   //
   // Slots are consumed in FIFO cursor order, NOT by index scan: both
   // producers (the udp device_call channel and a daemon mirroring request
@@ -233,6 +245,7 @@ private:
   int fd = -1;
   std::uint16_t local_port = 0;
   std::atomic<bool> running{false};
+  std::atomic<bool> oversize_warned{false};
   std::thread rx_thread;
   std::thread tx_thread;
   std::mutex peer_mutex;

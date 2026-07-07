@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Loopback tests for the UDP ring transceiver (udp_wrapper.h), the RDMA-free
-// stand-in for CpuRoceTransceiver. Everything here is plain CPU + loopback
-// sockets: no CUDA, no ibverbs, so these tests run on any CI runner.
+// Loopback tests for the UDP ring transceiver (udp_wrapper.h), the plain-UDP
+// counterpart of CpuRoceTransceiver. Everything here is plain CPU + loopback
+// sockets: no CUDA, no ibverbs, so these tests run anywhere.
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
 #include <gtest/gtest.h>
@@ -39,9 +39,9 @@ std::uint8_t *slotData(std::uint64_t dataAddr, unsigned slot,
   return reinterpret_cast<std::uint8_t *>(dataAddr) + slot * pageSize;
 }
 
-bool waitForFlag(std::uint64_t flagsAddr, unsigned slot,
-                 std::chrono::milliseconds timeout =
-                     std::chrono::milliseconds(5000)) {
+bool waitForFlag(
+    std::uint64_t flagsAddr, unsigned slot,
+    std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
   while (std::chrono::steady_clock::now() < deadline) {
     if (loadFlag(flagsAddr, slot) != 0)
@@ -51,9 +51,9 @@ bool waitForFlag(std::uint64_t flagsAddr, unsigned slot,
   return false;
 }
 
-bool waitForFlagClear(std::uint64_t flagsAddr, unsigned slot,
-                      std::chrono::milliseconds timeout =
-                          std::chrono::milliseconds(5000)) {
+bool waitForFlagClear(
+    std::uint64_t flagsAddr, unsigned slot,
+    std::chrono::milliseconds timeout = std::chrono::milliseconds(5000)) {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
   while (std::chrono::steady_clock::now() < deadline) {
     if (loadFlag(flagsAddr, slot) == 0)
@@ -129,7 +129,7 @@ TEST(UdpTransceiverLifecycle, RejectsInvalidArguments) {
   EXPECT_EQ(0, cpu_udp_connect(nullptr, "127.0.0.1", 1));
   EXPECT_EQ(0, cpu_udp_start(nullptr));
   EXPECT_EQ(0, cpu_udp_get_port(nullptr));
-  cpu_udp_close(nullptr);          // must not crash
+  cpu_udp_close(nullptr); // must not crash
   cpu_udp_destroy_transceiver(nullptr);
 }
 
@@ -223,8 +223,8 @@ TEST_F(UdpTransceiverPairTest, DropsDatagramsLargerThanOwnStride) {
   cpu_udp_transceiver_t bigCaller =
       cpu_udp_create_transceiver(2 * kPageSize, kNumPages);
   ASSERT_NE(nullptr, bigCaller);
-  ASSERT_EQ(1, cpu_udp_connect(bigCaller, "127.0.0.1",
-                               cpu_udp_get_port(service)));
+  ASSERT_EQ(1,
+            cpu_udp_connect(bigCaller, "127.0.0.1", cpu_udp_get_port(service)));
   ASSERT_EQ(1, cpu_udp_start(bigCaller));
 
   const std::uint64_t txFlags = cpu_udp_get_tx_ring_flag_addr(bigCaller);

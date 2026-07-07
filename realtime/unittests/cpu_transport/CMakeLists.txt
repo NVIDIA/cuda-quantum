@@ -16,8 +16,10 @@
 #   - hsb_test_cpu.sh             Orchestration script (built artifact; copy at
 #                                 install time).
 #
-# All gated on TARGET cudaq-realtime-cpu-transport so this dir is silently
-# skipped on hosts without libibverbs.
+# The RoCE artifacts above are gated on TARGET cudaq-realtime-cpu-transport
+# (skipped on hosts without libibverbs). The UDP transceiver tests below run
+# BEFORE that gate -- they depend only on the always-built UDP target, so
+# ibverbs-only setup must stay below the return() guard.
 # ==============================================================================
 
 # ----------------------------------------------------------------------------

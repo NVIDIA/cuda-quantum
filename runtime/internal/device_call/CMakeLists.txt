@@ -36,8 +36,8 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     message(STATUS "  - device_call: cpu_roce channel enabled (libibverbs)")
   endif()
 
-  # UDP loopback channel: the RDMA-free stand-in for cpu_roce (development,
-  # CI, and two-process tests on hosts without an RDMA NIC).
+  # UDP channel: device_call over plain UDP for systems without an RDMA NIC,
+  # over loopback or a real network.
   set(CUDAQ_DEVICE_CALL_UDP_LIB "")
   if (TARGET cudaq::cudaq-realtime-udp-transport)
     list(APPEND CUDAQ_DEVICE_CALL_SOURCES UdpChannel.cpp)
