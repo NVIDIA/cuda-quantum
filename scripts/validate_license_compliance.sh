@@ -19,9 +19,10 @@
 #      accidentally statically linked copy).
 #   4. The libraries can be replaced by substituting the shared library files:
 #      Clifford+T rotation synthesis works, stops working when the shipped
-#      libgmp is replaced with an invalid file (proving the file is really
-#      loaded at runtime rather than a hidden static copy being used), and
-#      works again once a valid replacement is put in place.
+#      libgmp (and, in turn, libmpfr) is replaced with an invalid file
+#      (proving the file is really loaded at runtime rather than a hidden
+#      static copy being used), and works again once a valid replacement is
+#      put in place.
 #
 # Usage:
 #   validate_license_compliance.sh [install_root]
@@ -105,6 +106,12 @@ report $? "MPFR shared library in $lib_dir"
 static_copies=$(find $scan_dirs -name 'libgmp*.a' -o -name 'libmpfr*.a' 2>/dev/null)
 [ -z "$static_copies" ]
 report $? "no static GMP/MPFR archives are shipped${static_copies:+ (found: $static_copies)}"
+if $wheel_mode; then
+    grafted_copies=$(find "$site_packages"/cuda_quantum*.libs "$site_packages/cudaq" \
+        \( -name 'libgmp*' -o -name 'libmpfr*' \) 2>/dev/null)
+    [ -z "$grafted_copies" ]
+    report $? "GMP/MPFR are shipped only at the documented lib path${grafted_copies:+ (grafted copies: $grafted_copies)}"
+fi
 
 echo "Checking that GMP/MPFR are referenced via dynamic linking only..."
 # List the runtime dependencies of a binary.
@@ -162,9 +169,9 @@ else
 fi
 
 echo "Checking that the GMP/MPFR libraries can be replaced..."
-if [ -z "$gmp_libs" ]; then
+if [ -z "$gmp_libs" ] || [ -z "$mpfr_libs" ]; then
     # The missing library was already reported as a failure above.
-    echo "  Skipping the library replacement checks (no shipped libgmp found)." >&2
+    echo "  Skipping the library replacement checks (no shipped libgmp/libmpfr found)." >&2
     echo "License compliance check finished with $failures failure(s)."
     exit 10
 fi
@@ -190,36 +197,44 @@ else
     }
 fi
 
-# Back up the shipped libgmp files and guarantee they are restored.
+# Back up the shipped libgmp/libmpfr files and guarantee they are restored.
 backup_dir=$(mktemp -d)
-restore_gmp() {
-    for f in $gmp_libs; do
+shipped_libs="$gmp_libs $mpfr_libs"
+restore_shipped_libs() {
+    for f in $shipped_libs; do
         cp -f "$backup_dir/$(basename "$f")" "$f" 2>/dev/null
     done
 }
-trap restore_gmp EXIT
-for f in $gmp_libs; do
+trap restore_shipped_libs EXIT
+for f in $shipped_libs; do
     cp -f "$f" "$backup_dir/$(basename "$f")"
 done
 
 if synthesis_smoke_test; then
     report 0 "Clifford+T rotation synthesis works with the shipped libraries"
 
-    # Replacing libgmp with an invalid file must break synthesis: this proves
-    # the shipped file is what is loaded at runtime. A hidden statically
-    # linked copy would keep working here.
-    for f in $gmp_libs; do
-        echo "not a shared library" > "$f"
-    done
-    ! synthesis_smoke_test
-    report $? "synthesis stops working when libgmp is replaced with an invalid file (the shipped library is really used)"
+    for lib_name in libgmp libmpfr; do
+        case $lib_name in
+            libgmp)  lib_files="$gmp_libs" ;;
+            libmpfr) lib_files="$mpfr_libs" ;;
+        esac
 
-    # Substituting a valid library must make synthesis work again. The
-    # pristine copy stands in for a user-provided compatible build; this
-    # exercises the replacement mechanism the LGPL requires us to support.
-    restore_gmp
-    synthesis_smoke_test
-    report $? "synthesis works again after substituting the libgmp files"
+        # Replacing the library with an invalid file must break synthesis:
+        # this proves the shipped file is what is loaded at runtime. A hidden
+        # statically linked copy would keep working here.
+        for f in $lib_files; do
+            echo "not a shared library" > "$f"
+        done
+        ! synthesis_smoke_test
+        report $? "synthesis stops working when $lib_name is replaced with an invalid file (the shipped library is really used)"
+
+        # Substituting a valid library must make synthesis work again. The
+        # pristine copy stands in for a user-provided compatible build; this
+        # exercises the replacement mechanism the LGPL requires us to support.
+        restore_shipped_libs
+        synthesis_smoke_test
+        report $? "synthesis works again after substituting the $lib_name files"
+    done
 
     # Informational only: if the system provides its own libgmp with the same
     # soname, try that as a genuinely different replacement build.
@@ -233,7 +248,7 @@ if synthesis_smoke_test; then
             else
                 echo "  [INFO] synthesis did not work with the system-provided $system_gmp (not counted as a failure)"
             fi
-            restore_gmp
+            restore_shipped_libs
         fi
     fi
 else
