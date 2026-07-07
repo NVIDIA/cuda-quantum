@@ -2009,6 +2009,10 @@ class PyASTBridge(ast.NodeVisitor):
                 with trace.span("ast_bridge.visit_function_body",
                                 statement_count=len(node.body)):
                     for n in node.body:
+                        # If the previous statement terminated `entry_block`,
+                        # do not lower any subsequent unreachable statements.
+                        if self.hasTerminator(entry_block):
+                            break
                         self.visit(n)
                 # Add the return operation
                 if not self.hasTerminator(entry_block):
@@ -5416,7 +5420,22 @@ class PyASTBridge(ast.NodeVisitor):
                 "functions defined within quantum kernels must not contain return statement",
                 node)
 
+        # Keep bare-return (`node.value` is None) lowering consistent with
+        # `QuakeBridgeVisitor::VisitReturnStmt` in the C++ bridge.
         if node.value == None:
+            # Clang verifies C++ return statements against the function
+            # signature before the C++ bridge runs. Python's AST has no
+            # equivalent semantic check, so verify it here.
+            if self.signature.return_type is not None:
+                self.emitFatalError(
+                    "return statement in a value-returning kernel must return a value",
+                    node)
+            if self.symbolTable.scopeDepth > 1:
+                # We are in an inner block, release all MLIR scopes before
+                # returning.
+                cc.UnwindReturnOp([])
+            else:
+                func.ReturnOp([])
             return
 
         self.walkingReturnNode = True
