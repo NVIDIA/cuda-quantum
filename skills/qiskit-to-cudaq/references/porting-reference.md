@@ -116,10 +116,13 @@ Implications:
 - For cross-framework fidelity comparisons, use matching precision unless the
   task is explicitly default-vs-default comparison.
 
-Examples:
+To match precision, adjust one side or the other (not both):
 
 ```python
+# Option A: raise CUDA-Q to fp64 to match Aer's default
 cudaq.set_target("nvidia", option="fp64")
+
+# Option B: lower Aer to fp32 to match CUDA-Q's default
 sim = AerSimulator(device="GPU", precision="single")
 ```
 
