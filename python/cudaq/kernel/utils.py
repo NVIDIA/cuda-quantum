@@ -670,7 +670,10 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
         if len(argInstance) == 0:
             if argTypeToCompareTo == None:
-                emitFatalError('Cannot infer runtime argument type')
+                # Setting list[int] as a default type for element when the list
+                # is empty. Need to make sure that the list is non-empty for
+                # floats, pauli_words so the type can be inferred.
+                return cc.StdvecType.get(mlirTypeFromPyType(int, ctx), ctx)
 
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
             return cc.StdvecType.get(eleTy, ctx)
@@ -681,8 +684,12 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     type(argInstance[0]),
                     ctx,
                     argInstance=argInstance[0],
-                    argTypeToCompareTo=cc.StdvecType.getElementType(
-                        argTypeToCompareTo)), ctx)
+                    argTypeToCompareTo=(
+                        cc.StdvecType.getElementType(argTypeToCompareTo)
+                        if argTypeToCompareTo is not None else None)), ctx)
+
+        if isinstance(argInstance[0], str):
+            return cc.StdvecType.get(cc.CharspanType.get(ctx), ctx)
 
         return cc.StdvecType.get(mlirTypeFromPyType(type(argInstance[0]), ctx),
                                  ctx)

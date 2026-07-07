@@ -97,11 +97,7 @@ def __isBroadcast(kernel, *args):
                     )
 
         firstArg = args[0]
-        firstArgTypeIsFlatStdvec = False  # whether `argTypes[0]` is a non-nested Vec
-        if cc.StdvecType.isinstance(argTypes[0]):
-            eleTy = cc.StdvecType.getElementType(argTypes[0])
-            if not cc.StdvecType.isinstance(eleTy):
-                firstArgTypeIsFlatStdvec = True
+        firstArgTypeIsFlatStdvec = cc.StdvecType.isinstance(argTypes[0])
         if (isinstance(firstArg, list) or
                 isinstance(firstArg, List)) and not firstArgTypeIsFlatStdvec:
             return True

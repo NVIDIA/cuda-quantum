@@ -166,3 +166,78 @@ def test_multiple_captured_globals_in_one_kernel():
 
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
+
+
+_CAPTURED_EMPTY = []
+
+
+def test_captured_empty_list():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(1)
+        if len(_CAPTURED_EMPTY) > 0:
+            x(q[0])
+
+    counts = cudaq.sample(kernel)
+    assert '0' in counts
+
+
+_CAPTURED_PAULI_STRINGS = ['XI', 'ZZ']
+
+
+def test_captured_list_of_strings_as_pauli_words():
+
+    @cudaq.kernel
+    def with_arg(words: list[cudaq.pauli_word]):
+        q = cudaq.qvector(2)
+        for i in range(len(words)):
+            exp_pauli(0.1, q, words[i])
+
+    @cudaq.kernel
+    def with_capture():
+        q = cudaq.qvector(2)
+        for i in range(len(_CAPTURED_PAULI_STRINGS)):
+            exp_pauli(0.1, q, _CAPTURED_PAULI_STRINGS[i])
+
+    counts_arg = cudaq.sample(with_arg,
+                              [cudaq.pauli_word(w) for w in ['XI', 'ZZ']])
+    counts_cap = cudaq.sample(with_capture)
+    assert len(counts_arg) >= 1
+    assert len(counts_cap) >= 1
+
+
+_CAPTURED_NESTED = [[0.5, -0.5], [1.0]]
+
+
+def test_captured_nested_list():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        for i in range(len(_CAPTURED_NESTED)):
+            for j in range(len(_CAPTURED_NESTED[i])):
+                ry(_CAPTURED_NESTED[i][j], q[0])
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) >= 1
+
+
+def test_nested_list_arg_sample_equals_get_state():
+
+    @cudaq.kernel
+    def kernel(ws: list[list[cudaq.pauli_word]], cs: list[list[float]]):
+        q = cudaq.qvector(2)
+        for i in range(len(ws)):
+            g = ws[i]
+            gc = cs[i]
+            for j in range(len(g)):
+                exp_pauli(gc[j], q, g[j])
+
+    nw = [[cudaq.pauli_word('XY'),
+           cudaq.pauli_word('YX')], [cudaq.pauli_word('ZI')]]
+    nc = [[0.5, -0.5], [1.0]]
+
+    cudaq.get_state(kernel, nw, nc)
+    counts = cudaq.sample(kernel, nw, nc)
+    assert len(counts) >= 1
