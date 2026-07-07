@@ -32,6 +32,16 @@ static constexpr const char setCudaqRangeVectorTriple[] =
 static constexpr const char getCudaqSizeFromTriple[] =
     "__nvqpp_CudaqSizeFromTriple";
 
+// Marshaling helpers for the realtime `device_call` payload ABI. Boolean
+// vectors are marshaled as LSB-first bit-packed bytes (eight logical elements
+// share one payload byte). These helpers pack a vector of `i1` (or of
+// measurement handles, discriminating as i1) into packed payload bytes and
+// unpack packed response bytes back into a vector of `i1`.
+static constexpr const char realtimePackBits[] = "__nvqpp_RealtimePackBits";
+static constexpr const char realtimePackMeasurements[] =
+    "__nvqpp_RealtimePackMeasurements";
+static constexpr const char realtimeUnpackBits[] = "__nvqpp_RealtimeUnpackBits";
+
 // Convert a sequence of booleans (as bytes) into a std::vector<bool> (which is
 // typically specialized to be bit packed).
 static constexpr const char stdvecBoolCtorFromInitList[] =
