@@ -67,7 +67,7 @@ induced 2-norm ||A|| = sigma_max(A)). The synthesized unitary U satisfies
 section 7.1, equation (13).
 
 Args:
-    theta: Target rotation angle (float, or str for arbitrary precision).
+    theta: Target rotation angle (float, or decimal str for arbitrary precision).
     epsilon: Approximation precision in operator norm, must be > 0
         (float, or str).
     diophantine_timeout_ms: Per-candidate timeout for the Diophantine
