@@ -238,6 +238,7 @@ cudaq
 dataflow
 datagram
 datagrams
+dataplane
 ddots
 deallocate
 deallocated
@@ -384,6 +385,7 @@ reproducibility
 responder
 resultData
 reusability
+ringbuffer
 rkey
 runnable
 runtime
