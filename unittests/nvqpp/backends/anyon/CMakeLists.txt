@@ -45,4 +45,4 @@ add_backend_unittest_executable(test_anyon_util
   cudaq-platform-default
   gtest_main
 )
-gtest_discover_tests(test_anyon_util DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_anyon_util DISCOVERY_TIMEOUT 120)

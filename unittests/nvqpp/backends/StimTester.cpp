@@ -54,6 +54,7 @@ extern "C" void __quantum__qis__pair_detectors(Result **prev_results,
                                                std::int64_t prev_count,
                                                Result **curr_results,
                                                std::int64_t curr_count);
+extern "C" void __quantum__rt__clear_result_maps();
 
 /// @brief Encode an `int64_t` chronological measurement index as the
 /// `Result*` bit pattern the QIR ABI delivers to the QEC runtime adapter.
@@ -222,6 +223,9 @@ CUDAQ_TEST(StimQECTester, AdapterRejectsNegativeObservableIndex) {
 
 // End-to-end coverage of the NVQIR adapter
 CUDAQ_TEST(StimQECTester, AdapterDispatchesToActiveSimulator) {
+  // Clear stale handle-to-index maps left by earlier tests in this process
+  // so the raw chronological indices below are not remapped.
+  __quantum__rt__clear_result_maps();
   StimCircuitSimulatorTester sim;
   sim.setRandomSeed(42);
   nvqir::AnalysisScope scope{"stim_qec_adapter_test", sim, {}};

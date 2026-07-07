@@ -35,6 +35,9 @@ if (CMAKE_COMPILER_IS_GNUCXX
   target_compile_options(gtest PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
 endif()
 include(GoogleTest)
+# Explicit path: standalone realtime builds do not have cmake/modules on
+# CMAKE_MODULE_PATH.
+include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules/CUDAQGtestDiscovery.cmake)
 
 
 add_compile_options(-Wno-attributes)
@@ -73,7 +76,7 @@ if(CMAKE_CUDA_COMPILER)
   )
   
   add_dependencies(CudaqRealtimeUnitTests test_dispatch_kernel)
-  gtest_discover_tests(test_dispatch_kernel
+  cudaq_gtest_discover_tests(test_dispatch_kernel
     TEST_PREFIX "test_dispatch_kernel."
   )
   
@@ -98,7 +101,7 @@ if(CMAKE_CUDA_COMPILER)
     ${CUDADEVRT_LIBRARY}
   )
   add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
-  gtest_discover_tests(test_host_dispatcher
+  cudaq_gtest_discover_tests(test_host_dispatcher
     TEST_PREFIX "test_host_dispatcher."
   )
   message(STATUS "  - test_host_dispatcher (host dispatcher loop)")
