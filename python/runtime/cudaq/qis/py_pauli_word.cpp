@@ -24,10 +24,18 @@ void bindPauliWord(nanobind::module_ &mod) {
       .def("__str__", &pauli_word::str)
       .def("__repr__",
            [](const pauli_word &w) { return "pauli_word('" + w.str() + "')"; })
-      .def("__eq__", [](const pauli_word &a,
-                        const pauli_word &b) { return a.str() == b.str(); })
-      .def("__eq__", [](const pauli_word &a,
-                        const std::string &b) { return a.str() == b; })
+      .def(
+          "__eq__",
+          [](const pauli_word &a, const pauli_word &b) {
+            return a.str() == b.str();
+          },
+          nanobind::is_operator())
+      .def(
+          "__eq__",
+          [](const pauli_word &a, const std::string &b) {
+            return a.str() == b;
+          },
+          nanobind::is_operator())
       .def("__hash__", [](const pauli_word &w) {
         return std::hash<std::string>{}(w.str());
       });
