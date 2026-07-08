@@ -172,6 +172,11 @@ if (NOT DEFINED CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
   set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Machines target.")
 endif()
 
+# Enable QDMI target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QDMI_BACKEND)
+  set(CUDAQ_ENABLE_QDMI_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the QDMI target.")
+endif()
+
 # Enable Scaleway target by default.
 if (NOT DEFINED CUDAQ_ENABLE_SCALEWAY_BACKEND)
   set(CUDAQ_ENABLE_SCALEWAY_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Scaleway target.")
