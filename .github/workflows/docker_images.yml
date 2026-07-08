@@ -884,7 +884,7 @@ jobs:
 
   validation:
     name: Validation
-    needs: [metadata, cudaq_image]
+    needs: [metadata, cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
@@ -926,6 +926,15 @@ jobs:
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
           fail-on-cache-miss: true
 
+      - name: Load cuda-quantum-dev image
+        id: restore_cudaqdev
+        if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
+          key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
+          fail-on-cache-miss: true
+
       - name: Validate cuda-quantum image
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
@@ -956,6 +965,47 @@ jobs:
             exit 1
           fi
 
+      - name: Validate external plugins
+        run: |
+          set -o pipefail
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          if ${{ steps.restore_cudaqdev.outcome != 'skipped' }}; then
+            load_output=`docker load --input "${{ needs.cudaqdev_image.outputs.tar_archive }}"`
+            cudaqdev_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+          else
+            cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
+            retry docker pull $cudaqdev_image
+          fi
+
+          cleanup() {
+            docker stop cuda-quantum-dev > /dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --rm -dit --name cuda-quantum-dev $cudaqdev_image
+          (docker exec cuda-quantum-dev bash -c '
+            set -e
+            cd "$CUDAQ_REPO_ROOT"
+            cmake -S . -B build \
+              -DCUDAQ_EXTERNAL_PROJECTS=mock-rest \
+              -DCUDAQ_EXTERNAL_MOCK_REST_SOURCE_DIR="$CUDAQ_REPO_ROOT/examples/plugins/mock_rest"
+            cmake --build build --target check-mock-rest
+          ' | tee /tmp/plugin-validation.out) && passed=true || passed=false
+
+          cleanup
+          trap - EXIT
+
+          {
+            echo
+            echo "== External plugin validation =="
+            cat /tmp/plugin-validation.out
+          } >> /tmp/validation.out
+
+          if ! $passed; then
+            echo "::error::External plugin validation failed; see job summary for more details."
+            exit 1
+          fi
+
       - name: Create job summary
         id: job_summary
         if: always() && !cancelled()
@@ -968,7 +1018,7 @@ jobs:
           if [ -f /tmp/validation.out ]; then
             summary=/tmp/summary.txt
             echo "## Validation" > $summary
-            echo "The validation of the cuda-quantum image produced the following output:" >> $summary
+            echo "The validation of the cuda-quantum image and external plugins produced the following output:" >> $summary
             echo '```text' >> $summary
             cat /tmp/validation.out >> $summary
             echo '```' >> $summary
@@ -976,7 +1026,7 @@ jobs:
           fi
 
       - name: Upload job summary
-        if: steps.job_summary.outputs.validation_summary != ''
+        if: always() && !cancelled() && steps.job_summary.outputs.validation_summary != ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_validation
