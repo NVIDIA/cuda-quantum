@@ -901,20 +901,16 @@ def test_list_list_string_argument_error():
 
 def test_broadcast():
 
-    with pytest.raises(RuntimeError) as e:
+    @cudaq.kernel
+    def kernel(l: list[list[int]]):
+        q = cudaq.qvector(2)
+        for inner in l:
+            for i in inner:
+                x(q[i])
 
-        @cudaq.kernel
-        def kernel(l: list[list[int]]):
-            q = cudaq.qvector(2)
-            for inner in l:
-                for i in inner:
-                    x(q[i])
-
-        #FIXME: update broadcast detection logic to allow this case.
-        # https://github.com/NVIDIA/cuda-quantum/issues/2895
-        counts = cudaq.sample(kernel, [[0, 1]])
-    assert 'Invalid runtime argument type. Argument of type list[int] was provided' in repr(
-        e)
+    # list[list[int]] is a single argument, not a broadcast — verify it runs.
+    counts = cudaq.sample(kernel, [[0, 1]])
+    assert '11' in counts
 
 
 def test_list_creation_with_cast():
