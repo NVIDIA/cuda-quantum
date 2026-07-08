@@ -543,7 +543,12 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     echo "Installing Jupyter kernel infrastructure..."
     # Only install what's needed to register the kernel
     pip install --upgrade pip -q
-    pip install jupyter ipykernel notebook==7.5.6 -q
+    notebook_requirements="$this_script_dir/../requirements.txt"
+    if [ -f "$notebook_requirements" ]; then
+        pip install jupyter ipykernel -r "$notebook_requirements" -q
+    else
+        pip install jupyter ipykernel notebook -q
+    fi
     
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages
