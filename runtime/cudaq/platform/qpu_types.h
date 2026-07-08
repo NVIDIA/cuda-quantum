@@ -17,5 +17,4 @@
 #include "cudaq/platform/mqpu/custatevec/GPUEmulatedQPU.h"
 #include "cudaq/platform/orca/OrcaRemoteRESTQPU.h"
 #include "cudaq/platform/pasqal/PasqalRemoteRESTQPU.h"
-#include "cudaq/platform/qdmi/QDMIQPU.h"
 #include "cudaq/platform/quera/QuEraRemoteRESTQPU.h"

@@ -6,24 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Add the custom target config generator test to the build, 
+# Add the custom target config generator test to the build,
 # it will generate the yml file in the build directory required for a lit test.
 add_subdirectory(TargetConfig/custom_sim)
 
-set(CUDAQ_TEST_QDMI_DDSIM OFF)
-set(CUDAQ_TEST_QDMI_DDSIM_DEVICE_LIBRARY "")
-set(CUDAQ_TEST_QDMI_DDSIM_DEVICE_LIBRARY_DIR "")
-if (CUDAQ_ENABLE_QDMI_BACKEND AND EXISTS "${CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY}")
-  set(CUDAQ_TEST_QDMI_DDSIM_DEVICE_LIBRARY
-      "${CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY}")
-  set(CUDAQ_TEST_QDMI_DDSIM_DEVICE_LIBRARY_DIR
-      "${CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY_DIR}")
-  set(CUDAQ_TEST_QDMI_DDSIM ON)
-endif()
-
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
-  CUDAQ_TEST_QDMI_DDSIM
+  CUDAQ_QDMI_DDSIM_AVAILABLE
 )
 
 configure_lit_site_cfg(

@@ -10,9 +10,7 @@
 
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/utils/owning_ptr.h"
 
-#include <filesystem>
 #include <map>
 #include <memory>
 #include <optional>
@@ -20,20 +18,21 @@
 
 namespace cudaq {
 
-class Executor;
-class ServerHelper;
+struct QDMIDevice;
 
 class QDMIQPU : public QPU {
 public:
   QDMIQPU();
+  QDMIQPU(std::shared_ptr<QDMIDevice> device, config::TargetConfig targetConfig,
+          std::map<std::string, std::string> backendConfig);
   ~QDMIQPU() override;
 
   void enqueue(QuantumTask &task) override;
-  bool isSimulator() override { return false; }
+  bool isSimulator() override;
   bool supportsExplicitMeasurements() override { return false; }
   void setShots(int shots) override;
   void clearShots() override;
-  bool isRemote() override { return true; }
+  bool isRemote() override;
   bool isEmulated() override { return false; }
   void setNoiseModel(const noise_model *model) override;
   void configureExecutionContext(ExecutionContext &context) const override;
@@ -64,11 +63,12 @@ public:
                                     KernelArgs args) override;
 
 private:
+  void configure(std::shared_ptr<QDMIDevice> device,
+                 config::TargetConfig targetConfig,
+                 std::map<std::string, std::string> backendConfig);
+
   std::optional<int> nShots;
-  std::filesystem::path platformPath;
-  std::string qpuName;
-  std::unique_ptr<Executor> executor;
-  owning_ptr<ServerHelper> serverHelper;
+  std::shared_ptr<QDMIDevice> device;
   std::map<std::string, std::string> backendConfig;
   config::TargetConfig targetConfig;
 };

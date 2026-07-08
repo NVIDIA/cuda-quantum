@@ -6,9 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(LIBRARY_NAME cudaq-qdmi-qpu)
-set(SERVERHELPER_LIBRARY_NAME cudaq-serverhelper-qdmi)
+set(LIBRARY_NAME cudaq-platform-qdmi)
 
+set(CUDAQ_QDMI_DDSIM_AVAILABLE OFF CACHE INTERNAL
+  "Whether the QDMI DDSIM device is available for target tests" FORCE)
 set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY "" CACHE INTERNAL
   "QDMI DDSIM device library for target tests" FORCE)
 set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY_DIR "" CACHE INTERNAL
@@ -19,19 +20,12 @@ if (NOT TARGET MQT::CoreFoMaC)
   return()
 endif()
 
-message(STATUS "Building QDMI QPU.")
+message(STATUS "Building QDMI platform.")
 
 add_library(${LIBRARY_NAME}
   SHARED
+    QDMIPlatform.cpp
     QDMIQPU.cpp
-    QDMIExecutor.cpp
-    QDMIServerHelper.cpp
-)
-
-add_library(${SERVERHELPER_LIBRARY_NAME}
-  SHARED
-    QDMIExecutor.cpp
-    QDMIServerHelper.cpp
 )
 
 if (TARGET MQT::CoreQDMI_DDSIM_Device)
@@ -50,36 +44,31 @@ if (TARGET MQT::CoreQDMI_DDSIM_Device)
     set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY_DIR
       "${_qdmi_ddsim_device_library_dir}" CACHE INTERNAL
       "QDMI DDSIM device library directory for target tests" FORCE)
+    set(CUDAQ_QDMI_DDSIM_AVAILABLE ON CACHE INTERNAL
+      "Whether the QDMI DDSIM device is available for target tests" FORCE)
   endif()
 endif()
 
-foreach(_qdmi_target IN ITEMS ${LIBRARY_NAME} ${SERVERHELPER_LIBRARY_NAME})
-  target_include_directories(${_qdmi_target} PRIVATE .
-    PUBLIC
-      $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
-      $<INSTALL_INTERFACE:include>
-  )
-  target_link_libraries(${_qdmi_target}
-    PRIVATE
-      cudaq-common
-      cudaq-logger
-      MQT::CoreFoMaC
-  )
-endforeach()
+target_include_directories(${LIBRARY_NAME} PRIVATE .
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+    $<INSTALL_INTERFACE:include>
+)
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
     cudaq-common
   PRIVATE
+    cudaq-logger
     cudaq-mlir-runtime
     fmt::fmt-header-only
     cudaq
-    cudaq-platform-default
+    CUDAQTargetConfigYaml
+    MQT::CoreFoMaC
     nvqir
 )
 
 add_target_config(qdmi)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib)
