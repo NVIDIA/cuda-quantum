@@ -24,10 +24,11 @@ __qpu__ void kernel() {
   exp_pauli(0.432, qvector, "ZYX");
   exp_pauli(0.324, qvector, "ZXX");
 }
+// [End Pauli]
 
 int main() {
+  build_operator();
   auto result = cudaq::sample(kernel);
   result.dump();
   return 0;
 }
-// [End Pauli]

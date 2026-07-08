@@ -219,10 +219,13 @@ The `get_state` function gives us access to the quantum statevector of the compu
         :end-before: [End `GetStateOutput`]
 
 The statevector returned by `get_state` indexes basis states by interpreting each
-qubit's amplitude bit with qubit 0 as the least significant bit, qubit 1 as the
-next, and so on. Writing the binary representation with qubit 0 on the left, a
-2-qubit system has the following translation between the statevector index and
-the corresponding computational basis state :math:`|q_0 q_1\rangle`:
+qubit's amplitude bit with qubit 0 as the least significant bit (LSB), qubit 1 as
+the next, and so on, up to the highest-numbered qubit as the most significant bit
+(MSB). Writing the binary representation with qubit 0 on the left, a 2-qubit
+system has the following translation between the statevector index and the
+corresponding computational basis state :math:`|q_0 q_1\rangle`. The red bit is
+qubit 0, the LSB contributing :math:`2^0` to the index, and the blue bit is
+qubit 1, the MSB in this 2-qubit example contributing :math:`2^1`:
 
 .. math::
 
