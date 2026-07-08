@@ -29,7 +29,19 @@ static std::vector<nanobind::object>
 readRunResults(mlir::ModuleOp module, mlir::Type ty,
                detail::RunResultSpan &results, std::size_t count) {
   std::vector<nanobind::object> ret;
+  if (count == 0)
+    return ret;
   std::size_t byteSize = results.lengthInBytes / count;
+  // A remote backend may return fewer results than the requested number of
+  // shots. In that case `byteSize` underflows to 0, which would make the loop
+  // below never advance (infinite loop, then OOM kill). Fail with a clear
+  // error instead. See https://github.com/NVIDIA/cuda-quantum/issues/4881.
+  if (byteSize == 0)
+    throw std::runtime_error(
+        "cudaq::run received fewer result bytes (" +
+        std::to_string(results.lengthInBytes) +
+        ") than the requested number of shots (" + std::to_string(count) +
+        "). The backend may have returned an incomplete result set.");
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
     nanobind::object obj = convertResult(module, ty, results.data + i);
     ret.push_back(obj);
