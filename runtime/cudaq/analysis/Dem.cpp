@@ -18,11 +18,11 @@
 
 namespace cudaq::detail {
 
-std::string runDemFromKernel(const std::string &kernelName,
-                             cudaq::quantum_platform &platform,
-                             const cudaq::noise_model *noise,
-                             const std::function<void()> &kernel,
-                             const std::string &plugin_name) {
+std::string runDemFromKernel(
+    const std::string &kernelName, cudaq::quantum_platform &platform,
+    const cudaq::noise_model *noise, const std::function<void()> &kernel,
+    const cudaq::dem_options &options, const std::string &plugin_name,
+    cudaq::M2DSparseMatrix *m2d_out, cudaq::M2OSparseMatrix *m2o_out) {
 
   if (cudaq::kernelHasConditionalFeedback(kernelName))
     throw std::runtime_error(
@@ -33,8 +33,13 @@ std::string runDemFromKernel(const std::string &kernelName,
   ctx.kernelName = kernelName;
   ctx.qpuId = cudaq::getCurrentQpuId();
   ctx.asyncExec = false;
+  ctx.dem_opts = options;
   if (noise)
     ctx.noiseModel = noise;
+  // Pointer existence is authoritative: non-null pointers enable matrix
+  // computation regardless of the flag in options, and null pointers suppress
+  // it even if the flag is set.
+  ctx.dem_opts.return_measurement_matrices = (m2d_out || m2o_out);
 
   // RAII: claim the thread-local analysis-simulator slot backed by the `stim`
   // plugin. The scope starts from a clean simulator and releases the override
@@ -42,6 +47,15 @@ std::string runDemFromKernel(const std::string &kernelName,
   auto demScope = nvqir::dem::make_scope(plugin_name);
 
   platform.with_execution_context(ctx, kernel);
+
+  if (m2d_out) {
+    m2d_out->num_measurements = ctx.measurement_matrices.num_measurements;
+    m2d_out->rows = std::move(ctx.measurement_matrices.det_rows);
+  }
+  if (m2o_out) {
+    m2o_out->num_measurements = ctx.measurement_matrices.num_measurements;
+    m2o_out->rows = std::move(ctx.measurement_matrices.obs_rows);
+  }
 
   return std::move(ctx.dem_text);
 }

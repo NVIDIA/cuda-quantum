@@ -20,6 +20,7 @@ struct ScalarReturn {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ScalarReturn() -> i1
 // CHECK:           %[[VAL_Q:.*]] = call @__quantum__rt__qubit_allocate()
 // CHECK:           call @__quantum__qis__h(%[[VAL_Q]])
@@ -31,6 +32,7 @@ struct ScalarReturn {
 // CHECK:           %[[VAL_B:.*]] = call @__quantum__rt__read_result(%[[VAL_P]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:           return %[[VAL_B]] : i1
 // CHECK:         }
+// clang-format on
 
 struct VectorReturn {
   std::vector<bool> operator()() __qpu__ {
@@ -40,6 +42,7 @@ struct VectorReturn {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorReturn() -> !cc.stdvec<i1>
 // CHECK:           %[[V_C3:.*]] = arith.constant 3 : i64
 // CHECK:           %[[V_ARR:.*]] = call @__quantum__rt__qubit_allocate_array(%[[V_C3]])
@@ -62,3 +65,4 @@ struct VectorReturn {
 // CHECK:           %[[V_VEC:.*]] = cc.stdvec_init %[[V_HEAP]], %[[V_C3]]
 // CHECK:           return %[[V_VEC]] : !cc.stdvec<i1>
 // CHECK:         }
+// clang-format on

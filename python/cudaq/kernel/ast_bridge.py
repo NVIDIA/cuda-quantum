@@ -35,8 +35,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType)
+                    recover_annotation_of_or_none, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType)
 
 State = cudaq_runtime.State
 
@@ -857,7 +857,7 @@ class PyASTBridge(ast.NodeVisitor):
     def __isSupportedNumpyFunction(self, id):
         return id in [
             'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'arcsin', 'arccos',
-            'arctan', 'sqrt', 'ceil', 'exp', 'log'
+            'arctan', 'sqrt', 'ceil', 'floor', 'exp', 'log'
         ]
 
     def __isSupportedVectorFunction(self, id):
@@ -2012,6 +2012,10 @@ class PyASTBridge(ast.NodeVisitor):
                 with trace.span("ast_bridge.visit_function_body",
                                 statement_count=len(node.body)):
                     for n in node.body:
+                        # If the previous statement terminated `entry_block`,
+                        # do not lower any subsequent unreachable statements.
+                        if self.hasTerminator(entry_block):
+                            break
                         self.visit(n)
                 # Add the return operation
                 if not self.hasTerminator(entry_block):
@@ -3297,11 +3301,28 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id == 'exp_pauli':
-                # Note: C++ also has a constructor that takes an `f64`,
-                # `string`, any any number of qubits. We don't support this
-                # here.
-                theta, target, pauliWord = self.__groupValues(
-                    node.args, [1, 1, 1])
+                if len(node.args) == 3:
+                    # Both supported forms can have three arguments:
+                    #   `exp_pauli(theta, target, pauli_word)`
+                    #   `exp_pauli(theta, pauli_word, qubit)`
+                    # Distinguish them by the second `operand`'s type.
+                    theta, second, third = self.__groupValues(
+                        node.args, [1, 1, 1])
+                    if self.isQuantumType(second.type):
+                        target, pauliWord = second, third
+                    else:
+                        pauliWord = second
+                        targets = [third]
+                        checkControlAndTargetTypes([], targets)
+                        target = quake.ConcatOp(self.getVeqType(),
+                                                targets).result
+                else:
+                    # C++-compatible variadic form:
+                    #   `exp_pauli(theta, pauli_word, qubit, ...)`
+                    theta, pauliWord, targets = self.__groupValues(
+                        node.args, [1, 1, (1, -1)])
+                    checkControlAndTargetTypes([], targets)
+                    target = quake.ConcatOp(self.getVeqType(), targets).result
                 theta = self.changeOperandToType(self.getFloatType(), theta)
                 processQuantumOperation("ExpPauli", [], [target], [], [theta],
                                         broadcast=False,
@@ -3704,6 +3725,14 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"supported for complex numbers", node)
                             return
                         self.pushValue(math.CeilOp(value).result)
+                        return
+                    if node.func.attr == 'floor':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not "
+                                f"supported for complex numbers", node)
+                            return
+                        self.pushValue(math.FloorOp(value).result)
                         return
 
                     self.emitFatalError(
@@ -5436,7 +5465,22 @@ class PyASTBridge(ast.NodeVisitor):
                 "functions defined within quantum kernels must not contain return statement",
                 node)
 
+        # Keep bare-return (`node.value` is None) lowering consistent with
+        # `QuakeBridgeVisitor::VisitReturnStmt` in the C++ bridge.
         if node.value == None:
+            # Clang verifies C++ return statements against the function
+            # signature before the C++ bridge runs. Python's AST has no
+            # equivalent semantic check, so verify it here.
+            if self.signature.return_type is not None:
+                self.emitFatalError(
+                    "return statement in a value-returning kernel must return a value",
+                    node)
+            if self.symbolTable.scopeDepth > 1:
+                # We are in an inner block, release all MLIR scopes before
+                # returning.
+                cc.UnwindReturnOp([])
+            else:
+                func.ReturnOp([])
             return
 
         self.walkingReturnNode = True
@@ -5912,7 +5956,22 @@ class PyASTBridge(ast.NodeVisitor):
             assert not node.id in self.signature.captured_variable_names()
 
             # Append as a new argument
-            argTy = mlirTypeFromPyType(type(value), self.ctx, argInstance=value)
+            if isinstance(value, list) and len(value) == 0:
+                annotation = recover_annotation_of_or_none(
+                    node.id, self.defFrame)
+                if annotation is None:
+                    self.emitFatalError(
+                        f"Cannot infer the element type of the captured empty "
+                        f"list '{node.id}'. Annotate it at module scope (e.g. "
+                        f"`{node.id}: list[float] = []`) or use a typed numpy "
+                        f"array (e.g. `{node.id} = np.array([], "
+                        f"dtype=np.float64)`) so the type can be recovered.",
+                        node)
+                argTy = mlirTypeFromPyType(annotation, self.ctx)
+            else:
+                argTy = mlirTypeFromPyType(type(value),
+                                           self.ctx,
+                                           argInstance=value)
             mlirVal = cudaq_runtime.appendKernelArgument(
                 self.kernelFuncOp, argTy)
             self.signature.add_variable_capture(node.id, argTy)
@@ -5956,7 +6015,11 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     """
 
     verbose = 'verbose' in kwargs and kwargs['verbose']
-    lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
+    # `location` may be absent, explicitly None (e.g. a kernel reconstructed via
+    # `from_json` whose serialized location was null), or empty; in every such
+    # case fall back to the default offset so diagnostics never subscript a
+    # non-`(filename, lineno)` value.
+    lineNumberOffset = kwargs.get('location') or ('', 0)
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
     cudaqAliases = kwargs.get('cudaqAliases', None)

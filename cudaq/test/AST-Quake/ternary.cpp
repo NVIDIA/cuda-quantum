@@ -35,6 +35,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_kernel._Z11test_kerneli(
 // CHECK-DAG:        %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK-DAG:        %[[VAL_4:.*]] = arith.constant 0 : i32
@@ -49,3 +50,4 @@ int main() {
 // CHECK:               }
 // CHECK:             }
 // CHECK:             cc.continue %{{.*}} : i64
+// clang-format on

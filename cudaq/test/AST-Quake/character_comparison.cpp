@@ -26,6 +26,7 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
   }
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_apply_pauli
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !cc.stdvec<i8>) attributes
 // CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 90 : i32
@@ -84,4 +85,4 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

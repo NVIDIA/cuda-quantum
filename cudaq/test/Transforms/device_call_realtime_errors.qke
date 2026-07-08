@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -verify-diagnostics -pass-pipeline='builtin.module(distributed-device-call{realtime=1})' %s
+// RUN: cudaq-opt -verify-diagnostics -pass-pipeline='builtin.module(realtime-device-call)' %s
 
 func.func @pointerLengthKernel(%arg0: !cc.ptr<i32>, %arg1: i64, %arg2: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   // expected-error @+1 {{'cc.device_call' op realtime device_call lowering does not support raw pointer arguments}}

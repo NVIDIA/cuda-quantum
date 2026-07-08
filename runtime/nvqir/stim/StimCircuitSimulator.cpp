@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
@@ -209,19 +210,104 @@ protected:
     getExecutionContext()->result = result;
   }
 
+  /// @brief Populate the m2 fields in @p ctx from `recordedCircuit`.
+  /// Rows = detectors/observables, cols = measurements; non-zero entries are 1.
+  ///
+  /// Duplicate measurement targets within a single DETECTOR or
+  /// OBSERVABLE_INCLUDE instruction are collapsed modulo 2 (GF(2) XOR): an
+  /// index that appears an even number of times cancels out.
+  void computeM2IntoContext(cudaq::ExecutionContext &ctx) {
+    auto flat = recordedCircuit.flattened();
+    auto stats = flat.compute_stats();
+    ctx.measurement_matrices.num_measurements = stats.num_measurements;
+    ctx.measurement_matrices.det_rows.resize(stats.num_detectors);
+    ctx.measurement_matrices.obs_rows.resize(stats.num_observables);
+
+    // XOR-dedup: remove indices that appear an even number of times in @p row.
+    auto xorDedup = [](std::vector<std::size_t> &row) {
+      std::sort(row.begin(), row.end());
+      std::vector<std::size_t> out;
+      for (std::size_t i = 0; i < row.size();) {
+        std::size_t j = i;
+        while (j < row.size() && row[j] == row[i])
+          ++j;
+        if ((j - i) % 2 == 1) // odd count → survives XOR
+          out.push_back(row[i]);
+        i = j;
+      }
+      row = std::move(out);
+    };
+
+    std::size_t meas_so_far = 0;
+    std::size_t det_so_far = 0;
+    flat.for_each_operation([&](const stim::CircuitInstruction &op) {
+      auto n = op.count_measurement_results();
+      if (n > 0) {
+        meas_so_far += n;
+      } else if (op.gate_type == stim::GateType::DETECTOR) {
+        auto &row = ctx.measurement_matrices.det_rows[det_so_far];
+        for (const auto &t : op.targets) {
+          if (t.is_measurement_record_target()) {
+            auto lookback = static_cast<std::size_t>(-t.rec_offset());
+            if (lookback > meas_so_far)
+              throw std::runtime_error(
+                  "dem_from_kernel: DETECTOR record target rec[-" +
+                  std::to_string(lookback) +
+                  "] references a measurement before the circuit start");
+            row.push_back(meas_so_far - lookback);
+          }
+        }
+        xorDedup(row);
+        ++det_so_far;
+      } else if (op.gate_type == stim::GateType::OBSERVABLE_INCLUDE) {
+        auto obs_idx = static_cast<std::size_t>(op.args[0]);
+        auto &row = ctx.measurement_matrices.obs_rows[obs_idx];
+        for (const auto &t : op.targets) {
+          if (t.is_measurement_record_target()) {
+            auto lookback = static_cast<std::size_t>(-t.rec_offset());
+            if (lookback > meas_so_far)
+              throw std::runtime_error(
+                  "dem_from_kernel: OBSERVABLE_INCLUDE record target rec[-" +
+                  std::to_string(lookback) +
+                  "] references a measurement before the circuit start");
+            row.push_back(meas_so_far - lookback);
+          }
+        }
+        xorDedup(row);
+      }
+    });
+  }
+
   /// @brief Compute the detector error model from the accumulated
   /// `recordedCircuit` and return it as `.dem` text.
   std::string generateDem() override {
+    auto *ctx = getExecutionContext();
+    const cudaq::dem_options opts = ctx ? ctx->dem_opts : cudaq::dem_options{};
     stim::DetectorErrorModel dem =
         stim::ErrorAnalyzer::circuit_to_detector_error_model(
-            recordedCircuit,
-            /*decompose_errors=*/false,
-            /*fold_loops=*/false,
-            /*allow_gauge_detectors=*/false,
-            /*approximate_disjoint_errors_threshold=*/0,
-            /*ignore_decomposition_failures=*/false,
-            /*block_decomposition_from_introducing_remnant_edges=*/false);
+            recordedCircuit, opts.decompose_errors, opts.fold_loops,
+            opts.allow_gauge_detectors,
+            opts.approximate_disjoint_errors_threshold,
+            opts.ignore_decomposition_failures,
+            opts.block_decomposition_from_introducing_remnant_edges);
+
+    if (ctx && ctx->dem_opts.return_measurement_matrices)
+      computeM2IntoContext(*ctx);
+
     return dem.str();
+  }
+
+  /// @brief Finalize the execution context, ensuring the simulator is left in a
+  /// clean state even if finalization throws.
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                cudaq::ExecutionContext &context) override {
+    try {
+      nvqir::CircuitSimulatorBase<double>::finalizeExecutionContext(policy,
+                                                                    context);
+    } catch (...) {
+      endExecution();
+      throw;
+    }
   }
 
   /// @brief Override the default sized allocation of qubits

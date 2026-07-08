@@ -138,14 +138,12 @@ cudaq_internal::compiler::Compiler::Compiler(
   // Get additional debug values
   disableMLIRthreading =
       cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", disableMLIRthreading);
-  enablePrintMLIREachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+  printEachPass = cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   enablePassStatistics =
       cudaq::getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
 
-  // If the very verbose enablePrintMLIREachPass flag is set, then
-  // multi-threading must be disabled.
-  if (enablePrintMLIREachPass) {
+  // Ensure pass debug output is ordered and readable.
+  if (printEachPass != cudaq::PrintEachPassMode::None) {
     disableMLIRthreading = true;
   }
 }
@@ -211,6 +209,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
   auto packed = args.getPacked();
   if (!args.empty()) {
     mlir::PassManager pm(contextPtr);
+    if (printEachPass != cudaq::PrintEachPassMode::None)
+      moduleOp.dump();
     if (isPython && rawArgs)
       cudaq_internal::compiler::mergeAllCallableClosures(moduleOp, kernelName,
                                                          *rawArgs);
@@ -302,6 +302,13 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
           cudaq::opt::createQuakeSynthesizer(kernelName, packed->data.data()));
     }
     pm.addPass(mlir::createCanonicalizerPass());
+    if (printEachPass != cudaq::PrintEachPassMode::None)
+      moduleOp.dump();
+    // For ArgSynthesis mode, enable per-pass IR printing on this pipeline only.
+    // The ::All variant is handled by configurePassManagerFromEnv (called by
+    // runPassManager).
+    if (printEachPass == cudaq::PrintEachPassMode::ArgSynthesis)
+      pm.enableIRPrinting();
     if (failed(cudaq_internal::compiler::runPassManager(
             pm, moduleOp.getOperation())))
       throw std::runtime_error(
@@ -358,7 +365,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
-                  clonedModule, target->pipelineConfig.codegenTranslation),
+                  clonedModule, target->pipelineConfig.codegenTranslation,
+                  isEntryPoint),
               resultInfo, isFullySpecialized);
       // The first artifact is the kernel entry point; rename it to the
       // per-module name (relevant for the multi-module observe path where the
@@ -552,12 +560,14 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
       if (codegenTranslation.starts_with("qir")) {
         if (failed(translation(*compiled_module, codegenTranslation, outStr,
                                postCodeGenPasses, printIR,
-                               enablePrintMLIREachPass, enablePassStatistics)))
+                               printEachPass == cudaq::PrintEachPassMode::All,
+                               enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       } else {
         if (failed(translation(*compiled_module, outStr, postCodeGenPasses,
-                               printIR, enablePrintMLIREachPass,
+                               printIR,
+                               printEachPass == cudaq::PrintEachPassMode::All,
                                enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");

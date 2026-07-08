@@ -6,13 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %s -o %t && %t | grep lookhere | FileCheck %s
+// clang-format on
 
-#include <iostream>
 #include <cudaq.h>
+#include <iostream>
 
 struct applyH {
-  template <typename A> void operator()(cudaq::qubit &q, A a) __qpu__ { h(q); }
+  template <typename A>
+  void operator()(cudaq::qubit &q, A a) __qpu__ {
+    h(q);
+  }
 };
 
 struct dummy {
@@ -22,14 +27,17 @@ struct dummy {
   }
 };
 
-template <typename T> __qpu__ void funky(T i) {}
+template <typename T>
+__qpu__ void funky(T i) {}
 
 // Without weak, this function has multiple definitions and the linker raises an
 // error.
 __attribute__((weak)) __qpu__ void funny(int i) { funky(i); }
 
-template <typename T> struct Qernel {
-  template <typename A> void operator()(cudaq::qubit &q, T t, A a) __qpu__ {
+template <typename T>
+struct Qernel {
+  template <typename A>
+  void operator()(cudaq::qubit &q, T t, A a) __qpu__ {
     h(q);
   }
 };
@@ -53,7 +61,9 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK: 1: {{.*}} @__nvqpp__mlirgen__instance_applyHi
 // CHECK: 2: {{.*}} @__nvqpp__mlirgen__function_funny
 // CHECK: 3: {{.*}} @__nvqpp__mlirgen__instance_function_funkyi
 // CHECK: 4: {{.*}} @__nvqpp__mlirgen__instance_QernelIdEi
+// clang-format on
