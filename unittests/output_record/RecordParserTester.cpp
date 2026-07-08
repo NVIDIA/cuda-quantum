@@ -8,7 +8,10 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/RecordLogParser.h"
+#include <array>
+#include <cmath>
 #include <cudaq.h>
+#include <limits>
 
 CUDAQ_TEST(ParserTester, checkSingleBoolean) {
   {
@@ -109,6 +112,36 @@ CUDAQ_TEST(ParserTester, checkDoubles) {
   origBuffer = nullptr;
 }
 
+CUDAQ_TEST(ParserTester, checkFloatingPointValueParsing) {
+  const std::string log = "OUTPUT\tDOUBLE\t1e+3\tf64\n"
+                          "OUTPUT\tDOUBLE\t2.5e-2\tf64\n"
+                          "OUTPUT\tDOUBLE\t-3.5\tf64\n"
+                          "OUTPUT\tDOUBLE\tINF\tf64\n"
+                          "OUTPUT\tDOUBLE\t-INFINITY\tf64\n"
+                          "OUTPUT\tDOUBLE\t+NAN\tf64\n"
+                          "OUTPUT\tDOUBLE\tinf\tf64\n"
+                          "OUTPUT\tDOUBLE\t-InFiNiTy\tf64\n"
+                          "OUTPUT\tDOUBLE\tnan\tf64\n";
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  ASSERT_EQ(parser.getBufferSize(), 9 * sizeof(double));
+  std::array<double, 9> values{};
+  std::memcpy(values.data(), parser.getBufferPtr(), sizeof(values));
+  EXPECT_DOUBLE_EQ(values[0], 1e3);
+  EXPECT_DOUBLE_EQ(values[1], 2.5e-2);
+  EXPECT_DOUBLE_EQ(values[2], -3.5);
+  EXPECT_TRUE(std::isinf(values[3]));
+  EXPECT_FALSE(std::signbit(values[3]));
+  EXPECT_TRUE(std::isinf(values[4]));
+  EXPECT_TRUE(std::signbit(values[4]));
+  EXPECT_TRUE(std::isnan(values[5]));
+  EXPECT_TRUE(std::isinf(values[6]));
+  EXPECT_FALSE(std::signbit(values[6]));
+  EXPECT_TRUE(std::isinf(values[7]));
+  EXPECT_TRUE(std::signbit(values[7]));
+  EXPECT_TRUE(std::isnan(values[8]));
+}
+
 CUDAQ_TEST(ParserTester, checkArrayOrdered) {
   const std::string log = "OUTPUT\tARRAY\t2\n"
                           "OUTPUT\tINT\t13\ti32\n"
@@ -138,7 +171,7 @@ CUDAQ_TEST(ParserTester, checkArrayLabeled) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<int>> results = {
       reinterpret_cast<std::vector<int> *>(span.data),
       reinterpret_cast<std::vector<int> *>(span.data + span.lengthInBytes)};
@@ -168,7 +201,7 @@ CUDAQ_TEST(ParserTester, checkArrayIntMultiShot) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<int>> results = {
       reinterpret_cast<std::vector<int> *>(span.data),
       reinterpret_cast<std::vector<int> *>(span.data + span.lengthInBytes)};
@@ -202,7 +235,7 @@ CUDAQ_TEST(ParserTester, checkArrayDoubleMultiShot) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<double>> results = {
       reinterpret_cast<std::vector<double> *>(span.data),
       reinterpret_cast<std::vector<double> *>(span.data + span.lengthInBytes)};
@@ -278,7 +311,7 @@ CUDAQ_TEST(ParserTester, checkMultipleShots) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<std::int16_t>> results = {
       reinterpret_cast<std::vector<std::int16_t> *>(span.data),
       reinterpret_cast<std::vector<std::int16_t> *>(span.data +
@@ -349,7 +382,7 @@ CUDAQ_TEST(ParserTester, checkTupleWithLayoutAndBool) {
   EXPECT_EQ(24 * 2, bufferSize);
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   struct MyTuple {
     bool boolVal;
     std::int64_t i64Val;
@@ -458,6 +491,124 @@ CUDAQ_TEST(ParserTester, checkFailureCases) {
   }
 }
 
+CUDAQ_TEST(ParserTester, checkMetadataValidation) {
+  cudaq::RecordLogParser validParser;
+  EXPECT_NO_THROW(validParser.parse("METADATA\tentry_point\n"));
+
+  for (const auto &log : {"METADATA\n", "METADATA\tkey\tvalue\textra\n"}) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkNumericValidation) {
+  const std::vector<std::string> invalidLogs = {
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[99999999999]\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[abc]\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[]\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkStrictValueValidation) {
+  const std::string sizeOverflow =
+      std::to_string(std::numeric_limits<std::size_t>::max()) + "0";
+  const std::vector<std::string> invalidLogs = {
+      "OUTPUT\tINT\t1junk\ti32\n",
+      "OUTPUT\tINT\t128\ti8\n",
+      "OUTPUT\tINT\t-129\ti8\n",
+      "OUTPUT\tINT\t+-1\ti32\n",
+      "OUTPUT\tDOUBLE\t1junk\tf64\n",
+      "OUTPUT\tDOUBLE\t+-1\tf64\n",
+      "OUTPUT\tDOUBLE\t1e99999\tf64\n",
+      "OUTPUT\tDOUBLE\t 1\tf64\n",
+      "OUTPUT\tARRAY\t1junk\tarray<i32 x 1>\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1junk>\n",
+      "OUTPUT\tARRAY\t" + sizeOverflow + "\tarray<i32 x 1>\n",
+      "START\nOUTPUT\tINT\t7\ti32\nEND\t1junk\n",
+      "METADATA\trequired_num_results\t1junk\n"
+      "OUTPUT\tRESULT\t0\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+
+  cudaq::RecordLogParser zeroStatusParser;
+  EXPECT_NO_THROW(
+      zeroStatusParser.parse("START\nOUTPUT\tINT\t7\ti32\nEND\t00\n"));
+  ASSERT_EQ(zeroStatusParser.getBufferSize(), sizeof(std::int32_t));
+  std::int32_t value = 0;
+  std::memcpy(&value, zeroStatusParser.getBufferPtr(), sizeof(value));
+  EXPECT_EQ(value, 7);
+}
+
+CUDAQ_TEST(ParserTester, checkRecordGrammarValidation) {
+  const std::vector<std::string> invalidLogs = {
+      "HEADER\tschema_id\tlabeled\textra\n",
+      "START\textra\nEND\t0\n",
+      "END\t0\n",
+      "START\nEND\t0\textra\n",
+      "START\nSTART\nEND\t0\n",
+      "START\nOUTPUT\tINT\t1\ti32\n",
+      "OUTPUT\tINT\t1\ti32\nSTART\nEND\t0\n",
+      "START\nOUTPUT\tINT\t1\ti32\nEND\t0\nOUTPUT\tINT\t1\ti32\n",
+      "HEADER\tschema_id\tlabeled\nOUTPUT\tINT\t1\n",
+      "HEADER\tschema_id\tordered\nOUTPUT\tINT\t1\ti32\n",
+      "OUTPUT\tINT\t1\ti32\textra\n",
+      "HEADER\tschema_id\tlabeled\nSTART\nOUTPUT\tINT\t1\nEND\t1\n",
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_id\tordered\n",
+      "OUTPUT\tINT\t1\ti32\nHEADER\tschema_id\tordered\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+
+  cudaq::RecordLogParser orderedParser;
+  EXPECT_NO_THROW(
+      orderedParser.parse("HEADER\tschema_id\tordered\nOUTPUT\tINT\t1\n"));
+  cudaq::RecordLogParser labeledParser;
+  EXPECT_NO_THROW(
+      labeledParser.parse("HEADER\tschema_id\tlabeled\nOUTPUT\tINT\t1\ti32\n"));
+}
+
+CUDAQ_TEST(ParserTester, checkContainerValidation) {
+  const std::vector<std::string> invalidLogs = {
+      // A scalar root cannot be followed by an implicit RESULT array.
+      "OUTPUT\tINT\t1\n"
+      "OUTPUT\tRESULT\t0\n",
+      // A scalar root cannot be followed by an explicit array.
+      "OUTPUT\tINT\t1\n"
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t9\t[0]\n",
+      // Flat and preallocated array representations cannot be mixed.
+      "OUTPUT\tARRAY\t1\n"
+      "OUTPUT\tINT\t7\ti32\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tBOOL\t1\t[0]\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkTupleLayoutValidation) {
+  const std::pair<std::size_t, std::vector<std::size_t>> layout{2, {0, 1}};
+  cudaq::RecordLogParser parser(layout);
+  const std::string log = "OUTPUT\tTUPLE\t2\ttuple<i8, i32>\n"
+                          "OUTPUT\tINT\t1\t.0\n"
+                          "OUTPUT\tINT\t9\t.1\n";
+  EXPECT_ANY_THROW(parser.parse(log));
+
+  cudaq::detail::BufferHandler buffer;
+  buffer.resizeBuffer(2);
+  EXPECT_ANY_THROW(buffer.insertIntoTuple<std::int32_t>(1, 9));
+}
+
 CUDAQ_TEST(ParserTester, checkResultType) {
   const std::string log =
       "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
@@ -510,7 +661,7 @@ CUDAQ_TEST(ParserTester, checkResultType) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -546,7 +697,7 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithRegisterName) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -600,7 +751,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_1) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<std::int16_t>> results = {
       reinterpret_cast<std::vector<std::int16_t> *>(span.data),
       reinterpret_cast<std::vector<std::int16_t> *>(span.data +
@@ -634,7 +785,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_2) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::int64_t> results = {
       reinterpret_cast<std::int64_t *>(span.data),
       reinterpret_cast<std::int64_t *>(span.data + span.lengthInBytes)};
@@ -672,7 +823,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_3) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
       reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
@@ -717,7 +868,7 @@ CUDAQ_TEST(ParserTester, checkOrder) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -772,7 +923,7 @@ CUDAQ_TEST(ParserTester, checkNamedResults) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),
@@ -829,7 +980,7 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithArray) {
   std::size_t bufferSize = parser.getBufferSize();
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
   // This is parsed as a vector of bool vectors
   std::vector<std::vector<bool>> results = {
       reinterpret_cast<std::vector<bool> *>(span.data),

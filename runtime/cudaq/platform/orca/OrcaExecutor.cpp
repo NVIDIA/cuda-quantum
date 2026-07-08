@@ -13,8 +13,8 @@
 
 namespace cudaq {
 
-details::future OrcaExecutor::execute(cudaq::orca::TBIParameters params,
-                                      const std::string &kernelName) {
+detail::future OrcaExecutor::execute(cudaq::orca::TBIParameters params,
+                                     const std::string &kernelName) {
   auto orcaServerHelper = dynamic_cast<OrcaServerHelper *>(serverHelper);
   assert(orcaServerHelper);
   orcaServerHelper->setShots(shots);
@@ -25,7 +25,7 @@ details::future OrcaExecutor::execute(cudaq::orca::TBIParameters params,
   auto [jobPostPath, headers, jobs] = orcaServerHelper->createJob(params);
   auto job = jobs[0];
   auto config = orcaServerHelper->getConfig();
-  std::vector<cudaq::details::future::Job> ids;
+  std::vector<cudaq::detail::future::Job> ids;
   CUDAQ_INFO("Job created, posting to {}", jobPostPath);
   // Post it, get the response
   auto response = client->post(jobPostPath, "", job, headers);
@@ -42,7 +42,7 @@ details::future OrcaExecutor::execute(cudaq::orca::TBIParameters params,
 
   config.insert({"shots", std::to_string(shots)});
   std::string name = orcaServerHelper->name();
-  return cudaq::details::future(ids, name, config);
+  return cudaq::detail::future(ids, name, config);
 }
 
 } // namespace cudaq

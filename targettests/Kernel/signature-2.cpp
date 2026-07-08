@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// clang-format off
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
+// clang-format on
 
 // All tests should pass.
 
@@ -171,13 +173,14 @@ int main() {
 
   std::tuple<long, double> t2{2098, 99.5};
   T2{}(t2);
-  
+
   std::pair<long, double> t3{34061, 1999.2};
   T3{}(t3);
 
   return 0;
 }
 
+// clang-format off
 // CHECK: {1, 1.000, 95.000}
 // CHECK: {2, 18.400, 86.945}
 // CHECK: A { 737 87.250 }; B { 0.750 639 }
@@ -186,3 +189,4 @@ int main() {
 // CHECK: 234 89238 3.140 Z
 // CHECK: 2098 99.5
 // CHECK: 34061 1999.2
+// clang-format on

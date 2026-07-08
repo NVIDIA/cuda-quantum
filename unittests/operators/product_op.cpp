@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/operators.h"
 #include "utils.h"
+#include "cudaq/operators.h"
 #include <gtest/gtest.h>
 
 #include <numeric>

@@ -29,17 +29,13 @@ class Type;
 
 namespace cudaq_internal::compiler {
 
-/// Util to create a wrapped kernel defined by LLVM IR with serialized
-/// arguments.
-// Note: We don't use `mlir::ExecutionEngine` to skip unnecessary
-// `packFunctionArguments` (slow for raw LLVM IR containing many functions from
-// included headers).
-std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
-createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
-                    void *args, std::uint64_t argsSize);
-
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
+///
+/// \param isEntryPoint True when the JIT module defines a complete execution
+/// boundary. A nested direct-callable module may still carry `cudaq-entrypoint`
+/// as a code-generation root; passing false prevents it from clearing runtime
+/// state owned by its caller.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
-                                 llvm::StringRef convertTo);
+                                 llvm::StringRef convertTo, bool isEntryPoint);
 
 } // namespace cudaq_internal::compiler

@@ -9,12 +9,18 @@
 #include "execution_manager.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "nvqir/CircuitSimulator.h"
+#include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 
 using namespace cudaq;
 
 static ExecutionManager *execution_manager;
+
+namespace nvqir {
+CircuitSimulator *getCircuitSimulatorInternal();
+}
 
 void cudaq::setExecutionManagerInternal(ExecutionManager *em) {
   CUDAQ_INFO("external caller setting the execution manager.");
@@ -37,11 +43,30 @@ ExecutionManager *cudaq::detail::getExecutionManagerFromContext() {
   return nullptr;
 }
 
+void ExecutionManager::configureExecutionContext(ExecutionContext &ctx) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(ctx);
+}
+
+void ExecutionManager::configureExecutionContext(const sample_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
+  if (auto *ctx = getExecutionContext())
+    configureExecutionContext(*ctx);
+
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
   policies::withPolicy(ctx.name, [&](auto policy) {
     policies::visitResult(
         [&]() { return cudaq::finalize_execution_manager(*this, policy, ctx); },
         [&](sample_result &&r) { ctx.result = std::move(r); },
+        [&](observe_result &&r) {
+          ctx.result = r.raw_data();
+          ctx.expectationValue = r.expectation();
+        },
         [&](policies::void_result &&r) {});
   });
 }

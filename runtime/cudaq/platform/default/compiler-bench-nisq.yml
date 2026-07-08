@@ -1,0 +1,28 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: compiler-bench-nisq
+description: "CZ-basis decomposition with optional SABRE routing for compiler benchmarking"
+
+target-arguments:
+  - key: device
+    required: false
+    type: string
+    help-string: "Device topology for SABRE routing (e.g., path(5), grid(3,3), file(/path/to/topo.txt)). Defaults to bypass (no routing)."
+
+config:
+  nvqir-simulation-backend: qpp
+  # Target mid-level stage: decompose to a CX routing basis, fold commuting RZ
+  # phases in memory semantics, then enter value semantics once for local gate
+  # simplification and optional SABRE routing. A second simplification cleans up
+  # mapped work before returning to memory semantics. `quake-to-cc-prep`
+  # rewrites mx/my to quake gates plus mz before final decomposition so resource
+  # counting sees the normalized CZ/rotation basis. With no device argument,
+  # routing is bypassed.
+  jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc),phase-folding-pipeline{min-length=0 min-rz-weight=0},func.func(canonicalize,dqe,memtoreg,quake-simplify,canonicalize,dqe),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(quake-simplify,canonicalize,dqe,regtomem),quake-to-cc-prep,decomposition{basis=h,rx,ry,rz,x,z(1)}"
+  

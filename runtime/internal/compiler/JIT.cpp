@@ -10,6 +10,7 @@
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -19,7 +20,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -50,124 +50,18 @@
 
 using namespace mlir;
 
-std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
-cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
-                                              const std::string &entryPointFn,
-                                              void *args,
-                                              std::uint64_t argsSize) {
-
-  std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
-  // Parse bitcode
-  llvm::SMDiagnostic Err;
-  auto fileBuf = llvm::MemoryBuffer::getMemBufferCopy(irString);
-  std::unique_ptr<llvm::Module> llvmModule = llvm::parseIR(*fileBuf, Err, *ctx);
-  if (!llvmModule)
-    throw "Failed to parse embedded bitcode";
-
-  // Retrieve the symbol names for the kernel and its wrapper.
-  const std::pair<std::string, std::string> mangledKernelNames = [&]() {
-    const std::string templatedTypeName = [&]() {
-      const auto pos = entryPointFn.find_first_of("(");
-      return (pos != std::string::npos) ? entryPointFn.substr(pos + 1)
-                                        : entryPointFn;
-    }();
-
-    const std::string wrappedKernelSymbol =
-        "void cudaq::invokeCallableWithSerializedArgs<";
-
-    const std::string funcName = [&]() {
-      const auto pos = entryPointFn.find_first_of("(");
-      return (pos != std::string::npos) ? entryPointFn.substr(0, pos)
-                                        : entryPointFn;
-    }();
-    std::string mangledKernel, mangledWrapper;
-
-    // Lambda symbols has internal linkage, prevent them from being looked up.
-    // Hence, fix the linkage.
-    const auto fixUpLinkage = [](auto &func) {
-      if (func.hasInternalLinkage()) {
-        LLVM_DEBUG(llvm::dbgs()
-                   << "Change linkage type for symbol " << func.getName()
-                   << " internal to external linkage.");
-        func.setLinkage(llvm::GlobalValue::LinkageTypes::ExternalLinkage);
-      }
-    };
-
-    for (auto &func : llvmModule->functions()) {
-      auto demangledPtr =
-          abi::__cxa_demangle(func.getName().data(), nullptr, nullptr, nullptr);
-      if (demangledPtr) {
-        std::string demangledName(demangledPtr);
-        if (demangledName.rfind(wrappedKernelSymbol, 0) == 0 &&
-            demangledName.find(templatedTypeName) != std::string::npos) {
-          LLVM_DEBUG(llvm::dbgs() << "Found symbol " << func.getName()
-                                  << " for " << wrappedKernelSymbol);
-          mangledWrapper = func.getName().str();
-          fixUpLinkage(func);
-        }
-        if (demangledName.rfind(funcName, 0) == 0) {
-          LLVM_DEBUG(llvm::dbgs() << "Found symbol " << func.getName()
-                                  << " for " << funcName);
-          mangledKernel = func.getName().str();
-          fixUpLinkage(func);
-        }
-      }
-    }
-    return std::make_pair(mangledKernel, mangledWrapper);
-  }();
-
-  if (mangledKernelNames.first.empty() || mangledKernelNames.second.empty())
-    throw std::runtime_error("Failed to locate symbols from the IR");
-
-  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
-  if (tmBuilderOrError) {
-    auto tmOrError = tmBuilderOrError->createTargetMachine();
-    if (tmOrError)
-      mlir::ExecutionEngine::setupTargetTripleAndDataLayout(
-          llvmModule.get(), tmOrError.get().get());
-  }
-  auto dataLayout = llvmModule->getDataLayout();
-
-  // Create the object layer
-  auto objectLinkingLayerCreator = [&](llvm::orc::ExecutionSession &session) {
-    auto objectLayer = std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(
-        session, [](const llvm::MemoryBuffer &) {
-          return std::make_unique<llvm::SectionMemoryManager>();
-        });
-    return objectLayer;
-  };
-
-  // Create the LLJIT with the object link layer
-  auto jit = llvm::cantFail(
-      llvm::orc::LLJITBuilder()
-          .setObjectLinkingLayerCreator(objectLinkingLayerCreator)
-          .create());
-
-  // Add a ThreadSafemodule to the engine and return.
-  llvm::orc::ThreadSafeModule tsm(std::move(llvmModule), std::move(ctx));
-  llvm::cantFail(jit->addIRModule(std::move(tsm)));
-
-  // Resolve symbols that are statically linked in the current process.
-  llvm::orc::JITDylib &mainJD = jit->getMainJITDylib();
-  mainJD.addGenerator(llvm::cantFail(
-      llvm::orc::DynamicLibrarySearchGenerator::GetForCurrentProcess(
-          dataLayout.getGlobalPrefix())));
-
-  // Symbol lookup: kernel and wrapper
-  auto kernelSymbolAddr = llvm::cantFail(jit->lookup(mangledKernelNames.first));
-  void *fptr = kernelSymbolAddr.toPtr<void *>();
-  auto wrapperSymbolAddr =
-      llvm::cantFail(jit->lookup(mangledKernelNames.second));
-  auto *fptrWrapper =
-      wrapperSymbolAddr.toPtr<void (*)(const void *, unsigned long, void *)>();
-
-  auto callable = [args, argsSize, fptr, fptrWrapper]() {
-    fptrWrapper(args, argsSize, fptr);
-  };
-  return std::make_tuple(std::move(jit), callable);
+static SmallVector<LLVM::LLVMFuncOp>
+collectEntryPointFunctions(Operation *module) {
+  SmallVector<LLVM::LLVMFuncOp> funcs;
+  module->walk([&](LLVM::LLVMFuncOp func) {
+    if (func->hasAttr(cudaq::entryPointAttrName))
+      funcs.push_back(func);
+  });
+  return funcs;
 }
 
-static void insertSetupAndCleanupOperations(Operation *module) {
+static void insertWireSetSetupAndCleanupOperations(
+    Operation *module, const SmallVector<LLVM::LLVMFuncOp> &funcs) {
   OpBuilder modBuilder(module);
   auto *context = module->getContext();
   auto arrayQubitTy = cudaq::cg::getLLVMArrayType(context);
@@ -189,17 +83,7 @@ static void insertSetupAndCleanupOperations(Operation *module) {
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRsetDynamicQubitManagement, {voidTy}, {boolTy},
           dyn_cast<ModuleOp>(module));
-  FlatSymbolRefAttr clearResultMapsSymbol =
-      cudaq::opt::factory::createLLVMFunctionSymbol(
-          cudaq::opt::QIRClearResultMaps, {voidTy}, {},
-          dyn_cast<ModuleOp>(module));
-
-  // Iterate through all operations in the ModuleOp
-  SmallVector<LLVM::LLVMFuncOp> funcs;
-  module->walk([&](LLVM::LLVMFuncOp func) { funcs.push_back(func); });
-  for (auto &func : funcs) {
-    if (!func->hasAttr(cudaq::entryPointAttrName))
-      continue;
+  for (auto func : funcs) {
     std::int64_t num_qubits = -1;
     if (auto requiredQubits = func->getAttrOfType<StringAttr>(
             cudaq::opt::qir0_1::RequiredQubitsAttrName))
@@ -241,14 +125,48 @@ static void insertSetupAndCleanupOperations(Operation *module) {
     mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
                                setDynamicSymbol,
                                mlir::ValueRange{origMode.getResult()});
-    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
-                               clearResultMapsSymbol, mlir::ValueRange{});
   }
 }
 
-cudaq::JitEngine
-cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo) {
+static void
+insertResultMapCleanupOperations(Operation *module,
+                                 const SmallVector<LLVM::LLVMFuncOp> &funcs) {
+  OpBuilder modBuilder(module);
+  auto *context = module->getContext();
+  auto voidTy = LLVM::LLVMVoidType::get(context);
+  FlatSymbolRefAttr clearResultMapsSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRClearResultMaps, {voidTy}, {},
+          dyn_cast<ModuleOp>(module));
+
+  for (auto func : funcs) {
+    auto &blocks = func.getBlocks();
+    if (blocks.empty())
+      continue;
+    // Clear on entry so each execution starts from a clean slate regardless of
+    // how a prior execution exited.
+    {
+      OpBuilder builder(&*blocks.begin(), blocks.begin()->begin());
+      auto loc = builder.getUnknownLoc();
+      mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                                 clearResultMapsSymbol, mlir::ValueRange{});
+    }
+    // Clear before every return, not just the last block's terminator, so the
+    // maps are reset on all exit paths of a multi-block function.
+    for (Block &block : blocks) {
+      auto *terminator = block.getTerminator();
+      if (!isa<LLVM::ReturnOp>(terminator))
+        continue;
+      OpBuilder builder(terminator);
+      auto loc = builder.getUnknownLoc();
+      mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                                 clearResultMapsSymbol, mlir::ValueRange{});
+    }
+  }
+}
+
+cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
+    ModuleOp &moduleOp, llvm::StringRef convertTo, bool isEntryPoint) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
@@ -260,7 +178,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
   opts.transformer = std::move(transformerTemp);
   opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   auto llvmModuleBuilderTemp =
-      [convertTo = convertTo.str()](
+      [convertTo = convertTo.str(), isEntryPoint](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -285,16 +203,6 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
     } else {
       cudaq::opt::addAOTPipelineConvertToQIR(pm);
-    }
-
-    auto enablePrintMLIREachPass =
-        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-    auto disableThreading =
-        cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-    if (enablePrintMLIREachPass || disableThreading) {
-      module->getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
-        pm.enableIRPrinting();
     }
 
     std::string error_msg;
@@ -328,8 +236,15 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
 
     // Insert necessary calls to qubit allocations and qubit releases if the
     // original module contained WireSetOp's.
+    const auto entryPointFuncs = collectEntryPointFunctions(module);
     if (containsWireSet)
-      insertSetupAndCleanupOperations(module);
+      insertWireSetSetupAndCleanupOperations(module, entryPointFuncs);
+    // Direct-callable JIT modules also carry `cudaq-entrypoint` because the
+    // lowering pipeline needs a code-generation root. They can nevertheless
+    // execute inside another kernel, whose measurement handles must remain
+    // valid until the outer execution completes.
+    if (isEntryPoint)
+      insertResultMapCleanupOperations(module, entryPointFuncs);
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)

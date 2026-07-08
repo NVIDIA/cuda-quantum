@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2025 IQM Quantum Computers                                        *
+ * Copyright 2025-2026 IQM Quantum Computers                                   *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -78,6 +78,10 @@ protected:
     }
     return tokens["access_token"].get<std::string>();
   }
+
+  /// @brief The ID of the last job posted
+  /// Cache here as the framework does not pass it to jobIdDone().
+  std::string jobId;
 
   /// @brief Lookup table for translating the qubit names to index numbers
   std::map<std::string, uint, qubitOrder> qubitNameMap;
@@ -203,6 +207,15 @@ void IQMServerHelper::initialize(BackendConfig config) {
     quantumArchitectureFilePath = std::string(token);
     cleanupQuantumArchitectureFilePath = false;
   }
+
+  // Parse common config entries (e.g. `reorderIdx.<task_id>` populated by
+  // Executor::execute) so that processResults() can map sampled bitstrings
+  // back to the user's original qubit allocation order after the qubit
+  // mapping pass has permuted them. Without this call the reorder map stays
+  // empty and the bitstrings remain in physical-qubit order, which leads to
+  // wrong bit positions when the mapping pass picks a non-identity
+  // placement (see GitHub issue #4621).
+  parseConfigForCommonParams(config);
 }
 
 ServerJobPayload
@@ -247,6 +260,7 @@ std::string IQMServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 }
 
 std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
+  this->jobId = jobId;
   return iqmServerUrl + "circuits/" + jobId + "/counts";
 }
 
@@ -261,7 +275,48 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   auto jobStatus = getJobResponse["status"].get<std::string>();
   std::unordered_set<std::string> terminalStatuses = {"ready", "failed",
                                                       "aborted"};
-  return terminalStatuses.find(jobStatus) != terminalStatuses.end();
+  bool done = terminalStatuses.find(jobStatus) != terminalStatuses.end();
+
+  if (done) {
+    // if the job failed exit with an exception
+    if (jobStatus != "ready") {
+      CUDAQ_INFO("getJobResponse: {}", getJobResponse.dump());
+      auto jobMessage = getJobResponse["message"].get<std::string>();
+      throw std::runtime_error("Job status: " + jobStatus +
+                               ", reason: " + jobMessage);
+    }
+
+    // retrieve the counts artifact
+    ServerMessage counts_batch;
+    try {
+      RestClient client;
+      std::string iqmServerBaseUrl(iqmServerUrl);
+
+      auto pos = iqmServerBaseUrl.find("://cocos.");
+      if (pos != std::string::npos) {
+        iqmServerBaseUrl.erase(pos + 3, 6); // skip anchor and erase "cocos."
+        pos = iqmServerBaseUrl.find_first_of('/', pos + 3); // start of the path
+        iqmServerBaseUrl.erase(pos + 1);                    // erase the path
+      }
+
+      auto headers = generateRequestHeader();
+      counts_batch = client.get(
+          iqmServerBaseUrl,
+          "api/v1/jobs/" + jobId + "/artifacts/measurement_counts", headers);
+      if (counts_batch.is_null()) {
+        throw std::runtime_error("No counts in the response");
+      }
+    } catch (const std::exception &e) {
+      throw std::runtime_error("Unable to get counts for job " + jobId + ": " +
+                               std::string(e.what()));
+    }
+    CUDAQ_INFO("Artifacts: {}", counts_batch.dump());
+
+    // replace the status request response with the counts artifacts
+    getJobResponse = counts_batch;
+  } // if (done)
+
+  return done;
 }
 
 cudaq::sample_result
@@ -269,33 +324,70 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobID) {
   CUDAQ_INFO("postJobResponse: {}", postJobResponse.dump());
 
-  // check if the job succeeded
-  auto jobStatus = postJobResponse["status"].get<std::string>();
-  if (jobStatus != "ready") {
-    auto jobMessage = postJobResponse["message"].get<std::string>();
-    throw std::runtime_error("Job status: " + jobStatus +
-                             ", reason: " + jobMessage);
-  }
-
-  auto counts_batch = postJobResponse["counts_batch"];
-  if (counts_batch.is_null()) {
-    throw std::runtime_error("No counts in the response");
-  }
-
   // assume there is only one measurement and everything goes into the
   // GlobalRegisterName of `sample_results`
   std::vector<ExecutionResult> srs;
 
-  for (auto &counts : counts_batch.get<std::vector<ServerMessage>>()) {
-    srs.push_back(ExecutionResult(
-        counts["counts"].get<std::unordered_map<std::string, std::size_t>>()));
+  for (auto &counts : postJobResponse.get<std::vector<ServerMessage>>()) {
+    bool reorder = false;
+    std::size_t i = 0; // bit positions
+    std::map<std::string, std::size_t, qubitOrder> mxKeys;
+    std::vector<std::size_t> mxOrder;
+
+    // The measurement_keys tell which qubits were measured. An ordered map
+    // is used to sort the strings in numerical order and then the bitstrings
+    // are ordered accordingly. As result the bitstrings are ordered according
+    // to the physical qubit numbering.
+    for (std::string key : counts["measurement_keys"]) {
+      // keys must not be empty and end with a digit
+      if (key.empty() || !std::isdigit(key.back())) {
+        throw std::runtime_error("Malformed measurement key received: " + key);
+      }
+      mxKeys[key] = i++;
+    }
+    mxOrder.reserve(mxKeys.size());
+    i = 0;
+    for (auto [_, idx] : mxKeys) {
+      mxOrder.push_back(idx);
+      if (!reorder && idx != i++)
+        reorder = true;
+    }
+
+    if (reorder) {
+      std::unordered_map<std::string, std::size_t> cntDict;
+
+      // get the bits into the order given by the measurement keys
+      for (auto [bits, count] :
+           counts["counts"]
+               .get<std::unordered_map<std::string, std::size_t>>()) {
+        if (bits.size() != mxOrder.size()) {
+          throw std::runtime_error("Expected length " +
+                                   std::to_string(mxOrder.size()) +
+                                   " for bitstring " + bits);
+        }
+
+        std::string oBits(bits);
+        i = 0;
+        for (auto idx : mxOrder) {
+          oBits[i++] = bits[idx];
+        }
+
+        cntDict[oBits] = count;
+      }
+
+      srs.push_back(ExecutionResult(cntDict));
+    } else {
+      srs.push_back(ExecutionResult(
+          counts["counts"]
+              .get<std::unordered_map<std::string, std::size_t>>()));
+    }
   }
 
   sample_result sampleResult(srs);
 
-  // The original sampleResult is ordered by qubit number (FIXME: VERIFY THIS)
-  // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
+  // The original sampleResult is ordered by physical qubit number. Reorder
+  // according to reorderIdx[] so the global bitstring is in the user's
+  // original qubit allocation order.
   auto thisJobReorderIdxIt = reorderIdx.find(jobID);
   if (thisJobReorderIdxIt != reorderIdx.end()) {
     auto &thisJobReorderIdx = thisJobReorderIdxIt->second;

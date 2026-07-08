@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t
+// RUN: nvq++ %s -o %t && %t
 // XFAIL: *
 // TODO: this currently should fail due to ApplyOpSpecialization not handling
 // loops with multiple arguments, remove XFAIL when this is resolved.
@@ -14,9 +14,9 @@
 
 #include <cudaq.h>
 
-// TODO: this segfaults in ApplyOpSpecialization (without the multi-argument-loop
-// safety net) because in the IR `i` is expected to be the first loop argument,
-// but `j` winds up being first.
+// TODO: this segfaults in ApplyOpSpecialization (without the
+// multi-argument-loop safety net) because in the IR `i` is expected to be the
+// first loop argument, but `j` winds up being first.
 auto __qpu__ one_loop(cudaq::qview<> qubits, unsigned long num_qubits) {
   unsigned long j = num_qubits;
   for (unsigned long i = 0; i < num_qubits; i++) {

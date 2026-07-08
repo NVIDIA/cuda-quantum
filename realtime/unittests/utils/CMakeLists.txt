@@ -165,9 +165,10 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   message(STATUS "Building hololink_bridge (generic increment)")
   message(STATUS "  GPU RoCE Transceiver: ${GPU_ROCE_TRANSCEIVER_LIB}")
 
-  # Hololink wrapper static library (compiled by g++, isolates fmt)
+  # Hololink wrapper static library (compiled by g++, isolates fmt).
+  # Use the realtime source root so this path works when nested in CUDA-Q.
   add_library(hololink_wrapper_generic STATIC
-    ${CMAKE_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
 
   target_include_directories(hololink_wrapper_generic
     PRIVATE

@@ -282,6 +282,8 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake \
+  -DCUDAQ_STATIC_CXX_RUNTIME=${CUDAQ_STATIC_CXX_RUNTIME:-OFF} \
+  -DCUDAQ_STATIC_DEPS=${CUDAQ_STATIC_DEPS:-OFF} \
   $extra_cmake_args"
 
 # Add CUDA-specific flags only on non-macOS systems

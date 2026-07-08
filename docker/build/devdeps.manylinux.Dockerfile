@@ -25,7 +25,6 @@ FROM ${base_image}
 
 ARG distro=rhel8
 ARG llvm_commit
-ARG pybind11_commit
 ARG toolchain=gcc12
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -63,19 +62,10 @@ RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
-# Build pybind11 - 
-# we should be able to use the same pybind version independent on what Python version we generate bindings for.
-ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
+# Installing ninja-build, cmake, python3-devel, and ccache required by the LLVM build.
 # Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
 RUN dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9\
-        ninja-build cmake python3-devel ccache \
-    && mkdir /pybind11-project && cd /pybind11-project && git init \
-    && git remote add origin https://github.com/pybind/pybind11 \
-    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
-    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" -DPYBIND11_TEST=False \
-    && cmake --build . --target install --config Release \
-    && cd / && rm -rf /pybind11-project
+        ninja-build cmake python3-devel ccache
 
 RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).sh -o cmake-install.sh \
     && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
@@ -83,14 +73,17 @@ RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.2
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+ADD ./scripts/build_mlir_python_bindings.sh /scripts/build_mlir_python_bindings.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
 RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
     bash /scripts/build_llvm.sh -c Release -v
-    # No clean up of the build or source directory,
-    # since we need to re-build llvm for each python version to get the bindings.
+    # The build directory at /llvm-project/build is intentionally retained:
+    # build_mlir_python_bindings.sh reuses it in the wheel container to add
+    # the python-binding targets per Python version without recompiling
+    # the rest of the LLVM/MLIR/clang/lld tree.
 
 # Install CUDA
 

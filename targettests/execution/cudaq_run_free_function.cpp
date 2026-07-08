@@ -8,7 +8,6 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -31,9 +30,7 @@ struct bar_test_result {
   bool a;
 };
 
-bar_test_result bar_test() __qpu__ {
-  return {true};
-}
+bar_test_result bar_test() __qpu__ { return {true}; }
 
 struct baz_test_result {
   bool a;

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Iterator, overload
 
-_KERNEL_ONLY_ERROR_MESSAGE = "Type '{}' can only be used within a CUDA-Q kernel."
+_KERNEL_ONLY_ERROR_MESSAGE = "'{}' can be used only in CUDA-Q kernels"
 
 
 class KernelTypeError(RuntimeError):
@@ -33,6 +33,27 @@ class KernelType:
     # are always parsed and JIT-executed using the MLIR compiler.
     def __new__(cls, *args, **kwargs):
         raise KernelTypeError(cls)
+
+
+class measure_handle(KernelType):
+    """
+    A handle to a measurement event recorded inside a CUDA-Q kernel.
+
+    Returned by ``mz`` / ``mx`` / ``my`` inside an ``@cudaq.kernel`` body
+    (scalar form on a single qubit; vector form on a ``qvector`` /
+    ``qview``). The classical outcome is read by coercing the handle to
+    ``bool`` in any Python ``bool`` context, and the AST bridge inserts a
+    ``quake.discriminate`` at the coercion site.
+    ``cudaq.to_bools(handles)`` is the bulk counterpart on a
+    ``list[measure_handle]``.
+
+    Instantiating ``cudaq.measure_handle()`` at host scope raises
+    ``KernelTypeError`` (a ``RuntimeError`` subclass) since it is
+    device-only.
+    """
+
+    def __init__(self) -> None:
+        ...
 
 
 class qubit(KernelType):

@@ -7,7 +7,10 @@
 # ============================================================================ #
 
 import pytest
+import types
+
 import cudaq
+from cudaq.kernel.kernel_decorator import ensure_not_recursive
 
 
 @pytest.fixture(autouse=True)
@@ -167,6 +170,68 @@ class TestOutOfOrderDefinition:
             assert a(3) == 3
 
         assert "recursive kernel call" in str(e.value)
+
+
+# ---------------------------------------------------------------------------
+# `ensure_not_recursive` clears the in-flight flag on every exit path (#4533)
+# ---------------------------------------------------------------------------
+
+
+class TestEnsureNotRecursive:
+    """
+    Regression tests for the `ensure_not_recursive` guard that wraps
+    `PyKernelDecorator.resolve_captured_arguments` (PR #4533).
+    """
+
+    def test_flag_cleared_after_success(self):
+        """A normal return clears the flag and the guard stays reusable."""
+
+        @ensure_not_recursive
+        def resolve(self):
+            return "resolved"
+
+        fake = types.SimpleNamespace(name="k", _resolving_arguments=False)
+        assert resolve(fake) == "resolved"
+        assert fake._resolving_arguments is False
+        # A second, non-recursive call must not trip the guard.
+        assert resolve(fake) == "resolved"
+
+    def test_flag_cleared_after_exception(self):
+        """
+        An exception in the wrapped method clears the flag, and the *next*
+        call still surfaces the real error rather than a bogus recursion
+        diagnostic. This is the exact bug PR #4533 fixed.
+        """
+
+        @ensure_not_recursive
+        def resolve(self):
+            raise ValueError("real resolution failure")
+
+        fake = types.SimpleNamespace(name="k", _resolving_arguments=False)
+        with pytest.raises(ValueError, match="real resolution failure"):
+            resolve(fake)
+        assert fake._resolving_arguments is False
+
+        # Pre-fix, this second call raised "recursive kernel call detected"
+        # because the leaked flag made the guard think it was re-entered.
+        with pytest.raises(ValueError, match="real resolution failure"):
+            resolve(fake)
+
+    def test_recursion_still_detected(self):
+        """A genuinely re-entrant call is still rejected as recursion."""
+
+        @ensure_not_recursive
+        def resolve(self):
+            # Re-enter while the first invocation is still in flight.
+            return resolve(self)
+
+        fake = types.SimpleNamespace(name="recursiveKernel",
+                                     _resolving_arguments=False)
+        with pytest.raises(RuntimeError,
+                           match="recursive kernel call detected"):
+            resolve(fake)
+        # The guard leaves the flag clear even after rejecting recursion.
+        assert fake._resolving_arguments is False
 
 
 # ---------------------------------------------------------------------------

@@ -7,10 +7,10 @@
  ******************************************************************************/
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nlohmann/json.hpp"
 #include <bitset>
 #include <fstream>
 #include <map>
@@ -342,11 +342,31 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error(
         "ServerMessage doesn't contain 'status' key in the first job.");
 
-  // Throw a runtime error if the job has failed
-  if (jobs[0].at("status").get<std::string>() == "failed")
-    throw std::runtime_error("The job failed upon submission. Check the "
-                             "job submission in your IonQ "
-                             "account for more information.");
+  // Throw a runtime error if the job has failed. Surface IonQ's reported
+  // failure code/message when present so the actual cause lands in the logs.
+  if (jobs[0].at("status").get<std::string>() == "failed") {
+    std::string errorMessage;
+    // Ref: https://docs.ionq.com/api-reference/v0.3/jobs/get-jobs
+    if (jobs[0].contains("failure") && jobs[0].at("failure").is_object()) {
+      auto &failure = jobs[0].at("failure");
+      std::string code =
+          failure.contains("code") ? failure.at("code").get<std::string>() : "";
+      std::string message = failure.contains("error")
+                                ? failure.at("error").get<std::string>()
+                                : "";
+      if (!code.empty() || !message.empty()) {
+        errorMessage = " IonQ reported";
+        if (!code.empty())
+          errorMessage += " [" + code + "]";
+        if (!message.empty())
+          errorMessage += ": " + message;
+        errorMessage += ".";
+      }
+    }
+    throw std::runtime_error(
+        "The job failed upon submission." + errorMessage +
+        " Check the job submission in your IonQ account for more information.");
+  }
 
   // Return whether the job is completed
   return jobs[0].at("status").get<std::string>() == "completed";
@@ -370,6 +390,9 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
         "ServerMessage doesn't tell us how many qubits there were");
 
   auto nQubits = jobs[0].at("qubits").get<int>();
+  if (nQubits <= 0 || nQubits > 64)
+    throw std::runtime_error("Invalid number of qubits in ServerMessage: " +
+                             std::to_string(nQubits));
   CUDAQ_DBG("nQubits is : {}", nQubits);
   CUDAQ_DBG("Results message: {}", results.dump());
 
@@ -385,7 +408,6 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   cudaq::CountsDictionary counts;
 
   // Process the results
-  assert(nQubits <= 64);
   for (const auto &element : results.items()) {
     // Convert base-10 ASCII key to bitstring and perform endian swap
     uint64_t s = std::stoull(element.key());

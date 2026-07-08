@@ -15,6 +15,7 @@
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
+#include <exception>
 #include <optional>
 #include <string_view>
 
@@ -22,6 +23,33 @@ namespace cudaq {
 
 class SimulationState;
 class ExecutionManager;
+class KernelArgs;
+
+/// @brief Options forwarded to
+/// `stim::ErrorAnalyzer::circuit_to_detector_error_model` when generating a
+/// Detector Error Model (DEM) from a kernel.
+struct dem_options {
+  /// Decompose hyper-edge error mechanisms into pairs of two-detector edges.
+  bool decompose_errors = false;
+  /// Fold loop bodies in the circuit for a more compact DEM.
+  bool fold_loops = false;
+  /// Allow detectors whose parity is not determined by the circuit.
+  bool allow_gauge_detectors = false;
+  /// Threshold (in [0,1]) for approximating disjoint-error products.
+  /// Set to 0 to disable approximation.
+  double approximate_disjoint_errors_threshold = 0.0;
+  /// When decomposition fails for an error mechanism, insert it into the DEM
+  /// undecomposed (as a hyper-edge) instead of raising an exception.
+  /// Only relevant when decompose_errors is true.
+  bool ignore_decomposition_failures = false;
+  /// Prevent the decomposer from introducing remnant edges that would otherwise
+  /// be needed to satisfy the decomposition.
+  bool block_decomposition_from_introducing_remnant_edges = false;
+
+  /// When true, the DEM execution also populates
+  /// `ExecutionContext::measurement_matrices`.
+  bool return_measurement_matrices = false;
+};
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -76,7 +104,7 @@ public:
 
   /// @brief When execution asynchronously, store the expected results as a
   /// cudaq::future here.
-  details::future futureResult;
+  detail::future futureResult;
 
   /// @brief Construct a `async_sample_result` so as to pass across Python
   /// boundary
@@ -84,19 +112,6 @@ public:
 
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
-
-  /// @brief A map of basis-state amplitudes
-  // The list of basis state is set before kernel launch and the map is filled
-  // by the executor platform.
-  std::optional<std::map<std::vector<int>, std::complex<double>>>
-      amplitudeMaps = std::nullopt;
-
-  /// @brief List of pairs of states to compute the overlap
-  std::optional<std::pair<const SimulationState *, const SimulationState *>>
-      overlapComputeStates = std::nullopt;
-
-  /// @brief Overlap results
-  std::optional<std::complex<double>> overlapResult = std::nullopt;
 
   /// @brief When run under the tracer context, persist the traced quantum
   /// resources here.
@@ -136,10 +151,6 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
-  /// @brief Flag to indicate that a warning about named measurement registers
-  /// in sampling context has already been emitted.
-  bool warnedNamedMeasurements = false;
-
   /// @brief Probability of occurrence of each error mechanism (column) in
   /// Measurement Syndrome Matrix (0-1 range).
   std::optional<std::vector<double>> msm_probabilities;
@@ -155,7 +166,7 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
-  bool allowJitEngineCaching = false;
+  bool allowCompiledModuleCaching = false;
 
   bool useParametricJit = false;
 
@@ -166,9 +177,49 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
 
+  /// @brief Dispatcher towards the policy specific launch.
+  std::function<void(const AnyModule &module, const KernelArgs &args)>
+      executeKernelApi;
+
+  /// @brief Slot for the detector error model, as `.dem` text.
+  std::string dem_text;
+
+  /// @brief Options forwarded to the Stim ErrorAnalyzer when generating a DEM.
+  dem_options dem_opts;
+
+  /// @brief Sparse m2d/m2o matrix data; populated when
+  /// `dem_opts.return_measurement_matrices` is true. See
+  /// `cudaq::M2DSparseMatrix` and `cudaq::M2OSparseMatrix` for the
+  /// public-facing types.
+  struct MeasurementMatrices {
+    std::size_t num_measurements = 0;
+    std::vector<std::vector<std::size_t>>
+        det_rows; // det_rows[d] = measurement indices for detector d
+    std::vector<std::vector<std::size_t>>
+        obs_rows; // obs_rows[k] = measurement indices for observable k
+  } measurement_matrices;
   /// @endcond
+
+  /// @brief Captures an exception raised by the kernel while it runs on a
+  /// backend that cannot unwind C++ exceptions through JIT-compiled kernel
+  /// frames (notably macOS arm64, where the ORC-JIT'd kernel frame carries no
+  /// unwind info the system unwinder can use, so a throw escaping into it calls
+  /// `std::terminate`). The simulator stores the error here instead of throwing
+  /// across the JIT boundary, and the launcher re-throws it from a C++ frame
+  /// above that boundary once the kernel returns. Callers therefore observe the
+  /// same exception they would on platforms where direct unwinding works.
+  std::exception_ptr deferredKernelException;
+
+  /// @brief True while a JIT/AOT-compiled kernel frame is executing on this
+  /// thread (set by the launcher around the kernel invocation; see
+  /// QPU::InKernelLaunchScope). The simulator only defers exceptions into
+  /// `deferredKernelException` while this is set. Outside the kernel frame
+  /// (for example, gate application during sample/observe finalization) there
+  /// is no JIT frame for an exception to unwind through, so it is thrown
+  /// directly, preserving the behavior callers see on all platforms.
+  bool inKernelLaunch = false;
 };
 
 //===----------------------------------------------------------------------===//
@@ -207,27 +258,32 @@ void setExecutionContext(ExecutionContext *ctx);
 /// Use `quantum_platform::with_execution_context` instead of setting/resetting
 /// the execution context manually.
 void resetExecutionContext();
+
+/// @brief Execute the given function within the given policy and execution
+/// context.
+template <typename Policy, typename Callable, typename... Args>
+auto with_policy_and_ctx(const Policy &policy, ExecutionContext &ctx,
+                         Callable &&f, Args &&...args)
+    -> std::invoke_result_t<Callable, Args...> {
+
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = getExecutionContext();
+  detail::setExecutionContext(&ctx);
+
+  // Cleanup runs after the kernel returns or throws.
+  auto cleanup = [&outerContext]() {
+    detail::resetExecutionContext();
+    if (outerContext)
+      detail::setExecutionContext(outerContext);
+  };
+
+  if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+    try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+    return;
+  }
+
+  return try_finally([&] { return f(std::forward<Args>(args)...); }, cleanup);
+}
+
 } // namespace detail
-
-namespace compiler_artifact {
-/// Saves and reuses the JITEngine across launches
-///
-/// This will exhibit undefined behavior if the launch arguments/context
-/// in any way differs from the saved launch.
-void enablePersistentJITEngine();
-void disablePersistentJITEngine();
-bool isPersistingJITEngine();
-
-/// Checks that the compiler artifact (if present) can be reused for the
-/// given kernel. Throws if a different kernel name was previously saved.
-void checkArtifactReuse(const std::string kernelName,
-                        const cudaq::JitEngine jit);
-
-void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
-
-/// Returns the saved JIT engine if one is present for \p kernelName.
-/// Throws if a different kernel name was previously saved.
-/// Returns std::nullopt if no artifact has been saved yet.
-std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
-}; // namespace compiler_artifact
 } // namespace cudaq

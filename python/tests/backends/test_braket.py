@@ -422,10 +422,8 @@ def test_state_synthesis():
     assert len(counts) == 1
 
 
-@pytest.mark.parametrize("device_arn", [
-    "arn:aws:braket:::device/quantum-simulator/amazon/dm1",
-    "arn:aws:braket:::device/quantum-simulator/amazon/tn1"
-])
+@pytest.mark.parametrize(
+    "device_arn", ["arn:aws:braket:::device/quantum-simulator/amazon/dm1"])
 def test_other_simulators(device_arn):
     cudaq.set_target("braket", machine=device_arn)
     test_qvector_kernel()

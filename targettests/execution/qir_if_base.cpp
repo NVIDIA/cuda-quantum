@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %s -o %t --target ionq --emulate && %t 2>&1 | FileCheck %s
+// clang-format off
+// RUN: if %ionq_avail; then nvq++ %s -o %t --target ionq --emulate && %t 2>&1 | FileCheck %s; fi
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>

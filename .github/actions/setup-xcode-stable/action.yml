@@ -1,5 +1,8 @@
 name: Set up latest stable Xcode
-description: Select the newest non-beta Xcode installed on the macOS runner.
+description: >-
+  Select the newest stable Xcode installed on the macOS runner. Excludes
+  betas and release candidates (matches the "latest-stable" semantics of
+  maxim-lobanov/setup-xcode).
 
 outputs:
   version:
@@ -23,9 +26,21 @@ runs:
       run: |
         set -euo pipefail
 
-        # Mirrors the selection strategy from maxim-lobanov/setup-xcode
-        # (scan installed Xcode apps, ignore beta releases, choose newest
-        # stable), but keeps it local to avoid external-action allowlist issues.
+        # Implements the "latest-stable" selection strategy from
+        # maxim-lobanov/setup-xcode (scan installed Xcode apps, exclude
+        # both betas and release candidates, choose the newest stable),
+        # kept local to avoid external-action allowlist issues.
+        #
+        # Note: LicenseInfo.plist's licenseType is not a reliable signal
+        # for release candidates (Apple commonly sets it to "GM" or
+        # "Release" on RCs, not "Beta"). GitHub-hosted runners do, however,
+        # name pre-release bundles consistently, e.g.
+        #   /Applications/Xcode_<v>_beta_<n>.app
+        #   /Applications/Xcode_<v>_Release_Candidate.app
+        # so we filter on the .app bundle name in addition to the license
+        # type. Without this, an RC's SDK can be selected and its absolute
+        # path baked into cached LLVM CMake imported targets, only to vanish
+        # from the runner image once Apple ships the GA build.
         selection_file=$(mktemp)
         python3 > "$selection_file" <<'PY'
         from pathlib import Path
@@ -33,14 +48,29 @@ runs:
         import re
         import sys
 
+        # The "rc" token must be delimited by non-letters on both sides so
+        # it matches "_RC.", "_RC1.", "-rc.", etc. but not substrings of
+        # real words. \b alone is insufficient because "_" is a word char
+        # in Python regex, so "_RC" has no boundary between "_" and "R".
+        PRERELEASE_NAME = re.compile(
+            r"(beta"
+            r"|release[\s_.\-]?candidate"
+            r"|(?<![A-Za-z])rc\d*(?![A-Za-z]))",
+            re.IGNORECASE)
+
         def semver_key(version):
             return tuple(int(part) for part in re.findall(r"\d+", version))
 
         versions = []
-        for app in Path("/Applications").iterdir():
+        for app in sorted(Path("/Applications").iterdir()):
             if not app.is_dir() or app.is_symlink():
                 continue
             if not re.match(r"^Xcode.*\.app$", app.name):
+                continue
+
+            if PRERELEASE_NAME.search(app.name):
+                print(f"Skipping pre-release Xcode (bundle name): {app.name}",
+                      file=sys.stderr)
                 continue
 
             version_plist = app / "Contents" / "version.plist"
@@ -56,7 +86,11 @@ runs:
             version = str(version_info.get("CFBundleShortVersionString", ""))
             build = str(version_info.get("ProductBuildVersion", ""))
             license_type = str(license_info.get("licenseType", "")).lower()
-            if not version or not license_type or "beta" in license_type:
+            if not version or not license_type:
+                continue
+            if "beta" in license_type:
+                print(f"Skipping pre-release Xcode (license type): {app.name}",
+                      file=sys.stderr)
                 continue
 
             versions.append((semver_key(version), version, build, str(app)))

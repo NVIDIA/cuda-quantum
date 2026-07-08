@@ -9,18 +9,19 @@
 #include "kernel_builder.h"
 #include "common/Environment.h"
 #include "common/FmtCore.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/QEC/QECOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -41,7 +42,7 @@ using namespace mlir;
 // FIXME: include the header file and type out the namespace in every definition
 // below as appropriate and get rid of wrapping the entire file in this
 // namespace.
-namespace cudaq::details {
+namespace cudaq::detail {
 
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
@@ -795,22 +796,21 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   if (!regName.empty())
     strAttr = builder.getStringAttr(regName);
 
-  Type resTy = builder.getI1Type();
-  Type measTy = cudaq::quake::MeasureType::get(builder.getContext());
-  if (!isa<cudaq::quake::RefType>(type)) {
-    resTy = cc::StdvecType::get(resTy);
+  // `mz`/`mx`/`my` produce a `!cc.measure_handle` (or
+  // `!cc.stdvec<!cc.measure_handle>` when the target is a vector).
+  // Discrimination is deferred to consumer sites, matching the AST-bridge
+  // behavior.
+  Type measTy = cc::MeasureHandleType::get(builder.getContext());
+  if (!isa<cudaq::quake::RefType>(type))
     measTy = cc::StdvecType::get(measTy);
-  }
-  Value measureResult;
+  Value handle;
   if (strAttr)
-    measureResult =
+    handle =
         QuakeMeasureOp::create(builder, measTy, value, strAttr).getMeasOut();
   else
-    measureResult = QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
+    handle = QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
 
-  Value bits =
-      cudaq::quake::DiscriminateOp::create(builder, resTy, measureResult);
-  return QuakeValue(builder, bits);
+  return QuakeValue(builder, handle);
 }
 
 QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
@@ -829,6 +829,43 @@ QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               const std::string &regName) {
   return applyMeasure<cudaq::quake::MzOp>(builder, qubitOrQvec.getValue(),
                                           regName);
+}
+
+static std::vector<Value>
+qecOperandValues(const std::vector<QuakeValue> &operands) {
+  std::vector<Value> values;
+  values.reserve(operands.size());
+  std::transform(operands.begin(), operands.end(), std::back_inserter(values),
+                 [](const QuakeValue &qv) { return qv.getValue(); });
+  return values;
+}
+
+void detector(ImplicitLocOpBuilder &builder,
+              const std::vector<QuakeValue> &measurements) {
+  cudaq::qec::DetectorOp::create(builder, qecOperandValues(measurements));
+}
+
+void logical_observable(ImplicitLocOpBuilder &builder,
+                        const std::vector<QuakeValue> &measurements,
+                        std::size_t observableIndex) {
+  if (observableIndex >
+      static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()))
+    throw std::runtime_error("kernel_builder logical_observable "
+                             "observable_index must be in the range "
+                             "[0, 2^63 - 1]");
+  // Skip the attribute at the default 0 so the printed IR omits the optional
+  // `index 0` literal at the spec shape.
+  auto idxAttr = (observableIndex == 0)
+                     ? IntegerAttr{}
+                     : builder.getI64IntegerAttr(
+                           static_cast<std::int64_t>(observableIndex));
+  cudaq::qec::ObservableOp::create(builder, qecOperandValues(measurements),
+                                   idxAttr);
+}
+
+void detectors(ImplicitLocOpBuilder &builder, QuakeValue &prev,
+               QuakeValue &curr) {
+  cudaq::qec::DetectorsOp::create(builder, prev.getValue(), curr.getValue());
 }
 
 void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
@@ -992,16 +1029,22 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
           cudaq::opt::createCombineQuantumAllocations());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addPass(cudaq::opt::createConvertToQIR());
+    // Route through the modern QIR API pipeline so QEC ops added by the C++
+    // builder lower to their runtime entries. The legacy `createConvertToQIR`
+    // (a single-shot Quake -> LLVM pass scoped to QIR version 0.1) carries
+    // no QEC patterns. The `createCCToLLVM` step that the legacy pass folded in
+    // is now scheduled explicitly.
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full");
+    pm.addPass(cudaq::opt::createCCToLLVM());
     pm.addPass(createCanonicalizerPass());
 
-    auto enablePrintMLIREachPass =
-        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+    auto printEachPass =
+        cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
     auto disableThreading =
         cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-    if (enablePrintMLIREachPass || disableThreading) {
+    if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading) {
       module->getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
+      if (printEachPass == cudaq::PrintEachPassMode::All)
         pm.enableIRPrinting();
     }
 
@@ -1169,4 +1212,4 @@ std::ostream &operator<<(std::ostream &stream,
   return stream << builder.to_quake();
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

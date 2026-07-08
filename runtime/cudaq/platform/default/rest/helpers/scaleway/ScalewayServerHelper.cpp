@@ -7,8 +7,8 @@
  ******************************************************************************/
 #include "ScalewayServerHelper.h"
 #include "common/RestClient.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 #include <map>
 #include <sstream>
 
@@ -244,8 +244,15 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     // Now add to `execResults` one register at a time
     for (const auto &[result, info] : jobOutputNames) {
       CountsDictionary regCounts;
-      for (const auto &[bits, count] : sampleResult)
+      for (const auto &[bits, count] : sampleResult) {
+        if (info.qubitNum >= bits.size())
+          throw std::runtime_error(
+              "Server returned a bitstring of length " +
+              std::to_string(bits.size()) +
+              " that is too short for measured qubit index " +
+              std::to_string(info.qubitNum) + ".");
         regCounts[std::string{bits[info.qubitNum]}] += count;
+      }
       execResults.emplace_back(regCounts, info.registerName);
     }
 

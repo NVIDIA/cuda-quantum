@@ -80,12 +80,15 @@ jobs:
       - name: Test CUDA Quantum Realtime installation
         shell: bash
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
           # Install cmake for building a test example that uses the installed CUDA Quantum Realtime
           # Install cmake depending on distro
           if [[ "${{ matrix.distro }}" == "ubi9" ]]; then
-            dnf install -y cmake
+            retry_dnf install -y cmake
           else
-            apt update && apt install -y --no-install-recommends cmake 
+            retry apt update
+            retry apt install -y --no-install-recommends cmake
           fi
           # Build the test example that uses the installed CUDA Quantum Realtime
           cd realtime/examples/gpu_dispatch

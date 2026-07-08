@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/platform.h"
 #include "execution_manager.h"
+#include "cudaq/platform.h"
 
 bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
   auto &platform = get_platform();

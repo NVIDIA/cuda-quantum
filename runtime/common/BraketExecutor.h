@@ -72,9 +72,9 @@ public:
   ~BraketExecutor() = default;
 
   /// @brief Execute the provided Braket task
-  details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          cudaq::details::ExecutionContextType execType,
-                          std::vector<char> *rawOutput) override;
+  detail::future execute(std::vector<KernelExecution> &codesToExecute,
+                         cudaq::detail::ExecutionContextType execType,
+                         std::vector<char> *rawOutput) override;
 
   /// @brief Set the server helper
   void setServerHelper(ServerHelper *helper) override;

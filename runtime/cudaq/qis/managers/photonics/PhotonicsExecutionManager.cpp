@@ -7,11 +7,12 @@
  ******************************************************************************/
 #include "common/FmtCore.h"
 #include "common/SampleResult.h"
+#include "qpp.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "qpp.h"
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <cstring>
@@ -47,6 +48,13 @@ struct PhotonicsState : public cudaq::SimulationState {
           "[photonics] getAmplitude with an invalid number of bits in the "
           "basis state: expected {}, provided {}.",
           getNumQubits(), basisState.size()));
+    // Each basis-state digit indexes one qudit and must be within that qudit's
+    // number of levels before it is converted to a flat state-vector index.
+    if (std::any_of(basisState.begin(), basisState.end(), [&](int digit) {
+          return digit < 0 || static_cast<std::size_t>(digit) >= levels;
+        }))
+      throw std::out_of_range(
+          "[photonics] basis-state value is out of bounds.");
 
     // Convert the basis state to an index value
     const std::size_t idx = std::accumulate(
@@ -106,8 +114,10 @@ private:
   /// @brief Current state
   qpp::ket state;
 
-  /// @brief The qudit-levels (`qumodes`)
-  std::size_t levels;
+  /// @brief The qudit-levels (`qumodes`). Zero until the first qudit is
+  /// allocated; guards downstream consumers against reading an indeterminate
+  /// value when finalize runs on a kernel that allocated nothing.
+  std::size_t levels = 0;
 
   /// @brief Instructions are stored in a map
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
@@ -156,32 +166,31 @@ protected:
   /// @brief Deallocate a set of `qudits` (`qumodes`) with a single call.
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
-  /// @brief Configure and validate the execution context
-  void configureExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::configureExecutionContext(ctx);
-
-    if (!(ctx.name == "sample" || ctx.name == "extract-state" ||
-          ctx.name == "tracer"))
-      throw std::runtime_error(ctx.name + " is not supported on this target");
-  }
-
   /// @brief Process results into the execution context
-  void finalizeExecutionContextImpl(std::vector<std::size_t> &ids,
-                                    ExecutionContext &ctx) {
-    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
+  void finalizeExecutionContextImpl(std::vector<std::size_t> &ids) {
+    BasicExecutionManager::finalizeExecutionContextImpl();
     for (auto &s : sampleQudits) {
       ids.push_back(s.id);
     }
   }
 
-  sample_result finalizeExecutionContext(const sample_policy &policy,
-                                         ExecutionContext &ctx) override {
+  sample_result finalizeExecutionContext(const sample_policy &policy) override {
     std::vector<std::size_t> ids;
-    finalizeExecutionContextImpl(ids, ctx);
+    finalizeExecutionContextImpl(ids);
+    // Photonics kernels measure explicitly via `mz()`; `sampleQudits` is
+    // populated by `measureQudit`. An empty list means no measurement was
+    // recorded - either the kernel completed without an `mz()` or it threw
+    // before reaching one. Either way there is nothing to sample. Returning
+    // empty (rather than throwing) is required: `finalizeExecutionContext` is
+    // invoked from the exception-cleanup path together with `endExecution`,
+    // and a throw here would skip `endExecution` and leave the simulator
+    // carrying stale state into the next run.
+    if (sampleQudits.empty())
+      return sample_result{};
     CUDAQ_INFO("Sampling");
-    auto shots = ctx.shots;
+    auto shots = policy.options.shots;
     auto sampleResult =
-        qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
+        qpp::sample(shots, state, ids, sampleQudits.front().levels);
     cudaq::ExecutionResult counts;
     for (auto [result, count] : sampleResult) {
       std::stringstream bitstring;
@@ -200,10 +209,15 @@ protected:
     return result;
   }
 
+  observe_result finalizeExecutionContext(const observe_policy &) override {
+    throw std::runtime_error(
+        "observe policy not supported for this photonics simulator.");
+  }
+
   void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
     std::vector<std::size_t> ids;
-    finalizeExecutionContextImpl(ids, ctx);
+    finalizeExecutionContextImpl(ids);
 
     if (ctx.name == "extract-state") {
       CUDAQ_INFO("Extracting state");

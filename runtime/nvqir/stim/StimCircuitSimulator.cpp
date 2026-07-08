@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
@@ -62,6 +63,13 @@ protected:
   /// @brief Whether or not the execution context name is "msm" (value is cached
   /// for speed)
   bool is_msm_mode = false;
+
+  /// @brief Accumulated Stim circuit covering gates, measurements, noise,
+  /// detectors, and observables. Reset alongside `num_measurements` in
+  /// `deallocateStateImpl` and `setToZeroState` so successive kernel
+  /// executions on a reused simulator start from a clean slate. Stim-side
+  /// internal only; not part of any public CUDA-Q API.
+  stim::Circuit recordedCircuit;
 
   std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
@@ -202,6 +210,106 @@ protected:
     getExecutionContext()->result = result;
   }
 
+  /// @brief Populate the m2 fields in @p ctx from `recordedCircuit`.
+  /// Rows = detectors/observables, cols = measurements; non-zero entries are 1.
+  ///
+  /// Duplicate measurement targets within a single DETECTOR or
+  /// OBSERVABLE_INCLUDE instruction are collapsed modulo 2 (GF(2) XOR): an
+  /// index that appears an even number of times cancels out.
+  void computeM2IntoContext(cudaq::ExecutionContext &ctx) {
+    auto flat = recordedCircuit.flattened();
+    auto stats = flat.compute_stats();
+    ctx.measurement_matrices.num_measurements = stats.num_measurements;
+    ctx.measurement_matrices.det_rows.resize(stats.num_detectors);
+    ctx.measurement_matrices.obs_rows.resize(stats.num_observables);
+
+    // XOR-dedup: remove indices that appear an even number of times in @p row.
+    auto xorDedup = [](std::vector<std::size_t> &row) {
+      std::sort(row.begin(), row.end());
+      std::vector<std::size_t> out;
+      for (std::size_t i = 0; i < row.size();) {
+        std::size_t j = i;
+        while (j < row.size() && row[j] == row[i])
+          ++j;
+        if ((j - i) % 2 == 1) // odd count → survives XOR
+          out.push_back(row[i]);
+        i = j;
+      }
+      row = std::move(out);
+    };
+
+    std::size_t meas_so_far = 0;
+    std::size_t det_so_far = 0;
+    flat.for_each_operation([&](const stim::CircuitInstruction &op) {
+      auto n = op.count_measurement_results();
+      if (n > 0) {
+        meas_so_far += n;
+      } else if (op.gate_type == stim::GateType::DETECTOR) {
+        auto &row = ctx.measurement_matrices.det_rows[det_so_far];
+        for (const auto &t : op.targets) {
+          if (t.is_measurement_record_target()) {
+            auto lookback = static_cast<std::size_t>(-t.rec_offset());
+            if (lookback > meas_so_far)
+              throw std::runtime_error(
+                  "dem_from_kernel: DETECTOR record target rec[-" +
+                  std::to_string(lookback) +
+                  "] references a measurement before the circuit start");
+            row.push_back(meas_so_far - lookback);
+          }
+        }
+        xorDedup(row);
+        ++det_so_far;
+      } else if (op.gate_type == stim::GateType::OBSERVABLE_INCLUDE) {
+        auto obs_idx = static_cast<std::size_t>(op.args[0]);
+        auto &row = ctx.measurement_matrices.obs_rows[obs_idx];
+        for (const auto &t : op.targets) {
+          if (t.is_measurement_record_target()) {
+            auto lookback = static_cast<std::size_t>(-t.rec_offset());
+            if (lookback > meas_so_far)
+              throw std::runtime_error(
+                  "dem_from_kernel: OBSERVABLE_INCLUDE record target rec[-" +
+                  std::to_string(lookback) +
+                  "] references a measurement before the circuit start");
+            row.push_back(meas_so_far - lookback);
+          }
+        }
+        xorDedup(row);
+      }
+    });
+  }
+
+  /// @brief Compute the detector error model from the accumulated
+  /// `recordedCircuit` and return it as `.dem` text.
+  std::string generateDem() override {
+    auto *ctx = getExecutionContext();
+    const cudaq::dem_options opts = ctx ? ctx->dem_opts : cudaq::dem_options{};
+    stim::DetectorErrorModel dem =
+        stim::ErrorAnalyzer::circuit_to_detector_error_model(
+            recordedCircuit, opts.decompose_errors, opts.fold_loops,
+            opts.allow_gauge_detectors,
+            opts.approximate_disjoint_errors_threshold,
+            opts.ignore_decomposition_failures,
+            opts.block_decomposition_from_introducing_remnant_edges);
+
+    if (ctx && ctx->dem_opts.return_measurement_matrices)
+      computeM2IntoContext(*ctx);
+
+    return dem.str();
+  }
+
+  /// @brief Finalize the execution context, ensuring the simulator is left in a
+  /// clean state even if finalization throws.
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                cudaq::ExecutionContext &context) override {
+    try {
+      nvqir::CircuitSimulatorBase<double>::finalizeExecutionContext(policy,
+                                                                    context);
+    } catch (...) {
+      endExecution();
+      throw;
+    }
+  }
+
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
   void addQubitsToState(std::size_t qubitCount,
@@ -271,9 +379,11 @@ protected:
     msm_err_count = 0;
     msm_id_counter = 0;
     is_msm_mode = false;
+    recordedCircuit.clear();
   }
 
-  /// @brief Apply operation to all Stim simulators.
+  /// @brief Apply operation to all Stim simulators and append it to the
+  /// persistent `recordedCircuit` log.
   void applyOpToSims(const std::string &gate_name,
                      const std::vector<uint32_t> &targets) {
     if (targets.empty())
@@ -283,6 +393,7 @@ protected:
     tempCircuit.safe_append_u(gate_name, targets);
     tableau->safe_do_circuit(tempCircuit);
     sampleSim->safe_do_circuit(tempCircuit);
+    recordedCircuit.safe_append_u(gate_name, targets);
   }
 
   /// @brief Apply the noise channel on \p qubits
@@ -297,7 +408,7 @@ protected:
       return;
 
     // Do nothing if no noise model
-    if (!executionContext->noiseModel)
+    if (!getNoiseModel())
       return;
 
     // Get the name as a string
@@ -312,8 +423,8 @@ protected:
       stimTargets.push_back(static_cast<std::uint32_t>(q));
 
     // Get the Kraus channels specified for this gate and qubits
-    auto krausChannels = executionContext->noiseModel->get_channels(
-        gName, targets, controls, params);
+    auto krausChannels =
+        getNoiseModel()->get_channels(gName, targets, controls, params);
 
     // If none, do nothing
     if (krausChannels.empty())
@@ -348,6 +459,18 @@ protected:
 
     // If we have a valid operation, apply it
     if (auto res = isValidStimNoiseChannel(channel)) {
+      // A channel acting on `num_targets` qubits is broadcast independently
+      // across each consecutive group of `num_targets` qubits, matching Stim's
+      // multi-target semantics.
+      const std::size_t num_targets = res->num_targets;
+      if (num_targets == 0 || qubits.size() % num_targets != 0)
+        throw std::runtime_error(fmt::format(
+            "Stim noise channel '{}' expects a positive multiple of {} target "
+            "qubit(s) but was applied to {} qubit(s).",
+            res->stim_name, num_targets, qubits.size()));
+      const std::size_t num_groups = qubits.size() / num_targets;
+      const std::size_t num_mechanisms = res->params.size();
+
       if (is_msm_mode) {
         // If the noise operation is the first operation done to a qubit, the
         // x_table and z_table may not be sized for the qubits. If that is the
@@ -361,23 +484,26 @@ protected:
         // Apply the errors found in res directly into sampleSim, as if they
         // definitely happened, 1 mechanism at a time. (For example, a
         // depolarization channel will manifest as 3 possible error mechanisms:
-        // an X error, Y error, or Z error.)
-        std::size_t num_mechanisms = res->params.size();
-        std::size_t flip_ix = 0;
-        for (std::size_t m = 0; m < num_mechanisms; m++) {
-          // In this mode, the "shot" is an alias for the MSM error count.
-          std::size_t shot = msm_err_count;
-          if (msm_err_count < sampleSim->batch_size) {
-            for (std::size_t t = 0; t < res->num_targets; t++, flip_ix++) {
-              sampleSim->x_table[qubits[t]][shot] ^= res->flips_x[flip_ix];
-              sampleSim->z_table[qubits[t]][shot] ^= res->flips_z[flip_ix];
+        // an X error, Y error, or Z error.) Each broadcast group is an
+        // independent error source with its own error id.
+        for (std::size_t g = 0; g < num_groups; g++) {
+          for (std::size_t m = 0; m < num_mechanisms; m++) {
+            // In this mode, the "shot" is an alias for the MSM error count.
+            std::size_t shot = msm_err_count;
+            if (msm_err_count < sampleSim->batch_size) {
+              for (std::size_t t = 0; t < num_targets; t++) {
+                auto q = qubits[g * num_targets + t];
+                auto flip_ix = m * num_targets + t;
+                sampleSim->x_table[q][shot] ^= res->flips_x[flip_ix];
+                sampleSim->z_table[q][shot] ^= res->flips_z[flip_ix];
+              }
+              executionContext->msm_probabilities->push_back(res->params[m]);
+              executionContext->msm_prob_err_id->push_back(msm_id_counter);
+              msm_err_count++;
             }
-            executionContext->msm_probabilities->push_back(res->params[m]);
-            executionContext->msm_prob_err_id->push_back(msm_id_counter);
-            msm_err_count++;
           }
+          msm_id_counter++;
         }
-        msm_id_counter++;
       } else {
         stim::Circuit noiseOps;
         noiseOps.safe_append_u(res.value().stim_name, qubits,
@@ -385,9 +511,11 @@ protected:
         // Only apply the noise operations to the sample simulator (not the
         // Tableau simulator).
         sampleSim->safe_do_circuit(noiseOps);
+        recordedCircuit.safe_append_u(res.value().stim_name, qubits,
+                                      channel.parameters);
 
-        // Increment the error count by the number of mechanisms
-        msm_err_count += res->params.size();
+        // Count one mechanism per group.
+        msm_err_count += num_groups * num_mechanisms;
       }
     }
   }
@@ -490,6 +618,10 @@ protected:
     // Reset all qubits to |0> and clear measurement records, preserving
     // the allocated simulators for reuse (required by the PTSBE
     // per-trajectory loop which calls setToZeroState between trajectories).
+    // `recordedCircuit` is cleared before the reset `R` ops so the next
+    // trajectory's circuit starts with its own resets, not stacked on top
+    // of the previous trajectory's gates and detectors.
+    recordedCircuit.clear();
     auto nq = sampleSim->num_qubits;
     if (nq > 0) {
       std::vector<std::uint32_t> allQubits(nq);
@@ -630,6 +762,80 @@ public:
     if (includeSequentialData)
       result.sequentialData = std::move(sequentialData);
     return result;
+  }
+
+  /// @brief Translate chronological measurement indices into Stim record-
+  /// reference targets (`lookback | TARGET_RECORD_BIT`). Throws
+  /// `std::out_of_range` if any index lies outside `[0, num_measurements)`
+  /// so a broken upstream lowering surfaces at the first bad call instead
+  /// of producing a malformed DEM downstream.
+  std::vector<std::uint32_t>
+  measurementIndicesToRecordTargets(const std::int64_t *indices,
+                                    std::size_t count) const {
+    std::vector<std::uint32_t> targets;
+    targets.reserve(count);
+    for (std::size_t i = 0; i < count; i++) {
+      const auto idx = indices[i];
+      if (idx < 0 || static_cast<std::size_t>(idx) >= num_measurements)
+        throw std::out_of_range(
+            "QEC: measurement index " + std::to_string(idx) +
+            " is out of range [0, " + std::to_string(num_measurements) +
+            "); the lowering must produce chronological indices into the "
+            "current kernel's measurement record");
+      auto lookback = static_cast<std::uint32_t>(num_measurements -
+                                                 static_cast<std::size_t>(idx));
+      targets.push_back(lookback | stim::TARGET_RECORD_BIT);
+    }
+    return targets;
+  }
+
+  void detector(const std::int64_t *indices, std::size_t count) override {
+    // Commit any deferred sample `M` ops so subsequent `DETECTOR rec[-N]`
+    // references resolve. In `cudaq::sample` + `explicitMeasurements` mode
+    // `mz()` defers the `M` op to flush time; without this nudge a
+    // `qec.detector(handle)` immediately following an `mz` would emit a
+    // `rec[-N]` pointing at an `M` not yet laid down, which
+    // `stim::ErrorAnalyzer::circuit_to_detector_error_model` rejects.
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    auto targets = measurementIndicesToRecordTargets(indices, count);
+    if (!targets.empty())
+      recordedCircuit.safe_append_u("DETECTOR", targets);
+  }
+
+  void logical_observable(const std::int64_t *indices, std::size_t count,
+                          std::size_t observable_index) override {
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    auto targets = measurementIndicesToRecordTargets(indices, count);
+    if (!targets.empty())
+      recordedCircuit.safe_append_ua("OBSERVABLE_INCLUDE", targets,
+                                     static_cast<double>(observable_index));
+  }
+
+  void pair_detectors(const std::int64_t *prev, const std::int64_t *curr,
+                      std::size_t count) override {
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    std::vector<std::vector<std::uint32_t>> all_targets;
+    all_targets.reserve(count);
+    for (std::size_t i = 0; i < count; i++) {
+      const std::int64_t pair[2] = {prev[i], curr[i]};
+      all_targets.push_back(measurementIndicesToRecordTargets(pair, 2));
+    }
+    for (const auto &targets : all_targets)
+      if (!targets.empty())
+        recordedCircuit.safe_append_u("DETECTOR", targets);
+  }
+
+  /// @brief Return the chronological index of the most-recent `mz`.
+  std::int64_t getMeasureIndex() const override {
+    auto pending = static_cast<std::int64_t>(sampleQubits.size());
+    auto committed = static_cast<std::int64_t>(num_measurements);
+    auto total = committed + pending;
+    if (total == 0)
+      return std::numeric_limits<std::int64_t>::max();
+    return total - 1;
   }
 
   bool isStateVectorSimulator() const override { return false; }

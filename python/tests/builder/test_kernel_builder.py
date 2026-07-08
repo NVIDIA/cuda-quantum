@@ -13,6 +13,8 @@ import pytest
 import random
 import numpy as np
 import os
+import subprocess
+import sys
 from typing import List
 
 import cudaq
@@ -1533,6 +1535,41 @@ def test_call_invalid_attribute_on_a_kernel():
         kernel.op(q[0])
         result = cudaq.sample(kernel, cudaq.pauli_word("X"))
     assert "not supported on PyKernel" in str(e.value)
+
+
+def test_repeated_builder_launch_no_segfault():
+    """A ``list[bool]`` arg used to corrupt the heap during argument synthesis,
+    crashing a repeated ``make_kernel`` + ``sample`` loop at a random iteration.
+
+    The crash only surfaces when the bit-packed ``std::vector<bool>`` padding is
+    nonzero, so run under ``MALLOC_PERTURB_`` (set before the process starts) in
+    a subprocess. See ``runtime/test/test_argument_conversion.cpp`` for the
+    unit-level regression.
+    """
+    script = (
+        "import cudaq\n"
+        "from typing import List\n"
+        "cudaq.set_target('qpp-cpu')\n"
+        "for _ in range(512):\n"
+        "    kernel, *_ = cudaq.make_kernel(bool, list[bool], List[int], list[float])\n"
+        "    kernel.qalloc(1)\n"
+        "    cudaq.sample(kernel, False, [False], [3], [3.5])\n"
+        "    cudaq.sample(kernel, False, [], [], [])\n"
+        "print('OK')\n")
+    env = dict(os.environ)
+    # Dirty fresh allocations so the std::vector<bool> padding is never zero,
+    # otherwise the corruption stays latent and the test passes with the bug.
+    env["MALLOC_PERTURB_"] = "165"
+    proc = subprocess.run([sys.executable, "-c", script],
+                          env=env,
+                          capture_output=True,
+                          text=True,
+                          timeout=900)
+    assert proc.returncode == 0, ("repeated make_kernel/sample crashed "
+                                  f"(returncode={proc.returncode}).\n"
+                                  f"stdout:\n{proc.stdout}\n"
+                                  f"stderr (tail):\n{proc.stderr[-3000:]}")
+    assert "OK" in proc.stdout
 
 
 # leave for gdb debugging

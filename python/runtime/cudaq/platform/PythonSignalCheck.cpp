@@ -16,10 +16,16 @@
 #include "mlir/Pass/PassInstrumentation.h"
 #include "mlir/Pass/PassManager.h"
 #include <Python.h>
+#include <mutex>
 
 using namespace mlir;
 
 namespace {
+// Python kernels share MLIR contexts across async worker threads. MLIR pass
+// managers may append dependent dialect registries during `run`, which cannot
+// overlap with another pass manager executing on the same context.
+std::mutex passManagerMutex;
+
 class PythonSignalCheckInstrumentation : public PassInstrumentation {
   bool signalDetected = false;
 
@@ -51,19 +57,15 @@ void cudaq::addPythonSignalInstrumentation(PassManager &pm) {
 
 LogicalResult cudaq::runPassManagerReleasingGIL(PassManager &pm,
                                                 Operation *op) {
-  auto *ctx = pm.getContext();
-  auto enablePrintEachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-  auto disableThreading =
-      cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  if (enablePrintEachPass || disableThreading)
-    ctx->disableMultithreading();
-  if (enablePrintEachPass)
-    pm.enableIRPrinting();
-  if (!PyGILState_Check())
+  auto runPassManager = [&]() {
+    std::lock_guard<std::mutex> lock(passManagerMutex);
     return pm.run(op);
+  };
+
+  if (!PyGILState_Check())
+    return runPassManager();
   PyThreadState *save = PyEval_SaveThread();
-  auto result = pm.run(op);
+  auto result = runPassManager();
   PyEval_RestoreThread(save);
   return result;
 }

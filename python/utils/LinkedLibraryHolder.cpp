@@ -9,11 +9,11 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "common/PluginUtils.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "nvqir/CircuitSimulator.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
-#include "nvqir/CircuitSimulator.h"
 #include <fstream>
 #include <regex>
 #include <sstream>
@@ -27,6 +27,10 @@ void __nvqir__setSimulatorInitCallback(void (*)());
 
 // Our hook into configuring the quantum platform.
 extern "C" void setQuantumPlatformInitCallback(void (*)());
+
+namespace cudaq::mpi {
+void set_communicator(void *comm);
+}
 
 namespace cudaq {
 
@@ -157,16 +161,16 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   ScopedTraceWithContext("LinkedLibraryHolder::constructor");
   CUDAQ_INFO("Init infrastructure for pythonic builder.");
 
-  if (!cudaq::__internal__::canModifyTarget())
+  if (!cudaq::detail::canModifyTarget())
     return;
 
-  cudaq::__internal__::CUDAQLibraryData data;
+  cudaq::detail::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
   libSuffix = "dylib";
-  cudaq::__internal__::getCUDAQLibraryPath(&data);
+  cudaq::detail::getCUDAQLibraryPath(&data);
 #else
   libSuffix = "so";
-  dl_iterate_phdr(cudaq::__internal__::getCUDAQLibraryPath, &data);
+  dl_iterate_phdr(cudaq::detail::getCUDAQLibraryPath, &data);
 #endif
 
   std::filesystem::path nvqirLibPath{data.path};
@@ -422,7 +426,7 @@ void LinkedLibraryHolder::setTarget(
     std::map<std::string, std::string> extraConfig) {
   // Do not set the default target if the disallow
   // flag has been set.
-  if (!cudaq::__internal__::canModifyTarget())
+  if (!cudaq::detail::canModifyTarget())
     return;
 
   auto iter = targets.find(targetName);
@@ -500,6 +504,15 @@ void LinkedLibraryHolder::setTarget(
   } else {
     resetExecutionManagerInternal();
   }
+
+  // If the config (kwargs) contains comm_handle, set it.
+  if (extraConfig.contains("comm_handle")) {
+    intptr_t commPtr = std::stoll(extraConfig["comm_handle"]);
+    CUDAQ_INFO("Setting communicator for target {} with pointer value {}",
+               targetName, commPtr);
+    cudaq::mpi::set_communicator(reinterpret_cast<void *>(commPtr));
+  }
+
   targetInitialized = true;
   // Deregister lazy init callbacks now that a target is configured.
   __nvqir__setSimulatorInitCallback(nullptr);
@@ -513,24 +526,8 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   return ret;
 }
 
-void python::detail::switchToResourceCounterSimulator() {
-  nvqir::switchToResourceCounterSimulator();
-}
-
-void python::detail::stopUsingResourceCounterSimulator() {
-  nvqir::stopUsingResourceCounterSimulator();
-}
-
-void python::detail::setChoiceFunction(std::function<bool()> choice) {
-  nvqir::setChoiceFunction(choice);
-}
-
-Resources *python::detail::getResourceCounts() {
-  return nvqir::getResourceCounts();
-}
-
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
-  if (holder && cudaq::__internal__::canModifyTarget()) {
+  if (holder && cudaq::detail::canModifyTarget()) {
     auto runtimeTarget = holder->getTarget();
     const std::string codegenEmission =
         runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);

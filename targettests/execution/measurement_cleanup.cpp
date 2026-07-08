@@ -6,9 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
 // RUN: nvq++ -fkernel-exec-kind=2 --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
@@ -41,7 +43,7 @@ __qpu__ int cccx_measure_cleanup() {
   if (result)
     z<cudaq::ctrl>(qubits[0], qubits[1]);
 
-    return cudaq::to_integer(mz(qubits));
+  return cudaq::to_integer(cudaq::to_bools(mz(qubits)));
 }
 
 int main() {

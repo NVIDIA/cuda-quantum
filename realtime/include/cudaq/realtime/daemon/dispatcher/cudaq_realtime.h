@@ -14,6 +14,17 @@
 
 #include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
 
+// Visibility marker for entry points that consumers reach via
+// dlsym(RTLD_DEFAULT, ...) at runtime.  libcudaq-realtime-dispatch.a is built
+// with hidden visibility + -Wl,--exclude-libs=ALL, so by default its symbols
+// stay hidden inside the final binary even when the archive is absorbed.
+// Marking individual symbols with default visibility opts them back into the
+// binary's dynamic symbol table (when --export-dynamic is in effect on the
+// linker command line for the exe), so a separately-loaded .so can resolve
+// them by name without any explicit setter / constructor-shim plumbing on the
+// consumer side.
+#define CUDAQ_REALTIME_DISPATCH_API __attribute__((visibility("default")))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -52,13 +63,31 @@ typedef enum {
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
-// For CUDAQ_DISPATCH_PATH_HOST only GRAPH_LAUNCH is dispatched; DEVICE_CALL and
-// HOST_CALL table entries are dropped (slot cleared and advanced).
+//
+// On CUDAQ_DISPATCH_PATH_HOST:
+//   - GRAPH_LAUNCH: launched on a graph worker (worker pool, cudaGraphLaunch).
+//   - HOST_CALL:    invoked synchronously inline as a plain C++ function via
+//                   entry->handler.host_fn.  Bypasses the worker pool.  No
+//                   CUDA graph required.  Use for GPU-less bridges (e.g. the
+//                   CPU RoCE transport in lib/cpu_transport/) or for
+//                   handlers whose work fits on a single CPU thread.
+//   - DEVICE_CALL:  table entries are dropped (DEVICE_CALL belongs on the
+//                   GPU dispatch path).
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
   CUDAQ_DISPATCH_GRAPH_LAUNCH = 1,
   CUDAQ_DISPATCH_HOST_CALL = 2
 } cudaq_dispatch_mode_t;
+
+// Reserved DEVICE_CALL return status (NOT an error).  A device-call handler
+// returns this to tell the device-graph scheduler that a runtime condition is
+// met and the configured follow-up graph (triggered_graph_exec) should be
+// fired fire-and-forget, after which the scheduler tail-self-relaunches to
+// reset the device-graph fire-and-forget budget (see
+// cudaq_create_dispatch_graph_regular).  The scheduler writes a normal
+// status=0 ACK for the triggering request.  Chosen to not collide with
+// success (0) or the negative error codes handlers conventionally return.
+#define CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH 0x12A6E5
 
 // Payload type identifiers (matching PayloadTypeID in dispatch_kernel_launch.h)
 typedef enum {
@@ -108,6 +137,21 @@ typedef struct {
                        // external GPU kernel (e.g. Hololink TX) polls the
                        // same tx_flags array; the sentinel would be
                        // misinterpreted as a valid address.
+  uint32_t shared_ring_mode; // when non-zero, the dispatcher cooperates with
+                             // OTHER dispatchers on the SAME ring buffer.
+                             // Slots whose function_id is not in this
+                             // dispatcher's function table (or is in the
+                             // table but does not match this dispatcher's
+                             // expected dispatch_mode) are SKIPPED without
+                             // clearing rx_flags -- the local cursor
+                             // advances, leaving the slot for another
+                             // dispatcher to pick up.  When zero (default),
+                             // legacy behavior: unknown / wrong-mode slots
+                             // are DROPPED (rx_flags cleared).  Both
+                             // dispatchers sharing a ring must set this to
+                             // non-zero; the partitioning invariant is that
+                             // each function_id appears in AT MOST ONE
+                             // dispatcher's function table.
 } cudaq_dispatcher_config_t;
 
 // GPU ring buffer pointers. For device backend use device pointers only.
@@ -128,10 +172,16 @@ typedef struct {
   uint8_t *tx_data_host;
 } cudaq_ringbuffer_t;
 
-// Host RPC callback: reads RPCHeader + args from slot, writes RPCResponse +
-// result. slot_host is the host pointer to the slot (same layout as device
-// slot).
-typedef void (*cudaq_host_rpc_fn_t)(void *slot_host, size_t slot_size);
+// Host RPC callback for CUDAQ_DISPATCH_HOST_CALL.  The handler reads the
+// RPCHeader + args from `rx_slot` (the inbound request, read-only) and writes
+// the RPCResponse + result into `tx_slot` (the outbound slot the transport will
+// send).  The two slots are distinct host buffers (separate RX/TX rings), so
+// the handler must echo any preserved header fields (e.g. request_id,
+// ptp_timestamp) from rx_slot into tx_slot explicitly.  `slot_size` is the
+// usable byte size of each slot (RX and TX strides are equal by configuration;
+// the smaller of the two is passed defensively).
+typedef void (*cudaq_host_rpc_fn_t)(const void *rx_slot, void *tx_slot,
+                                    size_t slot_size);
 
 // Unified function table entry with schema
 typedef struct {
@@ -144,6 +194,15 @@ typedef struct {
   uint8_t dispatch_mode;         // cudaq_dispatch_mode_t value
   uint8_t reserved[3];           // padding
   cudaq_handler_schema_t schema; // function signature schema
+  // Optional sub-routing key for CUDAQ_DISPATCH_GRAPH_LAUNCH entries.  When
+  // multiple GRAPH_LAUNCH entries share the same `function_id` (the multi-
+  // instance pattern used by e.g. the QEC realtime decoder suite, where
+  // the same `enqueue_syndromes` function name fronts N distinct captured
+  // graphs -- one per decoder), the host monitor disambiguates them by
+  // `routing_key`, matching it against the request payload's first 8
+  // bytes (arg0).  Ignored when dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH.
+  // See proposals/cudaq_realtime_host_api.bs#host-path-graph-routing-key.
+  uint64_t routing_key;
 } cudaq_function_entry_t;
 
 // Function table for device-side dispatch
@@ -160,8 +219,13 @@ typedef void (*cudaq_dispatch_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
-// Default dispatch kernel launch helpers (from libcudaq-realtime-dispatch.a)
-void cudaq_launch_dispatch_kernel_regular(
+// Default dispatch kernel launch helpers (from libcudaq-realtime-dispatch.a).
+// Marked CUDAQ_REALTIME_DISPATCH_API so the symbol stays in the dynamic table
+// after the archive is absorbed into a binary; consumer .so's that dlsym() it
+// at runtime (e.g. cuda-qx's libcudaq-qec-realtime-decoding.so) can then
+// resolve it without any explicit setter/constructor-shim plumbing on the
+// consumer side.
+CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
@@ -186,8 +250,13 @@ typedef void (*cudaq_unified_launch_fn_t)(
     cudaStream_t stream);
 
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
-// These functions are only available when compiled for sm_90 or higher
-#if defined(__CUDACC__) || defined(CUDA_VERSION)
+// These functions are only available when compiled for sm_90 or higher.
+// Gate on any CUDA-aware TU: __CUDACC__ (nvcc), CUDA_VERSION (driver cuda.h),
+// or CUDART_VERSION (runtime cuda_runtime.h).  Host TUs that include only
+// <cuda_runtime.h> define CUDART_VERSION but NOT CUDA_VERSION, so the latter
+// alone would hide this API (and the include guard then prevents a later
+// <cuda.h> from re-exposing it) -- see qec_realtime_session consumers.
+#if defined(__CUDACC__) || defined(CUDA_VERSION) || defined(CUDART_VERSION)
 
 //==============================================================================
 // Graph-Based Dispatch API (Proper Device-Side Graph Launch Support)
@@ -222,22 +291,40 @@ typedef struct cudaq_dispatch_graph_context cudaq_dispatch_graph_context;
 //   kernel fills this before each fire-and-forget child graph launch so
 //   the graph kernel knows where to read input and write output.
 //
+// triggered_graph_exec: Optional device-launchable graph (or NULL).  When a
+//   DEVICE_CALL handler returns CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH, the
+//   scheduler fires this graph fire-and-forget (it operates on state the
+//   handler's library registered out-of-band -- it is NOT handed the
+//   request's rx/tx slot), then tail-self-relaunches via
+//   cudaGetCurrentGraphExec() so the device-graph fire-and-forget budget (120
+//   per parent-graph execution) resets each relaunch.  This is what lets the
+//   path sustain far more than 120 such triggered launches.  When NULL, the
+//   sentinel is treated as a pass-through status and no self-relaunch occurs.
+//
 // Returns cudaSuccess on success, or an error code on failure.
-cudaError_t cudaq_create_dispatch_graph_regular(
+// Marked CUDAQ_REALTIME_DISPATCH_API (default visibility) so that, after the
+// dispatch archive is absorbed into a binary, these symbols stay in the
+// binary's dynamic table and can satisfy a consumer .so that calls them (e.g.
+// cudaq-qec-realtime-decoding.so's device-graph scheduler mode).  Without the
+// default visibility the archive's hidden definition cannot be re-exported and
+// the link fails with "hidden symbol ... referenced by DSO".
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_create_dispatch_graph_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     void *graph_io_ctx, volatile int *shutdown_flag, uint64_t *stats,
     size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
-    cudaStream_t stream, cudaq_dispatch_graph_context **out_context);
+    cudaGraphExec_t triggered_graph_exec, cudaStream_t stream,
+    cudaq_dispatch_graph_context **out_context);
 
 // Launch the dispatch graph. The dispatch kernel inside this graph can call
 // cudaGraphLaunch() to launch child graphs from device code.
-cudaError_t cudaq_launch_dispatch_graph(cudaq_dispatch_graph_context *context,
-                                        cudaStream_t stream);
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_launch_dispatch_graph(
+    cudaq_dispatch_graph_context *context, cudaStream_t stream);
 
 // Destroy the dispatch graph context and release all resources.
-cudaError_t cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
+CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
 
 #endif
 
@@ -300,32 +387,6 @@ cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
 
 //==============================================================================
-// Host dispatcher path (CUDAQ_DISPATCH_PATH_HOST)
-//==============================================================================
-// When config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST, start() uses these
-// instead of launch_fn. The realtime lib calls them; implementation is in
-// libcudaq-realtime-host-dispatch.
-
-typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
-
-// Start the host dispatcher loop in a new thread. Call from
-// cudaq_dispatcher_start when dispatch_path is CUDAQ_DISPATCH_PATH_HOST.
-// Returns a handle for stop, or NULL on error. If external_mailbox is non-NULL,
-// uses it instead of allocating internally.
-cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
-    const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
-    const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
-    uint64_t *stats, void **external_mailbox);
-
-// Stop the host dispatcher thread and free resources.
-void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle);
-
-// Release a worker back to the idle pool (handle-level, called by API layer).
-cudaq_status_t
-cudaq_host_dispatcher_release_worker(cudaq_host_dispatcher_handle_t *handle,
-                                     int worker_id);
-
-//==============================================================================
 // Ring buffer slot helpers (producer / consumer side)
 //==============================================================================
 // These encapsulate the RPC wire format and flag-signalling protocol so that
@@ -372,6 +433,25 @@ cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
 cudaError_t
 cudaq_dispatch_kernel_cooperative_query_occupancy(int *out_blocks,
                                                   uint32_t threads_per_block);
+
+// Push the shared_ring_mode flag into the DEVICE_LOOP kernel's __constant__
+// memory.  Must be called BEFORE cudaq_dispatcher_start() launches the
+// device kernel; otherwise the kernel will start with shared_ring_mode=0.
+//
+// IMPORTANT: cudaq_dispatcher_start() does NOT call this for you. The
+// __constant__ symbol lives in libcudaq-realtime-dispatch.a, which is
+// linked directly into consumers (not into libcudaq-realtime.so), so the
+// dispatcher manager cannot reach the symbol from inside the shared
+// library.  Consumers that set config.shared_ring_mode = 1 must also call
+// cudaq_dispatch_kernel_set_shared_ring_mode(1) before starting the
+// dispatcher.  The HOST_LOOP path reads config.shared_ring_mode directly
+// and does NOT require this call.
+//
+// CUDAQ_REALTIME_DISPATCH_API: see cudaq_launch_dispatch_kernel_regular for
+// the rationale -- consumers (e.g. cuda-qx's libcudaq-qec-realtime-decoding.so)
+// resolve this entry point via dlsym(RTLD_DEFAULT, ...) at runtime.
+CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled);
 
 #ifdef __cplusplus
 }

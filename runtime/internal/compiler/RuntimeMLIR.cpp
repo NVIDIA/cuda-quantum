@@ -8,6 +8,7 @@
 
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "common/CodeGenConfig.h"
+#include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
@@ -19,7 +20,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/Verifier/QIRSpec.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
@@ -750,4 +751,18 @@ cudaq_internal::compiler::getEntryPointName(OwningOpRef<ModuleOp> &module) {
     }
   }
   return std::nullopt;
+}
+
+void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
+  auto *ctx = pm.getContext();
+  auto printEachPass =
+      cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
+  auto disableThreading =
+      cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+  if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading)
+    ctx->disableMultithreading();
+  // Enable IR printing indiscriminately. ::ArgSynthesis variant is handled in
+  // Compiler::prepareModule.
+  if (printEachPass == cudaq::PrintEachPassMode::All)
+    pm.enableIRPrinting();
 }

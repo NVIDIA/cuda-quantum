@@ -15,6 +15,8 @@
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
+#include "cudaq/qis/measure_handle.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <deque>
 #include <string_view>
 #include <vector>
@@ -70,9 +72,13 @@ public:
   }
 };
 #else
-/// When compiling with MLIR, we default to a boolean.
-using measure_result = bool;
+// In MLIR mode, keep the existing `measure_result` API name as a compatibility
+// alias for `measure_handle`.
+using measure_result = measure_handle;
 #endif
+
+class ExecutionManager;
+inline ExecutionManager *getDefaultExecutionManager();
 
 /// The ExecutionManager provides a base class describing a concrete sub-system
 /// for allocating qudits and executing quantum instructions on those qudits.
@@ -112,15 +118,20 @@ public:
   bool memoryLeaked() { return !tracker.allDeallocated(); }
 
   /// Configure the execution context before an execution.
-  virtual void configureExecutionContext(ExecutionContext &ctx) {}
+  void configureExecutionContext(const sample_policy &policy);
+  void configureExecutionContext(const observe_policy &policy);
+  void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
   void finalizeExecutionContext(ExecutionContext &ctx);
 
   virtual void finalizeExecutionContext(const other_policies &policy,
                                         ExecutionContext &ctx) {}
-  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
-                                                 ExecutionContext &ctx) = 0;
+  virtual sample_result
+  finalizeExecutionContext(const sample_policy &policy) = 0;
+
+  virtual observe_result
+  finalizeExecutionContext(const observe_policy &policy) = 0;
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
@@ -203,11 +214,34 @@ public:
   }
 
   virtual ~ExecutionManager() = default;
+
+  /// @brief Execute the given function within the given execution context.
+  template <typename Policy>
+  static auto with_default_em(Policy &policy, std::function<void()> f)
+      -> Policy::result_type {
+    auto em = getDefaultExecutionManager();
+    em->configureExecutionContext(policy);
+    em->beginExecution();
+    typename Policy::result_type result;
+    detail::try_finally([&] { f(); },
+                        [&] {
+                          result = em->finalizeExecutionContext(policy);
+                          em->endExecution();
+                        });
+    return result;
+  }
 };
 
 inline sample_result finalize_execution_manager_impl(
     ExecutionManager &mgr, const sample_policy &policy, ExecutionContext &ctx) {
-  return mgr.finalizeExecutionContext(policy, ctx);
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline observe_result
+finalize_execution_manager_impl(ExecutionManager &mgr,
+                                const observe_policy &policy,
+                                ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
 }
 
 inline void finalize_execution_manager_impl(ExecutionManager &mgr,

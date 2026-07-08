@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck --check-prefix=STDOUT %s && FileCheck %s < %t.txt
+// RUN: if %oqc_avail; then nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck --check-prefix=STDOUT %s && FileCheck %s < %t.txt; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -33,6 +33,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK:         tail call void @__quantum__qis__x__body(ptr null)
 // CHECK:         tail call void @__quantum__qis__x__body(ptr nonnull inttoptr (i64 1 to ptr))
 // CHECK:         tail call void @__quantum__qis__cnot__body(ptr null, ptr nonnull inttoptr (i64 1 to ptr))
@@ -46,6 +47,7 @@ int main() {
 // CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 1 to ptr), ptr nonnull @cstr.726573756C74253100)
 // CHECK:         tail call void @__quantum__rt__result_record_output(ptr nonnull inttoptr (i64 2 to ptr), ptr nonnull @cstr.726573756C74253200)
 // CHECK:         ret void
+// clang-format on
 // STDOUT-DAG: __global__ : { 101:1000 }
 // STDOUT-DAG: result%0 : { 1:1000 }
 // STDOUT-DAG: result%1 : { 0:1000 }

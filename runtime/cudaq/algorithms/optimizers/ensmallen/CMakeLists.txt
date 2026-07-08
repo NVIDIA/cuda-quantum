@@ -10,10 +10,8 @@ set(LIBRARY_NAME cudaq-ensmallen)
 
 set (CUDAQ_TPLS_DIR ${CMAKE_SOURCE_DIR}/tpls)
 
-set(BLA_STATIC ON)
-find_package(BLAS REQUIRED)
-
 add_library(${LIBRARY_NAME} SHARED ensmallen.cpp)
+add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_compile_definitions(${LIBRARY_NAME} PRIVATE -DARMA_DONT_USE_LAPACK)
 

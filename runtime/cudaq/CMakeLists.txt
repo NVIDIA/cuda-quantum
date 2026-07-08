@@ -13,11 +13,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 add_library(${LIBRARY_NAME}
   SHARED
     cudaq.cpp
+    realtime.cpp
     target_control.cpp
     algorithms/draw.cpp
+    algorithms/encoding.cpp
     algorithms/evolve.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
+    analysis/Dem.cpp
     platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
     platform/qpu_utils.cpp
@@ -26,7 +29,6 @@ add_library(${LIBRARY_NAME}
     platform/platform_iface.cpp
     qis/execution_manager_c_api.cpp
     qis/execution_manager.cpp
-    qis/remote_state.cpp
     qis/state.cpp
     utils/cudaq_utils.cpp
     distributed/mpi_plugin.cpp
@@ -52,6 +54,7 @@ if (CUDA_FOUND)
   endforeach()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
             ${_cudaq_cuda_build_includes}
@@ -62,22 +65,24 @@ if (CUDA_FOUND)
       dl
       cudaq-operator
       cudaq-common
-      cudaq-nlopt
-      cudaq-ensmallen
-      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      $<$<BOOL:${CUDAQ_ENABLE_NLOPT}>:cudaq::cudaq-nlopt>
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq::cudaq-ensmallen>
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
+
 else()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
     PRIVATE . ptsbe ptsbe/strategies)
@@ -87,16 +92,22 @@ else()
       dl
       cudaq-operator
       cudaq-common
-      cudaq-nlopt
-      cudaq-ensmallen
-      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      $<$<BOOL:${CUDAQ_ENABLE_NLOPT}>:cudaq::cudaq-nlopt>
+      $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq::cudaq-ensmallen>
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir
       fmt::fmt-header-only
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
+endif()
+
+if (CUDAQ_ENABLE_REALTIME)
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_ENABLE_REALTIME)
+  target_include_directories(${LIBRARY_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime/internal/device_call/include)
 endif()
 
 add_subdirectory(qis/managers)

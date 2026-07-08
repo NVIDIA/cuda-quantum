@@ -7,14 +7,14 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target anyon --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %anyon_avail; then nvq++ --target anyon --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s ; fi
-// RUN: nvq++ --target ionq --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm  --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
-// RUN: nvq++ --target oqc  --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %ionq_avail; then nvq++ --target ionq --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %iqm_avail; then nvq++ --target iqm  --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s; fi
+// RUN: if %oqc_avail; then nvq++ --target oqc  --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: nvq++ --enable-mlir %s -o %t
+// RUN: nvq++ %s -o %t
 // clang-format on
 
 #include <cudaq.h>
@@ -260,8 +260,8 @@ __qpu__ std::size_t getNumOccupiedAlpha(std::size_t numElectrons,
     return n_occupied_alpha;
   }
 
-  auto n_occupied_alpha = static_cast<std::size_t>(
-      positive_floor((float)numElectrons / 2));
+  auto n_occupied_alpha =
+      static_cast<std::size_t>(positive_floor((float)numElectrons / 2));
   return n_occupied_alpha;
 }
 
@@ -276,8 +276,8 @@ __qpu__ std::size_t getNumOccupiedBeta(std::size_t numElectrons,
     return n_occupied_beta;
   }
 
-  auto n_occupied_alpha = static_cast<std::size_t>(
-      positive_floor((float)numElectrons / 2));
+  auto n_occupied_alpha =
+      static_cast<std::size_t>(positive_floor((float)numElectrons / 2));
   return n_occupied_alpha;
 }
 
@@ -293,8 +293,8 @@ __qpu__ std::size_t getNumVirtualAlpha(std::size_t numElectrons,
     auto n_virtual_alpha = numSpatialOrbs - n_occupied_alpha;
     return n_virtual_alpha;
   }
-  auto n_occupied_alpha = static_cast<std::size_t>(
-      positive_floor((float)numElectrons / 2));
+  auto n_occupied_alpha =
+      static_cast<std::size_t>(positive_floor((float)numElectrons / 2));
   auto n_virtual_alpha = numSpatialOrbs - n_occupied_alpha;
   return n_virtual_alpha;
 }
@@ -319,11 +319,9 @@ __qpu__ std::size_t getNumVirtualBeta(std::size_t numElectrons,
 __qpu__ void uccsd2(cudaq::qview<> qubits, const std::vector<double> &thetas,
                     std::size_t numElectrons, std::size_t spin) {
 
-  int numOccAlpha =
-      getNumOccupiedAlpha(numElectrons, spin, qubits.size());
+  int numOccAlpha = getNumOccupiedAlpha(numElectrons, spin, qubits.size());
   int numOccBeta = getNumOccupiedBeta(numElectrons, spin, qubits.size());
-  int numVirtAlpha =
-      getNumVirtualAlpha(numElectrons, spin, qubits.size());
+  int numVirtAlpha = getNumVirtualAlpha(numElectrons, spin, qubits.size());
   int numVirtBeta = getNumVirtualBeta(numElectrons, spin, qubits.size());
   std::vector<std::size_t> occupiedAlpha(numOccAlpha),
       virtualAlpha(numVirtAlpha), occupiedBeta(numOccBeta),

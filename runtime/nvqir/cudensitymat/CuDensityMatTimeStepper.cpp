@@ -85,7 +85,6 @@ void CuDensityMatTimeStepper::computeImpl(
   }
   double *param_d =
       static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
-  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   {
     cudaq::dynamics::PerfMetricScopeTimer metricTimer(
         "cudensitymatOperatorComputeAction");

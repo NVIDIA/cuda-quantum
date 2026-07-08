@@ -8,7 +8,6 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
@@ -37,18 +36,18 @@ struct kernel_with_conditional {
 
 int main() {
   auto results = cudaq::run(2, kernel_with_conditional{});
-  std::cout << "First result: " << results[0][0] << " " << results[0][1]
-            << " " << results[0][2] << " " << results[0][3]
-            << " " << results[0][4] << " " << results[0][5]
-            << " " << results[0][6] << " " << results[0][7]
-            << "\n";
-  std::cout << "Second result: " << results[1][0] << " " << results[1][1]
-            << " " << results[1][2] << " " << results[1][3]
-            << " " << results[1][4] << " " << results[1][5]
-            << " " << results[1][6] << " " << results[1][7]
-            << "\n";
+  std::cout << "First result: " << results[0][0] << " " << results[0][1] << " "
+            << results[0][2] << " " << results[0][3] << " " << results[0][4]
+            << " " << results[0][5] << " " << results[0][6] << " "
+            << results[0][7] << "\n";
+  std::cout << "Second result: " << results[1][0] << " " << results[1][1] << " "
+            << results[1][2] << " " << results[1][3] << " " << results[1][4]
+            << " " << results[1][5] << " " << results[1][6] << " "
+            << results[1][7] << "\n";
   return 0;
 }
 
+// clang-format off
 // CHECK: First result: 0 0 1 0 1 0 1 0
 // CHECK: Second result: 0 0 1 0 1 0 1 0
+// clang-format on

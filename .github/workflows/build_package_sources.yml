@@ -78,8 +78,9 @@ jobs:
 
       - name: Pull images
         run: |
-          docker pull "${{ steps.images.outputs.base_image }}"
-          docker pull "${{ steps.images.outputs.target_image }}"
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry docker pull "${{ steps.images.outputs.base_image }}"
+          retry docker pull "${{ steps.images.outputs.target_image }}"
 
       - name: Diff package lists
         run: |
@@ -164,6 +165,7 @@ jobs:
 
       - name: Install wheel
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           whl=$(find wheel -name '*.whl' 2>/dev/null | head -1)
           if [ -z "$whl" ]; then
             echo "No .whl file found under wheel/"
@@ -171,7 +173,7 @@ jobs:
             exit 1
           fi
           echo "Installing $whl"
-          pip install "$whl"
+          retry pip install "$whl"
           # Capture package name (PEP 427: name-version-...); normalize to pip form (dashes)
           installed_pkg=$(basename "$whl" .whl | sed -E 's/-[0-9]+\.[0-9]+(\.[0-9]+)?.*//' | tr '_' '-')
           echo "$installed_pkg" > installed_wheel_package.txt
@@ -356,6 +358,7 @@ jobs:
       - name: Download CUDA-Q prerequisite sources
         run: |
           set -euo pipefail
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # Generate cudaq_prereqs.lock for the current configuration
           bash scripts/install_prerequisites.sh -l
           cat cudaq_prereqs.lock
@@ -397,24 +400,24 @@ jobs:
                 fname="$(basename "$url")"
                 dest="prereqs/${name}/${fname}"
                 echo "Downloading tar archive for $name from $url -> $dest"
-                curl -L "$url" -o "$dest"
+                retry curl -L "$url" -o "$dest"
                 ;;
               sh)
                 fname="$(basename "$url")"
                 dest="prereqs/${name}/${fname}"
                 echo "Downloading shell installer for $name from $url -> $dest"
-                curl -L "$url" -o "$dest"
+                retry curl -L "$url" -o "$dest"
                 chmod +x "$dest"
                 ;;
               pem)
                 dest="prereqs/${name}/${name}.pem"
                 echo "Downloading PEM bundle for $name from $url -> $dest"
-                curl -L "$url" -o "$dest"
+                retry curl -L "$url" -o "$dest"
                 ;;
               git)
                 dest_dir="prereqs/${name}"
                 echo "Cloning git repo for $name from $url (ref=${ref:-HEAD}) -> $dest_dir"
-                git clone "$url" "$dest_dir"
+                retry git clone "$url" "$dest_dir"
                 if [ -n "${ref:-}" ]; then
                   git -C "$dest_dir" checkout "$ref"
                 fi

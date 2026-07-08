@@ -53,9 +53,9 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     CCACHE_DISABLE=1 python${python_version} -m pip install --no-cache-dir numpy "nanobind>=2.12.0" && \
     rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
     Python3_EXECUTABLE="$(which python${python_version})" \
-    LLVM_PROJECTS='clang;lld;mlir;python-bindings' \
-    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
-    bash /scripts/build_llvm.sh -c Release -v
+    LLVM_SOURCE=/llvm-project \
+    LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
+    bash /scripts/build_mlir_python_bindings.sh
 
 # Build wheel using unified wheel build script
 RUN cd /cuda-quantum && \

@@ -15,8 +15,6 @@
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
 #include "cudaq/runtime/logger/logger.h"
-// TODO: do we want to avoid including this here?
-#include "resourcecounter/ResourceCounter.h"
 #include <cmath>
 #include <complex>
 #include <sstream>
@@ -39,7 +37,6 @@
 
 // Is the library initialized?
 thread_local bool initialized = false;
-thread_local bool using_resource_counter = false;
 thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
@@ -51,6 +48,7 @@ inline static constexpr std::string_view GetCircuitSimulatorSymbol =
 static thread_local std::map<Qubit *, Result *> measQB2Res;
 static thread_local std::map<Result *, Qubit *> measRes2QB;
 static thread_local std::map<Result *, Result> measRes2Val;
+static thread_local std::vector<std::int64_t> measHandle2Index;
 
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
@@ -90,12 +88,16 @@ void __nvqir__setSimulatorInitCallback(void (*callback)()) {
 
 namespace nvqir {
 
+// Defined in AnalysisScope.cpp; non-null when a `nvqir::AnalysisScope` is
+// active on the current thread.
+extern thread_local CircuitSimulator *activeAnalysisSimulator;
+
 /// @brief Return the single simulation backend pointer, create if not created
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
-  if (using_resource_counter)
-    return getResourceCounterSimulator();
+  if (activeAnalysisSimulator)
+    return activeAnalysisSimulator;
 
   if (simulator)
     return simulator;
@@ -124,15 +126,6 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   CUDAQ_INFO("Creating the {} backend.", simulator->name());
   return simulator;
 }
-
-void switchToResourceCounterSimulator() { using_resource_counter = true; }
-
-void stopUsingResourceCounterSimulator() {
-  using_resource_counter = false;
-  getResourceCounterSimulator()->setToZeroState();
-}
-
-bool isUsingResourceCounterSimulator() { return using_resource_counter; }
 
 void setRandomSeed(std::size_t seed) {
   getCircuitSimulatorInternal()->setRandomSeed(seed);
@@ -736,6 +729,25 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   return b ? ResultOne : ResultZero;
 }
 
+// Handle-form measurement variant.
+std::int64_t __quantum__qis__mz_handle__to__register(Qubit *q,
+                                                     const char *name) {
+  std::string regName(name);
+  auto qI = qubitToSizeT(q);
+  ScopedTraceWithContext("NVQIR::mz_handle", qI, regName);
+  auto *sim = nvqir::getCircuitSimulatorInternal();
+  auto b = sim->mz(qI, regName);
+  auto idx = sim->getMeasureIndex();
+  // The handle is the dense index of this measurement; record its chronological
+  // measurement index.
+  auto handle = static_cast<std::int64_t>(measHandle2Index.size());
+  measHandle2Index.push_back(idx);
+  Result *r = reinterpret_cast<Result *>(static_cast<std::intptr_t>(handle));
+  measRes2QB[r] = q;
+  measRes2Val[r] = b;
+  return handle;
+}
+
 void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   struct CLikeString {
     char *ptr = nullptr;
@@ -791,6 +803,69 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
+// Each `Result*` in the incoming buffer is the bit pattern of an `i64` measure
+// handle. Handles produced by `mz_handle__to__register` are resolved through
+// `measHandle2Index`; hand-written QIR that already uses chronological indices
+// continues to pass those indices through unchanged.
+static inline std::int64_t resultPtrToMeasureIndex(Result *r) {
+  auto handle = static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(r));
+  if (handle >= 0 &&
+      handle < static_cast<std::int64_t>(measHandle2Index.size()))
+    return measHandle2Index[handle];
+  return handle;
+}
+
+// Validate the `(results, count)` pair from the QIR side and return the
+// indices as `std::vector<int64_t>`.
+static std::vector<std::int64_t> resultArrayToIndices(Result **results,
+                                                      std::int64_t count) {
+  if (count < 0)
+    throw std::invalid_argument("QEC: count must be non-negative, got " +
+                                std::to_string(count));
+  if (count > 0 && !results)
+    throw std::invalid_argument("QEC: results pointer is null with count=" +
+                                std::to_string(count));
+  std::vector<std::int64_t> indices;
+  indices.reserve(static_cast<std::size_t>(count));
+  for (std::int64_t i = 0; i < count; i++)
+    indices.push_back(resultPtrToMeasureIndex(results[i]));
+  return indices;
+}
+
+void __quantum__qis__detector(Result **results, std::int64_t count) {
+  auto indices = resultArrayToIndices(results, count);
+  nvqir::getCircuitSimulatorInternal()->detector(indices.data(),
+                                                 indices.size());
+}
+
+void __quantum__qis__logical_observable(Result **results, std::int64_t count,
+                                        std::int64_t observable_index) {
+  if (observable_index < 0)
+    throw std::invalid_argument(
+        std::string("QEC: `observable_index` must be non-negative, got ") +
+        std::to_string(observable_index));
+  auto indices = resultArrayToIndices(results, count);
+  nvqir::getCircuitSimulatorInternal()->logical_observable(
+      indices.data(), indices.size(),
+      static_cast<std::size_t>(observable_index));
+}
+
+void __quantum__qis__pair_detectors(Result **prev_results,
+                                    std::int64_t prev_count,
+                                    Result **curr_results,
+                                    std::int64_t curr_count) {
+  if (prev_count != curr_count)
+    throw std::invalid_argument(
+        std::string("QEC: `pair_detectors` requires equal-length `prev` and "
+                    "`curr` measurement arrays, got `prev_count`=") +
+        std::to_string(prev_count) +
+        " `curr_count`=" + std::to_string(curr_count));
+  auto prev = resultArrayToIndices(prev_results, prev_count);
+  auto curr = resultArrayToIndices(curr_results, curr_count);
+  nvqir::getCircuitSimulatorInternal()->pair_detectors(prev.data(), curr.data(),
+                                                       prev.size());
+}
+
 // It may not always be possible for the compiler to reduce a program fully to
 // QIR. In such cases, code generation may elect to produce a trap in the
 // kernel, which calls this function. The trap should explain the issue to the
@@ -816,7 +891,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
-  auto *noise = ctx->noiseModel;
+  auto *noise = nvqir::getCircuitSimulatorInternal()->getNoiseModel();
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec(params, params + numParams);
     std::vector<cudaq::QuditInfo> targets;
@@ -836,7 +911,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<double> paramVec(params, params + numParams);
@@ -854,7 +929,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
-  auto *noise = ctx->noiseModel;
+  auto *noise = nvqir::getCircuitSimulatorInternal()->getNoiseModel();
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec;
     paramVec.reserve(numParams);
@@ -877,7 +952,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<float> paramVec(params, params + numParams);
@@ -994,8 +1069,9 @@ void __quantum__qis__custom_unitary(std::complex<double> *unitary,
   auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
-  if (numQubits >= 64)
-    throw std::invalid_argument("Too many qubits (>=64), not supported");
+  // 4^N matrix entries must fit in size_t; 4^32 == 2^64 overflows.
+  if (numQubits >= 32)
+    throw std::invalid_argument("Too many qubits (>=32), not supported");
   auto nToPowTwo = (1ULL << numQubits);
   auto numElements = nToPowTwo * nToPowTwo;
   std::vector<std::complex<double>> unitaryMatrix(unitary,
@@ -1010,8 +1086,9 @@ void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
   auto ctrlsVec = safeArrayToVectorSizeT(controls);
   auto tgtsVec = arrayToVectorSizeT(targets);
   auto numQubits = tgtsVec.size();
-  if (numQubits >= 64)
-    throw std::invalid_argument("Too many qubits (>=64), not supported");
+  // 4^N matrix entries must fit in size_t; 4^32 == 2^64 overflows.
+  if (numQubits >= 32)
+    throw std::invalid_argument("Too many qubits (>=32), not supported");
   auto nToPowTwo = (1ULL << numQubits);
 
   std::vector<std::vector<std::complex<double>>> unitaryConj2D;
@@ -1178,6 +1255,7 @@ void __quantum__rt__clear_result_maps() {
   measQB2Res.clear();
   measRes2QB.clear();
   measRes2Val.clear();
+  measHandle2Index.clear();
 }
 
 /// This is the generalized version of invoke that does not use a va_list

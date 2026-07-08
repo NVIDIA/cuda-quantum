@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir -DCUDAQ_HELLO_WORLD %s -o %t && %t | FileCheck --check-prefixes=DEFINE_ON %s
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -DCUDAQ_HELLO_WORLD %s -o %t && %t | FileCheck --check-prefixes=DEFINE_ON %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // RUN: if [ $(echo | cut -c4- ) -ge 20 ]; then \
-// RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
+// RUN:   nvq++ %s -o %t && %t | FileCheck %s; \
 // RUN: fi
 // clang-format on
 

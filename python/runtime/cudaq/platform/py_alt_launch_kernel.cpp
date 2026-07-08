@@ -11,18 +11,8 @@
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
-#include "cudaq/Optimizer/Builder/Marshal.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CAPI/Dialects.h"
-#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
-#include "cudaq/Optimizer/CodeGen/OptUtils.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/platform.h"
-#include "cudaq/platform/nvqpp_interface.h"
-#include "cudaq/platform/qpu.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
@@ -30,6 +20,17 @@
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "cudaq/Optimizer/CodeGen/OptUtils.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/algorithms/policy_dispatch.h"
+#include "cudaq/platform.h"
+#include "cudaq/platform/nvqpp_interface.h"
+#include "cudaq/platform/qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Target/TargetMachine.h"
@@ -45,12 +46,12 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
 #include <fmt/core.h>
+#include <mlir/IR/OwningOpRef.h>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/map.h>
-#include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -198,54 +199,30 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
         appendValue(data, nanobind::cast<double>(value), offset);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
-        auto appendVectorValue = []<typename T>(nanobind::object value,
-                                                void *data, std::size_t offset,
-                                                T) {
-          auto asList = nanobind::cast<nanobind::list>(value);
-          // Use the correct element type T (not always double).
-          auto *values = new std::vector<T>(asList.size());
-          for (std::size_t i = 0; auto v : asList)
-            (*values)[i++] = nanobind::cast<T>(v);
+        // Nested vectors aren't supported in the synthesis (argument
+        // substitution) path.
+        if constexpr (style == cudaq::PackingStyle::synthesis)
+          if (isa<cudaq::cc::StdvecType>(ty.getElementType()))
+            throw std::runtime_error(
+                "Type not supported for custom struct in kernel.");
 
-          // synthesis path: span {ptr, size_t}
-          // argsCreator path: std::vector<T> {ptr, ptr, ptr}
-          constexpr std::size_t copySize =
-              sizeof(std::conditional_t<style == cudaq::PackingStyle::synthesis,
-                                        std::pair<char *, std::size_t>,
-                                        std::vector<T>>);
-          std::memcpy(((char *)data) + offset, values, copySize);
-        };
-
-        mlir::TypeSwitch<mlir::Type, void>(ty.getElementType())
-            .Case([&](mlir::IntegerType type) {
-              if (type.isInteger(1)) {
-                appendVectorValue(value, data, offset, BoolVecElem<style>{});
-                return;
-              }
-              appendVectorValue(value, data, offset, std::size_t());
-            })
-            .Case([&](mlir::FloatType type) {
-              if (type.isF32()) {
-                appendVectorValue(value, data, offset, float());
-                return;
-              }
-              appendVectorValue(value, data, offset, double());
-            })
-            .Case([&](cudaq::cc::StdvecType innerVecType) {
-              if constexpr (style == cudaq::PackingStyle::synthesis) {
-                throw std::runtime_error(
-                    "Type not supported for custom struct in kernel.");
-              } else {
-                // Nested vector (e.g., list[list[int]]): delegate to
-                // handleVectorElements which handles the recursive case.
-                auto asList = nanobind::cast<nanobind::list>(value);
-                auto *values =
-                    handleVectorElements<cudaq::PackingStyle::argsCreator>(
-                        innerVecType, asList);
-                std::memcpy(((char *)data) + offset, values,
-                            sizeof(std::vector<std::vector<std::size_t>>));
-              }
-            });
+        // Build the std::vector<T> (with the correct element type, including
+        // nested vectors) via the shared element handler, then copy its header
+        // into the struct.
+        auto asList = nanobind::cast<nanobind::list>(value);
+        void *values = handleVectorElements<style>(ty.getElementType(), asList);
+        // synthesis reads only a {ptr, size} span prefix (element-type
+        // independent); argsCreator copies the full host std::vector header,
+        // and std::vector<bool> is bit-packed and larger than
+        // std::vector<char>, so bool is sized separately.
+        std::size_t copySize;
+        if constexpr (style == cudaq::PackingStyle::synthesis)
+          copySize = sizeof(std::pair<char *, std::size_t>);
+        else
+          copySize = ty.getElementType().isInteger(1)
+                         ? sizeof(std::vector<bool>)
+                         : sizeof(std::vector<char>);
+        std::memcpy(((char *)data) + offset, values, copySize);
       })
       .Default([&](mlir::Type ty) {
         ty.dump();
@@ -669,16 +646,109 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
   runtimeArgs.emplace_back(buf, [](void *ptr) { std::free(ptr); });
 }
 
+/// In a sample launch context, the (`JIT` compiled) CompiledModule may be
+/// cached so that it can be called many times in a loop without being
+/// recompiled. This exploits the fact that the arguments processed at the
+/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
+template <std::invocable F>
+  requires std::is_invocable_r_v<cudaq::CompiledModule, F>
+static cudaq::CompiledModule with_compiled_module_cache(F &&f) {
+  auto *currentExecCtx = cudaq::getExecutionContext();
+
+  auto getCache = [currentExecCtx]() -> std::optional<cudaq::CompiledModule> {
+    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching)
+      return currentExecCtx->cachedCompiledModule;
+    return std::nullopt;
+  };
+  auto saveCache = [currentExecCtx](cudaq::CompiledModule compiled) {
+    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching) {
+      if (!currentExecCtx->cachedCompiledModule)
+        currentExecCtx->cachedCompiledModule = compiled;
+    }
+  };
+
+  auto cachedModule = getCache();
+  if (cachedModule)
+    return *cachedModule;
+  auto compiled = f();
+  saveCache(compiled);
+  return compiled;
+}
+
+static cudaq::CompiledModule
+compileModuleImpl(const std::string &name, ModuleOp mod,
+                  const std::vector<void *> &rawArgs, bool isEntryPoint) {
+  cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
+
+  // Only cache on local simulators
+  auto cacheable =
+      cudaq::is_simulator_platform() && !cudaq::is_emulated_platform();
+
+  auto compile = [&]() {
+    cudaq::CompiledModule compiled;
+    auto *ctx = cudaq::getExecutionContext();
+    if (!ctx) {
+      auto target = cudaq::get_compile_target(cudaq::other_policies{});
+      return cudaq_internal::compiler::compileModule(std::move(target), src,
+                                                     {rawArgs}, isEntryPoint);
+    }
+
+    return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
+      using Policy = std::decay_t<decltype(policy)>;
+      if constexpr (std::is_same_v<Policy, cudaq::observe_policy>) {
+        policy.spin = ctx->spin.value();
+      }
+      auto target = cudaq::get_compile_target(policy);
+      return cudaq_internal::compiler::compileModule(std::move(target), src,
+                                                     {rawArgs}, isEntryPoint);
+    });
+  };
+
+  if (!cacheable) {
+    return compile();
+  }
+  return with_compiled_module_cache(compile);
+}
+
 // Launching the module \p mod will modify its content, such as by argument
 // synthesis into the entry-point kernel. Make a clone before we launch to
 // preserve (cache) the IR, and erase the clone after the kernel is done.
 static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
+               cudaq::CompiledModule *cachedModule,
                const std::vector<void *> &rawArgs) {
-  auto clone = mod.clone();
-  auto compiled = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
+  bool isCachable = [&]() {
+    // Must have a slot to read/write the cache from. Callers opt out of the
+    // cache by passing nullptr.
+    if (!cachedModule)
+      return false;
+    auto &platform = cudaq::get_platform();
+    // Must be local simulator
+    if (!platform.is_simulator() || platform.is_emulated())
+      return false;
+    auto func = cudaq::getKernelFuncOp(mod, name);
+    // TODO: currently, synthesis is all-or-nothing, but if arg-by-arg
+    // synthesis is supported, then that will need to be detected
+    if (cudaq::opt::factory::isFullySynthesized(func))
+      return false;
+    // Caching for kernels with lifted arguments is not currently supported.
+    for (unsigned i = 0; i < func.getNumArguments(); ++i)
+      if (func.getArgAttr(i, "quake.pylifted"))
+        return false;
+    return true;
+  }();
+
+  // Cache hit only if the cached module's entry point matches this launch's.
+  // Notably, run has a different entry point so can't share a cache with
+  // other launch modes.
+  if (isCachable && cachedModule->getName() == name)
+    return cudaq::streamlinedLaunchModule(*cachedModule, rawArgs);
+
+  mlir::OwningOpRef<ModuleOp> clone = mod.clone();
+  auto compiled = compileModuleImpl(name, clone.get(), rawArgs, true);
   auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
-  clone.erase();
+  if (isCachable)
+    *cachedModule = std::move(compiled);
   return res;
 }
 
@@ -890,7 +960,8 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
 
 cudaq::KernelThunkResultType
 cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
-                           cudaq::OpaqueArguments &args) {
+                           cudaq::OpaqueArguments &args,
+                           cudaq::CompiledModule *compiled) {
   // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
   // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
   // this from worker threads that never held the GIL.
@@ -901,7 +972,7 @@ cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  return pyLaunchModule(name, mod, rawArgs);
+  return pyLaunchModule(name, mod, compiled, rawArgs);
 }
 
 cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
@@ -923,9 +994,10 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
   return args;
 }
 
-nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
-                                                  MlirModule module,
-                                                  nanobind::args runtimeArgs) {
+nanobind::object
+cudaq::marshal_and_launch_module(const std::string &name, MlirModule module,
+                                 nanobind::args runtimeArgs,
+                                 cudaq::CompiledModule *compiled) {
   // Marker span identifying every nested pass / scoped trace as part of the
   // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
   // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
@@ -947,7 +1019,8 @@ nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
 
-  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
+  [[maybe_unused]] auto resultPtr =
+      clean_launch_module(name, mod, args, compiled);
 
   if (!retTy)
     return nanobind::none();
@@ -968,10 +1041,8 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  auto clone = mod.clone();
-  auto compiled =
-      cudaq::streamlinedCompileModule(name, clone, rawArgs, isEntryPoint);
-  clone.erase();
+  mlir::OwningOpRef<ModuleOp> clone = mod.clone();
+  auto compiled = compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint);
   return compiled;
 }
 
@@ -1002,13 +1073,12 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   // Get additional debug values
   auto disableMLIRthreading =
       cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  auto enablePrintMLIREachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+  auto printEachPass =
+      cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
 
   auto &platform = cudaq::get_platform();
-  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
-  auto isSimulator = isLocalSimulator || isRemoteSimulator;
+  auto isSimulator = isLocalSimulator;
 
   cudaq_internal::compiler::ArgumentConverter argCon(name, mod);
   argCon.gen(args.getArgs());
@@ -1071,9 +1141,9 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-  if (disableMLIRthreading || enablePrintMLIREachPass)
+  if (disableMLIRthreading || printEachPass == cudaq::PrintEachPassMode::All)
     context->disableMultithreading();
-  if (enablePrintMLIREachPass)
+  if (printEachPass == cudaq::PrintEachPassMode::All)
     pm.enableIRPrinting();
   bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, cloned));
   timingScope.stop();
@@ -1085,10 +1155,10 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
 }
 
 static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
-  auto enablePrintMLIREachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+  auto printEachPass =
+      cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
   auto context = mod.getContext();
-  if (enablePrintMLIREachPass) {
+  if (printEachPass == cudaq::PrintEachPassMode::All) {
     context->disableMultithreading();
     pm.enableIRPrinting();
   }
@@ -1170,12 +1240,16 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   getTransportLayer = std::move(getTL);
 
   nanobind::class_<cudaq::CompiledModule>(mod, "CompiledModule")
+      .def(nanobind::init<>())
       .def_prop_ro(
           "entry_point",
           [](const cudaq::CompiledModule &ck) {
             return reinterpret_cast<std::uintptr_t>(ck.getJit()->getFn());
           },
           "The address of the JIT-compiled entry point.")
+      .def_prop_ro("name", &cudaq::CompiledModule::getName,
+                   "The kernel name this module was compiled for. Empty for a "
+                   "default-constructed (uninstalled) module.")
       .def_prop_ro("is_fully_specialized",
                    &cudaq::CompiledModule::isFullySpecialized,
                    "Whether all arguments have been specialized.");
@@ -1184,8 +1258,12 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
           "Lower a kernel module to CC dialect. Never launches the kernel.");
 
   mod.def("clean_launch_module", cudaq::clean_launch_module,
+          nanobind::arg("kernel_name"), nanobind::arg("module"),
+          nanobind::arg("args"), nanobind::arg("compiled").none() = nullptr,
           "Launch a kernel. Does not perform other mischief.");
   mod.def("marshal_and_launch_module", cudaq::marshal_and_launch_module,
+          nanobind::arg("kernel_name"), nanobind::arg("module"),
+          nanobind::arg("args"), nanobind::arg("compiled").none() = nullptr,
           "Launch a kernel. Marshaling of arguments and unmarshalling of "
           "results is performed.");
   mod.def("marshal_and_retain_module", marshal_and_retain_module,

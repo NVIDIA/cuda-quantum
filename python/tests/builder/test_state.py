@@ -50,6 +50,17 @@ def test_state_vector_simple():
     np.isclose(want_state[1], got_state[1].real)
     np.isclose(want_state[2], got_state[2].real)
     np.isclose(want_state[3], got_state[3].real)
+    assert np.isclose(want_state[3], got_state[-1])
+    assert np.isclose(want_state[0], got_state[-4])
+    # got_state[4]: index equals dimension.
+    with pytest.raises(IndexError):
+        got_state[4]
+    # got_state[INT_MAX]: index exceeds dimension.
+    with pytest.raises(IndexError):
+        got_state[2147483647]
+    # got_state[-5]: index below -dimension.
+    with pytest.raises(IndexError):
+        got_state[-5]
 
     # Check the entire vector with numpy.
     got_vector = np.array(got_state, copy=False)
@@ -156,6 +167,33 @@ def test_state_density_matrix_simple():
     assert np.isclose(got_state.overlap(want_state), 1.0)
     # Check the overlap overload with itself.
     assert np.isclose(got_state.overlap(got_state), 1.0)
+
+    cudaq.reset_target()
+
+
+def test_state_density_matrix_self_overlap():
+    cudaq.set_target('density-matrix-cpu')
+
+    rho = np.diag([0.4, 0.3, 0.2, 0.1]).astype(np.complex128)
+    state = cudaq.State.from_data(rho)
+
+    # Density matrix overlap is the Hilbert-Schmidt inner product.
+    assert np.isclose(state.overlap(state), np.trace(rho.conj().T @ rho))
+
+    cudaq.reset_target()
+
+
+def test_state_density_matrix_cross_overlap():
+    cudaq.set_target('density-matrix-cpu')
+
+    rho = np.diag([0.4, 0.3, 0.2, 0.1]).astype(np.complex128)
+    sigma = np.diag([0.1, 0.2, 0.3, 0.4]).astype(np.complex128)
+    state = cudaq.State.from_data(rho)
+    other_state = cudaq.State.from_data(sigma)
+
+    # Density matrix overlap is the Hilbert-Schmidt inner product.
+    assert np.isclose(state.overlap(other_state),
+                      np.trace(rho.conj().T @ sigma))
 
     cudaq.reset_target()
 

@@ -35,6 +35,18 @@ find_dependency(CUDAQEnsmallen REQUIRED)
 set (CUDAQPythonInterop_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQPythonInterop)
 
+if (CUDAQ_REALTIME_DIR)
+  find_dependency(cudaq-realtime CONFIG REQUIRED
+    PATHS "${CUDAQ_REALTIME_DIR}"
+    NO_DEFAULT_PATH)
+else()
+  # Do not use find_dependency here: it inherits find_package(CUDAQ REQUIRED)
+  # and would make realtime mandatory for CUDA-Q installs that do not use it.
+  find_package(cudaq-realtime CONFIG QUIET
+    PATHS "${CUDAQ_CMAKE_DIR}/../cudaq-realtime"
+    NO_DEFAULT_PATH)
+endif()
+
 get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
 get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)
 get_filename_component(CUDAQ_INSTALL_DIR ${CUDAQ_LIBRARY_DIR} DIRECTORY)
@@ -70,6 +82,13 @@ add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
   IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA Legacy Target
+add_library(cudaq::cudaq-nvidia-legacy-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-legacy-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
 # NVIDIA FP64 Target

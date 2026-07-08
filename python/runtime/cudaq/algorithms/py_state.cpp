@@ -11,11 +11,12 @@
 #include "common/ArgumentWrapper.h"
 #include "common/FmtCore.h"
 #include "common/KernelArgs.h"
-#include "cudaq/algorithms/get_state.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/get_state.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <limits>
 #include <nanobind/ndarray.h>
 
 using namespace cudaq;
@@ -171,11 +172,12 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 static state get_state_impl(const std::string &shortName, MlirModule mod,
+                            cudaq::CompiledModule *compiled,
                             nanobind::args args) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, args);
+    return marshal_and_launch_module(shortName, mod, args, compiled);
   };
-  return details::extractState(std::move(closure));
+  return detail::extractState(std::move(closure));
 }
 
 static std::future<state> get_state_async_impl(const std::string &shortName,
@@ -195,88 +197,13 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
         p->erase();
         delete p;
       });
-  return details::runGetStateAsync(
+  return detail::runGetStateAsync(
       detail::make_copyable_function(
           [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
             [[maybe_unused]] auto result =
                 clean_launch_module(kernelName, *clonedMod, opaques);
           }),
       platform, qpu_id);
-}
-
-/// @brief Python implementation of the `RemoteSimulationState`.
-// Note: Python kernel arguments are wrapped hence need to be unwrapped
-// accordingly.
-class PyRemoteSimulationState : public RemoteSimulationState {
-  // Holder of args data for clean-up.
-  OpaqueArguments *argsData;
-  mlir::ModuleOp kernelMod;
-
-public:
-  PyRemoteSimulationState(const std::string &in_kernelName, ArgWrapper args,
-                          OpaqueArguments *argsDataToOwn, std::size_t size,
-                          std::size_t returnOffset)
-      : argsData(argsDataToOwn), kernelMod(args.mod) {
-    this->kernelName = in_kernelName;
-    this->args = argsData->getArgs();
-  }
-
-  void execute() const override {
-    if (!state) {
-      auto &platform = get_platform();
-      // Create an execution context, indicate this is for
-      // extracting the state representation
-      ExecutionContext context("extract-state");
-      // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
-      // ModuleOp pointer as the first element in the args array in StreamLined
-      // mode.
-      auto args = argsData->getArgs();
-      args.insert(args.begin(),
-                  const_cast<void *>(static_cast<const void *>(&kernelMod)));
-      cudaq::SourceModule src{kernelName};
-      platform.with_execution_context(context, [&]() {
-        [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, {args});
-      });
-      state = std::move(context.simulationState);
-    }
-  }
-
-  std::complex<double> overlap(const SimulationState &other) override {
-    const auto &otherState =
-        dynamic_cast<const PyRemoteSimulationState &>(other);
-    auto &platform = get_platform();
-    ExecutionContext context("state-overlap");
-    context.overlapComputeStates =
-        std::make_pair(static_cast<const SimulationState *>(this),
-                       static_cast<const SimulationState *>(&otherState));
-    auto args = argsData->getArgs();
-    args.insert(args.begin(),
-                const_cast<void *>(static_cast<const void *>(&kernelMod)));
-
-    cudaq::SourceModule src{kernelName};
-    platform.with_execution_context(context, [&]() {
-      [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, {args});
-    });
-    assert(context.overlapResult.has_value());
-    return context.overlapResult.value();
-  }
-
-  virtual ~PyRemoteSimulationState() override { delete argsData; }
-};
-
-/// @brief Run `cudaq::get_state` for remote execution targets on the provided
-/// kernel and args
-state pyGetStateRemote(nanobind::object kernel, nanobind::args args) {
-  if (nanobind::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-
-  auto kernelName = nanobind::cast<std::string>(kernel.attr("uniqName"));
-  auto kernelMod = nanobind::cast<MlirModule>(kernel.attr("qkeModule"));
-  args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
-  return state(new PyRemoteSimulationState(kernelName, /*argWrapper*/ {},
-                                           argData,
-                                           /*size*/ 0, /*returnOffset*/ 0));
 }
 
 /// @brief Python implementation of the `QPUState`.
@@ -314,7 +241,7 @@ state pyGetStateQPU(const std::string &kernelName, MlirModule kernelMod,
 }
 
 state pyGetStateLibraryMode(nanobind::object kernel, nanobind::args args) {
-  return details::extractState([&]() mutable {
+  return detail::extractState([&]() mutable {
     if (0 == args.size())
       kernel();
     else {
@@ -473,6 +400,23 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       .def("get_element_size", &SimulationState::Tensor::element_size)
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
 
+  const auto normalizeIndex = [](state &s, int idx) {
+    // Support Pythonic negative index.
+    if (idx < 0) {
+      // Reject negative indices when the existing signed-int shift cannot
+      // represent the logical state dimension safely.
+      if (s.get_num_qubits() >=
+          static_cast<std::size_t>(std::numeric_limits<int>::digits))
+        throw std::out_of_range("State index out of bounds.");
+      idx += (1 << s.get_num_qubits());
+      // An index that remains negative was below the Pythonic lower bound and
+      // must not be converted to an unsigned C++ index.
+      if (idx < 0)
+        throw std::out_of_range("State index out of bounds.");
+    }
+    return idx;
+  };
+
   nanobind::class_<state>(
       mod, "State",
       "A data-type representing the quantum state of the internal simulator. "
@@ -566,9 +510,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           "from_data",
           [&](nanobind::object data) {
             // Reject Python sequences (list/tuple) overload — they should be
-            // dispatched to the vector overload below. In pybind11, py::buffer
-            // excluded lists; nanobind::object accepts anything, so we must
-            // guard explicitly.
+            // dispatched to the vector overload below.
+            // nanobind::object accepts anything, so we must guard explicitly.
             if (nanobind::isinstance<nanobind::list>(data) ||
                 nanobind::isinstance<nanobind::tuple>(data))
               throw nanobind::next_overload();
@@ -722,11 +665,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           "Return all the tensors that comprise this state representation.")
       .def(
           "__getitem__",
-          [](state &s, int idx) {
-            // Support Pythonic negative index
-            if (idx < 0)
-              idx += (1 << s.get_num_qubits());
-            return s[idx];
+          [normalizeIndex](state &s, int idx) {
+            return s[normalizeIndex(s, idx)];
           },
           R"#(Return the `index`-th element of the state vector.
 
@@ -740,15 +680,13 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
   value = state[0])#")
       .def(
           "__getitem__",
-          [](state &s, std::vector<int> idx) {
+          [normalizeIndex](state &s, std::vector<int> idx) {
             if (idx.size() != 2)
               throw std::runtime_error("Density matrix needs 2 indices; " +
                                        std::to_string(idx.size()) +
                                        " provided.");
             for (auto &val : idx)
-              // Support Pythonic negative index
-              if (val < 0)
-                val += (1 << s.get_num_qubits());
+              val = normalizeIndex(s, val);
             return s(idx[0], idx[1]);
           },
           R"#(Return the element of the density matrix at the provided
@@ -917,16 +855,15 @@ index pair.
   mod.def(
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module,
-          nanobind::args args) {
+          cudaq::CompiledModule *compiled, nanobind::args args) {
         // Check for unsupported cases.
-        if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "orca-photonics")
+        if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
               "get_state is not supported in this context.");
 
         if (is_remote_platform() || is_emulated_platform())
           return pyGetStateQPU(shortName, module, args);
-        return get_state_impl(shortName, module, args);
+        return get_state_impl(shortName, module, compiled, args);
       },
       "See the python documentation for get_state.");
 
@@ -949,9 +886,7 @@ for more information on this programming pattern.)#")
       [&](const std::string &shortName, MlirModule module, std::size_t qpu_id,
           nanobind::args args) {
         // Check for unsupported cases.
-        if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "nvqc" ||
-            holder.getTarget().name == "orca-photonics" ||
+        if (holder.getTarget().name == "orca-photonics" ||
             is_remote_platform() || is_emulated_platform())
           throw std::runtime_error(
               "get_state_async is not supported in this context.");

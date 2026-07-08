@@ -95,3 +95,10 @@ void (*cudaq::FatQuakeModule::JitArtifact::getFn() const)() { return fn; }
 cudaq::JitEngine cudaq::FatQuakeModule::JitArtifact::getEngine() const {
   return engine;
 }
+
+const void *cudaq::SourceModule::getMlirOpaqueModulePtr() const {
+  auto mlirArt = getMlir();
+  if (!mlirArt)
+    return nullptr;
+  return mlirArt->getOpaqueModulePtr();
+}

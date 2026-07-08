@@ -44,10 +44,7 @@ struct QppDmState : public cudaq::SimulationState {
         reinterpret_cast<std::complex<double> *>(other.getTensor().data),
         other.getTensor().extents[0], other.getTensor().extents[1]);
 
-    // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
-    // sqrt(det(rho)*det(sigma))
-    auto detprod = rho.determinant() * sigma.determinant();
-    return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
+    return (rho.adjoint() * sigma).trace();
   }
 
   std::complex<double>
@@ -180,7 +177,7 @@ protected:
       return;
 
     // Do nothing if no noise model
-    if (!executionContext->noiseModel)
+    if (!getNoiseModel())
       return;
 
     // Get the name as a string
@@ -193,8 +190,8 @@ protected:
     }
 
     // Get the Kraus channels specified for this gate and qubits
-    auto krausChannels = executionContext->noiseModel->get_channels(
-        gName, targets, controls, params);
+    auto krausChannels =
+        getNoiseModel()->get_channels(gName, targets, controls, params);
 
     // If none, do nothing
     if (krausChannels.empty())

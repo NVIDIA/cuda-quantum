@@ -5,11 +5,12 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "AnyonHelper.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nlohmann/json.hpp"
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -259,20 +260,13 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   }
 
   // For each shot, we concatenate the measurements results of all qubits.
-  auto begin = results.begin();
-  auto nShots = begin.value().get<std::vector<std::string>>().size();
-  std::vector<std::string> bitstrings(nShots);
-  for (auto r : idx) {
-    // If allNamesPresent == false, that means we are running local mock server
-    // tests which don't support the full QIR output recording functions. Just
-    // use the first key in that case.
-    auto bitResults =
-        mockServer ? results.at(begin.key()).get<std::vector<std::string>>()
-                   : results.at(output_names[r].registerName)
-                         .get<std::vector<std::string>>();
-    for (size_t i = 0; auto &bit : bitResults)
-      bitstrings[i++] += bit;
-  }
+  std::vector<std::string> orderedRegisterNames;
+  orderedRegisterNames.reserve(idx.size());
+  for (auto r : idx)
+    orderedRegisterNames.push_back(mockServer ? results.begin().key()
+                                              : output_names[r].registerName);
+  auto bitstrings = cudaq::utils::anyon::combineRegisterResults(
+      results, orderedRegisterNames);
 
   cudaq::CountsDictionary counts;
   for (auto &b : bitstrings)

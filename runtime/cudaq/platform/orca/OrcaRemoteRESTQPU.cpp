@@ -8,8 +8,8 @@
 
 #include "OrcaRemoteRESTQPU.h"
 #include "common/ServerHelper.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/Support/Base64.h"
 
 using namespace cudaq;
@@ -62,8 +62,9 @@ void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   executor->setServerHelper(serverHelper.get());
 }
 
-KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
-    const std::string &kernelName, KernelThunkType kernelFunc, void *args) {
+KernelThunkResultType
+cudaq::OrcaRemoteRESTQPU::launchKernelCommon(const std::string &kernelName,
+                                             void *args) {
 
   CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
              kernelName, qpu_id);
@@ -80,7 +81,11 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
 
   ctx->shots = shots;
 
-  details::future future;
+  if (!(ctx->name == "sample" || ctx->name == "extract-state" ||
+        ctx->name == "tracer"))
+    throw std::runtime_error(ctx->name + " is not supported on this target");
+
+  detail::future future;
   future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested
@@ -99,11 +104,6 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
 void cudaq::OrcaRemoteRESTQPU::enqueue(cudaq::QuantumTask &task) {
   CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
   execution_queue->enqueue(task);
-}
-
-void cudaq::OrcaRemoteRESTQPU::launchKernel(const std::string &,
-                                            const std::vector<void *> &) {
-  throw std::runtime_error("launch kernel on raw args not implemented");
 }
 
 CUDAQ_REGISTER_TYPE(QPU, OrcaRemoteRESTQPU, orca)

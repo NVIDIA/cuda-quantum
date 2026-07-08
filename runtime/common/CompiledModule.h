@@ -144,6 +144,9 @@ public:
   public:
     /// Get the opaque pointer to the MLIR module.
     const void *getOpaqueModulePtr() const { return modulePtr; }
+
+    /// Get the owning reference to the containing `MLIRContext` (may be null).
+    std::shared_ptr<mlir::MLIRContext> getContext() const { return context; }
   };
 
   /// Pre-compiled kernel, stored as a raw function pointer.
@@ -186,6 +189,9 @@ public:
   struct CompilationMetadata {
     /// Qubit reorder indices emitted by the qubit-mapping pass.
     std::vector<std::size_t> reorderIdx;
+    /// Whether the kernel has conditional feedback on measure results.
+    bool hasConditionalsOnMeasureResults = false;
+    // TODO: Add hash of target to check against for cache reusability
   };
 
   // --- Queries ---
@@ -260,28 +266,13 @@ protected:
   ArtifactsStore artifacts;
 };
 
-/// @brief A compiled MLIR module, ready for execution or code generation.
-///
-/// Contains any number of named compilation artifacts (we currently support
-/// JIT binaries, optimized MLIR modules, and pre-computed resource metrics)
-/// that result from the compilation of a Quake MLIR module.
-///
-/// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
-/// pointers. Build instances with
-/// `cudaq_internal::compiler::CompiledModuleHelper`.
-class CompiledModule : public FatQuakeModule {
-private:
-  friend class cudaq_internal::compiler::CompiledModuleHelper;
-
-  CompiledModule(std::string kernelName)
-      : FatQuakeModule(std::move(kernelName)) {}
-};
-
 /// Bundle of artifacts that define a CUDA-Q kernel to be compiled and executed.
 ///
 /// Contains either a `nvq++`-compiled function pointer or an MLIR module,
 /// depending on the provenance of the kernel.
 class SourceModule : public FatQuakeModule {
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
+
 public:
   SourceModule(std::string kernelName)
       : FatQuakeModule(std::move(kernelName)) {}
@@ -295,12 +286,40 @@ public:
   /// mlir::ModuleOp::getAsOpaquePointer() and its lifetime must outlive
   /// the `SourceModule` instance.
   SourceModule(std::string kernelName, const void *mlirModuleOpaquePtr);
+
+  /// Get the opaque pointer to the main MLIR artifact if it exists.
+  const void *getMlirOpaqueModulePtr() const;
 };
 
-// TODO: remove once C++ launch can be cleanly split into compilation + launch.
-// Used by unifiedLaunchModule to compile kernels if they have not been compiled
-// before. In the future, unifiedLaunchModule should only accept compiled
-// modules.
+/// @brief A compiled MLIR module, ready for execution or code generation.
+///
+/// Contains any number of named compilation artifacts (we currently support
+/// JIT binaries, optimized MLIR modules, and pre-computed resource metrics)
+/// that result from the compilation of a Quake MLIR module.
+///
+/// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
+/// pointers. Build instances with
+/// `cudaq_internal::compiler::CompiledModuleHelper`.
+class CompiledModule : public FatQuakeModule {
+public:
+  using CompilationMetadata = FatQuakeModule::CompilationMetadata;
+
+private:
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
+
+  CompiledModule(std::string kernelName)
+      : FatQuakeModule(std::move(kernelName)) {}
+
+public:
+  // The choice of constructors is intentionally limited to:
+  //  - empty compiled modules for default construction
+  //  - compiled module from a source module to explicitly bypass the compiler
+  // For any other use case, you should go through the factory methods in
+  // `CompiledModuleHelper`.
+  CompiledModule() : FatQuakeModule(std::string{}) {}
+  explicit CompiledModule(SourceModule src) : FatQuakeModule(std::move(src)) {}
+};
+
 using AnyModule = std::variant<SourceModule, CompiledModule>;
 
 } // namespace cudaq

@@ -20,11 +20,17 @@ add_subdirectory(test)
 
 install (DIRECTORY cudaq DESTINATION include 
             FILES_MATCHING PATTERN "*.h" 
+            PATTERN "device_call_service.h" EXCLUDE
             PATTERN "nlopt-src" EXCLUDE)
 install (DIRECTORY include/cudaq DESTINATION include FILES_MATCHING PATTERN "*.h")
 install (DIRECTORY common DESTINATION include FILES_MATCHING PATTERN "*.h")
-install (FILES nvqir/CircuitSimulator.h
-               nvqir/QIRTypes.h
+install (FILES nvqir/AnalysisScope.h
+               nvqir/CircuitSimulator.h
                nvqir/Gates.h
+               nvqir/QIRTypes.h
         DESTINATION include/nvqir)
+install (FILES nvqir/resourcecounter/ResourceCounterScope.h
+        DESTINATION include/nvqir/resourcecounter)
+install (FILES nvqir/dem/DemScope.h
+        DESTINATION include/nvqir/dem)
 install (FILES cudaq.h DESTINATION include)

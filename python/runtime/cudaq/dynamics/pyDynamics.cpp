@@ -283,7 +283,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
     cudaq::dynamics::Context::getCurrentContext()
         ->getOpConverter()
         .clearCallbackContext();
-    if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+    if (cudaq::detail::should_log(cudaq::detail::LogLevel::trace))
       cudaq::dynamics::dumpPerfTrace();
   });
 
@@ -293,15 +293,15 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
       [](const std::vector<cudaq::sum_op<cudaq::matrix_handler>> &hamOps,
          const std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
              &listCollapseOps) {
-        return cudaq::__internal__::checkBatchingCompatibility(hamOps,
-                                                               listCollapseOps);
+        return cudaq::detail::checkBatchingCompatibility(hamOps,
+                                                         listCollapseOps);
       },
       nanobind::arg("hamiltonians"), nanobind::arg("collapse_operators"));
 
   m.def(
       "checkSuperOpBatchingCompatibility",
       [](const std::vector<cudaq::super_op> &super_operators) {
-        return cudaq::__internal__::checkBatchingCompatibility(super_operators);
+        return cudaq::detail::checkBatchingCompatibility(super_operators);
       },
       nanobind::arg("super_operators"));
 

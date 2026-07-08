@@ -10,10 +10,10 @@
 #include "common/EigenDense.h"
 #include "common/SimulationState.h"
 #include "common/Timing.h"
-#include "cudaq/operators.h"
 #include "cutensornet.h"
 #include "tensornet_utils.h"
 #include "timing_utils.h"
+#include "cudaq/operators.h"
 #include <optional>
 #include <span>
 #include <unordered_map>

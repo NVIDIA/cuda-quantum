@@ -29,9 +29,8 @@
 # library is not found in the location defined by the corresponding environment variable
 # *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
-# can be used to customize which projects are built, and pybind11 will be built and 
-# installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
-# The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
+# can be used to customize which projects are built.
+# The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler
 # is installed. 
 # 
 # By default, all prerequisites outlined above are installed even if the
@@ -50,7 +49,7 @@ CMAKE_LINUX_INSTALLER_URL_BASE="https://github.com/Kitware/CMake/releases/downlo
 NINJA_VERSION=1.11.1
 NINJA_TARBALL_URL="https://github.com/ninja-build/ninja/archive/refs/tags/v${NINJA_VERSION}.tar.gz"
 
-ZLIB_VERSION=1.3.1
+ZLIB_VERSION=1.3.2
 ZLIB_TARBALL_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
 
 BLAS_VERSION=3.11.0
@@ -59,11 +58,11 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
 
-OPENSSL_VERSION=3.5.1
+OPENSSL_VERSION=3.6.3
 OPENSSL_TARBALL_URL="https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
 
-CURL_VERSION=8.5.0
-CURL_VERSION_UNDERSCORE=curl-8_5_0
+CURL_VERSION=8.21.0
+CURL_VERSION_UNDERSCORE=curl-8_21_0
 CURL_TARBALL_URL="https://github.com/curl/curl/releases/download/${CURL_VERSION_UNDERSCORE}/curl-${CURL_VERSION}.tar.gz"
 CACERT_URL="https://curl.se/ca/cacert.pem"
 CACERT_SHA256_URL="${CACERT_URL}.sha256"
@@ -150,7 +149,7 @@ if $lock_mode; then
     "url=${NINJA_TARBALL_URL}" \
     "version=${NINJA_VERSION}"
 
-  # [Zlib / Minizip]
+  # [Zlib]
   add_lock_line "zlib" \
     "type=tar" \
     "url=${ZLIB_TARBALL_URL}" \
@@ -206,13 +205,31 @@ echo "Building prerequisites in $PREREQS_BUILD_DIR"
 # Remove below if you wish to debug pre-req build failures
 trap "rm -rf $PREREQS_BUILD_DIR" EXIT
 
+# Retry a command, clearing package-manager metadata between attempts. The CUDA
+# yum repo CDN intermittently serves a stale repomd.xml that points at rotated
+# repodata files, producing 404s; clearing metadata forces a fresh fetch.
+function retry {
+  local n=0 max=5 delay=15
+  until "$@"; do
+    n=$((n+1))
+    if [ "$n" -ge "$max" ]; then
+      echo "Command failed after $max attempts: $*" >&2
+      return 1
+    fi
+    echo "Attempt $n/$max failed; clearing repo metadata and retrying in ${delay}s..." >&2
+    if [ -x "$(command -v dnf)" ]; then dnf clean all || true
+    elif [ -x "$(command -v apt-get)" ]; then apt-get clean || true; fi
+    sleep "$delay"
+  done
+}
+
 function temp_install_if_command_unknown {
   if [ ! -x "$(command -v $1)" ]; then
     if [ -x "$(command -v apt-get)" ]; then
-      if [ -z "$PKG_UNINSTALL" ]; then apt-get update; fi
-      apt-get install -y --no-install-recommends $2
+      if [ -z "$PKG_UNINSTALL" ]; then retry apt-get update; fi
+      retry apt-get install -y --no-install-recommends $2
     elif [ -x "$(command -v dnf)" ]; then
-      dnf install -y --nobest --setopt=install_weak_deps=False $2
+      retry dnf install -y --nobest --setopt=install_weak_deps=False $2
     elif [ -x "$(command -v brew)" ]; then
       HOMEBREW_NO_AUTO_UPDATE=1 brew install $2
     else
@@ -323,11 +340,10 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
-# [Minizip] Needed by rest_server for archive handling
-# Build both from source for consistency across platforms.
+# Build from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
-    echo "Installing libz and minizip..."
+  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
+    echo "Installing libz..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown automake automake
@@ -347,23 +363,11 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
-    cd contrib/minizip
-    # On macOS with Homebrew, set up environment for autoreconf:
-    # - Add Homebrew's m4 macros to aclocal search path
-    # - Point LIBTOOLIZE to glibtoolize (Homebrew's GNU libtoolize)
-    if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v brew)" ]; then
-      export ACLOCAL_PATH="$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
-      export LIBTOOLIZE=glibtoolize
-    fi
-    autoreconf --install
-    CC="$CC" CFLAGS="-fPIC" \
-    ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
-    make CC="$CC" && make install
 
     popd
     remove_temp_installs
   else
-    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
+    echo "libz already installed in $ZLIB_INSTALL_PREFIX."
   fi
 fi
 
@@ -390,7 +394,6 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "Installing LLVM libraries..."
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
-    PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
     bash "$this_file_dir/build_llvm.sh" -v

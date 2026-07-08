@@ -63,6 +63,7 @@ __pycache__/
 .vscode/*
 .theia/*
 *.code-workspace
+.env
 
 # Container files
 **/.docker/*

@@ -6,8 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t 2>&1 | FileCheck %s --check-prefix=QTM
+// clang-format on
 
 #include <cudaq.h>
 
@@ -17,7 +19,7 @@
 __qpu__ std::vector<bool> arg_size_bool(int n) {
   cudaq::qvector qs(n);
   x(qs);
-  return mz(qs);
+  return cudaq::to_bools(mz(qs));
 }
 
 __qpu__ std::vector<int> arg_size_int(int n) {
@@ -49,23 +51,26 @@ __qpu__ std::vector<bool> branch_vec_test(bool flip) {
   bool b = mz(ctrl);
   int sz = b ? 2 : 4;
   cudaq::qvector data(sz);
-  return mz(data);
+  return cudaq::to_bools(mz(data));
 }
 
 int main() {
   auto res1 = cudaq::run(1, arg_size_bool, 3);
   printf("Bool arg:");
-  for (bool b : res1[0]) printf(" %d", b ? 1 : 0);
+  for (bool b : res1[0])
+    printf(" %d", b ? 1 : 0);
   printf("\n");
 
   auto res2 = cudaq::run(1, arg_size_int, 3);
   printf("Int arg:");
-  for (int v : res2[0]) printf(" %d", v);
+  for (int v : res2[0])
+    printf(" %d", v);
   printf("\n");
 
   auto res3 = cudaq::run(1, arg_size_float, 3);
   printf("Float arg:");
-  for (float v : res3[0]) printf(" %.0f", v);
+  for (float v : res3[0])
+    printf(" %.0f", v);
   printf("\n");
 
   // Flush stdout before the expected Quantinuum failure so QTM checks see

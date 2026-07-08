@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iomanip>
@@ -53,7 +53,7 @@ class Qernel5 {
 public:
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(5);
-    return mz(q);
+    return cudaq::to_bools(mz(q));
   }
 };
 
@@ -61,7 +61,7 @@ class Qernel6 {
 public:
   std::vector<bool> operator()(int sz) __qpu__ {
     cudaq::qvector q(sz);
-    return mz(q);
+    return cudaq::to_bools(mz(q));
   }
 };
 

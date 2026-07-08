@@ -400,6 +400,7 @@ jobs:
         id: uploaded_image
         if: inputs.update_registry_cache == '' && inputs.build_target == ''
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ inputs.environment != '' }}; then
             image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
             echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
@@ -427,12 +428,12 @@ jobs:
             fi
             remote_tag=${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }}
             echo "Trying to pull remote tag $remote_image:$remote_tag."
-            docker pull $remote_image:$remote_tag || true
+            retry docker pull $remote_image:$remote_tag || true
             if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" == "" ]; then
               platform_tag=${{ needs.metadata.outputs.platform_tag }}
               remote_tag=`echo $remote_tag | sed s/"${platform_tag:+$platform_tag-}"//`
               echo "Trying to pull remote tag $remote_image:$remote_tag."
-              docker pull $remote_image:$remote_tag || true
+              retry docker pull $remote_image:$remote_tag || true
             fi
 
             if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" != "" ]; then

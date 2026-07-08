@@ -1,0 +1,50 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The mapper defers measurements to the end of the circuit, so unsupported
+// mid-circuit/adaptive measurements must fail the pass even in composable mode
+// (with raise-fatal-errors unset) rather than silently passing through an
+// unmapped circuit whose semantics it cannot preserve.
+
+// RUN: not cudaq-opt '--qubit-mapping=device=path(3)' %s -split-input-file 2>&1 | FileCheck %s
+
+quake.wire_set @wires[10]
+
+func.func @midcircuit_measure_default() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // CHECK: unsupported mid-circuit measurement
+  %meas, %wire = quake.mz %2#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.h %wire : (!quake.wire) -> !quake.wire
+  quake.return_wire %3 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires[10]
+
+func.func @adaptive_cfg_feedback_default() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %meas, %wire = quake.mz %0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %bit = quake.discriminate %meas : (!quake.measure) -> i1
+  cf.cond_br %bit, ^then, ^else
+
+^then:
+  cf.br ^done
+
+^else:
+  cf.br ^done
+
+^done:
+  // CHECK: unsupported measurement-dependent behavior
+  quake.return_wire %wire : !quake.wire
+  return
+}
