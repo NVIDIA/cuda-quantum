@@ -55,6 +55,25 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
     DISCOVERY_TIMEOUT 120)
 
+  # Pure-HOST_CALL host dispatch must work without a visible CUDA device. The
+  # binary hides every device from itself (CUDA_VISIBLE_DEVICES="" in its own
+  # main()), so this deliberately carries no gpu_required label: it runs on
+  # GPU-less CI runners and exercises the same no-device path everywhere.
+  # Plain CXX link: no .cu sources, and the shared cudaq-device-call-runtime
+  # carries the dispatcher, so no CUDA device-link step is needed.
+  add_executable(test_host_dispatch_no_gpu
+    device_call/HostDispatchNoGpuTester.cpp)
+  set_target_properties(test_host_dispatch_no_gpu PROPERTIES
+    ENABLE_EXPORTS ON)
+  target_link_libraries(test_host_dispatch_no_gpu
+    PRIVATE
+      cudaq-device-call-runtime
+      CUDA::cudart_static
+      gtest)
+
+  gtest_discover_tests(test_host_dispatch_no_gpu
+    DISCOVERY_TIMEOUT 120)
+
   # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
   # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
   # unless the loopback test topology is provided via environment variables.

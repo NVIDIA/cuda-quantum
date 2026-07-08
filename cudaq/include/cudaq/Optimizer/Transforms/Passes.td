@@ -433,20 +433,14 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
     distributed memory model.
   }];
 
-  // Realtime `stdvec` lowering may materialize `quake.discriminate` when
-  // converting measurement-handle vectors to boolean payload bytes.
-  let dependentDialects = ["mlir::LLVM::LLVMDialect",
-                           "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 
   let options = [
     Option<"insertTrapImplementation", "insert-trap", "bool",
       /*default=*/"false",
       "Enable pass to insert a default implementation (runtime trap) for "
       "device call (default=false). The default implementation has weak "
-      "linkage, i.e., allowed to be overridden at link time.">,
-    Option<"realtimeLowering", "realtime", "bool",
-      /*default=*/"false",
-      "Lower device calls to the realtime device-call frame ABI.">
+      "linkage, i.e., allowed to be overridden at link time.">
   ];
 }
 
@@ -1249,6 +1243,38 @@ def QubitResetBeforeReuse :
    not add any additional operations.
   }];
 
+}
+
+def RealtimeDeviceCall : Pass<"realtime-device-call", "mlir::ModuleOp"> {
+  let summary = "Lower cc.device_call operations to the realtime frame ABI.";
+
+  let description = [{
+    Lower `cc.device_call` operations to the realtime device-call frame ABI.
+    Each device call is rewritten into a sequence of runtime calls operating
+    on a leased request/response frame: acquire a frame from the selected
+    device channel, marshal the operands into the request payload, dispatch
+    the frame, and read the response back before releasing the frame.
+
+    The generated code calls
+    `__cudaq_device_call_acquire_realtime_frame`,
+    `__cudaq_device_call_dispatch_realtime_frame`, and
+    `__cudaq_device_call_safely_release_realtime_frame`, so the final
+    executable must be linked against a runtime that provides this leased
+    frame API.
+
+    Boolean vector payloads are marshaled through the private
+    `__nvqpp_RealtimePackBits`, `__nvqpp_RealtimePackMeasurements`, and
+    `__nvqpp_RealtimeUnpackBits` intrinsic functions. Run the `inline`
+    pass afterwards to expand these helpers at their call sites.
+  }];
+
+  // The lowering materializes `cc` and `arith` ops for payload sizing and
+  // marshaling, `func` calls/declarations for the runtime ABI, and may
+  // materialize `quake.discriminate` (within the loaded packing intrinsics)
+  // when converting measurement-handle vectors to boolean payload bytes.
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+                           "mlir::func::FuncDialect",
+                           "cudaq::quake::QuakeDialect"];
 }
 
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {

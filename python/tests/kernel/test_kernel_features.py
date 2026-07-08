@@ -1965,6 +1965,22 @@ def test_no_param_no_return():
     kernel()
 
 
+def test_bare_return_from_value_returning_kernel():
+
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "return statement in a value-returning kernel must return a value"):
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                return
+            return 1
+
+        kernel.compile()
+
+
 def test_measure_variadic_qubits():
 
     @cudaq.kernel
