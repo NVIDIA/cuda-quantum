@@ -7,6 +7,8 @@
 # ============================================================================ #
 
 add_executable(test_target_config TargetConfigTester.cpp)
+target_compile_definitions(test_target_config
+  PRIVATE "CUDAQ_TEST_VERSION=\"${CUDA_QUANTUM_VERSION}\"")
 
 # Tiny shared library used by the plugin-libraries test. Its constructor writes
 # a sentinel file, giving the test a concrete signal that dlopen() happened.

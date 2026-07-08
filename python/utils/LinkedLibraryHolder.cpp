@@ -11,6 +11,7 @@
 #include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
 #include "cudaq/Support/Plugin.h"
+#include "cudaq/Support/Version.h"
 #include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -482,6 +483,17 @@ void LinkedLibraryHolder::setTarget(
     throw std::runtime_error("Invalid target name (" + targetName + ").");
 
   auto &target = iter->second;
+  if (!target.pluginLibDir.empty()) {
+    const auto compatibility = cudaq::config::checkExternalTargetVersion(
+        target.config, cudaq::getVersion(), target.pluginYamlPath());
+    if (compatibility.Status ==
+        cudaq::config::TargetVersionCompatibility::Error)
+      throw std::runtime_error(compatibility.Diagnostic);
+    if (compatibility.Status ==
+        cudaq::config::TargetVersionCompatibility::Warning)
+      fmt::print(stderr, "{}\n", compatibility.Diagnostic);
+  }
+
   if (!target.config.WarningMsg.empty()) {
     fmt::print(fmt::fg(fmt::color::red), "[warning] ");
     // Output the warning message if any

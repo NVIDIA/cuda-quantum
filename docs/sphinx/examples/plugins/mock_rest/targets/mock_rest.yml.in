@@ -8,6 +8,7 @@
 
 name: mock_rest
 description: "Reference REST-style external QPU plugin."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
 config:
   platform-qpu: remote_rest
   gen-target-backend: true

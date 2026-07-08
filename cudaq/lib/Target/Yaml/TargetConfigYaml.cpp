@@ -401,6 +401,7 @@ void MappingTraits<cudaq::config::TargetConfig>::mapping(
     IO &io, cudaq::config::TargetConfig &info) {
   io.mapRequired("name", info.Name);
   io.mapRequired("description", info.Description);
+  io.mapOptional("cudaq-version", info.CudaqVersion);
   io.mapOptional("warning", info.WarningMsg);
   io.mapOptional("target-arguments", info.TargetArguments);
   io.mapOptional("gpu-requirements", info.GpuRequired);

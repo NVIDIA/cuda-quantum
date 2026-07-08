@@ -32,17 +32,21 @@ protected:
 
   void TearDown() override { std::filesystem::remove_all(tmpRoot); }
 
-  std::filesystem::path createBackendPackage(const std::string &name,
-                                             bool createSo = false) {
+  std::filesystem::path
+  createBackendPackage(const std::string &name, bool createSo = false,
+                       std::string version = CUDAQ_TEST_VERSION) {
     auto root = tmpRoot / name;
     auto targetsDir = root / "targets";
     auto libDir = root / "lib";
     std::filesystem::create_directories(targetsDir);
     std::filesystem::create_directories(libDir);
 
-    std::ofstream(targetsDir / (name + ".yml"))
-        << "name: " << name << "\ndescription: \"Test backend.\"\nconfig:\n"
-        << "  platform-qpu: remote_rest\n  library-mode: false\n";
+    std::ofstream configFile(targetsDir / (name + ".yml"));
+    configFile << "name: " << name << "\ndescription: \"Test backend.\"\n";
+    if (!version.empty())
+      configFile << "cudaq-version: \"" << version << "\"\n";
+    configFile << "config:\n"
+               << "  platform-qpu: remote_rest\n  library-mode: false\n";
 
     if (createSo)
       std::ofstream(libDir / ("libcudaq-serverhelper-" + name + ".so")).close();
@@ -50,6 +54,73 @@ protected:
     return root;
   }
 };
+
+TEST(TargetConfigTester, parsesCudaqVersion) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+name: version-test
+description: Version parsing test
+cudaq-version: "0.9.0-rc2+build.1"
+config:
+  library-mode: true
+)");
+  EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
+}
+
+TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
+  using Compatibility = cudaq::config::TargetVersionCompatibility;
+  struct TestCase {
+    const char *Plugin;
+    const char *Current;
+    Compatibility Expected;
+  };
+  const TestCase cases[] = {
+      {"0.9.0", "0.8.1", Compatibility::Error},
+      {"0.9.2", "0.9.1", Compatibility::Error},
+      {"0.10.0", "0.9.9", Compatibility::Error},
+      {"0.9.0", "0.9.0", Compatibility::Compatible},
+      {"0.9.0", "0.9.3", Compatibility::Compatible},
+      {"0.9.0", "0.10.0", Compatibility::Warning},
+      {"0.9.0", "1.0.0", Compatibility::Warning},
+      {"0.9.0", "0.9.0-rc2-developer", Compatibility::Compatible},
+  };
+
+  cudaq::config::TargetConfig config;
+  config.Name = "version-test";
+  for (const auto &test : cases) {
+    config.CudaqVersion = test.Plugin;
+    const auto result = cudaq::config::checkExternalTargetVersion(
+        config, test.Current, "/tmp/version-test.yml");
+    EXPECT_EQ(result.Status, test.Expected)
+        << "plugin=" << test.Plugin << " current=" << test.Current;
+    if (test.Expected != Compatibility::Compatible) {
+      EXPECT_NE(result.Diagnostic.find("version-test"), std::string::npos);
+      EXPECT_NE(result.Diagnostic.find("/tmp/version-test.yml"),
+                std::string::npos);
+    }
+  }
+}
+
+TEST(TargetConfigTester, rejectsMissingAndMalformedVersionMetadata) {
+  using Compatibility = cudaq::config::TargetVersionCompatibility;
+  cudaq::config::TargetConfig config;
+  config.Name = "version-test";
+
+  for (const auto *version : {"", "0.9", "v0.9.0", "0.-1.0"}) {
+    config.CudaqVersion = version;
+    const auto result = cudaq::config::checkExternalTargetVersion(
+        config, "0.9.0", "/tmp/version-test.yml");
+    EXPECT_EQ(result.Status, Compatibility::Error);
+    EXPECT_NE(result.Diagnostic.find("missing or malformed"),
+              std::string::npos);
+  }
+
+  config.CudaqVersion = "0.9.0";
+  const auto malformedCurrent = cudaq::config::checkExternalTargetVersion(
+      config, "developer", "/tmp/version-test.yml");
+  EXPECT_EQ(malformedCurrent.Status, Compatibility::Error);
+  EXPECT_NE(malformedCurrent.Diagnostic.find("current CUDA-Q version"),
+            std::string::npos);
+}
 
 TEST(TargetConfigTester, checkMachineList) {
   const std::string configYmlContents = R"(
@@ -242,6 +313,19 @@ TEST_F(ExternalBackendTester, registerBackendPath_rejectsMissingTargetsDir) {
   }
 }
 
+TEST_F(ExternalBackendTester, setTargetRequiresValidPluginVersionMetadata) {
+  const auto missingRoot = createBackendPackage("missing-version", false, "");
+  const auto malformedRoot =
+      createBackendPackage("malformed-version", false, "not-a-version");
+
+  cudaq::LinkedLibraryHolder holder;
+  holder.registerBackendPath(missingRoot);
+  holder.registerBackendPath(malformedRoot);
+
+  EXPECT_THROW(holder.setTarget("missing-version"), std::runtime_error);
+  EXPECT_THROW(holder.setTarget("malformed-version"), std::runtime_error);
+}
+
 TEST_F(ExternalBackendTester, pluginLibrariesFieldIsParsed) {
   auto root = tmpRoot / "pluginlibtest";
   auto targetsDir = root / "targets";
@@ -293,6 +377,7 @@ TEST_F(ExternalBackendTester, pluginLibrariesAreDlopenedOnSetTarget) {
   std::ofstream(targetsDir / "my-backend.yml") << R"(
 name: my-backend
 description: Plugin-libraries dlopen test
+cudaq-version: 0.0.0
 target-arguments: []
 config:
   nvqir-simulation-backend: qpp
@@ -306,8 +391,50 @@ config:
   holder.registerBackendPath(root);
 
   EXPECT_FALSE(std::filesystem::exists(sentinelPath));
+  testing::internal::CaptureStderr();
   EXPECT_NO_THROW(holder.setTarget("my-backend"));
+  const auto warning = testing::internal::GetCapturedStderr();
+  EXPECT_NE(warning.find("compatibility is not guaranteed"), std::string::npos);
   EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
+}
+
+TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {
+  auto root = tmpRoot / "pluginversiontest";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+
+  const auto pluginPath =
+      std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
+  const auto pluginFileName =
+      std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
+  std::filesystem::copy_file(pluginPath, libDir / pluginFileName,
+                             std::filesystem::copy_options::overwrite_existing);
+
+  const auto sentinelPath = tmpRoot / "version-failure-dlopen.sentinel";
+  std::filesystem::remove(sentinelPath);
+  setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
+
+  std::ofstream(targetsDir / "future-backend.yml") << R"(
+name: future-backend
+description: Future-version plugin test
+cudaq-version: 999999.0.0
+target-arguments: []
+config:
+  nvqir-simulation-backend: qpp
+  library-mode: false
+  plugin-libraries:
+    - )" << pluginFileName << R"(
+)";
+
+  cudaq::LinkedLibraryHolder holder;
+  holder.registerBackendPath(root);
+
+  EXPECT_FALSE(std::filesystem::exists(sentinelPath));
+  EXPECT_THROW(holder.setTarget("future-backend"), std::runtime_error);
+  EXPECT_FALSE(std::filesystem::exists(sentinelPath));
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 

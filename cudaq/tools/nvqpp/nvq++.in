@@ -112,6 +112,7 @@ function resolve_target_config_file {
 	local target_name="$1"
 	RESOLVED_TARGET_CONFIG_YML_FILE="${install_dir}/targets/${target_name}.yml"
 	RESOLVED_TARGET_PLUGIN_LIB_DIR=
+	RESOLVED_TARGET_IS_EXTERNAL=false
 	if [ -f "${RESOLVED_TARGET_CONFIG_YML_FILE}" ]; then
 		return 0
 	fi
@@ -130,6 +131,7 @@ function resolve_target_config_file {
 			if [ -f "${plugin_config}" ]; then
 				RESOLVED_TARGET_CONFIG_YML_FILE="${plugin_config}"
 				RESOLVED_TARGET_PLUGIN_LIB_DIR="${plugin_root}/lib"
+				RESOLVED_TARGET_IS_EXTERNAL=true
 				return 0
 			fi
 		done
@@ -244,7 +246,11 @@ function list_simulators {
 function get_simulation_backend {
 	if resolve_target_config_file "$1"; then
 		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
-		run ${TOOLBIN}cudaq-target-conf -o ${OUT_CONFIG_FILENAME} ${RESOLVED_TARGET_CONFIG_YML_FILE}
+		TARGET_CONF_EXTERNAL_ARG=
+		if ${RESOLVED_TARGET_IS_EXTERNAL}; then
+			TARGET_CONF_EXTERNAL_ARG=--external-plugin
+		fi
+		run ${TOOLBIN}cudaq-target-conf ${TARGET_CONF_EXTERNAL_ARG} -o ${OUT_CONFIG_FILENAME} ${RESOLVED_TARGET_CONFIG_YML_FILE}
 		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
 		line=$(grep "NVQIR_SIMULATION_BACKEND=" "${OUT_CONFIG_FILENAME}")
 		if [ $? -eq 0 ]; then
@@ -796,7 +802,11 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			LINKDIRS="${LINKDIRS} -L${RESOLVED_TARGET_PLUGIN_LIB_DIR}"
 		fi
 		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
-		run ${TOOLBIN}cudaq-target-conf --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_YML_FILE}
+		TARGET_CONF_EXTERNAL_ARG=
+		if ${RESOLVED_TARGET_IS_EXTERNAL}; then
+			TARGET_CONF_EXTERNAL_ARG=--external-plugin
+		fi
+		run ${TOOLBIN}cudaq-target-conf ${TARGET_CONF_EXTERNAL_ARG} --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_YML_FILE}
 		# Load the generated config variables
 		. "${OUT_CONFIG_FILENAME}"
 		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
