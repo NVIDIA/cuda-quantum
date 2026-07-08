@@ -9,9 +9,11 @@
 #pragma once
 
 namespace mlir {
+class ConversionTarget;
 class RewritePatternSet;
 }
 
 namespace cudaq::codegen {
 void populateQuakeToCodegenPatterns(mlir::RewritePatternSet &);
+void setQuakeToCodegenLegality(mlir::ConversionTarget &);
 }

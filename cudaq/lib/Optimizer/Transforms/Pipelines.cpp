@@ -74,7 +74,7 @@ struct TargetFinalizationJitPipelineOptions
 
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
@@ -208,7 +208,7 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

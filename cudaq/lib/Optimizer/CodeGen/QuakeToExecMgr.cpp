@@ -17,6 +17,15 @@
 
 #define DEBUG_TYPE "quake-to-cc"
 
+/// \file
+
+/// This file contains a set of OpConversionPatterns so that they may work with
+/// a partial conversion rewriter. Two conversion sets can be populated along
+/// with their target settings. `populateQuakeToCCPatterns` and
+/// `setQuakeToCCLegality` can be used for lowering Quake to the CC
+/// dialect. `populatrQuakeToCCPrepPatterns` and `setQuakeToCCPrepLegality` can
+/// be used for establishing the `quake.mx` and `quake.my` conversions only.
+
 using namespace mlir;
 
 cudaq::cc::PointerType
@@ -415,31 +424,61 @@ public:
 };
 
 /// Convert a MX operation to a sequence H; MZ.
-class MxToMzRewrite : public OpRewritePattern<cudaq::quake::MxOp> {
+class MxToMzRewrite : public OpConversionPattern<cudaq::quake::MxOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  using OpConversionPattern::OpConversionPattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::MxOp mx,
-                                PatternRewriter &rewriter) const override {
-    cudaq::quake::HOp::create(rewriter, mx.getLoc(), mx.getTargets());
-    rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
-        mx, mx.getResultTypes(), mx.getTargets(), mx.getRegisterNameAttr());
+  LogicalResult
+  matchAndRewrite(cudaq::quake::MxOp mx, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = mx.getLoc();
+    if (mx.getResults().size() == 1) {
+      cudaq::quake::HOp::create(rewriter, loc, adaptor.getTargets());
+      rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(mx, mx.getResultTypes(),
+                                                      adaptor.getTargets(),
+                                                      mx.getRegisterNameAttr());
+    } else {
+      TypeRange resTys = mx.getResultTypes();
+      resTys = resTys.drop_front(1);
+      auto hop =
+          cudaq::quake::HOp::create(rewriter, loc, resTys,
+                                    /*is_adj=*/false, ValueRange{},
+                                    ValueRange{}, adaptor.getTargets(), {});
+      rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
+          mx, mx.getResultTypes(), hop.getResults(), mx.getRegisterNameAttr());
+    }
     return success();
   }
 };
 
 /// Convert a MY operation to a sequence S; H; MZ.
-class MyToMzRewrite : public OpRewritePattern<cudaq::quake::MyOp> {
+class MyToMzRewrite : public OpConversionPattern<cudaq::quake::MyOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  using OpConversionPattern::OpConversionPattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::MyOp my,
-                                PatternRewriter &rewriter) const override {
-    cudaq::quake::SOp::create(rewriter, my.getLoc(), true, ValueRange{},
-                              ValueRange{}, my.getTargets());
-    cudaq::quake::HOp::create(rewriter, my.getLoc(), my.getTargets());
-    rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
-        my, my.getResultTypes(), my.getTargets(), my.getRegisterNameAttr());
+  LogicalResult
+  matchAndRewrite(cudaq::quake::MyOp my, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = my.getLoc();
+    if (my.getResults().size() == 1) {
+      cudaq::quake::SOp::create(rewriter, loc, /*is_adj=*/true, ValueRange{},
+                                ValueRange{}, adaptor.getTargets());
+      cudaq::quake::HOp::create(rewriter, loc, adaptor.getTargets());
+      rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
+          my, my.getResultTypes(), my.getTargets(), my.getRegisterNameAttr());
+    } else {
+      TypeRange resTys = my.getResultTypes();
+      resTys = resTys.drop_front(1);
+      auto sop =
+          cudaq::quake::SOp::create(rewriter, loc, resTys,
+                                    /*is_adj=*/true, ValueRange{}, ValueRange{},
+                                    adaptor.getTargets(), {});
+      auto hop = cudaq::quake::HOp::create(rewriter, loc, resTys,
+                                           /*is_adj=*/false, ValueRange{},
+                                           ValueRange{}, sop->getResults(), {});
+      rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
+          my, my.getResultTypes(), hop.getResults(), my.getRegisterNameAttr());
+    }
     return success();
   }
 };
@@ -481,6 +520,27 @@ void cudaq::opt::populateQuakeToCCPatterns(TypeConverter &converter,
       converter, context);
 }
 
+void cudaq::opt::setQuakeToCCLegality(ConversionTarget &target) {
+  target.addIllegalOp<
+      cudaq::quake::AllocaOp, cudaq::quake::ConcatOp, cudaq::quake::DeallocOp,
+      cudaq::quake::DiscriminateOp, cudaq::quake::ExtractRefOp,
+      cudaq::quake::VeqSizeOp, cudaq::quake::MzOp, cudaq::quake::ResetOp,
+      cudaq::quake::SubVeqOp, cudaq::quake::HOp, cudaq::quake::PhasedRxOp,
+      cudaq::quake::R1Op, cudaq::quake::RxOp, cudaq::quake::RyOp,
+      cudaq::quake::RzOp, cudaq::quake::SOp, cudaq::quake::SwapOp,
+      cudaq::quake::TOp, cudaq::quake::U2Op, cudaq::quake::U3Op,
+      cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>();
+    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
+                           cf::ControlFlowDialect, func::FuncDialect,
+                           LLVM::LLVMDialect>();
+    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
+}
+
 void cudaq::opt::populateQuakeToCCPrepPatterns(RewritePatternSet &patterns) {
   patterns.insert<MxToMzRewrite, MyToMzRewrite>(patterns.getContext());
+}
+
+void cudaq::opt::setQuakeToCCPrepLegality(ConversionTarget &target) {
+  target.addIllegalOp<cudaq::quake::MxOp, cudaq::quake::MyOp>();
+  target.addLegalOp<cudaq::quake::MzOp, cudaq::quake::HOp, cudaq::quake::SOp>();
 }

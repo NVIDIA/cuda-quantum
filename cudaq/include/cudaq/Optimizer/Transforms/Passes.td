@@ -15,6 +15,15 @@ include "mlir/Pass/PassBase.td"
 // the passes are listed in alphabetical order. Changes that add passes in
 // non-alphabetical order should get a Request Changes.
 
+def AddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
+  let summary = "Add quake deallocs to functions before they return.";
+  let description = [{
+    This pass ensures that a dealloc is inserted before functions return
+    if the function contains a AllocaOp. It should be run before converting
+    to QIR, for example, in order to generate correct code.
+  }];
+}
+
 def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
   let summary = "Add measurement operations.";
   let description = [{
@@ -1189,17 +1198,6 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
-def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
-  let summary = "Add quake deallocs to functions before they return.";
-  let description = [{
-    This pass ensures that a dealloc is inserted before functions return
-    if the function contains a AllocaOp. It should be run before converting
-    to QIR, for example, in order to generate correct code.
-  }];
-
-  let constructor = "cudaq::opt::createQuakeAddDeallocs()";
-}
-
 def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let summary = "Add various metadata attributes to a Quake function.";
   let description = [{
@@ -1297,7 +1295,22 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     use cloning to recover such a finite DAG representation. This pass does not,
     however, attempt to perform such heroics.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
+}
+
+def RepairLinearType : Pass<"repair-linear-type", "mlir::func::FuncOp"> {
+  let summary = "Repair linear type constraints.";
+  let description = [{
+    The desired linear type constraint is that a value of linear type must be
+    used exactly once. That is \e not SSA. Unfortunately, MLIR assumes SSA
+    semantics at a very deep level and can and will destroy the linear type
+    constraints in its own default optimizations.
+
+    Running this pass will repair the damage in such a way that the linear type
+    value is lifted to a reference type, which is a valid SSA value.
+  }];
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
 }
 
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",

@@ -21,6 +21,13 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+template <typename C>
+void filterArgs(SmallVector<Value> &args, C collection) {
+  for (auto item : collection)
+    if (cudaq::quake::isQuantumValueType(item.getType()))
+      args.push_back(item);
+}
+
 // Apply some simple quantum optimizations to quake. The quake operations are
 // expected to be in the value-semantics (having wire or control type operands).
 
@@ -92,8 +99,8 @@ public:
 
     // Eliminate the back-to-back Hermitian gates.
     SmallVector<Value> newOperands;
-    newOperands.append(prevCtls.begin(), prevCtls.end());
-    newOperands.append(prevTrgs.begin(), prevTrgs.end());
+    filterArgs(newOperands, prevCtls);
+    filterArgs(newOperands, prevTrgs);
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << qop << '\n' << prev << '\n');
     rewriter.replaceOp(qop, newOperands);
     rewriter.eraseOp(prev);
@@ -184,11 +191,95 @@ public:
 
     // Eliminate the back-to-back Hermitian swap gates.
     SmallVector<Value> newOperands;
-    newOperands.append(prevCtls.begin(), prevCtls.end());
-    newOperands.append(prevTrgs.begin(), prevTrgs.end());
+    filterArgs(newOperands, prevCtls);
+    filterArgs(newOperands, prevTrgs);
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << qop << '\n' << prev0 << '\n');
     rewriter.replaceOp(qop, newOperands);
     rewriter.eraseOp(prev0);
+    return success();
+  }
+};
+
+template <typename QOP>
+class AdjointElimination : public OpRewritePattern<QOP> {
+public:
+  using Base = OpRewritePattern<QOP>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(QOP qop,
+                                PatternRewriter &rewriter) const override {
+    if (qop.getNegatedQubitControls())
+      return failure();
+
+    auto targets = qop.getTargets();
+    if (targets.size() != 1 ||
+        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
+      LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
+      return failure();
+    }
+    Value trgt = targets[0];
+
+    // Check that these are the same op back-to-back.
+    auto prev = targets[0].template getDefiningOp<QOP>();
+    if (!prev) {
+      LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same class\n");
+      return failure();
+    }
+    if (prev.getNegatedQubitControls())
+      return failure();
+
+    // If the two are not converse in their adjoint setting, nothing to do.
+    if (qop.isAdj() == prev.isAdj()) {
+      LLVM_DEBUG(llvm::dbgs() << "operations [" << qop << ", " << prev
+                              << "] are not adjoint inverses\n");
+      return failure();
+    }
+
+    // Check target is properly threaded.
+    auto prevTrgs = prev.getTargets();
+    if (prevTrgs.size() != 1) {
+      LLVM_DEBUG(llvm::dbgs() << "previous operation must have 1 target\n");
+      return failure();
+    }
+    Value prevTrgt = prevTrgs[0];
+    auto last = prev.getNumResults() - 1;
+    if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
+        trgt != prev.getResult(last)) {
+      LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n");
+      return failure();
+    }
+
+    // Check that the controls (if any) are the same qubits.
+    auto controls = qop.getControls();
+    auto prevCtls = prev.getControls();
+    if (controls.size() != prevCtls.size()) {
+      LLVM_DEBUG(llvm::dbgs() << "must have the same number of controls\n");
+      return failure();
+    }
+    for (auto iter : llvm::enumerate(llvm::zip(controls, prevCtls))) {
+      auto n = iter.index();
+      auto [c, pc] = iter.value();
+      if (isa<cudaq::quake::ControlType>(c.getType()))
+        if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc) {
+          LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
+          return failure();
+        }
+      if (!isa<cudaq::quake::WireType>(c.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          c != prev.getResult(n)) {
+        LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
+        return failure();
+      }
+    }
+
+    // Eliminate the back-to-back gates.
+    SmallVector<Value> newOperands;
+    filterArgs(newOperands, prevCtls);
+    filterArgs(newOperands, prevTrgs);
+    LLVM_DEBUG(llvm::dbgs() << "eliminated: " << qop << '\n' << prev << '\n');
+    rewriter.replaceOp(qop, newOperands);
+    rewriter.eraseOp(prev);
     return success();
   }
 };
@@ -203,6 +294,21 @@ public:
                                 PatternRewriter &rewriter) const override {
     if (qop.getNegatedQubitControls())
       return failure();
+
+    if (std::all_of(qop.getParameters().begin(), qop.getParameters().end(),
+                    [&](Value v) {
+                      auto ofr = getAsOpFoldResult(v);
+                      return isZeroFloat(ofr);
+                    })) {
+      // Forward the target to the uses.
+      LLVM_DEBUG(llvm::dbgs() << "zero rotation eliminated [" << qop << "]\n");
+      SmallVector<Value> newOperands;
+      filterArgs(newOperands, qop.getControls());
+      filterArgs(newOperands, qop.getTargets());
+
+      rewriter.replaceOp(qop, newOperands);
+      return success();
+    }
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
@@ -316,7 +422,7 @@ public:
     }
     Value trgt = targets[0];
 
-    // Check that these are the same Hermitian op back-to-back.
+    // Check that these are the same op back-to-back.
     auto prev = targets[0].template getDefiningOp<cudaq::quake::SOp>();
     if (!prev) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same\n");
@@ -324,6 +430,10 @@ public:
     }
     if (prev.getNegatedQubitControls())
       return failure();
+    if (qop.isAdj() != prev.isAdj()) {
+      LLVM_DEBUG(llvm::dbgs() << "operations have converse adjoint\n");
+      return failure();
+    }
 
     // Check target is properly threaded.
     auto prevTrgs = prev.getTargets();
@@ -404,7 +514,7 @@ public:
     }
     Value trgt = targets[0];
 
-    // Check that these are the same Hermitian op back-to-back.
+    // Check that these are the same op back-to-back.
     auto prev = targets[0].template getDefiningOp<cudaq::quake::TOp>();
     if (!prev) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be T\n");
@@ -412,6 +522,10 @@ public:
     }
     if (prev.getNegatedQubitControls())
       return failure();
+    if (qop.isAdj() != prev.isAdj()) {
+      LLVM_DEBUG(llvm::dbgs() << "operations have converse adjoint\n");
+      return failure();
+    }
 
     // Check target is properly threaded.
     auto prevTrgs = prev.getTargets();
@@ -495,7 +609,6 @@ public:
     }
     Value trgt = targets[0];
 
-    // Check that these are the same Hermitian op back-to-back.
     auto prev0 = targets[0].template getDefiningOp<cudaq::quake::SOp>();
     if (!prev0) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be S\n");
@@ -579,6 +692,8 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto *op = getOperation();
+    GreedyRewriteConfig config;
+    config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
     RewritePatternSet patterns(ctx);
     patterns.insert<DoubleSOp, DoubleTOp, ReduceYSX,
                     HermitianElimination<cudaq::quake::HOp>,
@@ -586,12 +701,14 @@ public:
                     HermitianElimination<cudaq::quake::XOp>,
                     HermitianElimination<cudaq::quake::YOp>,
                     HermitianElimination<cudaq::quake::ZOp>,
+                    AdjointElimination<cudaq::quake::SOp>,
+                    AdjointElimination<cudaq::quake::TOp>,
                     RotationCombine<cudaq::quake::R1Op>,
                     RotationCombine<cudaq::quake::RxOp>,
                     RotationCombine<cudaq::quake::RyOp>,
                     RotationCombine<cudaq::quake::RzOp>,
                     RotationCombine<cudaq::quake::PhasedRxOp>>(ctx);
-    if (failed(applyPatternsGreedily(op, std::move(patterns))))
+    if (failed(applyPatternsGreedily(op, std::move(patterns), config)))
       signalPassFailure();
   }
 };

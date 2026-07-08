@@ -70,7 +70,7 @@ void createCommonTargetCodegenPipeline(
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
     pm.addPass(cudaq::opt::createQuakePropagateMetadata());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
@@ -101,11 +101,14 @@ void createTargetCodegenPipeline(PassManager &pm,
   if (useValueSemantics) {
     pm.addNestedPass<func::FuncOp>(
         cudaq::opt::createFactorQuantumAllocations());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createCableRoughIn());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createRepairLinearType());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createRepairLinearType());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
