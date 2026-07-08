@@ -683,6 +683,52 @@ public:
   }
 };
 
+// A reset after a reset can be eliminated as it is redundant.
+class EraseDoubleReset : public OpRewritePattern<cudaq::quake::ResetOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ResetOp reset,
+                                PatternRewriter &rewriter) const override {
+    Value target = reset.getTargets();
+    auto *ctx = rewriter.getContext();
+    if (target.getType() != cudaq::quake::WireType::get(ctx))
+      return failure();
+    auto reset0 = target.template getDefiningOp<cudaq::quake::ResetOp>();
+    if (!reset0) {
+      LLVM_DEBUG(llvm::dbgs() << "previous operation must be reset\n");
+      return failure();
+    }
+
+    LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
+    rewriter.replaceOp(reset, reset0.getResults());
+    return success();
+  }
+};
+
+// A reset before a sink can be eliminated as the wire is going out of scope.
+class EraseResetSink : public OpRewritePattern<cudaq::quake::SinkOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::SinkOp sink,
+                                PatternRewriter &rewriter) const override {
+    Value target = sink.getTarget();
+    auto *ctx = rewriter.getContext();
+    if (target.getType() != cudaq::quake::WireType::get(ctx))
+      return failure();
+    auto reset0 = target.template getDefiningOp<cudaq::quake::ResetOp>();
+    if (!reset0) {
+      LLVM_DEBUG(llvm::dbgs() << "previous operation must be reset\n");
+      return failure();
+    }
+
+    LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset0 << '\n');
+    rewriter.replaceOp(reset0, reset0.getTargets());
+    return success();
+  }
+};
+
 namespace {
 class QuakeSimplifyPass
     : public cudaq::opt::impl::QuakeSimplifyBase<QuakeSimplifyPass> {
@@ -695,8 +741,8 @@ public:
     GreedyRewriteConfig config;
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
     RewritePatternSet patterns(ctx);
-    patterns.insert<DoubleSOp, DoubleTOp, ReduceYSX,
-                    HermitianElimination<cudaq::quake::HOp>,
+    patterns.insert<DoubleSOp, DoubleTOp, EraseDoubleReset, EraseResetSink,
+                    ReduceYSX, HermitianElimination<cudaq::quake::HOp>,
                     HermitianElimination<cudaq::quake::SwapOp>,
                     HermitianElimination<cudaq::quake::XOp>,
                     HermitianElimination<cudaq::quake::YOp>,

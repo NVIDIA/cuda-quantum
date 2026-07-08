@@ -107,7 +107,6 @@ void createTargetCodegenPipeline(PassManager &pm,
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createRepairLinearType());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createRepairLinearType());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }
   ::addQIRConversionPipeline(pm, options.target);
