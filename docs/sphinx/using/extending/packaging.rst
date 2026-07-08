@@ -3,9 +3,10 @@ Package & Distribute a Backend Plugin
 **********************************************
 
 This guide covers how to package a CUDA-Q backend implementation as an
-installable plugin and make it discoverable by both the Python runtime and
-``nvq++``. For how to *implement* a backend (``ServerHelper`` or ``QPU``
-subclass), see :doc:`backend`.
+installable Python package, distribute it to end users of the target, and make
+it discoverable by both the Python runtime and ``nvq++`` after they install it.
+For how to *implement* a backend (``ServerHelper`` or ``QPU`` subclass), see
+:doc:`backend`.
 
 
 Plugin Package Layout
@@ -111,7 +112,17 @@ Python Packaging
 ================
 
 A plugin ships as a standard Python package with a ``cudaq.backends`` entry
-point that makes it discoverable at ``import cudaq`` time.
+point that makes it discoverable at ``import cudaq`` time. The package includes
+the target YAML and shared library, allowing the plugin author to build a wheel
+and publish it to a package index or distribute it directly. End users can then
+install that package into their own CUDA-Q environments without building the
+plugin from source.
+
+Because the package contains a native shared library, it is platform-specific.
+Plugin authors must build and distribute a separate package for each operating
+system and architecture required by their users. When distributing wheels,
+ensure that each wheel has the platform tag matching the platform targeted by
+its shared library; do not distribute the package as a platform-agnostic wheel.
 
 ``pyproject.toml``
 ------------------
@@ -185,10 +196,13 @@ This lets users run ``python -m my_backend_cudaq --install-nvqpp`` to symlink
 the installed package into the ``nvq++`` user plugin scope.
 
 
-Installation
-============
+Installing the Plugin for End Users
+===================================
 
-There are three installation paths depending on the workflow:
+In this section, "installation" means installation by an end user who wants to
+use the target. It is separate from the preceding build and packaging steps
+performed by the plugin author. The steps an end user follows depend on how the
+plugin is distributed and whether they access the target from Python or C++:
 
 ``pip install`` (Python — zero config)
 --------------------------------------
@@ -197,15 +211,17 @@ There are three installation paths depending on the workflow:
 
     pip install my-backend-cudaq
 
-After installation, ``import cudaq`` discovers the entry point automatically.
-No further configuration is needed — ``cudaq.set_target("my-backend")`` works
-immediately.
+This installs the Python package previously published or otherwise distributed
+by the plugin author. After installation in the end user's Python environment,
+``import cudaq`` discovers the entry point automatically. No further
+configuration is needed — ``cudaq.set_target("my-backend")`` works immediately.
 
 ``--install-nvqpp`` (make visible to ``nvq++``)
 -----------------------------------------------
 
 The Python entry-point mechanism only fires inside a Python process. To make
-the same plugin visible to the ``nvq++`` compiler driver:
+the Python package that the end user installed above visible to the ``nvq++``
+compiler driver as well:
 
 .. code-block:: bash
 

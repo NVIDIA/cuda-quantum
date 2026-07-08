@@ -5,7 +5,9 @@ Extending CUDA-Q with a new Hardware Backend
 This guide explains how to create a new quantum hardware backend for CUDA-Q.
 All external backends are developed as **external plugins** — self-contained packages
 that register targets with the CUDA-Q runtime without modifying the core
-repository.
+repository. Plugin authors can distribute these plugins as Python packages so
+that end users of the target can install them into their own CUDA-Q
+environments.
 
 This guide covers the most common backend shape: a **REST-style backend** that
 subclasses ``ServerHelper`` to communicate with a provider's REST API, reusing
@@ -342,7 +344,11 @@ See the reference plugins' ``tests/`` directories for concrete examples:
 Example Usage
 =============
 
-Once your plugin is installed, users interact with it like any built-in target:
+After an end user installs the distributed plugin package, they interact with
+its target like any built-in target. Here, "installed" refers to installing the
+plugin in the target user's CUDA-Q environment, not to the plugin author's
+build process. See :doc:`packaging` for how to create and distribute the Python
+package and for the commands end users run to install it.
 
 .. tab:: Python
 
@@ -376,5 +382,6 @@ Next Steps
 ==========
 
 Once you have a working backend implementation, see :doc:`packaging` to learn
-how to package it as an installable Python wheel, make it discoverable by
-``nvq++``, and distribute it to users.
+how to build platform-specific, installable Python wheels, make the plugin
+discoverable by ``nvq++``, and distribute it for the operating systems and
+architectures required by your users.

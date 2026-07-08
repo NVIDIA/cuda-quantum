@@ -2,7 +2,9 @@
 
 `mock_rest` is a reference REST-style external QPU plugin. It demonstrates how
 to add a new target by providing a `ServerHelper` while reusing CUDA-Q's built-in
-`remote_rest` QPU implementation.
+`remote_rest` QPU implementation. It also demonstrates how a plugin author can
+build the target as a Python package that can be distributed to and installed
+by end users.
 
 This example is intentionally small. It does not simulate the submitted quantum
 program. Instead, it sends a configured bitstring to a simple mock REST service
@@ -17,7 +19,9 @@ and expects that same bitstring as the sample result.
 - Required `cudaq-version` metadata that prevents selection by an older CUDA-Q
   installation and warns across newer major or minor release lines.
 - Python auto-discovery through the `cudaq.backends` entry point.
-- Optional installation into the user plugin scope for `nvq++`.
+- Distribution as a Python package that end users can install with `pip`.
+- Optional registration of the installed package in the user plugin scope for
+  `nvq++`.
 
 ## How It Works
 
@@ -118,18 +122,31 @@ assert counts["00101"] == 7
 `cudaq.sample_async(...).get()` for the same flow when you want the future-based
 API.
 
-## Install
+## Install as an End User
 
-For Python auto-discovery:
+The build produces a standard Python package containing the target YAML and
+shared library. A plugin author can build a wheel from this package, publish it
+to a package index, or otherwise distribute it to end users. The commands below
+show how an end user installs and enables that distributed target. They are
+distinct from the plugin-author build steps above.
+
+Because the package contains a native shared library, it is platform-specific.
+Plugin authors must build and distribute a separate package for each operating
+system and architecture that they intend to support, and ensure that each wheel
+has the corresponding platform tag.
+
+For this local example, install the package directly from its build directory
+(an end user would normally install the published package name or wheel):
 
 ```sh
 python3 -m pip install build/external/mock-rest
 ```
 
-After installation, `import cudaq` discovers the package's `cudaq.backends`
-entry point, so explicit `cudaq.register_backend_path(...)` is no longer needed.
+After the Python package is installed in the end user's environment,
+`import cudaq` discovers its `cudaq.backends` entry point, so explicit
+`cudaq.register_backend_path(...)` is no longer needed.
 
-To make the same built package visible to `nvq++`:
+To make the installed Python package visible to `nvq++` as well:
 
 ```sh
 python3 -m cudaq_example_mock_rest --install-nvqpp
