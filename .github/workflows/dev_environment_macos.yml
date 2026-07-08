@@ -26,7 +26,7 @@ on:
       matrix_key:
         required: false
         type: string
-        description: The key for the cloudposse GitHub action matrix output.
+        description: The key for the matrix-outputs action output.
       environment:
         required: false
         type: string
@@ -267,7 +267,12 @@ jobs:
       image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
 
     steps:
-      - uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-write
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment_macos' }}

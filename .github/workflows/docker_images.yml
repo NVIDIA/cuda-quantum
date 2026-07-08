@@ -402,7 +402,7 @@ jobs:
           registry-token: ${{ github.token }}
 
       - name: Write matrix outputs
-        uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-dev-image
@@ -733,7 +733,7 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Write matrix outputs
-        uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ needs.metadata.outputs.platform_tag }}-cu${{ inputs.cuda_version }}-image

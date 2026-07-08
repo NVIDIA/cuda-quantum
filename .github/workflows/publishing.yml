@@ -562,7 +562,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Configure validation
-        uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
@@ -952,9 +952,14 @@ jobs:
       docker_images: ${{ steps.validation.outputs.docker_images }}
 
     steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
       - name: Get matrix job output
         id: read_json
-        uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: docker_images
 

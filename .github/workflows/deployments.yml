@@ -222,7 +222,7 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps:
@@ -256,7 +256,7 @@ jobs:
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build:
@@ -287,7 +287,7 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   openmpi:
@@ -312,7 +312,7 @@ jobs:
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ompi
 
   dispatch:
@@ -353,7 +353,7 @@ jobs:
               }
             }
 
-  # This job is needed only when using the cloudposse GitHub action to read
+  # This job is needed only when using the matrix-outputs action to read
   # the output of a matrix job. This is a workaround due to current GitHub
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
@@ -367,7 +367,12 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -399,10 +404,10 @@ jobs:
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ext
 
-  # This job is needed only when using the cloudposse GitHub action to read
+  # This job is needed only when using the matrix-outputs action to read
   # the output of a matrix job. This is a workaround due to current GitHub
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
@@ -415,7 +420,12 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -501,7 +511,7 @@ jobs:
           echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
 
       - name: Write matrix outputs
-        uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: stitched_devdeps_images
           matrix-key: cu${{ matrix.cuda }}
@@ -539,9 +549,14 @@ jobs:
       json: "${{ steps.read.outputs.result }}"
 
     steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
       - name: Read matrix outputs
         id: read
-        uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: docker_images
 
@@ -716,7 +731,7 @@ jobs:
           echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
 
       - name: Write matrix outputs
-        uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: stitched_cudaq_images
           matrix-key: cu${{ matrix.cuda }}
@@ -733,15 +748,20 @@ jobs:
       cudaq_json: "${{ steps.read_cudaq.outputs.result }}"
 
     steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
       - name: Read matrix outputs (devdeps)
         id: read_devdeps
-        uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: stitched_devdeps_images
 
       - name: Read matrix outputs (CUDA-Q)
         id: read_cudaq
-        uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: stitched_cudaq_images
 

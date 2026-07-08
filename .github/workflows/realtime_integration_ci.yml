@@ -72,7 +72,12 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: realtime_integration_cuda_deps

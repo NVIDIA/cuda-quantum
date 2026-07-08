@@ -1,0 +1,41 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: 'Matrix outputs - read'
+description: |
+  Aggregate the outputs recorded by ./.github/actions/matrix-outputs-write
+  across all jobs of a matrix into a single JSON map keyed by matrix key.
+  In-repo replacement for cloudposse/github-action-matrix-outputs-read,
+  which is unmaintained and pins a Node 20 toolchain.
+  The repository must be checked out before using this action.
+
+inputs:
+  matrix-step-name:
+    required: true
+    description: 'Matrix step name the outputs were recorded under'
+
+outputs:
+  result:
+    description: 'JSON map of matrix key to the outputs recorded by that matrix job'
+    value: ${{ steps.merge.outputs.result }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download matrix outputs
+      uses: actions/download-artifact@v8
+      with:
+        pattern: matrix-outputs-${{ inputs.matrix-step-name }}-*
+        path: ${{ runner.temp }}/matrix-outputs-read/${{ inputs.matrix-step-name }}
+
+    - name: Merge matrix outputs
+      id: merge
+      uses: ./.github/actions/matrix-outputs-read/merge
+      with:
+        matrix-step-name: ${{ inputs.matrix-step-name }}
+        download-path: ${{ runner.temp }}/matrix-outputs-read/${{ inputs.matrix-step-name }}

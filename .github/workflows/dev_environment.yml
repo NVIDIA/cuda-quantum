@@ -55,7 +55,7 @@ on:
       matrix_key:
         required: false
         type: string
-        description: The key to use for the json entry in the output of the cloudposse GitHub action (only needed when the workflow runs as part of a matrix job).
+        description: The key to use for the json entry in the output of the matrix-outputs action (only needed when the workflow runs as part of a matrix job).
       matrix_step_name:
         required: false
         type: string
@@ -472,7 +472,12 @@ jobs:
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
-      - uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-write
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_step_name || (inputs.matrix_key && 'dev_environment') }}
