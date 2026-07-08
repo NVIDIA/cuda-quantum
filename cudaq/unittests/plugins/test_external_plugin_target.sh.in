@@ -34,6 +34,7 @@ echo "topology" > "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/data/topology.t
 cat > "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets/nvqpp-b5-user-only.yml" <<'EOF'
 name: nvqpp-b5-user-only
 description: "B5 user plugin target."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
 config:
   library-mode: true
   preprocessor-defines: ["-DB5_USER_ONLY=%PLUGIN_ROOT%/data/topology.txt"]
@@ -45,6 +46,7 @@ mkdir -p "${SYSTEM_PLUGINS}/nvqpp-b5-system-only/targets" \
 cat > "${SYSTEM_PLUGINS}/nvqpp-b5-system-only/targets/nvqpp-b5-system-only.yml" <<'EOF'
 name: nvqpp-b5-system-only
 description: "B5 system plugin target."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
 config:
   library-mode: true
   preprocessor-defines: ["-DB5_SYSTEM_ONLY"]
@@ -56,6 +58,7 @@ mkdir -p "${USER_HOME}/cudaq/plugins/nvqpp-b5-precedence/targets" \
 cat > "${USER_HOME}/cudaq/plugins/nvqpp-b5-precedence/targets/nvqpp-b5-precedence.yml" <<'EOF'
 name: nvqpp-b5-precedence
 description: "B5 user precedence target."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
 config:
   library-mode: true
   preprocessor-defines: ["-DB5_FROM_USER"]
@@ -65,15 +68,54 @@ mkdir -p "${SYSTEM_PLUGINS}/nvqpp-b5-precedence/targets" \
 cat > "${SYSTEM_PLUGINS}/nvqpp-b5-precedence/targets/nvqpp-b5-precedence.yml" <<'EOF'
 name: nvqpp-b5-precedence
 description: "B5 system fallback target."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
 config:
   library-mode: true
   preprocessor-defines: ["-DB5_FROM_SYSTEM"]
+EOF
+
+# --- Version validation plugins ---
+for name in nvqpp-version-missing nvqpp-version-malformed \
+            nvqpp-version-future nvqpp-version-warning; do
+  mkdir -p "${USER_HOME}/cudaq/plugins/${name}/targets"
+done
+
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-version-missing/targets/nvqpp-version-missing.yml" <<'EOF'
+name: nvqpp-version-missing
+description: "Missing version test target."
+config:
+  library-mode: true
+EOF
+
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-version-malformed/targets/nvqpp-version-malformed.yml" <<'EOF'
+name: nvqpp-version-malformed
+description: "Malformed version test target."
+cudaq-version: "not-a-version"
+config:
+  library-mode: true
+EOF
+
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-version-future/targets/nvqpp-version-future.yml" <<'EOF'
+name: nvqpp-version-future
+description: "Future version test target."
+cudaq-version: "999999.0.0"
+config:
+  library-mode: true
+EOF
+
+cat > "${USER_HOME}/cudaq/plugins/nvqpp-version-warning/targets/nvqpp-version-warning.yml" <<'EOF'
+name: nvqpp-version-warning
+description: "Version warning test target."
+cudaq-version: "0.0.0"
+config:
+  library-mode: true
 EOF
 
 # --- Test: --list-targets shows both user and system plugins ---
 list_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" --list-targets)
 echo "$list_output" | grep -q 'nvqpp-b5-user-only'
 echo "$list_output" | grep -q 'nvqpp-b5-system-only'
+echo "$list_output" | grep -q 'nvqpp-version-missing'
 
 # --- Test: User plugin passes correct flags and expands %PLUGIN_ROOT% ---
 user_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-user-only \
@@ -97,5 +139,31 @@ if echo "$precedence_output" | grep -q -- '-DB5_FROM_SYSTEM'; then
   echo "FAIL: system scope should not override user scope" >&2
   exit 1
 fi
+
+# --- Test: Invalid metadata is rejected only when the target is selected ---
+for name in nvqpp-version-missing nvqpp-version-malformed; do
+  output="${TMPDIR}/${name}.log"
+  if env XDG_DATA_HOME="$USER_HOME" "$NVQ" --target "$name" \
+      "$TRIVIAL_SRC" -o "${TMPDIR}/${name}.exe" >"$output" 2>&1; then
+    echo "FAIL: $name should have been rejected" >&2
+    exit 1
+  fi
+  grep -q 'missing or malformed cudaq-version metadata' "$output"
+done
+
+# --- Test: A plugin built for a newer CUDA-Q is rejected ---
+future_output="${TMPDIR}/future-version.log"
+if env XDG_DATA_HOME="$USER_HOME" "$NVQ" --target nvqpp-version-future \
+    "$TRIVIAL_SRC" -o "${TMPDIR}/future.exe" >"$future_output" 2>&1; then
+  echo "FAIL: future-version plugin should have been rejected" >&2
+  exit 1
+fi
+grep -q 'was built for CUDA-Q 999999.0.0' "$future_output"
+
+# --- Test: A newer CUDA-Q release line warns and continues ---
+warning_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" \
+  --target nvqpp-version-warning "$TRIVIAL_SRC" \
+  -o "${TMPDIR}/warning.exe" 2>&1)
+echo "$warning_output" | grep -q 'compatibility is not guaranteed'
 
 echo "PASS: external_plugin_target"

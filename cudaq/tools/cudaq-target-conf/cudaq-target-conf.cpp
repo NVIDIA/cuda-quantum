@@ -54,6 +54,11 @@ static llvm::cl::opt<std::string>
                     llvm::cl::desc("<input target config YAML file>"),
                     llvm::cl::init("-"), llvm::cl::value_desc("filename"));
 
+static llvm::cl::opt<bool> externalPlugin(
+    "external-plugin",
+    llvm::cl::desc("Require and validate external plugin version metadata"),
+    llvm::cl::init(false));
+
 static llvm::cl::opt<std::string>
     outputFilename("o", llvm::cl::desc("Specify output filename"),
                    llvm::cl::value_desc("filename"));
@@ -125,6 +130,20 @@ int main(int argc, char **argv) {
                               .parent_path()
                               .parent_path();
   auto config = cudaq::config::parseTargetConfig(configContents, pluginRoot);
+
+  if (externalPlugin) {
+    const auto compatibility = cudaq::config::checkExternalTargetVersion(
+        config, CUDAQ_VERSION_STRING,
+        std::filesystem::path(inputConfigFile.getValue()));
+    if (compatibility.Status ==
+        cudaq::config::TargetVersionCompatibility::Error) {
+      llvm::errs() << compatibility.Diagnostic << "\n";
+      return 1;
+    }
+    if (compatibility.Status ==
+        cudaq::config::TargetVersionCompatibility::Warning)
+      llvm::errs() << compatibility.Diagnostic << "\n";
+  }
 
   // Verify GPU requirement
   if (!skipGpuCheck && config.GpuRequired && countGPUs() <= 0) {

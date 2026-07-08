@@ -12,6 +12,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace cudaq::config {
@@ -153,6 +154,10 @@ struct BackendFeatureMap {
 /// Schema of the target configuration file.
 class TargetConfig {
 public:
+  /// CUDA-Q version against which an external plugin target was built and
+  /// tested. This is optional for in-tree targets and required when selecting
+  /// an external plugin target.
+  std::string CudaqVersion;
   /// All plugin libraries for this target (flattened from BackendConfig if
   /// present)
   std::vector<std::string> PluginLibraries;
@@ -177,6 +182,21 @@ public:
   std::string
   getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
 };
+
+/// Result of checking an external target's CUDA-Q compatibility metadata.
+enum class TargetVersionCompatibility { Compatible, Warning, Error };
+
+struct TargetVersionCompatibilityResult {
+  TargetVersionCompatibility Status = TargetVersionCompatibility::Compatible;
+  std::string Diagnostic;
+};
+
+/// Validate an external plugin target against the current CUDA-Q version.
+/// Numeric MAJOR.MINOR.PATCH prefixes are compared; any suffix is ignored.
+TargetVersionCompatibilityResult
+checkExternalTargetVersion(const TargetConfig &config,
+                           std::string_view currentVersion,
+                           const std::filesystem::path &configPath = {});
 
 /// Process the target configuration into a `nvq++` compatible script according
 /// to the provided compile time (C++)/runtime (Python) target arguments.

@@ -24,6 +24,7 @@
 // clang-format on
 
 // MOCK-YAML: name: mock_rest
+// MOCK-YAML: cudaq-version:
 // MOCK-YAML: platform-qpu: remote_rest
 // MOCK-YAML-NOT: plugin-libraries
 

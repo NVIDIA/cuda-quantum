@@ -7,7 +7,43 @@
  ******************************************************************************/
 
 #include "cudaq/Target/TargetConfig.h"
+#include <charconv>
+#include <cstdint>
 #include <regex>
+#include <tuple>
+
+namespace {
+struct NumericVersion {
+  std::uint64_t Major = 0;
+  std::uint64_t Minor = 0;
+  std::uint64_t Patch = 0;
+};
+
+std::optional<NumericVersion> parseNumericVersion(std::string_view value) {
+  NumericVersion version;
+  const char *cursor = value.data();
+  const char *end = cursor + value.size();
+
+  auto parseComponent = [&](std::uint64_t &component) {
+    const auto result = std::from_chars(cursor, end, component);
+    if (result.ec != std::errc{} || result.ptr == cursor)
+      return false;
+    cursor = result.ptr;
+    return true;
+  };
+
+  if (!parseComponent(version.Major) || cursor == end || *cursor++ != '.' ||
+      !parseComponent(version.Minor) || cursor == end || *cursor++ != '.' ||
+      !parseComponent(version.Patch))
+    return std::nullopt;
+
+  return version;
+}
+
+std::string configLocation(const std::filesystem::path &configPath) {
+  return configPath.empty() ? std::string{} : " in " + configPath.string();
+}
+} // namespace
 
 std::string cudaq::config::TargetConfig::getCodeGenSpec(
     const std::map<std::string, std::string> &targetArgs) const {
@@ -58,4 +94,50 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
 bool cudaq::config::BackendEndConfigEntry::hasPassPipeline() const {
   return !TargetPassPipeline.empty() || !JITHighLevelPipeline.empty() ||
          !JITMidLevelPipeline.empty() || !JITLowLevelPipeline.empty();
+}
+
+cudaq::config::TargetVersionCompatibilityResult
+cudaq::config::checkExternalTargetVersion(
+    const TargetConfig &config, std::string_view currentVersion,
+    const std::filesystem::path &configPath) {
+  const auto pluginVersion = parseNumericVersion(config.CudaqVersion);
+  if (!pluginVersion) {
+    return {TargetVersionCompatibility::Error,
+            "error: target '" + config.Name +
+                "' has missing or malformed cudaq-version metadata" +
+                configLocation(configPath)};
+  }
+
+  const auto current = parseNumericVersion(currentVersion);
+  if (!current) {
+    return {TargetVersionCompatibility::Error,
+            "error: cannot validate target '" + config.Name +
+                "' because the current CUDA-Q version '" +
+                std::string(currentVersion) + "' is malformed"};
+  }
+
+  const auto pluginTuple = std::tie(pluginVersion->Major, pluginVersion->Minor,
+                                    pluginVersion->Patch);
+  const auto currentTuple =
+      std::tie(current->Major, current->Minor, current->Patch);
+  if (currentTuple < pluginTuple) {
+    return {TargetVersionCompatibility::Error,
+            "error: target '" + config.Name + "' was built for CUDA-Q " +
+                config.CudaqVersion + ", but the current CUDA-Q version is " +
+                std::string(currentVersion) + configLocation(configPath)};
+  }
+
+  if (current->Major > pluginVersion->Major ||
+      (current->Major == pluginVersion->Major &&
+       current->Minor > pluginVersion->Minor)) {
+    return {TargetVersionCompatibility::Warning,
+            "warning: target '" + config.Name +
+                "' was built and tested with CUDA-Q " + config.CudaqVersion +
+                "; the current CUDA-Q version is newer (" +
+                std::string(currentVersion) +
+                "), so compatibility is not guaranteed" +
+                configLocation(configPath)};
+  }
+
+  return {};
 }

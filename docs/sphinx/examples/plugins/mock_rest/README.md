@@ -14,6 +14,8 @@ and expects that same bitstring as the sample result.
   package metadata generated into `build/external/mock-rest`.
 - A custom `cudaq::ServerHelper` registered under the target name `mock_rest`.
 - A target YAML file that selects `platform-qpu: remote_rest`.
+- Required `cudaq-version` metadata that prevents selection by an older CUDA-Q
+  installation and warns across newer major or minor release lines.
 - Python auto-discovery through the `cudaq.backends` entry point.
 - Optional installation into the user plugin scope for `nvq++`.
 
@@ -22,8 +24,8 @@ and expects that same bitstring as the sample result.
 The key files are:
 
 - `targets/mock_rest.yml.in`: declares the `mock_rest` target, selects
-  `remote_rest`, links `-lcudaq-rest-qpu`, and exposes `url` and `value` target
-  arguments.
+  `remote_rest`, records the CUDA-Q version used to build the plugin, links
+  `-lcudaq-rest-qpu`, and exposes `url` and `value` target arguments.
 - `MockRestServerHelper.cpp`: implements the REST contract for this backend.
   It builds a job payload containing the compiled kernel, shot count, and the
   configured `value` bitstring. When the server returns that value, the helper
