@@ -222,7 +222,7 @@ CUDAQ_TEST(StimQECTester, AdapterRejectsNegativeObservableIndex) {
 }
 
 // End-to-end coverage of the NVQIR adapter
-CUDAQ_TEST(StimQECTester, AdapterDispatchesToActiveSimulator) {
+CUDAQ_TEST(StimQECTester, AdapterAcceptsRawChronologicalIndices) {
   // Clear stale handle-to-index maps left by earlier tests in this process
   // so the raw chronological indices below are not remapped.
   __quantum__rt__clear_result_maps();
