@@ -67,19 +67,10 @@ CUDAQ_TEST(ParserTester, checkIntegers) {
     std::memcpy(buffer, origBuffer, bufferSize);
     for (int i = 0; i < 3; ++i)
       EXPECT_EQ(i, buffer[i]);
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
-}
-
-
-  EXPECT_EQ(4, results.size());
-  EXPECT_EQ(2, results[0]);
-  EXPECT_EQ(4, results[1]);
-  EXPECT_EQ(8, results[2]);
-  EXPECT_EQ(10, results[3]);
-  free(buffer);
-}
+    free(buffer);
+    buffer = nullptr;
+    origBuffer = nullptr;
+  }
   { // no label
     const std::string log = "OUTPUT\tINT\t2147483647\n";
     cudaq::RecordLogParser parser;
