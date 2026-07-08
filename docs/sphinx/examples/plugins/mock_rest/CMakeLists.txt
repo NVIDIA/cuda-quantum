@@ -54,7 +54,7 @@ else()
 endif()
 
 set(CUDAQ_PLUGIN_TEST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../tests/lit.site.cfg.py.in
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/tests/lit.site.cfg.py.in
                ${CMAKE_CURRENT_BINARY_DIR}/tests/lit.site.cfg.py
                @ONLY)
 
