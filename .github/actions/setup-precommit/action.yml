@@ -89,7 +89,7 @@ runs:
       if: inputs.install-go == 'true'
       uses: actions/setup-go@v6
       with:
-        go-version: '1.21'
+        go-version: '1.24'
         cache: false
 
     - name: Cache Go modules
