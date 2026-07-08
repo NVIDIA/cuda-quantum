@@ -7,13 +7,9 @@
 # ============================================================================ #
 
 on:
+  # Reusable workflow called from ci.yml; also runs on manual dispatch.
+  workflow_call:
   workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
-  merge_group:
-    types:
-      - checks_requested
 
 name: "Basic content checks"
 

@@ -44,6 +44,7 @@ jobs:
       nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
+      realtime_changed: ${{ steps.realtime.outputs.realtime_changed }}
 
     steps:
       - name: Checkout repository
@@ -111,6 +112,28 @@ jobs:
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
+
+      # On PR push: realtime_changed=true only if realtime/** or .github/**
+      # changed (queried via PR diff API, no deep clone). Other events: always true.
+      - id: realtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          realtime_changed=false
+          case "${{ github.event_name }}" in
+            merge_group|schedule|workflow_dispatch)
+              realtime_changed=true
+              ;;
+            push)
+              pr_number="${{ steps.pr_info.outputs.pr_number }}"
+              if [ -n "$pr_number" ] && \
+                 gh pr diff "$pr_number" -R "${{ github.repository }}" --name-only \
+                   | grep -qE '^(realtime/|\.github/)'; then
+                realtime_changed=true
+              fi
+              ;;
+          esac
+          echo "realtime_changed=$realtime_changed" >> $GITHUB_OUTPUT
 
   devdeps:
     name: Load dependencies
@@ -340,6 +363,48 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       build_cache: ${{ fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
 
+  # ============================================================================
+  # Reusable wrappers — folded in so CI Summary covers them and a single
+  # required check (`CI / CI Summary`) gates the merge queue.
+  # ============================================================================
+
+  basic_checks:
+    name: Basic checks
+    needs: metadata
+    uses: ./.github/workflows/repo_checks.yml
+    secrets: inherit
+
+  macos:
+    name: macOS
+    needs: metadata
+    uses: ./.github/workflows/ci_macos.yml
+    secrets: inherit
+    with:
+      cache_base: ${{ needs.metadata.outputs.cache_base || 'main' }}
+
+  codeql:
+    name: CodeQL
+    needs: metadata
+    # CodeQL already scans on the PR side; skip the redundant merge_group run.
+    if: github.event_name != 'merge_group'
+    # Reusable workflows cannot escalate beyond the caller's permissions;
+    # declare explicitly so a ci.yml lockdown doesn't break SARIF upload.
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    uses: ./.github/workflows/codeql.yml
+    secrets: inherit
+
+  realtime:
+    name: Realtime
+    needs: metadata
+    # realtime_changed gating computed in metadata above.
+    if: needs.metadata.outputs.realtime_changed == 'true'
+    uses: ./.github/workflows/realtime_ci.yml
+    secrets: inherit
+
   # Single aggregator that summarizes the entire CI workflow.
   # Branch protection / merge queue should require ONLY this context;
   # adding/removing matrix legs above does not require a ruleset edit.
@@ -366,6 +431,10 @@ jobs:
       - python_wheels
       - python_metapackages
       - binaries
+      - basic_checks
+      - macos
+      - codeql
+      - realtime
     # Run on success, failure, or per-job cancellation — but NOT when the
     # whole workflow is cancelled (e.g. a newer push triggered the
     # concurrency rule). Otherwise the "fail on cancelled needs" check below
