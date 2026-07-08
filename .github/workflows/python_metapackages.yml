@@ -121,14 +121,14 @@ jobs:
 
     steps:
       - name: Load metapackages
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
           path: /tmp/metapackages/
           merge-multiple: true
 
       - name: Load wheels
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ inputs.wheel_artifacts }}
           path: /tmp/wheels/

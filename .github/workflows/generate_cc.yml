@@ -61,7 +61,7 @@ jobs:
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_cache && inputs.devdeps_archive
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -142,7 +142,7 @@ jobs:
           registry-token: ${{ github.token }}
 
       - name: Upload C/C++ & Python Coverage To Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           fail_ci_if_error: false
           files: ${{ github.workspace }}/shared/coverage.txt,${{ github.workspace }}/shared/coverage.xml

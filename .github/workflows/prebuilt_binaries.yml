@@ -168,7 +168,7 @@ jobs:
 
       - name: Build assets
         id: docker_build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -229,7 +229,7 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Build installer
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -302,7 +302,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build OpenMPI
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -373,7 +373,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Load cuda-quantum installer
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build_installer.outputs.artifact_name }}
           path: /tmp/install
@@ -625,7 +625,7 @@ jobs:
 
     steps:
       - name: Delete artifacts
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const res = await github.rest.actions.listArtifactsForRepo({

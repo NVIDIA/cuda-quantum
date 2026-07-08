@@ -176,7 +176,7 @@ jobs:
 
       - name: Build Open MPI
         id: docker_build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -208,7 +208,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ steps.build_info.outputs.tar_archive }}
           key: ${{ steps.build_info.outputs.tar_cache }}
@@ -269,7 +269,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -356,7 +356,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -425,7 +425,7 @@ jobs:
 
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -488,7 +488,7 @@ jobs:
       - name: Restore build environment
         if: inputs.devdeps_cache && inputs.devdeps_archive
         id: restore_devdeps
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
@@ -497,7 +497,7 @@ jobs:
       - name: Restore Open MPI dependencies
         id: restore_openmpi
         if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
           key: ${{ needs.ompi_image.outputs.tar_cache }}
@@ -628,7 +628,7 @@ jobs:
       - name: Build cuda-quantum-dev image (release)
         id: release_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -714,7 +714,7 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -743,7 +743,7 @@ jobs:
 
       - name: Cache cuda-quantum image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
@@ -808,7 +808,7 @@ jobs:
       - name: Restore CUDA Quantum build
         id: restore_cudaqdev
         if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}
@@ -817,7 +817,7 @@ jobs:
       - name: Restore CUDA Quantum image
         id: restore_cudaq
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}
@@ -928,7 +928,7 @@ jobs:
       - name: Load cuda-quantum image
         id: restore
         if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
           key: ${{ needs.cudaq_image.outputs.tar_cache }}

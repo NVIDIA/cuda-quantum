@@ -156,7 +156,7 @@ jobs:
           echo "Packages before: $(wc -l < pip_before.txt)"
 
       - name: Download wheel artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           run-id: ${{ steps.parse.outputs.run_id }}
           artifact-ids: ${{ steps.parse.outputs.artifact_id }}
@@ -246,13 +246,13 @@ jobs:
         run: echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT
 
       - name: Download package lists (cudaq)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: package-source-diff-cu${{ matrix.cuda }}-cudaq.zip
           path: package-source-diff-cudaq
 
       - name: Download package lists (cudaqx)
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: package-source-diff-cu${{ matrix.cuda }}-cudaqx.zip
           path: package-source-diff-cudaqx
@@ -272,7 +272,7 @@ jobs:
 
       - name: Download macOS pip diff
         if: github.event.inputs.artifact_url != ''
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: macos-pip-diff.zip
           path: macos-pip-diff
@@ -441,7 +441,7 @@ jobs:
 
       - name: Build source image
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:

@@ -329,7 +329,7 @@ jobs:
           clang --version
 
       - name: Download wheel artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/
@@ -479,13 +479,13 @@ jobs:
           clang --version
 
       - name: Download installer artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: cudaq-arm64-darwin-installer-${{ github.run_id }}
           path: installer/
 
       - name: Download wheel artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: pycudaq-3.12-darwin-arm64
           path: wheel/
