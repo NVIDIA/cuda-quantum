@@ -1,0 +1,59 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: qdmi
+description: "CUDA-Q target for QDMI devices."
+config:
+  platform-qpu: qdmi
+  gen-target-backend: true
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  link-libs: ["-lcudaq-qdmi-qpu"]
+  jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
+  codegen-emission: qasm2
+
+target-arguments:
+  - key: library
+    required: false
+    type: string
+    platform-arg: qdmi_library
+    help-string: "Path to the QDMI device library."
+  - key: prefix
+    required: false
+    type: string
+    platform-arg: qdmi_prefix
+    help-string: "QDMI function prefix used by the device library."
+  - key: base-url
+    required: false
+    type: string
+    platform-arg: qdmi_base_url
+    help-string: "Device base URL."
+  - key: token
+    required: false
+    type: string
+    platform-arg: qdmi_token
+    help-string: "Authentication token."
+  - key: auth-file
+    required: false
+    type: string
+    platform-arg: qdmi_auth_file
+    help-string: "Authentication file."
+  - key: auth-url
+    required: false
+    type: string
+    platform-arg: qdmi_auth_url
+    help-string: "Authentication URL."
+  - key: username
+    required: false
+    type: string
+    platform-arg: qdmi_username
+    help-string: "Authentication username."
+  - key: password
+    required: false
+    type: string
+    platform-arg: qdmi_password
+    help-string: "Authentication password."
