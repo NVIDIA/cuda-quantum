@@ -122,4 +122,5 @@ dem_text, m2d, m2o = cudaq.dem_from_kernel(
 print(f"m2d shape: {m2d.shape}")
 print(f"m2o shape: {m2o.shape}")
 print(f"m2d:\n{m2d.toarray()}")
+print(f"m2o:\n{m2o.toarray()}")
 # [End Measurement Matrices]
