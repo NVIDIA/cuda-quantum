@@ -163,9 +163,6 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
    operators/manipulation.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_operators PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
 target_link_libraries(test_operators
   PRIVATE
   cudaq-operator
@@ -192,9 +189,6 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_dynamics PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-  endif()
   target_link_libraries(test_dynamics
    PRIVATE
    cudaq-operator
@@ -215,9 +209,6 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
 endif()
 
 add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Matrix.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_utils PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
 target_link_libraries(test_utils
   PRIVATE
   cudaq
@@ -229,9 +220,6 @@ target_link_libraries(test_utils
 cudaq_gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_nvqir_verify PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
 target_link_libraries(test_nvqir_verify
   PRIVATE
     cudaq
@@ -247,9 +235,6 @@ cudaq_gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
 
 # Test for thread-local execution context storage
 add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_exec_ctx_thread PRIVATE -Wl,--no-as-needed)
-endif()
 target_include_directories(test_exec_ctx_thread PRIVATE .)
 target_link_libraries(test_exec_ctx_thread
   PRIVATE
@@ -262,4 +247,5 @@ add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
+add_subdirectory(backends)
 

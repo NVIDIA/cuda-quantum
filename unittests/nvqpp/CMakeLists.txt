@@ -122,9 +122,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
 endmacro()
 
 # We will always have the QPP backend, create a tester for it
-create_tests_with_backend(qpp backends/QPPTester.cpp)
-create_tests_with_backend(dm backends/QPPDMTester.cpp)
-create_tests_with_backend(stim backends/StimTester.cpp)
+create_tests_with_backend(qpp "")
+create_tests_with_backend(dm "")
+create_tests_with_backend(stim "")
 
 if (cuStateVec_FOUND)
   find_program(NVIDIA_SMI "nvidia-smi")
