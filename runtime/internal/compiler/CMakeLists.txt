@@ -50,17 +50,12 @@ target_link_libraries(cudaq-mlir-runtime
 )
 
 if(APPLE)
-  target_link_libraries(cudaq-mlir-runtime
-    PRIVATE
-      OptCodeGen
-      OptTransforms
-      OptimBuilder
-      cudaq-qir-verifier
-      MLIROptLib
-      MLIRExecutionEngine
-      MLIRLLVMToLLVMIRTranslation
-      MLIRFuncInlinerExtension
-  )
+  add_dependencies(cudaq-mlir-runtime OptCodeGen OptTransforms OptimBuilder cudaq-qir-verifier)
+  target_link_libraries(cudaq-mlir-runtime PRIVATE
+    "$<TARGET_FILE:OptCodeGen>"
+    "$<TARGET_FILE:OptTransforms>"
+    "$<TARGET_FILE:OptimBuilder>"
+    "$<TARGET_FILE:cudaq-qir-verifier>")
 else()
   target_link_libraries(cudaq-mlir-runtime
     PRIVATE
