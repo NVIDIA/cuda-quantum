@@ -120,4 +120,3 @@ struct test3 {
 // CHECK:           call_indirect %[[FUNC]](%[[VAL_12]]) : (f64) -> ()
 // CHECK:           return
 // CHECK:         }
-

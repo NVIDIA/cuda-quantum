@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq_internal/device_call/DeviceCallError.h"
-#include "cudaq_internal/device_call/DeviceCallService.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/device_call_service.h"
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
@@ -17,6 +17,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
+#include <stdexcept>
+#include <type_traits>
 
 namespace cudaq_internal::device_call {
 void initializeDeviceCallRuntime(int argc, char **argv);
@@ -45,6 +48,16 @@ __cudaq_device_call_safely_release_realtime_frame(void *frameHandle);
 namespace {
 
 using namespace cudaq_internal::device_call;
+using cudaq::realtime::DeviceCallDispatchMode;
+using cudaq::realtime::DeviceCallDispatchTable;
+using cudaq::realtime::DeviceCallService;
+using cudaq::realtime::DeviceCallServicePluginInfo;
+using cudaq::realtime::DeviceCallServiceSession;
+
+static_assert(std::is_abstract_v<DeviceCallService>);
+static_assert(std::is_abstract_v<DeviceCallServiceSession>);
+static_assert(std::has_virtual_destructor_v<DeviceCallService>);
+static_assert(std::has_virtual_destructor_v<DeviceCallServiceSession>);
 
 constexpr std::uint32_t AddThemFunctionId =
     cudaq::realtime::fnv1a_hash("addThem");
@@ -160,45 +173,61 @@ enum class TestHostTable { GraphAddThem, HostAddThem, MixedAddThem };
 TestGpuTable selectedGpuTable = TestGpuTable::AddThem;
 TestHostTable selectedHostTable = TestHostTable::GraphAddThem;
 
-class TestRealtimeService : public DeviceCallService {
+class TestRealtimeServiceSession : public DeviceCallServiceSession {
 public:
-  int create(const void *, std::size_t) override { return 0; }
-
-  int destroy() noexcept override {
-    teardownHostDispatch();
-    return 0;
+  explicit TestRealtimeServiceSession(DeviceCallDispatchMode mode) {
+    table.mode = mode;
+    if (mode == DeviceCallDispatchMode::Host)
+      initializeHostDispatch();
+    else
+      initializeGpuDispatch();
   }
 
-  std::uint32_t getFunctionCount() const override { return 1; }
+  ~TestRealtimeServiceSession() override { stop(); }
 
-  int populateTable(cudaq_function_entry_t *entries, std::uint32_t capacity,
-                    cudaStream_t stream) override {
-    if (!entries || capacity < 1)
-      return 1;
-    return test::populateAddThemTable(
-        entries, selectedGpuTable == TestGpuTable::AddThemOffset, stream);
+  const DeviceCallDispatchTable &dispatchTable() const noexcept override {
+    return table;
   }
 
-  cudaq_dispatch_launch_fn_t getDeviceDispatchLaunch() const override {
-    return cudaq_launch_dispatch_kernel_regular;
+  void stop() noexcept override {
+    if (table.mode == DeviceCallDispatchMode::Host)
+      teardownHostDispatch();
+    else if (deviceEntries) {
+      cudaFree(deviceEntries);
+      deviceEntries = nullptr;
+    }
+    table = {};
   }
 
-  int getHostDispatchTable(DeviceCallHostDispatchTable &table) override {
+private:
+  void initializeGpuDispatch() {
+    if (cudaMalloc(&deviceEntries, sizeof(cudaq_function_entry_t)) !=
+        cudaSuccess)
+      throw std::runtime_error("failed to allocate test function table");
+    if (cudaMemset(deviceEntries, 0, sizeof(cudaq_function_entry_t)) !=
+            cudaSuccess ||
+        test::populateAddThemTable(
+            deviceEntries, selectedGpuTable == TestGpuTable::AddThemOffset,
+            nullptr) != 0 ||
+        cudaDeviceSynchronize() != cudaSuccess) {
+      cudaFree(deviceEntries);
+      deviceEntries = nullptr;
+      throw std::runtime_error("failed to populate test function table");
+    }
+    table.entries = deviceEntries;
+    table.count = 1;
+    table.launchFn = cudaq_launch_dispatch_kernel_regular;
+  }
+
+  void initializeHostDispatch() {
     if (setupHostDispatch() != 0)
-      return 1;
+      throw std::runtime_error("failed to create test host dispatch table");
     table.entries = hostEntries.data();
     table.count = hostEntryCount;
     table.deviceId = 0;
     table.mailbox = h_mailbox;
-    return 0;
   }
 
-  int stop() noexcept override {
-    teardownHostDispatch();
-    return 0;
-  }
-
-private:
   int setupHostDispatch() {
     if (selectedHostTable == TestHostTable::HostAddThem) {
       teardownHostDispatch();
@@ -255,6 +284,16 @@ private:
   cudaGraphExec_t graphExec = nullptr;
   std::array<cudaq_function_entry_t, 2> hostEntries{};
   std::uint32_t hostEntryCount = 0;
+  cudaq_function_entry_t *deviceEntries = nullptr;
+  DeviceCallDispatchTable table;
+};
+
+class TestRealtimeService : public DeviceCallService {
+public:
+  std::unique_ptr<DeviceCallServiceSession>
+  createDispatchSession(DeviceCallDispatchMode mode) override {
+    return std::make_unique<TestRealtimeServiceSession>(mode);
+  }
 };
 
 DeviceCallService *getTestRealtimeService() {
@@ -264,7 +303,7 @@ DeviceCallService *getTestRealtimeService() {
 
 } // namespace
 
-extern "C" cudaq_internal::device_call::DeviceCallServicePluginInfo
+extern "C" cudaq::realtime::DeviceCallServicePluginInfo
 cudaqGetDeviceCallServicePluginInfo() {
   return {"test-device-call", &getTestRealtimeService};
 }

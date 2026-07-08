@@ -12,14 +12,16 @@
 
 // Error for kernels with data members. Not supported (yet).
 
-struct C { // expected-error{{CUDA-Q kernel class with data members is not yet supported}}
+// clang-format off
+// expected-error@+2{{CUDA-Q kernel class with data members is not yet supported}}
+// clang-format on
+struct C {
   void operator()(cudaq::qubit &q) __qpu__ { h(q); }
 
   double unsupported;
 };
 
-struct D : public C { // expected-error{{class inheritance is not allowed for CUDA-Q kernel}}
-  void operator()(cudaq::qubit &q) __qpu__ {
-    h(q);
-  }
+// expected-error@+1{{class inheritance is not allowed for CUDA-Q kernel}}
+struct D : public C {
+  void operator()(cudaq::qubit &q) __qpu__ { h(q); }
 };

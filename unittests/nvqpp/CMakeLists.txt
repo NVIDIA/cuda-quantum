@@ -16,7 +16,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/ghz_nisq_tester.cpp
   integration/gradient_tester.cpp
   integration/grover_test.cpp
-  integration/nlopt_tester.cpp
   integration/qpe_ftqc.cpp
   integration/qpe_nisq.cpp
   integration/qubit_allocation.cpp
@@ -44,6 +43,9 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/gate_library_tester.cpp
   integration/analysis_scope_tester.cpp
 )
+if (CUDAQ_ENABLE_NLOPT)
+  list(APPEND CUDAQ_RUNTIME_TEST_SOURCES integration/nlopt_tester.cpp)
+endif()
 
 # Make it so we can get function symbols
 set (CMAKE_ENABLE_EXPORTS TRUE)
@@ -178,12 +180,15 @@ if (cuStateVec_FOUND)
 
   # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
   # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
-  add_executable(test_custatevec_observe_from_sampling
+  set(CUSTATEVEC_OFS_SOURCES
     integration/builder_tester.cpp
     integration/deuteron_variational_tester.cpp
     integration/gradient_tester.cpp
-    integration/nlopt_tester.cpp
   )
+  if (CUDAQ_ENABLE_NLOPT)
+    list(APPEND CUSTATEVEC_OFS_SOURCES integration/nlopt_tester.cpp)
+  endif()
+  add_executable(test_custatevec_observe_from_sampling ${CUSTATEVEC_OFS_SOURCES})
   target_include_directories(test_custatevec_observe_from_sampling PRIVATE .)
   target_compile_definitions(test_custatevec_observe_from_sampling
     PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32 -DCUDAQ_SIMULATION_SCALAR_FP32)

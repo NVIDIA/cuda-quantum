@@ -16,6 +16,7 @@
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <limits>
 #include <nanobind/ndarray.h>
 
 using namespace cudaq;
@@ -399,6 +400,23 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       .def("get_element_size", &SimulationState::Tensor::element_size)
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
 
+  const auto normalizeIndex = [](state &s, int idx) {
+    // Support Pythonic negative index.
+    if (idx < 0) {
+      // Reject negative indices when the existing signed-int shift cannot
+      // represent the logical state dimension safely.
+      if (s.get_num_qubits() >=
+          static_cast<std::size_t>(std::numeric_limits<int>::digits))
+        throw std::out_of_range("State index out of bounds.");
+      idx += (1 << s.get_num_qubits());
+      // An index that remains negative was below the Pythonic lower bound and
+      // must not be converted to an unsigned C++ index.
+      if (idx < 0)
+        throw std::out_of_range("State index out of bounds.");
+    }
+    return idx;
+  };
+
   nanobind::class_<state>(
       mod, "State",
       "A data-type representing the quantum state of the internal simulator. "
@@ -647,11 +665,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           "Return all the tensors that comprise this state representation.")
       .def(
           "__getitem__",
-          [](state &s, int idx) {
-            // Support Pythonic negative index
-            if (idx < 0)
-              idx += (1 << s.get_num_qubits());
-            return s[idx];
+          [normalizeIndex](state &s, int idx) {
+            return s[normalizeIndex(s, idx)];
           },
           R"#(Return the `index`-th element of the state vector.
 
@@ -665,15 +680,13 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
   value = state[0])#")
       .def(
           "__getitem__",
-          [](state &s, std::vector<int> idx) {
+          [normalizeIndex](state &s, std::vector<int> idx) {
             if (idx.size() != 2)
               throw std::runtime_error("Density matrix needs 2 indices; " +
                                        std::to_string(idx.size()) +
                                        " provided.");
             for (auto &val : idx)
-              // Support Pythonic negative index
-              if (val < 0)
-                val += (1 << s.get_num_qubits());
+              val = normalizeIndex(s, val);
             return s(idx[0], idx[1]);
           },
           R"#(Return the element of the density matrix at the provided
