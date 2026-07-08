@@ -58,7 +58,6 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       LLVMSupport
       CUDA::cudart_static
       dl)
-  target_link_options(cudaq-device-call-runtime PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 
   install(TARGETS cudaq-device-call-runtime-headers
           EXPORT cudaq-targets)
