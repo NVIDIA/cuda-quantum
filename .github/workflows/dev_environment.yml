@@ -231,11 +231,38 @@ jobs:
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
-      - name: Initialize submodules (with retry)
-        if: ${{ inputs.checkout_submodules }}
+      # The llvm-project clone is large and gets rate limited (HTTP 429),
+      # so cache its git dir keyed on the pinned commit and clone on miss.
+      - name: Look up llvm submodule commit
+        if: inputs.checkout_submodules
+        id: llvm_submodule
+        run: echo "sha=$(git rev-parse HEAD:tpls/llvm)" >> $GITHUB_OUTPUT
+
+      - name: Restore llvm submodule from cache
+        if: inputs.checkout_submodules
+        id: llvm_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .git/modules/tpls/llvm
+          key: llvm-submodule-${{ steps.llvm_submodule.outputs.sha }}
+
+      - name: Checkout submodules
+        if: inputs.checkout_submodules
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive
+          auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+          git submodule sync
+          retry git -c protocol.version=2 -c http.https://github.com/.extraheader="$auth_header" \
+            submodule update --init --force --depth=1
+
+      - name: Save llvm submodule to cache
+        if: inputs.checkout_submodules && steps.llvm_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .git/modules/tpls/llvm
+          key: llvm-submodule-${{ steps.llvm_submodule.outputs.sha }}
 
       - name: Set up context for buildx
         run: |
