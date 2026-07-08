@@ -29,7 +29,19 @@ static std::vector<nanobind::object>
 readRunResults(mlir::ModuleOp module, mlir::Type ty,
                detail::RunResultSpan &results, std::size_t count) {
   std::vector<nanobind::object> ret;
+  if (count == 0)
+    return ret;
   std::size_t byteSize = results.lengthInBytes / count;
+  if (byteSize == 0)
+    throw std::runtime_error(
+        "run: result buffer (" + std::to_string(results.lengthInBytes) +
+        " bytes) is too small for " + std::to_string(count) +
+        " shots. The backend returned fewer results than requested.");
+  if (results.lengthInBytes % count != 0)
+    throw std::runtime_error(
+        "run: result buffer (" + std::to_string(results.lengthInBytes) +
+        " bytes) is not evenly divisible by " + std::to_string(count) +
+        " shots.");
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
     nanobind::object obj = convertResult(module, ty, results.data + i);
     ret.push_back(obj);
