@@ -217,6 +217,10 @@ In both matrices the columns are indexed by measurement in chronological order.
         :start-after: [Begin Measurement Matrices]
         :end-before: [End Measurement Matrices]
 
+Both matrices are computed in the same pass as the DEM, so requesting them adds
+no additional circuit execution. They can be combined with any of the DEM
+options above (for example ``decompose_errors=True``).
+
 For the ``memory_experiment`` kernel above (with ``rounds=2``) there are nine
 measurements and six detectors, so ``m2d`` is a ``6 x 9`` matrix and ``m2o`` is
 a ``1 x 9`` matrix. Each detector pairs a qubit's measurement in one round with
@@ -237,10 +241,6 @@ measurements, giving the three ones in ``m2o``:
      [0 0 0 0 0 1 0 0 1]]
     m2o:
     [[0 0 0 0 0 0 1 1 1]]
-
-Both matrices are computed in the same pass as the DEM, so requesting them adds
-no additional circuit execution. They can be combined with any of the DEM
-options above (for example ``decompose_errors=True``).
 
 Limitations
 ------------
