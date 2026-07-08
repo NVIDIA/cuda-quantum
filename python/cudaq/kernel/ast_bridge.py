@@ -5963,8 +5963,10 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"Cannot infer the element type of the captured empty "
                         f"list '{node.id}'. Annotate it at module scope (e.g. "
-                        f"`{node.id}: list[float] = []`) so the type can be "
-                        f"recovered.", node)
+                        f"`{node.id}: list[float] = []`) or use a typed numpy "
+                        f"array (e.g. `{node.id} = np.array([], "
+                        f"dtype=np.float64)`) so the type can be recovered.",
+                        node)
                 argTy = mlirTypeFromPyType(annotation, self.ctx)
             else:
                 argTy = mlirTypeFromPyType(type(value),

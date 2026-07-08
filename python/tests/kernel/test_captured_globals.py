@@ -10,6 +10,7 @@
 # A module-level Python scalar used as a rotation parameter must be lifted into
 # the kernel signature as an f64 value, not as `!cc.ptr<f64>`.
 
+import numpy as np
 import pytest
 
 import cudaq
@@ -255,3 +256,45 @@ def test_nested_list_arg_sample_equals_get_state():
     cudaq.get_state(kernel, nw, nc)
     counts = cudaq.sample(kernel, nw, nc)
     assert len(counts) >= 1
+
+
+_CAPTURED_EMPTY_NDARRAY = np.array([], dtype=np.float64)
+_CAPTURED_EMPTY_NDARRAY_INT = np.array([], dtype=np.int64)
+_CAPTURED_NDARRAY = np.array([0.5, -0.5])
+
+
+def test_captured_empty_ndarray():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(1)
+        for i in range(len(_CAPTURED_EMPTY_NDARRAY)):
+            rx(_CAPTURED_EMPTY_NDARRAY[i], q[0])
+
+    counts = cudaq.sample(kernel)
+    assert '0' in counts
+
+
+def test_captured_empty_ndarray_int():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        for i in range(len(_CAPTURED_EMPTY_NDARRAY_INT)):
+            x(q[_CAPTURED_EMPTY_NDARRAY_INT[i]])
+        x(q[1])
+
+    counts = cudaq.sample(kernel)
+    assert '01' in counts
+
+
+def test_captured_nonempty_ndarray():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(1)
+        for i in range(len(_CAPTURED_NDARRAY)):
+            ry(_CAPTURED_NDARRAY[i], q[0])
+
+    counts = cudaq.sample(kernel)
+    assert '0' in counts

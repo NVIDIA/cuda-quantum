@@ -252,14 +252,7 @@ def recover_annotation_of_or_none(name, frame=None):
 
 
 def is_recovered_value_ok(result):
-    try:
-        if result != None:
-            return True
-    except ValueError:
-        # `nd.array` values raise `ValueError` with the above `if result` but
-        # are otherwise legit here.
-        return True
-    return False
+    return result is not None
 
 
 def recover_value_of(name, frame=None):
@@ -703,6 +696,12 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             'argTypeToCompareTo'] if 'argTypeToCompareTo' in kwargs else None
 
         if len(argInstance) == 0:
+            if isinstance(argInstance, np.ndarray):
+                eleTy = mlirTypeFromPyType(argInstance.dtype.type, ctx)
+                for _ in range(argInstance.ndim - 1):
+                    eleTy = cc.StdvecType.get(eleTy, ctx)
+                return cc.StdvecType.get(eleTy, ctx)
+
             if argTypeToCompareTo == None:
                 emitFatalError('Cannot infer runtime argument type')
 
