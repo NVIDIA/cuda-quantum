@@ -46,11 +46,14 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   auto target =
       getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
   target->fullySpecialize = true;
+  // Translation consumes only the compiled MLIR artifact.
+  target->emitJit = false;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 
   auto rawArgs = args.getArgs();
-  auto compiled = compiler.runPassPipeline(name, module.getAsOpaquePointer(),
-                                           {rawArgs}, true);
+  auto compiled =
+      compiler.runPassPipeline(name, module.getAsOpaquePointer(), {rawArgs},
+                               /*isEntryPoint=*/false);
   auto compiled_module =
       cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
           *compiled.getMlir());
@@ -90,11 +93,14 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   auto target =
       getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
   target->fullySpecialize = true;
+  // Translation consumes only the compiled MLIR artifact.
+  target->emitJit = false;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 
   auto rawArgs = args.getArgs();
-  auto compiled = compiler.runPassPipeline(name, module.getAsOpaquePointer(),
-                                           {rawArgs}, true);
+  auto compiled =
+      compiler.runPassPipeline(name, module.getAsOpaquePointer(), {rawArgs},
+                               /*isEntryPoint=*/false);
   auto compiled_module =
       cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
           *compiled.getMlir());
