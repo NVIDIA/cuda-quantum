@@ -9,21 +9,20 @@
 name: qdmi
 description: "CUDA-Q target for QDMI devices."
 config:
-  platform-qpu: qdmi
+  platform-library: qdmi
   gen-target-backend: true
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-  link-libs: ["-lcudaq-qdmi-qpu"]
   jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
   codegen-emission: qasm2
 
 target-arguments:
   - key: library
-    required: false
+    required: true
     type: string
     platform-arg: qdmi_library
     help-string: "Path to the QDMI device library."
   - key: prefix
-    required: false
+    required: true
     type: string
     platform-arg: qdmi_prefix
     help-string: "QDMI function prefix used by the device library."

@@ -7,21 +7,29 @@
  ******************************************************************************/
 
 #include "QDMIQPU.h"
-#include "QDMIServerHelper.h"
+#include "QDMIDevice.h"
 
 #include "common/ExecutionContext.h"
-#include "common/Executor.h"
-#include "common/ServerHelper.h"
+#include "common/Future.h"
+#include "common/KernelExecution.h"
 #include "cudaq_internal/compiler/Compiler.h"
-#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq/utils/cudaq_utils.h"
 
-#include <fstream>
+#include <future>
+#include <map>
 #include <stdexcept>
 #include <utility>
 
 namespace {
+cudaq::CountsDictionary
+toCountsDictionary(const std::map<std::string, std::size_t> &counts) {
+  cudaq::CountsDictionary result;
+  result.reserve(counts.size());
+  for (const auto &[bits, count] : counts)
+    result[bits] = count;
+  return result;
+}
+
 cudaq::observe_result
 observeResultFromCounts(const cudaq::observe_policy &policy,
                         cudaq::sample_result data) {
@@ -47,44 +55,101 @@ runCodegen(const cudaq::CompiledModule &module,
   return compiler.emitKernelExecutions(module);
 }
 
-class QDMICompileTarget : public cudaq::CompileTarget {
-public:
-  QDMICompileTarget(cudaq::ServerHelper *serverHelper,
-                    cudaq::config::TargetConfig targetConfig,
-                    std::map<std::string, std::string> runtimeConfig)
-      : CompileTarget(std::move(targetConfig), std::move(runtimeConfig),
-                      /*emulate=*/false),
-        serverHelper(serverHelper) {
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-  }
+template <typename ShotType>
+std::size_t resolveShots(std::optional<int> configuredShots,
+                         ShotType policyShots) {
+  if (policyShots > 0)
+    return policyShots;
+  if (configuredShots && *configuredShots > 0)
+    return static_cast<std::size_t>(*configuredShots);
+  return 1000;
+}
 
-  void updatePassPipeline(std::string &passPipeline) const override {
-    serverHelper->updatePassPipeline(platformPath, passPipeline);
-  }
+cudaq::detail::future submitJobs(std::shared_ptr<cudaq::QDMIDevice> device,
+                                 std::vector<cudaq::KernelExecution> codes,
+                                 cudaq::detail::ExecutionContextType execType,
+                                 std::size_t shotCount) {
+  if (!device)
+    throw std::runtime_error("QDMI QPU is not configured.");
+  if (execType == cudaq::detail::ExecutionContextType::run)
+    throw std::runtime_error("QDMI backend does not support cudaq::run.");
 
-private:
-  cudaq::ServerHelper *serverHelper;
-  std::filesystem::path platformPath;
-};
+  return std::async(std::launch::async, [device = std::move(device),
+                                         codes = std::move(codes), execType,
+                                         shotCount]() {
+    cudaq::sample_result result;
+
+    for (const auto &code : codes) {
+      auto job =
+          device->device.submitJob(code.code, device->programFormat, shotCount);
+      if (!job.wait())
+        throw std::runtime_error("QDMI job timed out.");
+
+      const auto status = job.check();
+      if (status == QDMI_JOB_STATUS_FAILED)
+        throw std::runtime_error("QDMI job failed.");
+      if (status == QDMI_JOB_STATUS_CANCELED)
+        throw std::runtime_error("QDMI job was canceled.");
+      if (status != QDMI_JOB_STATUS_DONE)
+        throw std::runtime_error("QDMI job did not complete.");
+
+      const bool observe =
+          execType == cudaq::detail::ExecutionContextType::observe;
+      const auto registerName = observe ? code.name : cudaq::GlobalRegisterName;
+      cudaq::ExecutionResult executionResult(
+          toCountsDictionary(job.getCounts()), registerName);
+      try {
+        executionResult.sequentialData = job.getShots();
+      } catch (const std::exception &e) {
+        CUDAQ_DBG("QDMI shot data is unavailable: {}", e.what());
+      }
+
+      cudaq::sample_result jobResult(std::move(executionResult));
+      if (!code.mapping_reorder_idx.empty())
+        jobResult.reorder(code.mapping_reorder_idx, registerName);
+      result += jobResult;
+    }
+
+    return result;
+  });
+}
 } // namespace
 
 namespace cudaq {
 
-QDMIQPU::QDMIQPU() : QPU() {
-  std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-  platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+QDMIQPU::QDMIQPU() : QPU() {}
+
+QDMIQPU::QDMIQPU(std::shared_ptr<QDMIDevice> device,
+                 config::TargetConfig targetConfig,
+                 std::map<std::string, std::string> backendConfig)
+    : QPU() {
+  configure(std::move(device), std::move(targetConfig),
+            std::move(backendConfig));
 }
 
 QDMIQPU::~QDMIQPU() = default;
 
+void QDMIQPU::configure(std::shared_ptr<QDMIDevice> device,
+                        config::TargetConfig targetConfig,
+                        std::map<std::string, std::string> backendConfig) {
+  this->device = std::move(device);
+  this->targetConfig = std::move(targetConfig);
+  this->backendConfig = std::move(backendConfig);
+
+  if (!this->device)
+    return;
+
+  numQubits = this->device->qubitCount;
+  connectivity = this->device->connectivity;
+}
+
 void QDMIQPU::enqueue(QuantumTask &task) { execution_queue->enqueue(task); }
 
-void QDMIQPU::setShots(int shots) {
-  nShots = shots;
-  if (executor && shots > 0)
-    executor->setShots(static_cast<std::size_t>(shots));
-}
+bool QDMIQPU::isSimulator() { return device && device->isSimulator; }
+
+bool QDMIQPU::isRemote() { return !device || device->isRemote; }
+
+void QDMIQPU::setShots(int shots) { nShots = shots; }
 
 void QDMIQPU::clearShots() { nShots = std::nullopt; }
 
@@ -118,61 +183,14 @@ void QDMIQPU::endExecution() {
     executionContext->executionManager->endExecution();
 }
 
-void QDMIQPU::setTargetBackend(const std::string &backend) {
-  CUDAQ_INFO("QDMI platform is targeting {}.", backend);
-
-  backendConfig.clear();
-  targetConfig = config::TargetConfig{};
-
-  auto targetName = backend;
-  if (targetName.find(";") != std::string::npos) {
-    auto split = cudaq::split(targetName, ';');
-    targetName = split[0];
-    if ((split.size() - 1) % 2 != 0)
-      throw std::runtime_error(
-          "Backend config must be provided as key-value pairs.");
-
-    for (std::size_t i = 1; i < split.size(); i += 2) {
-      if (split[i + 1].starts_with("base64_")) {
-        split[i + 1].erase(0, 7);
-        backendConfig.insert({split[i], detail::decodeBase64(split[i + 1])});
-      } else {
-        backendConfig.insert({split[i], split[i + 1]});
-      }
-    }
-  }
-
-  if (auto iter = backendConfig.find("emulate");
-      iter != backendConfig.end() && iter->second == "true")
-    throw std::runtime_error(
-        "QDMI backend does not support CUDA-Q emulation mode.");
-
-  const auto configFilePath = platformPath / (targetName + ".yml");
-  std::ifstream configFile(configFilePath.string());
-  if (!configFile)
-    throw std::runtime_error("Could not open QDMI target configuration.");
-
-  const std::string configYmlContents(
-      (std::istreambuf_iterator<char>(configFile)),
-      std::istreambuf_iterator<char>());
-  detail::parseTargetConfigYml(configYmlContents, targetConfig);
-
-  qpuName = targetName;
-  detail::initServerHelperAndExecutor(qpuName, backendConfig, targetConfig,
-                                      serverHelper, executor);
-
-  auto *helper = dynamic_cast<QDMIServerHelper *>(serverHelper.get());
-  if (!helper)
-    throw std::runtime_error("QDMI QPU requires QDMIServerHelper.");
-
-  numQubits = helper->getQubitCount();
-  connectivity = helper->getConnectivity();
+void QDMIQPU::setTargetBackend(const std::string &) {
+  throw std::runtime_error("QDMI QPUs are configured by the QDMI platform.");
 }
 
 std::unique_ptr<CompileTarget>
-QDMIQPU::getCompileTarget(const sample_policy &policy) {
-  auto target = std::make_unique<QDMICompileTarget>(
-      serverHelper.get(), targetConfig, backendConfig);
+QDMIQPU::getCompileTarget(const sample_policy &) {
+  auto target = std::make_unique<CompileTarget>(targetConfig, backendConfig,
+                                                /*emulate=*/false);
   target->supportConditionalsOnMeasureResults = false;
   target->pipelineConfig.addMeasurements = true;
   target->storeReorderIdx = true;
@@ -183,8 +201,8 @@ QDMIQPU::getCompileTarget(const sample_policy &policy) {
 
 std::unique_ptr<CompileTarget>
 QDMIQPU::getCompileTarget(const observe_policy &policy) {
-  auto target = std::make_unique<QDMICompileTarget>(
-      serverHelper.get(), targetConfig, backendConfig);
+  auto target = std::make_unique<CompileTarget>(targetConfig, backendConfig,
+                                                /*emulate=*/false);
   target->supportConditionalsOnMeasureResults = false;
   target->overrideAOTCompilation = true;
   target->pauliTermSplitObservable = policy.spin;
@@ -201,18 +219,9 @@ std::unique_ptr<CompileTarget> QDMIQPU::getCompileTarget(const other_policies &,
 sample_result QDMIQPU::launchKernel(const sample_policy &policy,
                                     const CompiledModule &module, KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy));
-
-  std::size_t localShots = 1000;
-  if (nShots && *nShots > 0)
-    localShots = static_cast<std::size_t>(*nShots);
-  if (policy.options.shots > 0)
-    localShots = static_cast<std::size_t>(policy.options.shots);
-  executor->setShots(localShots);
-
-  auto *executionContext = cudaq::getExecutionContext();
-  auto future = executor->execute(
-      codes, detail::ExecutionContextType::sample,
-      executionContext ? &executionContext->invocationResultBuffer : nullptr);
+  const auto shotCount = resolveShots(nShots, policy.options.shots);
+  auto future = submitJobs(device, std::move(codes),
+                           detail::ExecutionContextType::sample, shotCount);
   return future.get();
 }
 
@@ -220,36 +229,18 @@ async_sample_result QDMIQPU::launchKernel(const async_sample_policy &policy,
                                           const CompiledModule &module,
                                           KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy.inner));
-
-  std::size_t localShots = 1000;
-  if (nShots && *nShots > 0)
-    localShots = static_cast<std::size_t>(*nShots);
-  if (policy.inner.options.shots > 0)
-    localShots = static_cast<std::size_t>(policy.inner.options.shots);
-  executor->setShots(localShots);
-
-  auto *executionContext = cudaq::getExecutionContext();
-  auto future = executor->execute(
-      codes, detail::ExecutionContextType::sample,
-      executionContext ? &executionContext->invocationResultBuffer : nullptr);
+  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
+  auto future = submitJobs(device, std::move(codes),
+                           detail::ExecutionContextType::sample, shotCount);
   return async_sample_result(std::move(future));
 }
 
 observe_result QDMIQPU::launchKernel(const observe_policy &policy,
                                      const CompiledModule &module, KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy));
-
-  std::size_t localShots = 1000;
-  if (nShots && *nShots > 0)
-    localShots = static_cast<std::size_t>(*nShots);
-  if (policy.options.shots > 0)
-    localShots = static_cast<std::size_t>(policy.options.shots);
-  executor->setShots(localShots);
-
-  auto *executionContext = cudaq::getExecutionContext();
-  auto future = executor->execute(
-      codes, detail::ExecutionContextType::observe,
-      executionContext ? &executionContext->invocationResultBuffer : nullptr);
+  const auto shotCount = resolveShots(nShots, policy.options.shots);
+  auto future = submitJobs(device, std::move(codes),
+                           detail::ExecutionContextType::observe, shotCount);
   return observeResultFromCounts(policy, future.get());
 }
 
@@ -257,21 +248,10 @@ async_observe_result QDMIQPU::launchKernel(const async_observe_policy &policy,
                                            const CompiledModule &module,
                                            KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy.inner));
-
-  std::size_t localShots = 1000;
-  if (nShots && *nShots > 0)
-    localShots = static_cast<std::size_t>(*nShots);
-  if (policy.inner.options.shots > 0)
-    localShots = static_cast<std::size_t>(policy.inner.options.shots);
-  executor->setShots(localShots);
-
-  auto *executionContext = cudaq::getExecutionContext();
-  auto future = executor->execute(
-      codes, detail::ExecutionContextType::observe,
-      executionContext ? &executionContext->invocationResultBuffer : nullptr);
+  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
+  auto future = submitJobs(device, std::move(codes),
+                           detail::ExecutionContextType::observe, shotCount);
   return async_observe_result(std::move(future), &policy.inner.spin);
 }
 
 } // namespace cudaq
-
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::QDMIQPU, qdmi)
