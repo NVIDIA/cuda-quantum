@@ -379,7 +379,7 @@ computeComponents(unsigned n, IsActive isActive, ForNeighbors forNeighbors) {
 /// routed (even with swaps) across different islands, so placement and
 /// rejection both reason in terms of these.
 SmallVector<SmallVector<unsigned>>
-computeDeviceComponents(const cudaq::Device &device) {
+computeDeviceIslands(const cudaq::Device &device) {
   using Qubit = cudaq::Device::Qubit;
   const unsigned n = device.getNumQubits();
   return computeComponents(
@@ -421,7 +421,7 @@ struct IslandPlan {
 /// that fits. This best-fit-decreasing heuristic is deterministic but not
 /// complete: it can fail even when a different packing exists.
 std::optional<SmallVector<IslandPlan>>
-buildBestFitIslandPlan(SmallVector<SmallVector<unsigned>> deviceComponents,
+buildBestFitIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
                        SmallVector<SmallVector<unsigned>> virtualComponents) {
   llvm::sort(virtualComponents, [](const auto &lhs, const auto &rhs) {
     if (lhs.size() != rhs.size())
@@ -430,9 +430,9 @@ buildBestFitIslandPlan(SmallVector<SmallVector<unsigned>> deviceComponents,
   });
 
   SmallVector<IslandPlan> plan;
-  plan.reserve(deviceComponents.size());
-  for (auto &component : deviceComponents)
-    plan.push_back({std::move(component), {}});
+  plan.reserve(deviceIslands.size());
+  for (auto &island : deviceIslands)
+    plan.push_back({std::move(island), {}});
 
   for (const auto &virtualComponent : virtualComponents) {
     // `plan.size()` is the "no island chosen yet" sentinel.
@@ -478,14 +478,14 @@ std::optional<SmallVector<unsigned>>
 buildGreedySeed(unsigned numV, const cudaq::Device &device,
                 const VirtualInteractionGraph &interactions,
                 ArrayRef<bool> userVirtualQubits) {
-  SmallVector<SmallVector<unsigned>> deviceComponents =
-      computeDeviceComponents(device);
+  SmallVector<SmallVector<unsigned>> deviceIslands =
+      computeDeviceIslands(device);
   SmallVector<SmallVector<unsigned>> virtualComponents =
       computeVirtualComponents(interactions, userVirtualQubits);
-  if (deviceComponents.size() <= 1 || virtualComponents.empty())
+  if (deviceIslands.size() <= 1 || virtualComponents.empty())
     return GreedyInitialPlacer(device, interactions, userVirtualQubits).run();
 
-  auto plan = buildBestFitIslandPlan(std::move(deviceComponents),
+  auto plan = buildBestFitIslandPlan(std::move(deviceIslands),
                                      std::move(virtualComponents));
   if (!plan)
     return std::nullopt;
@@ -1066,10 +1066,10 @@ double SabreRouter::computeLayerCost(ArrayRef<NodeRef> layer) {
     auto phy1 = placement.getPhy(node.qubits[1]);
     unsigned distance = device.getDistance(phy0, phy1);
     // Invariant: findUnroutableInteraction admits only layouts whose two-qubit
-    // interactions are intra-component, and swaps never cross components, so a
+    // interactions are intra-island, and swaps never cross islands, so a
     // routed gate always has a finite distance here.
     assert(distance != cudaq::Device::unreachableDistance &&
-           "front-layer gate spans disconnected device components");
+           "front-layer gate spans disconnected device islands");
     cost += distance - 1;
   }
   return cost / layer.size();
@@ -1150,7 +1150,7 @@ void SabreRouter::forceClosestGate() {
     // `findUnroutableInteraction`): a stalled front-layer gate is always
     // reachable, never unreachableDistance.
     assert(d != cudaq::Device::unreachableDistance &&
-           "stalled front-layer gate spans disconnected device components");
+           "stalled front-layer gate spans disconnected device islands");
     if (d < bestDist) {
       bestDist = d;
       closest = n;
@@ -2251,7 +2251,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Interaction data is required by every placement strategy: greedy and
     // auto use it to build seeds, while identity uses it to reject interactions
-    // that cross disconnected device components.
+    // that cross disconnected device islands.
     VirtualInteractionGraph interactions(deviceNumQubits);
     SmallVector<bool> userVirtualQubits(deviceNumQubits, false);
 
