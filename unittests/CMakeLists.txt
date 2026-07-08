@@ -77,7 +77,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
   # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
   # unless the loopback test topology is provided via environment variables.
-  if (TARGET cudaq::cudaq-realtime-cpu-transport)
+  if (TARGET cudaq::cudaq-realtime-cpu-roce-transport)
     add_executable(cpu_roce_test_daemon
       device_call/cpu_roce_test_daemon.cpp)
     target_include_directories(cpu_roce_test_daemon
@@ -92,7 +92,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA_RESOLVE_DEVICE_SYMBOLS ON)
     target_link_libraries(cpu_roce_test_daemon
       PRIVATE
-        cudaq::cudaq-realtime-cpu-transport
+        cudaq::cudaq-realtime-cpu-roce-transport
         cudaq::cudaq-realtime-host-dispatch
         CUDA::cudart_static
         Threads::Threads)
