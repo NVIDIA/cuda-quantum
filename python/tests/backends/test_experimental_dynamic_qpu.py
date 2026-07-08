@@ -20,7 +20,7 @@ import cudaq
 import cudaq.mlir.ir as mlir
 import pytest
 
-from cudaq.qpu import (
+from cudaq.experimental.qpu import (
     SupportsSampleQPU,
     SupportsObserveQPU,
     CompileTarget,
@@ -128,7 +128,7 @@ def test_sample_twice():
         "get_compile_target_sample",
         'launch_sample(KernelArgs([1, <instance of !cc.stdvec<i64>>]))',
         "get_compile_target_sample",
-        'launch_sample(KernelArgs([1, <instance of !cc.stdvec<i64>>]))'
+        'launch_sample(KernelArgs([2, <instance of !cc.stdvec<i64>>]))'
     ]
 
 

@@ -184,7 +184,7 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "set_target",
       [&](PyDynamicQPU qpu) {
         holder.setTarget("python-dynamic");
-        auto &targetQpu = static_cast<PyDynamicQPU &>(holder.getTargetQPU());
+        auto &targetQpu = dynamic_cast<PyDynamicQPU &>(holder.getTargetQPU());
         targetQpu = std::move(qpu);
         onTargetChange(holder.getTarget());
       },

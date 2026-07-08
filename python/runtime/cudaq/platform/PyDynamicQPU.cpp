@@ -49,6 +49,9 @@ struct PyKernelArgs {
   PyKernelArgs() = default;
 
   PyKernelArgs(cudaq::KernelArgs kargs, const cudaq::CompiledModule &compiled) {
+    if (kargs.hasPacked())
+      CUDAQ_WARN("Packed arguments are not supported for Python QPUs. Ignoring "
+                 "arguments");
     if (auto typeErasedArgs = kargs.getTypeErased())
       args = typeErasedArgs.value();
     parseSignature(compiled);
@@ -90,6 +93,12 @@ static nanobind::object convertArg(mlir::ModuleOp module, mlir::Type ty,
 template <typename Ret, typename... Args>
 static std::optional<std::function<Ret(Args...)>>
 getCallable(nanobind::handle obj, const char *name) {
+  // Ensure Python and object are alive
+  if (!Py_IsInitialized() || !obj.is_valid())
+    return std::nullopt;
+  // Caller must hold the GIL
+  assert(PyGILState_Check());
+
   if (!nanobind::hasattr(obj, name))
     return std::nullopt;
   std::function<Ret(Args...)> func;
