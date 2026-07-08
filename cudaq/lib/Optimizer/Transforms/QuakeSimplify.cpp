@@ -683,7 +683,8 @@ public:
   }
 };
 
-// A reset after a reset can be eliminated as it is redundant.
+// A reset after a reset or a null_wire can be eliminated as it is redundant.
+// NB: this optimization would not be valid after borrow_wire.
 class EraseDoubleReset : public OpRewritePattern<cudaq::quake::ResetOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -695,18 +696,25 @@ public:
     if (target.getType() != cudaq::quake::WireType::get(ctx))
       return failure();
     auto reset0 = target.template getDefiningOp<cudaq::quake::ResetOp>();
-    if (!reset0) {
-      LLVM_DEBUG(llvm::dbgs() << "previous operation must be reset\n");
+    if (reset0) {
+      LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
+      rewriter.replaceOp(reset, reset0.getResults());
+      return success();
+    }
+    auto nullwire = target.template getDefiningOp<cudaq::quake::NullWireOp>();
+    if (!nullwire) {
+      LLVM_DEBUG(llvm::dbgs()
+                 << "previous operation must be reset or null_wire\n");
       return failure();
     }
-
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
-    rewriter.replaceOp(reset, reset0.getResults());
+    rewriter.replaceOp(reset, nullwire.getResult());
     return success();
   }
 };
 
 // A reset before a sink can be eliminated as the wire is going out of scope.
+// NB: this optimization would not be valid before return_wire.
 class EraseResetSink : public OpRewritePattern<cudaq::quake::SinkOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
