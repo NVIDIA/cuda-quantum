@@ -1,0 +1,62 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Regression test for issue #4878. Device islands are {5, 4} and the requested
+// interacting components are {3, 2, 2, 2}. Best-fit-decreasing packing places
+// the size-3 component onto the size-4 island and then strands one of the
+// pairs, so `placement=greedy` used to fail with
+//   "could not find a routable initial layout for disconnected device topology"
+// even though the feasible packing {3+2, 2+2} exists. The completeness fallback
+// finds that packing, so greedy placement now routes the circuit with no swaps.
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=greedy search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=greedy search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=auto   search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=greedy search=none'  %s | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @packing_fallback() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %v3 = quake.borrow_wire @wires[3] : !quake.wire
+  %v4 = quake.borrow_wire @wires[4] : !quake.wire
+  %v5 = quake.borrow_wire @wires[5] : !quake.wire
+  %v6 = quake.borrow_wire @wires[6] : !quake.wire
+  %v7 = quake.borrow_wire @wires[7] : !quake.wire
+  %v8 = quake.borrow_wire @wires[8] : !quake.wire
+  // Component of size 3: v0-v1-v2.
+  %a:2 = quake.x [%v0] %v1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#1] %v2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // Component of size 2: v3-v4.
+  %c:2 = quake.x [%v3] %v4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // Component of size 2: v5-v6.
+  %d:2 = quake.x [%v5] %v6 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  // Component of size 2: v7-v8.
+  %e:2 = quake.x [%v7] %v8 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#0 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  quake.return_wire %d#0 : !quake.wire
+  quake.return_wire %d#1 : !quake.wire
+  quake.return_wire %e#0 : !quake.wire
+  quake.return_wire %e#1 : !quake.wire
+  return
+}
+
+// The pass must succeed and emit a concrete layout (a `mapping_v2p` mapping),
+// preserving all five two-qubit interactions with no inserted swaps. Exact
+// physical indices depend on greedy tie-breaks and are intentionally not pinned
+// here; `CircuitCheck --up-to-mapping` above verifies semantic equivalence.
+
+// CHECK-LABEL:   func.func @packing_fallback()
+// CHECK-SAME:      mapping_v2p =
+// CHECK-COUNT-5:   quake.x

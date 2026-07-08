@@ -419,7 +419,8 @@ struct IslandPlan {
 /// Assign each interacting virtual component wholly to one device island.
 /// Components are packed largest-first into the smallest remaining capacity
 /// that fits. This best-fit-decreasing heuristic is deterministic but not
-/// complete: it can fail even when a different packing exists.
+/// complete: it can fail even when a different packing exists. When it does,
+/// `buildFeasibleIslandPlan` is used as a complete fallback.
 std::optional<SmallVector<IslandPlan>>
 buildBestFitIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
                        SmallVector<SmallVector<unsigned>> virtualComponents) {
@@ -468,6 +469,101 @@ buildBestFitIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
   return plan;
 }
 
+/// Recursive backtracking core of `buildFeasibleIslandPlan`. Tries to place
+/// `virtualComponents[componentId ..]` onto the islands, mutating `plan` and
+/// `remaining` in place and undoing each choice that does not lead to a full
+/// packing. `budget` bounds the number of placement attempts so a pathological
+/// input can never make the compiler hang; it is decremented on every attempt
+/// and, once exhausted, unwinds the search as if no packing were found.
+static bool packComponentsBacktracking(
+    unsigned componentId,
+    const SmallVector<SmallVector<unsigned>> &virtualComponents,
+    SmallVector<IslandPlan> &plan, SmallVector<std::size_t> &remaining,
+    std::size_t &budget) {
+  if (componentId == virtualComponents.size())
+    return true;
+  if (budget == 0)
+    return false;
+
+  const auto &virtualComponent = virtualComponents[componentId];
+
+  // Two islands with the same remaining capacity are interchangeable for this
+  // component: the remaining subproblem is identical, so if the first fails the
+  // second must too. Skipping the duplicate keeps the search deterministic and
+  // collapses the factorial symmetry that makes naive backtracking expensive.
+  llvm::SmallSet<std::size_t, 4> triedCapacities;
+  for (unsigned islandId = 0; islandId < plan.size(); ++islandId) {
+    if (budget == 0)
+      return false;
+    const std::size_t capacity = remaining[islandId];
+    if (capacity < virtualComponent.size())
+      continue;
+    if (!triedCapacities.insert(capacity).second)
+      continue;
+
+    --budget;
+    const std::size_t previousSize = plan[islandId].virtualQubits.size();
+    remaining[islandId] = capacity - virtualComponent.size();
+    plan[islandId].virtualQubits.append(virtualComponent.begin(),
+                                        virtualComponent.end());
+    if (packComponentsBacktracking(componentId + 1, virtualComponents, plan,
+                                   remaining, budget))
+      return true;
+    // Undo and try the next island.
+    plan[islandId].virtualQubits.truncate(previousSize);
+    remaining[islandId] = capacity;
+  }
+  return false;
+}
+
+/// Complete fallback for the rare case where best-fit-decreasing fails but a
+/// feasible packing exists (e.g. device islands `{5, 4}` with virtual
+/// components `{3, 2, 2, 2}`: BFD puts the 3 onto the size-4 island and strands
+/// a 2, yet `{3+2, 2+2}` packs cleanly). General bin packing is NP-complete, so
+/// this exhaustive backtracking search is gated behind BFD and bounded by an
+/// exploration budget; on the small, few-island device graphs that reach here
+/// the search space is tiny. Returns a feasible plan, or nullopt if none exists
+/// (or the budget is exhausted). The component ordering matches BFD so that,
+/// where both succeed, they agree, and so that the hardest components are
+/// placed first for better pruning.
+std::optional<SmallVector<IslandPlan>>
+buildFeasibleIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
+                        SmallVector<SmallVector<unsigned>> virtualComponents) {
+  llvm::sort(virtualComponents, [](const auto &lhs, const auto &rhs) {
+    if (lhs.size() != rhs.size())
+      return lhs.size() > rhs.size();
+    return lhs.front() < rhs.front();
+  });
+
+  SmallVector<IslandPlan> plan;
+  plan.reserve(deviceIslands.size());
+  SmallVector<std::size_t> remaining;
+  remaining.reserve(deviceIslands.size());
+  std::size_t totalCapacity = 0;
+  for (auto &island : deviceIslands) {
+    totalCapacity += island.size();
+    remaining.push_back(island.size());
+    plan.push_back({std::move(island), {}});
+  }
+
+  // Cheap infeasibility check before searching: the components cannot fit if
+  // they outweigh the total island capacity.
+  std::size_t totalLoad = 0;
+  for (const auto &virtualComponent : virtualComponents)
+    totalLoad += virtualComponent.size();
+  if (totalLoad > totalCapacity)
+    return std::nullopt;
+
+  // Safety valve against adversarial inputs. This is only reached after BFD has
+  // already failed, and realistic disconnected devices have a handful of
+  // islands and components, so the bound is never approached in practice.
+  std::size_t budget = std::size_t(1) << 20;
+  if (!packComponentsBacktracking(/*componentId=*/0, virtualComponents, plan,
+                                  remaining, budget))
+    return std::nullopt;
+  return plan;
+}
+
 /// Build a greedy seed that never splits an interacting group of virtual
 /// qubits across device islands. On a single-island (connected) device, one
 /// greedy walk places every virtual qubit over the whole device. On a
@@ -485,8 +581,14 @@ buildGreedySeed(unsigned numV, const cudaq::Device &device,
   if (deviceIslands.size() <= 1 || virtualComponents.empty())
     return GreedyInitialPlacer(device, interactions, userVirtualQubits).run();
 
-  auto plan = buildBestFitIslandPlan(std::move(deviceIslands),
-                                     std::move(virtualComponents));
+  // Best-fit-decreasing is the fast, deterministic first attempt. It is not a
+  // complete bin-packing algorithm, so when it fails fall back to an exhaustive
+  // (but bounded) search before declaring the layout unroutable. Copies are
+  // passed to BFD so the components/islands survive for the fallback.
+  auto plan = buildBestFitIslandPlan(deviceIslands, virtualComponents);
+  if (!plan)
+    plan = buildFeasibleIslandPlan(std::move(deviceIslands),
+                                   std::move(virtualComponents));
   if (!plan)
     return std::nullopt;
 
