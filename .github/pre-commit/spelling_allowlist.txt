@@ -236,6 +236,8 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+datagram
+datagrams
 ddots
 deallocate
 deallocated
@@ -383,6 +385,7 @@ responder
 resultData
 reusability
 rkey
+runnable
 runtime
 runtimes
 rvalue
