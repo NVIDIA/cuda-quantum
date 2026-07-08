@@ -193,8 +193,10 @@ arity
 auxillary
 backend
 backends
+backpressure
 bernstein
 bitcode
+bitmask
 bitstring
 bitstrings
 bitwidth
@@ -234,6 +236,8 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+datagram
+datagrams
 ddots
 deallocate
 deallocated
@@ -381,6 +385,7 @@ responder
 resultData
 reusability
 rkey
+runnable
 runtime
 runtimes
 rvalue
@@ -392,6 +397,7 @@ selectable
 sexualized
 shifter
 shifters
+sizeof
 splitter
 splitters
 sqale
@@ -430,10 +436,12 @@ transpilation
 transpile
 trixie
 trotterization
+tx
 uccsd
 unary
 uncomputation
 uncompute
+undecomposed
 unitaries
 unitarity
 unitary

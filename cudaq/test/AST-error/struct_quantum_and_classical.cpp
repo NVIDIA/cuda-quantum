@@ -28,7 +28,7 @@ __qpu__ void kernel(test t) {
 __qpu__ void entry(int i) {
   cudaq::qvector q(i);
   test tt{1, 2.2, q};
-  // this fails non-default ctor ConvertExpr:2899, 
+  // this fails non-default ctor ConvertExpr:2899,
   // but this is not what we are testing here
-  // kernel(tt); 
+  // kernel(tt);
 }

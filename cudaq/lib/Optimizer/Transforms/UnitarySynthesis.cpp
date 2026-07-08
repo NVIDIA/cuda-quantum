@@ -16,7 +16,6 @@
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include <algorithm>
 #include <memory>
@@ -93,7 +92,7 @@ public:
   /// `ApplySpecialization` pass.
   virtual void
   emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                       PatternRewriter &rewriter, std::string funcName) = 0;
+                       OpBuilder &rewriter, std::string funcName) = 0;
   bool isAboveThreshold(double value) { return std::abs(value) > TOL; };
   virtual ~Decomposer() = default;
 };
@@ -144,7 +143,7 @@ struct OneQubitOpZYZ : public Decomposer {
   }
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                            PatternRewriter &rewriter,
+                            OpBuilder &rewriter,
                             std::string funcName) override {
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     Location loc = customOp->getLoc();
@@ -407,7 +406,7 @@ struct TwoQubitOpKAK : public Decomposer {
   }
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                            PatternRewriter &rewriter,
+                            OpBuilder &rewriter,
                             std::string funcName) override {
     auto a0 = OneQubitOpZYZ(components.a0);
     a0.emitDecomposedFuncOp(customOp, rewriter, funcName + "a0");
@@ -727,7 +726,7 @@ struct NQubitOpQSD : public Decomposer {
   /// control flipped between gray(i) and gray(i+1). Refs: Möttönen et al.
   /// (arXiv quant-ph/0407010), Shende-Bullock-Markov (arXiv quant-ph/0406176).
   void emitMux(const std::vector<double> &angles, ArrayRef<Value> controls,
-               Value target, bool isRy, PatternRewriter &rewriter, Location loc,
+               Value target, bool isRy, OpBuilder &rewriter, Location loc,
                FloatType floatTy) {
     auto emitRot = [&](double angle) {
       if (!isAboveThreshold(angle))
@@ -772,7 +771,7 @@ struct NQubitOpQSD : public Decomposer {
   }
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                            PatternRewriter &rewriter,
+                            OpBuilder &rewriter,
                             std::string funcName) override {
     /// Emit using the children built (and validated) in `decompose()`.
     childWr->emitDecomposedFuncOp(customOp, rewriter, funcName + "wr");
@@ -828,84 +827,93 @@ struct NQubitOpQSD : public Decomposer {
   }
 };
 
-class CustomUnitaryPattern
-    : public OpRewritePattern<cudaq::quake::CustomUnitaryConstantOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
+/// Build the decomposer for a `dimension x dimension` custom-operation matrix,
+/// or return null when the dimension is outside the supported synthesis range
+/// (a power of two with `2 <= dimension <= 32`, i.e. 1-5 qubits). The returned
+/// decomposer has already run its factorization; callers consult `isValid()` to
+/// learn whether the reconstruction stayed within tolerance.
+static std::shared_ptr<Decomposer>
+makeDecomposer(const Eigen::MatrixXcd &unitary, size_t dimension) {
+  if (dimension == 2) {
+    Eigen::Matrix2cd m2 = unitary;
+    return std::make_shared<OneQubitOpZYZ>(m2);
+  }
+  if (dimension == 4)
+    return std::make_shared<TwoQubitOpKAK>(unitary);
+  if (dimension >= 8 && dimension <= 32 && (dimension & (dimension - 1)) == 0)
+    return std::make_shared<NQubitOpQSD>(unitary);
+  return nullptr;
+}
 
-  LogicalResult matchAndRewrite(cudaq::quake::CustomUnitaryConstantOp customOp,
-                                PatternRewriter &rewriter) const override {
-    auto parentModule = customOp->getParentOfType<ModuleOp>();
-    /// Get the global constant holding the concrete matrix corresponding to
-    /// this custom operation invocation
-    StringRef generatorName = customOp.getMatrix().getRootReference();
-    auto globalOp =
-        parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
-    /// The decomposed sequence of quantum operations are in a function
-    auto pair = generatorName.split(".rodata");
-    std::string funcName = pair.first.str() + ".kernel" + pair.second.str();
-    /// If the replacement function doesn't exist, create it here
-    if (!parentModule.lookupSymbol<func::FuncOp>(funcName)) {
-      auto matrix = cudaq::opt::factory::readGlobalConstantArray(globalOp);
-      size_t dimension = std::sqrt(matrix.size());
-      auto unitary =
-          Eigen::Map<Eigen::MatrixXcd>(matrix.data(), dimension, dimension);
-      unitary.transposeInPlace();
-      if (!unitary.isUnitary(TOL)) {
-        customOp.emitWarning("The custom operation matrix must be unitary.");
-        return failure();
-      }
-      /// If synthesis cannot reproduce the matrix within tolerance, leave the
-      /// IR unchanged and emit a debug note. The pass stays composable: it does
-      /// not crash the compiler or signal a hard pass failure when it cannot
-      /// decompose an operation -- another pass or back-end may still handle
-      /// it.
-      auto bailOut = [&]() -> LogicalResult {
-        LLVM_DEBUG(llvm::dbgs()
-                   << "unitary-synthesis: reconstruction error exceeds "
-                      "tolerance; leaving custom op unchanged\n");
-        return failure();
-      };
-      if (dimension == 2) {
-        auto zyz = OneQubitOpZYZ(unitary);
-        if (!zyz.isValid())
-          return bailOut();
-        zyz.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      } else if (dimension == 4) {
-        auto kak = TwoQubitOpKAK(unitary);
-        if (!kak.isValid())
-          return bailOut();
-        kak.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      } else if (dimension >= 8 && dimension <= 32 &&
-                 (dimension & (dimension - 1)) == 0) {
-        /// Recursive Quantum Shannon Decomposition for 3-5 qubit operations.
-        auto qsd = NQubitOpQSD(unitary);
-        if (!qsd.isValid()) {
-          /// In the advertised 3-5 qubit range but the reconstruction
-          /// self-check failed. Stay composable -- leave the op unchanged for
-          /// another pass/back-end -- but make the outcome visible instead of a
-          /// silent no-op in Release builds (where the debug note is compiled
-          /// out). This is a warning, not an error: no signalPassFailure.
-          customOp.emitWarning(
-              "unitary-synthesis: could not synthesize this custom operation "
-              "within the reconstruction tolerance; leaving it unchanged.");
-          return bailOut();
-        }
-        qsd.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      } else if ((dimension & (dimension - 1)) == 0) {
-        /// Power-of-two but larger than 5 qubits (matrix dimension > 32).
-        /// Unsupported for now; stay composable and leave the op unchanged.
-        LLVM_DEBUG(llvm::dbgs()
-                   << "unitary-synthesis: matrix dimension " << dimension
-                   << " exceeds the supported 5-qubit cap (32); leaving "
-                      "custom op unchanged\n");
-        return failure();
-      } else {
-        customOp.emitWarning("Decomposition supports custom operations on a "
-                             "power-of-two matrix dimension only.");
-        return failure();
-      }
-    }
+/// Cached classification of a custom operation's generator matrix. The
+/// decomposition (SVD/Schur/CSD) is computed once and reused by both the
+/// conversion-target legality check and the rewrite pattern.
+struct DecompInfo {
+  enum Status {
+    Convertible,         ///< supported dimension, unitary, reconstruction valid
+    NonUnitary,          ///< matrix is not unitary to `TOL`
+    UnsupportedDim,      ///< not a power of two, or a power of two > 32
+    ReconstructionFailed ///< supported dimension but reconstruction missed
+  };
+  std::shared_ptr<Decomposer> decomposer; ///< non-null only when `Convertible`
+  Status status = UnsupportedDim;
+  size_t dimension = 0;
+  bool powerOfTwo = false;
+};
+
+/// Classify (and cache) a custom operation by its generator symbol so each
+/// distinct matrix is factored exactly once.
+static const DecompInfo &
+getOrBuildDecompInfo(cudaq::quake::CustomUnitaryConstantOp customOp,
+                     llvm::StringMap<DecompInfo> &cache) {
+  StringRef generatorName = customOp.getMatrix().getRootReference();
+  auto it = cache.find(generatorName);
+  if (it != cache.end())
+    return it->second;
+  auto parentModule = customOp->getParentOfType<ModuleOp>();
+  auto globalOp = parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
+  auto matrix = cudaq::opt::factory::readGlobalConstantArray(globalOp);
+  size_t dimension = std::sqrt(matrix.size());
+  auto unitary =
+      Eigen::Map<Eigen::MatrixXcd>(matrix.data(), dimension, dimension);
+  unitary.transposeInPlace();
+  DecompInfo info;
+  info.dimension = dimension;
+  info.powerOfTwo = dimension != 0 && (dimension & (dimension - 1)) == 0;
+  if (!unitary.isUnitary(TOL)) {
+    info.status = DecompInfo::NonUnitary;
+  } else if (auto decomp = makeDecomposer(unitary, dimension)) {
+    info.status = decomp->isValid() ? DecompInfo::Convertible
+                                    : DecompInfo::ReconstructionFailed;
+    info.decomposer = std::move(decomp);
+  } else {
+    info.status = DecompInfo::UnsupportedDim;
+  }
+  return cache.try_emplace(generatorName, std::move(info)).first->second;
+}
+
+/// Replacement-function name for a custom operation's generator symbol.
+static std::string replacementFuncName(StringRef generatorName) {
+  auto pair = generatorName.split(".rodata");
+  return pair.first.str() + ".kernel" + pair.second.str();
+}
+
+/// Lowers a synthesizable `quake.custom_unitary_constant` into a `quake.apply`
+/// of its decomposed kernel. The kernels are generated up-front by the pass
+/// below and the conversion target marks a custom op illegal exactly when such
+/// a kernel exists, so this pattern is a pure structural replacement -- the "do
+/// not commit unless legal" guarantee is enforced by the legality predicate.
+class CustomUnitaryPattern
+    : public OpConversionPattern<cudaq::quake::CustomUnitaryConstantOp> {
+public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::CustomUnitaryConstantOp customOp,
+                  OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    std::string funcName =
+        replacementFuncName(customOp.getMatrix().getRootReference());
     rewriter.replaceOpWithNewOp<cudaq::quake::ApplyOp>(
         customOp, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName), customOp.isAdj(),
@@ -922,18 +930,90 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     auto module = getOperation();
-    for (Operation &op : *module.getBody()) {
-      auto func = dyn_cast<func::FuncOp>(op);
-      if (!func)
-        continue;
-      RewritePatternSet patterns(ctx);
-      patterns.insert<CustomUnitaryPattern>(ctx);
-      LLVM_DEBUG(llvm::dbgs() << "Before unitary synthesis: " << func << '\n');
-      if (failed(
-              applyPatternsGreedily(func.getOperation(), std::move(patterns))))
-        signalPassFailure();
-      LLVM_DEBUG(llvm::dbgs() << "After unitary synthesis: " << func << '\n');
+
+    /// Classification cache so every generator matrix is decomposed at most
+    /// once, shared by the kernel pre-generation and the post-pass diagnostics.
+    llvm::StringMap<DecompInfo> cache;
+
+    /// Pre-generate the decomposed replacement kernel for every synthesizable
+    /// custom operation. We walk the custom ops in reverse and insert each new
+    /// kernel at the start of the module, so the kernels end up in the original
+    /// (forward) custom-op order regardless of the conversion driver's
+    /// traversal order. A plain `OpBuilder` is used so these sibling functions
+    /// are created outside the conversion process.
+    OpBuilder builder(ctx);
+    builder.setInsertionPointToStart(module.getBody());
+    SmallVector<cudaq::quake::CustomUnitaryConstantOp> customOps;
+    module.walk([&](cudaq::quake::CustomUnitaryConstantOp op) {
+      customOps.push_back(op);
+    });
+    for (auto op : llvm::reverse(customOps)) {
+      std::string funcName =
+          replacementFuncName(op.getMatrix().getRootReference());
+      if (module.lookupSymbol<func::FuncOp>(funcName))
+        continue; // a previous invocation of this generator already built it
+      const DecompInfo &info = getOrBuildDecompInfo(op, cache);
+      if (info.status == DecompInfo::Convertible)
+        info.decomposer->emitDecomposedFuncOp(op, builder, funcName);
     }
+
+    /// Use the dialect-conversion framework to replace each synthesizable
+    /// custom operation with a `quake.apply` of its decomposed kernel. This
+    /// pass only ever rewrites `quake.custom_unitary_constant` (marked
+    /// *illegal* when a decomposed kernel exists for it) into a `quake.apply`
+    /// (the single op it produces, hence marked legal). A partial conversion
+    /// leaves every other, unmarked op untouched, so the pass stays composable
+    /// -- unsupported/non-unitary/reconstruction-miss custom ops simply remain.
+    ConversionTarget target(*ctx);
+    target.addLegalOp<cudaq::quake::ApplyOp>();
+    target.addDynamicallyLegalOp<cudaq::quake::CustomUnitaryConstantOp>(
+        [](cudaq::quake::CustomUnitaryConstantOp op) {
+          return !op->getParentOfType<ModuleOp>().lookupSymbol<func::FuncOp>(
+              replacementFuncName(op.getMatrix().getRootReference()));
+        });
+
+    RewritePatternSet patterns(ctx);
+    patterns.insert<CustomUnitaryPattern>(ctx);
+
+    LLVM_DEBUG(llvm::dbgs() << "Before unitary synthesis: " << module << '\n');
+    if (failed(applyPartialConversion(module, target, std::move(patterns))))
+      signalPassFailure();
+
+    /// Keep the user-visible diagnostics for custom operations we intentionally
+    /// left unchanged. These are warnings/notes, never errors: another pass or
+    /// back-end may still legalize the op.
+    module.walk([&](cudaq::quake::CustomUnitaryConstantOp op) {
+      auto it = cache.find(op.getMatrix().getRootReference());
+      if (it == cache.end())
+        return;
+      switch (it->second.status) {
+      case DecompInfo::NonUnitary:
+        op.emitWarning("The custom operation matrix must be unitary.");
+        break;
+      case DecompInfo::ReconstructionFailed:
+        /// In the advertised 3-5 qubit range but the reconstruction self-check
+        /// failed. Stay composable -- leave the op unchanged -- but make the
+        /// outcome visible instead of a silent no-op in Release builds.
+        op.emitWarning(
+            "unitary-synthesis: could not synthesize this custom operation "
+            "within the reconstruction tolerance; leaving it unchanged.");
+        break;
+      case DecompInfo::UnsupportedDim:
+        if (it->second.powerOfTwo)
+          LLVM_DEBUG(llvm::dbgs()
+                     << "unitary-synthesis: matrix dimension "
+                     << it->second.dimension
+                     << " exceeds the supported 5-qubit cap (32); leaving "
+                        "custom op unchanged\n");
+        else
+          op.emitWarning("Decomposition supports custom operations on a "
+                         "power-of-two matrix dimension only.");
+        break;
+      case DecompInfo::Convertible:
+        break;
+      }
+    });
+    LLVM_DEBUG(llvm::dbgs() << "After unitary synthesis: " << module << '\n');
   }
 };
 

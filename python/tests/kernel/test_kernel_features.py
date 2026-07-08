@@ -1965,6 +1965,22 @@ def test_no_param_no_return():
     kernel()
 
 
+def test_bare_return_from_value_returning_kernel():
+
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "return statement in a value-returning kernel must return a value"):
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                return
+            return 1
+
+        kernel.compile()
+
+
 def test_measure_variadic_qubits():
 
     @cudaq.kernel
@@ -2925,7 +2941,7 @@ def test_named_reg_in_sample(capfd):
 # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
 # See: https://github.com/NVIDIA/cuda-quantum/issues/3818
 @pytest.mark.xfail(raises=RuntimeError)
-@pytest.mark.skip_macos_arm64_jit
+@pytest.mark.skip_arm64_jit
 def test_adjoint_bug():
     num_electrons = 2
     num_qubits = 8

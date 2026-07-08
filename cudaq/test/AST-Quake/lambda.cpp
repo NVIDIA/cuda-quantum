@@ -8,6 +8,7 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
+// clang-format off
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 // RUN: FileCheck --check-prefixes=CHECK-LLVM %s < lambda.ll
 
@@ -20,6 +21,7 @@
 
 // CHECK-LLVM: define {{(dso_local )?}}noundef i32 @main
 // CHECK-LLVM: void @"_ZZ4mainENK3$_0clEv"(ptr
+// clang-format on
 
 #include <cudaq.h>
 

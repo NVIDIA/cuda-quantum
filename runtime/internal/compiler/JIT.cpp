@@ -206,16 +206,6 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
       cudaq::opt::addAOTPipelineConvertToQIR(pm);
     }
 
-    auto enablePrintMLIREachPass =
-        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-    auto disableThreading =
-        cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-    if (enablePrintMLIREachPass || disableThreading) {
-      module->getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
-        pm.enableIRPrinting();
-    }
-
     std::string error_msg;
     DiagnosticEngine &engine = context->getDiagEngine();
     auto handlerId =

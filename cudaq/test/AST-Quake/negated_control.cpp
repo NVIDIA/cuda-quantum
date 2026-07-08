@@ -6,18 +6,21 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize --cse | cudaq-translate --convert-to=qir | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
 struct Stuart {
-   void operator() () __qpu__ {
-      cudaq::qarray<5> qreg;
-      y<cudaq::ctrl>(!qreg[0], qreg[1], qreg[4]);
-      z<cudaq::ctrl>(qreg[2], !qreg[3], qreg[4]);
-   }
+  void operator()() __qpu__ {
+    cudaq::qarray<5> qreg;
+    y<cudaq::ctrl>(!qreg[0], qreg[1], qreg[4]);
+    z<cudaq::ctrl>(qreg[2], !qreg[3], qreg[4]);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__Stuart()
 // CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 5)
 // CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
@@ -40,4 +43,4 @@ struct Stuart {
 // CHECK:         ret void
 // CHECK:       }
 // CHECK:         ret void
-
+// clang-format on

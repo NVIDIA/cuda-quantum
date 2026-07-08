@@ -14,7 +14,7 @@
 
 struct D {
   template <typename KERNEL>
-  void operator() (KERNEL &&qernel) __qpu__ {
+  void operator()(KERNEL &&qernel) __qpu__ {
     cudaq::qubit q;
     qernel(q);
     mz(q);
@@ -22,8 +22,10 @@ struct D {
 };
 
 struct LambdaCaptureList {
-  void operator() () __qpu__ {
-     std::size_t i = 42;
+  void operator()() __qpu__ {
+    std::size_t i = 42;
+    // clang-format off
      D{}([i](cudaq::qubit& q) { h(q); }); // expected-error{{lambda expression with explicit captures is not yet supported}}
+    // clang-format on
   }
 };

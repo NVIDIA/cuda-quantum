@@ -149,7 +149,7 @@ if $lock_mode; then
     "url=${NINJA_TARBALL_URL}" \
     "version=${NINJA_VERSION}"
 
-  # [Zlib / Minizip]
+  # [Zlib]
   add_lock_line "zlib" \
     "type=tar" \
     "url=${ZLIB_TARBALL_URL}" \
@@ -340,7 +340,7 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
-# Build both from source for consistency across platforms.
+# Build from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
   if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
     echo "Installing libz..."

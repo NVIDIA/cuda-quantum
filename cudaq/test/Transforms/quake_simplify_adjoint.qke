@@ -1,0 +1,158 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         //
+// All rights reserved.                                                        //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt --quake-simplify %s | FileCheck %s
+// RUN: cudaq-opt --quake-simplify %s | CircuitCheck %s
+
+// CircuitCheck intentionally uses strict unitary equivalence in this file to
+// detect both global and relative phase changes. Global-phase-only rewrites
+// accepted by current CUDA-Q semantics remain in quake_simplify.qke.
+
+func.func @cancel_t_tdg() {
+  %0 = quake.null_wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t<adj> %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @cancel_t_tdg() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @cancel_tdg_t() {
+  %0 = quake.null_wire
+  %1 = quake.t<adj> %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @cancel_tdg_t() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @combine_tdg_tdg() {
+  %0 = quake.null_wire
+  %1 = quake.t<adj> %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t<adj> %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @combine_tdg_tdg() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.s<adj> %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @cancel_s_sdg() {
+  %0 = quake.null_wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s<adj> %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @cancel_s_sdg() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @cancel_sdg_s() {
+  %0 = quake.null_wire
+  %1 = quake.s<adj> %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @cancel_sdg_s() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @combine_sdg_sdg() {
+  %0 = quake.null_wire
+  %1 = quake.s<adj> %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s<adj> %1 : (!quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @combine_sdg_sdg() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.z %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @preserve_controlled_ysx() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = quake.y [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3:2 = quake.s [%2#0] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %4#0 : !quake.wire
+  quake.sink %4#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @preserve_controlled_ysx() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_2:.*]]:2 = quake.y {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NEXT:      %[[VAL_3:.*]]:2 = quake.s {{\[}}%[[VAL_2]]#0] %[[VAL_2]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NEXT:      %[[VAL_4:.*]]:2 = quake.x {{\[}}%[[VAL_3]]#0] %[[VAL_3]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NEXT:      quake.sink %[[VAL_4]]#0 : !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_4]]#1 : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @cancel_controlled_t_tdg() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = quake.t [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3:2 = quake.t<adj> [%2#0] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %3#0 : !quake.wire
+  quake.sink %3#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @cancel_controlled_t_tdg() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.null_wire
+// CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @cancel_controlled_s_sdg() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = quake.s [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3:2 = quake.s<adj> [%2#0] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %3#0 : !quake.wire
+  quake.sink %3#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @cancel_controlled_s_sdg() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.null_wire
+// CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
