@@ -19,7 +19,7 @@ inputs:
 
 outputs:
   result:
-    description: 'JSON map of matrix key to outputs'
+    description: 'JSON map of output name to a map of matrix key to recorded value'
 
 runs:
   using: 'node24'

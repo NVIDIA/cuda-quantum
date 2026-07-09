@@ -9,7 +9,8 @@
 name: 'Matrix outputs - read'
 description: |
   Aggregate the outputs recorded by ./.github/actions/matrix-outputs-write
-  across all jobs of a matrix into a single JSON map keyed by matrix key.
+  across all jobs of a matrix into a single JSON map keyed by output name,
+  then by matrix key, e.g. fromJson(result).image_hash['amd64-llvm'].
   Independent, interface-compatible reimplementation of
   cloudposse/github-action-matrix-outputs-read (Apache-2.0), which is
   unmaintained and pins a Node 20 toolchain.
@@ -22,7 +23,7 @@ inputs:
 
 outputs:
   result:
-    description: 'JSON map of matrix key to the outputs recorded by that matrix job'
+    description: 'JSON map of output name to a map of matrix key to recorded value'
     value: ${{ steps.merge.outputs.result }}
 
 runs:

@@ -54,8 +54,16 @@ if (fs.existsSync(downloadPath))
   walk(downloadPath);
 files.sort();
 
+// Each file contains {matrix_key: {output_name: value}}; the aggregated
+// result inverts the nesting to {output_name: {matrix_key: value}} so that
+// consumers can look up a single output across the matrix, e.g.
+// fromJson(result).image_hash['amd64-llvm'].
 const result = {};
-for (const file of files)
-  deepMerge(result, JSON.parse(fs.readFileSync(file, 'utf8')));
+for (const file of files) {
+  const recorded = JSON.parse(fs.readFileSync(file, 'utf8'));
+  for (const [matrixKey, outputs] of Object.entries(recorded))
+    for (const [name, value] of Object.entries(outputs))
+      deepMerge(result, {[name]: {[matrixKey]: value}});
+}
 
 setOutput('result', JSON.stringify(result));
