@@ -2448,6 +2448,27 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         }
         return WalkResult::interrupt();
       }
+      // Condition and step regions are loop control machinery, not routable
+      // quantum work: reject any quantum gate there instead of routing it.
+      auto hasQuantumGate = [](Region &region) {
+        return region
+            .walk([](Operation *op) {
+              return isa<cudaq::quake::OperatorInterface,
+                         cudaq::quake::MeasurementInterface>(op)
+                         ? WalkResult::interrupt()
+                         : WalkResult::advance();
+            })
+            .wasInterrupted();
+      };
+      if (hasQuantumGate(loopOp.getWhileRegion()) ||
+          (loopOp.hasStep() && hasQuantumGate(loopOp.getStepRegion()))) {
+        if (nonComposable) {
+          loopOp.emitOpError("mapper cannot handle quantum operations in a "
+                             "loop condition or step region");
+          signalPassFailure();
+        }
+        return WalkResult::interrupt();
+      }
       return WalkResult::advance();
     });
     if (loopCheckResult.wasInterrupted()) {
