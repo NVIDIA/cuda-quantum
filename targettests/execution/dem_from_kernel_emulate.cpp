@@ -107,13 +107,13 @@ static void runCase(const char *label, Kernel &&kernel) {
   }
 }
 
-// Unlike dem_from_kernel, cudaq::sample routes through createEmulationTargetPrepPipeline, which must strip QEC ops.
+// Unlike dem_from_kernel, cudaq::sample routes through
+// createEmulationTargetPrepPipeline, which must strip QEC ops.
 template <typename Kernel>
 static void runSampleCase(const char *label, Kernel &&kernel) {
   try {
     auto counts = cudaq::sample(std::forward<Kernel>(kernel));
-    std::printf("%s most_probable=%s\n", label,
-                counts.most_probable().c_str());
+    std::printf("%s most_probable=%s\n", label, counts.most_probable().c_str());
   } catch (const std::exception &e) {
     std::printf("%s THREW: %s\n", label, e.what());
   }
