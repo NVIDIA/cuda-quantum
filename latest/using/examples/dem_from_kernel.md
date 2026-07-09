@@ -208,6 +208,8 @@ latest
                 .internal}
     -   [Detector Error Models](#){.current .reference .internal}
         -   [DEM Options](#dem-options){.reference .internal}
+        -   [Measurement Matrices](#measurement-matrices){.reference
+            .internal}
         -   [Limitations](#limitations){.reference .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
@@ -2259,6 +2261,166 @@ separated by [`^`{.docutils .literal .notranslate}]{.pre}:
     error(0.01000000000000000021) D0 D2
     error(0.02000000000000000042) D0 D2 ^ D1
     error(0.01000000000000000021) D1
+:::
+:::
+:::
+
+::: {#measurement-matrices .section}
+## Measurement Matrices[¶](#measurement-matrices "Permalink to this heading"){.headerlink}
+
+The DEM describes how error mechanisms flip detectors, but decoders
+often also need to know how the raw measurement record maps onto the
+detectors and logical observables. [`dem_from_kernel`{.docutils .literal
+.notranslate}]{.pre} can return that mapping alongside the DEM text as
+two sparse binary *measurement matrices*, [`m2d`{.docutils .literal
+.notranslate}]{.pre} and [`m2o`{.docutils .literal .notranslate}]{.pre}:
+
+-   [`m2d`{.docutils .literal .notranslate}]{.pre} has shape
+    [`(num_detectors,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements)`{.docutils .literal
+    .notranslate}]{.pre}. Entry [`m2d[d,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`m]`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`==`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
+    measurement [`m`{.docutils .literal .notranslate}]{.pre} contributes
+    to detector [`d`{.docutils .literal .notranslate}]{.pre}.
+
+-   [`m2o`{.docutils .literal .notranslate}]{.pre} has shape
+    [`(num_observables,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements)`{.docutils .literal
+    .notranslate}]{.pre}. Entry [`m2o[k,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`m]`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`==`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
+    measurement [`m`{.docutils .literal .notranslate}]{.pre} contributes
+    to observable [`k`{.docutils .literal .notranslate}]{.pre}.
+
+In both matrices the columns are indexed by measurement in chronological
+order.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+Pass [`return_measurement_matrices=True`{.docutils .literal
+.notranslate}]{.pre}. The function then returns a 3-tuple
+[`(dem_text,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`m2d,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`m2o)`{.docutils .literal .notranslate}]{.pre} instead of
+a plain string, where [`m2d`{.docutils .literal .notranslate}]{.pre} and
+[`m2o`{.docutils .literal .notranslate}]{.pre} are
+[`scipy.sparse.csr_matrix`{.docutils .literal .notranslate}]{.pre}
+objects with binary entries:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    # Set return_measurement_matrices=True to also obtain the sparse
+    # measurements-to-detectors (m2d) and measurements-to-observables (m2o)
+    # matrices. The function then returns a 3-tuple instead of a plain string.
+    # Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their
+    # columns are indexed by measurement in chronological order.
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(
+        memory_experiment,
+        2,
+        noise_model=noise,
+        return_measurement_matrices=True,
+    )
+    # m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means
+    # measurement m contributes to detector d. m2o has shape
+    # `(num_observables, num_measurements)` with the same convention for observables.
+    print(f"m2d shape: {m2d.shape}")
+    print(f"m2o shape: {m2o.shape}")
+    print(f"m2d:\n{m2d.toarray()}")
+    print(f"m2o:\n{m2o.toarray()}")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+Use the overloads that accept [`cudaq::M2DSparseMatrix`{.docutils
+.literal .notranslate}]{.pre} and [`cudaq::M2OSparseMatrix`{.docutils
+.literal .notranslate}]{.pre} output references. Each
+[`rows[i]`{.docutils .literal .notranslate}]{.pre} lists the
+chronological measurement indices contributing to that detector or
+observable, and [`num_measurements`{.docutils .literal
+.notranslate}]{.pre} gives the column count:
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      // Overloads taking cudaq::M2DSparseMatrix and cudaq::M2OSparseMatrix output
+      // references also populate the measurements-to-detectors (m2d) and
+      // measurements-to-observables (m2o) matrices. Both are filled in the same
+      // circuit pass that produces the DEM text. Each row lists the chronological
+      // measurement indices contributing to that detector / observable.
+      cudaq::M2DSparseMatrix m2d;
+      cudaq::M2OSparseMatrix m2o;
+      std::string dem_mm =
+          cudaq::dem_from_kernel(memory_experiment, &noise, m2d, m2o, /*rounds=*/2);
+      std::printf("m2d: %zu detectors x %zu measurements\n", m2d.rows.size(),
+                  m2d.num_measurements);
+      std::printf("m2o: %zu observables x %zu measurements\n", m2o.rows.size(),
+                  m2o.num_measurements);
+
+      // The measurement matrices can be combined with any DEM options by passing a
+      // cudaq::dem_options struct (as above) before the m2d/m2o output references.
+      cudaq::dem_options mm_opts;
+      mm_opts.decompose_errors = true;
+      cudaq::M2DSparseMatrix m2d_dec;
+      cudaq::M2OSparseMatrix m2o_dec;
+      std::string dem_mm_decomposed = cudaq::dem_from_kernel(
+          memory_experiment, &noise, mm_opts, m2d_dec, m2o_dec,
+          /*rounds=*/2);
+:::
+:::
+:::
+:::
+
+Both matrices are computed in the same pass as the DEM, so requesting
+them adds no additional circuit execution. They can be combined with any
+of the DEM options above (for example [`decompose_errors=True`{.docutils
+.literal .notranslate}]{.pre}).
+
+For the [`memory_experiment`{.docutils .literal .notranslate}]{.pre}
+kernel above (with [`rounds=2`{.docutils .literal .notranslate}]{.pre})
+there are nine measurements and six detectors, so [`m2d`{.docutils
+.literal .notranslate}]{.pre} is a [`6`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`x`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`9`{.docutils .literal .notranslate}]{.pre} matrix and
+[`m2o`{.docutils .literal .notranslate}]{.pre} is a [`1`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`x`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`9`{.docutils .literal .notranslate}]{.pre}
+matrix. Each detector pairs a qubit's measurement in one round with its
+value in the previous round, which shows up as the two ones per row of
+[`m2d`{.docutils .literal .notranslate}]{.pre}; the single logical
+observable reads the three final-round measurements, giving the three
+ones in [`m2o`{.docutils .literal .notranslate}]{.pre}:
+
+::: {.highlight-text .notranslate}
+::: highlight
+    m2d shape: (6, 9)
+    m2o shape: (1, 9)
+    m2d:
+    [[1 0 0 1 0 0 0 0 0]
+     [0 1 0 0 1 0 0 0 0]
+     [0 0 1 0 0 1 0 0 0]
+     [0 0 0 1 0 0 1 0 0]
+     [0 0 0 0 1 0 0 1 0]
+     [0 0 0 0 0 1 0 0 1]]
+    m2o:
+    [[0 0 0 0 0 0 1 1 1]]
 :::
 :::
 :::

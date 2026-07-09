@@ -232,6 +232,9 @@ latest
         -   [DEM
             Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
             .internal}
+        -   [Measurement
+            Matrices](../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -5989,7 +5992,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x6479c70\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 

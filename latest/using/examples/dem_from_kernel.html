@@ -219,6 +219,7 @@
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Detector Error Models</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#dem-options">DEM Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -1368,6 +1369,100 @@ two graph-like components, separated by <code class="docutils literal notranslat
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>error(0.01000000000000000021) D0 D2
 error(0.02000000000000000042) D0 D2 ^ D1
 error(0.01000000000000000021) D1
+</pre></div>
+</div>
+</section>
+<section id="measurement-matrices">
+<h2>Measurement Matrices<a class="headerlink" href="#measurement-matrices" title="Permalink to this heading">¶</a></h2>
+<p>The DEM describes how error mechanisms flip detectors, but decoders often also
+need to know how the raw measurement record maps onto the detectors and logical
+observables. <code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> can return that mapping alongside the DEM text
+as two sparse binary <em>measurement matrices</em>, <code class="docutils literal notranslate"><span class="pre">m2d</span></code> and <code class="docutils literal notranslate"><span class="pre">m2o</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">m2d</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_detectors,</span> <span class="pre">num_measurements)</span></code>. Entry
+<code class="docutils literal notranslate"><span class="pre">m2d[d,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to detector <code class="docutils literal notranslate"><span class="pre">d</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m2o</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_observables,</span> <span class="pre">num_measurements)</span></code>. Entry
+<code class="docutils literal notranslate"><span class="pre">m2o[k,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to observable <code class="docutils literal notranslate"><span class="pre">k</span></code>.</p></li>
+</ul>
+<p>In both matrices the columns are indexed by measurement in chronological order.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<p>Pass <code class="docutils literal notranslate"><span class="pre">return_measurement_matrices=True</span></code>. The function then returns a
+3-tuple <code class="docutils literal notranslate"><span class="pre">(dem_text,</span> <span class="pre">m2d,</span> <span class="pre">m2o)</span></code> instead of a plain string, where <code class="docutils literal notranslate"><span class="pre">m2d</span></code>
+and <code class="docutils literal notranslate"><span class="pre">m2o</span></code> are <code class="docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix</span></code> objects with binary entries:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set return_measurement_matrices=True to also obtain the sparse</span>
+<span class="c1"># measurements-to-detectors (m2d) and measurements-to-observables (m2o)</span>
+<span class="c1"># matrices. The function then returns a 3-tuple instead of a plain string.</span>
+<span class="c1"># Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their</span>
+<span class="c1"># columns are indexed by measurement in chronological order.</span>
+<span class="n">dem_text</span><span class="p">,</span> <span class="n">m2d</span><span class="p">,</span> <span class="n">m2o</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span>
+    <span class="n">memory_experiment</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">,</span>
+    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
+    <span class="n">return_measurement_matrices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means</span>
+<span class="c1"># measurement m contributes to detector d. m2o has shape</span>
+<span class="c1"># `(num_observables, num_measurements)` with the same convention for observables.</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d shape: </span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o shape: </span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<p>Use the overloads that accept <code class="docutils literal notranslate"><span class="pre">cudaq::M2DSparseMatrix</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cudaq::M2OSparseMatrix</span></code> output references. Each <code class="docutils literal notranslate"><span class="pre">rows[i]</span></code> lists the
+chronological measurement indices contributing to that detector or
+observable, and <code class="docutils literal notranslate"><span class="pre">num_measurements</span></code> gives the column count:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Overloads taking cudaq::M2DSparseMatrix and cudaq::M2OSparseMatrix output</span>
+<span class="w">  </span><span class="c1">// references also populate the measurements-to-detectors (m2d) and</span>
+<span class="w">  </span><span class="c1">// measurements-to-observables (m2o) matrices. Both are filled in the same</span>
+<span class="w">  </span><span class="c1">// circuit pass that produces the DEM text. Each row lists the chronological</span>
+<span class="w">  </span><span class="c1">// measurement indices contributing to that detector / observable.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2DSparseMatrix</span><span class="w"> </span><span class="n">m2d</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2OSparseMatrix</span><span class="w"> </span><span class="n">m2o</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_mm</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2d: %zu detectors x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">              </span><span class="n">m2d</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2o: %zu observables x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">              </span><span class="n">m2o</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// The measurement matrices can be combined with any DEM options by passing a</span>
+<span class="w">  </span><span class="c1">// cudaq::dem_options struct (as above) before the m2d/m2o output references.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_options</span><span class="w"> </span><span class="n">mm_opts</span><span class="p">;</span>
+<span class="w">  </span><span class="n">mm_opts</span><span class="p">.</span><span class="n">decompose_errors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2DSparseMatrix</span><span class="w"> </span><span class="n">m2d_dec</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2OSparseMatrix</span><span class="w"> </span><span class="n">m2o_dec</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_mm_decomposed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span>
+<span class="w">      </span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">mm_opts</span><span class="p">,</span><span class="w"> </span><span class="n">m2d_dec</span><span class="p">,</span><span class="w"> </span><span class="n">m2o_dec</span><span class="p">,</span>
+<span class="w">      </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Both matrices are computed in the same pass as the DEM, so requesting them adds
+no additional circuit execution. They can be combined with any of the DEM
+options above (for example <code class="docutils literal notranslate"><span class="pre">decompose_errors=True</span></code>).</p>
+<p>For the <code class="docutils literal notranslate"><span class="pre">memory_experiment</span></code> kernel above (with <code class="docutils literal notranslate"><span class="pre">rounds=2</span></code>) there are nine
+measurements and six detectors, so <code class="docutils literal notranslate"><span class="pre">m2d</span></code> is a <code class="docutils literal notranslate"><span class="pre">6</span> <span class="pre">x</span> <span class="pre">9</span></code> matrix and <code class="docutils literal notranslate"><span class="pre">m2o</span></code> is
+a <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">x</span> <span class="pre">9</span></code> matrix. Each detector pairs a qubit’s measurement in one round with
+its value in the previous round, which shows up as the two ones per row of
+<code class="docutils literal notranslate"><span class="pre">m2d</span></code>; the single logical observable reads the three final-round
+measurements, giving the three ones in <code class="docutils literal notranslate"><span class="pre">m2o</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>m2d shape: (6, 9)
+m2o shape: (1, 9)
+m2d:
+[[1 0 0 1 0 0 0 0 0]
+ [0 1 0 0 1 0 0 0 0]
+ [0 0 1 0 0 1 0 0 0]
+ [0 0 0 1 0 0 1 0 0]
+ [0 0 0 0 1 0 0 1 0]
+ [0 0 0 0 0 1 0 0 1]]
+m2o:
+[[0 0 0 0 0 0 1 1 1]]
 </pre></div>
 </div>
 </section>

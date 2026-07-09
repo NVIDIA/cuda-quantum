@@ -232,6 +232,9 @@ latest
         -   [DEM
             Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
             .internal}
+        -   [Measurement
+            Matrices](../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -12620,6 +12623,62 @@ discriminate a vector of handles.
 <!-- -->
 ```
 
+[]{#structcudaq_1_1M2DSparseMatrix .target}[[struct]{.pre}]{.k}[ ]{.w}[[[M2DSparseMatrix]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15M2DSparseMatrixE "Permalink to this definition"){.headerlink}\
+
+:   Sparse binary matrix mapping detectors (rows) to measurements
+    (columns). Returned alongside [[[`M2OSparseMatrix`{.docutils
+    .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#structcudaq_1_1M2OSparseMatrix){.reference .internal}
+    when [`return_measurement_matrices=True`{.docutils .literal
+    .notranslate}]{.pre} is passed to [`dem_from_kernel`{.docutils
+    .literal .notranslate}]{.pre} (Python), or via the
+    [`m2d_out`{.docutils .literal .notranslate}]{.pre} /
+    [`m2o_out`{.docutils .literal .notranslate}]{.pre} reference
+    overloads (C++).
+
+    [`rows[d]`{.docutils .literal .notranslate}]{.pre} lists the
+    chronological measurement indices that contribute to detector
+    [`d`{.docutils .literal .notranslate}]{.pre} (i.e. are XOR-ed
+    together to form its syndrome bit). [`num_measurements`{.docutils
+    .literal .notranslate}]{.pre} gives the total column count (shape is
+    [`rows.size()`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+    .literal .notranslate}[`×`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements`{.docutils .literal
+    .notranslate}]{.pre}).
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1M2OSparseMatrix .target}[[struct]{.pre}]{.k}[ ]{.w}[[[M2OSparseMatrix]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15M2OSparseMatrixE "Permalink to this definition"){.headerlink}\
+
+:   Sparse binary matrix mapping observables (rows) to measurements
+    (columns). Returned alongside [[[`M2DSparseMatrix`{.docutils
+    .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#structcudaq_1_1M2DSparseMatrix){.reference .internal}
+    when [`return_measurement_matrices=True`{.docutils .literal
+    .notranslate}]{.pre} is passed to [`dem_from_kernel`{.docutils
+    .literal .notranslate}]{.pre} (Python), or via the
+    [`m2d_out`{.docutils .literal .notranslate}]{.pre} /
+    [`m2o_out`{.docutils .literal .notranslate}]{.pre} reference
+    overloads (C++).
+
+    [`rows[k]`{.docutils .literal .notranslate}]{.pre} lists the
+    chronological measurement indices that contribute to observable
+    [`k`{.docutils .literal .notranslate}]{.pre}.
+    [`num_measurements`{.docutils .literal .notranslate}]{.pre} gives
+    the total column count (shape is [`rows.size()`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`×`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements`{.docutils .literal
+    .notranslate}]{.pre}).
+
+```{=html}
+<!-- -->
+```
+
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
 []{#dem_8h_1aa6d642af4c2fd345877890f5a7ea64f1 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[dem_options]{.pre}]{.n}](#_CPPv4N5cudaq11dem_optionsE "cudaq::dem_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "Permalink to this definition"){.headerlink}\
 
@@ -12674,6 +12733,45 @@ discriminate a vector of handles.
 []{#dem_8h_1a1794cf82cce56758fd0c2381a63bbbe1 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Convenience overload for the no-noise case.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1a82a98b95470c7ac8cdecc2eeb9a85896 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[dem_options]{.pre}]{.n}](#_CPPv4N5cudaq11dem_optionsE "cudaq::dem_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2DSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2DSparseMatrixE "cudaq::M2DSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2d_out]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2OSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2OSparseMatrixE "cudaq::M2OSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2o_out]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Overload that also returns the m2d and m2o sparse matrices, with
+    full control over analyzer options.
+
+    Parameters[:]{.colon}
+
+    :   -   **m2d_out** -- Populated with the measurements-to-detectors
+            matrix.
+
+        -   **m2o_out** -- Populated with the
+            measurements-to-observables matrix. Both are filled in a
+            single circuit pass.
+
+        -   **options** -- Options forwarded to the Stim error analyzer.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1a6a736ac424d1355cc56d4b84c5950543 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2DSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2DSparseMatrixE "cudaq::M2DSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2d_out]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2OSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2OSparseMatrixE "cudaq::M2OSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2o_out]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Convenience overload: m2d/m2o outputs with noise, default options.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1afb15e9b5a9b0e1d90377d73630bd542b .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelRN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2DSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2DSparseMatrixE "cudaq::M2DSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2d_out]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2OSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2OSparseMatrixE "cudaq::M2OSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2o_out]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelRN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelRN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Convenience overload: m2d/m2o outputs, no noise, default options.
 :::
 
 ::: {#quantum-error-correction .section}

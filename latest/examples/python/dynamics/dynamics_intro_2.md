@@ -230,6 +230,9 @@ latest
         -   [DEM
             Options](../../../using/examples/dem_from_kernel.html#dem-options){.reference
             .internal}
+        -   [Measurement
+            Matrices](../../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](../../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing

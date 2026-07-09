@@ -223,6 +223,9 @@ latest
         -   [DEM
             Options](../examples/dem_from_kernel.html#dem-options){.reference
             .internal}
+        -   [Measurement
+            Matrices](../examples/dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](../examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing Operators](../examples/operators.html){.reference
@@ -1855,7 +1858,7 @@ ring-buffer slot + flag protocol, so it plugs into the realtime
 dispatcher the same way a GPU transport does.
 
 It ships as a **separate library**
-([`cudaq-realtime-cpu-transport`{.docutils .literal
+([`cudaq-realtime-cpu-roce-transport`{.docutils .literal
 .notranslate}]{.pre}, [`realtime/lib/cpu_transport/`{.docutils .literal
 .notranslate}]{.pre}) and is *not* part of
 [`libcudaq-realtime`{.docutils .literal .notranslate}]{.pre}. It mirrors

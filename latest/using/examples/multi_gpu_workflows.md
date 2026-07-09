@@ -206,6 +206,9 @@ latest
         .internal}
         -   [DEM Options](dem_from_kernel.html#dem-options){.reference
             .internal}
+        -   [Measurement
+            Matrices](dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing Operators](operators.html){.reference .internal}

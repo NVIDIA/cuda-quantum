@@ -218,6 +218,9 @@ latest
         -   [DEM
             Options](examples/dem_from_kernel.html#dem-options){.reference
             .internal}
+        -   [Measurement
+            Matrices](examples/dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing Operators](examples/operators.html){.reference

@@ -219,6 +219,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/dem_from_kernel.html">   Detector Error Models</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/dem_from_kernel.html#dem-options">DEM Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/dem_from_kernel.html#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -1070,7 +1071,7 @@ reference implementation of the <code class="docutils literal notranslate"><span
 <a class="reference internal" href="host.html"><span class="std std-doc">CUDA-Q Realtime Host API</span></a>: it implements the same ring-buffer slot +
 flag protocol, so it plugs into the realtime dispatcher the same way a GPU
 transport does.</p>
-<p>It ships as a <strong>separate library</strong> (<code class="docutils literal notranslate"><span class="pre">cudaq-realtime-cpu-transport</span></code>,
+<p>It ships as a <strong>separate library</strong> (<code class="docutils literal notranslate"><span class="pre">cudaq-realtime-cpu-roce-transport</span></code>,
 <code class="docutils literal notranslate"><span class="pre">realtime/lib/cpu_transport/</span></code>) and is <em>not</em> part of <code class="docutils literal notranslate"><span class="pre">libcudaq-realtime</span></code>. It
 mirrors the <code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code> ring-buffer API so the same dispatcher wiring
 works with either, and it pairs naturally with the <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code>
