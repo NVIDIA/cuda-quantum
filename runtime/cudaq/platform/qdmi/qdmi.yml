@@ -56,3 +56,28 @@ target-arguments:
     type: string
     platform-arg: qdmi_password
     help-string: "Authentication password."
+  - key: session-custom1
+    required: false
+    type: string
+    platform-arg: qdmi_session_custom1
+    help-string: "Custom QDMI device session parameter 1."
+  - key: session-custom2
+    required: false
+    type: string
+    platform-arg: qdmi_session_custom2
+    help-string: "Custom QDMI device session parameter 2."
+  - key: session-custom3
+    required: false
+    type: string
+    platform-arg: qdmi_session_custom3
+    help-string: "Custom QDMI device session parameter 3."
+  - key: session-custom4
+    required: false
+    type: string
+    platform-arg: qdmi_session_custom4
+    help-string: "Custom QDMI device session parameter 4."
+  - key: session-custom5
+    required: false
+    type: string
+    platform-arg: qdmi_session_custom5
+    help-string: "Custom QDMI device session parameter 5."
