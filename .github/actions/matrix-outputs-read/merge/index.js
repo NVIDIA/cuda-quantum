@@ -37,9 +37,8 @@ function deepMerge(target, source) {
 const stepName = getInput('matrix-step-name');
 const downloadPath = getInput('download-path');
 
-// Depending on how many artifacts matched the download pattern, the output
-// files sit either directly in the download path or in one sub-directory per
-// artifact, so search the whole tree for files named after the step.
+// download-artifact adds a per-artifact sub-directory only when several
+// artifacts match, so search the whole tree.
 const files = [];
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
@@ -54,10 +53,8 @@ if (fs.existsSync(downloadPath))
   walk(downloadPath);
 files.sort();
 
-// Each file contains {matrix_key: {output_name: value}}; the aggregated
-// result inverts the nesting to {output_name: {matrix_key: value}} so that
-// consumers can look up a single output across the matrix, e.g.
-// fromJson(result).image_hash['amd64-llvm'].
+// Invert the {matrix_key: {output_name: value}} files into
+// {output_name: {matrix_key: value}}, e.g. result.image_hash['amd64-llvm'].
 const result = {};
 for (const file of files) {
   const recorded = JSON.parse(fs.readFileSync(file, 'utf8'));

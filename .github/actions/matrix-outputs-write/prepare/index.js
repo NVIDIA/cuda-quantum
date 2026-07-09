@@ -27,10 +27,8 @@ function fail(message) {
   process.exit(1);
 }
 
-// Parses the flat `key: value` maps that our workflows pass as the `outputs`
-// input. Values that parse as JSON (objects, numbers, booleans) are kept as
-// such, matching how the YAML parser of the original cloudposse action
-// treated them. Nested or multi-line YAML is not supported.
+// Parses flat `key: value` lines; JSON values stay typed, like the YAML
+// parsing this replaces. Nested or multi-line YAML is not supported.
 function parseOutputs(text) {
   const result = {};
   for (const rawLine of text.split('\n')) {
@@ -71,9 +69,8 @@ if (stepName !== '' && rawOutputs !== '') {
   const dir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP, 'matrix-outputs-'));
   const file = path.join(dir, stepName);
   fs.writeFileSync(file, JSON.stringify({[matrixKey]: outputs}));
-  // Artifact names may not contain ", :, <, >, |, *, ?, path separators, or
-  // line breaks; the name must stay deterministic so that re-runs overwrite
-  // the previous upload instead of leaving a stale duplicate behind.
+  // Strip characters artifact names forbid; the name must stay deterministic
+  // so re-runs overwrite the previous upload.
   const artifactName = `matrix-outputs-${stepName}-${matrixKey}`.replace(
       /[":<>|*?\\/\r\n]/g, '-');
   setOutput('artifact-name', artifactName);
