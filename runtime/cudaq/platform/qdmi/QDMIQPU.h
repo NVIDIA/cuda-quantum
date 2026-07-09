@@ -18,12 +18,13 @@
 
 namespace cudaq {
 
-struct QDMIDevice;
+struct QDMIPlatformDevice;
 
 class QDMIQPU : public QPU {
 public:
   QDMIQPU();
-  QDMIQPU(std::shared_ptr<QDMIDevice> device, config::TargetConfig targetConfig,
+  QDMIQPU(std::shared_ptr<QDMIPlatformDevice> device,
+          config::TargetConfig targetConfig,
           std::map<std::string, std::string> backendConfig);
   ~QDMIQPU() override;
 
@@ -33,7 +34,7 @@ public:
   void setShots(int shots) override;
   void clearShots() override;
   bool isRemote() override;
-  bool isEmulated() override { return false; }
+  bool isEmulated() override;
   void setNoiseModel(const noise_model *model) override;
   void configureExecutionContext(ExecutionContext &context) const override;
   void finalizeExecutionContext(ExecutionContext &context) const override;
@@ -63,12 +64,12 @@ public:
                                     KernelArgs args) override;
 
 private:
-  void configure(std::shared_ptr<QDMIDevice> device,
+  void configure(std::shared_ptr<QDMIPlatformDevice> device,
                  config::TargetConfig targetConfig,
                  std::map<std::string, std::string> backendConfig);
 
   std::optional<int> nShots;
-  std::shared_ptr<QDMIDevice> device;
+  std::shared_ptr<QDMIPlatformDevice> platformDevice;
   std::map<std::string, std::string> backendConfig;
   config::TargetConfig targetConfig;
 };

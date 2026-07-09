@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "QDMIDevice.h"
+#include "QDMIPlatformDevice.h"
 #include "QDMIQPU.h"
 
 #include "common/RuntimeTarget.h"
@@ -251,23 +251,25 @@ queryConnectivity(const cudaq::FoMaCDevice &device, std::size_t qubitCount) {
                                                           edges.end());
 }
 
-std::shared_ptr<cudaq::QDMIDevice> makeQDMIDevice(cudaq::FoMaCDevice device) {
-  auto qdmiDevice = std::make_shared<cudaq::QDMIDevice>(std::move(device));
-  qdmiDevice->name = qdmiDevice->device.getName();
+std::shared_ptr<cudaq::QDMIPlatformDevice>
+makePlatformDevice(cudaq::FoMaCDevice device) {
+  auto platformDevice =
+      std::make_shared<cudaq::QDMIPlatformDevice>(std::move(device));
+  platformDevice->name = platformDevice->fomacDevice.getName();
   try {
-    qdmiDevice->programFormat =
-        selectProgramFormat(qdmiDevice->device.getSupportedProgramFormats());
+    platformDevice->programFormat = selectProgramFormat(
+        platformDevice->fomacDevice.getSupportedProgramFormats());
   } catch (const std::exception &e) {
     CUDAQ_DBG("QDMI program format metadata is unavailable: {}", e.what());
-    qdmiDevice->programFormat = QDMI_PROGRAM_FORMAT_QASM2;
+    platformDevice->programFormat = QDMI_PROGRAM_FORMAT_QASM2;
   }
-  qdmiDevice->qubitCount = qdmiDevice->device.getQubitsNum();
-  qdmiDevice->connectivity =
-      queryConnectivity(qdmiDevice->device, qdmiDevice->qubitCount);
+  platformDevice->qubitCount = platformDevice->fomacDevice.getQubitsNum();
+  platformDevice->connectivity = queryConnectivity(platformDevice->fomacDevice,
+                                                   platformDevice->qubitCount);
 
-  CUDAQ_INFO("Discovered QDMI device '{}' with {} qubits.", qdmiDevice->name,
-             qdmiDevice->qubitCount);
-  return qdmiDevice;
+  CUDAQ_INFO("Discovered QDMI device '{}' with {} qubits.",
+             platformDevice->name, platformDevice->qubitCount);
+  return platformDevice;
 }
 
 class QDMIQuantumPlatform : public cudaq::quantum_platform {
@@ -312,7 +314,7 @@ private:
     auto devices = loadDevices(backendConfig, session);
     for (std::size_t qpuId = 0; auto &device : devices) {
       platformQPUs.emplace_back(std::make_unique<cudaq::QDMIQPU>(
-          makeQDMIDevice(std::move(device)), targetConfig, backendConfig));
+          makePlatformDevice(std::move(device)), targetConfig, backendConfig));
       platformQPUs.back()->setId(qpuId++);
     }
   }

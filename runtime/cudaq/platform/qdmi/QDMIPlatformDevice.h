@@ -20,16 +20,15 @@ namespace cudaq {
 using FoMaCDevice = typename decltype(std::declval<fomac::Session &>()
                                           .getDevices())::value_type;
 
-struct QDMIDevice {
-  explicit QDMIDevice(FoMaCDevice device) : device(std::move(device)) {}
+struct QDMIPlatformDevice {
+  explicit QDMIPlatformDevice(FoMaCDevice device)
+      : fomacDevice(std::move(device)) {}
 
-  FoMaCDevice device;
+  FoMaCDevice fomacDevice;
   QDMI_Program_Format programFormat = QDMI_PROGRAM_FORMAT_QASM2;
   std::string name;
   std::size_t qubitCount = 0;
   std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
-  bool isSimulator = false;
-  bool isRemote = true;
 };
 
 } // namespace cudaq
