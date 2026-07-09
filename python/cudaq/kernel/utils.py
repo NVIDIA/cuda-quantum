@@ -217,6 +217,22 @@ def recover_value_of_or_none(name, frame=None):
         del frame
 
 
+def _annotations_of_namespace(namespace):
+    annotations = namespace.get('__annotations__')
+    if annotations is not None:
+        return annotations
+    # Python 3.14 (PEP 649) evaluates annotations lazily: the namespace holds
+    # an `__annotate__` function and `__annotations__` only appears in the
+    # dict once accessed as a module/class attribute.
+    annotate = namespace.get('__annotate__')
+    if annotate is None:
+        return {}
+    try:
+        return annotate(1)  # 1 = annotationlib.Format.VALUE
+    except Exception:
+        return {}
+
+
 def recover_annotation_of_or_none(name, frame=None):
     """
     Recover the type annotation of the symbol `name` from the enclosing
@@ -237,7 +253,7 @@ def recover_annotation_of_or_none(name, frame=None):
         while frame is not None:
             for namespace in (frame.f_locals, frame.f_globals):
                 if name in namespace:
-                    annotation = namespace.get('__annotations__', {}).get(name)
+                    annotation = _annotations_of_namespace(namespace).get(name)
                     if isinstance(annotation, str):
                         try:
                             annotation = eval(annotation, frame.f_globals,
