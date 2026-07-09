@@ -59,6 +59,13 @@ cudaq::QPU::launchKernel(const async_observe_policy &policy,
       "This QPU does not support launching the async_observe_policy.");
 }
 
+dem_result cudaq::QPU::launchKernel(const dem_policy &policy,
+                                    const CompiledModule &module,
+                                    KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the dem_policy.");
+}
+
 void cudaq::QPU::rethrowDeferredKernelException() {
   if (auto *ctx = getExecutionContext(); ctx && ctx->deferredKernelException) {
     auto deferred = ctx->deferredKernelException;
@@ -143,6 +150,12 @@ std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const observe_policy &) {
   // Fall back to policy-agnostic compile target.
   return getCompileTarget(other_policies{}, nullptr);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const dem_policy &) {
+  throw std::runtime_error(
+      "This QPU does not support detector error model generation.");
 }
 
 std::unique_ptr<cudaq::CompileTarget>

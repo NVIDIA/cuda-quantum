@@ -58,6 +58,10 @@ void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
 }
 
+void ExecutionManager::configureExecutionContext(const dem_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
   policies::withPolicy(ctx.name, [&](auto policy) {
     policies::visitResult(

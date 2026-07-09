@@ -120,6 +120,7 @@ public:
   /// Configure the execution context before an execution.
   void configureExecutionContext(const sample_policy &policy);
   void configureExecutionContext(const observe_policy &policy);
+  void configureExecutionContext(const dem_policy &policy);
   void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
@@ -132,6 +133,12 @@ public:
 
   virtual observe_result
   finalizeExecutionContext(const observe_policy &policy) = 0;
+
+  virtual dem_result finalizeExecutionContext(const dem_policy &) {
+    throw std::runtime_error(
+        "This execution manager does not support detector error model "
+        "generation.");
+  }
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}

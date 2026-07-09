@@ -173,6 +173,11 @@ protected:
     return simulator()->finalizeExecutionContext(policy);
   }
 
+  dem_result finalizeExecutionContext(const dem_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
   void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
     finalizeExecutionContextImpl();
