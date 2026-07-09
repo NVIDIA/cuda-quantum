@@ -530,10 +530,10 @@ void cudaq::opt::setQuakeToCCLegality(ConversionTarget &target) {
       cudaq::quake::RzOp, cudaq::quake::SOp, cudaq::quake::SwapOp,
       cudaq::quake::TOp, cudaq::quake::U2Op, cudaq::quake::U3Op,
       cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>();
-    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           cf::ControlFlowDialect, func::FuncDialect,
-                           LLVM::LLVMDialect>();
-    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
+  target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
+                         cf::ControlFlowDialect, func::FuncDialect,
+                         LLVM::LLVMDialect>();
+  target.addIllegalDialect<cudaq::quake::QuakeDialect>();
 }
 
 void cudaq::opt::populateQuakeToCCPrepPatterns(RewritePatternSet &patterns) {
