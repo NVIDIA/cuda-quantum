@@ -29,6 +29,17 @@ dnf_retry() {
     return 1
 }
 
+# Same for apt: Ubuntu mirrors serve inconsistent index files while a sync is
+# in progress ("File has unexpected size ... Mirror sync in progress?"), which
+# fails apt-get update outright. Acquire::Retries does not cover this case.
+apt_retry() {
+    for n in 1 2 3 4 5; do
+        apt-get "$@" && return 0
+        [ $n -lt 5 ] && sleep $((15*n))
+    done
+    return 1
+}
+
 case $1 in
     *ubuntu*)
         pkg_manager=apt-get
@@ -60,26 +71,28 @@ fi
 
 if [ "$pkg_manager" == "apt-get" ]; then
     ## [Prerequisites]
-    apt-get update && apt-get install -y --no-install-recommends \
+    apt_retry update
+    apt_retry install -y --no-install-recommends \
         sudo wget ca-certificates
     echo "apt-get install -y --no-install-recommends openssh-client" > install_sshclient.sh
 
     ## [C development headers]
     if [ -n "${LIBCDEV_PACKAGE}" ]; then
-        apt-get install -y --no-install-recommends ${LIBCDEV_PACKAGE}
+        apt_retry install -y --no-install-recommends ${LIBCDEV_PACKAGE}
     fi
 
     ## [CUDA runtime libraries]
     if [ -n "${CUDA_DISTRIBUTION}" ]; then
         wget "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-keyring_1.1-1_all.deb"
-        dpkg -i cuda-keyring_1.1-1_all.deb && apt-get update 
-        apt-get install -y --no-install-recommends ${CUDA_PACKAGES}
+        dpkg -i cuda-keyring_1.1-1_all.deb
+        apt_retry update
+        apt_retry install -y --no-install-recommends ${CUDA_PACKAGES}
         rm cuda-keyring_1.1-1_all.deb
     fi
 
     ## [Extra validation packages]
     if [ -n "${VALIDATION_PACKAGES}" ]; then
-        apt-get install -y --no-install-recommends ${VALIDATION_PACKAGES}
+        apt_retry install -y --no-install-recommends ${VALIDATION_PACKAGES}
     fi
 
 elif [ "$pkg_manager" == "dnf" ]; then
