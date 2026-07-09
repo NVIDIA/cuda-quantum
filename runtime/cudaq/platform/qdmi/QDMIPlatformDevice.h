@@ -26,6 +26,7 @@ struct QDMIPlatformDevice {
 
   FoMaCDevice fomacDevice;
   QDMI_Program_Format programFormat = QDMI_PROGRAM_FORMAT_QASM2;
+  fomac::JobConfig jobConfig;
   std::string name;
   std::size_t qubitCount = 0;
   std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
