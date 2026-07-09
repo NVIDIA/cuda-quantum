@@ -28,7 +28,6 @@ add_library(cudaq-mlir-runtime
     JIT.cpp
     ResourceCount.cpp
     RuntimeMLIR.cpp
-    RuntimeCppMLIR.cpp
     LayoutInfo.cpp
     TracePassInstrumentation.cpp
 )
@@ -44,46 +43,12 @@ target_link_libraries(cudaq-mlir-runtime
     cudaq-mlir-runtime-headers
   PRIVATE
     cudaq-common
-    $<$<NOT:$<PLATFORM_ID:Darwin>>:cudaq-qir-verifier>
+    cudaq-qir-verifier
     CUDAQTargetConfig
     cudaq-logger
     fmt::fmt-header-only
+    cudaqMLIR
 )
-
-if(APPLE)
-  add_dependencies(cudaq-mlir-runtime OptCodeGen OptTransforms OptimBuilder cudaq-qir-verifier)
-  target_link_libraries(cudaq-mlir-runtime PRIVATE
-    "$<TARGET_FILE:OptCodeGen>"
-    "$<TARGET_FILE:OptTransforms>"
-    "$<TARGET_FILE:OptimBuilder>"
-    "$<TARGET_FILE:cudaq-qir-verifier>")
-else()
-  target_link_libraries(cudaq-mlir-runtime
-    PRIVATE
-      CCDialect
-      QECDialect
-      QuakeDialect
-      OptCodeGen
-      OptTransforms
-      MLIRTranslateLib
-      MLIRIR
-      MLIRParser
-      MLIRPass
-      MLIRSupport
-      MLIROptLib
-      MLIRExecutionEngine
-      MLIRTransforms
-      MLIRTargetLLVMIRExport
-      MLIRLLVMCommonConversion
-      MLIRLLVMToLLVMIRTranslation
-      MLIRFuncInlinerExtension
-  )
-endif()
-
-if(APPLE)
-  target_link_options(cudaq-mlir-runtime PRIVATE
-    "LINKER:-flat_namespace")
-endif()
 
 install(TARGETS cudaq-mlir-runtime-headers
         EXPORT cudaq-mlir-runtime-targets)

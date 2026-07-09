@@ -20,6 +20,7 @@ public:
   ~DefaultQPU() override;
 
   void enqueue(QuantumTask &task) override;
+  void onRandomSeedSet(std::size_t seed) override;
 
   KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
                                             cudaq::KernelArgs args) override;

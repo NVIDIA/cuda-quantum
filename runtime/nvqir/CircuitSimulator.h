@@ -1641,14 +1641,16 @@ inline void finalize_simulation_circuit_impl(CircuitSimulator &sim,
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
+#define NVQIR_PLUGIN_EXPORT __attribute__((visibility("default")))
 #define NVQIR_REGISTER_SIMULATOR(CLASSNAME, PRINTED_NAME)                      \
   extern "C" {                                                                 \
-  nvqir::CircuitSimulator *getCircuitSimulator() {                             \
+  NVQIR_PLUGIN_EXPORT nvqir::CircuitSimulator *getCircuitSimulator() {         \
     thread_local static std::unique_ptr<nvqir::CircuitSimulator> simulator =   \
         std::make_unique<CLASSNAME>();                                         \
     return simulator.get();                                                    \
   }                                                                            \
-  nvqir::CircuitSimulator *CONCAT(getCircuitSimulator_, PRINTED_NAME)() {      \
+  NVQIR_PLUGIN_EXPORT nvqir::CircuitSimulator *CONCAT(getCircuitSimulator_,    \
+                                                      PRINTED_NAME)() {        \
     thread_local static std::unique_ptr<nvqir::CircuitSimulator> simulator =   \
         std::make_unique<CLASSNAME>();                                         \
     return simulator.get();                                                    \

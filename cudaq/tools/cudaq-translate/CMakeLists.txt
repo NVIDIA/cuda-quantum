@@ -15,29 +15,10 @@ add_llvm_executable(${TOOL_NAME} ${TOOL_NAME}.cpp)
 llvm_update_compile_flags(${TOOL_NAME})
 target_link_libraries(${TOOL_NAME}
   PRIVATE
-    MLIRIR
-    MLIRParser
-    MLIRPass
-    MLIRTranslateLib
-    MLIRSupport
-    MLIROptLib
-    MLIRExecutionEngine
-    MLIRTransforms
-    MLIRTargetLLVMIRExport
-    MLIRLLVMCommonConversion
-    MLIRBuiltinToLLVMIRTranslation
-    MLIRLLVMToLLVMIRTranslation
-    MLIRFuncInlinerExtension
-    MLIRLLVMIRTransforms
-
-    CCDialect
-    OptCodeGen
-    OptTransforms
-    QECDialect
-    QuakeDialect
     cudaq-qir-verifier
+    cudaqMLIR
 )
 
-mlir_check_all_link_libraries(${TOOL_NAME})
+target_link_options(${TOOL_NAME} BEFORE PRIVATE "$<TARGET_FILE:cudaqMLIR>")
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)

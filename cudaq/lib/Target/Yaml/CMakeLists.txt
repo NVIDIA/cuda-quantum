@@ -7,12 +7,7 @@
 # ============================================================================ #
 
 # LLVM-dependent library: YAML serialization and runtime argument processing.
-add_llvm_library(CUDAQTargetConfigYaml
+add_library(CUDAQTargetConfigYaml
   TargetConfigYaml.cpp
-
-  DISABLE_LLVM_LINK_LLVM_DYLIB
-
-  LINK_COMPONENTS
-  Support
 )
-target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig)
+target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig cudaqMLIR)

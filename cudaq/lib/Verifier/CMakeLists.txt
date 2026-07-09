@@ -15,7 +15,6 @@ add_mlir_library(cudaq-qir-verifier
     CCDialect
     QuakeDialect
 
-  LINK_LIBS PUBLIC
-    MLIRLLVMDialect
-    MLIRIR
+  LINK_LIBS PRIVATE
+    cudaqMLIR
 )

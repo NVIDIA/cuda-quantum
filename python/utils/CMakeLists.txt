@@ -25,4 +25,3 @@ target_include_directories(cudaq-py-utils PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/python/utils>
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
 )
-install(TARGETS cudaq-py-utils DESTINATION lib)

@@ -16,7 +16,6 @@ add_mlir_library(CUDAQSupport
   mlir-generic-headers
 
   LINK_LIBS PUBLIC
-  MLIRAnalysis
-  MLIRIR
+  cudaqMLIR
   )
 
