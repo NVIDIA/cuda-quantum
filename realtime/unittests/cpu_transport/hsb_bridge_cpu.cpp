@@ -12,7 +12,7 @@
 ///
 /// Replaces hololink_bridge for the CPU-data-path test case.  No
 /// libhololink dependency, no GPU, no DOCA — only libibverbs + libcudaq-
-/// realtime + libcudaq-realtime-cpu-transport.
+/// realtime + libcudaq-realtime-cpu-roce-transport.
 ///
 /// The FPGA-side rendezvous (telling the FPGA our QP number and rkey) is
 /// out-of-band: this binary prints them to stdout and the orchestration
