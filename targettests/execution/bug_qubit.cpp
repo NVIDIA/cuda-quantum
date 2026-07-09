@@ -23,6 +23,10 @@
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t; fi
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t; fi
+// RUN: if %qdmi_avail; then \
+// RUN:   nvq++ --target qdmi --qdmi-library %qdmi_ddsim_library --qdmi-prefix %qdmi_ddsim_prefix %s -o %t && \
+// RUN:   env DYLD_LIBRARY_PATH=%qdmi_ddsim_library_dir:$DYLD_LIBRARY_PATH LD_LIBRARY_PATH=%qdmi_ddsim_library_dir:$LD_LIBRARY_PATH %t; \
+// RUN: fi
 // RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
 // clang-format on
 
