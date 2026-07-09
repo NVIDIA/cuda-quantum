@@ -695,7 +695,7 @@ struct JoinPointStrategy {
   virtual void reconcile(MutableArrayRef<RoutingResult *> predecessors) = 0;
 };
 
-/// Stage 1.5: restore every predecessor to its own entry layout. If branches
+/// Simple strategy: restore every predecessor to the entry layout. If branches
 /// share an entry, so they agree trivially; a loop body returns to its entry,
 /// making that the loop invariant. Reified by replaying each region's swaps in
 /// reverse before its terminator — no layout search, no pre-region SWAPs.
@@ -860,6 +860,20 @@ RoutingProblem buildReverseProblem(const RoutingProblem &forward) {
   return reverse;
 }
 
+/// SABRE heuristic tuning parameters, threaded unchanged from the pass options
+/// through ControlFlowRouter and RoutingSearchStrategy into each SabreRouter.
+struct RoutingSearchOptions {
+  unsigned extendedLayerSize;
+  float extendedLayerWeight;
+  float decayDelta;
+  unsigned roundsDecayReset;
+  // Release-valve stall budget: force a gate once this many consecutive swaps
+  // route nothing. See SabreRouter::route for how the floor and per-qubit terms
+  // combine.
+  unsigned minStallSwapBudget;
+  unsigned stallSwapBudgetPerQubit;
+};
+
 /// The `SabreRouter` class is modified implementation of the following paper:
 /// Li, Gushu, Yufei Ding, and Yuan Xie. "Tackling the qubit mapping problem for
 /// NISQ-era quantum devices." In Proceedings of the Twenty-Fourth International
@@ -896,17 +910,10 @@ class SabreRouter {
 
 public:
   SabreRouter(const cudaq::Device &device, const RoutingProblem &problem,
-              cudaq::Placement &placement, unsigned extendedLayerSize,
-              float extendedLayerWeight, float decayDelta,
-              unsigned roundsDecayReset, unsigned minStallSwapBudget,
-              unsigned stallSwapBudgetPerQubit)
+              cudaq::Placement &placement, const RoutingSearchOptions &options)
       : device(device), problem(problem), placement(placement),
-        extendedLayerSize(extendedLayerSize),
-        extendedLayerWeight(extendedLayerWeight), decayDelta(decayDelta),
-        roundsDecayReset(roundsDecayReset),
-        minStallSwapBudget(minStallSwapBudget),
-        stallSwapBudgetPerQubit(stallSwapBudgetPerQubit),
-        phyDecay(device.getNumQubits(), 1.0), allowMeasurementMapping(false) {}
+        options(options), phyDecay(device.getNumQubits(), 1.0),
+        allowMeasurementMapping(false) {}
 
   /// Main entry point into SabreRouter routing algorithm. Walks the DAG without
   /// modifying the IR and returns the decisions for the emitter to apply.
@@ -958,15 +965,8 @@ private:
   const RoutingProblem &problem;
   cudaq::Placement &placement;
 
-  // Parameters
-  const unsigned extendedLayerSize;
-  const float extendedLayerWeight;
-  const float decayDelta;
-  const unsigned roundsDecayReset;
-  // Release-valve stall budget: force a gate once this many consecutive swaps
-  // route nothing. See `route` for how the floor and per-qubit terms combine.
-  const unsigned minStallSwapBudget;
-  const unsigned stallSwapBudgetPerQubit;
+  // SABRE heuristic tuning parameters.
+  const RoutingSearchOptions options;
 
   // Internal data. The layers hold handles into `problem.nodes`.
   SmallVector<NodeRef> frontLayer;
@@ -1090,7 +1090,7 @@ void SabreRouter::selectExtendedLayer() {
   extendedLayer.clear();
   SmallVector<NodeRef, 20> incremented;
   SmallVector<NodeRef> tmpLayer = frontLayer;
-  while (!tmpLayer.empty() && extendedLayer.size() < extendedLayerSize) {
+  while (!tmpLayer.empty() && extendedLayer.size() < options.extendedLayerSize) {
     SmallVector<NodeRef> newTmpLayer;
     for (NodeRef n : tmpLayer)
       visitSuccessors(problem[n].successors, newTmpLayer, &incremented);
@@ -1130,7 +1130,7 @@ SabreRouter::Swap SabreRouter::chooseSwap() {
     for (auto phy1 : device.getNeighbours(phy0))
       candidates.emplace_back(phy0, phy1);
 
-  if (extendedLayerSize)
+  if (options.extendedLayerSize)
     selectExtendedLayer();
 
   // Compute cost
@@ -1144,7 +1144,7 @@ SabreRouter::Swap SabreRouter::chooseSwap() {
       double extendedLayerCost =
           computeLayerCost(extendedLayer) / extendedLayer.size();
       swapCost /= frontLayer.size();
-      swapCost += extendedLayerWeight * extendedLayerCost;
+      swapCost += options.extendedLayerWeight * extendedLayerCost;
     }
 
     cost.emplace_back(maxDecay * swapCost);
@@ -1265,8 +1265,9 @@ RoutingResult SabreRouter::route() {
   // devices, where the scaled term would otherwise be too tight. Both terms are
   // pass options (`min-stall-swap-budget`, `stall-swap-budget-per-qubit`)
   // defaulting to 64 and 4.
-  const unsigned stallSwapLimit = std::max(
-      minStallSwapBudget, stallSwapBudgetPerQubit * device.getNumQubits());
+  const unsigned stallSwapLimit =
+      std::max(options.minStallSwapBudget,
+               options.stallSwapBudgetPerQubit * device.getNumQubits());
   std::size_t numSwapSearches = 0;
   unsigned swapsSinceRouted = 0;
   SmallVector<Swap> episodeSwaps;
@@ -1311,11 +1312,11 @@ RoutingResult SabreRouter::route() {
     involvedPhy.clear();
 
     // Update decay
-    if ((numSwapSearches % roundsDecayReset) == 0) {
+    if ((numSwapSearches % options.roundsDecayReset) == 0) {
       std::fill(phyDecay.begin(), phyDecay.end(), 1.0);
     } else {
-      phyDecay[phy0.index] += decayDelta;
-      phyDecay[phy1.index] += decayDelta;
+      phyDecay[phy0.index] += options.decayDelta;
+      phyDecay[phy1.index] += options.decayDelta;
     }
   }
   LLVM_DEBUG(logger.startLine() << '\n' << logLineComment << '\n';);
@@ -1347,16 +1348,8 @@ class RoutingSearchStrategy {
 public:
   RoutingSearchStrategy(const cudaq::Device &device,
                         const RoutingProblem &problem, bool refine,
-                        unsigned extendedLayerSize, float extendedLayerWeight,
-                        float decayDelta, unsigned roundsDecayReset,
-                        unsigned minStallSwapBudget,
-                        unsigned stallSwapBudgetPerQubit)
-      : device(device), problem(problem), refine(refine),
-        extendedLayerSize(extendedLayerSize),
-        extendedLayerWeight(extendedLayerWeight), decayDelta(decayDelta),
-        roundsDecayReset(roundsDecayReset),
-        minStallSwapBudget(minStallSwapBudget),
-        stallSwapBudgetPerQubit(stallSwapBudgetPerQubit),
+                        const RoutingSearchOptions &options)
+      : device(device), problem(problem), refine(refine), options(options),
         reverseProblem(refine ? buildReverseProblem(problem)
                               : RoutingProblem{}) {}
 
@@ -1425,9 +1418,7 @@ private:
     for (unsigned v = 0; v < numV; ++v)
       layout.map(cudaq::Placement::VirtualQ(v),
                  cudaq::Placement::DeviceQ(seed[v]));
-    SabreRouter router(device, problem, layout, extendedLayerSize,
-                       extendedLayerWeight, decayDelta, roundsDecayReset,
-                       minStallSwapBudget, stallSwapBudgetPerQubit);
+    SabreRouter router(device, problem, layout, options);
     RoutingResult result = router.route();
     finalOut = layout;
     return result;
@@ -1438,9 +1429,7 @@ private:
   SmallVector<unsigned> reverseRefine(const cudaq::Placement &startFinal,
                                       unsigned numV) {
     cudaq::Placement layout = startFinal;
-    SabreRouter router(device, reverseProblem, layout, extendedLayerSize,
-                       extendedLayerWeight, decayDelta, roundsDecayReset,
-                       minStallSwapBudget, stallSwapBudgetPerQubit);
+    SabreRouter router(device, reverseProblem, layout, options);
     router.route();
     SmallVector<unsigned> refined(numV);
     for (unsigned v = 0; v < numV; ++v)
@@ -1451,13 +1440,161 @@ private:
   const cudaq::Device &device;
   const RoutingProblem &problem;
   bool refine;
-  unsigned extendedLayerSize;
-  float extendedLayerWeight;
-  float decayDelta;
-  unsigned roundsDecayReset;
-  unsigned minStallSwapBudget;
-  unsigned stallSwapBudgetPerQubit;
+  RoutingSearchOptions options;
   RoutingProblem reverseProblem;
+};
+
+/// Drives layout routing across a function's control-flow graph. The top block
+/// and every nested if/loop region are routed block-by-block (each via
+/// RoutingSearchStrategy, treating nested control flow as opaque), and the
+/// placements that meet at a control-flow join are reconciled through the
+/// pluggable JoinPointStrategy. This is the shared, strategy-independent
+/// infrastructure: block-by-block SABRE plus join-point detection. It yields
+/// one RoutingResult per block for the emitter, plus the winning top layout.
+class ControlFlowRouter {
+public:
+  ControlFlowRouter(
+      const cudaq::Device &device, SearchStrategy searchStrategy,
+      const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
+      JoinPointStrategy &joinStrategy, const RoutingSearchOptions &options)
+      : device(device), searchStrategy(searchStrategy),
+        wireToVirtualQ(wireToVirtualQ), joinStrategy(joinStrategy),
+        options(options) {}
+
+  struct Result {
+    DenseMap<Block *, RoutingResult> blockResults;
+    cudaq::Placement bestLayout;
+  };
+
+  /// Route `topBlock` (entry wires `sources`) over `seeds` and recurse through
+  /// nested control flow. Returns the per-block results and winning layout.
+  Result route(Block &topBlock, ArrayRef<Value> sources,
+               ArrayRef<SmallVector<unsigned>> seeds, unsigned numVIn,
+               unsigned numPhyIn) {
+    numV = numVIn;
+    numPhy = numPhyIn;
+    blockResults.clear();
+    cudaq::Placement bestLayout = routeBlock(topBlock, sources, seeds);
+    return {std::move(blockResults), std::move(bestLayout)};
+  }
+
+private:
+  /// Search `block` over `seeds` for the layout with the fewest swaps, then
+  /// record its RoutingResult (recursing through nested control flow) into
+  /// `blockResults`. `sources` are the block's entry wires (borrow results for
+  /// the outer block, wire block arguments for a nested one). Returns the
+  /// winning final layout, whose placement feeds the mapping attributes.
+  cudaq::Placement routeBlock(Block &block, ArrayRef<Value> sources,
+                              ArrayRef<SmallVector<unsigned>> seeds) {
+    RoutingProblem problem = buildRoutingProblem(block, sources, wireToVirtualQ);
+    RoutingSearchStrategy search(
+        device, problem, searchStrategy == SearchStrategy::Sabre, options);
+    RoutingSearchStrategy::Selection selection = search.run(seeds, numV, numPhy);
+    buildBlockResults(block, std::move(selection.result));
+    return std::move(selection.finalLayout);
+  }
+
+  /// For `blk` (outer or a branch block), store its RoutingResult in
+  /// `blockResults`. Routes branch blocks using the placement at the point each
+  /// cc::IfOp is reached as the seed. Recurses for nested IfOps.
+  void buildBlockResults(Block &blk, RoutingResult flat) {
+    RoutingResult result;
+    result.initialLayout = flat.initialLayout;
+    result.swapCount = flat.swapCount;
+
+    SmallVector<unsigned> replayVqToPhy(numV);
+    SmallVector<unsigned> replayPhyToVQ(numPhy, UINT_MAX);
+    for (unsigned v = 0; v < numV; ++v) {
+      replayVqToPhy[v] = flat.initialLayout[v];
+      replayPhyToVQ[flat.initialLayout[v]] = v;
+    }
+    unsigned srcIdx = 0;
+
+    // Route one nested block (an if branch, loop body, or loop step) using the
+    // current replay layout as its entry seed, then recurse to fill its
+    // blockResults entry. Reconciliation is left to the caller, since if-joins
+    // and loop back-edges reconcile different predecessor sets.
+    auto routeNested = [&](Block &nested) {
+      SmallVector<Value> sources;
+      for (auto arg : nested.getArguments())
+        if (isa<cudaq::quake::WireType>(arg.getType()))
+          sources.push_back(arg);
+      routeBlock(nested, sources, {SmallVector<unsigned>(replayVqToPhy)});
+    };
+
+    // flushTo processes all trace events up to limit, routing branch blocks
+    // inline when a Kind::If event is encountered.
+    std::function<void(unsigned)> flushTo;
+    flushTo = [&](unsigned limit) {
+      while (srcIdx < limit) {
+        RoutingEvent &ev = flat.trace[srcIdx++];
+        if (ev.kind == RoutingEvent::Kind::Swap) {
+          unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
+          unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
+          if (v0 != UINT_MAX)
+            replayVqToPhy[v0] = p1;
+          if (v1 != UINT_MAX)
+            replayVqToPhy[v1] = p0;
+          std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::Gate) {
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::If) {
+          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+          SmallVector<Block *> branchBlocks;
+          for (Region *region : ifOp.getRegions()) {
+            if (region->empty())
+              continue;
+            routeNested(region->front());
+            branchBlocks.push_back(&region->front());
+          }
+          // Reconcile the branches at the if-join so they exit at a common
+          // layout. Collect the predecessors after all branches are routed, as
+          // building each result may rehash blockResults.
+          SmallVector<RoutingResult *> branchResults;
+          for (Block *b : branchBlocks)
+            branchResults.push_back(&blockResults[b]);
+          joinStrategy.reconcile(branchResults);
+          assert(!ifOp.hasElse() ||
+                 blockResults[&ifOp.getThenRegion().front()].exitLayout ==
+                     blockResults[&ifOp.getElseRegion().front()].exitLayout);
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::Loop) {
+          auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+          auto *bodyBlock = loopOp.getDoEntryBlock();
+          routeNested(*bodyBlock);
+          // Reconcile the loop back-edge: the loop invariant is the entry
+          // layout, restored before the body terminator each iteration.
+          RoutingResult *bodyResult = &blockResults[bodyBlock];
+          joinStrategy.reconcile(bodyResult);
+          // Route the step block if present (for-loop style). It carries wires
+          // straight through (quantum gates in a step are rejected), so it
+          // never inserts swaps and needs no back-edge reconciliation.
+          if (loopOp.hasStep())
+            routeNested(*loopOp.getStepBlock());
+          result.trace.push_back(std::move(ev));
+        } else {
+          llvm_unreachable("unhandled RoutingEvent::Kind");
+        }
+      }
+    };
+
+    flushTo(flat.trace.size());
+    result.exitLayout =
+        SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
+    blockResults[&blk] = std::move(result);
+  }
+
+  const cudaq::Device &device;
+  SearchStrategy searchStrategy;
+  const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ;
+  JoinPointStrategy &joinStrategy;
+  RoutingSearchOptions options;
+
+  // Set per route() call and shared by the recursion below.
+  unsigned numV = 0;
+  unsigned numPhy = 0;
+  DenseMap<Block *, RoutingResult> blockResults;
 };
 
 //===----------------------------------------------------------------------===//
@@ -2120,127 +2257,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
   }
 
-  /// Search `block` over `seeds` for the layout with the fewest swaps, then
-  /// record its RoutingResult (recursing through nested control flow) into
-  /// `blockResults`. `sources` are the block's entry wires (borrow results for
-  /// the outer block, wire block arguments for a nested one). Returns the
-  /// winning final layout, whose placement feeds the mapping attributes.
-  cudaq::Placement routeBlock(
-      Block &block, ArrayRef<Value> sources,
-      ArrayRef<SmallVector<unsigned>> seeds, unsigned numV, unsigned numPhy,
-      SearchStrategy searchStrategy,
-      const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
-      JoinPointStrategy &joinStrategy,
-      DenseMap<Block *, RoutingResult> &blockResults) {
-    RoutingProblem problem = buildRoutingProblem(block, sources, wireToVirtualQ);
-    RoutingSearchStrategy search(
-        *deviceInstance, problem, searchStrategy == SearchStrategy::Sabre,
-        extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset,
-        minStallSwapBudget, stallSwapBudgetPerQubit);
-    RoutingSearchStrategy::Selection selection = search.run(seeds, numV, numPhy);
-    buildBlockResults(block, std::move(selection.result), numV, numPhy,
-                      searchStrategy, wireToVirtualQ, joinStrategy,
-                      blockResults);
-    return std::move(selection.finalLayout);
-  }
-
-  /// For `blk` (outer or a branch block), store its RoutingResult in
-  /// `blockResults`. Routes branch blocks using the placement at the point each
-  /// cc::IfOp is reached as the seed. Recurses for nested IfOps.
-  void buildBlockResults(
-      Block &blk, RoutingResult flat, unsigned numV, unsigned numPhy,
-      SearchStrategy searchStrategy,
-      const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
-      JoinPointStrategy &joinStrategy,
-      DenseMap<Block *, RoutingResult> &blockResults) {
-    RoutingResult result;
-    result.initialLayout = flat.initialLayout;
-    result.swapCount = flat.swapCount;
-
-    SmallVector<unsigned> replayVqToPhy(numV);
-    SmallVector<unsigned> replayPhyToVQ(numPhy, UINT_MAX);
-    for (unsigned v = 0; v < numV; ++v) {
-      replayVqToPhy[v] = flat.initialLayout[v];
-      replayPhyToVQ[flat.initialLayout[v]] = v;
-    }
-    unsigned srcIdx = 0;
-
-    // Route one nested block (an if branch, loop body, or loop step) using the
-    // current replay layout as its entry seed, then recurse to fill its
-    // blockResults entry. Reconciliation is left to the caller, since if-joins
-    // and loop back-edges reconcile different predecessor sets.
-    auto routeNested = [&](Block &nested) {
-      SmallVector<Value> sources;
-      for (auto arg : nested.getArguments())
-        if (isa<cudaq::quake::WireType>(arg.getType()))
-          sources.push_back(arg);
-      routeBlock(nested, sources, {SmallVector<unsigned>(replayVqToPhy)}, numV,
-                 numPhy, searchStrategy, wireToVirtualQ, joinStrategy,
-                 blockResults);
-    };
-
-    // flushTo processes all trace events up to limit, routing branch blocks
-    // inline when a Kind::If event is encountered.
-    std::function<void(unsigned)> flushTo;
-    flushTo = [&](unsigned limit) {
-      while (srcIdx < limit) {
-        RoutingEvent &ev = flat.trace[srcIdx++];
-        if (ev.kind == RoutingEvent::Kind::Swap) {
-          unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
-          unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
-          if (v0 != UINT_MAX)
-            replayVqToPhy[v0] = p1;
-          if (v1 != UINT_MAX)
-            replayVqToPhy[v1] = p0;
-          std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::Gate) {
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::If) {
-          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
-          SmallVector<Block *> branchBlocks;
-          for (Region *region : ifOp.getRegions()) {
-            if (region->empty())
-              continue;
-            routeNested(region->front());
-            branchBlocks.push_back(&region->front());
-          }
-          // Reconcile the branches at the if-join so they exit at a common
-          // layout. Collect the predecessors after all branches are routed, as
-          // building each result may rehash blockResults.
-          SmallVector<RoutingResult *> branchResults;
-          for (Block *b : branchBlocks)
-            branchResults.push_back(&blockResults[b]);
-          joinStrategy.reconcile(branchResults);
-          assert(!ifOp.hasElse() ||
-                 blockResults[&ifOp.getThenRegion().front()].exitLayout ==
-                     blockResults[&ifOp.getElseRegion().front()].exitLayout);
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::Loop) {
-          auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
-          auto *bodyBlock = loopOp.getDoEntryBlock();
-          routeNested(*bodyBlock);
-          // Reconcile the loop back-edge: the loop invariant is the entry
-          // layout, restored before the body terminator each iteration.
-          RoutingResult *bodyResult = &blockResults[bodyBlock];
-          joinStrategy.reconcile(bodyResult);
-          // Route the step block if present (for-loop style). It receives wires
-          // in the restored (entry) layout, the same seed used for the body.
-          if (loopOp.hasStep())
-            routeNested(*loopOp.getStepBlock());
-          result.trace.push_back(std::move(ev));
-        } else {
-          llvm_unreachable("unhandled RoutingEvent::Kind");
-        }
-      }
-    };
-
-    flushTo(flat.trace.size());
-    result.exitLayout =
-        SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
-    blockResults[&blk] = std::move(result);
-  }
-
   void runOnOperation() override {
     if (deviceBypass)
       return;
@@ -2568,11 +2584,16 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     SmallVector<Value> sourceValues;
     for (auto borrow : sources)
       sourceValues.push_back(borrow.getResult());
-    DenseMap<Block *, RoutingResult> blockResults;
     RestoreToEntryStrategy joinStrategy;
-    cudaq::Placement bestLayout =
-        routeBlock(block, sourceValues, seeds, numV, numPhy, searchStrategy,
-                   wireToVirtualQ, joinStrategy, blockResults);
+    RoutingSearchOptions options{extendedLayerSize,  extendedLayerWeight,
+                                 decayDelta,         roundsDecayReset,
+                                 minStallSwapBudget, stallSwapBudgetPerQubit};
+    ControlFlowRouter router(*deviceInstance, searchStrategy, wireToVirtualQ,
+                             joinStrategy, options);
+    ControlFlowRouter::Result routed =
+        router.route(block, sourceValues, seeds, numV, numPhy);
+    DenseMap<Block *, RoutingResult> &blockResults = routed.blockResults;
+    cudaq::Placement &bestLayout = routed.bestLayout;
 
     // Emit the selected result onto the IR exactly once.
     RoutingEmitter emitter(wireToVirtualQ, numPhy, blockResults);
