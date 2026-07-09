@@ -1525,27 +1525,6 @@ template mdiag_sparse_matrix product_op<boson_handler>::to_diagonal_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 
-// utility functions for backwards compatibility
-
-#define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                             \
-  template <typename HandlerTy>                                                \
-  template <typename T, typename>
-
-SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
-std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-  return sum_op(*this).to_string(printCoeffs);
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-}
-
-template std::string
-product_op<spin_handler>::to_string(bool printCoeffs) const;
-
 #if defined(CUDAQ_INSTANTIATE_TEMPLATES)
 template class product_op<matrix_handler>;
 template class product_op<spin_handler>;
