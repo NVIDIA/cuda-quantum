@@ -18,6 +18,7 @@
 #include "cudaq/qis/measure_handle.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <deque>
+#include <stdexcept>
 #include <string_view>
 #include <vector>
 
@@ -120,6 +121,7 @@ public:
   /// Configure the execution context before an execution.
   void configureExecutionContext(const sample_policy &policy);
   void configureExecutionContext(const observe_policy &policy);
+  void configureExecutionContext(const ptsbe_sample_policy &policy);
   void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
@@ -132,6 +134,12 @@ public:
 
   virtual observe_result
   finalizeExecutionContext(const observe_policy &policy) = 0;
+
+  virtual ptsbe_sample_policy::result_type
+  finalizeExecutionContext(const ptsbe_sample_policy &policy) {
+    throw std::runtime_error(
+        "PTSBE sampling is not supported by this execution manager.");
+  }
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
@@ -240,6 +248,13 @@ inline sample_result finalize_execution_manager_impl(
 inline observe_result
 finalize_execution_manager_impl(ExecutionManager &mgr,
                                 const observe_policy &policy,
+                                ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline ptsbe_sample_policy::result_type
+finalize_execution_manager_impl(ExecutionManager &mgr,
+                                const ptsbe_sample_policy &policy,
                                 ExecutionContext &ctx) {
   return mgr.finalizeExecutionContext(policy);
 }
