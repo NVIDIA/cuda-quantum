@@ -55,3 +55,8 @@ target-arguments:
     type: string
     platform-arg: api_key_file
     help-string: "Path to a file containing an API key to access the Qoperator server"
+  - key: simulator_duration
+    required: false
+    type: string
+    platform-arg: simulator_duration
+    help-string: "The duration of simulation. Relevant only if the executor is set to 'simulator'."
