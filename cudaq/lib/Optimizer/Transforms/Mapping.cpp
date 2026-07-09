@@ -1090,7 +1090,8 @@ void SabreRouter::selectExtendedLayer() {
   extendedLayer.clear();
   SmallVector<NodeRef, 20> incremented;
   SmallVector<NodeRef> tmpLayer = frontLayer;
-  while (!tmpLayer.empty() && extendedLayer.size() < options.extendedLayerSize) {
+  while (!tmpLayer.empty() &&
+         extendedLayer.size() < options.extendedLayerSize) {
     SmallVector<NodeRef> newTmpLayer;
     for (NodeRef n : tmpLayer)
       visitSuccessors(problem[n].successors, newTmpLayer, &incremented);
@@ -1486,10 +1487,12 @@ private:
   /// winning final layout, whose placement feeds the mapping attributes.
   cudaq::Placement routeBlock(Block &block, ArrayRef<Value> sources,
                               ArrayRef<SmallVector<unsigned>> seeds) {
-    RoutingProblem problem = buildRoutingProblem(block, sources, wireToVirtualQ);
+    RoutingProblem problem =
+        buildRoutingProblem(block, sources, wireToVirtualQ);
     RoutingSearchStrategy search(
         device, problem, searchStrategy == SearchStrategy::Sabre, options);
-    RoutingSearchStrategy::Selection selection = search.run(seeds, numV, numPhy);
+    RoutingSearchStrategy::Selection selection =
+        search.run(seeds, numV, numPhy);
     buildBlockResults(block, std::move(selection.result));
     return std::move(selection.finalLayout);
   }
