@@ -60,10 +60,9 @@ const stepName = getInput('matrix-step-name');
 const matrixKey = getInput('matrix-key');
 const rawOutputs = getInput('outputs');
 
-if (stepName === '' && matrixKey !== '')
-  fail('`matrix-step-name` can not be empty when `matrix-key` is specified');
-if (stepName !== '' && matrixKey === '')
-  fail('`matrix-key` can not be empty when `matrix-step-name` is specified');
+if ((stepName === '') !== (matrixKey === ''))
+  fail('Set both `matrix-step-name` and `matrix-key` to record matrix ' +
+       'outputs, or neither to only set the `result` output.');
 
 const outputs = rawOutputs === '' ? {} : parseOutputs(rawOutputs);
 setOutput('result', JSON.stringify(outputs));

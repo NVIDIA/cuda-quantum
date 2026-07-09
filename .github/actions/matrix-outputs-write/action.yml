@@ -10,8 +10,9 @@ name: 'Matrix outputs - write'
 description: |
   Record the outputs of a matrix job so that a later job can aggregate them
   across the whole matrix with ./.github/actions/matrix-outputs-read.
-  In-repo replacement for cloudposse/github-action-matrix-outputs-write,
-  which is unmaintained and pins a Node 20 toolchain.
+  Independent, interface-compatible reimplementation of
+  cloudposse/github-action-matrix-outputs-write (Apache-2.0), which is
+  unmaintained and pins a Node 20 toolchain.
   The repository must be checked out before using this action.
 
 inputs:

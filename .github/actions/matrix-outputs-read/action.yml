@@ -10,8 +10,9 @@ name: 'Matrix outputs - read'
 description: |
   Aggregate the outputs recorded by ./.github/actions/matrix-outputs-write
   across all jobs of a matrix into a single JSON map keyed by matrix key.
-  In-repo replacement for cloudposse/github-action-matrix-outputs-read,
-  which is unmaintained and pins a Node 20 toolchain.
+  Independent, interface-compatible reimplementation of
+  cloudposse/github-action-matrix-outputs-read (Apache-2.0), which is
+  unmaintained and pins a Node 20 toolchain.
   The repository must be checked out before using this action.
 
 inputs:
