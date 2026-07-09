@@ -70,6 +70,10 @@ public:
     std::string apiKey = getValueOrDefault(config, "api_key", "");
     std::string apiKeyFile = getValueOrDefault(config, "api_key_file", "");
 
+    if (config.find("simulator_duration") != config.end()) {
+      backendConfig["simulator_duration"] = config.at("simulator_duration");
+    }
+
     if (!apiKey.empty() && !apiKeyFile.empty()) {
       CUDAQ_ERROR("Both 'api_key' and 'api_key_file' were provided. "
                   "Please specify only one.");
@@ -143,6 +147,9 @@ public:
     job["executor"] = backendConfig["executor"];
     job["qubit_mapping_mode"] = backendConfig["qubit_mapping_mode"];
     job["output_format"] = isRunRequest ? "qir-raw" : "histogram";
+    if (backendConfig.find("simulator_duration") != backendConfig.end()) {
+      job["simulator_duration"] = std::stoi(backendConfig["simulator_duration"]);
+    }
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"] + "/v1/execute";
     return std::make_tuple(path, headers, std::vector<ServerMessage>{job});
@@ -213,7 +220,6 @@ public:
   std::string extractOutputLog(ServerMessage &postJobResponse,
                                std::string &jobId) override {
     CUDAQ_INFO("extractOutputLog: {}, {}", jobId, postJobResponse.dump());
-    //TODO: implement
     return postJobResponse["results"];
   }
 
