@@ -108,20 +108,16 @@ qdmi::DeviceSessionConfig makeDeviceSessionConfig(const BackendConfig &config) {
       getValue(config, "qdmi_username", "CUDAQ_QDMI_USERNAME");
   sessionConfig.password =
       getValue(config, "qdmi_password", "CUDAQ_QDMI_PASSWORD");
-  return sessionConfig;
-}
-
-fomac::SessionConfig makeFoMaCSessionConfig(const BackendConfig &config) {
-  fomac::SessionConfig sessionConfig;
-  sessionConfig.token = getValue(config, "qdmi_token", "CUDAQ_QDMI_TOKEN");
-  sessionConfig.authFile =
-      getValue(config, "qdmi_auth_file", "CUDAQ_QDMI_AUTH_FILE");
-  sessionConfig.authUrl =
-      getValue(config, "qdmi_auth_url", "CUDAQ_QDMI_AUTH_URL");
-  sessionConfig.username =
-      getValue(config, "qdmi_username", "CUDAQ_QDMI_USERNAME");
-  sessionConfig.password =
-      getValue(config, "qdmi_password", "CUDAQ_QDMI_PASSWORD");
+  sessionConfig.custom1 =
+      getValue(config, "qdmi_session_custom1", "CUDAQ_QDMI_SESSION_CUSTOM1");
+  sessionConfig.custom2 =
+      getValue(config, "qdmi_session_custom2", "CUDAQ_QDMI_SESSION_CUSTOM2");
+  sessionConfig.custom3 =
+      getValue(config, "qdmi_session_custom3", "CUDAQ_QDMI_SESSION_CUSTOM3");
+  sessionConfig.custom4 =
+      getValue(config, "qdmi_session_custom4", "CUDAQ_QDMI_SESSION_CUSTOM4");
+  sessionConfig.custom5 =
+      getValue(config, "qdmi_session_custom5", "CUDAQ_QDMI_SESSION_CUSTOM5");
   return sessionConfig;
 }
 
@@ -142,7 +138,7 @@ loadDevices(const BackendConfig &config,
   if (!prefix)
     throw std::runtime_error("QDMI function prefix is required.");
 
-  auto sessionConfig = makeFoMaCSessionConfig(config);
+  const fomac::SessionConfig sessionConfig;
   std::set<QDMI_Device> oldDevices;
   {
     fomac::Session previousSession(sessionConfig);
@@ -258,8 +254,13 @@ queryConnectivity(const cudaq::FoMaCDevice &device, std::size_t qubitCount) {
 std::shared_ptr<cudaq::QDMIDevice> makeQDMIDevice(cudaq::FoMaCDevice device) {
   auto qdmiDevice = std::make_shared<cudaq::QDMIDevice>(std::move(device));
   qdmiDevice->name = qdmiDevice->device.getName();
-  qdmiDevice->programFormat =
-      selectProgramFormat(qdmiDevice->device.getSupportedProgramFormats());
+  try {
+    qdmiDevice->programFormat =
+        selectProgramFormat(qdmiDevice->device.getSupportedProgramFormats());
+  } catch (const std::exception &e) {
+    CUDAQ_DBG("QDMI program format metadata is unavailable: {}", e.what());
+    qdmiDevice->programFormat = QDMI_PROGRAM_FORMAT_QASM2;
+  }
   qdmiDevice->qubitCount = qdmiDevice->device.getQubitsNum();
   qdmiDevice->connectivity =
       queryConnectivity(qdmiDevice->device, qdmiDevice->qubitCount);
