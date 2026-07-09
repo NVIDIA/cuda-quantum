@@ -41,12 +41,13 @@ jobs:
         with:
           paths: |
             realtime/
+            runtime/cudaq/realtime
             runtime/internal/device_call/
             unittests/device_call/
             cudaq/lib/Optimizer/Transforms/RealtimeDeviceCall.cpp
             cudaq/lib/Optimizer/Transforms/DistributedDeviceCall.cpp
             docker/release/cudaq.realtime-integration.Dockerfile
-            build/devdeps.Dockerfile
+            docker/build/devdeps.Dockerfile
             scripts/build_cudaq.sh
             .github/workflows/realtime_integration_ci.yml
             .github/workflows/dev_environment.yml
