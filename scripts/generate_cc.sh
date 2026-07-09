@@ -62,8 +62,13 @@ OPTIND=$__optind__
 this_file_dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 
-pytest_workers="${PYTEST_WORKERS:-4}"
-python3 -m pip install pytest-xdist --break-system-packages 2>/dev/null || true
+# Thread budget mirroring scripts/run_tests.sh: parallel test processes,
+# each limited to a few OpenMP threads to avoid oversubscription.
+num_cores=$(nproc)
+if [ "$num_cores" -le 4 ]; then omp_threads=1; else omp_threads=2; fi
+export OMP_NUM_THREADS=${OMP_NUM_THREADS:-$omp_threads}
+pytest_workers="${PYTEST_WORKERS:-$((num_cores / OMP_NUM_THREADS))}"
+[ "$pytest_workers" -lt 1 ] && pytest_workers=1
 
 # Set envs
 if $gen_cpp_coverage; then
@@ -100,8 +105,10 @@ if $gen_cpp_coverage; then
     use_llvm_cov=true
 
     # Run tests (C++ Unittests)
-    python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
-    ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-cudaq -E ctest-targettests
+    python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt pytest-xdist --break-system-packages
+    # CUDAQ_TEST_OMP_SLOTS sets the PROCESSORS property so ctest schedules
+    # OpenMP-parallel tests correctly at -j $num_cores.
+    ctest --output-on-failure --test-dir ${repo_root}/build -j "$num_cores" -E ctest-cudaq -E ctest-targettests
     ctest_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param cudaq_site_config=${repo_root}/build/cudaq/test/lit.site.cfg.py ${repo_root}/build/cudaq/test
     lit_status=$?
@@ -119,6 +126,11 @@ if $gen_cpp_coverage; then
     rm -rf ${repo_root}/_skbuild
     pip install ${repo_root} --user -vvv
     python3 -m pytest -v -n "$pytest_workers" ${repo_root}/python/tests/ --ignore ${repo_root}/python/tests/backends
+    pytest_status=$?
+    if [ ! $pytest_status -eq 0 ]; then
+        echo "::error Python tests failed with status $pytest_status."
+        exit 1
+    fi
     for backendTest in ${repo_root}/python/tests/backends/*.py; do
         python3 -m pytest -v $backendTest
         pytest_status=$?
@@ -196,7 +208,7 @@ if $gen_py_coverage; then
     venv_dir=${repo_root}/build/venv-coverage
     python3 -m venv "$venv_dir"
     . "${venv_dir}/bin/activate"
-    pip install pytest-cov
+    pip install pytest-cov pytest-xdist
     rm -rf ${repo_root}/_skbuild
     pip install . -vvv
     mkdir -p ${repo_root}/build/pycoverage
@@ -204,6 +216,11 @@ if $gen_py_coverage; then
         python -m pytest -v -n "$pytest_workers" python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
     else
         python -m pytest -v -n "$pytest_workers" python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+    fi
+    pytest_status=$?
+    if [ ! $pytest_status -eq 0 ]; then
+        echo "::error Python coverage tests failed with status $pytest_status."
+        exit 1
     fi
     for backendTest in python/tests/backends/*.py; do
         if $is_codecov_format; then
