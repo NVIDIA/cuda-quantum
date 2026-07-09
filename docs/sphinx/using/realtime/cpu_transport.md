@@ -8,7 +8,7 @@ reference implementation of the `libibverbs` transport option described in the
 flag protocol, so it plugs into the realtime dispatcher the same way a GPU
 transport does.
 
-It ships as a **separate library** (`cudaq-realtime-cpu-transport`,
+It ships as a **separate library** (`cudaq-realtime-cpu-roce-transport`,
 `realtime/lib/cpu_transport/`) and is *not* part of `libcudaq-realtime`. It
 mirrors the `GpuRoceTransceiver` ring-buffer API so the same dispatcher wiring
 works with either, and it pairs naturally with the `CUDAQ_DISPATCH_HOST_CALL`
