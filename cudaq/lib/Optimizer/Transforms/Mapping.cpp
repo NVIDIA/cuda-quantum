@@ -676,10 +676,39 @@ struct RoutingResult {
   /// Computed by enrichTrace; not set on raw SABRE output.
   SmallVector<unsigned> exitLayout;
   SmallVector<RoutingEvent> trace;
-  /// Restoration SWAPs to emit before the block terminator (loop bodies only).
-  /// Contains the body's Swap events in reverse order for layout restoration.
+  /// Restoration SWAPs to emit before the block terminator (if branches and
+  /// loop bodies). Filled by the join-point strategy; see JoinPointStrategy.
   SmallVector<RoutingEvent> cleanUpTrace;
   unsigned swapCount = 0;
+};
+
+/// Policy for reconciling the placements that meet at a control-flow join. Each
+/// predecessor region has already been routed by the shared router, so its
+/// RoutingResult carries the entry (`initialLayout`) and routed exit
+/// (`exitLayout`) layouts. A strategy chooses a common exit layout for all
+/// predecessors and fills each one's cleanUpTrace with the SWAPs that reach it,
+/// updating its exitLayout to match. Swapping in a new strategy is the sole
+/// extension point for smarter routing (greedy, cost-minimizing); the shared
+/// router and the emitter are strategy-independent.
+struct JoinPointStrategy {
+  virtual ~JoinPointStrategy() = default;
+  virtual void reconcile(MutableArrayRef<RoutingResult *> predecessors) = 0;
+};
+
+/// Stage 1.5: restore every predecessor to its own entry layout. If branches
+/// share an entry, so they agree trivially; a loop body returns to its entry,
+/// making that the loop invariant. Reified by replaying each region's swaps in
+/// reverse before its terminator — no layout search, no pre-region SWAPs.
+struct RestoreToEntryStrategy : JoinPointStrategy {
+  void reconcile(MutableArrayRef<RoutingResult *> predecessors) override {
+    for (RoutingResult *r : predecessors) {
+      r->cleanUpTrace.clear();
+      for (const RoutingEvent &swapEv : llvm::reverse(r->trace))
+        if (swapEv.kind == RoutingEvent::Kind::Swap)
+          r->cleanUpTrace.push_back(swapEv);
+      r->exitLayout = r->initialLayout;
+    }
+  }
 };
 
 /// Look up a wire without letting DenseMap default a missing entry to virtual
@@ -1539,7 +1568,7 @@ private:
             auto vq = wireToVirtualQ.find(res)->second;
             phyToWire[thenResult.exitLayout[vq.index]] = res;
           }
-      } else { // Loop
+      } else if (ev.kind == RoutingEvent::Kind::Loop) {
         auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
         auto *bodyBlock = loopOp.getDoEntryBlock();
         // Rewire each wire initialArg to the current physical wire.
@@ -1592,6 +1621,8 @@ private:
             continue;
           phyToWire[ev.phys[phyIdx++].index] = res;
         }
+      } else {
+        llvm_unreachable("unhandled RoutingEvent::Kind");
       }
     }
     // Emit restoration SWAPs (cleanUpTrace) before the block terminator.
@@ -2089,6 +2120,30 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
   }
 
+  /// Search `block` over `seeds` for the layout with the fewest swaps, then
+  /// record its RoutingResult (recursing through nested control flow) into
+  /// `blockResults`. `sources` are the block's entry wires (borrow results for
+  /// the outer block, wire block arguments for a nested one). Returns the
+  /// winning final layout, whose placement feeds the mapping attributes.
+  cudaq::Placement routeBlock(
+      Block &block, ArrayRef<Value> sources,
+      ArrayRef<SmallVector<unsigned>> seeds, unsigned numV, unsigned numPhy,
+      SearchStrategy searchStrategy,
+      const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
+      JoinPointStrategy &joinStrategy,
+      DenseMap<Block *, RoutingResult> &blockResults) {
+    RoutingProblem problem = buildRoutingProblem(block, sources, wireToVirtualQ);
+    RoutingSearchStrategy search(
+        *deviceInstance, problem, searchStrategy == SearchStrategy::Sabre,
+        extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset,
+        minStallSwapBudget, stallSwapBudgetPerQubit);
+    RoutingSearchStrategy::Selection selection = search.run(seeds, numV, numPhy);
+    buildBlockResults(block, std::move(selection.result), numV, numPhy,
+                      searchStrategy, wireToVirtualQ, joinStrategy,
+                      blockResults);
+    return std::move(selection.finalLayout);
+  }
+
   /// For `blk` (outer or a branch block), store its RoutingResult in
   /// `blockResults`. Routes branch blocks using the placement at the point each
   /// cc::IfOp is reached as the seed. Recurses for nested IfOps.
@@ -2096,6 +2151,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       Block &blk, RoutingResult flat, unsigned numV, unsigned numPhy,
       SearchStrategy searchStrategy,
       const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
+      JoinPointStrategy &joinStrategy,
       DenseMap<Block *, RoutingResult> &blockResults) {
     RoutingResult result;
     result.initialLayout = flat.initialLayout;
@@ -2108,6 +2164,20 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       replayPhyToVQ[flat.initialLayout[v]] = v;
     }
     unsigned srcIdx = 0;
+
+    // Route one nested block (an if branch, loop body, or loop step) using the
+    // current replay layout as its entry seed, then recurse to fill its
+    // blockResults entry. Reconciliation is left to the caller, since if-joins
+    // and loop back-edges reconcile different predecessor sets.
+    auto routeNested = [&](Block &nested) {
+      SmallVector<Value> sources;
+      for (auto arg : nested.getArguments())
+        if (isa<cudaq::quake::WireType>(arg.getType()))
+          sources.push_back(arg);
+      routeBlock(nested, sources, {SmallVector<unsigned>(replayVqToPhy)}, numV,
+                 numPhy, searchStrategy, wireToVirtualQ, joinStrategy,
+                 blockResults);
+    };
 
     // flushTo processes all trace events up to limit, routing branch blocks
     // inline when a Kind::If event is encountered.
@@ -2128,83 +2198,39 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           result.trace.push_back(std::move(ev));
         } else if (ev.kind == RoutingEvent::Kind::If) {
           auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
-          SmallVector<SmallVector<unsigned>> branchSeeds = {
-              SmallVector<unsigned>(replayVqToPhy)};
+          SmallVector<Block *> branchBlocks;
           for (Region *region : ifOp.getRegions()) {
             if (region->empty())
               continue;
-            SmallVector<Value> branchSources;
-            for (auto arg : region->front().getArguments())
-              if (isa<cudaq::quake::WireType>(arg.getType()))
-                branchSources.push_back(arg);
-            RoutingProblem branchProblem = buildRoutingProblem(
-                region->front(), branchSources, wireToVirtualQ);
-            RoutingSearchStrategy branchSearch(
-                *deviceInstance, branchProblem,
-                searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
-                extendedLayerWeight, decayDelta, roundsDecayReset,
-                minStallSwapBudget, stallSwapBudgetPerQubit);
-            auto branchSel = branchSearch.run(branchSeeds, numV, numPhy);
-            buildBlockResults(region->front(), std::move(branchSel.result),
-                              numV, numPhy, searchStrategy, wireToVirtualQ,
-                              blockResults);
-            // Populate cleanUpTrace and restore exitLayout to entry so both
-            // branches always exit with the same layout.
-            RoutingResult &branchResult = blockResults[&region->front()];
-            for (const RoutingEvent &swapEv : llvm::reverse(branchResult.trace))
-              if (swapEv.kind == RoutingEvent::Kind::Swap)
-                branchResult.cleanUpTrace.push_back(swapEv);
-            branchResult.exitLayout = branchResult.initialLayout;
+            routeNested(region->front());
+            branchBlocks.push_back(&region->front());
           }
+          // Reconcile the branches at the if-join so they exit at a common
+          // layout. Collect the predecessors after all branches are routed, as
+          // building each result may rehash blockResults.
+          SmallVector<RoutingResult *> branchResults;
+          for (Block *b : branchBlocks)
+            branchResults.push_back(&blockResults[b]);
+          joinStrategy.reconcile(branchResults);
           assert(!ifOp.hasElse() ||
                  blockResults[&ifOp.getThenRegion().front()].exitLayout ==
                      blockResults[&ifOp.getElseRegion().front()].exitLayout);
           result.trace.push_back(std::move(ev));
-        } else { // Loop
+        } else if (ev.kind == RoutingEvent::Kind::Loop) {
           auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
           auto *bodyBlock = loopOp.getDoEntryBlock();
-          SmallVector<Value> bodySources;
-          for (auto bodyArg : bodyBlock->getArguments())
-            if (isa<cudaq::quake::WireType>(bodyArg.getType()))
-              bodySources.push_back(bodyArg);
-          RoutingProblem bodyProblem =
-              buildRoutingProblem(*bodyBlock, bodySources, wireToVirtualQ);
-          RoutingSearchStrategy bodySearch(
-              *deviceInstance, bodyProblem,
-              searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
-              extendedLayerWeight, decayDelta, roundsDecayReset,
-              minStallSwapBudget, stallSwapBudgetPerQubit);
-          auto bodySel = bodySearch.run({SmallVector<unsigned>(replayVqToPhy)},
-                                        numV, numPhy);
-          buildBlockResults(*bodyBlock, std::move(bodySel.result), numV, numPhy,
-                            searchStrategy, wireToVirtualQ, blockResults);
-          RoutingResult &bodyResult = blockResults[bodyBlock];
-          for (const RoutingEvent &swapEv : llvm::reverse(bodyResult.trace))
-            if (swapEv.kind == RoutingEvent::Kind::Swap)
-              bodyResult.cleanUpTrace.push_back(swapEv);
-          // Route the step block if present (for-loop style). The step block
-          // receives wires in the restored (entry) layout, so we seed it with
-          // replayVqToPhy, the same layout used for the body.
-          if (loopOp.hasStep()) {
-            auto *stepBlock = loopOp.getStepBlock();
-            SmallVector<Value> stepSources;
-            for (auto stepArg : stepBlock->getArguments())
-              if (isa<cudaq::quake::WireType>(stepArg.getType()))
-                stepSources.push_back(stepArg);
-            RoutingProblem stepProblem =
-                buildRoutingProblem(*stepBlock, stepSources, wireToVirtualQ);
-            RoutingSearchStrategy stepSearch(
-                *deviceInstance, stepProblem,
-                searchStrategy == SearchStrategy::Sabre, extendedLayerSize,
-                extendedLayerWeight, decayDelta, roundsDecayReset,
-                minStallSwapBudget, stallSwapBudgetPerQubit);
-            auto stepSel = stepSearch.run(
-                {SmallVector<unsigned>(replayVqToPhy)}, numV, numPhy);
-            buildBlockResults(*stepBlock, std::move(stepSel.result), numV,
-                              numPhy, searchStrategy, wireToVirtualQ,
-                              blockResults);
-          }
+          routeNested(*bodyBlock);
+          // Reconcile the loop back-edge: the loop invariant is the entry
+          // layout, restored before the body terminator each iteration.
+          RoutingResult *bodyResult = &blockResults[bodyBlock];
+          joinStrategy.reconcile(bodyResult);
+          // Route the step block if present (for-loop style). It receives wires
+          // in the restored (entry) layout, the same seed used for the body.
+          if (loopOp.hasStep())
+            routeNested(*loopOp.getStepBlock());
           result.trace.push_back(std::move(ev));
+        } else {
+          llvm_unreachable("unhandled RoutingEvent::Kind");
         }
       }
     };
@@ -2537,26 +2563,16 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
     }
 
-    // Build the routing problem once (it does not depend on the layout), then
-    // search over the seeds for the result with the fewest swaps.
+    // Search the seeds for the fewest-swap layout and record every block's
+    // RoutingResult, reconciling control-flow joins with the Stage 1.5 policy.
     SmallVector<Value> sourceValues;
     for (auto borrow : sources)
       sourceValues.push_back(borrow.getResult());
-    RoutingProblem problem =
-        buildRoutingProblem(block, sourceValues, wireToVirtualQ);
-    RoutingSearchStrategy search(
-        *deviceInstance, problem, searchStrategy == SearchStrategy::Sabre,
-        extendedLayerSize, extendedLayerWeight, decayDelta, roundsDecayReset,
-        minStallSwapBudget, stallSwapBudgetPerQubit);
-    RoutingSearchStrategy::Selection selection =
-        search.run(seeds, numV, numPhy);
-    cudaq::Placement &bestLayout = selection.finalLayout;
-
-    // For each block (outer and all branch blocks), store its RoutingResult in
-    // blockResults.
     DenseMap<Block *, RoutingResult> blockResults;
-    buildBlockResults(block, std::move(selection.result), numV, numPhy,
-                      searchStrategy, wireToVirtualQ, blockResults);
+    RestoreToEntryStrategy joinStrategy;
+    cudaq::Placement bestLayout =
+        routeBlock(block, sourceValues, seeds, numV, numPhy, searchStrategy,
+                   wireToVirtualQ, joinStrategy, blockResults);
 
     // Emit the selected result onto the IR exactly once.
     RoutingEmitter emitter(wireToVirtualQ, numPhy, blockResults);
