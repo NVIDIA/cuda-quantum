@@ -15,6 +15,7 @@
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq/runtime/logger/logger.h"
 
+#include <algorithm>
 #include <future>
 #include <map>
 #include <stdexcept>
@@ -25,9 +26,18 @@ cudaq::CountsDictionary
 toCountsDictionary(const std::map<std::string, std::size_t> &counts) {
   cudaq::CountsDictionary result;
   result.reserve(counts.size());
-  for (const auto &[bits, count] : counts)
-    result[bits] = count;
+  for (const auto &[rawBits, count] : counts) {
+    auto bits = rawBits;
+    std::reverse(bits.begin(), bits.end());
+    result[std::move(bits)] = count;
+  }
   return result;
+}
+
+std::vector<std::string> toShotData(std::vector<std::string> shots) {
+  for (auto &bits : shots)
+    std::reverse(bits.begin(), bits.end());
+  return shots;
 }
 
 cudaq::observe_result
@@ -79,6 +89,7 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
       std::launch::async, [platformDevice = std::move(platformDevice),
                            codes = std::move(codes), execType, shotCount]() {
         cudaq::sample_result result;
+        bool hasResult = false;
 
         for (const auto &code : codes) {
           auto job = platformDevice->fomacDevice.submitJob(
@@ -101,7 +112,7 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
           cudaq::ExecutionResult executionResult(
               toCountsDictionary(job.getCounts()), registerName);
           try {
-            executionResult.sequentialData = job.getShots();
+            executionResult.sequentialData = toShotData(job.getShots());
           } catch (const std::exception &e) {
             CUDAQ_DBG("QDMI shot data is unavailable: {}", e.what());
           }
@@ -109,7 +120,12 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
           cudaq::sample_result jobResult(std::move(executionResult));
           if (!code.mapping_reorder_idx.empty())
             jobResult.reorder(code.mapping_reorder_idx, registerName);
-          result += jobResult;
+          if (hasResult) {
+            result += jobResult;
+          } else {
+            result = std::move(jobResult);
+            hasResult = true;
+          }
         }
 
         return result;
