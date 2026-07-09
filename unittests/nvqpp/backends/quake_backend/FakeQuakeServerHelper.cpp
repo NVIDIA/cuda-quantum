@@ -15,7 +15,6 @@
 #include <map>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
-#include <string_view>
 #include <thread>
 
 namespace cudaq {
@@ -32,24 +31,14 @@ public:
 
   void updatePassPipeline(const std::filesystem::path &,
                           std::string &passPipeline) override {
-    auto iter = backendConfig.find("emulate");
+    const auto iter = backendConfig.find("emulate");
     if (iter == backendConfig.end() || iter->second != "true")
       return;
 
-    // `quake_fake` sends value-semantic wireset IR to the mock server when
-    // running remotely. For `--emulate`, keep the IR in the normal ref-semantic
-    // form so the shared local JIT lowers it through its regular QIR path.
-    constexpr std::string_view wiresetPipeline =
-        ",factor-quantum-alloc,dqe,cable-rough-in,canonicalize,memtoreg)"
-        ",canonicalize,cse,add-wireset,func.func(assign-wire-indices)"
-        ",qubit-mapping{device=bypass}"
-        ",decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}";
-    const auto pos = passPipeline.find(wiresetPipeline);
-    if (pos == std::string::npos)
-      throw std::runtime_error(
-          "quake_fake emulation pipeline does not contain wireset lowering");
-
-    passPipeline.replace(pos, wiresetPipeline.size(), ")");
+    // Remote execution preserves structured control flow in the wire-set
+    // payload. Local emulation lowers it to CFG before lowering the wire set
+    // directly to QIR.
+    passPipeline += ",lower-to-cfg";
   }
 
   ServerJobPayload
