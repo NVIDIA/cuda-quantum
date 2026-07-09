@@ -173,6 +173,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.28/bin"
+COPY requirements.txt /cuda-quantum/requirements.txt
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git gdb ninja-build file lldb ccache libatomic1 \

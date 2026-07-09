@@ -34,26 +34,16 @@
 // (authenticate/configure_roce); only this rendezvous step changes, not the
 // data-plane wire.
 //
-// Slot correlation (v1): the daemon's host dispatcher mirrors its rx slot to
-// its tx slot.  Our request Write carries the slot in imm_data, and our RX of
-// the service's Send decodes the slot from the recv-WQE wr_id (FIFO order).
-// Both ends are only correct for *in-order* traffic.  To keep this correct
-// without changing the (already-merged) host dispatcher or the transceiver,
-// dispatchFrame serializes response-bearing dispatch and assigns the ring slot
-// at dispatch time in round-robin order, so the daemon's FIFO rx slot always
-// equals our slot.  request_id stays globally monotonic for
-// uniqueness/validation.  True concurrent in-flight dispatch (imm-decode RX +
+// The frame lifecycle and v1 slot-correlation protocol (round-robin slot
+// assignment, serialized response-bearing dispatch, fire-and-forget response
+// draining) are the shared RingSlotChannel implementation; see
+// RingSlotChannel.h.  True concurrent in-flight dispatch (imm-decode RX +
 // daemon tx-slot=request_id) is a documented follow-up; see
 // phase2_imm_convention.
 
-#include "cudaq_internal/device_call/DeviceCallChannel.h"
-#include "cudaq_internal/device_call/DeviceCallError.h"
-#include "cudaq_internal/device_call/RpcFrame.h"
+#include "cudaq_internal/device_call/RingSlotChannel.h"
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
-#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-
-#include "cudaq/runtime/logger/logger.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -61,16 +51,11 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <cstdint>
-#include <cstring>
-#include <memory>
-#include <mutex>
 #include <string>
 #include <thread>
-#include <vector>
 
 namespace {
 
@@ -86,20 +71,7 @@ struct RendezvousInfo {
   std::uint32_t roce_ipv4 = 0; // network-order IPv4 of this end's RoCE GID
 };
 
-// Per-lease state hung off DeviceCallFrame::channelPrivate.  Holds host-visible
-// scratch the caller writes args into / reads results out of; dispatchFrame
-// copies between this scratch and the RDMA-registered ring slot it picks.
-struct FrameState {
-  std::uint32_t functionId = 0;
-  std::uint32_t requestId = 0;
-  std::uint64_t requestBytes = 0;
-  std::uint64_t responseCapacity = 0;
-  bool inUse = false;
-  std::vector<std::byte> requestScratch;  // [RPCHeader | args]
-  std::vector<std::byte> responseScratch; // [RPCResponse | result]
-};
-
-class CpuRoceChannel : public DeviceCallChannel {
+class CpuRoceChannel : public RingSlotChannel {
 public:
   ~CpuRoceChannel() override { stop(); }
 
@@ -192,157 +164,11 @@ public:
     rxFlags = cpu_roce_get_rx_ring_flag_addr(xcvr);
     rxStride = cpu_roce_get_page_size(xcvr);
 
-    ffPending.assign(numSlots, 0);
-    ffPendingRequestId.assign(numSlots, 0);
+    initRingState();
 
     // Run the transceiver RX/TX loops on a background thread.
     monitorThread = std::thread([this] { cpu_roce_blocking_monitor(xcvr); });
     started = true;
-  }
-
-  void acquireFrame(std::uint32_t functionId, std::uint64_t requestBytes,
-                    std::uint64_t responseCapacity,
-                    DeviceCallFrame &frame) override {
-    frame = {};
-    if (CUDAQ_RPC_HEADER_SIZE + requestBytes > slotSize)
-      throw DeviceCallError(DeviceCallStatus::InvalidArgument,
-                            "cpu_roce request exceeds slot size");
-    if (sizeof(cudaq::realtime::RPCResponse) + responseCapacity > slotSize)
-      throw DeviceCallError(DeviceCallStatus::InvalidArgument,
-                            "cpu_roce response capacity exceeds slot size");
-
-    auto state = std::make_unique<FrameState>();
-    state->functionId = functionId;
-    state->requestBytes = requestBytes;
-    state->responseCapacity = responseCapacity;
-    state->requestId = requestIdCounter.fetch_add(1, std::memory_order_relaxed);
-    state->requestScratch.assign(CUDAQ_RPC_HEADER_SIZE + requestBytes,
-                                 std::byte{0});
-    state->responseScratch.assign(
-        sizeof(cudaq::realtime::RPCResponse) + responseCapacity, std::byte{0});
-    state->inUse = true;
-
-    // Lay down the request header in the scratch; args follow it.
-    auto *hdr = reinterpret_cast<cudaq::realtime::RPCHeader *>(
-        state->requestScratch.data());
-    hdr->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
-    hdr->function_id = functionId;
-    hdr->arg_len = static_cast<std::uint32_t>(requestBytes);
-    hdr->request_id = state->requestId;
-    hdr->ptp_timestamp = 0;
-
-    frame.functionId = functionId;
-    frame.request.data = requestPayload(state->requestScratch.data());
-    frame.request.capacity = requestBytes;
-    frame.response.data = responsePayload(state->responseScratch.data());
-    frame.response.capacity = responseCapacity;
-    frame.channelPrivate = state.release();
-
-    CUDAQ_DBG("[device-call] cpu_roce acquire functionId={} requestBytes={} "
-              "responseCapacity={} requestId={}",
-              functionId, requestBytes, responseCapacity,
-              reinterpret_cast<FrameState *>(frame.channelPrivate)->requestId);
-  }
-
-  std::uint64_t dispatchFrame(DeviceCallFrame &frame) override {
-    auto *state = static_cast<FrameState *>(frame.channelPrivate);
-    if (!state || !state->inUse)
-      throw DeviceCallError(DeviceCallStatus::InvalidArgument,
-                            "cpu_roce dispatch on invalid frame");
-
-    // v1: serialize the wire round-trip so the daemon's FIFO rx slot tracks the
-    // ring slot we pick here.  See file header.
-    std::lock_guard<std::mutex> lock(dispatchMutex);
-
-    const std::uint32_t slot = rrCounter % numSlots;
-    rrCounter = (rrCounter + 1u) % numSlots;
-
-    // If this slot still has an outstanding fire-and-forget whose response we
-    // never read, drain that late (zero-length) response before reuse.  The
-    // service Sends a response for every request, including fire-and-forget;
-    // that Send lands in this slot and, if left, would be read as THIS
-    // request's response (carrying the stale request_id).  Wait for it to land,
-    // then clear it.
-    if (ffPending[slot]) {
-      if (waitFlagNonZero(rxFlags[slot], "rx-drain"))
-        __atomic_store_n(&rxFlags[slot], std::uint64_t{0}, __ATOMIC_RELEASE);
-      else
-        CUDAQ_DBG("[device-call] cpu_roce fire-and-forget drain timed out "
-                  "slot={} requestId={}",
-                  slot, ffPendingRequestId[slot]);
-      ffPending[slot] = 0;
-    }
-
-    const std::uint64_t txAddr =
-        reinterpret_cast<std::uint64_t>(txData) + slot * txStride;
-    const std::uint64_t rxAddr =
-        reinterpret_cast<std::uint64_t>(rxData) + slot * rxStride;
-
-    // Back-pressure: wait for the TX thread to have drained any prior send in
-    // this slot before we overwrite it.
-    waitFlagZero(txFlags[slot], "tx");
-    // Defensive: clear any stale response flag for this slot before reuse.
-    __atomic_store_n(&rxFlags[slot], std::uint64_t{0}, __ATOMIC_RELEASE);
-
-    // Zero the full transmitted range before writing.  The transceiver's TX
-    // SGE length is the whole slot stride, so any bytes beyond [RPCHeader |
-    // args] would otherwise carry stale ring contents from a previous message
-    // onto the wire.  The daemon only reads arg_len, but we must not transmit
-    // uninitialized/stale memory.
-    std::memset(reinterpret_cast<void *>(txAddr), 0, txStride);
-    // Copy [RPCHeader | args] into the TX ring slot and publish it.
-    std::memcpy(reinterpret_cast<void *>(txAddr), state->requestScratch.data(),
-                state->requestScratch.size());
-    __atomic_store_n(&txFlags[slot], txAddr, __ATOMIC_RELEASE);
-
-    CUDAQ_DBG("[device-call] cpu_roce dispatch slot={} requestId={} "
-              "functionId={} fireAndForget={}",
-              slot, state->requestId, state->functionId,
-              state->responseCapacity == 0);
-
-    if (state->responseCapacity == 0) {
-      // Async fire-and-forget: return immediately per the device_call contract.
-      // Mark the slot so its next reuse drains the service's late zero-length
-      // response (see the drain above) before overwriting the slot.
-      ffPending[slot] = 1;
-      ffPendingRequestId[slot] = state->requestId;
-      return 0;
-    }
-
-    // Wait for the service's Send response to land in our rx slot.
-    if (!waitFlagNonZero(rxFlags[slot], "rx"))
-      throw DeviceCallError(DeviceCallStatus::Timeout,
-                            "cpu_roce timed out waiting for response");
-
-    void *respFrame = reinterpret_cast<void *>(rxAddr);
-    std::uint64_t resultLen = 0;
-    try {
-      resultLen = validateResponseFrame(respFrame, state->requestId,
-                                        state->responseCapacity, rxStride);
-      // Hand the validated result bytes back through the caller's scratch view.
-      std::memcpy(state->responseScratch.data(), respFrame,
-                  sizeof(cudaq::realtime::RPCResponse) + resultLen);
-    } catch (...) {
-      __atomic_store_n(&rxFlags[slot], std::uint64_t{0}, __ATOMIC_RELEASE);
-      throw;
-    }
-
-    // Release the rx slot so the RX thread can re-arm its recv WQE.
-    __atomic_store_n(&rxFlags[slot], std::uint64_t{0}, __ATOMIC_RELEASE);
-
-    CUDAQ_DBG("[device-call] cpu_roce dispatch complete slot={} requestId={} "
-              "resultLen={}",
-              slot, state->requestId, resultLen);
-    return resultLen;
-  }
-
-  void releaseFrame(DeviceCallFrame &frame) noexcept override {
-    auto *state = static_cast<FrameState *>(frame.channelPrivate);
-    if (state) {
-      state->inUse = false;
-      delete state;
-    }
-    frame = {};
   }
 
   void stop() noexcept override {
@@ -358,24 +184,31 @@ public:
   }
 
 private:
+  const char *channelTag() const noexcept override { return "cpu_roce"; }
+
+  // Latency-sensitive RDMA wire: busy-spin between flag polls.
+  void relax() const override {
+#if defined(__x86_64__) || defined(__i386__)
+    __builtin_ia32_pause();
+#elif defined(__aarch64__)
+    asm volatile("yield" ::: "memory");
+#endif
+  }
+
   // ---- argument parsing -----------------------------------------------------
 
   void parseArguments(const std::vector<std::string> &arguments) {
-    for (const auto &arg : arguments) {
-      const auto eq = arg.find('=');
-      if (eq == std::string::npos)
-        continue;
-      const std::string key = arg.substr(0, eq);
-      const std::string value = arg.substr(eq + 1);
-      if (key == "ib-device")
-        ibDevice = value;
-      else if (key == "local-ip")
-        localIp = value;
-      else if (key == "rendezvous-host")
-        rendezvousHost = value;
-      else if (key == "rendezvous-port")
-        rendezvousPort = static_cast<std::uint16_t>(std::stoul(value));
-    }
+    forEachKeyValue(arguments,
+                    [this](const std::string &key, const std::string &value) {
+                      if (key == "ib-device")
+                        ibDevice = value;
+                      else if (key == "local-ip")
+                        localIp = value;
+                      else if (key == "rendezvous-host")
+                        rendezvousHost = value;
+                      else if (key == "rendezvous-port")
+                        rendezvousPort = parsePort(value, "rendezvous-port");
+                    });
   }
 
   static std::uint32_t parseIpv4(const std::string &ip) {
@@ -461,45 +294,9 @@ private:
     return true;
   }
 
-  // ---- flag handshakes ------------------------------------------------------
-
-  void waitFlagZero(std::uint64_t &flag, const char *which) {
-    const auto deadline =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
-    while (__atomic_load_n(&flag, __ATOMIC_ACQUIRE) != 0) {
-      if (std::chrono::steady_clock::now() > deadline)
-        throw DeviceCallError(DeviceCallStatus::Timeout,
-                              std::string("cpu_roce ") + which +
-                                  " slot back-pressure timed out");
-      cpuRelax();
-    }
-  }
-
-  bool waitFlagNonZero(std::uint64_t &flag, const char *) {
-    const auto deadline =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
-    while (__atomic_load_n(&flag, __ATOMIC_ACQUIRE) == 0) {
-      if (std::chrono::steady_clock::now() > deadline)
-        return false;
-      cpuRelax();
-    }
-    return true;
-  }
-
-  static inline void cpuRelax() {
-#if defined(__x86_64__) || defined(__i386__)
-    __builtin_ia32_pause();
-#elif defined(__aarch64__)
-    asm volatile("yield" ::: "memory");
-#endif
-  }
-
   // ---- configuration / state ------------------------------------------------
 
   DeviceCallChannelConfig channelConfig;
-  std::uint32_t numSlots = 0;
-  std::uint64_t slotSize = 0;
-  std::uint64_t timeoutMs = DefaultTimeoutMs;
 
   std::string ibDevice;
   std::string localIp;
@@ -509,25 +306,6 @@ private:
   cpu_roce_transceiver_t xcvr = nullptr;
   std::thread monitorThread;
   bool started = false;
-
-  std::uint8_t *txData = nullptr;
-  std::uint64_t *txFlags = nullptr;
-  std::size_t txStride = 0;
-  std::uint8_t *rxData = nullptr;
-  std::uint64_t *rxFlags = nullptr;
-  std::size_t rxStride = 0;
-
-  std::mutex dispatchMutex; // v1: serialize wire round-trips
-  std::uint32_t rrCounter = 0;
-  // Per-slot tracking of an outstanding fire-and-forget whose (ignored)
-  // zero-length response has not yet been drained.  The service Sends a
-  // response for *every* request, including fire-and-forget; that late Send
-  // lands in this slot, so we must drain it before reusing the slot or it would
-  // be read as the next request's response (with the stale request_id).  Sized
-  // to numSlots in initialize().
-  std::vector<char> ffPending;
-  std::vector<std::uint32_t> ffPendingRequestId;
-  std::atomic<std::uint32_t> requestIdCounter{1};
 };
 
 CUDAQ_REGISTER_TYPE(DeviceCallChannel, CpuRoceChannel, cpu_roce)
