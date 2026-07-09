@@ -121,6 +121,21 @@ qdmi::DeviceSessionConfig makeDeviceSessionConfig(const BackendConfig &config) {
   return sessionConfig;
 }
 
+fomac::JobConfig makeJobConfig(const BackendConfig &config) {
+  fomac::JobConfig jobConfig;
+  jobConfig.custom1 =
+      getValue(config, "qdmi_job_custom1", "CUDAQ_QDMI_JOB_CUSTOM1");
+  jobConfig.custom2 =
+      getValue(config, "qdmi_job_custom2", "CUDAQ_QDMI_JOB_CUSTOM2");
+  jobConfig.custom3 =
+      getValue(config, "qdmi_job_custom3", "CUDAQ_QDMI_JOB_CUSTOM3");
+  jobConfig.custom4 =
+      getValue(config, "qdmi_job_custom4", "CUDAQ_QDMI_JOB_CUSTOM4");
+  jobConfig.custom5 =
+      getValue(config, "qdmi_job_custom5", "CUDAQ_QDMI_JOB_CUSTOM5");
+  return jobConfig;
+}
+
 std::set<QDMI_Device> getDeviceHandles(fomac::Session &session) {
   std::set<QDMI_Device> handles;
   for (const auto &device : session.getDevices())
@@ -252,9 +267,10 @@ queryConnectivity(const cudaq::FoMaCDevice &device, std::size_t qubitCount) {
 }
 
 std::shared_ptr<cudaq::QDMIPlatformDevice>
-makePlatformDevice(cudaq::FoMaCDevice device) {
+makePlatformDevice(cudaq::FoMaCDevice device, fomac::JobConfig jobConfig) {
   auto platformDevice =
       std::make_shared<cudaq::QDMIPlatformDevice>(std::move(device));
+  platformDevice->jobConfig = std::move(jobConfig);
   platformDevice->name = platformDevice->fomacDevice.getName();
   try {
     platformDevice->programFormat = selectProgramFormat(
@@ -312,9 +328,11 @@ private:
     session.reset();
 
     auto devices = loadDevices(backendConfig, session);
+    auto jobConfig = makeJobConfig(backendConfig);
     for (std::size_t qpuId = 0; auto &device : devices) {
       platformQPUs.emplace_back(std::make_unique<cudaq::QDMIQPU>(
-          makePlatformDevice(std::move(device)), targetConfig, backendConfig));
+          makePlatformDevice(std::move(device), jobConfig), targetConfig,
+          backendConfig));
       platformQPUs.back()->setId(qpuId++);
     }
   }

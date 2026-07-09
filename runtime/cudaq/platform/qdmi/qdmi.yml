@@ -81,3 +81,28 @@ target-arguments:
     type: string
     platform-arg: qdmi_session_custom5
     help-string: "Custom QDMI device session parameter 5."
+  - key: job-custom1
+    required: false
+    type: string
+    platform-arg: qdmi_job_custom1
+    help-string: "Custom QDMI device job parameter 1."
+  - key: job-custom2
+    required: false
+    type: string
+    platform-arg: qdmi_job_custom2
+    help-string: "Custom QDMI device job parameter 2."
+  - key: job-custom3
+    required: false
+    type: string
+    platform-arg: qdmi_job_custom3
+    help-string: "Custom QDMI device job parameter 3."
+  - key: job-custom4
+    required: false
+    type: string
+    platform-arg: qdmi_job_custom4
+    help-string: "Custom QDMI device job parameter 4."
+  - key: job-custom5
+    required: false
+    type: string
+    platform-arg: qdmi_job_custom5
+    help-string: "Custom QDMI device job parameter 5."
