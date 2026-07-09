@@ -154,7 +154,9 @@ jobs:
         env:
           DIGEST: ${{ steps.copy_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Install NGC CLI
         if: inputs.sign_image && steps.config.outputs.push_to_ngc == 'true'
