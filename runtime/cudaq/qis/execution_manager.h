@@ -230,11 +230,17 @@ public:
     em->configureExecutionContext(policy);
     em->beginExecution();
     typename Policy::result_type result;
-    detail::try_finally([&] { f(); },
-                        [&] {
-                          result = em->finalizeExecutionContext(policy);
-                          em->endExecution();
-                        });
+    detail::try_finally(
+        [&] { f(); },
+        [&] {
+          // `endExecution` must run even when `finalizeExecutionContext`
+          // throws, otherwise a reused simulator keeps stale state for the next
+          // run. Nesting keeps the guarantee in the wrapper so every policy is
+          // exception-safe without a per-simulator catch.
+          detail::try_finally(
+              [&] { result = em->finalizeExecutionContext(policy); },
+              [&] { em->endExecution(); });
+        });
     return result;
   }
 };

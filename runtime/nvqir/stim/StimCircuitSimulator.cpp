@@ -295,26 +295,20 @@ protected:
 
   cudaq::dem_result
   finalizeExecutionContext(const cudaq::dem_policy &policy) override {
-    try {
-      finalizeExecutionContextImpl();
+    finalizeExecutionContextImpl();
 
-      cudaq::dem_result result;
-      const auto &options = policy.options;
-      result.dem =
-          stim::ErrorAnalyzer::circuit_to_detector_error_model(
-              recordedCircuit, options.decompose_errors, options.fold_loops,
-              options.allow_gauge_detectors,
-              options.approximate_disjoint_errors_threshold,
-              options.ignore_decomposition_failures,
-              options.block_decomposition_from_introducing_remnant_edges)
-              .str();
-      if (policy.options.return_measurement_matrices)
-        computeMeasurementMatrices(result);
-      return result;
-    } catch (...) {
-      endExecution();
-      throw;
-    }
+    cudaq::dem_result result;
+    const auto &options = policy.options;
+    result.dem = stim::ErrorAnalyzer::circuit_to_detector_error_model(
+                     recordedCircuit, options.decompose_errors,
+                     options.fold_loops, options.allow_gauge_detectors,
+                     options.approximate_disjoint_errors_threshold,
+                     options.ignore_decomposition_failures,
+                     options.block_decomposition_from_introducing_remnant_edges)
+                     .str();
+    if (policy.options.return_measurement_matrices)
+      computeMeasurementMatrices(result);
+    return result;
   }
 
   /// @brief Override the default sized allocation of qubits
