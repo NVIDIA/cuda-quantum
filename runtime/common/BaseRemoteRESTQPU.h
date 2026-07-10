@@ -204,16 +204,13 @@ public:
     /// Once we know the backend, we should search for the configuration file
     /// from there we can get the URL/PORT and the required MLIR pass pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
-    std::filesystem::path configFilePath;
-    auto ymlPathIter = backendConfig.find("__yml_path");
-    if (ymlPathIter != backendConfig.end()) {
-      configFilePath = ymlPathIter->second;
-      backendConfig.erase(ymlPathIter);
-    } else {
-      configFilePath = platformPath / fileName;
-    }
+    auto configFilePath =
+        detail::getTargetConfigPath(backend, platformPath / fileName);
+    backendConfig.erase("__yml_path");
     CUDAQ_INFO("Config file path = {}", configFilePath.string());
     targetConfig = cudaq::config::loadTargetConfig(configFilePath);
+    detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
+                                      targetConfig);
 
     // Set the qpu name
     qpuName = mutableBackend;

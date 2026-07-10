@@ -23,6 +23,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 
 #define DEBUG_TYPE "target-config"
 
@@ -292,8 +293,14 @@ cudaq::config::TargetConfig
 cudaq::config::loadTargetConfig(const std::filesystem::path &configPath,
                                 const std::filesystem::path &pluginRoot) {
   std::ifstream configFile(configPath.string());
+  if (!configFile.is_open())
+    throw std::runtime_error("Unable to open target configuration file: " +
+                             configPath.string());
   std::string yamlContent((std::istreambuf_iterator<char>(configFile)),
                           std::istreambuf_iterator<char>());
+  if (configFile.bad())
+    throw std::runtime_error("Unable to read target configuration file: " +
+                             configPath.string());
   const auto root =
       pluginRoot.empty() ? configPath.parent_path().parent_path() : pluginRoot;
   return cudaq::config::parseTargetConfig(std::move(yamlContent), root);

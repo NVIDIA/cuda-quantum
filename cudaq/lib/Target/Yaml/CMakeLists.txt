@@ -16,3 +16,4 @@ add_llvm_library(CUDAQTargetConfigYaml
   Support
 )
 target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig)
+target_compile_options(CUDAQTargetConfigYaml PRIVATE "-fexceptions")

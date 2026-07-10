@@ -11,6 +11,7 @@
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -64,15 +65,21 @@ private:
       std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
       auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
       std::string fileName = mutableBackend + std::string(".yml");
-      auto configFilePath = platformPath / fileName;
+      const auto explicitConfigPath =
+          cudaq::detail::getBackendConfigOption(backend, "__yml_path");
+      auto configFilePath = explicitConfigPath
+                                ? std::filesystem::path(*explicitConfigPath)
+                                : platformPath / fileName;
       CUDAQ_INFO("Config file path = {}", configFilePath.string());
 
-      if (!std::filesystem::exists(configFilePath)) {
+      if (!explicitConfigPath && !std::filesystem::exists(configFilePath)) {
         platformQPUs.front()->setTargetBackend(backend);
         return;
       }
 
       config = cudaq::config::loadTargetConfig(configFilePath);
+      cudaq::detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
+                                               config);
       runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
       runtimeTarget->config = config;
       runtimeTarget->name = mutableBackend;

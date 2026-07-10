@@ -24,7 +24,8 @@ USER_HOME="${TMPDIR}/user"
 
 # Create a trivial C++ source for compilation tests.
 TRIVIAL_SRC="${TMPDIR}/trivial.cpp"
-echo 'int main() { return 0; }' > "$TRIVIAL_SRC"
+echo '#include <cudaq.h>' > "$TRIVIAL_SRC"
+echo 'int main() { return 0; }' >> "$TRIVIAL_SRC"
 
 # --- User-only plugin (with data file for %PLUGIN_ROOT% expansion) ---
 mkdir -p "${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets" \
@@ -37,6 +38,7 @@ description: "B5 user plugin target."
 cudaq-version: "@CUDA_QUANTUM_VERSION@"
 config:
   library-mode: true
+  gen-target-backend: true
   preprocessor-defines: ["-DB5_USER_ONLY=%PLUGIN_ROOT%/data/topology.txt"]
 EOF
 
@@ -123,6 +125,9 @@ user_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-user-on
 echo "$user_output" | grep -- '-DB5_USER_ONLY=' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/data/topology.txt'
 echo "$user_output" | grep -- '-Wl,-rpath,' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
 echo "$user_output" | grep -- '-L' | grep -q '/cudaq/plugins/nvqpp-b5-user-only/lib'
+user_yml_path="${USER_HOME}/cudaq/plugins/nvqpp-b5-user-only/targets/nvqpp-b5-user-only.yml"
+encoded_user_yml_path=$(echo -n "$user_yml_path" | base64 --wrap=0)
+LC_ALL=C grep -aFq ";__yml_path;base64_${encoded_user_yml_path}" "${TMPDIR}/user.exe"
 
 # --- Test: System plugin passes correct flags and lib paths ---
 system_output=$(env XDG_DATA_HOME="$USER_HOME" "$NVQ" -v --target nvqpp-b5-system-only \

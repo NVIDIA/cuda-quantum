@@ -9,6 +9,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/qpu_utils.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -64,6 +65,18 @@ config:
   library-mode: true
 )");
   EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
+}
+
+TEST(TargetConfigTester, missingTargetConfigThrows) {
+  const auto missingPath = std::filesystem::temp_directory_path() /
+                           "cudaq-missing-target-config.yml";
+  try {
+    (void)cudaq::config::loadTargetConfig(missingPath);
+    FAIL() << "Expected loadTargetConfig to throw";
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find(missingPath.string()),
+              std::string::npos);
+  }
 }
 
 TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
@@ -472,6 +485,33 @@ config:
   ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
   EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),
             "-DTOPOLOGY=" + expectedTopology);
+}
+
+TEST_F(ExternalBackendTester, nativeTargetLoadsPluginLibraries) {
+  auto root = tmpRoot / "native-plugin-load";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+
+  const auto pluginPath =
+      std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
+  const auto pluginFileName =
+      std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
+  std::filesystem::copy_file(pluginPath, libDir / pluginFileName,
+                             std::filesystem::copy_options::overwrite_existing);
+
+  const auto sentinelPath = tmpRoot / "native-plugin-load.sentinel";
+  std::filesystem::remove(sentinelPath);
+  setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
+
+  cudaq::config::TargetConfig config;
+  config.PluginLibraries.push_back(pluginFileName);
+  cudaq::detail::loadTargetPluginLibraries(
+      "native-plugin-load", targetsDir / "native-plugin-load.yml", config);
+
+  EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 
 TEST(TargetConfigTester, pluginRootTokenSubstitutionReplacesAllOccurrences) {
