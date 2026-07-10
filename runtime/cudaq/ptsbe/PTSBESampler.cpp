@@ -304,7 +304,18 @@ void allocateBatchQubits(std::size_t nQubits) {
 void releaseBatchQubits(std::size_t nQubits) {
   std::vector<std::size_t> qubitIds(nQubits);
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubitIds);
+  auto *ctx = cudaq::getExecutionContext();
+  if (ctx)
+    cudaq::detail::resetExecutionContext();
+  try {
+    nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubitIds);
+  } catch (...) {
+    if (ctx)
+      cudaq::detail::setExecutionContext(ctx);
+    throw;
+  }
+  if (ctx)
+    cudaq::detail::setExecutionContext(ctx);
 }
 
 } // namespace cudaq::ptsbe::detail
