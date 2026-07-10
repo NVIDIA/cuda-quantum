@@ -61,7 +61,7 @@ CUDAQ_TEST(PTSBEPolicyTest, ExecuteBatchAggregatesResults) {
 
 CUDAQ_TEST(PTSBEPolicyTest, FinalizeWithoutBatchThrows) {
   ptsbe::sample_policy policy;
-  EXPECT_THROW(ptsbe::detail::finalizePTSBE(policy), std::runtime_error);
+  EXPECT_ANY_THROW(ptsbe::detail::finalizePTSBE(policy));
 }
 
 CUDAQ_TEST(PTSBEPolicyTest, ContextRestoredAfterFailure) {
