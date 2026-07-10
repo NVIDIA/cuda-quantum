@@ -35,7 +35,8 @@ if(CUDAQ_ENABLE_PYTHON)
   # that is normally provided at runtime by an execution manager plugin.
   # Link the default execution manager to satisfy it; this test does not
   # actually execute any kernels.
-  target_link_libraries(test_target_config PRIVATE cudaq-py-utils cudaq-em-default)
+  target_link_libraries(test_target_config
+    PRIVATE cudaq cudaq-py-utils cudaq-em-default)
   target_compile_definitions(test_target_config PRIVATE CUDAQ_ENABLE_PYTHON)
   target_compile_definitions(test_target_config
     PRIVATE
