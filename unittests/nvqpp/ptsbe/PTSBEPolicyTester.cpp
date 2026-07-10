@@ -19,7 +19,7 @@ const ptsbe::PTSBETrace kXTrace = {
 CUDAQ_TEST(PTSBEPolicyTest, RegistryDispatch) {
   auto kind = [](auto policy) -> std::string {
     using Policy = std::decay_t<decltype(policy)>;
-    if constexpr (std::is_same_v<Policy, ptsbe_sample_policy>)
+    if constexpr (std::is_same_v<Policy, ptsbe::sample_policy>)
       return "ptsbe";
     else if constexpr (std::is_same_v<Policy, other_policies>)
       return "other";
@@ -27,12 +27,12 @@ CUDAQ_TEST(PTSBEPolicyTest, RegistryDispatch) {
       return "unexpected";
   };
 
-  EXPECT_EQ(policies::withPolicy(ptsbe_sample_policy::name, kind), "ptsbe");
+  EXPECT_EQ(policies::withPolicy(ptsbe::sample_policy::name, kind), "ptsbe");
   EXPECT_EQ(policies::withPolicy("no-such-policy", kind), "other");
 }
 
 CUDAQ_TEST(PTSBEPolicyTest, PolicyName) {
-  EXPECT_STREQ(ptsbe_sample_policy::name, "ptsbe-sample");
+  EXPECT_STREQ(ptsbe::sample_policy::name, "ptsbe-sample");
 }
 
 CUDAQ_TEST(PTSBEPolicyTest, ExecuteBatchAggregatesResults) {
@@ -44,7 +44,7 @@ CUDAQ_TEST(PTSBEPolicyTest, ExecuteBatchAggregatesResults) {
   batch.trajectories.emplace_back(1, std::vector<cudaq::KrausSelection>{}, 0.3,
                                   3);
 
-  ptsbe_sample_policy policy;
+  ptsbe::sample_policy policy;
   policy.batch = &batch;
   policy.shots = batch.totalShots();
 
@@ -60,7 +60,7 @@ CUDAQ_TEST(PTSBEPolicyTest, ExecuteBatchAggregatesResults) {
 }
 
 CUDAQ_TEST(PTSBEPolicyTest, FinalizeWithoutBatchThrows) {
-  ptsbe_sample_policy policy;
+  ptsbe::sample_policy policy;
   EXPECT_THROW(ptsbe::detail::finalizePTSBE(policy), std::runtime_error);
 }
 
@@ -72,7 +72,7 @@ CUDAQ_TEST(PTSBEPolicyTest, ContextRestoredAfterFailure) {
   badBatch.trajectories.emplace_back(0, std::vector<cudaq::KrausSelection>{},
                                      1.0, 5);
 
-  ptsbe_sample_policy policy;
+  ptsbe::sample_policy policy;
   policy.batch = &badBatch;
   policy.shots = badBatch.totalShots();
 

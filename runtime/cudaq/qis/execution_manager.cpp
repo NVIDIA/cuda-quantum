@@ -59,7 +59,7 @@ void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
 }
 
 void ExecutionManager::configureExecutionContext(
-    const ptsbe_sample_policy &policy) {
+    const ptsbe::sample_policy &policy) {
   if (auto *ctx = getExecutionContext())
     configureExecutionContext(*ctx);
 }

@@ -82,7 +82,7 @@ decltype(auto) withPolicy(std::string_view name, Func &&func) {
       {"sample", [](FuncRef f) -> Ret { return f(sample_policy{}); }},
       {"observe", [](FuncRef f) -> Ret { return f(observe_policy{}); }},
       {"ptsbe-sample",
-       [](FuncRef f) -> Ret { return f(ptsbe_sample_policy{}); }},
+       [](FuncRef f) -> Ret { return f(ptsbe::sample_policy{}); }},
   };
 
   for (auto &[key, dispatch] : registry) {

@@ -121,7 +121,7 @@ public:
   /// Configure the execution context before an execution.
   void configureExecutionContext(const sample_policy &policy);
   void configureExecutionContext(const observe_policy &policy);
-  void configureExecutionContext(const ptsbe_sample_policy &policy);
+  void configureExecutionContext(const ptsbe::sample_policy &policy);
   void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
@@ -135,8 +135,8 @@ public:
   virtual observe_result
   finalizeExecutionContext(const observe_policy &policy) = 0;
 
-  virtual ptsbe_sample_policy::result_type
-  finalizeExecutionContext(const ptsbe_sample_policy &policy) {
+  virtual ptsbe::sample_policy::result_type
+  finalizeExecutionContext(const ptsbe::sample_policy &policy) {
     throw std::runtime_error(
         "PTSBE sampling is not supported by this execution manager.");
   }
@@ -252,9 +252,9 @@ finalize_execution_manager_impl(ExecutionManager &mgr,
   return mgr.finalizeExecutionContext(policy);
 }
 
-inline ptsbe_sample_policy::result_type
+inline ptsbe::sample_policy::result_type
 finalize_execution_manager_impl(ExecutionManager &mgr,
-                                const ptsbe_sample_policy &policy,
+                                const ptsbe::sample_policy &policy,
                                 ExecutionContext &ctx) {
   return mgr.finalizeExecutionContext(policy);
 }

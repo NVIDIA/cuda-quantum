@@ -174,8 +174,8 @@ protected:
     return simulator()->finalizeExecutionContext(policy);
   }
 
-  ptsbe_sample_policy::result_type
-  finalizeExecutionContext(const ptsbe_sample_policy &policy) override {
+  ptsbe::sample_policy::result_type
+  finalizeExecutionContext(const ptsbe::sample_policy &policy) override {
     finalizeExecutionContextImpl();
     return cudaq::ptsbe::detail::finalizePTSBE(policy);
   }

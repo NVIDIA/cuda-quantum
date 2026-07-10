@@ -216,7 +216,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 
   // Stages 4+5: Execute the batch through the policy machinery. The result
   // arrives aggregated. Per-trajectory results are stored on the policy.
-  cudaq::ptsbe_sample_policy policy;
+  cudaq::ptsbe::sample_policy policy;
   policy.kernelName = kernelName;
   policy.shots = shots;
   policy.options = options;

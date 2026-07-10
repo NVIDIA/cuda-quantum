@@ -146,7 +146,7 @@ cudaq::QPU::getCompileTarget(const observe_policy &) {
 }
 
 std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const ptsbe_sample_policy &) {
+cudaq::QPU::getCompileTarget(const ptsbe::sample_policy &) {
   return getCompileTarget(other_policies{}, nullptr);
 }
 

@@ -72,7 +72,7 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 /// @param policy Policy carrying the PTSBatch to execute
 /// @return Aggregated sample result
 /// @throws std::runtime_error if the policy has no batch attached
-ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe_sample_policy &policy);
+ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy);
 
 /// @brief Allocate the batch qubits on the circuit simulator
 void allocateBatchQubits(std::size_t nQubits);
@@ -86,10 +86,10 @@ void releaseBatchQubits(std::size_t nQubits);
 /// @return Aggregated sample result. Per-trajectory results are stored on
 ///         the policy
 inline ptsbe::sample_result
-executeBatch(const cudaq::ptsbe_sample_policy &policy) {
+executeBatch(const cudaq::ptsbe::sample_policy &policy) {
   const auto nQubits = numQubits(policy.batch->trace);
 
-  cudaq::ExecutionContext ctx(cudaq::ptsbe_sample_policy::name,
+  cudaq::ExecutionContext ctx(cudaq::ptsbe::sample_policy::name,
                               policy.batch->totalShots());
   ctx.kernelName = policy.kernelName;
 
@@ -114,7 +114,7 @@ executeBatch(const cudaq::ptsbe_sample_policy &policy) {
 /// @throws std::runtime_error if simulator cast fails or gate conversion fails
 inline std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch) {
-  cudaq::ptsbe_sample_policy policy;
+  cudaq::ptsbe::sample_policy policy;
   policy.batch = &batch;
   policy.shots = batch.totalShots();
   executeBatch(policy);

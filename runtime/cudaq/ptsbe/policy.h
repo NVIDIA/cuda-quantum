@@ -21,12 +21,12 @@ class ExecutionManager;
 class ExecutionContext;
 
 namespace ptsbe {
+
 struct PTSBatch;
-} // namespace ptsbe
 
 /// @brief Tag and options for PTSBE (pre-trajectory sampling with batch
 /// execution) sampling.
-struct ptsbe_sample_policy {
+struct sample_policy {
   /// @brief The name of the policy. Must match the ExecutionContext name used
   /// for PTSBE execution.
   static constexpr char name[] = "ptsbe-sample";
@@ -35,7 +35,7 @@ struct ptsbe_sample_policy {
   using result_type = cudaq::ptsbe::sample_result;
 
   /// PTSBE configuration (strategy, shot allocation, execution-data flags).
-  ptsbe::PTSBEOptions options;
+  PTSBEOptions options;
 
   /// @brief Total number of shots to allocate across trajectories.
   std::size_t shots = 0;
@@ -51,7 +51,7 @@ struct ptsbe_sample_policy {
 
   /// @brief The pre-built batch to execute (trace + trajectories + measure
   /// qubits).
-  const ptsbe::PTSBatch *batch = nullptr;
+  const PTSBatch *batch = nullptr;
 
   /// @brief Per-trajectory results populated during finalization,
   /// needed for execution-data attachment on the aggregated result.
@@ -59,7 +59,8 @@ struct ptsbe_sample_policy {
 
   friend result_type
   finalize_execution_manager_impl(ExecutionManager &mgr,
-                                  const ptsbe_sample_policy &policy);
+                                  const sample_policy &policy);
 };
 
+} // namespace ptsbe
 } // namespace cudaq

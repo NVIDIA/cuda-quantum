@@ -285,10 +285,10 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   }
 }
 
-ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe_sample_policy &policy) {
+ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
   if (!policy.batch)
     throw std::runtime_error(
-        "ptsbe_sample_policy has no PTSBatch attached. PTSBE cannot be "
+        "ptsbe::sample_policy has no PTSBatch attached. PTSBE cannot be "
         "finalized by name-only dispatch.");
 
   auto results = samplePTSBE(*policy.batch);
