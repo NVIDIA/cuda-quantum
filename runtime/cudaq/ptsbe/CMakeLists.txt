@@ -31,6 +31,7 @@ install(FILES
     KrausTrajectory.h
     TrajectoryDeduplication.h
     PTSBEOptions.h
+    policy.h
     PTSBESampler.h
     PTSBESampleResult.h
     PTSBEExecutionData.h

@@ -346,6 +346,7 @@ add_executable(test_ptsbe ${CUDAQ_GTEST_MAIN}
   ptsbe/TraceConversionTester.cpp
   ptsbe/MergeTasksWithTrajectoryTester.cpp
   ptsbe/ExecutePTSBETester.cpp
+  ptsbe/PTSBEPolicyTester.cpp
   ptsbe/PTSSamplingStrategyTester.cpp
   ptsbe/NoiseExtractorTester.cpp
   ptsbe/TrajectoryDeduplicationTester.cpp)
