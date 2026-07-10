@@ -112,23 +112,6 @@ extractMeasureQubits(std::span<const TraceInstruction> trace);
 /// @param kernelTrace Captured kernel trace containing qubit IDs
 void cleanupTracerQubits(const Trace &kernelTrace);
 
-/// @brief Build PTSBEExecutionData with interleaved instructions (no
-/// trajectories)
-///
-/// Converts the internal kernel trace into the user-facing
-/// PTSBEExecutionData format. For each gate in the kernel trace, a Gate
-/// instruction is added. If the noise model defines noise at that gate, a
-/// Noise instruction follows. Measurement instructions are appended for all
-/// measured qubits. The trajectories vector is left empty.
-///
-/// @param kernelTrace Captured kernel trace
-/// @param noiseModel Noise model for identifying noise sites
-/// @return PTSBEExecutionData with interleaved instructions and empty
-///         trajectories
-PTSBEExecutionData
-buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
-                               const noise_model &noiseModel);
-
 /// @brief Populate trajectories on an existing PTSBEExecutionData
 ///
 /// Takes ownership of trajectories and results. Remaps each KrausSelection's
