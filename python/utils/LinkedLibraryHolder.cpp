@@ -13,6 +13,7 @@
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
@@ -523,42 +524,12 @@ void LinkedLibraryHolder::setTarget(
     }
   }
 
-  for (const auto &pluginLibrary : target.config.PluginLibraries) {
-    std::filesystem::path pluginLibraryPath(pluginLibrary);
-    std::vector<std::filesystem::path> candidatePaths;
-    if (pluginLibraryPath.is_absolute()) {
-      candidatePaths.push_back(pluginLibraryPath);
-    } else {
-      candidatePaths.push_back(cudaqLibPath / pluginLibraryPath);
-      if (!target.pluginLibDir.empty())
-        candidatePaths.push_back(std::filesystem::path(target.pluginLibDir) /
-                                 pluginLibraryPath);
-    }
-
-    std::filesystem::path resolvedPluginPath;
-    for (const auto &candidatePath : candidatePaths) {
-      if (std::filesystem::exists(candidatePath)) {
-        resolvedPluginPath = candidatePath;
-        break;
-      }
-    }
-
-    if (resolvedPluginPath.empty()) {
-      std::string searchedPaths;
-      for (const auto &candidatePath : candidatePaths) {
-        if (!searchedPaths.empty())
-          searchedPaths += ", ";
-        searchedPaths += candidatePath.string();
-      }
-      throw std::runtime_error(fmt::format(
-          "Unable to find plugin library '{}' for target '{}'. Searched: {}",
-          pluginLibrary, targetName, searchedPaths));
-    }
-
-    CUDAQ_INFO("Loading plugin library '{}' for target '{}'.",
-               resolvedPluginPath.string(), targetName);
-    ensureLibLoaded(resolvedPluginPath);
-  }
+  auto targetConfigPath = target.pluginYamlPath();
+  if (targetConfigPath.empty())
+    targetConfigPath =
+        cudaqLibPath.parent_path() / "targets" / (targetName + ".yml");
+  cudaq::detail::loadTargetPluginLibraries(targetName, targetConfigPath,
+                                           target.config);
 
   CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,
              target.simulatorName, target.platformName);
@@ -593,21 +564,6 @@ void LinkedLibraryHolder::setTarget(
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;
-  auto soName =
-      fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
-  auto potentialServerHelperPath = cudaqLibPath / soName;
-  if (!std::filesystem::exists(potentialServerHelperPath) &&
-      !target.pluginLibDir.empty())
-    potentialServerHelperPath =
-        std::filesystem::path(target.pluginLibDir) / soName;
-  if (std::filesystem::exists(potentialServerHelperPath) &&
-      !libHandles.count(potentialServerHelperPath.string())) {
-    void *serverHelperHandle = dlopen(
-        potentialServerHelperPath.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
-    if (serverHelperHandle)
-      libHandles.emplace(potentialServerHelperPath.string(),
-                         serverHelperHandle);
-  }
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 
