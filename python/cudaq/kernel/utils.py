@@ -228,7 +228,7 @@ def _annotations_of_namespace(namespace):
     if annotate is None:
         return {}
     try:
-        return annotate(1)  # 1 = annotationlib.Format.VALUE
+        return annotate(1)  # 1 = `annotationlib.Format.VALUE`
     except Exception:
         return {}
 
