@@ -20,6 +20,7 @@
 #include <complex>
 #include <iterator>
 #include <optional>
+#include <utility>
 #include <vector>
 
 namespace Eigen {
@@ -74,14 +75,17 @@ public:
 
   complex_matrix(const complex_matrix &other)
       : dimensions{other.dimensions},
-        data{new value_type[get_size(other.dimensions)]},
+        data{get_size(other.dimensions)
+                 ? new value_type[get_size(other.dimensions)]
+                 : nullptr},
         internal_order(other.internal_order) {
-    std::copy(other.data, other.data + get_size(dimensions), data);
+    if (data)
+      std::copy(other.data, other.data + get_size(dimensions), data);
   }
 
   complex_matrix(const complex_matrix &other, order order);
 
-  complex_matrix(complex_matrix &&other)
+  complex_matrix(complex_matrix &&other) noexcept
       : dimensions{other.dimensions}, data{other.data},
         internal_order(other.internal_order) {
     other.data = nullptr;
@@ -96,18 +100,14 @@ public:
   }
 
   complex_matrix &operator=(const complex_matrix &other) {
-    dimensions = other.dimensions;
-    data = new value_type[get_size(other.dimensions)];
-    std::copy(other.data, other.data + get_size(dimensions), data);
-    internal_order = other.internal_order;
+    complex_matrix copy(other);
+    swap(copy);
     return *this;
   }
 
-  complex_matrix &operator=(complex_matrix &&other) {
-    dimensions = other.dimensions;
-    data = other.data;
-    other.data = nullptr;
-    internal_order = other.internal_order;
+  complex_matrix &operator=(complex_matrix &&other) noexcept {
+    complex_matrix moved(std::move(other));
+    swap(moved);
     return *this;
   }
 
@@ -231,6 +231,13 @@ private:
   }
 
   static void check_size(std::size_t size, const Dimensions &dim);
+
+  void swap(complex_matrix &other) noexcept {
+    using std::swap;
+    swap(dimensions, other.dimensions);
+    swap(data, other.data);
+    swap(internal_order, other.internal_order);
+  }
 
   void swap(complex_matrix::value_type *new_data) {
     if (data)
