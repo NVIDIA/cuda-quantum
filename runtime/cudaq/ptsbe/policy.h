@@ -45,7 +45,7 @@ struct ptsbe_sample_policy {
 
   /// @brief Noise model used to resolve trajectory noise channels.
   ///
-  /// PTSBE applies noise as explicit trajectory unitaries resolved into the 
+  /// PTSBE applies noise as explicit trajectory unitaries resolved into the
   /// trace before execution.
   mutable const noise_model *noiseModel = nullptr;
 
