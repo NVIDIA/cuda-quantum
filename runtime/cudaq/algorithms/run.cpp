@@ -37,7 +37,6 @@ cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
     // server or emulation executor.
     platform.with_execution_context(ctx, std::move(kernel));
     // Retrieve the result output log.
-    // FIXME: this currently assumes all the shots are good.
     std::string remoteOutputLog(ctx.invocationResultBuffer.begin(),
                                 ctx.invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
@@ -58,6 +57,16 @@ cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
   // 4. Get the buffer and length of buffer (in bytes) from the parser.
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
+
+  // Validate that the buffer size is consistent with the requested shot count.
+  // A mismatch (e.g. fewer results returned than requested) can cause
+  // division-by-zero or infinite loops in downstream result decoding.
+  if (shots > 0 && bufferSize % shots != 0)
+    throw std::runtime_error(
+        "run: the number of result bytes (" + std::to_string(bufferSize) +
+        ") is not evenly divisible by the number of shots (" +
+        std::to_string(shots) +
+        "). The backend may have returned fewer results than requested.");
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
 
