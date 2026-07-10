@@ -214,17 +214,22 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
               batch.totalShots(), batch.trajectories.size());
 
-  // Stage 4: Execute PTSBE with life-cycle management
-  auto perTrajectoryResults = samplePTSBEWithLifecycle(batch);
+  // Stages 4+5: Execute the batch through the policy machinery. The result
+  // arrives aggregated. Per-trajectory results are stored on the policy.
+  cudaq::ptsbe_sample_policy policy;
+  policy.kernelName = kernelName;
+  policy.shots = shots;
+  policy.options = options;
+  policy.noiseModel = &noiseModel;
+  policy.batch = &batch;
 
-  // Stage 5: Aggregate per-trajectory results
-  sample_result result(aggregateResults(perTrajectoryResults));
+  sample_result result = executeBatch(policy);
 
   // Stage 6: Attach trajectories and set execution data on result if requested
   if (executionData) {
     populateExecutionDataTrajectories(*executionData,
                                       std::move(batch.trajectories),
-                                      std::move(perTrajectoryResults));
+                                      std::move(policy.perTrajectoryResults));
     result.set_execution_data(std::move(*executionData));
   }
 
