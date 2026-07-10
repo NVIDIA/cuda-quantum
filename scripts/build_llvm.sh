@@ -205,14 +205,15 @@ if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
 fi
 
 # Use ccache to skip recompiling unchanged objects when it's available.
-# PCH must be off when caching: flang's .pch embeds per-run mktemp paths
-# to the stage-1 toolchain, so cache hits replay a .pch with dead paths.
+# PCH stays enabled: CCACHE_SLOPPINESS must not include pch_defines, so
+# ccache refuses to cache .pch creation (flang's .pch embeds per-run mktemp
+# paths to the stage-1 toolchain, and a replayed .pch has dead paths) and
+# regenerates it fresh each build while still caching regular compilations.
 ccache_cmake_args=""
 if command -v ccache >/dev/null 2>&1; then
   ccache_cmake_args=" \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-    -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON"
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
 fi
 
 # Some flags that may be useful to build a GPU-offload-capable compiler:

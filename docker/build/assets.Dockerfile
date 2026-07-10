@@ -75,7 +75,7 @@ RUN cd /cuda-quantum && git init && \
 # from a previous run instead of rebuilding the whole LLVM toolchain.
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
-ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros
 ENV CCACHE_COMPILERCHECK=content
 ENV CCACHE_MAXSIZE=25G
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
@@ -137,7 +137,7 @@ ENV CUDA_QUANTUM_VERSION=$release_version
 
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
-ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros
 ENV CCACHE_COMPILERCHECK=content
 ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
@@ -221,7 +221,7 @@ ENV SETUPTOOLS_SCM_PRETEND_VERSION=$release_version
 
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
-ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros
 ENV CCACHE_COMPILERCHECK=content
 ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
