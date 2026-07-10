@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -1525,64 +1526,59 @@ private:
       routeBlock(nested, sources, {SmallVector<unsigned>(replayVqToPhy)});
     };
 
-    // flushTo processes all trace events up to limit, routing branch blocks
-    // inline when a Kind::If event is encountered.
-    std::function<void(unsigned)> flushTo;
-    flushTo = [&](unsigned limit) {
-      while (srcIdx < limit) {
-        RoutingEvent &ev = flat.trace[srcIdx++];
-        if (ev.kind == RoutingEvent::Kind::Swap) {
-          unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
-          unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
-          if (v0 != UINT_MAX)
-            replayVqToPhy[v0] = p1;
-          if (v1 != UINT_MAX)
-            replayVqToPhy[v1] = p0;
-          std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::Gate) {
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::If) {
-          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
-          SmallVector<Block *> branchBlocks;
-          for (Region *region : ifOp.getRegions()) {
-            if (region->empty())
-              continue;
-            routeNested(region->front());
-            branchBlocks.push_back(&region->front());
-          }
-          // Reconcile the branches at the if-join so they exit at a common
-          // layout. Collect the predecessors after all branches are routed, as
-          // building each result may rehash blockResults.
-          SmallVector<RoutingResult *> branchResults;
-          for (Block *b : branchBlocks)
-            branchResults.push_back(&blockResults[b]);
-          joinStrategy.reconcile(branchResults);
-          assert(!ifOp.hasElse() ||
-                 blockResults[&ifOp.getThenRegion().front()].exitLayout ==
-                     blockResults[&ifOp.getElseRegion().front()].exitLayout);
-          result.trace.push_back(std::move(ev));
-        } else if (ev.kind == RoutingEvent::Kind::Loop) {
-          auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
-          auto *bodyBlock = loopOp.getDoEntryBlock();
-          routeNested(*bodyBlock);
-          // Reconcile the loop back-edge: the loop invariant is the entry
-          // layout, restored before the body terminator each iteration.
-          RoutingResult *bodyResult = &blockResults[bodyBlock];
-          joinStrategy.reconcile(bodyResult);
-          // Route the step block if present (for-loop style). It carries wires
-          // straight through (quantum gates in a step are rejected), so it
-          // never inserts swaps and needs no back-edge reconciliation.
-          if (loopOp.hasStep())
-            routeNested(*loopOp.getStepBlock());
-          result.trace.push_back(std::move(ev));
-        } else {
-          llvm_unreachable("unhandled RoutingEvent::Kind");
+    // Process all trace events, routing branch blocks inline when a Kind::If
+    // event is encountered.
+    while (srcIdx < flat.trace.size()) {
+      RoutingEvent &ev = flat.trace[srcIdx++];
+      if (ev.kind == RoutingEvent::Kind::Swap) {
+        unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
+        unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
+        if (v0 != UINT_MAX)
+          replayVqToPhy[v0] = p1;
+        if (v1 != UINT_MAX)
+          replayVqToPhy[v1] = p0;
+        std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
+        result.trace.push_back(std::move(ev));
+      } else if (ev.kind == RoutingEvent::Kind::Gate) {
+        result.trace.push_back(std::move(ev));
+      } else if (ev.kind == RoutingEvent::Kind::If) {
+        auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+        SmallVector<Block *> branchBlocks;
+        for (Region *region : ifOp.getRegions()) {
+          if (region->empty())
+            continue;
+          routeNested(region->front());
+          branchBlocks.push_back(&region->front());
         }
+        // Reconcile the branches at the if-join so they exit at a common
+        // layout. Collect the predecessors after all branches are routed, as
+        // building each result may rehash blockResults.
+        SmallVector<RoutingResult *> branchResults;
+        for (Block *b : branchBlocks)
+          branchResults.push_back(&blockResults[b]);
+        joinStrategy.reconcile(branchResults);
+        assert(!ifOp.hasElse() ||
+               blockResults[&ifOp.getThenRegion().front()].exitLayout ==
+                   blockResults[&ifOp.getElseRegion().front()].exitLayout);
+        result.trace.push_back(std::move(ev));
+      } else if (ev.kind == RoutingEvent::Kind::Loop) {
+        auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+        auto *bodyBlock = loopOp.getDoEntryBlock();
+        routeNested(*bodyBlock);
+        // Reconcile the loop back-edge: the loop invariant is the entry
+        // layout, restored before the body terminator each iteration.
+        RoutingResult *bodyResult = &blockResults[bodyBlock];
+        joinStrategy.reconcile(bodyResult);
+        // Route the step block if present (for-loop style). It carries wires
+        // straight through (quantum gates in a step are rejected), so it
+        // never inserts swaps and needs no back-edge reconciliation.
+        if (loopOp.hasStep())
+          routeNested(*loopOp.getStepBlock());
+        result.trace.push_back(std::move(ev));
+      } else {
+        llvm_unreachable("unhandled RoutingEvent::Kind");
       }
-    };
-
-    flushTo(flat.trace.size());
+    }
     result.exitLayout =
         SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
     blockResults[&blk] = std::move(result);
@@ -2325,17 +2321,27 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
+    // `run` entry points wrap their body in a top-level `cc.scope` that the
+    // mapper descends into, and their per-shot results are recorded by index
+    // rather than by global register order, so measurements need not be
+    // deferred to the end and may live inside nested control flow.
+    const bool isRunEntry = func->hasAttr(cudaq::runtime::enableCudaqRun);
+
     // Measurement deferral is only safe for terminal readout. Reject
     // unsupported mid-circuit/adaptive uses before mutating IR, even in
     // composable mode. This must precede the multi-block limitation below, so
-    // CFG-shaped adaptive measurements cannot pass through unmapped.
-    if (Operation *measOp = findNonTerminalMeasuredWireUse(func)) {
-      measOp->emitOpError(
-          "unsupported mid-circuit measurement: a measured wire "
-          "is used by a later operation");
-      signalPassFailure();
-      return;
-    }
+    // CFG-shaped adaptive measurements cannot pass through unmapped. `run`
+    // entries do not defer measurements, so a measured wire flowing on (e.g.
+    // through a branch's `cc.continue`) is fine; genuine measurement feedback
+    // is still caught by the hasConditionalsOnMeasure check below.
+    if (!isRunEntry)
+      if (Operation *measOp = findNonTerminalMeasuredWireUse(func)) {
+        measOp->emitOpError(
+            "unsupported mid-circuit measurement: a measured wire "
+            "is used by a later operation");
+        signalPassFailure();
+        return;
+      }
     // Measurement-dependent behavior is the adaptive shape the mapper cannot
     // preserve, so use AddMetadata's conservative measurement-dependence
     // analysis.
@@ -2363,8 +2369,14 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
 
-    // Sanity checks and create a wire to virtual qubit mapping.
-    Block &block = *blocks.begin();
+    // Sanity checks and create a wire to virtual qubit mapping. For a `run`
+    // entry point, descend into the `cc.scope` that wraps the body.
+    Block *bodyBlock = &blocks.front();
+    if (isRunEntry) {
+      auto scope = *bodyBlock->getOps<cudaq::cc::ScopeOp>().begin();
+      bodyBlock = &scope.getInitRegion().front();
+    }
+    Block &block = *bodyBlock;
 
     if (deviceInstance->getNumQubits() == 0) {
       if (nonComposable) {
@@ -2451,8 +2463,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         }
         return WalkResult::interrupt();
       }
-      // Condition and step regions are loop control machinery, not routable
-      // quantum work: reject any quantum gate there instead of routing it.
+      // Condition and step regions with quantum gates are not currently
+      // supported. In general, these regions shouldn't require routing, but may
+      // need to account for measurements.
       auto hasQuantumGate = [](Region &region) {
         return region
             .walk([](Operation *op) {
@@ -2480,21 +2493,26 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Reject measurements not directly inside the function — measure order must
-    // be preserved and cannot yet be reconciled across branches or loops.
-    auto measureCheckResult =
-        func.walk([&](cudaq::quake::MeasurementInterface meas) {
-          if (isa<func::FuncOp>(meas->getParentOp()))
-            return WalkResult::advance();
-          if (nonComposable) {
-            meas->emitOpError(
-                "mapper cannot handle measurements inside branches or loops");
-            signalPassFailure();
-          }
-          return WalkResult::interrupt();
-        });
-    if (measureCheckResult.wasInterrupted()) {
-      LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
-      return;
+    // be preserved and cannot yet be reconciled across branches or loops. This
+    // does not apply to `run` entry points, whose per-shot output log records
+    // results by measurement rather than by global register order, so skip the
+    // check there.
+    if (!isRunEntry) {
+      auto measureCheckResult =
+          func.walk([&](cudaq::quake::MeasurementInterface meas) {
+            if (isa<func::FuncOp>(meas->getParentOp()))
+              return WalkResult::advance();
+            if (nonComposable) {
+              meas->emitOpError(
+                  "mapper cannot handle measurements inside branches or loops");
+              signalPassFailure();
+            }
+            return WalkResult::interrupt();
+          });
+      if (measureCheckResult.wasInterrupted()) {
+        LLVM_DEBUG(llvm::dbgs() << "NYI: measurements inside branches\n");
+        return;
+      }
     }
 
     // Interaction data is required by every placement strategy: greedy and
@@ -2582,14 +2600,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       }
     }
 
-    // Save the order of the measurements. They are not allowed to change.
+    // Save the order of the measurements. They are not allowed to change. For
+    // `run` this ordering does not matter (results are recorded by index), and
+    // the measurements may live inside branch/loop regions where moving them
+    // out of their region would be invalid, so leave them in place.
     SmallVector<mlir::Operation *> measureOrder;
-    func.walk([&](cudaq::quake::MeasurementInterface measure) {
-      measureOrder.push_back(measure);
-      for (auto user : measure->getUsers())
-        measureOrder.push_back(user);
-      return WalkResult::advance();
-    });
+    if (!isRunEntry)
+      func.walk([&](cudaq::quake::MeasurementInterface measure) {
+        measureOrder.push_back(measure);
+        for (auto user : measure->getUsers())
+          measureOrder.push_back(user);
+        return WalkResult::advance();
+      });
 
     // Create or borrow auxillary qubits if needed. Place them after the last
     // allocated qubit.
