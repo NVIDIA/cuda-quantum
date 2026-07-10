@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "PTSBESample.h"
 #include "PTSBESamplerImpl.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
@@ -13,6 +14,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include <numeric>
+#include <optional>
 #include <span>
 #include <stdexcept>
 
@@ -285,16 +287,88 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   }
 }
 
-ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
-  if (!policy.batch)
-    throw std::runtime_error(
-        "ptsbe::sample_policy has no PTSBatch attached. PTSBE cannot be "
-        "finalized by name-only dispatch.");
+namespace {
+template <typename Fn>
+void withClearedExecutionContext(Fn &&f) {
+  auto *ctx = cudaq::getExecutionContext();
+  cudaq::detail::resetExecutionContext();
+  try {
+    f();
+  } catch (...) {
+    if (ctx)
+      cudaq::detail::setExecutionContext(ctx);
+    throw;
+  }
+  if (ctx)
+    cudaq::detail::setExecutionContext(ctx);
+}
+} // namespace
 
-  auto results = samplePTSBE(*policy.batch);
-  auto aggregated = aggregateResults(results);
-  policy.perTrajectoryResults = std::move(results);
-  return ptsbe::sample_result(std::move(aggregated));
+ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
+  if (policy.batch) {
+    auto results = samplePTSBE(*policy.batch);
+    auto aggregated = aggregateResults(results);
+    policy.perTrajectoryResults = std::move(results);
+    return ptsbe::sample_result(std::move(aggregated));
+  }
+
+  auto *ctx = cudaq::getExecutionContext();
+  if (!ctx || !ctx->isTraceCapture)
+    throw std::runtime_error(
+        "ptsbe::sample_policy has no PTSBatch attached and no trace-capturing "
+        "execution context is active. PTSBE cannot be finalized by name-only "
+        "dispatch.");
+
+  withClearedExecutionContext([&] { cleanupTracerQubits(ctx->kernelTrace); });
+  cudaq::info("[ptsbe] Trace captured: {} qubits, {} instructions",
+              ctx->kernelTrace.getNumQudits(),
+              ctx->kernelTrace.getNumInstructions());
+
+  validatePTSBEKernel(policy.kernelName, *ctx);
+  warnNamedRegisters(policy.kernelName, *ctx);
+
+  static const cudaq::noise_model kEmptyNoiseModel;
+  const auto &noiseModel =
+      policy.noiseModel ? *policy.noiseModel : kEmptyNoiseModel;
+  auto ptsbeTrace = buildPTSBETrace(ctx->kernelTrace, noiseModel);
+
+  std::optional<PTSBEExecutionData> executionData;
+  if (policy.options.return_execution_data) {
+    executionData = PTSBEExecutionData{};
+    executionData->instructions = ptsbeTrace;
+  }
+
+  auto batch = buildPTSBatchFromTrace(std::move(ptsbeTrace), policy.options,
+                                      policy.shots);
+  batch.includeSequentialData = policy.options.include_sequential_data;
+  cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
+              batch.totalShots(), batch.trajectories.size());
+
+  ctx->isTraceCapture = false;
+  ctx->noiseModel = nullptr;
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(*ctx);
+  const auto nQubits = numQubits(batch.trace);
+  ptsbe::sample_result result;
+  try {
+    allocateBatchQubits(nQubits);
+    auto results = samplePTSBE(batch);
+    result = ptsbe::sample_result(aggregateResults(results));
+    policy.perTrajectoryResults = std::move(results);
+  } catch (...) {
+    releaseBatchQubits(nQubits);
+    throw;
+  }
+
+  if (executionData) {
+    populateExecutionDataTrajectories(*executionData,
+                                      std::move(batch.trajectories),
+                                      std::move(policy.perTrajectoryResults));
+    result.set_execution_data(std::move(*executionData));
+  }
+
+  cudaq::info("[ptsbe] Complete: {} unique bitstrings from {} shots",
+              result.size(), result.get_total_shots());
+  return result;
 }
 
 void allocateBatchQubits(std::size_t nQubits) {

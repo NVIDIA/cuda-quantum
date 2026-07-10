@@ -69,9 +69,10 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 
 /// @brief Finalize a PTSBE execution for the given policy
 ///
-/// @param policy Policy carrying the PTSBatch to execute
+/// @param policy Policy for the PTSBE execution
 /// @return Aggregated sample result
-/// @throws std::runtime_error if the policy has no batch attached
+/// @throws std::runtime_error if the policy has no batch and the active
+///         context is not trace-capturing
 ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy);
 
 /// @brief Allocate the batch qubits on the circuit simulator
