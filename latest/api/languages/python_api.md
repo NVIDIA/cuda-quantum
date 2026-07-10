@@ -3826,19 +3826,6 @@ discriminated bits into an integer.)
 
     :   
 
-    [[empty_op]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperator.empty_op "Permalink to this definition"){.headerlink}
-
-    :   
-
-    [[for_each_pauli]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.for_each_pauli "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - iterator over sum and then iterator over term
-        instead.
-
-    [[for_each_term]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.for_each_term "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use standard iteration instead.
-
     [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperator.from_json "Permalink to this definition"){.headerlink}
 
     :   
@@ -3847,34 +3834,9 @@ discriminated bits into an integer.)
 
     :   
 
-    [[get_coefficient]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_coefficient "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`evaluate_coefficient`{.code .docutils
-        .literal .notranslate}]{.pre} on each term (product operator)
-        instead.
-
-    [[get_qubit_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_qubit_count "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`qubit_count`{.code .docutils .literal
-        .notranslate}]{.pre} instead.
-
-    [[get_raw_data]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_raw_data "Permalink to this definition"){.headerlink}
-
-    :   Deprecated.
-
-    [[get_term_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_term_count "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`term_count`{.code .docutils .literal
-        .notranslate}]{.pre} instead.
-
     [[identity]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperator.identity "Permalink to this definition"){.headerlink}
 
     :   
-
-    [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.is_identity "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - is_identity will only be supported on each term
-        (product operator) in future releases.
 
     *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.max_degree "Permalink to this definition"){.headerlink}
 
@@ -4032,12 +3994,6 @@ discriminated bits into an integer.)
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
 
-    [[to_string]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.to_string "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use the standard [`str`{.code .docutils .literal
-        .notranslate}]{.pre} conversion or [`get_pauli_word`{.code
-        .docutils .literal .notranslate}]{.pre} on each term instead.
-
     [[trim]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.trim "Permalink to this definition"){.headerlink}
 
     :   Removes all terms from the sum for which the absolute value of
@@ -4104,13 +4060,6 @@ discriminated bits into an integer.)
         that a state where the qubit with index 0 equals 1 with
         probability 1 is given by the vector {0., 1., 0., 0.}.
 
-    [[distribute_terms]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.distribute_terms "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - instantiate a [`SpinOperator`{.code .docutils
-        .literal .notranslate}]{.pre} from this
-        [`SpinOperatorTerm`{.code .docutils .literal
-        .notranslate}]{.pre} and call distribute_terms on that.
-
     [[dump]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.dump "Permalink to this definition"){.headerlink}
 
     :   Prints the string representation of the operator to the standard
@@ -4122,10 +4071,6 @@ discriminated bits into an integer.)
         parameters is a map of parameter names to their concrete,
         complex values.
 
-    [[for_each_pauli]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.for_each_pauli "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use standard iteration instead.
-
     [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperatorTerm.from_json "Permalink to this definition"){.headerlink}
 
     :   
@@ -4134,23 +4079,9 @@ discriminated bits into an integer.)
 
     :   Gets the binary symplectic representation of this operator.
 
-    [[get_coefficient]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_coefficient "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`evaluate_coefficient`{.code .docutils
-        .literal .notranslate}]{.pre} instead.
-
     [[get_pauli_word]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_pauli_word "Permalink to this definition"){.headerlink}
 
     :   Gets the Pauli word representation of this product operator.
-
-    [[get_qubit_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`qubit_count`{.code .docutils .literal
-        .notranslate}]{.pre} instead.
-
-    [[get_raw_data]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_raw_data "Permalink to this definition"){.headerlink}
-
-    :   Deprecated.
 
     [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
@@ -4323,12 +4254,6 @@ discriminated bits into an integer.)
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
-
-    [[to_string]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_string "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use the standard [`str`{.code .docutils .literal
-        .notranslate}]{.pre} conversion or use [`get_pauli_word`{.code
-        .docutils .literal .notranslate}]{.pre} instead.
 
 ```{=html}
 <!-- -->

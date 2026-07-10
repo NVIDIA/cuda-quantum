@@ -2203,13 +2203,13 @@ for use in the Trotter step.
     def extractCoefficients(hamiltonian: cudaq.SpinOperator):
         result = []
         for term in hamiltonian:
-            result.append(term.get_coefficient())
+            result.append(term.evaluate_coefficient())
         return result
 
     def extractWords(hamiltonian: cudaq.SpinOperator):
         # Our kernel uses these words to apply exp_pauli to the entire state.
         # we hence ensure that each pauli word covers the entire space.
-        n_spins = hamiltonian.get_qubit_count()
+        n_spins = hamiltonian.qubit_count
         result = []
         for term in hamiltonian:
             result.append(term.get_pauli_word(n_spins))
@@ -2297,20 +2297,6 @@ the time evolution.
 
     total_time = time.time() - start_time
     print(f"Circuit execution time: {total_time:.3f} seconds")
-:::
-:::
-:::
-
-::: {.nboutput .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .stderr .docutils .container}
-::: highlight
-    /tmp/ipykernel_393541/1011071069.py:4: DeprecationWarning: use `evaluate_coefficient` instead
-      result.append(term.get_coefficient())
-    /tmp/ipykernel_393541/1011071069.py:10: DeprecationWarning: use `qubit_count` instead
-      n_spins = hamiltonian.get_qubit_count()
 :::
 :::
 :::

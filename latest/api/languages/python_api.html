@@ -2367,23 +2367,6 @@ on multiple degrees of freedom.</p></li>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.empty_op">
-<span class="sig-name descname"><span class="pre">empty_op</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.empty_op" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.for_each_pauli">
-<span class="sig-name descname"><span class="pre">for_each_pauli</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.for_each_pauli" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - iterator over sum and then iterator over term instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.for_each_term">
-<span class="sig-name descname"><span class="pre">for_each_term</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.for_each_term" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use standard iteration instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.from_json">
 <span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.from_json" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2394,39 +2377,9 @@ on multiple degrees of freedom.</p></li>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_coefficient">
-<span class="sig-name descname"><span class="pre">get_coefficient</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_coefficient" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">evaluate_coefficient</span></code> on each term (product operator) instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_qubit_count">
-<span class="sig-name descname"><span class="pre">get_qubit_count</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_qubit_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_raw_data">
-<span class="sig-name descname"><span class="pre">get_raw_data</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_term_count">
-<span class="sig-name descname"><span class="pre">get_term_count</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_term_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">term_count</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.identity">
 <span class="sig-name descname"><span class="pre">identity</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.identity" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.is_identity">
-<span class="sig-name descname"><span class="pre">is_identity</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.is_identity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - is_identity will only be supported on each term (product operator) in future releases.</p>
-</dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.max_degree">
@@ -2505,12 +2458,6 @@ on multiple degrees of freedom.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.to_string">
-<span class="sig-name descname"><span class="pre">to_string</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.to_string" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use the standard <code class="code docutils literal notranslate"><span class="pre">str</span></code> conversion or <code class="code docutils literal notranslate"><span class="pre">get_pauli_word</span></code> on each term instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.trim">
 <span class="sig-name descname"><span class="pre">trim</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.trim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Removes all terms from the sum for which the absolute value of the coefficient is below the given tolerance.</p>
@@ -2554,12 +2501,6 @@ on multiple degrees of freedom.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.distribute_terms">
-<span class="sig-name descname"><span class="pre">distribute_terms</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.distribute_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - instantiate a <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> from this <code class="code docutils literal notranslate"><span class="pre">SpinOperatorTerm</span></code> and call distribute_terms on that.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.dump">
 <span class="sig-name descname"><span class="pre">dump</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.dump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prints the string representation of the operator to the standard output.</p>
@@ -2569,12 +2510,6 @@ on multiple degrees of freedom.</p></li>
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.evaluate_coefficient">
 <span class="sig-name descname"><span class="pre">evaluate_coefficient</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.evaluate_coefficient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the evaluated coefficient of the product operator. The parameters is a map of parameter names to their concrete, complex values.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.for_each_pauli">
-<span class="sig-name descname"><span class="pre">for_each_pauli</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.for_each_pauli" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use standard iteration instead.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2589,27 +2524,9 @@ on multiple degrees of freedom.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_coefficient">
-<span class="sig-name descname"><span class="pre">get_coefficient</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_coefficient" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">evaluate_coefficient</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_pauli_word">
 <span class="sig-name descname"><span class="pre">get_pauli_word</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_pauli_word" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the Pauli word representation of this product operator.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_qubit_count">
-<span class="sig-name descname"><span class="pre">get_qubit_count</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_raw_data">
-<span class="sig-name descname"><span class="pre">get_raw_data</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2704,12 +2621,6 @@ on multiple degrees of freedom.</p></li>
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix">
 <span class="sig-name descname"><span class="pre">to_sparse_matrix</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the sparse matrix representation of the operator. This representation is a <code class="code docutils literal notranslate"><span class="pre">Tuple[list[complex],</span> <span class="pre">list[int],</span> <span class="pre">list[int]]</span></code>, encoding the non-zero values, rows, and columns of the matrix. This format is supported by <code class="code docutils literal notranslate"><span class="pre">scipy.sparse.csr_array</span></code>.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.to_string">
-<span class="sig-name descname"><span class="pre">to_string</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.to_string" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use the standard <code class="code docutils literal notranslate"><span class="pre">str</span></code> conversion or use <code class="code docutils literal notranslate"><span class="pre">get_pauli_word</span></code> instead.</p>
 </dd></dl>
 
 </dd></dl>
