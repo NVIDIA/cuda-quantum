@@ -12,12 +12,10 @@
 
 extern "C" __device__ int addThem(int a, int b) { return a + b; }
 
-extern "C" __device__ float multiplyFloats(float a, float b) {
-  return a * b;
-}
+extern "C" __device__ float multiplyFloats(float a, float b) { return a * b; }
 
-extern "C" __device__ int
-countTrueBits(const bool *bits, std::uint64_t count, std::uint64_t bias) {
+extern "C" __device__ int countTrueBits(const bool *bits, std::uint64_t count,
+                                        std::uint64_t bias) {
   int total = static_cast<int>(bias);
   for (std::uint64_t i = 0; i < count; ++i)
     total += bits[i] ? 1 : 0;
@@ -29,17 +27,25 @@ countTrueMeasures(const bool *bits, std::uint64_t count, std::uint64_t bias) {
   return countTrueBits(bits, count, bias);
 }
 
-extern "C" __device__ int
-sumIntVector(const int *values, std::uint64_t count, int bias) {
+extern "C" __device__ int sumIntVector(const int *values, std::uint64_t count,
+                                       int bias) {
   int total = bias;
   for (std::uint64_t i = 0; i < count; ++i)
     total += values[i];
   return total;
 }
 
-extern "C" __device__ void
-incrementIntVector(int *out, std::uint64_t outCount, const int *values,
-                   std::uint64_t count, int delta) {
+extern "C" __device__ int sumByteVector(const std::uint8_t *values,
+                                        std::uint64_t count, int bias) {
+  int total = bias;
+  for (std::uint64_t i = 0; i < count; ++i)
+    total += values[i];
+  return total;
+}
+
+extern "C" __device__ void incrementIntVector(int *out, std::uint64_t outCount,
+                                              const int *values,
+                                              std::uint64_t count, int delta) {
   std::uint64_t limit = outCount < count ? outCount : count;
   for (std::uint64_t i = 0; i < limit; ++i)
     out[i] = values[i] + delta;
@@ -51,8 +57,8 @@ integerToBinaryVector(bool *out, std::uint64_t outCount, std::uint64_t value) {
     out[i] = ((value >> i) & 1u) != 0;
 }
 
-extern "C" __device__ float
-sumFloatVector(const float *values, std::uint64_t count, float bias) {
+extern "C" __device__ float sumFloatVector(const float *values,
+                                           std::uint64_t count, float bias) {
   float total = bias;
   for (std::uint64_t i = 0; i < count; ++i)
     total += values[i];

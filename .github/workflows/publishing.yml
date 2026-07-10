@@ -988,7 +988,7 @@ jobs:
           fi
 
           # Check the CPU transport and device-call runtime built with libibverbs.
-          test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-cpu-transport.a"
+          test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-cpu-roce-transport.a"
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-device-call-runtime.so"
 
   image_validation_config:

@@ -901,20 +901,16 @@ def test_list_list_string_argument_error():
 
 def test_broadcast():
 
-    with pytest.raises(RuntimeError) as e:
+    @cudaq.kernel
+    def kernel(l: list[list[int]]):
+        q = cudaq.qvector(2)
+        for inner in l:
+            for i in inner:
+                x(q[i])
 
-        @cudaq.kernel
-        def kernel(l: list[list[int]]):
-            q = cudaq.qvector(2)
-            for inner in l:
-                for i in inner:
-                    x(q[i])
-
-        #FIXME: update broadcast detection logic to allow this case.
-        # https://github.com/NVIDIA/cuda-quantum/issues/2895
-        counts = cudaq.sample(kernel, [[0, 1]])
-    assert 'Invalid runtime argument type. Argument of type list[int] was provided' in repr(
-        e)
+    # list[list[int]] is a single argument, not a broadcast — verify it runs.
+    counts = cudaq.sample(kernel, [[0, 1]])
+    assert '11' in counts
 
 
 def test_list_creation_with_cast():
@@ -1965,6 +1961,22 @@ def test_no_param_no_return():
     kernel()
 
 
+def test_bare_return_from_value_returning_kernel():
+
+    with pytest.raises(
+            RuntimeError,
+            match=
+            "return statement in a value-returning kernel must return a value"):
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                return
+            return 1
+
+        kernel.compile()
+
+
 def test_measure_variadic_qubits():
 
     @cudaq.kernel
@@ -2925,7 +2937,7 @@ def test_named_reg_in_sample(capfd):
 # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
 # See: https://github.com/NVIDIA/cuda-quantum/issues/3818
 @pytest.mark.xfail(raises=RuntimeError)
-@pytest.mark.skip_macos_arm64_jit
+@pytest.mark.skip_arm64_jit
 def test_adjoint_bug():
     num_electrons = 2
     num_qubits = 8
