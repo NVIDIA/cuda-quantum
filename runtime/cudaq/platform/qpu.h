@@ -193,6 +193,8 @@ public:
   getCompileTarget(const observe_policy &policy);
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(const dem_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const ptsbe::sample_policy &policy);
   // Overload for currently unsupported policies (to be removed).
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &policy, ExecutionContext *context);

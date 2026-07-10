@@ -22,7 +22,7 @@ function(add_backend_test target )
       cudaq-logger
       fmt::fmt-header-only
       gtest_main)
-  gtest_discover_tests(${target} DISCOVERY_TIMEOUT 120)
+  cudaq_gtest_discover_tests(${target} DISCOVERY_TIMEOUT 120)
 endfunction()
 
 
