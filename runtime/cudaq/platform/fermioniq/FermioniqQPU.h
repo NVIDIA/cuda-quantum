@@ -47,6 +47,7 @@ public:
     return target;
   }
 
+  using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;
