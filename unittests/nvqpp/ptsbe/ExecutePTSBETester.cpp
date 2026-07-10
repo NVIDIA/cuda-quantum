@@ -11,6 +11,7 @@
 #include "backends/QPPTester.h"
 #include "cudaq/ptsbe/KrausTrajectory.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
+#include "cudaq/simulators.h"
 #include <cmath>
 #include <numeric>
 
@@ -398,4 +399,23 @@ CUDAQ_TEST(ExecutePTSBETest, LifecycleDispatchProducesCorrectResults) {
 
   EXPECT_EQ(results.size(), 1u);
   EXPECT_EQ(results[0].count("1"), 10u);
+}
+
+CUDAQ_TEST(ExecutePTSBETest, ReleaseBatchQubitsUnderOuterContext) {
+  auto *sim = nvqir::getCircuitSimulatorInternal();
+
+  cudaq::ExecutionContext outerCtx("sample", 1);
+  cudaq::detail::setExecutionContext(&outerCtx);
+
+  ptsbe::detail::allocateBatchQubits(2);
+  ptsbe::detail::releaseBatchQubits(2);
+
+  EXPECT_EQ(cudaq::getExecutionContext(), &outerCtx);
+  cudaq::detail::resetExecutionContext();
+
+  auto ids = sim->allocateQubits(2);
+  ASSERT_EQ(ids.size(), 2);
+  EXPECT_EQ(ids[0], 0);
+  EXPECT_EQ(ids[1], 1);
+  sim->deallocateQubits(ids);
 }
