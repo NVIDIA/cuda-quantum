@@ -591,6 +591,14 @@ public:
                  << "cannot make adjoint of kernel with a measurement\n");
       return failure();
     }
+    if (func.walk([](cudaq::cc::LoopOp loop) {
+              return loop.getNumResults() > 1 ? WalkResult::interrupt()
+                                               : WalkResult::advance();
+            }).wasInterrupted()) {
+      LLVM_DEBUG(llvm::dbgs() << "cannot make adjoint of kernel with "
+                                 "multi-result loops\n");
+      return failure();
+    }
 
     auto funcTy = func.getFunctionType();
     auto newFunc = cudaq::opt::factory::createFunction(

@@ -2967,6 +2967,47 @@ def test_adjoint_bug():
 
 
 @pytest.mark.skip_macos_arm64_jit
+def test_adjoint_loop_carried_classical_update_errors():
+    cudaq.set_target("qpp-cpu")
+    try:
+        @cudaq.kernel
+        def rotate_each(qubits: cudaq.qview, angles: list[float]):
+            index = 0
+            for i in range(qubits.size()):
+                ry(angles[index], qubits[i])
+                index += 1
+
+        @cudaq.kernel
+        def undo_rotate_each(qubits: cudaq.qview, angles: list[float]):
+            index = qubits.size() - 1
+            for i in range(qubits.size()):
+                ry(-angles[index], qubits[qubits.size() - 1 - i])
+                index -= 1
+
+        @cudaq.kernel
+        def roundtrip_autogen(angles: list[float]):
+            qubits = cudaq.qvector(3)
+            rotate_each(qubits, angles)
+            cudaq.adjoint(rotate_each, qubits, angles)
+
+        @cudaq.kernel
+        def roundtrip_manual(angles: list[float]):
+            qubits = cudaq.qvector(3)
+            rotate_each(qubits, angles)
+            undo_rotate_each(qubits, angles)
+
+        angles = [0.3, 0.5, 0.7]
+        manual = np.asarray(cudaq.get_state(roundtrip_manual, angles))
+        assert np.isclose(abs(manual[0]), 1.0, atol=1e-12)
+
+        with pytest.raises(RuntimeError,
+                           match="could not autogenerate the adjoint"):
+            cudaq.get_state(roundtrip_autogen, angles)
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.skip_macos_arm64_jit
 def test_trap_fail():
     """Tests that a recoverable run time error correctly clears the simulator"""
 
