@@ -356,6 +356,7 @@ target_include_directories(test_ptsbe PRIVATE .)
 target_link_libraries(test_ptsbe
   PRIVATE
   cudaq
+  cudaq-em-default
   cudaq-platform-default
   cudaq-mlir-runtime
   nvqir

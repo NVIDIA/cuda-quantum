@@ -8,6 +8,7 @@
 
 #include "nvqir/CircuitSimulator.h"
 #include "cudaq/operators.h"
+#include "cudaq/ptsbe/PTSBESampler.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -171,6 +172,12 @@ protected:
   finalizeExecutionContext(const observe_policy &policy) override {
     finalizeExecutionContextImpl();
     return simulator()->finalizeExecutionContext(policy);
+  }
+
+  ptsbe_sample_policy::result_type
+  finalizeExecutionContext(const ptsbe_sample_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return cudaq::ptsbe::detail::finalizePTSBE(policy);
   }
 
   void finalizeExecutionContext(const other_policies &policy,
