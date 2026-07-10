@@ -236,6 +236,7 @@ public:
     std::filesystem::path platformPath;
   };
 
+  using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &, ExecutionContext *ctx) override {
     if (!ctx)

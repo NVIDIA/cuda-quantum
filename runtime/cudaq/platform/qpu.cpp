@@ -146,6 +146,11 @@ cudaq::QPU::getCompileTarget(const observe_policy &) {
 }
 
 std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const ptsbe::sample_policy &) {
+  return getCompileTarget(other_policies{}, nullptr);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const other_policies &olicy, ExecutionContext *) {
   throw std::runtime_error(
       "no CompileTarget defined for other_policies on this QPU");

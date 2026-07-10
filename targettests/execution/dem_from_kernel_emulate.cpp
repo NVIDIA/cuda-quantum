@@ -107,6 +107,18 @@ static void runCase(const char *label, Kernel &&kernel) {
   }
 }
 
+// Unlike dem_from_kernel, cudaq::sample routes through
+// createEmulationTargetPrepPipeline, which must strip QEC ops.
+template <typename Kernel>
+static void runSampleCase(const char *label, Kernel &&kernel) {
+  try {
+    auto counts = cudaq::sample(std::forward<Kernel>(kernel));
+    std::printf("%s most_probable=%s\n", label, counts.most_probable().c_str());
+  } catch (const std::exception &e) {
+    std::printf("%s THREW: %s\n", label, e.what());
+  }
+}
+
 template <typename Kernel>
 static void runDecomposeCase(const char *label, Kernel &&kernel) {
   try {
@@ -134,6 +146,7 @@ int main() {
   runCase("SINGLE", singleDetector{});
   runCase("THREE_MZ", threeMzMultiDetector{});
   runDecomposeCase("CORRELATED_XX", correlatedXXHyperedge{});
+  runSampleCase("SAMPLE_QEC_KERNEL", singleDetector{});
   return 0;
 }
 
@@ -141,3 +154,4 @@ int main() {
 // CHECK: THREE_MZ detectors=1 observables=1
 // CHECK: CORRELATED_XX_RAW hyperedge=1 caret=0
 // CHECK: CORRELATED_XX_DECOMPOSED hyperedge=0 caret=1
+// CHECK: SAMPLE_QEC_KERNEL most_probable=0

@@ -118,6 +118,7 @@ createEmulationTargetPrepPipeline(OpPassManager &pm,
                                   const TargetPrepPipelineOptions &options) {
   if (options.eraseNoise)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
   createTargetPrepPipeline(pm, options);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }

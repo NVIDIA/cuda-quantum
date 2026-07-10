@@ -679,6 +679,25 @@ def test_serialization():
     assert non_consecutive_prod > 3000
 
 
+def test_file_serialization(tmp_path):
+    op = 0.5 * x(0) - 0.25j * z(3)
+    data = np.asarray(op.serialize(), dtype=np.float64)
+
+    valid_file = tmp_path / "spin_operator.bin"
+    data.tofile(valid_file)
+    assert SpinOperator(str(valid_file)) == op
+
+    empty_file = tmp_path / "empty.bin"
+    empty_file.touch()
+    with pytest.raises(RuntimeError):
+        SpinOperator(str(empty_file))
+
+    misaligned_file = tmp_path / "misaligned.bin"
+    misaligned_file.write_bytes(data.tobytes() + b"\x00")
+    with pytest.raises(RuntimeError):
+        SpinOperator(str(misaligned_file))
+
+
 def test_vqe():
     """
     Test the `cudaq.SpinOperator` class on a simple VQE Hamiltonian.
@@ -701,8 +720,7 @@ def test_vqe():
     assert _term_tuples(hamiltonian) == expected_terms
 
 
-# deprecated functionality - replaced by iteration
-def test_legacy_foreach():
+def test_nested_iteration():
     from cudaq import Pauli
 
     hamiltonian = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(
