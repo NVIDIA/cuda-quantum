@@ -77,7 +77,7 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   cudaq::opt::addLowerToCFG(pm);
