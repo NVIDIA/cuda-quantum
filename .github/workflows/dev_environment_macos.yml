@@ -26,7 +26,7 @@ on:
       matrix_key:
         required: false
         type: string
-        description: The key for the cloudposse GitHub action matrix output.
+        description: The key for the matrix-outputs action output.
       environment:
         required: false
         type: string
@@ -56,6 +56,7 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' }}
 
     steps:
       - name: Checkout repository
@@ -133,6 +134,7 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' }}
 
     steps:
       - name: Checkout repository
@@ -267,7 +269,12 @@ jobs:
       image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-write
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment_macos' }}
