@@ -12,7 +12,7 @@
 bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
   auto &platform = get_platform();
   auto *ctx = getExecutionContext();
-  if (ctx && ctx->name == "tracer")
+  if (ctx && ctx->isTraceCapture)
     ctx->registerNames.push_back("");
   return result == 1;
 }

@@ -87,6 +87,11 @@ public:
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
 
+  /// @brief True when this context records the kernel's instructions into
+  /// kernelTrace instead of executing them. Set automatically for the
+  /// "tracer" context.
+  bool isTraceCapture = (name == "tracer");
+
   /// @brief When run under the tracer context, persist the traced quantum
   /// resources here.
   Trace kernelTrace;
