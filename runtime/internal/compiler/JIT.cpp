@@ -165,9 +165,8 @@ insertResultMapCleanupOperations(Operation *module,
   }
 }
 
-cudaq::JitEngine
-cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo) {
+cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
+    ModuleOp &moduleOp, llvm::StringRef convertTo, bool isEntryPoint) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
@@ -179,7 +178,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
   opts.transformer = std::move(transformerTemp);
   opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   auto llvmModuleBuilderTemp =
-      [convertTo = convertTo.str()](
+      [convertTo = convertTo.str(), isEntryPoint](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -240,7 +239,12 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
     const auto entryPointFuncs = collectEntryPointFunctions(module);
     if (containsWireSet)
       insertWireSetSetupAndCleanupOperations(module, entryPointFuncs);
-    insertResultMapCleanupOperations(module, entryPointFuncs);
+    // Direct-callable JIT modules also carry `cudaq-entrypoint` because the
+    // lowering pipeline needs a code-generation root. They can nevertheless
+    // execute inside another kernel, whose measurement handles must remain
+    // valid until the outer execution completes.
+    if (isEntryPoint)
+      insertResultMapCleanupOperations(module, entryPointFuncs);
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)

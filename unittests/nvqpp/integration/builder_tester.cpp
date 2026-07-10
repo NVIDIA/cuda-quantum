@@ -1160,29 +1160,21 @@ CUDAQ_TEST(BuilderTester, checkEntryPointAttribute) {
 #ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkExpPauli) {
   std::vector<double> h2_data{
-      3, 1, 1, 3, 0.0454063,  0,  2, 0, 0, 0, 0.17028,    0,
-      0, 0, 2, 0, -0.220041,  -0, 1, 3, 3, 1, 0.0454063,  0,
-      0, 0, 0, 0, -0.106477,  0,  0, 2, 0, 0, 0.17028,    0,
-      0, 0, 0, 2, -0.220041,  -0, 3, 3, 1, 1, -0.0454063, -0,
-      2, 2, 0, 0, 0.168336,   0,  2, 0, 2, 0, 0.1202,     0,
-      0, 2, 0, 2, 0.1202,     0,  2, 0, 0, 2, 0.165607,   0,
-      0, 2, 2, 0, 0.165607,   0,  0, 0, 2, 2, 0.174073,   0,
-      1, 1, 3, 3, -0.0454063, -0, 15};
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-  cudaq::spin_op h(h2_data, 4);
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+      15,     0.0454063, 0,  4,          0,        3,        1,          2,
+      2,      2,         3,  3,          0.17028,  0,        1,          0,
+      1,      -0.220041, -0, 1,          2,        1,        0.0454063,  0,
+      4,      0,         2,  1,          3,        2,        3,          3,
+      2,      -0.106477, 0,  0,          0.17028,  0,        1,          1,
+      1,      -0.220041, -0, 1,          3,        1,        -0.0454063, -0,
+      4,      0,         3,  1,          3,        2,        2,          3,
+      2,      0.168336,  0,  2,          0,        1,        1,          1,
+      0.1202, 0,         2,  0,          1,        2,        1,          0.1202,
+      0,      2,         1,  1,          3,        1,        0.165607,   0,
+      2,      0,         1,  3,          1,        0.165607, 0,          2,
+      1,      1,         2,  1,          0.174073, 0,        2,          2,
+      1,      3,         1,  -0.0454063, -0,       4,        0,          2,
+      1,      2,         2,  3,          3,        3};
+  cudaq::spin_op h(h2_data);
 
   {
     auto [kernel, theta] = cudaq::make_kernel<double>();

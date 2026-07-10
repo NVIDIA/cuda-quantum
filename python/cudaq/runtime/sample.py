@@ -149,47 +149,57 @@ def sample(kernel,
 
     _detail_check_explicit_measurements(explicit_measurements)
 
-    if noise_model:
+    set_noise_for_call = noise_model is not None
+    previous_noise = cudaq_runtime.get_noise() if set_noise_for_call else None
+    if set_noise_for_call:
         cudaq_runtime.set_noise(noise_model)
 
-    if __isBroadcast(kernel, *args):
-        res = __broadcastSample(kernel,
-                                *args,
-                                shots_count=shots_count,
-                                explicit_measurements=explicit_measurements)
-        cudaq_runtime.unset_noise()
-        return res
+    try:
+        if __isBroadcast(kernel, *args):
+            return __broadcastSample(
+                kernel,
+                *args,
+                shots_count=shots_count,
+                explicit_measurements=explicit_measurements)
 
-    kernel_name = kernel.name if hasattr(kernel, 'name') else ''
-    ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.kernelName = kernel_name
-    ctx.explicitMeasurements = explicit_measurements
-    policy = cudaq_runtime.SamplePolicy(ctx, kernel_name, explicit_measurements)
+        kernel_name = kernel.name if hasattr(kernel, 'name') else ''
+        ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
+        ctx.kernelName = kernel_name
+        ctx.explicitMeasurements = explicit_measurements
+        policy = cudaq_runtime.SamplePolicy(ctx, kernel_name,
+                                            explicit_measurements)
 
-    counts = cudaq_runtime.SampleResult()
-    while counts.get_total_shots() < shots_count:
-        result = cudaq_runtime.launch_sample(policy, ctx, lambda: kernel(*args))
-        # If the platform is a hardware QPU, launch only once
-        countsTotalIsZero = counts.get_total_shots() == 0
-        resultTotalWasReached = result.get_total_shots() == shots_count
-        if (countsTotalIsZero and
-                resultTotalWasReached) or cudaq_runtime.isQuantumDevice():
-            # Early return for case where all shots were gathered the first time
-            # through this loop.This avoids an additional copy.
-            cudaq_runtime.unset_noise()
-            return result
-        counts += result
-        if counts.get_total_shots() == 0:
-            if explicit_measurements:
-                raise RuntimeError(
-                    "The sampling option `explicit_measurements` is not "
-                    "supported on a kernel without any measurement operation.")
-            print("WARNING: this kernel invocation produced 0 shots worth of "
-                  "results when executed. Exiting shot loop to avoid infinite "
-                  "loop.")
-            break
-    cudaq_runtime.unset_noise()
-    return counts
+        counts = cudaq_runtime.SampleResult()
+        while counts.get_total_shots() < shots_count:
+            result = cudaq_runtime.launch_sample(policy, ctx,
+                                                 lambda: kernel(*args))
+            # If the platform is a hardware QPU, launch only once
+            countsTotalIsZero = counts.get_total_shots() == 0
+            resultTotalWasReached = result.get_total_shots() == shots_count
+            if (countsTotalIsZero and
+                    resultTotalWasReached) or cudaq_runtime.isQuantumDevice():
+                # Early return for case where all shots were gathered the first time
+                # through this loop.This avoids an additional copy.
+                return result
+            counts += result
+            if counts.get_total_shots() == 0:
+                if explicit_measurements:
+                    raise RuntimeError(
+                        "The sampling option `explicit_measurements` is not "
+                        "supported on a kernel without any measurement operation."
+                    )
+                print(
+                    "WARNING: this kernel invocation produced 0 shots worth of "
+                    "results when executed. Exiting shot loop to avoid infinite "
+                    "loop.")
+                break
+        return counts
+    finally:
+        if set_noise_for_call:
+            if previous_noise is not None:
+                cudaq_runtime.set_noise(previous_noise)
+            else:
+                cudaq_runtime.unset_noise()
 
 
 @trace.traced

@@ -39,7 +39,7 @@ jobs:
 
       - name: Add reaction
         if: inputs.comment_id
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ inputs.comment_id }}
           body: |
@@ -103,7 +103,7 @@ jobs:
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
       checkout_submodules: true
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps_caches:
@@ -132,7 +132,7 @@ jobs:
       create_local_cache: true
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build_caches:
@@ -158,7 +158,7 @@ jobs:
         toolchain=llvm
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       checkout_submodules: true
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   finalize:
@@ -171,13 +171,18 @@ jobs:
     steps:
       - name: Add reaction to comment
         if: inputs.comment_id && success()
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ inputs.comment_id }}
           reactions-edit-mode: append
           reactions: hooray
 
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment

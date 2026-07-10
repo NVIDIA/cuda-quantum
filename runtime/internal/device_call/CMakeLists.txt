@@ -30,10 +30,19 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   # the realtime package was built with libibverbs (i.e. the cpu-transport
   # target exists); hosts without RDMA simply omit the cpu_roce channel.
   set(CUDAQ_DEVICE_CALL_CPU_ROCE_LIB "")
-  if (TARGET cudaq::cudaq-realtime-cpu-transport)
+  if (TARGET cudaq::cudaq-realtime-cpu-roce-transport)
     list(APPEND CUDAQ_DEVICE_CALL_SOURCES CpuRoceChannel.cpp)
-    set(CUDAQ_DEVICE_CALL_CPU_ROCE_LIB cudaq::cudaq-realtime-cpu-transport)
+    set(CUDAQ_DEVICE_CALL_CPU_ROCE_LIB cudaq::cudaq-realtime-cpu-roce-transport)
     message(STATUS "  - device_call: cpu_roce channel enabled (libibverbs)")
+  endif()
+
+  # UDP channel: device_call over plain UDP for systems without an RDMA NIC,
+  # over loopback or a real network.
+  set(CUDAQ_DEVICE_CALL_UDP_LIB "")
+  if (TARGET cudaq::cudaq-realtime-udp-transport)
+    list(APPEND CUDAQ_DEVICE_CALL_SOURCES UdpChannel.cpp)
+    set(CUDAQ_DEVICE_CALL_UDP_LIB cudaq::cudaq-realtime-udp-transport)
+    message(STATUS "  - device_call: udp channel enabled")
   endif()
 
   add_library(cudaq-device-call-runtime
@@ -55,6 +64,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       cudaq-common
       cudaq::cudaq-realtime
       ${CUDAQ_DEVICE_CALL_CPU_ROCE_LIB}
+      ${CUDAQ_DEVICE_CALL_UDP_LIB}
       LLVMSupport
       CUDA::cudart_static
       dl)

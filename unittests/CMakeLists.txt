@@ -51,14 +51,33 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA::cudart_static
       gtest_main)
 
-  gtest_discover_tests(test_device_call_dispatch
+  cudaq_gtest_discover_tests(test_device_call_dispatch
     PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+    DISCOVERY_TIMEOUT 120)
+
+  # Pure-HOST_CALL host dispatch must work without a visible CUDA device. The
+  # binary hides every device from itself (CUDA_VISIBLE_DEVICES="" in its own
+  # main()), so this deliberately carries no gpu_required label: it runs on
+  # GPU-less CI runners and exercises the same no-device path everywhere.
+  # Plain CXX link: no .cu sources, and the shared cudaq-device-call-runtime
+  # carries the dispatcher, so no CUDA device-link step is needed.
+  add_executable(test_host_dispatch_no_gpu
+    device_call/HostDispatchNoGpuTester.cpp)
+  set_target_properties(test_host_dispatch_no_gpu PROPERTIES
+    ENABLE_EXPORTS ON)
+  target_link_libraries(test_host_dispatch_no_gpu
+    PRIVATE
+      cudaq-device-call-runtime
+      CUDA::cudart_static
+      gtest)
+
+  gtest_discover_tests(test_host_dispatch_no_gpu
     DISCOVERY_TIMEOUT 120)
 
   # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
   # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
   # unless the loopback test topology is provided via environment variables.
-  if (TARGET cudaq::cudaq-realtime-cpu-transport)
+  if (TARGET cudaq::cudaq-realtime-cpu-roce-transport)
     add_executable(cpu_roce_test_daemon
       device_call/cpu_roce_test_daemon.cpp)
     target_include_directories(cpu_roce_test_daemon
@@ -73,7 +92,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA_RESOLVE_DEVICE_SYMBOLS ON)
     target_link_libraries(cpu_roce_test_daemon
       PRIVATE
-        cudaq::cudaq-realtime-cpu-transport
+        cudaq::cudaq-realtime-cpu-roce-transport
         cudaq::cudaq-realtime-host-dispatch
         CUDA::cudart_static
         Threads::Threads)
@@ -105,7 +124,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     add_dependencies(test_cpu_roce_device_call cpu_roce_test_daemon)
     # PRE_TEST discovery so the build-only CI job never executes the binary at
     # build time (no RDMA NIC there); ctest still enumerates it at test time.
-    gtest_discover_tests(test_cpu_roce_device_call
+    cudaq_gtest_discover_tests(test_cpu_roce_device_call
       PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
       DISCOVERY_TIMEOUT 120
       DISCOVERY_MODE PRE_TEST)
@@ -127,7 +146,7 @@ target_link_libraries(test_spin
   gtest_main
   cudaq-platform-default)
 target_include_directories(test_spin PRIVATE operators)
-gtest_discover_tests(test_spin DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_spin DISCOVERY_TIMEOUT 120)
 
 # Create an executable for operators UnitTests
 set(CUDAQ_OPERATOR_TEST_SOURCES
@@ -144,16 +163,13 @@ set(CUDAQ_OPERATOR_TEST_SOURCES
    operators/manipulation.cpp
 )
 add_executable(test_operators main.cpp ${CUDAQ_OPERATOR_TEST_SOURCES})
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_operators PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
 target_link_libraries(test_operators
   PRIVATE
   cudaq-operator
   cudaq
   gtest_main
   cudaq-platform-default)
-gtest_discover_tests(test_operators DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_operators DISCOVERY_TIMEOUT 120)
 
 if (CUDA_FOUND AND TARGET nvqir-dynamics)
 
@@ -173,9 +189,6 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_dynamics PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-  endif()
   target_link_libraries(test_dynamics
    PRIVATE
    cudaq-operator
@@ -192,13 +205,10 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
    gtest_main
    )
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
-  gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+  cudaq_gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 endif()
 
 add_executable(test_utils main.cpp utils/UtilsTester.cpp utils/Matrix.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_utils PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
 target_link_libraries(test_utils
   PRIVATE
   cudaq
@@ -207,12 +217,9 @@ target_link_libraries(test_utils
   nvqir
   nvqir-qpp 
   gtest_main)
-gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_nvqir_verify PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
 target_link_libraries(test_nvqir_verify
   PRIVATE
     cudaq
@@ -224,23 +231,21 @@ target_link_libraries(test_nvqir_verify
     cudaq-qir-verifier
     cudaq-platform-default
     gtest_main)
-gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
 
 # Test for thread-local execution context storage
 add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_exec_ctx_thread PRIVATE -Wl,--no-as-needed)
-endif()
 target_include_directories(test_exec_ctx_thread PRIVATE .)
 target_link_libraries(test_exec_ctx_thread
   PRIVATE
   cudaq
   cudaq-platform-default
   gtest_main)
-gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
 add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
+add_subdirectory(backends)
 
