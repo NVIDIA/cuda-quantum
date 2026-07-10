@@ -956,6 +956,39 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     Note 3: as a result of note 2, if the IR contains no measurements, this pass
     will inject measurements so that the post-mapping measurements correspond
     to all of the input (user) qubits.
+
+    Control flow: structured `cc.if` and `cc.loop` operations that carry
+    quantum wires are routed. Each branch and loop body is routed recursively
+    against the layout that is live where the region is entered, and the
+    placements that meet at each control-flow join must be reconciled to a
+    single layout so the block after the join has an unambiguous entry.
+
+    Reconciliation is currently done by reverting each predecessor to the
+    layout it entered with (its swaps are replayed in reverse before the region
+    terminator):
+
+    - `cc.if`: both branches share the same entry layout, so restoring each to
+      its entry makes them agree at the if-join with no extra search.
+    - `cc.loop`: the body is restored to its entry layout, making that layout
+      the loop invariant. This needs no swaps before the loop, but pays the
+      full restoration cost on every iteration.
+
+    This handles two-qubit gates and swaps inside branches and loop bodies
+    (unlike a scheme that forbids them), but always collapses back to the entry
+    layout rather than searching for a cheaper common layout. A future strategy
+    may pick a different common exit layout and add the swaps needed to reach it
+    on each predecessor (including before a loop).
+
+    The following control flow is not yet supported and is rejected (a hard
+    error under `raise-fatal-errors`, otherwise the function is skipped):
+
+    - measurements nested inside a branch or loop, unless the function is a
+      `run` entry point (where results are recorded by index, not order);
+    - a mid-circuit measurement whose measured wire feeds a non-terminal user,
+      or any measurement-dependent (adaptive) control flow;
+    - loops with a multi-block body, a Python `else`, or a `break`;
+    - quantum gates in a loop's condition or step region;
+    - more than one block at the function's top level.
   }];
 
   let options = [
