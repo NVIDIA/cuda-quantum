@@ -7,15 +7,15 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: rm -rf /tmp/cudaq-lit-mock-rest-xdg
+// RUN: rm -rf %t.xdg
 // RUN: test -f %cudaq_example_plugins_dir/mock-rest/targets/mock_rest.yml
 // RUN: test -f %cudaq_example_plugins_dir/mock-rest/lib/libcudaq-serverhelper-mock_rest%cudaq_plugin_ext
 // RUN: FileCheck %s --check-prefix=MOCK-YAML --input-file=%cudaq_example_plugins_dir/mock-rest/targets/mock_rest.yml
-// RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-mock-rest-xdg cudaq-install-plugin --copy %cudaq_example_plugins_dir/mock-rest
-// RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-mock-rest-xdg cudaq-install-plugin --list | FileCheck %s --check-prefix=LIST
-// RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-mock-rest-xdg nvq++ --list-targets | FileCheck %s --check-prefix=TARGETS
-// RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-mock-rest-xdg nvq++ --target mock_rest %s -o %t.native
-// RUN: env XDG_DATA_HOME=/tmp/cudaq-lit-mock-rest-xdg %t.native
+// RUN: env XDG_DATA_HOME=%t.xdg cudaq-install-plugin --copy %cudaq_example_plugins_dir/mock-rest
+// RUN: env XDG_DATA_HOME=%t.xdg cudaq-install-plugin --list | FileCheck %s --check-prefix=LIST
+// RUN: env XDG_DATA_HOME=%t.xdg nvq++ --list-targets | FileCheck %s --check-prefix=TARGETS
+// RUN: env XDG_DATA_HOME=%t.xdg nvq++ --target mock_rest %s -o %t.native
+// RUN: env XDG_DATA_HOME=%t.xdg %t.native
 // RUN: PYTHONPATH=%cudaq_target_dir/../python python3 -c "import cudaq; cudaq.register_backend_path('%cudaq_example_plugins_dir/mock-rest'); cudaq.set_target('mock_rest'); cudaq.reset_target()"
 // RUN: rm -rf %t.python %t.pip-cache %t.python-xdg
 // RUN: env PIP_CACHE_DIR=%t.pip-cache python3 -m pip install --no-deps --no-build-isolation --target %t.python %cudaq_example_plugins_dir/mock-rest

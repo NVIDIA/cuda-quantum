@@ -17,8 +17,7 @@ config.name = 'mock_rest plugin'
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 config.suffixes = ['.cpp']
 config.test_source_root = os.path.dirname(__file__)
-config.test_exec_root = os.path.join(config.cudaq_obj_root, 'external',
-                                     'mock-rest', 'tests')
+config.test_exec_root = os.path.join(config.cudaq_obj_root, 'test', 'mock-rest')
 
 config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
