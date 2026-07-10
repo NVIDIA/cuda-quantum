@@ -1009,3 +1009,46 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithArray) {
   buffer = nullptr;
   origBuffer = nullptr;
 }
+
+CUDAQ_TEST(ParserTester, checkShotCountBufferConsistency) {
+  // 5 shots recorded, 1 fails (END 1). Parser produces buffer for 4
+  // successful shots of int64 → 32 bytes. This validates the mathematical
+  // invariant that runTheKernel relies on: bufferSize % shots == 0 when the
+  // number of results matches, and bufferSize % shots != 0 when it doesn't.
+  const std::string log =
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\n"
+      "START\nOUTPUT\tINT\t2\ti64\nEND\t0\n"
+      "START\nOUTPUT\tINT\t4\ti64\nEND\t0\n"
+      "START\nOUTPUT\tINT\t6\ti64\nEND\t1\n"
+      "START\nOUTPUT\tINT\t8\ti64\nEND\t0\n"
+      "START\nOUTPUT\tINT\t10\ti64\nEND\t0\n";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  ASSERT_NE(origBuffer, nullptr);
+  // 4 successful shots of int64 → 32 bytes
+  EXPECT_EQ(32, bufferSize);
+
+  // The condition from runTheKernel: bufferSize % shots != 0 catches mismatch
+  constexpr std::size_t requestedShots = 5;
+  EXPECT_TRUE(bufferSize % requestedShots != 0);
+
+  // With actual shot count, the check passes
+  constexpr std::size_t actualSuccessful = 4;
+  EXPECT_TRUE(bufferSize % actualSuccessful == 0);
+
+  // Verify we can read back the correct values
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  std::vector<std::int64_t> results = {
+      reinterpret_cast<std::int64_t *>(buffer),
+      reinterpret_cast<std::int64_t *>(buffer + bufferSize)};
+  EXPECT_EQ(4, results.size());
+  EXPECT_EQ(2, results[0]);
+  EXPECT_EQ(4, results[1]);
+  EXPECT_EQ(8, results[2]);
+  EXPECT_EQ(10, results[3]);
+  free(buffer);
+}

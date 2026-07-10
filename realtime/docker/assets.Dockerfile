@@ -83,6 +83,8 @@ RUN wget https://www.mellanox.com/downloads/DOCA/DOCA_v${DOCA_VERSION}/host/doca
 
 ## [CUDAQ Realtime Source]
 ADD realtime /cuda-quantum/realtime
+# Needed by realtime/unittests; the standalone build has no top-level cmake dir.
+ADD cmake/modules/CUDAQGtestDiscovery.cmake /cuda-quantum/cmake/modules/CUDAQGtestDiscovery.cmake
 
 # [HSB]
 ARG cuda_native_arg="80-real;90"
