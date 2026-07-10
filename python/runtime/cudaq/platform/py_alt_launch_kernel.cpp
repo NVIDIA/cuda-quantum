@@ -708,6 +708,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
         return true;
     return false;
   }();
+  // Hash detects changes to callables as they have been merged into `mod`.
   std::size_t moduleHash = (cacheable && hasCaptures) ? hashModuleOp(mod) : 0;
 
   // Cache hit: same kernel, same target configuration, same module content.
