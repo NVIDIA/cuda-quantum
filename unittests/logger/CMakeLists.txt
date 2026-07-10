@@ -13,7 +13,7 @@ target_link_libraries(test_chrome_tracer
   cudaq-logger
   gtest_main)
 
-gtest_discover_tests(test_chrome_tracer
+cudaq_gtest_discover_tests(test_chrome_tracer
   PROPERTIES ENVIRONMENT "CUDAQ_TIMING_TAGS=1"
   DISCOVERY_TIMEOUT 120)
 
@@ -24,7 +24,7 @@ target_link_libraries(test_cudaq_fmt_format
   cudaq-logger
   gtest_main)
 
-gtest_discover_tests(test_cudaq_fmt_format DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_cudaq_fmt_format DISCOVERY_TIMEOUT 120)
 
 add_executable(test_cudaq_log_macros CudaqLogMacrosTester.cpp)
 
@@ -33,4 +33,4 @@ target_link_libraries(test_cudaq_log_macros
   cudaq-logger
   gtest_main)
 
-gtest_discover_tests(test_cudaq_log_macros DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_cudaq_log_macros DISCOVERY_TIMEOUT 120)
