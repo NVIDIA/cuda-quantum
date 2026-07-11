@@ -315,3 +315,52 @@ func.func @simp9() {
 // CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
 // CHECK-NEXT:      return
 // CHECK-NEXT:    }
+
+func.func @simp10() {
+  %0 = quake.null_wire
+  %4 = quake.y %0 : (!quake.wire) -> !quake.wire
+  %1 = quake.reset %4 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @simp10() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[Y_0:.*]] = quake.y %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[Y_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func @simp11() {
+  %0 = quake.null_wire
+  %4 = quake.y %0 : (!quake.wire) -> !quake.wire
+  %1 = quake.reset %4 : (!quake.wire) -> !quake.wire
+  %2 = quake.reset %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.z %2 : (!quake.wire) -> !quake.wire
+  quake.sink %3 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @simp11() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[Y_0:.*]] = quake.y %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[RESET_0:.*]] = quake.reset %[[Y_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[Z_0:.*]] = quake.z %[[RESET_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[Z_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func @simp12() {
+  %0 = quake.null_wire
+  %1 = quake.reset %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.z %1 : (!quake.wire) -> !quake.wire
+  quake.sink %3 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @simp12() {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[Z_0:.*]] = quake.z %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[Z_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }

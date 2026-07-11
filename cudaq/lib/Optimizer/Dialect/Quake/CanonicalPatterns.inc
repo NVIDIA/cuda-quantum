@@ -722,13 +722,12 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
                                 PatternRewriter &rewriter) const override {
     auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     if (rotate.getTarget(0).getType() != wireTy ||
-        !rotate.getControls().empty())
+        !rotate.getControls().empty() || rotate.getNegatedQubitControls())
       return failure();
-    assert(!rotate.getNegatedQubitControls());
     auto input = rotate.getTarget(0).template getDefiningOp<OP>();
-    if (!input || !input.getControls().empty())
+    if (!input || !input.getControls().empty() ||
+        input.getNegatedQubitControls())
       return failure();
-    assert(!input.getNegatedQubitControls());
 
     // At this point, we have
     //   %input  = quake.rotate %angle1, %wire
