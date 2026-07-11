@@ -27,8 +27,9 @@ def _detail_check_conditionals_on_measure(kernel):
         return
     kernel_name = kernel.name if hasattr(kernel, 'name') else '<unknown>'
     raise RuntimeError(
-        f"`cudaq::dem_from_kernel`: kernel '{kernel_name}' branches on "
-        "a measurement result. DEM analysis not supported.")
+        f"`cudaq::dem_from_kernel`: kernel '{kernel_name}' uses a "
+        "measurement result in classical control flow or as a runtime "
+        "operand (e.g. an observable index). DEM analysis not supported.")
 
 
 @trace.traced

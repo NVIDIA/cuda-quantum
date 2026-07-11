@@ -174,6 +174,22 @@ def test_runtime_observable_index_loop():
         assert f"L{obs}" in dem_text
 
 
+def test_measurement_dependent_observable_index_rejected():
+    """A measurement result used as the `observable_index` is measurement
+    feedback: the DEM structure would depend on a random outcome. Rejected
+    through the same `qubitMeasurementFeedback` analysis that rejects
+    branching on a measurement."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        m = mz(q)
+        cudaq.logical_observable(m, observable_index=int(m))
+
+    with pytest.raises(RuntimeError, match=r"uses a measurement"):
+        cudaq.dem_from_kernel(kernel)
+
+
 def test_non_clifford_raises():
     """Non-Clifford gate triggers a Clifford-only diagnostic from Stim."""
 
@@ -295,7 +311,7 @@ def test_conditional_feedback_rejected():
         m1 = mz(q1)
         cudaq.detector(m0, m1)
 
-    with pytest.raises(RuntimeError, match=r"branches on a measurement"):
+    with pytest.raises(RuntimeError, match=r"uses a measurement"):
         cudaq.dem_from_kernel(kernel)
 
 

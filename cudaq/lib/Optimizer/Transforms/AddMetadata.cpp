@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Dialect/QEC/QECOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "llvm/Support/Debug.h"
@@ -100,7 +101,8 @@ void cudaq::quake::detail::QuakeFunctionAnalysis::performAnalysis(
     keys.pop_back();
     if (isa<cudaq::cc::IfOp, cudaq::cc::ConditionOp, cf::CondBranchOp,
             cudaq::quake::MeasurementInterface, cudaq::quake::OperatorInterface,
-            cudaq::quake::ApplyOp, CallOpInterface>(op)) {
+            cudaq::quake::ApplyOp, CallOpInterface, cudaq::qec::ObservableOp>(
+            op)) {
       data.hasConditionalsOnMeasure = true;
       data.hasQuantumDataflowViaClassical =
           isa<cudaq::quake::MeasurementInterface,

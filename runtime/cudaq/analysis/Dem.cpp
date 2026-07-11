@@ -27,7 +27,9 @@ std::string runDemFromKernel(
   if (cudaq::kernelHasConditionalFeedback(kernelName))
     throw std::runtime_error(
         "`cudaq::dem_from_kernel`: kernel '" + kernelName +
-        "' branches on a measurement result. DEM analysis not supported.");
+        "' uses a measurement result in classical control flow or as a "
+        "runtime operand (e.g. an observable index). DEM analysis not "
+        "supported.");
 
   cudaq::ExecutionContext ctx("dem");
   ctx.kernelName = kernelName;
