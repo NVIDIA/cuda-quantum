@@ -227,6 +227,12 @@ matrix:
       context_visible_first: true
       escapes: '\\[\\`~]'
       delimiters:
+      # Ignore LLVM lit RUN/XFAIL/REQUIRES/UNSUPPORTED directives
+      - open: '\/{2}\s*(RUN|XFAIL|REQUIRES|UNSUPPORTED)\b'
+        close: '$'
+      # Ignore LLVM FileCheck directives (e.g. // CHECK:, // MOCK-YAML:)
+      - open: '\/{2}\s*[A-Z][-A-Z]*:'
+        close: '$'
       # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
       - open: '\/{2}\s*namespace\s+'
         close: '($|\s)'
