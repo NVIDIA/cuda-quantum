@@ -198,5 +198,6 @@ async def get_job_results(job_id: str):
 
 
 def startServer(port):
+    cudaq.set_random_seed(13)
     import uvicorn
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

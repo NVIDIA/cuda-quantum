@@ -21,6 +21,15 @@ public:
   /// Hook to update the pass pipeline before compilation.
   virtual void updatePassPipeline(std::string &passPipeline) const {}
 
+  /// Return a hash of this target's configuration, used as a cache key to
+  /// decide whether a previously compiled module can be reused.
+  ///
+  /// A hash of 0 disables caching.
+  ///
+  /// TODO: CompileTarget should be made non-virtual. Once it is, this method
+  /// becomes unnecessary and callers can use std::hash<CompileTarget> directly.
+  virtual std::size_t hash() const;
+
   /// Whether to recompile the kernel in the presence of an AOT-compiled module.
   ///
   /// If this is `false` and an AOT-compiled kernel (in the form of a function
@@ -137,3 +146,8 @@ public:
 };
 
 } // namespace cudaq
+
+template <>
+struct std::hash<cudaq::CompileTarget> {
+  std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
+};
