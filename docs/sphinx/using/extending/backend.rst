@@ -38,8 +38,8 @@ The optional ``data/`` directory holds auxiliary files (device topologies, noise
 models, calibration data, etc.).
 
 
-REST-Style Backends (ServerHelper)
-==================================
+REST-Style Backends (Server Helper)
+===================================
 
 A REST-style backend communicates with a provider's HTTP API. You implement a
 ``ServerHelper`` subclass that handles authentication, job submission, polling,
@@ -257,8 +257,8 @@ Key fields:
 For a complete working example of a REST-style plugin, see the
 `mock_rest reference plugin <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest>`_.
 
-CMakeLists.txt
---------------
+CMake Build File
+----------------
 
 A minimal ``CMakeLists.txt`` for a REST-style plugin:
 
