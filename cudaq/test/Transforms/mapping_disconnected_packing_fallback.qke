@@ -17,6 +17,7 @@
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=greedy search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=greedy search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=auto   search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=auto   search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packing_fallback.txt) placement=greedy search=none'  %s | CircuitCheck --up-to-mapping %s
 
 quake.wire_set @wires[2147483647]

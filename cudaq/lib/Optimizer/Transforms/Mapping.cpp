@@ -476,7 +476,7 @@ buildBestFitIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
 /// packing. `budget` bounds the number of placement attempts so a pathological
 /// input can never make the compiler hang; it is decremented on every attempt
 /// and, once exhausted, unwinds the search as if no packing were found.
-static bool packComponentsBacktracking(
+bool packComponentsBacktracking(
     unsigned componentId,
     const SmallVector<SmallVector<unsigned>> &virtualComponents,
     SmallVector<IslandPlan> &plan, SmallVector<std::size_t> &remaining,
@@ -527,9 +527,18 @@ static bool packComponentsBacktracking(
 /// (or the budget is exhausted). The component ordering matches BFD so that,
 /// where both succeed, they agree, and so that the hardest components are
 /// placed first for better pruning.
+///
+/// `attemptBudget` caps the number of placement attempts; see the
+/// `island-packing-attempt-budget` pass option for the rationale and default.
+/// A value of 0 disables the exhaustive fallback entirely (best-fit-decreasing
+/// only), restoring the pre-fallback behavior.
 std::optional<SmallVector<IslandPlan>>
 buildFeasibleIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
-                        SmallVector<SmallVector<unsigned>> virtualComponents) {
+                        SmallVector<SmallVector<unsigned>> virtualComponents,
+                        std::size_t attemptBudget) {
+  if (attemptBudget == 0)
+    return std::nullopt;
+
   llvm::sort(virtualComponents, [](const auto &lhs, const auto &rhs) {
     if (lhs.size() != rhs.size())
       return lhs.size() > rhs.size();
@@ -556,9 +565,11 @@ buildFeasibleIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
     return std::nullopt;
 
   // Safety valve against adversarial inputs. This is only reached after BFD has
-  // already failed, and realistic disconnected devices have a handful of
-  // islands and components, so the bound is never approached in practice.
-  std::size_t budget = std::size_t(1) << 20;
+  // already failed. Realistic (feasible) disconnected devices settle in a
+  // handful of attempts; the budget bounds the cost of proving infeasibility on
+  // pathological all-distinct-capacity instances, where hitting the cap yields
+  // the same "no packing" result the exhaustive proof would.
+  std::size_t budget = attemptBudget;
   if (!packComponentsBacktracking(/*componentId=*/0, virtualComponents, plan,
                                   remaining, budget))
     return std::nullopt;
@@ -574,7 +585,8 @@ buildFeasibleIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
 std::optional<SmallVector<unsigned>>
 buildGreedySeed(unsigned numV, const cudaq::Device &device,
                 const VirtualInteractionGraph &interactions,
-                ArrayRef<bool> userVirtualQubits) {
+                ArrayRef<bool> userVirtualQubits,
+                std::size_t islandPackingAttemptBudget) {
   SmallVector<SmallVector<unsigned>> deviceIslands =
       computeDeviceIslands(device);
   SmallVector<SmallVector<unsigned>> virtualComponents =
@@ -589,7 +601,8 @@ buildGreedySeed(unsigned numV, const cudaq::Device &device,
   auto plan = buildBestFitIslandPlan(deviceIslands, virtualComponents);
   if (!plan)
     plan = buildFeasibleIslandPlan(std::move(deviceIslands),
-                                   std::move(virtualComponents));
+                                   std::move(virtualComponents),
+                                   islandPackingAttemptBudget);
   if (!plan)
     return std::nullopt;
 
@@ -633,11 +646,10 @@ void pushSeedIfNew(SmallVector<SmallVector<unsigned>> &seeds,
 /// Generate the seed layouts to try, in deterministic order. Each seed only
 /// proposes a starting virtual-to-physical qubit mapping. The router decides
 /// the rest.
-SmallVector<SmallVector<unsigned>>
-buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
-                    const cudaq::Device &device,
-                    const VirtualInteractionGraph &interactions,
-                    ArrayRef<bool> userVirtualQubits) {
+SmallVector<SmallVector<unsigned>> buildPlacementSeeds(
+    PlacementStrategy strategy, unsigned numV, const cudaq::Device &device,
+    const VirtualInteractionGraph &interactions,
+    ArrayRef<bool> userVirtualQubits, std::size_t islandPackingAttemptBudget) {
   SmallVector<SmallVector<unsigned>> seeds;
 
   if (strategy == PlacementStrategy::Auto ||
@@ -651,7 +663,8 @@ buildPlacementSeeds(PlacementStrategy strategy, unsigned numV,
   if (strategy == PlacementStrategy::Auto ||
       strategy == PlacementStrategy::Greedy) {
     if (auto greedy =
-            buildGreedySeed(numV, device, interactions, userVirtualQubits)) {
+            buildGreedySeed(numV, device, interactions, userVirtualQubits,
+                            islandPackingAttemptBudget)) {
       // For `auto`, greedy degenerates to identity when there are no
       // interactions to place, so skip the duplicate rather than route the
       // identity layout twice.
@@ -2633,9 +2646,9 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     const unsigned numV = sources.size();
     const unsigned numPhy = deviceInstance->getNumQubits();
 
-    SmallVector<SmallVector<unsigned>> seeds =
-        buildPlacementSeeds(placementStrategy, numV, *deviceInstance,
-                            interactions, userVirtualQubits);
+    SmallVector<SmallVector<unsigned>> seeds = buildPlacementSeeds(
+        placementStrategy, numV, *deviceInstance, interactions,
+        userVirtualQubits, islandPackingAttemptBudget);
     std::optional<std::pair<unsigned, unsigned>> identityBlockedInteraction;
     auto shouldDiscardSeed = [&](ArrayRef<unsigned> seed) {
       auto blocked =
@@ -2852,6 +2865,8 @@ struct MappingPipelineOptions
                      "stall-swap-budget-per-qubit");
   DECLARE_SUB_OPTION(MappingFuncOptions, placement, "placement");
   DECLARE_SUB_OPTION(MappingFuncOptions, search, "search");
+  DECLARE_SUB_OPTION(MappingFuncOptions, islandPackingAttemptBudget,
+                     "island-packing-attempt-budget");
   PassOptions::Option<bool> nonComposable{*this, "raise-fatal-errors"};
 };
 
@@ -2883,6 +2898,8 @@ void registerMappingPipeline() {
         setIt(funcOpts.stallSwapBudgetPerQubit, opt.stallSwapBudgetPerQubit);
         setIt(funcOpts.placement, opt.placement);
         setIt(funcOpts.search, opt.search);
+        setIt(funcOpts.islandPackingAttemptBudget,
+              opt.islandPackingAttemptBudget);
         setIt(funcOpts.nonComposable, opt.nonComposable);
         pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(funcOpts));
       });
