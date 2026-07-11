@@ -150,7 +150,41 @@ cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge);
 /// disconnect).
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 
-#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 1
+/// @brief Retrieve the CPU data-plane for the single-thread unified host
+/// dispatch loop.  Returns CUDAQ_ERR_UNSUPPORTED when the provider predates
+/// interface version 2 or does not implement the unified shape.
+cudaq_status_t
+cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
+                               cudaq_cpu_dataplane_t *out_dataplane);
+
+/// @brief Write a one-line, space-separated `key=value` description of the
+/// provider's live endpoint (e.g. "transport=udp port=45678" or
+/// "transport=cpu_roce port=9000 roce_ip=10.0.0.2 qp=0x1a rkey=1234") into
+/// `buf`.  Valid as soon as create() returns, so a server can publish its
+/// rendezvous endpoint BEFORE connect() blocks waiting for the peer.  Returns
+/// CUDAQ_ERR_UNSUPPORTED when the provider predates interface version 2 or
+/// has nothing to report.
+cudaq_status_t
+cudaq_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t bridge, char *buf,
+                               size_t buf_len);
+
+/// @brief Retrieve the provider's ring geometry so dispatcher configuration
+/// can be derived from the transport instead of duplicated by the caller.
+/// Returns CUDAQ_ERR_UNSUPPORTED when the provider predates interface
+/// version 2.
+cudaq_status_t
+cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
+                               uint32_t *out_num_slots,
+                               uint32_t *out_slot_size);
+
+/// Version 2 adds the capability queries after `disconnect`:
+/// `get_cpu_dataplane`, `get_endpoint_info`, and `get_ring_geometry`.  The
+/// loader accepts providers reporting any version in [1, CURRENT]; fields
+/// beyond `disconnect` are only read from providers reporting version >= 2
+/// (a v1 provider's struct may simply end at `disconnect`).  A v2 provider
+/// sets entries it does not support to NULL; the corresponding API calls
+/// return CUDAQ_ERR_UNSUPPORTED.
+#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 2
 
 /// @brief Interface struct for transport layer providers.  Each provider must
 /// implement this interface and provide a `getter` function
@@ -168,11 +202,28 @@ typedef struct {
   cudaq_status_t (*launch)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
 
+  //--------------------------------------------------------------------------
+  // Version 2 fields.  Read only when `version >= 2`; each may be NULL when
+  // the provider does not support the capability (the API wrappers then
+  // return CUDAQ_ERR_UNSUPPORTED).
+  //--------------------------------------------------------------------------
+
   /// Fills *out with the ring data-plane the library's single-thread
   /// unified CPU loop drives. `out` must be set to NULL if the transport does
   /// not support the unified shape.
   cudaq_status_t (*get_cpu_dataplane)(cudaq_realtime_bridge_handle_t,
                                       cudaq_cpu_dataplane_t *out);
+
+  /// One-line `key=value` endpoint description; see
+  /// cudaq_bridge_get_endpoint_info.
+  cudaq_status_t (*get_endpoint_info)(cudaq_realtime_bridge_handle_t,
+                                      char *buf, size_t buf_len);
+
+  /// Ring geometry (slot count / slot stride); see
+  /// cudaq_bridge_get_ring_geometry.
+  cudaq_status_t (*get_ring_geometry)(cudaq_realtime_bridge_handle_t,
+                                      uint32_t *out_num_slots,
+                                      uint32_t *out_slot_size);
 
 } cudaq_realtime_bridge_interface_t;
 
