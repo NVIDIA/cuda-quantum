@@ -112,7 +112,7 @@ jobs:
             # cmake shipped with ubi9 is too old (3.20), so use the Kitware .sh installer.
             retry_dnf install -y wget
             wget -q https://github.com/Kitware/CMake/releases/download/v4.0.7/cmake-4.0.7-linux-$(uname -m).sh -O cmake-install.sh
-            bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+            bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
             rm cmake-install.sh
           else
             # TODO: use official apt repo once upgraded to Ubuntu 26.04.

@@ -69,7 +69,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False python3-devel ccach
 # Install CMake >= 4.0 and Ninja >= 1.10
 ARG CMAKE_VERSION=4.0.7
 RUN curl -L https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).sh -o cmake-install.sh \
-    && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
+    && bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local \
     && rm cmake-install.sh
 
 ARG NINJA_VERSION=1.12.1

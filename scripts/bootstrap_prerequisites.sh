@@ -307,7 +307,7 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       mv "cmake-${CMAKE_VERSION}-macos-universal/CMake.app/Contents/share/"* "$HOME/.local/share/"
     else
       wget "${CMAKE_LINUX_INSTALLER_URL_BASE}$(uname -m).sh" -O cmake-install.sh
-      bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+      bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
     fi
     popd
   fi

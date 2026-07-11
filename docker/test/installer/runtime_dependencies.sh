@@ -150,7 +150,7 @@ fi
 if [ -n "${INSTALL_CMAKE_VERSION}" ]; then
     wget -q "https://github.com/Kitware/CMake/releases/download/v${INSTALL_CMAKE_VERSION}/cmake-${INSTALL_CMAKE_VERSION}-linux-$(uname -m).sh" \
         -O cmake-install.sh
-    bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+    bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
     rm cmake-install.sh
 fi
 
