@@ -266,11 +266,11 @@ jobs:
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
-    if: false
+    if: github.event_name != 'merge_group'
     strategy:
       matrix:
         platform: [amd64]
-      fail-fast: ${{ github.event_name == 'merge_group' }}
+      fail-fast: false
     uses: ./.github/workflows/generate_cc.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -280,6 +280,7 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
 
   # Docker images are packaging, not correctness — only built on merge_group/dispatch.
   docker_image:
