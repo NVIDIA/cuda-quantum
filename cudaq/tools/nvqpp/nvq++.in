@@ -147,24 +147,19 @@ function list_simulators {
 }
 
 # make_intermediate_file <path> <var>
-# Without -save-temps: flat unique name in $TMPDIR via mktemp (kernel.dcl.qke ->
-# /tmp/kernel.dcl.XXXXXX.qke), tracked in TMPFILES. With -save-temps: use <path>
-# as-is in the cwd. Must not be called in $(...).
-# Only the substring after the last '.' is treated as the extension (${name%.*}).
+# Without -save-temps: flat unique name in $TMPDIR (kernel.dcl.qke ->
+# /tmp/kernel.dcl.qke.a1B2c3), tracked in TMPFILES. With -save-temps: use
+# <path> as-is in the cwd. Must not be called in $(...).
+# mktemp requires the random X's to be trailing on both GNU and BSD/macOS, so
+# the unique suffix is appended after the full basename (tools use the path as-is).
 function make_intermediate_file {
 	local path="$1" __outvar="$2" result
 	if ${DELETE_TEMPS}; then
-		local name stem ext tmpl
+		local name
 		# e.g. sub/kernel.dcl.qke -> kernel.dcl.qke
 		name=$(basename "${path}")
-		# e.g. kernel.dcl.qke -> kernel.dcl; kernel.codegen.ll -> kernel.codegen
-		stem="${name%.*}"
-		# e.g. kernel.dcl.qke -> .qke; kernel.codegen.ll -> .ll
-		ext="${name#${stem}}"
-		# e.g. kernel.dcl.qke -> kernel.dcl.XXXXXX.qke (flat, under $TMPDIR)
-		tmpl="${stem}.XXXXXX${ext}"
-		# e.g. kernel.dcl.XXXXXX.qke -> /tmp/kernel.dcl.a1B2c3.qke
-		result=$(mktemp --tmpdir="${TMPDIR:-/tmp}" "${tmpl}") || error_exit "mktemp failed for ${path}"
+		# e.g. kernel.dcl.qke -> /tmp/kernel.dcl.qke.a1B2c3
+		result=$(mktemp "${TMPDIR:-/tmp}/${name}.XXXXXX") || error_exit "mktemp failed for ${path}"
 		TMPFILES="${TMPFILES} ${result}"
 	else
 		# e.g. kernel.dcl.qke -> kernel.dcl.qke in the cwd (unchanged)
