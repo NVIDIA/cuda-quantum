@@ -146,12 +146,38 @@ function list_simulators {
 	done
 }
 
+# make_intermediate_file <path> <var>
+# Without -save-temps: flat unique name in $TMPDIR via mktemp (kernel.dcl.qke ->
+# /tmp/kernel.dcl.XXXXXX.qke), tracked in TMPFILES. With -save-temps: use <path>
+# as-is in the cwd. Must not be called in $(...).
+# Only the substring after the last '.' is treated as the extension (${name%.*}).
+function make_intermediate_file {
+	local path="$1" __outvar="$2" result
+	if ${DELETE_TEMPS}; then
+		local name stem ext tmpl
+		# e.g. sub/kernel.dcl.qke -> kernel.dcl.qke
+		name=$(basename "${path}")
+		# e.g. kernel.dcl.qke -> kernel.dcl; kernel.codegen.ll -> kernel.codegen
+		stem="${name%.*}"
+		# e.g. kernel.dcl.qke -> .qke; kernel.codegen.ll -> .ll
+		ext="${name#${stem}}"
+		# e.g. kernel.dcl.qke -> kernel.dcl.XXXXXX.qke (flat, under $TMPDIR)
+		tmpl="${stem}.XXXXXX${ext}"
+		# e.g. kernel.dcl.XXXXXX.qke -> /tmp/kernel.dcl.a1B2c3.qke
+		result=$(mktemp --tmpdir="${TMPDIR:-/tmp}" "${tmpl}") || error_exit "mktemp failed for ${path}"
+		TMPFILES="${TMPFILES} ${result}"
+	else
+		# e.g. kernel.dcl.qke -> kernel.dcl.qke in the cwd (unchanged)
+		result="${path}"
+	fi
+	printf -v "${__outvar}" '%s' "${result}"
+}
+
 function get_simulation_backend {
 	config_file="${install_dir}/targets/$1.yml"
 	if [ -f "$config_file" ]; then
-		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
+		make_intermediate_file nvqppSimTargetBuildConfig.sh OUT_CONFIG_FILENAME
 		run ${TOOLBIN}cudaq-target-conf -o ${OUT_CONFIG_FILENAME} $config_file
-		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
 		line=$(grep "NVQIR_SIMULATION_BACKEND=" "${OUT_CONFIG_FILENAME}")
 		if [ $? -eq 0 ]; then
 			echo ${line#*=} | tr -d '"'
@@ -246,7 +272,9 @@ function show_help {
 	Append a pass to the pass pipeline by specifying its name in the pass pipeline syntax, e.g. <dialect>.<opname>(passname).
 
 -save-temps
-	Save temporary files.
+	Save intermediate files locally (e.g. <input>.ll, <input>.qke).
+	Parallel nvq++ invocations with -save-temps may still collide on
+	sources that share the same basename.
 
 -o=<obj>
 	Specify the output file.
@@ -629,6 +657,22 @@ while [ $# -ne 0 ]; do
 		OUTPUTFILE="$2"
 		shift
 		;;
+	-MT|-MF)
+		# GNU-style dependency-file flags (e.g. CMake's Ninja generator
+		# unconditionally appends "-MD -MT <obj> -MF <depfile>" to every
+		# CXX_COMPILER rule once it detects a GNU/Clang-family compiler,
+		# regardless of this custom driver script). Both take a separate
+		# argument; without an explicit case here, that argument (e.g. the
+		# object path after -MT, which ends in ".o") falls through to the
+		# "*.o" pattern below and gets misparsed as an object file to link,
+		# leaving -MT/-MF without their value and the depfile never written
+		# -- which then makes Ninja fail with "no such file or directory"
+		# reading the (nonexistent) depfile. Keep the flag and its value
+		# together, same as -isysroot's --Xcudaq forwarding above.
+		ARGS="${ARGS} $1 $2"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1 --Xcudaq $2"
+		shift
+		;;
 	-o=*)
 		OUTPUTOPTS="-o ${arg#*=}"
 		OUTPUTFILE="${arg#*=}"
@@ -718,11 +762,10 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
 	GEN_TARGET_BACKEND=false
 	if [ -f "${TARGET_CONFIG_YML_FILE}" ]; then
-		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
+		make_intermediate_file nvqppTargetBuildConfig.sh OUT_CONFIG_FILENAME
 		run ${TOOLBIN}cudaq-target-conf --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_YML_FILE}
 		# Load the generated config variables
 		. "${OUT_CONFIG_FILENAME}"
-		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
 	else
 		error_exit "Invalid Target: ($TARGET_CONFIG)"
 	fi
@@ -903,32 +946,44 @@ for i in ${SRCS}; do
 	file_with_suffix=$(basename $i)
 	file=${file_with_suffix%.*}
 
+	# The final object file is only an intermediate when we are linking an
+	# executable. With an explicit -c (DO_LINK=false) it is a persistent
+	# deliverable, so keep its predictable ${file}.o name.
+	if ${DO_LINK}; then
+		make_intermediate_file ${file}.o OBJ_FILE
+	else
+		OBJ_FILE=${file}.o
+	fi
+
 	# If the target enables library mode (orca-photonics), then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
-		run ${CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i
-		OBJS="${OBJS} ${file}.o"
+		run ${CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${OBJ_FILE} -c $i
+		OBJS="${OBJS} ${OBJ_FILE}"
 		# Go to the next iteration, maybe there
 		# will be cudaq kernels there
 		continue
 	fi
 
+	make_intermediate_file ${file}.qke QKE_FILE
+	make_intermediate_file ${file}.ll LL_FILE
+	make_intermediate_file ${file}.dcl.qke DCL_FILE
+	make_intermediate_file ${file}.codegen.ll QUAKELL_FILE
+	make_intermediate_file ${file}.pre.ll PRE_LL_FILE
+	make_intermediate_file ${file}.qke.o QKE_OBJ
+	make_intermediate_file ${file}.classic.o CLASSIC_OBJ
+
 	# If we make it here, we have CUDA-Q kernels, need to map to MLIR and
 	# output an LLVM file for the classical code
-	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
-	TMPFILES="${TMPFILES} ${file}.ll ${file}.qke"
+	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file=${LL_FILE} $i -o ${QKE_FILE}
 
 	# Run the MLIR passes
-	QUAKE_IN=${file}.qke
+	QUAKE_IN=${QKE_FILE}
 	if [ -f ${QUAKE_IN} ]; then
 		if ${RUN_OPT}; then
-			DCL_FILE=$(mktemp ${file}.qke.XXXXXX)
-			TMPFILES="${TMPFILES} ${DCL_FILE} ${DCL_FILE}.o"
 			run ${TOOLBIN}cudaq-opt ${CUDAQ_OPT_ARGS} --pass-pipeline="${OPT_PASSES}" ${QUAKE_IN} -o ${DCL_FILE}
 			QUAKE_IN=${DCL_FILE}
 		fi
-		QUAKELL_FILE=$(mktemp ${file}.ll.XXXXXX)
-		TMPFILES="${TMPFILES} ${QUAKELL_FILE}"
 
 		# FIXME This next step needs to be extensible... 
 		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${PLATFORM_TRANSPORT_LAYER} ${QUAKE_IN} -o ${QUAKELL_FILE}
@@ -938,25 +993,20 @@ for i in ${SRCS}; do
 		fi
 
 		# Rewrite internal linkages so we can override the function.
-		mv ${file}.ll ${file}.pre.ll
-		TMPFILES="${TMPFILES} ${file}.pre.ll"
-		run ${install_dir}/bin/fixup-linkage ${file}.qke ${file}.pre.ll ${file}.ll
+		run mv ${LL_FILE} ${PRE_LL_FILE}
+		run ${install_dir}/bin/fixup-linkage ${QKE_FILE} ${PRE_LL_FILE} ${LL_FILE}
 
 		# Lower our LLVM to object files
-		run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${file}.qke.o
-		QUAKE_OBJ="${file}.qke.o"
+		run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${QKE_OBJ}
+		QUAKE_OBJ=${QKE_OBJ}
 	else
 		QUAKE_OBJ=
 	fi
-	run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${file}.ll -o ${file}.classic.o
-	TMPFILES="${TMPFILES} ${file}.qke.o ${file}.classic.o"
-	if ${DO_LINK}; then
-		TMPFILES="${TMPFILES} ${file}.o"
-	fi
+	run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${LL_FILE} -o ${CLASSIC_OBJ}
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${CXX} ${RELOCATABLE_EXTRA_FLAGS} ${RELOCATABLE_LINKER_PATH} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
-	OBJS="${OBJS} ${file}.o"
+	run ${CXX} ${RELOCATABLE_EXTRA_FLAGS} ${RELOCATABLE_LINKER_PATH} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${CLASSIC_OBJ} -o ${OBJ_FILE}
+	OBJS="${OBJS} ${OBJ_FILE}"
 done
 
 if ${DO_LINK}; then
