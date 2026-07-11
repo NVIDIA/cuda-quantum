@@ -1,4 +1,5 @@
 clang
+config
 gcc
 nullary
 pre
