@@ -46,4 +46,23 @@ if(CUDAQ_ENABLE_PYTHON)
   add_dependencies(test_target_config cudaq-dlopen-sentinel-plugin)
 endif()
 
-gtest_discover_tests(test_target_config DISCOVERY_TIMEOUT 120)
+if(CUDAQ_ENABLE_PYTHON)
+  target_include_directories(test_target_config PRIVATE
+    ${CMAKE_SOURCE_DIR}/python/utils
+  )
+  # libcudaq.so has an unresolved reference to getRegisteredExecutionManager
+  # that is normally provided at runtime by an execution manager plugin.
+  # Link the default execution manager to satisfy it; this test does not
+  # actually execute any kernels.
+  target_link_libraries(test_target_config
+    PRIVATE cudaq cudaq-py-utils cudaq-em-default MLIRIR)
+  target_compile_definitions(test_target_config PRIVATE CUDAQ_ENABLE_PYTHON)
+  target_compile_definitions(test_target_config
+    PRIVATE
+      "CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH=\"$<TARGET_FILE:cudaq-dlopen-sentinel-plugin>\""
+      "CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME=\"$<TARGET_FILE_NAME:cudaq-dlopen-sentinel-plugin>\""
+  )
+  add_dependencies(test_target_config cudaq-dlopen-sentinel-plugin)
+endif()
+
+cudaq_gtest_discover_tests(test_target_config DISCOVERY_TIMEOUT 120)

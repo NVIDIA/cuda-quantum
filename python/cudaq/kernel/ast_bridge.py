@@ -35,8 +35,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType)
+                    recover_annotation_of_or_none, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType)
 
 State = cudaq_runtime.State
 
@@ -1927,9 +1927,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.debug_msg(lambda: f'Visiting inner FunctionDef {node.name}')
             lambdaFct = self.__createFunctionWithinKernel(
                 node.args.args, node.body)
-            assignNode = ast.Assign()
-            assignNode.targets = [ast.Name(node.name)]
-            assignNode.value = lambdaFct
+            assignNode = ast.Assign(targets=[ast.Name(node.name)],
+                                    value=lambdaFct)
             assignNode.lineno = node.lineno
             self.visit_Assign(assignNode)
             return
@@ -1984,19 +1983,20 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable.beginBlock()
                 # Process function arguments like any other assignments.
                 if node.args.args:
-                    assignNode = ast.Assign()
                     if len(node.args.args) == 1:
-                        assignNode.targets = [ast.Name(node.args.args[0].arg)]
-                        assignNode.value = entry_block.arguments[0]
+                        assignTargets = [ast.Name(node.args.args[0].arg)]
+                        assignValue = entry_block.arguments[0]
                     else:
-                        assignNode.targets = [
+                        assignTargets = [
                             ast.Tuple(
                                 [ast.Name(arg.arg) for arg in node.args.args])
                         ]
-                        assignNode.value = [
+                        assignValue = [
                             entry_block.arguments[idx]
                             for idx in range(len(entry_block.arguments.types))
                         ]
+                    assignNode = ast.Assign(targets=assignTargets,
+                                            value=assignValue)
                     assignNode.lineno = node.lineno
                     self.visit_Assign(assignNode)
 
@@ -4296,11 +4296,10 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitWarning(
                 "produced elements in list comprehension contain None - "
                 "expression will be evaluated but no list is generated", node)
-            forNode = ast.For()
-            forNode.iter = node.generators[0].iter
-            forNode.target = node.generators[0].target
-            forNode.body = [node.elt]
-            forNode.orelse = []
+            forNode = ast.For(target=node.generators[0].target,
+                              iter=node.generators[0].iter,
+                              body=[node.elt],
+                              orelse=[])
             forNode.lineno = node.lineno
             # This loop could be marked as invariant if we didn't use
             # `visit_For`, but that would be premature optimization.
@@ -5140,9 +5139,7 @@ class PyASTBridge(ast.NodeVisitor):
             values = getValues(iterVar)
             # We need to create proper assignments to the loop
             # iteration variable(s) to have consistent behavior.
-            assignNode = ast.Assign()
-            assignNode.targets = [node.target]
-            assignNode.value = values
+            assignNode = ast.Assign(targets=[node.target], value=values)
             assignNode.lineno = node.lineno
             self.visit(assignNode)
             [self.visit(b) for b in stmts]
@@ -5956,7 +5953,22 @@ class PyASTBridge(ast.NodeVisitor):
             assert not node.id in self.signature.captured_variable_names()
 
             # Append as a new argument
-            argTy = mlirTypeFromPyType(type(value), self.ctx, argInstance=value)
+            if isinstance(value, list) and len(value) == 0:
+                annotation = recover_annotation_of_or_none(
+                    node.id, self.defFrame)
+                if annotation is None:
+                    self.emitFatalError(
+                        f"Cannot infer the element type of the captured empty "
+                        f"list '{node.id}'. Annotate it at module scope (e.g. "
+                        f"`{node.id}: list[float] = []`) or use a typed numpy "
+                        f"array (e.g. `{node.id} = np.array([], "
+                        f"dtype=np.float64)`) so the type can be recovered.",
+                        node)
+                argTy = mlirTypeFromPyType(annotation, self.ctx)
+            else:
+                argTy = mlirTypeFromPyType(type(value),
+                                           self.ctx,
+                                           argInstance=value)
             mlirVal = cudaq_runtime.appendKernelArgument(
                 self.kernelFuncOp, argTy)
             self.signature.add_variable_capture(node.id, argTy)

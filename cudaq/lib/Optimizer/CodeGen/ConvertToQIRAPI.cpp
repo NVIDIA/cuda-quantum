@@ -1197,6 +1197,17 @@ struct WrapOpErase : public OpConversionPattern<cudaq::quake::WrapOp> {
   }
 };
 
+struct WrapNewOpErase : public OpConversionPattern<cudaq::quake::WrapNewOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::WrapNewOp wrap, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOp(wrap, adaptor.getWireValue());
+    return success();
+  }
+};
+
 struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -2248,8 +2259,8 @@ static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         MLIRContext *ctx) {
   patterns.insert<ApplyOpTrap, CallByRefOpRewrite, GetMemberOpRewrite,
                   MakeStruqOpRewrite, ReturnOpPattern, RelaxSizeOpErase,
-                  UnwrapOpErase, VeqSizeOpRewrite, WrapOpErase>(typeConverter,
-                                                                ctx);
+                  UnwrapOpErase, VeqSizeOpRewrite, WrapOpErase, WrapNewOpErase>(
+      typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2846,9 +2857,11 @@ struct QuakeToQIRAPIPrepPass
     {
       auto *ctx = &getContext();
       RewritePatternSet patterns(ctx);
+      ConversionTarget target(*ctx);
+      cudaq::opt::setQuakeToCCPrepLegality(target);
       QIRAPITypeConverter typeConverter(opaquePtr);
       cudaq::opt::populateQuakeToCCPrepPatterns(patterns);
-      if (failed(applyPatternsGreedily(module, std::move(patterns)))) {
+      if (failed(applyPartialConversion(module, target, std::move(patterns)))) {
         signalPassFailure();
         return;
       }

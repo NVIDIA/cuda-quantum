@@ -217,15 +217,58 @@ def recover_value_of_or_none(name, frame=None):
         del frame
 
 
-def is_recovered_value_ok(result):
+def _annotations_of_namespace(namespace):
+    annotations = namespace.get('__annotations__')
+    if annotations is not None:
+        return annotations
+    # Python 3.14 (PEP 649) evaluates annotations lazily: the namespace holds
+    # an `__annotate__` function and `__annotations__` only appears in the
+    # dict once accessed as a module/class attribute.
+    annotate = namespace.get('__annotate__')
+    if annotate is None:
+        return {}
     try:
-        if result != None:
-            return True
-    except ValueError:
-        # `nd.array` values raise `ValueError` with the above `if result` but
-        # are otherwise legit here.
-        return True
-    return False
+        return annotate(1)  # 1 = `annotationlib.Format.VALUE`
+    except Exception:
+        return {}
+
+
+def recover_annotation_of_or_none(name, frame=None):
+    """
+    Recover the type annotation of the symbol `name` from the enclosing
+    context, mirroring the frame walk of `recover_value_of_or_none`. Only
+    annotations stored in a `namespace's` `__annotations__` (e.g. a module-level
+    `name: list[float] = []`) are recoverable.
+    """
+    if '.' in name:
+        return None
+
+    try:
+        if frame is None:
+            frame = inspect.currentframe()
+            while frame is not None and get_module_name(frame).startswith(
+                    "cudaq.kernel"):
+                frame = frame.f_back
+
+        while frame is not None:
+            for namespace in (frame.f_locals, frame.f_globals):
+                if name in namespace:
+                    annotation = _annotations_of_namespace(namespace).get(name)
+                    if isinstance(annotation, str):
+                        try:
+                            annotation = eval(annotation, frame.f_globals,
+                                              frame.f_locals)
+                        except Exception:
+                            return None
+                    return annotation
+            frame = frame.f_back
+        return None
+    finally:
+        del frame
+
+
+def is_recovered_value_ok(result):
+    return result is not None
 
 
 def recover_value_of(name, frame=None):
@@ -669,6 +712,12 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             'argTypeToCompareTo'] if 'argTypeToCompareTo' in kwargs else None
 
         if len(argInstance) == 0:
+            if isinstance(argInstance, np.ndarray):
+                eleTy = mlirTypeFromPyType(argInstance.dtype.type, ctx)
+                for _ in range(argInstance.ndim - 1):
+                    eleTy = cc.StdvecType.get(eleTy, ctx)
+                return cc.StdvecType.get(eleTy, ctx)
+
             if argTypeToCompareTo == None:
                 emitFatalError('Cannot infer runtime argument type')
 
@@ -681,8 +730,12 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                     type(argInstance[0]),
                     ctx,
                     argInstance=argInstance[0],
-                    argTypeToCompareTo=cc.StdvecType.getElementType(
-                        argTypeToCompareTo)), ctx)
+                    argTypeToCompareTo=(
+                        cc.StdvecType.getElementType(argTypeToCompareTo)
+                        if argTypeToCompareTo is not None else None)), ctx)
+
+        if isinstance(argInstance[0], str):
+            return cc.StdvecType.get(cc.CharspanType.get(ctx), ctx)
 
         return cc.StdvecType.get(mlirTypeFromPyType(type(argInstance[0]), ctx),
                                  ctx)
