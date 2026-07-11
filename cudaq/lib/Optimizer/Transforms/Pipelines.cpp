@@ -74,7 +74,7 @@ struct TargetFinalizationJitPipelineOptions
 
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
@@ -118,6 +118,7 @@ createEmulationTargetPrepPipeline(OpPassManager &pm,
                                   const TargetPrepPipelineOptions &options) {
   if (options.eraseNoise)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
   createTargetPrepPipeline(pm, options);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
@@ -208,7 +209,7 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

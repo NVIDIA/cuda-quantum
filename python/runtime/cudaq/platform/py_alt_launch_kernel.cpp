@@ -40,6 +40,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/OperationSupport.h"
 #include "mlir/InitAllPasses.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -453,8 +454,11 @@ void cudaq::packArgs(
               handleStructMemberVariable<style>(allocatedArg, offsets[i],
                                                 memberTys[i], elements[i]);
           } else {
-            nanobind::dict attributes =
-                nanobind::cast<nanobind::dict>(arg.attr("__annotations__"));
+            // Read field annotations from the struct's class. On Python
+            // 3.14 (PEP 749) `__annotations__` is no longer accessible on
+            // instances, only on the class, so go through `__class__`.
+            nanobind::dict attributes = nanobind::cast<nanobind::dict>(
+                arg.attr("__class__").attr("__annotations__"));
             for (std::size_t i = 0;
                  const auto &[attr_name, unused] : attributes) {
               nanobind::object attr_value =
@@ -646,68 +650,39 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
   runtimeArgs.emplace_back(buf, [](void *ptr) { std::free(ptr); });
 }
 
-/// In a sample launch context, the (`JIT` compiled) CompiledModule may be
-/// cached so that it can be called many times in a loop without being
-/// recompiled. This exploits the fact that the arguments processed at the
-/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
-template <std::invocable F>
-  requires std::is_invocable_r_v<cudaq::CompiledModule, F>
-static cudaq::CompiledModule with_compiled_module_cache(F &&f) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
+/// Compute a hash of the IR given by the `ModuleOp`.
+static std::size_t hashModuleOp(ModuleOp mod) {
+  llvm::hash_code h{0};
+  mod.walk([&h](Operation *op) {
+    h = llvm::hash_combine(h, OperationEquivalence::computeHash(op));
+  });
+  return static_cast<std::size_t>(h);
+}
 
-  auto getCache = [currentExecCtx]() -> std::optional<cudaq::CompiledModule> {
-    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching)
-      return currentExecCtx->cachedCompiledModule;
-    return std::nullopt;
-  };
-  auto saveCache = [currentExecCtx](cudaq::CompiledModule compiled) {
-    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching) {
-      if (!currentExecCtx->cachedCompiledModule)
-        currentExecCtx->cachedCompiledModule = compiled;
+/// Obtain a fresh `CompileTarget` for the current execution context.
+static std::unique_ptr<cudaq::CompileTarget> getCompileTargetImpl() {
+  auto *ctx = cudaq::getExecutionContext();
+  if (!ctx)
+    return cudaq::get_compile_target(cudaq::other_policies{});
+
+  return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
+    using Policy = std::decay_t<decltype(policy)>;
+    if constexpr (std::is_same_v<Policy, cudaq::observe_policy>) {
+      policy.spin = ctx->spin.value();
     }
-  };
-
-  auto cachedModule = getCache();
-  if (cachedModule)
-    return *cachedModule;
-  auto compiled = f();
-  saveCache(compiled);
-  return compiled;
+    return cudaq::get_compile_target(policy);
+  });
 }
 
 static cudaq::CompiledModule
 compileModuleImpl(const std::string &name, ModuleOp mod,
-                  const std::vector<void *> &rawArgs, bool isEntryPoint) {
+                  const std::vector<void *> &rawArgs, bool isEntryPoint,
+                  std::unique_ptr<cudaq::CompileTarget> target = nullptr) {
+  if (!target)
+    target = getCompileTargetImpl();
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
-
-  // Only cache on local simulators
-  auto cacheable =
-      cudaq::is_simulator_platform() && !cudaq::is_emulated_platform();
-
-  auto compile = [&]() {
-    cudaq::CompiledModule compiled;
-    auto *ctx = cudaq::getExecutionContext();
-    if (!ctx) {
-      auto target = cudaq::get_compile_target(cudaq::other_policies{});
-      return cudaq_internal::compiler::compileModule(std::move(target), src,
-                                                     {rawArgs}, isEntryPoint);
-    }
-
-    return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
-      using Policy = std::decay_t<decltype(policy)>;
-      if constexpr (std::is_same_v<Policy, cudaq::observe_policy>) {
-        policy.spin = ctx->spin.value();
-      }
-      auto target = cudaq::get_compile_target(policy);
-      return cudaq_internal::compiler::compileModule(std::move(target), src,
-                                                     {rawArgs}, isEntryPoint);
-    });
-  };
-
-  if (!cacheable) {
-    return compile();
-  }
-  return with_compiled_module_cache(compile);
+  return cudaq_internal::compiler::compileModule(std::move(target), src,
+                                                 {rawArgs}, isEntryPoint);
 }
 
 // Launching the module \p mod will modify its content, such as by argument
@@ -717,38 +692,48 @@ static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                cudaq::CompiledModule *cachedModule,
                const std::vector<void *> &rawArgs) {
-  bool isCachable = [&]() {
-    // Must have a slot to read/write the cache from. Callers opt out of the
-    // cache by passing nullptr.
-    if (!cachedModule)
-      return false;
-    auto &platform = cudaq::get_platform();
-    // Must be local simulator
-    if (!platform.is_simulator() || platform.is_emulated())
-      return false;
+  auto target = getCompileTargetImpl();
+  auto targetHash = target->hash();
+
+  // We don't cache kernels that inline all arguments, as any change to the
+  // runtime arguments would invalidate the cache. Currently, synthesis is
+  // all-or-nothing, but if arg-by-arg synthesis is supported, then that will
+  // need to be detected.
+  bool cacheable = cachedModule && !target->fullySpecialize && targetHash != 0;
+
+  // Normally, we assume that the module IR is constant given the uniqued name.
+  // However, kernels that capture other kernels inline captured kernels into
+  // the module, so we need to handle this case specially.
+  bool hasCaptures = [&]() {
     auto func = cudaq::getKernelFuncOp(mod, name);
-    // TODO: currently, synthesis is all-or-nothing, but if arg-by-arg
-    // synthesis is supported, then that will need to be detected
-    if (cudaq::opt::factory::isFullySynthesized(func))
-      return false;
-    // Caching for kernels with lifted arguments is not currently supported.
     for (unsigned i = 0; i < func.getNumArguments(); ++i)
       if (func.getArgAttr(i, "quake.pylifted"))
-        return false;
-    return true;
+        return true;
+    return false;
   }();
+  // Hash detects changes to callables as they have been merged into `mod`.
+  std::size_t moduleHash = (cacheable && hasCaptures) ? hashModuleOp(mod) : 0;
 
-  // Cache hit only if the cached module's entry point matches this launch's.
-  // Notably, run has a different entry point so can't share a cache with
-  // other launch modes.
-  if (isCachable && cachedModule->getName() == name)
+  // Cache hit: same kernel, same target configuration, same module content.
+  if (cacheable && cachedModule->getName() == name &&
+      cachedModule->getMetadata().targetHash == targetHash &&
+      cachedModule->getMetadata().moduleHash == moduleHash) {
+    CUDAQ_INFO("Reusing cached module with name {} and hash ({}, {})", name,
+               targetHash, moduleHash);
     return cudaq::streamlinedLaunchModule(*cachedModule, rawArgs);
+  }
 
+  CUDAQ_INFO("Compiling module {}", name);
   mlir::OwningOpRef<ModuleOp> clone = mod.clone();
-  auto compiled = compileModuleImpl(name, clone.get(), rawArgs, true);
+  auto compiled =
+      compileModuleImpl(name, clone.get(), rawArgs, true, std::move(target));
   auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
-  if (isCachable)
+  if (cacheable) {
+    CUDAQ_INFO("Caching module {} with hash ({}, {})", name, targetHash,
+               moduleHash);
+    compiled.setCacheKey(targetHash, moduleHash);
     *cachedModule = std::move(compiled);
+  }
   return res;
 }
 

@@ -193,5 +193,7 @@ async def qetQpu(authentication_token: str = Header(...)):
 
 
 def startServer(port):
+    import cudaq
+    cudaq.set_random_seed(13)
     import uvicorn
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

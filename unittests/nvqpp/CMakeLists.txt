@@ -346,6 +346,7 @@ add_executable(test_ptsbe ${CUDAQ_GTEST_MAIN}
   ptsbe/TraceConversionTester.cpp
   ptsbe/MergeTasksWithTrajectoryTester.cpp
   ptsbe/ExecutePTSBETester.cpp
+  ptsbe/PTSBEPolicyTester.cpp
   ptsbe/PTSSamplingStrategyTester.cpp
   ptsbe/NoiseExtractorTester.cpp
   ptsbe/TrajectoryDeduplicationTester.cpp)
@@ -356,6 +357,7 @@ target_include_directories(test_ptsbe PRIVATE .)
 target_link_libraries(test_ptsbe
   PRIVATE
   cudaq
+  cudaq-em-default
   cudaq-platform-default
   cudaq-mlir-runtime
   nvqir
