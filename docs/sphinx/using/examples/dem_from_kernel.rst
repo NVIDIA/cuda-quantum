@@ -182,6 +182,69 @@ two graph-like components, separated by ``^``:
     error(0.02000000000000000042) D0 D2 ^ D1
     error(0.01000000000000000021) D1
 
+Measurement Matrices
+--------------------
+
+The DEM describes how error mechanisms flip detectors, but decoders often also
+need to know how the raw measurement record maps onto the detectors and logical
+observables. ``dem_from_kernel`` can return that mapping alongside the DEM text
+as two sparse binary *measurement matrices*, ``m2d`` and ``m2o``:
+
+* ``m2d`` has shape ``(num_detectors, num_measurements)``. Entry
+  ``m2d[d, m] == 1`` means measurement ``m`` contributes to detector ``d``.
+* ``m2o`` has shape ``(num_observables, num_measurements)``. Entry
+  ``m2o[k, m] == 1`` means measurement ``m`` contributes to observable ``k``.
+
+In both matrices the columns are indexed by measurement in chronological order.
+
+.. tab:: Python
+
+   Pass ``return_measurement_matrices=True``. The function then returns a
+   3-tuple ``(dem_text, m2d, m2o)`` instead of a plain string, where ``m2d``
+   and ``m2o`` are ``scipy.sparse.csr_matrix`` objects with binary entries:
+
+   .. literalinclude:: ../../snippets/python/using/examples/dem/dem_from_kernel.py
+        :language: python
+        :start-after: [Begin Measurement Matrices]
+        :end-before: [End Measurement Matrices]
+
+.. tab:: C++
+
+   Use the overloads that accept ``cudaq::M2DSparseMatrix`` and
+   ``cudaq::M2OSparseMatrix`` output references. Each ``rows[i]`` lists the
+   chronological measurement indices contributing to that detector or
+   observable, and ``num_measurements`` gives the column count:
+
+   .. literalinclude:: ../../snippets/cpp/using/examples/dem/dem_from_kernel.cpp
+        :language: cpp
+        :start-after: [Begin Measurement Matrices]
+        :end-before: [End Measurement Matrices]
+
+Both matrices are computed in the same pass as the DEM, so requesting them adds
+no additional circuit execution. They can be combined with any of the DEM
+options above (for example ``decompose_errors=True``).
+
+For the ``memory_experiment`` kernel above (with ``rounds=2``) there are nine
+measurements and six detectors, so ``m2d`` is a ``6 x 9`` matrix and ``m2o`` is
+a ``1 x 9`` matrix. Each detector pairs a qubit's measurement in one round with
+its value in the previous round, which shows up as the two ones per row of
+``m2d``; the single logical observable reads the three final-round
+measurements, giving the three ones in ``m2o``:
+
+.. code-block:: text
+
+    m2d shape: (6, 9)
+    m2o shape: (1, 9)
+    m2d:
+    [[1 0 0 1 0 0 0 0 0]
+     [0 1 0 0 1 0 0 0 0]
+     [0 0 1 0 0 1 0 0 0]
+     [0 0 0 1 0 0 1 0 0]
+     [0 0 0 0 1 0 0 1 0]
+     [0 0 0 0 0 1 0 0 1]]
+    m2o:
+    [[0 0 0 0 0 0 1 1 1]]
+
 Limitations
 ------------
 

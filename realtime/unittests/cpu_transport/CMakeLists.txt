@@ -9,18 +9,45 @@
 # ==============================================================================
 # CPU RoCE transport test binaries + helpers (Phase 1)
 #
-# Test artifacts that consume cudaq-realtime-cpu-transport:
+# Test artifacts that consume cudaq-realtime-cpu-roce-transport:
 #   - hsb_bridge_cpu              GPU-less bridge binary; mirrors hololink_bridge
 #                                 but uses CpuRoceTransceiver +
 #                                 CUDAQ_DISPATCH_HOST_CALL.
 #   - hsb_test_cpu.sh             Orchestration script (built artifact; copy at
 #                                 install time).
 #
-# All gated on TARGET cudaq-realtime-cpu-transport so this dir is silently
-# skipped on hosts without libibverbs.
+# The RoCE artifacts above are gated on TARGET cudaq-realtime-cpu-roce-transport
+# (skipped on hosts without libibverbs). The UDP transceiver tests below run
+# BEFORE that gate -- they depend only on the always-built UDP target, so
+# ibverbs-only setup must stay below the return() guard.
 # ==============================================================================
 
-if (NOT TARGET cudaq-realtime-cpu-transport)
+# ----------------------------------------------------------------------------
+# test_udp_transceiver: loopback tests for the UDP ring transceiver. Pure CPU
+# (no CUDA, no ibverbs), so it builds and runs everywhere. Gated only on the
+# always-built UDP target.
+# ----------------------------------------------------------------------------
+if (TARGET cudaq-realtime-udp-transport)
+  add_executable(test_udp_transceiver test_udp_transceiver.cpp)
+
+  target_include_directories(test_udp_transceiver PRIVATE
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
+  )
+
+  target_link_libraries(test_udp_transceiver PRIVATE
+    GTest::gtest_main
+    cudaq-realtime-udp-transport
+    Threads::Threads
+  )
+
+  add_dependencies(CudaqRealtimeUnitTests test_udp_transceiver)
+  gtest_discover_tests(test_udp_transceiver
+    TEST_PREFIX "test_udp_transceiver."
+  )
+  message(STATUS "  - test_udp_transceiver (UDP loopback ring transceiver)")
+endif()
+
+if (NOT TARGET cudaq-realtime-cpu-roce-transport)
   return()
 endif()
 
@@ -43,7 +70,7 @@ target_include_directories(hsb_bridge_cpu PRIVATE
 )
 
 target_link_libraries(hsb_bridge_cpu PRIVATE
-  cudaq-realtime-cpu-transport     # CpuRoceTransceiver + C wrapper
+  cudaq-realtime-cpu-roce-transport     # CpuRoceTransceiver + C wrapper
   cudaq-realtime-host-dispatch     # cudaq_host_ring_dispatch_loop (HOST_CALL path)
   Threads::Threads
 )

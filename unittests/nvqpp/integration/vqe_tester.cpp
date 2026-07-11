@@ -68,43 +68,30 @@ protected:
   // Called before the first test in this test suite.
   // Can be omitted if not needed.
   static void SetUpTestSuite() {
-    std::vector<double> h2_data{0, 0, 0, 0, -0.10647701149499994, 0.0,
-                                1, 1, 1, 1, 0.0454063328691,      0.0,
-                                1, 1, 3, 3, 0.0454063328691,      0.0,
-                                3, 3, 1, 1, 0.0454063328691,      0.0,
-                                3, 3, 3, 3, 0.0454063328691,      0.0,
-                                2, 0, 0, 0, 0.170280101353,       0.0,
-                                2, 2, 0, 0, 0.120200490713,       0.0,
-                                2, 0, 2, 0, 0.168335986252,       0.0,
-                                2, 0, 0, 2, 0.165606823582,       0.0,
-                                0, 2, 0, 0, -0.22004130022499996, 0.0,
-                                0, 2, 2, 0, 0.165606823582,       0.0,
-                                0, 2, 0, 2, 0.174072892497,       0.0,
-                                0, 0, 2, 0, 0.17028010135300004,  0.0,
-                                0, 0, 2, 2, 0.120200490713,       0.0,
-                                0, 0, 0, 2, -0.22004130022499999, 0.0,
-                                15};
+    // clang-format off
+    std::vector<double> h2_data{
+        15, -0.10647701149499994, 0, 0, 0.0454063328691, 0, 4, 0,
+        2, 1, 2, 2, 2, 3, 2, 0.0454063328691,
+        0, 4, 0, 2, 1, 2, 2, 3,
+        3, 3, 0.0454063328691, 0, 4, 0, 3, 1,
+        3, 2, 2, 3, 2, 0.0454063328691, 0, 4,
+        0, 3, 1, 3, 2, 3, 3, 3,
+        0.170280101353, 0, 1, 0, 1, 0.120200490713, 0, 2,
+        0, 1, 1, 1, 0.168335986252, 0, 2, 0,
+        1, 2, 1, 0.165606823582, 0, 2, 0, 1,
+        3, 1, -0.22004130022499996, 0, 1, 1, 1, 0.165606823582,
+        0, 2, 1, 1, 2, 1, 0.174072892497, 0,
+        2, 1, 1, 3, 1, 0.17028010135300004, 0, 1,
+        2, 1, 0.120200490713, 0, 2, 2, 1, 3,
+        1, -0.22004130022499999, 0, 1, 3, 1};
+    // clang-format on
     // auto array = __quantum__rt__array_create_1d(sizeof(double),
     // h2_data.size()); for (std::size_t i = 0; i < h2_data.size(); i++) {
     //   int8_t *raw = __quantum__rt__array_get_element_ptr_1d(array, i);
     //   auto ptr = reinterpret_cast<double *>(raw);
     //   (*ptr) = h2_data[i];
     // }
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    H.reset(new cudaq::spin_op(h2_data, 4));
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+    H.reset(new cudaq::spin_op(h2_data));
   }
 
   template <typename Kernel>

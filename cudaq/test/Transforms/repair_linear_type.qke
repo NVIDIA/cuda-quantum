@@ -1,0 +1,50 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --repair-linear-type --canonicalize %s | FileCheck %s
+
+func.func @f(%arg : i1) {
+  %0 = quake.null_wire
+  // %1 violates the linear type property as it is used twice (as if it were any
+  // other SSA value). Greedy rewrite passes will perform this "optimization"
+  // and break the quake IR in the process.
+  %1 = quake.null_wire
+  cf.cond_br %arg, ^bb0, ^bb1
+ ^bb0:
+  %4 = quake.y %1 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %4 : (!quake.wire) -> !quake.wire
+  cf.br ^bb2(%2 : !quake.wire)
+ ^bb1:
+  %3 = quake.y %1 : (!quake.wire) -> !quake.wire
+  cf.br ^bb2(%3 : !quake.wire)
+ ^bb2(%5: !quake.wire):
+  quake.sink %0 : !quake.wire
+  quake.sink %5 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @f(
+// CHECK-SAME:      %[[ARG0:.*]]: i1) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[WRAP_NEW_0:.*]] = quake.wrap_new %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.ref
+// CHECK:           cf.cond_br %[[ARG0]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[UNWRAP_0:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[Y_0:.*]] = quake.y %[[UNWRAP_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_0:.*]] = quake.x %[[Y_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           cf.br ^bb3(%[[X_0]] : !quake.wire)
+// CHECK:         ^bb2:
+// CHECK:           %[[UNWRAP_1:.*]] = quake.unwrap %[[WRAP_NEW_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[Y_1:.*]] = quake.y %[[UNWRAP_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           cf.br ^bb3(%[[Y_1]] : !quake.wire)
+// CHECK:         ^bb3(%[[VAL_0:.*]]: !quake.wire):
+// CHECK:           quake.sink %[[NULL_WIRE_0]] : !quake.wire
+// CHECK:           quake.sink %[[VAL_0]] : !quake.wire
+// CHECK:           return
+// CHECK:         }

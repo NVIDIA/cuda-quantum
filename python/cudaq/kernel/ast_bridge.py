@@ -35,8 +35,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType)
+                    recover_annotation_of_or_none, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType)
 
 State = cudaq_runtime.State
 
@@ -1942,9 +1942,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.debug_msg(lambda: f'Visiting inner FunctionDef {node.name}')
             lambdaFct = self.__createFunctionWithinKernel(
                 node.args.args, node.body)
-            assignNode = ast.Assign()
-            assignNode.targets = [ast.Name(node.name)]
-            assignNode.value = lambdaFct
+            assignNode = ast.Assign(targets=[ast.Name(node.name)],
+                                    value=lambdaFct)
             assignNode.lineno = node.lineno
             self.visit_Assign(assignNode)
             return
@@ -1999,19 +1998,20 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable.beginBlock()
                 # Process function arguments like any other assignments.
                 if node.args.args:
-                    assignNode = ast.Assign()
                     if len(node.args.args) == 1:
-                        assignNode.targets = [ast.Name(node.args.args[0].arg)]
-                        assignNode.value = entry_block.arguments[0]
+                        assignTargets = [ast.Name(node.args.args[0].arg)]
+                        assignValue = entry_block.arguments[0]
                     else:
-                        assignNode.targets = [
+                        assignTargets = [
                             ast.Tuple(
                                 [ast.Name(arg.arg) for arg in node.args.args])
                         ]
-                        assignNode.value = [
+                        assignValue = [
                             entry_block.arguments[idx]
                             for idx in range(len(entry_block.arguments.types))
                         ]
+                    assignNode = ast.Assign(targets=assignTargets,
+                                            value=assignValue)
                     assignNode.lineno = node.lineno
                     self.visit_Assign(assignNode)
 
@@ -2027,6 +2027,10 @@ class PyASTBridge(ast.NodeVisitor):
                 with trace.span("ast_bridge.visit_function_body",
                                 statement_count=len(node.body)):
                     for n in node.body:
+                        # If the previous statement terminated `entry_block`,
+                        # do not lower any subsequent unreachable statements.
+                        if self.hasTerminator(entry_block):
+                            break
                         self.visit(n)
                 # Add the return operation
                 if not self.hasTerminator(entry_block):
@@ -3312,11 +3316,28 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id == 'exp_pauli':
-                # Note: C++ also has a constructor that takes an `f64`,
-                # `string`, any any number of qubits. We don't support this
-                # here.
-                theta, target, pauliWord = self.__groupValues(
-                    node.args, [1, 1, 1])
+                if len(node.args) == 3:
+                    # Both supported forms can have three arguments:
+                    #   `exp_pauli(theta, target, pauli_word)`
+                    #   `exp_pauli(theta, pauli_word, qubit)`
+                    # Distinguish them by the second `operand`'s type.
+                    theta, second, third = self.__groupValues(
+                        node.args, [1, 1, 1])
+                    if self.isQuantumType(second.type):
+                        target, pauliWord = second, third
+                    else:
+                        pauliWord = second
+                        targets = [third]
+                        checkControlAndTargetTypes([], targets)
+                        target = quake.ConcatOp(self.getVeqType(),
+                                                targets).result
+                else:
+                    # C++-compatible variadic form:
+                    #   `exp_pauli(theta, pauli_word, qubit, ...)`
+                    theta, pauliWord, targets = self.__groupValues(
+                        node.args, [1, 1, (1, -1)])
+                    checkControlAndTargetTypes([], targets)
+                    target = quake.ConcatOp(self.getVeqType(), targets).result
                 theta = self.changeOperandToType(self.getFloatType(), theta)
                 processQuantumOperation("ExpPauli", [], [target], [], [theta],
                                         broadcast=False,
@@ -4290,11 +4311,10 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitWarning(
                 "produced elements in list comprehension contain None - "
                 "expression will be evaluated but no list is generated", node)
-            forNode = ast.For()
-            forNode.iter = node.generators[0].iter
-            forNode.target = node.generators[0].target
-            forNode.body = [node.elt]
-            forNode.orelse = []
+            forNode = ast.For(target=node.generators[0].target,
+                              iter=node.generators[0].iter,
+                              body=[node.elt],
+                              orelse=[])
             forNode.lineno = node.lineno
             # This loop could be marked as invariant if we didn't use
             # `visit_For`, but that would be premature optimization.
@@ -5134,9 +5154,7 @@ class PyASTBridge(ast.NodeVisitor):
             values = getValues(iterVar)
             # We need to create proper assignments to the loop
             # iteration variable(s) to have consistent behavior.
-            assignNode = ast.Assign()
-            assignNode.targets = [node.target]
-            assignNode.value = values
+            assignNode = ast.Assign(targets=[node.target], value=values)
             assignNode.lineno = node.lineno
             self.visit(assignNode)
             [self.visit(b) for b in stmts]
@@ -5459,7 +5477,22 @@ class PyASTBridge(ast.NodeVisitor):
                 "functions defined within quantum kernels must not contain return statement",
                 node)
 
+        # Keep bare-return (`node.value` is None) lowering consistent with
+        # `QuakeBridgeVisitor::VisitReturnStmt` in the C++ bridge.
         if node.value == None:
+            # Clang verifies C++ return statements against the function
+            # signature before the C++ bridge runs. Python's AST has no
+            # equivalent semantic check, so verify it here.
+            if self.signature.return_type is not None:
+                self.emitFatalError(
+                    "return statement in a value-returning kernel must return a value",
+                    node)
+            if self.symbolTable.scopeDepth > 1:
+                # We are in an inner block, release all MLIR scopes before
+                # returning.
+                cc.UnwindReturnOp([])
+            else:
+                func.ReturnOp([])
             return
 
         self.walkingReturnNode = True
@@ -5935,7 +5968,22 @@ class PyASTBridge(ast.NodeVisitor):
             assert not node.id in self.signature.captured_variable_names()
 
             # Append as a new argument
-            argTy = mlirTypeFromPyType(type(value), self.ctx, argInstance=value)
+            if isinstance(value, list) and len(value) == 0:
+                annotation = recover_annotation_of_or_none(
+                    node.id, self.defFrame)
+                if annotation is None:
+                    self.emitFatalError(
+                        f"Cannot infer the element type of the captured empty "
+                        f"list '{node.id}'. Annotate it at module scope (e.g. "
+                        f"`{node.id}: list[float] = []`) or use a typed numpy "
+                        f"array (e.g. `{node.id} = np.array([], "
+                        f"dtype=np.float64)`) so the type can be recovered.",
+                        node)
+                argTy = mlirTypeFromPyType(annotation, self.ctx)
+            else:
+                argTy = mlirTypeFromPyType(type(value),
+                                           self.ctx,
+                                           argInstance=value)
             mlirVal = cudaq_runtime.appendKernelArgument(
                 self.kernelFuncOp, argTy)
             self.signature.add_variable_capture(node.id, argTy)

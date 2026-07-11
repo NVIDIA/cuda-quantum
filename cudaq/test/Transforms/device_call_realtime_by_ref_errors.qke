@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt %s -split-input-file -verify-diagnostics -pass-pipeline='builtin.module(distributed-device-call{realtime=1})'
+// RUN: cudaq-opt %s -split-input-file -verify-diagnostics -pass-pipeline='builtin.module(realtime-device-call)'
 
 func.func private @twoOutputVectors(!cc.stdvec<i32>, !cc.stdvec<i32>) attributes {"cudaq-devicecall"}
 

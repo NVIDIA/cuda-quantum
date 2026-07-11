@@ -60,8 +60,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir --break-system-packages numpy scipy \
     && ln -s /bin/python3 /bin/python
+ADD ./requirements.txt /tmp/requirements.txt
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
-    && python3 -m pip install --no-cache-dir --break-system-packages notebook==7.3.2 "qutip>5" matplotlib \
+    && python3 -m pip install --no-cache-dir --break-system-packages -r /tmp/requirements.txt "qutip>5" matplotlib \
+    && rm /tmp/requirements.txt \
     && apt-get remove -y gcc g++ python3-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 

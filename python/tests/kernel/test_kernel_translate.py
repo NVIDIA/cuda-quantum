@@ -57,6 +57,18 @@ def kernel_with_call():
     inner()
 
 
+@cudaq.kernel
+def kernel_returns_bool() -> bool:
+    return False
+
+
+@cudaq.kernel
+def kernel_measures_and_returns() -> bool:
+    q = cudaq.qubit()
+    x(q)
+    return mz(q)
+
+
 def test_translate_openqasm():
     asm = cudaq.translate(bell_pair, format="openqasm2")
     assert "qreg var0[2];" in asm
@@ -93,6 +105,11 @@ def test_translate_openqasm_synth():
 def test_translate_openqasm_call():
     asm = cudaq.translate(kernel_with_call, format="openqasm2")
     assert 'qreg var0[2];' in asm
+
+
+def test_translate_openqasm_return_typed_kernel():
+    asm = cudaq.translate(kernel_returns_bool, format="openqasm2")
+    assert "OPENQASM 2.0;" in asm
 
 
 def test_translate_qir():
@@ -150,3 +167,28 @@ def test_translate_qir_adaptive_args():
         synth = cudaq.synthesize(kernel_loop_params, 5)
         qir = cudaq.translate(synth, 5, format="qir-adaptive")
     assert 'Invalid number of argu' in repr(e)
+
+
+def test_translate_qir_return_typed_kernel():
+    qir = cudaq.translate(kernel_returns_bool, format="qir")
+    assert "define i1 @__nvqpp__mlirgen__" in qir
+    assert "ret i1 false" in qir
+
+
+@pytest.mark.parametrize("fmt,expected", [
+    ("qir", "define i1 @__nvqpp__mlirgen__"),
+    ("qir-base", '"qir_profiles"="base_profile"'),
+    ("qir-adaptive", '"qir_profiles"="adaptive_profile"'),
+])
+def test_translate_return_typed_kernel_qir_profiles(fmt, expected):
+    qir = cudaq.translate(kernel_measures_and_returns, format=fmt)
+    assert expected in qir
+
+
+def test_translate_qir_return_typed_kernel_with_emulated_target():
+    cudaq.set_target("ionq", emulate=True)
+    try:
+        qir = cudaq.translate(kernel_returns_bool, format="qir")
+        assert "ret i1 false" in qir
+    finally:
+        cudaq.reset_target()
