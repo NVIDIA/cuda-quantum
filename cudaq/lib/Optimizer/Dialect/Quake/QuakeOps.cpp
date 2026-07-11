@@ -27,18 +27,33 @@ using namespace mlir;
 
 static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   for (Value v : op->getOpResults())
-    if (isa<cudaq::quake::WireType>(v.getType())) {
+    if (cudaq::quake::isLinearType(v.getType())) {
       // Terminators can forward wire values, but they are not quantum
       // operations.
       if (v.hasOneUse() || v.use_empty())
         continue;
       // Allow a single cf.cond_br to use the value twice, once for each arm.
       std::unordered_set<Operation *> uniqs;
-      for (auto *op : v.getUsers())
-        uniqs.insert(op);
+      for (auto *u : v.getUsers())
+        uniqs.insert(u);
       if (uniqs.size() == 1 &&
           (*uniqs.begin())->hasTrait<OpTrait::IsTerminator>())
         continue;
+      std::unordered_set<Block *> blocks;
+      for (auto *u : uniqs)
+        blocks.insert(u->getBlock());
+      if (blocks.size() == uniqs.size()) {
+        // MLIR's canonicalizer has degenerated the linear type invariants for
+        // us and they need to be reconstructed. There is no good way to get
+        // MLIR to understand that a Value might have some semantics other than
+        // pure SSA, so the canonicalizer feels it is free to duplicate uses
+        // whenever it feels like it. The way to prevent this is to always
+        // disable region simplification, but that is very Draconian. We
+        // actually want region simplification, we just do not want values of
+        // linear type to have multiple uses and control-flow path information
+        // (phi-nodes) dropped on the floor.
+        continue;
+      }
       return op->emitOpError(
           "wires are a linear type and must have exactly one use");
     }
@@ -1047,6 +1062,11 @@ void cudaq::quake::R1Op::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({1, 0, 0, std::exp(theta * 1i)});
 }
 
+void cudaq::quake::R1Op::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<MergeRotationPattern<cudaq::quake::R1Op>>(context);
+}
+
 void cudaq::quake::RxOp::getOperatorMatrix(Matrix &matrix) {
   using namespace std::complex_literals;
   double theta;
@@ -1363,18 +1383,24 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 // This is a workaround for ODS generating these member function declarations
 // but not having a way to define them in the ODS.
 // clang-format off
-#define BUILTIN_GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp)    \
-  MACRO(SOp) MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(R1Op)      \
-  MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
+#define BUILTIN_ROTATION_OPS(MACRO) MACRO(R1Op) MACRO(RxOp) MACRO(RyOp)        \
+  MACRO(RzOp)
+#define CLIFFORD_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp)        \
+  MACRO(SOp)
+#define BUILTIN_OTHER_OPS(MACRO) CLIFFORD_OPS(MACRO) MACRO(TOp) MACRO(SwapOp)  \
+  MACRO(U2Op) MACRO(U3Op) MACRO(PhasedRxOp)
+#define BUILTIN_GATE_OPS(MACRO) BUILTIN_ROTATION_OPS(MACRO)                    \
+  BUILTIN_OTHER_OPS(MACRO)
 #define CUSTOM_GATE_OPS(MACRO) MACRO(CustomUnitaryCallOp)                      \
   MACRO(CustomUnitaryConstantOp)
 #define GATE_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) CUSTOM_GATE_OPS(MACRO)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(ExpPauliOp) GATE_OPS(MACRO)    \
   MEASURE_OPS(MACRO)
-#define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullWireOp)  \
-  MACRO(UnwrapOp)
+#define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullCableOp) \
+  MACRO(NullWireOp) MACRO(UnwrapOp)
 // clang-format on
+
 #define INSTANTIATE_CALLBACKS(Op)                                              \
   void cudaq::quake::Op::getEffects(                                           \
       SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>      \
