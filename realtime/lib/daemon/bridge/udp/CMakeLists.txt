@@ -25,6 +25,9 @@ target_link_libraries(cudaq-realtime-bridge-udp
   PRIVATE
     cudaq-realtime-udp-transport
     Threads::Threads
+    # --pinned-rings allocates CUDA pinned+mapped ring memory for GPU
+    # consumers; no GPU is touched unless the flag is used.
+    CUDA::cudart
 )
 
 set_target_properties(cudaq-realtime-bridge-udp PROPERTIES

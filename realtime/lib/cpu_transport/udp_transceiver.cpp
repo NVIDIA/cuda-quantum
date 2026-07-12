@@ -63,12 +63,30 @@ public:
     tx_data = aligned_ring(num_pages * page_size);
   }
 
+  // External-rings variant: the caller supplies (and owns) the four ring
+  // buffers -- e.g. CUDA pinned+mapped memory so a GPU consumer can poll
+  // the rings.  This transport stays CUDA-free; memory provenance is the
+  // caller's business.  Buffers must be zero-initialized and sized
+  // num_pages*8 (flags) / num_pages*page_size (data).
+  UdpTransceiver(std::size_t page_size, unsigned num_pages,
+                 volatile std::uint64_t *ext_rx_flags,
+                 volatile std::uint64_t *ext_tx_flags,
+                 std::uint8_t *ext_rx_data, std::uint8_t *ext_tx_data)
+      : page_size(page_size), num_pages(num_pages), owns_rings(false) {
+    rx_flags = ext_rx_flags;
+    tx_flags = ext_tx_flags;
+    rx_data = ext_rx_data;
+    tx_data = ext_tx_data;
+  }
+
   ~UdpTransceiver() {
     close();
-    std::free(const_cast<std::uint64_t *>(rx_flags));
-    std::free(const_cast<std::uint64_t *>(tx_flags));
-    std::free(rx_data);
-    std::free(tx_data);
+    if (owns_rings) {
+      std::free(const_cast<std::uint64_t *>(rx_flags));
+      std::free(const_cast<std::uint64_t *>(tx_flags));
+      std::free(rx_data);
+      std::free(tx_data);
+    }
   }
 
   bool valid() const { return rx_flags && tx_flags && rx_data && tx_data; }
@@ -241,6 +259,7 @@ private:
 
   const std::size_t page_size;
   const unsigned num_pages;
+  const bool owns_rings = true;
   volatile std::uint64_t *rx_flags = nullptr;
   volatile std::uint64_t *tx_flags = nullptr;
   std::uint8_t *rx_data = nullptr;
@@ -269,6 +288,21 @@ cpu_udp_transceiver_t cpu_udp_create_transceiver(size_t page_size,
   if (page_size == 0 || num_pages == 0)
     return nullptr;
   auto *xcvr = new (std::nothrow) UdpTransceiver(page_size, num_pages);
+  if (!xcvr || !xcvr->valid()) {
+    delete xcvr;
+    return nullptr;
+  }
+  return xcvr;
+}
+
+cpu_udp_transceiver_t cpu_udp_create_transceiver_ext(
+    size_t page_size, unsigned num_pages, volatile uint64_t *rx_flags,
+    volatile uint64_t *tx_flags, uint8_t *rx_data, uint8_t *tx_data) {
+  if (page_size == 0 || num_pages == 0 || !rx_flags || !tx_flags ||
+      !rx_data || !tx_data)
+    return nullptr;
+  auto *xcvr = new (std::nothrow) UdpTransceiver(
+      page_size, num_pages, rx_flags, tx_flags, rx_data, tx_data);
   if (!xcvr || !xcvr->valid()) {
     delete xcvr;
     return nullptr;

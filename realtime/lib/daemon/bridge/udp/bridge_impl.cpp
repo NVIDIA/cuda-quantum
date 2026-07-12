@@ -14,14 +14,19 @@
 /// speaks only cudaq_bridge_* / cudaq_dispatcher_* runs over UDP with zero
 /// transport-specific code.  Deliberately the simplest provider: no peer
 /// rendezvous (UDP is connectionless; responses go to each request's source
-/// address), no CUDA at runtime.
+/// address); CUDA is touched only when --pinned-rings requests GPU-pollable
+/// ring memory.
 ///
 /// Arguments accepted by create() (unrecognized arguments are ignored so
 /// callers can forward their full transport argument list):
-///   --port=N        UDP port to bind (0 = ephemeral, default; read the
-///                   bound port back via get_endpoint_info)
-///   --num-slots=N   ring slots on both rings            [default 8]
-///   --slot-size=N   slot stride in bytes on both rings  [default 256]
+///   --port=N          UDP port to bind (0 = ephemeral, default; read the
+///                     bound port back via get_endpoint_info)
+///   --num-slots=N     ring slots on both rings            [default 8]
+///   --slot-size=N     slot stride in bytes on both rings  [default 256]
+///   --pinned-rings    allocate the rings as CUDA pinned+mapped host memory
+///                     so a GPU consumer (e.g. the QEC device-graph
+///                     scheduler) can poll them directly; requires a CUDA
+///                     device at create()
 ///
 /// Lifecycle mapping:
 ///   create      transceiver construction + bind (port is known after this,
@@ -33,6 +38,8 @@
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
+
+#include <cuda_runtime_api.h>
 
 #include <cstdio>
 #include <cstring>
@@ -46,7 +53,19 @@ struct UdpBridgeContext {
   uint16_t requested_port = 0;
   uint32_t num_slots = 8;
   uint32_t slot_size = 256;
+  bool pinned_rings = false;
+  // Owned pinned+mapped buffers when pinned_rings is set (freed AFTER the
+  // transceiver is destroyed).
+  void *pinned[4] = {nullptr, nullptr, nullptr, nullptr};
 };
+
+void free_pinned(UdpBridgeContext *ctx) {
+  for (auto *&buffer : ctx->pinned) {
+    if (buffer)
+      cudaFreeHost(buffer);
+    buffer = nullptr;
+  }
+}
 
 bool starts_with(const std::string &s, const char *prefix) {
   const size_t n = std::strlen(prefix);
@@ -73,6 +92,8 @@ udp_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
         ctx->num_slots = static_cast<uint32_t>(std::stoul(a.substr(12)));
       else if (starts_with(a, "--slot-size="))
         ctx->slot_size = static_cast<uint32_t>(std::stoul(a.substr(12)));
+      else if (a == "--pinned-rings")
+        ctx->pinned_rings = true;
       // Unrecognized arguments are ignored (callers forward their full
       // transport argument list).
     } catch (const std::exception &) {
@@ -83,10 +104,41 @@ udp_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
     }
   }
 
-  ctx->transceiver =
-      cpu_udp_create_transceiver(ctx->slot_size, ctx->num_slots);
+  if (ctx->pinned_rings) {
+    // Pinned+mapped rings: a GPU consumer polls the same allocation through
+    // its device alias (identical pointer under UVA), while this transport's
+    // socket threads fill/drain it from the host.
+    const size_t sizes[4] = {ctx->num_slots * sizeof(uint64_t),
+                             ctx->num_slots * sizeof(uint64_t),
+                             static_cast<size_t>(ctx->num_slots) *
+                                 ctx->slot_size,
+                             static_cast<size_t>(ctx->num_slots) *
+                                 ctx->slot_size};
+    for (int i = 0; i < 4; ++i) {
+      if (cudaHostAlloc(&ctx->pinned[i], sizes[i], cudaHostAllocMapped) !=
+          cudaSuccess) {
+        std::cerr << "ERROR: udp bridge: pinned ring alloc failed "
+                     "(--pinned-rings requires a CUDA device)"
+                  << std::endl;
+        free_pinned(ctx);
+        delete ctx;
+        return CUDAQ_ERR_INTERNAL;
+      }
+      std::memset(ctx->pinned[i], 0, sizes[i]);
+    }
+    ctx->transceiver = cpu_udp_create_transceiver_ext(
+        ctx->slot_size, ctx->num_slots,
+        static_cast<volatile uint64_t *>(ctx->pinned[0]),
+        static_cast<volatile uint64_t *>(ctx->pinned[1]),
+        static_cast<uint8_t *>(ctx->pinned[2]),
+        static_cast<uint8_t *>(ctx->pinned[3]));
+  } else {
+    ctx->transceiver =
+        cpu_udp_create_transceiver(ctx->slot_size, ctx->num_slots);
+  }
   if (!ctx->transceiver) {
     std::cerr << "ERROR: udp bridge: transceiver create failed" << std::endl;
+    free_pinned(ctx);
     delete ctx;
     return CUDAQ_ERR_INTERNAL;
   }
@@ -94,6 +146,7 @@ udp_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
     std::cerr << "ERROR: udp bridge: bind(port=" << ctx->requested_port
               << ") failed" << std::endl;
     cpu_udp_destroy_transceiver(ctx->transceiver);
+    free_pinned(ctx);
     delete ctx;
     return CUDAQ_ERR_INTERNAL;
   }
@@ -109,6 +162,7 @@ udp_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
   auto *ctx = reinterpret_cast<UdpBridgeContext *>(handle);
   if (ctx->transceiver)
     cpu_udp_destroy_transceiver(ctx->transceiver);
+  free_pinned(ctx); // after destroy: the transceiver threads use the rings
   delete ctx;
   return CUDAQ_OK;
 }
