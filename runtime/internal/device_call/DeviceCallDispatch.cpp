@@ -77,11 +77,27 @@ std::int32_t runDeviceCallAbi(Fn &&fn) noexcept {
 struct DeviceCallRuntimeConfig {
   bool enabled = true;
   std::string channelName = GpuDispatchChannelName;
+  // Per-device channel overrides, keyed by device id.  Populated from the
+  // `<id>=<channel>` segments of the channel spec (see setChannelSpec); a
+  // device with no entry uses `channelName`.  This is what lets e.g. the
+  // one-ring-per-decoder pattern run decoder 0 on a host_dispatch (CPU
+  // memory) ring and decoder 1 on a device_dispatch (GPU-polled) ring in
+  // one process: CUDAQ_DEVICE_CALL_CHANNEL=host_dispatch,1=device_dispatch.
+  std::unordered_map<std::uint32_t, std::string> perDeviceChannelNames;
   std::vector<std::string> arguments;
   std::uint32_t numSlots = DefaultNumSlots;
   std::uint64_t slotSize = DefaultSlotSize;
   std::uint64_t timeoutMs = DefaultTimeoutMs;
 };
+
+// Channel name for `deviceId`: the per-device override when present, the
+// process default otherwise.
+const std::string &channelNameForDevice(const DeviceCallRuntimeConfig &config,
+                                        std::uint32_t deviceId) {
+  const auto iter = config.perDeviceChannelNames.find(deviceId);
+  return iter == config.perDeviceChannelNames.end() ? config.channelName
+                                                    : iter->second;
+}
 
 // Extract the channel-specific runtime configuration.
 DeviceCallChannelConfig
@@ -125,6 +141,53 @@ bool setChannelName(DeviceCallRuntimeConfig &config, const char *value) {
   return true;
 }
 
+// Parse a channel SPEC: a comma-separated list where a bare segment sets the
+// process-default channel (same aliases as setChannelName) and an
+// `<id>=<channel>` segment overrides the channel for one device id, e.g.
+//   host_dispatch
+//   host_dispatch,1=device_dispatch
+//   device_dispatch,0=host_dispatch,2=host_dispatch
+// Returns false when any segment is malformed.
+bool setChannelSpec(DeviceCallRuntimeConfig &config, const char *value) {
+  if (!value || !*value)
+    return false;
+  const std::string spec(value);
+  std::size_t begin = 0;
+  bool sawAny = false;
+  while (begin <= spec.size()) {
+    std::size_t end = spec.find(',', begin);
+    if (end == std::string::npos)
+      end = spec.size();
+    const std::string segment = spec.substr(begin, end - begin);
+    begin = end + 1;
+    if (segment.empty())
+      continue;
+    const std::size_t eq = segment.find('=');
+    if (eq == std::string::npos) {
+      if (!setChannelName(config, segment.c_str()))
+        return false;
+    } else {
+      const std::string idText = segment.substr(0, eq);
+      const std::string nameText = segment.substr(eq + 1);
+      char *endPtr = nullptr;
+      const unsigned long id = std::strtoul(idText.c_str(), &endPtr, 10);
+      if (idText.empty() || !endPtr || *endPtr != '\0' || nameText.empty())
+        return false;
+      // Reuse setChannelName's alias handling on a scratch config so the
+      // stored override is the canonical channel name.
+      DeviceCallRuntimeConfig scratch;
+      if (!setChannelName(scratch, nameText.c_str()) || !scratch.enabled)
+        return false;
+      config.perDeviceChannelNames[static_cast<std::uint32_t>(id)] =
+          scratch.channelName;
+    }
+    sawAny = true;
+    if (end == spec.size())
+      break;
+  }
+  return sawAny;
+}
+
 bool parseUInt(const char *value, std::uint64_t maxValue, std::uint64_t &out) {
   if (!value || !*value)
     return false;
@@ -155,7 +218,7 @@ bool parseEnvUInt(const char *name, T &out, std::uint64_t minValue = 0) {
 // Apply CUDAQ_DEVICE_CALL_* environment overrides before command-line parsing.
 bool applyDeviceCallEnvironment(DeviceCallRuntimeConfig &config) {
   if (const char *channel = std::getenv("CUDAQ_DEVICE_CALL_CHANNEL")) {
-    if (!setChannelName(config, channel))
+    if (!setChannelSpec(config, channel))
       return false;
   }
 
@@ -235,14 +298,14 @@ DeviceCallRuntimeConfig parseDeviceCallArgs(int argc, char **argv) {
       continue;
 
     if (const char *value = consumeValue(i, arg, "--cudaq-device-call")) {
-      if (!setChannelName(config, value))
+      if (!setChannelSpec(config, value))
         throw DeviceCallError(DeviceCallStatus::InvalidArgument,
                               "invalid CUDA-Q device_call command line");
       continue;
     }
     if (const char *value =
             consumeValue(i, arg, "--cudaq-device-call-channel")) {
-      if (!setChannelName(config, value))
+      if (!setChannelSpec(config, value))
         throw DeviceCallError(DeviceCallStatus::InvalidArgument,
                               "invalid CUDA-Q device_call command line");
       continue;
@@ -466,24 +529,40 @@ public:
       return;
     }
 
-    // The configured channel name selects host- vs GPU-dispatch behavior.
+    // The channel name for THIS device (per-device override, else the
+    // process default) selects host- vs GPU-dispatch behavior.
+    const std::string &channelName = channelNameForDevice(config, deviceId);
     const bool useHostDispatch =
-        config.enabled && isHostDispatchChannel(config.channelName);
+        config.enabled && isHostDispatchChannel(channelName);
 
     // External (non-builtin) channels are created eagerly in configure() and
     // do not have a service plugin behind them. Confirm the channel is there
     // and bail out; otherwise the configuration is incomplete.
-    if (config.enabled && !isBuiltinDispatchChannel(config.channelName)) {
+    if (config.enabled && !isBuiltinDispatchChannel(channelName)) {
       if (existingSession && existingSession->hasChannel()) {
         CUDAQ_DBG("[device-call] external channel already initialized for "
                   "device {}",
                   deviceId);
         return;
-      } else {
-        throw DeviceCallError(
-            DeviceCallStatus::NotInitialized,
-            "external device_call channel is not initialized");
       }
+      // External channels carry one remote endpoint per process today, so
+      // every device id shares DefaultDeviceId's channel (the pre-per-device
+      // behavior: many decoders over one wire, demuxed by payload).
+      // Per-device external endpoints are a follow-up.
+      if (deviceId != DefaultDeviceId) {
+        const auto defaultIter = sessions.find(DefaultDeviceId);
+        if (defaultIter != sessions.end() &&
+            defaultIter->second->hasChannel()) {
+          CUDAQ_DBG("[device-call] device {} sharing the default external "
+                    "channel",
+                    deviceId);
+          sessions.insert_or_assign(deviceId, defaultIter->second);
+          return;
+        }
+      }
+      throw DeviceCallError(
+          DeviceCallStatus::NotInitialized,
+          "external device_call channel is not initialized");
     }
 
     // Locate and load the per-device service plugin (linked-in shim library
@@ -552,8 +631,8 @@ public:
 
     // Build the channel, attach the service session, and start the dispatch
     // loop (e.g., persistent kernel on GPU; host-thread on host dispatch).
-    const std::string channelName = args.channelName;
-    auto channel = createDeviceCallChannel(channelName, std::move(args));
+    const std::string createChannelName = args.channelName;
+    auto channel = createDeviceCallChannel(createChannelName, std::move(args));
     session->channel = std::move(channel);
     session->services.push_back(std::move(serviceSession));
     session->startServices();
@@ -597,13 +676,24 @@ public:
     *requestPayload = nullptr;
     *responsePayload = nullptr;
 
-    const auto session = [&]() -> std::shared_ptr<DeviceCallSession> {
+    const auto lookupSession = [&]() -> std::shared_ptr<DeviceCallSession> {
       std::lock_guard<std::mutex> lock(mutex);
       auto iter = sessions.find(deviceId);
       if (iter == sessions.end())
         return nullptr;
       return iter->second;
-    }();
+    };
+    auto session = lookupSession();
+    if (!session) {
+      // Sessions are keyed by device id and created lazily: eager
+      // initialization covers only DefaultDeviceId, so the first
+      // device_call(device_id, ...) targeting another device (e.g. the
+      // one-ring-per-decoder pattern, device_id == decoder_id) lands here.
+      // initializeServiceForDevice is idempotent and takes the driver mutex
+      // itself.
+      initializeServiceForDevice(deviceId);
+      session = lookupSession();
+    }
     if (!session)
       throw DeviceCallError(DeviceCallStatus::NotInitialized,
                             "device_call session is not initialized");
