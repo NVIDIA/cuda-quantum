@@ -105,6 +105,74 @@ makeChannelConfig(const DeviceCallRuntimeConfig &config) {
   return {config.numSlots, config.slotSize, config.timeoutMs};
 }
 
+// Device-scoped external-channel arguments.  An argument spelled
+// `<key>.<id>=<value>` applies only to device `id` (as `<key>=<value>`,
+// overriding any plain `<key>=` argument); plain arguments apply to every
+// device.  Example -- one udp endpoint per decoder ring:
+//   udp-host=127.0.0.1 udp-port=48144 udp-port.1=48145
+// Device 0 gets udp-port=48144, device 1 gets udp-port=48145.
+std::vector<std::string>
+argumentsForDevice(const DeviceCallRuntimeConfig &config,
+                   std::uint32_t deviceId) {
+  std::vector<std::string> keys; // insertion order
+  std::unordered_map<std::string, std::string> values;
+  const auto assign = [&](const std::string &key, const std::string &value,
+                          bool override_) {
+    auto iter = values.find(key);
+    if (iter == values.end()) {
+      keys.push_back(key);
+      values.emplace(key, value);
+    } else if (override_) {
+      iter->second = value;
+    }
+  };
+  // Plain arguments first, then device-scoped overrides.
+  for (int pass = 0; pass < 2; ++pass) {
+    for (const auto &arg : config.arguments) {
+      const std::size_t eq = arg.find('=');
+      if (eq == std::string::npos || eq == 0)
+        continue;
+      const std::string key = arg.substr(0, eq);
+      const std::string value = arg.substr(eq + 1);
+      const std::size_t dot = key.rfind('.');
+      const bool scoped =
+          dot != std::string::npos && dot + 1 < key.size() &&
+          key.find_first_not_of("0123456789", dot + 1) == std::string::npos;
+      if (pass == 0 && !scoped) {
+        assign(key, value, false);
+      } else if (pass == 1 && scoped) {
+        char *end = nullptr;
+        const unsigned long id =
+            std::strtoul(key.c_str() + dot + 1, &end, 10);
+        if (static_cast<std::uint32_t>(id) == deviceId)
+          assign(key.substr(0, dot), value, true);
+      }
+    }
+  }
+  std::vector<std::string> result;
+  result.reserve(keys.size());
+  for (const auto &key : keys)
+    result.push_back(key + "=" + values[key]);
+  return result;
+}
+
+// True when at least one `<key>.<id>=` argument targets `deviceId` -- i.e.
+// the device has its own external endpoint and should get its own channel.
+bool hasDeviceScopedArguments(const DeviceCallRuntimeConfig &config,
+                              std::uint32_t deviceId) {
+  const std::string suffix = "." + std::to_string(deviceId);
+  for (const auto &arg : config.arguments) {
+    const std::size_t eq = arg.find('=');
+    if (eq == std::string::npos)
+      continue;
+    const std::string key = arg.substr(0, eq);
+    if (key.size() > suffix.size() &&
+        key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0)
+      return true;
+  }
+  return false;
+}
+
 inline bool isGpuDispatchChannel(std::string_view name) {
   return name == GpuDispatchChannelName;
 }
@@ -478,7 +546,7 @@ public:
       auto args = [&] {
         DeviceCallChannelCreateArgs result;
         result.channelName = config.channelName;
-        result.arguments = config.arguments;
+        result.arguments = argumentsForDevice(config, DefaultDeviceId);
         result.channelConfig = makeChannelConfig(config);
         return result;
       }();
@@ -545,10 +613,28 @@ public:
                   deviceId);
         return;
       }
-      // External channels carry one remote endpoint per process today, so
-      // every device id shares DefaultDeviceId's channel (the pre-per-device
-      // behavior: many decoders over one wire, demuxed by payload).
-      // Per-device external endpoints are a follow-up.
+      // A device with its own scoped endpoint arguments (`<key>.<id>=`)
+      // gets its own external channel -- one ring per device across the
+      // wire (e.g. the QEC one-ring-per-decoder topology, device_id ==
+      // decoder_id, endpoints from the decoding server's READY line).
+      if (deviceId != DefaultDeviceId &&
+          hasDeviceScopedArguments(config, deviceId)) {
+        CUDAQ_INFO("[device-call] driver creating external channel '{}' for "
+                   "device {}",
+                   channelName, deviceId);
+        DeviceCallChannelCreateArgs channelArgs;
+        channelArgs.channelName = channelName;
+        channelArgs.arguments = argumentsForDevice(config, deviceId);
+        channelArgs.channelConfig = makeChannelConfig(config);
+        auto session = std::make_shared<DeviceCallSession>();
+        session->channel =
+            createDeviceCallChannel(channelName, std::move(channelArgs));
+        sessions.insert_or_assign(deviceId, std::move(session));
+        return;
+      }
+      // Otherwise every device id shares DefaultDeviceId's channel (the
+      // pre-per-device behavior: many decoders over one wire, demuxed by
+      // payload).
       if (deviceId != DefaultDeviceId) {
         const auto defaultIter = sessions.find(DefaultDeviceId);
         if (defaultIter != sessions.end() &&
