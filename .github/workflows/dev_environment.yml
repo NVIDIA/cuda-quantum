@@ -387,7 +387,9 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ needs.metadata.outputs.image_tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up build cache
