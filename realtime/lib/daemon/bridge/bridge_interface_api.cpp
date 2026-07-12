@@ -82,8 +82,9 @@ cudaq_status_t cudaq_bridge_create_from_library(
   GetInterfaceFunction fcn = (GetInterfaceFunction)(intptr_t)dlsym(
       lib_handle, "cudaq_realtime_get_bridge_interface");
   if (!fcn) {
-    std::cerr << "ERROR: Failed to interface getter from '" << lib_name
+    std::cerr << "ERROR: Failed to resolve interface getter from '" << lib_name
               << "': " << dlerror() << std::endl;
+    dlclose(lib_handle);
     return CUDAQ_ERR_INTERNAL;
   }
 
@@ -92,6 +93,7 @@ cudaq_status_t cudaq_bridge_create_from_library(
   if (!bridge_interface) {
     std::cerr << "ERROR: Bridge interface getter returned null from '"
               << lib_name << "'" << std::endl;
+    dlclose(lib_handle);
     return CUDAQ_ERR_INTERNAL;
   }
 
@@ -106,6 +108,7 @@ cudaq_status_t cudaq_bridge_create_from_library(
               << "': this library supports versions 1.."
               << CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION << ", got "
               << bridge_interface->version << std::endl;
+    dlclose(lib_handle);
     return CUDAQ_ERR_INTERNAL;
   }
   provider_interface_map[lib_name] = bridge_interface;
@@ -126,6 +129,8 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
   if (provider == CUDAQ_PROVIDER_HOLOLINK)
     return cudaq_bridge_create_from_library(out_bridge_handle,
                                             Hololink_Bridge_Lib, argc, argv);
+  if (provider != CUDAQ_PROVIDER_EXTERNAL)
+    return CUDAQ_ERR_INVALID_ARG;
   const char *bridgeLibPath = std::getenv("CUDAQ_REALTIME_BRIDGE_LIB");
   if (!bridgeLibPath) {
     std::cerr << "ERROR: CUDAQ_REALTIME_BRIDGE_LIB environment variable "
@@ -155,59 +160,55 @@ cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge) {
 }
 
 // Retrieve the transport context information for the given bridge.
+namespace {
+// Resolve the interface for `bridge` under a shared lock, but return it so
+// the provider callback can be invoked AFTER the lock is dropped.  Provider
+// callbacks may block indefinitely (e.g. a rendezvous connect waiting in
+// accept() for the peer); holding the map lock across them would deadlock
+// every other bridge call in the process, including the destroy that could
+// cancel the stuck bridge.  Interface structs are statically allocated in
+// provider libraries that are never unloaded, so the pointer stays valid
+// after the lock is released.
+cudaq_realtime_bridge_interface_t *
+find_interface(cudaq_realtime_bridge_handle_t bridge, const char *what) {
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+  const auto it = bridge_handle_interface_map.find(bridge);
+  if (it == bridge_handle_interface_map.end()) {
+    std::cerr << "ERROR: Invalid bridge handle in " << what << std::endl;
+    return nullptr;
+  }
+  return it->second;
+}
+} // namespace
+
 cudaq_status_t cudaq_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t bridge,
     cudaq_realtime_transport_context_t context_type, void *out_context) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in get_transport_context"
-              << std::endl;
+  auto *bridge_interface = find_interface(bridge, "get_transport_context");
+  if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;
-  }
-  auto *bridge_interface = it->second;
   return bridge_interface->get_transport_context(bridge, context_type,
                                                  out_context);
 }
 
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in connect" << std::endl;
+  auto *bridge_interface = find_interface(bridge, "connect");
+  if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;
-  }
-  auto *bridge_interface = it->second;
   return bridge_interface->connect(bridge);
 }
 
 cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in launch" << std::endl;
+  auto *bridge_interface = find_interface(bridge, "launch");
+  if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;
-  }
-  auto *bridge_interface = it->second;
   return bridge_interface->launch(bridge);
 }
 
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in disconnect" << std::endl;
+  auto *bridge_interface = find_interface(bridge, "disconnect");
+  if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;
-  }
-  auto *bridge_interface = it->second;
   return bridge_interface->disconnect(bridge);
 }
 

@@ -9,9 +9,9 @@
 # UDP bridge provider: the udp ring transceiver behind the transport-provider
 # interface.  Loaded at runtime via CUDAQ_REALTIME_BRIDGE_LIB /
 # CUDAQ_PROVIDER_EXTERNAL; consumers speak only cudaq_bridge_* and stay
-# transport-agnostic.  No ibverbs, no CUDA at link time (the CUDA toolkit
-# headers are needed only because bridge_interface.h -> cudaq_realtime.h
-# includes cuda_runtime.h for type declarations).
+# transport-agnostic.  No ibverbs at link time; CUDA::cudart is linked only
+# for the optional --pinned-rings mode (no GPU is touched unless that flag
+# is passed).
 
 add_library(cudaq-realtime-bridge-udp SHARED bridge_impl.cpp)
 

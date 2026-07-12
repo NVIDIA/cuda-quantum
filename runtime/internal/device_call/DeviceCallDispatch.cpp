@@ -29,6 +29,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -116,6 +117,7 @@ argumentsForDevice(const DeviceCallRuntimeConfig &config,
                    std::uint32_t deviceId) {
   std::vector<std::string> keys; // insertion order
   std::unordered_map<std::string, std::string> values;
+  std::unordered_set<std::string> bare; // flag-style tokens without '='
   const auto assign = [&](const std::string &key, const std::string &value,
                           bool override_) {
     auto iter = values.find(key);
@@ -130,8 +132,13 @@ argumentsForDevice(const DeviceCallRuntimeConfig &config,
   for (int pass = 0; pass < 2; ++pass) {
     for (const auto &arg : config.arguments) {
       const std::size_t eq = arg.find('=');
-      if (eq == std::string::npos || eq == 0)
+      if (eq == std::string::npos || eq == 0) {
+        // Flag-style token (no '='): cannot be device-scoped, so it is
+        // forwarded to every device's channel unmodified.
+        if (pass == 0 && bare.insert(arg).second)
+          keys.push_back(arg);
         continue;
+      }
       const std::string key = arg.substr(0, eq);
       const std::string value = arg.substr(eq + 1);
       const std::size_t dot = key.rfind('.');
@@ -152,7 +159,7 @@ argumentsForDevice(const DeviceCallRuntimeConfig &config,
   std::vector<std::string> result;
   result.reserve(keys.size());
   for (const auto &key : keys)
-    result.push_back(key + "=" + values[key]);
+    result.push_back(bare.count(key) ? key : key + "=" + values[key]);
   return result;
 }
 
@@ -160,14 +167,19 @@ argumentsForDevice(const DeviceCallRuntimeConfig &config,
 // the device has its own external endpoint and should get its own channel.
 bool hasDeviceScopedArguments(const DeviceCallRuntimeConfig &config,
                               std::uint32_t deviceId) {
-  const std::string suffix = "." + std::to_string(deviceId);
   for (const auto &arg : config.arguments) {
     const std::size_t eq = arg.find('=');
-    if (eq == std::string::npos)
+    if (eq == std::string::npos || eq == 0)
       continue;
     const std::string key = arg.substr(0, eq);
-    if (key.size() > suffix.size() &&
-        key.compare(key.size() - suffix.size(), suffix.size(), suffix) == 0)
+    // Same scoped-key recognition as argumentsForDevice, so `<key>.01=`
+    // and `<key>.1=` both target device 1 in BOTH functions.
+    const std::size_t dot = key.rfind('.');
+    if (dot == std::string::npos || dot + 1 >= key.size() ||
+        key.find_first_not_of("0123456789", dot + 1) != std::string::npos)
+      continue;
+    if (static_cast<std::uint32_t>(
+            std::strtoul(key.c_str() + dot + 1, nullptr, 10)) == deviceId)
       return true;
   }
   return false;
@@ -215,6 +227,10 @@ bool setChannelName(DeviceCallRuntimeConfig &config, const char *value) {
 //   host_dispatch
 //   host_dispatch,1=device_dispatch
 //   device_dispatch,0=host_dispatch,2=host_dispatch
+// Applied cumulatively across sources (env, then CLI): a later bare segment
+// replaces the process default but MERGES with -- does not clear --
+// per-device overrides from an earlier spec; re-specify `<id>=<channel>` to
+// change one.
 // Returns false when any segment is malformed.
 bool setChannelSpec(DeviceCallRuntimeConfig &config, const char *value) {
   if (!value || !*value)
@@ -583,6 +599,7 @@ public:
   void initializeServiceForDevice(std::uint32_t deviceId) {
     CUDAQ_INFO("[device-call] driver initialize service device={}", deviceId);
     std::lock_guard<std::mutex> lock(mutex);
+    finalized = false;
 
     // Bail out if a service session is already available for this device.
     const auto existingSession = [&]() -> std::shared_ptr<DeviceCallSession> {
@@ -615,8 +632,8 @@ public:
       }
       // A device with its own scoped endpoint arguments (`<key>.<id>=`)
       // gets its own external channel -- one ring per device across the
-      // wire (e.g. the QEC one-ring-per-decoder topology, device_id ==
-      // decoder_id, endpoints from the decoding server's READY line).
+      // wire (device_id as the routing key, per-device endpoints published
+      // by the serving process).
       if (deviceId != DefaultDeviceId &&
           hasDeviceScopedArguments(config, deviceId)) {
         CUDAQ_INFO("[device-call] driver creating external channel '{}' for "
@@ -630,6 +647,7 @@ public:
         session->channel =
             createDeviceCallChannel(channelName, std::move(channelArgs));
         sessions.insert_or_assign(deviceId, std::move(session));
+        registerShutdownHandler();
         return;
       }
       // Otherwise every device id shares DefaultDeviceId's channel (the
@@ -731,13 +749,21 @@ public:
   }
 
   // Drop all published sessions. Frame handles keep erased sessions alive.
+  // Latches `finalized` so the lazy per-device path in acquireFrameForDevice
+  // cannot silently resurrect a session after an explicit finalize; a later
+  // explicit initializeServiceForDevice re-arms the driver.
   void shutdown() noexcept {
     std::lock_guard<std::mutex> lock(mutex);
+    finalized = true;
     if (sessions.empty())
       return;
     CUDAQ_INFO("[device-call] driver shutdown sessions={}", sessions.size());
     sessions.clear();
   }
+
+  // Set by shutdown(); blocks lazy session creation until the next explicit
+  // initialize.  Guarded by `mutex`.
+  bool finalized = false;
 
   // Opaque ABI lease for one request/response frame. The shared_ptr keeps the
   // backing session alive across dispatch and release.
@@ -769,8 +795,12 @@ public:
         return nullptr;
       return iter->second;
     };
+    const auto isFinalized = [&]() {
+      std::lock_guard<std::mutex> lock(mutex);
+      return finalized;
+    };
     auto session = lookupSession();
-    if (!session) {
+    if (!session && !isFinalized()) {
       // Sessions are keyed by device id and created lazily: eager
       // initialization covers only DefaultDeviceId, so the first
       // device_call(device_id, ...) targeting another device (e.g. the

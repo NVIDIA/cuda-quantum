@@ -329,6 +329,19 @@ CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_launch_dispatch_graph(
 CUDAQ_REALTIME_DISPATCH_API cudaError_t
 cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
 
+// Read the trigger-path debug state: the device-side cudaGraphLaunch result
+// of the most recent fire-and-forget of the triggered graph (-1000 = never
+// fired), the count of fires, and the count of tail self-relaunches.  A
+// healthy scheduler shows rc==0 with fires == tail_relaunches; {rc=0,
+// fires=N, tails=N-1} means the triggered graph launched but never
+// completed.  Uses asynchronous copies on a private non-blocking stream, so
+// it is safe to call while the dispatch graph is resident (live or wedged).
+// Any output pointer may be NULL to skip that value.
+CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_dispatch_get_trigger_debug(int *trigger_rc,
+                                 unsigned long long *trigger_fires,
+                                 unsigned long long *tail_relaunches);
+
 #endif
 
 // Manager lifecycle

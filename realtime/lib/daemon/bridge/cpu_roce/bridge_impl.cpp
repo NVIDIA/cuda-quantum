@@ -421,7 +421,12 @@ cpu_roce_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
 
   RendezvousInfo peer{};
   in_addr local_addr{};
-  ::inet_pton(AF_INET, ctx->local_ip.c_str(), &local_addr);
+  if (::inet_pton(AF_INET, ctx->local_ip.c_str(), &local_addr) != 1) {
+    std::cerr << "ERROR: cpu_roce bridge: invalid --local-ip '"
+              << ctx->local_ip << "'" << std::endl;
+    ::close(conn_fd);
+    return CUDAQ_ERR_INVALID_ARG;
+  }
   const RendezvousInfo self{htonl(cpu_roce_get_qp_number(ctx->transceiver)),
                             htonl(cpu_roce_get_rkey(ctx->transceiver)),
                             local_addr.s_addr};
@@ -468,6 +473,11 @@ cpu_roce_bridge_disconnect(cudaq_realtime_bridge_handle_t handle) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
   auto *ctx = reinterpret_cast<CpuRoceBridgeContext *>(handle);
+  // Mark disconnected FIRST so a concurrent/subsequent launch() cannot spawn
+  // a monitor over the closed transceiver; the rendezvous listen socket is
+  // gone after connect(), so this bridge cannot be reconnected -- destroy
+  // and re-create instead.
+  ctx->connected = false;
   if (ctx->transceiver)
     cpu_roce_close(ctx->transceiver);
   if (ctx->monitor.joinable())

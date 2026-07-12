@@ -897,9 +897,12 @@ extern "C" cudaError_t cudaq_destroy_dispatch_graph(
   return err;
 }
 
-// Host-side reader for the trigger-path debug state above.  Values are
-// copied with synchronizing cudaMemcpyFromSymbol; safe to call while the
-// scheduler is live or wedged.
+// Host-side reader for the trigger-path debug state above (declared in
+// cudaq_realtime.h).  Values are copied with asynchronous
+// cudaMemcpyFromSymbolAsync on a private non-blocking stream: a legacy
+// default-stream copy would synchronize against the resident dispatch
+// graph and deadlock, so this is safe while the scheduler is live or
+// wedged.
 extern "C" CUDAQ_REALTIME_DISPATCH_API cudaError_t
 cudaq_dispatch_get_trigger_debug(int *trigger_rc,
                                  unsigned long long *trigger_fires,
