@@ -15,14 +15,21 @@
 /// to the appropriate provider implementation based on the bridge handle.
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
+#include <cstdlib>
 #include <dlfcn.h>
 #include <iostream>
 #include <mutex>
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
 namespace {
-std::unordered_map<cudaq_realtime_transport_provider_t,
-                   cudaq_realtime_bridge_interface_t *>
+// Loaded provider libraries, keyed by the library name/path string the
+// caller passed.  Keying by string (rather than by an enum slot) lets any
+// number of distinct provider libraries coexist in one process.  Two
+// spellings that resolve to the same library (e.g. a soname and its
+// absolute path) simply cache two entries pointing at the same
+// dlopen-refcounted library -- harmless.
+std::unordered_map<std::string, cudaq_realtime_bridge_interface_t *>
     provider_interface_map;
 
 std::unordered_map<cudaq_realtime_bridge_handle_t,
@@ -33,57 +40,36 @@ std::unordered_map<cudaq_realtime_bridge_handle_t,
 // bridge_handle_interface_map) for thread safety.
 std::shared_mutex bridge_interface_mutex;
 
-/// @brief Path to the built-in Hololink bridge library.  This is used when the
-/// provider is CUDAQ_PROVIDER_HOLOLINK to load the Hololink implementation of
-/// the bridge interface.  The library must be present at the load path (e.g.,
-/// LD_LIBRARY_PATH) for the built-in provider to work.
+/// @brief Library name the CUDAQ_PROVIDER_HOLOLINK convenience enum resolves
+/// to.  The library must be present at the load path (e.g., LD_LIBRARY_PATH).
 const char *Hololink_Bridge_Lib = "libcudaq-realtime-bridge-hololink.so";
 } // namespace
 
-cudaq_status_t
-cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
-                    cudaq_realtime_transport_provider_t provider, int argc,
-                    char **argv) {
+cudaq_status_t cudaq_bridge_create_from_library(
+    cudaq_realtime_bridge_handle_t *out_bridge_handle, const char *library,
+    int argc, char **argv) {
+  if (!out_bridge_handle || !library || !*library)
+    return CUDAQ_ERR_INVALID_ARG;
+  const std::string lib_name = library;
+
   // For create, hold an unique lock.
   std::unique_lock<std::shared_mutex> lock(bridge_interface_mutex);
 
-  const auto it = provider_interface_map.find(provider);
+  const auto it = provider_interface_map.find(lib_name);
   if (it != provider_interface_map.end()) {
     // Provider already loaded (e.g. a second bridge instance on the same
-    // transport -- one ring per decoder).  The new handle must be published
-    // in bridge_handle_interface_map exactly like the first-load path, or
-    // every subsequent cudaq_bridge_* call on it fails with an
-    // invalid-handle error.
+    // transport -- multiple independent rings per process).  The new handle
+    // must be published in bridge_handle_interface_map exactly like the
+    // first-load path, or every subsequent cudaq_bridge_* call on it fails
+    // with an invalid-handle error.
     auto *bridge_interface = it->second;
-    if (!out_bridge_handle)
-      return CUDAQ_ERR_INVALID_ARG;
     const auto status = bridge_interface->create(out_bridge_handle, argc, argv);
     if (status == CUDAQ_OK)
       bridge_handle_interface_map[*out_bridge_handle] = bridge_interface;
     return status;
   }
 
-  const std::string lib_name = [&]() {
-    if (provider == CUDAQ_PROVIDER_HOLOLINK) {
-      return Hololink_Bridge_Lib;
-    } else {
-      const char *bridgeLibPath = std::getenv("CUDAQ_REALTIME_BRIDGE_LIB");
-      if (!bridgeLibPath) {
-        std::cerr << "ERROR: CUDAQ_REALTIME_BRIDGE_LIB environment variable "
-                     "not set for EXTERNAL provider"
-                  << std::endl;
-        return "";
-      }
-      return bridgeLibPath;
-    }
-  }();
-
-  if (lib_name.empty())
-    return CUDAQ_ERR_INVALID_ARG;
   dlerror(); // reset errors
-
-  if (!out_bridge_handle)
-    return CUDAQ_ERR_INVALID_ARG;
 
   void *lib_handle = dlopen(lib_name.c_str(), RTLD_NOW);
 
@@ -122,13 +108,33 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
               << bridge_interface->version << std::endl;
     return CUDAQ_ERR_INTERNAL;
   }
-  provider_interface_map[provider] = bridge_interface;
+  provider_interface_map[lib_name] = bridge_interface;
   // Run the create callback to allow the bridge to perform any initial setup
   const auto status = bridge_interface->create(out_bridge_handle, argc, argv);
   if (status == CUDAQ_OK) {
     bridge_handle_interface_map[*out_bridge_handle] = bridge_interface;
   }
   return status;
+}
+
+cudaq_status_t
+cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
+                    cudaq_realtime_transport_provider_t provider, int argc,
+                    char **argv) {
+  // Convenience wrapper: resolve the enum to a library name and defer to the
+  // string-keyed path.
+  if (provider == CUDAQ_PROVIDER_HOLOLINK)
+    return cudaq_bridge_create_from_library(out_bridge_handle,
+                                            Hololink_Bridge_Lib, argc, argv);
+  const char *bridgeLibPath = std::getenv("CUDAQ_REALTIME_BRIDGE_LIB");
+  if (!bridgeLibPath) {
+    std::cerr << "ERROR: CUDAQ_REALTIME_BRIDGE_LIB environment variable "
+                 "not set for EXTERNAL provider"
+              << std::endl;
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+  return cudaq_bridge_create_from_library(out_bridge_handle, bridgeLibPath,
+                                          argc, argv);
 }
 
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge) {

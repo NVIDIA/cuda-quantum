@@ -13,9 +13,12 @@
 ///
 /// Different transport providers can be loaded at runtime via `dlopen`,
 /// allowing for dynamic selection and initialization of the desired transport
-/// layer. Environment variable CUDAQ_REALTIME_BRIDGE_LIB must be set to the
-/// path of the shared library implementing the desired transport provider (if
-/// not using the built-in Hololink provider).
+/// layer.  Callers name the provider library directly via
+/// `cudaq_bridge_create_from_library`; loaded libraries are cached per
+/// process keyed by that name, so multiple distinct providers can coexist in
+/// one process.  The enum-based `cudaq_bridge_create` remains as a
+/// convenience wrapper (built-in Hololink name, or the library named by the
+/// CUDAQ_REALTIME_BRIDGE_LIB environment variable).
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
@@ -119,12 +122,24 @@ typedef struct {
   cudaq_cpu_tx_publish_fn_t tx_publish; ///< Outbound publish; required.
 } cudaq_cpu_dataplane_t;
 
-/// @brief Create and initialize a transport bridge for the specified provider.
-/// For the built-in Hololink provider, this loads the Hololink shared library
-/// and initializes the transceiver with the provided `args`.  For the EXTERNAL
-/// provider, this loads the shared library specified by the
-/// CUDAQ_REALTIME_BRIDGE_LIB environment variable and calls its create callback
-/// to initialize the bridge.
+/// @brief Create and initialize a transport bridge from an explicit provider
+/// library.  `library` is any string `dlopen` accepts: a bare soname resolved
+/// via the usual load paths (e.g. "libcudaq-realtime-bridge-udp.so") or an
+/// absolute/relative path.  Provider libraries are cached per process keyed
+/// by this string, so any number of DISTINCT provider libraries may coexist
+/// in one process, each serving any number of bridge instances.  This is the
+/// preferred entry point; every provider -- including the ones shipped with
+/// this library -- is just a library name here.
+cudaq_status_t cudaq_bridge_create_from_library(
+    cudaq_realtime_bridge_handle_t *out_bridge_handle, const char *library,
+    int argc, char **argv);
+
+/// @brief Create and initialize a transport bridge for the specified provider
+/// enum.  A convenience wrapper over `cudaq_bridge_create_from_library`:
+/// CUDAQ_PROVIDER_HOLOLINK resolves to the bundled Hololink library name, and
+/// CUDAQ_PROVIDER_EXTERNAL resolves to the library named by the
+/// CUDAQ_REALTIME_BRIDGE_LIB environment variable.  New callers should prefer
+/// `cudaq_bridge_create_from_library` and pass the library name directly.
 cudaq_status_t
 cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
                     cudaq_realtime_transport_provider_t provider, int argc,
