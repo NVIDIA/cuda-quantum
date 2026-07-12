@@ -68,6 +68,9 @@ CUDA_PACKAGES=$(echo "cuda-cudart cuda-nvrtc libcusolver libcublas libcurand lib
 if [ $(echo ${CUDART_VERSION} | cut -d . -f1) -gt 11 ]; then 
     CUDA_PACKAGES+=" libnvjitlink-${CUDA_VERSION_SUFFIX}"
 fi
+if [ -n "${INSTALL_CMAKE_VERSION}" ]; then
+    INSTALL_WGET=true
+fi
 
 if [ "$pkg_manager" == "apt-get" ]; then
     ## [Prerequisites]
@@ -95,6 +98,10 @@ if [ "$pkg_manager" == "apt-get" ]; then
         apt_retry install -y --no-install-recommends ${VALIDATION_PACKAGES}
     fi
 
+    if [ -n "${INSTALL_WGET}" ]; then
+        apt-get install -y --no-install-recommends wget
+    fi
+
 elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
     dnf_retry install -y --nobest --setopt=install_weak_deps=False \
@@ -115,6 +122,10 @@ elif [ "$pkg_manager" == "dnf" ]; then
     ## [Extra validation packages]
     if [ -n "${VALIDATION_PACKAGES}" ]; then
         dnf_retry install -y --nobest --setopt=install_weak_deps=False ${VALIDATION_PACKAGES}
+    fi
+
+    if [ -n "${INSTALL_WGET}" ]; then
+        dnf_retry install -y --nobest --setopt=install_weak_deps=False wget
     fi
 
 elif [ "$pkg_manager" == "zypper" ]; then
@@ -139,9 +150,21 @@ elif [ "$pkg_manager" == "zypper" ]; then
         zypper --non-interactive in --no-recommends ${VALIDATION_PACKAGES}
     fi
 
+    if [ -n "${INSTALL_WGET}" ]; then
+        zypper --non-interactive in --no-recommends wget
+    fi
+
 else
     echo "Installation via $pkg_manager is not yet implemented." >&2
     (return 0 2>/dev/null) && return 1 || exit 1
+fi
+
+## [CMake via Kitware installer]
+if [ -n "${INSTALL_CMAKE_VERSION}" ]; then
+    wget -q "https://github.com/Kitware/CMake/releases/download/v${INSTALL_CMAKE_VERSION}/cmake-${INSTALL_CMAKE_VERSION}-linux-$(uname -m).sh" \
+        -O cmake-install.sh
+    bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
+    rm cmake-install.sh
 fi
 
 trap - ERR
