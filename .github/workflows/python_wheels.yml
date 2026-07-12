@@ -279,6 +279,10 @@ jobs:
           fi
 
           wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
+          # Pre-pull with retry; BuildKit's own retry gives up after ~7s, which
+          # is not enough to ride out transient GHCR connection resets.
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry docker pull $base_image
           docker build --network host -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
@@ -522,9 +526,13 @@ jobs:
           # ubuntu:22.04 is the Python 3.11 validation image (see
           # config/validation_config.json). Mirror the `validation` job and use
           # the GHCR-mirrored base to limit pull rate on public registries.
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           repo_owner=${{ github.repository_owner }}
           base_image=ghcr.io/${repo_owner,,}/ubuntu:22.04
           wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
+          # Pre-pull with retry; BuildKit's own retry gives up after ~7s, which
+          # is not enough to ride out transient GHCR connection resets.
+          retry docker pull $base_image
           docker build --network host -t wheel_validation:local -f docker/test/wheels/ubuntu.Dockerfile . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
