@@ -76,9 +76,8 @@ bool starts_with(const std::string &s, const char *prefix) {
 
 extern "C" {
 
-static cudaq_status_t
-udp_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
-                  char **argv) {
+static cudaq_status_t udp_bridge_create(cudaq_realtime_bridge_handle_t *handle,
+                                        int argc, char **argv) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
 
@@ -108,12 +107,10 @@ udp_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
     // Pinned+mapped rings: a GPU consumer polls the same allocation through
     // its device alias (identical pointer under UVA), while this transport's
     // socket threads fill/drain it from the host.
-    const size_t sizes[4] = {ctx->num_slots * sizeof(uint64_t),
-                             ctx->num_slots * sizeof(uint64_t),
-                             static_cast<size_t>(ctx->num_slots) *
-                                 ctx->slot_size,
-                             static_cast<size_t>(ctx->num_slots) *
-                                 ctx->slot_size};
+    const size_t sizes[4] = {
+        ctx->num_slots * sizeof(uint64_t), ctx->num_slots * sizeof(uint64_t),
+        static_cast<size_t>(ctx->num_slots) * ctx->slot_size,
+        static_cast<size_t>(ctx->num_slots) * ctx->slot_size};
     for (int i = 0; i < 4; ++i) {
       if (cudaHostAlloc(&ctx->pinned[i], sizes[i], cudaHostAllocMapped) !=
           cudaSuccess) {
@@ -212,8 +209,7 @@ udp_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
   return handle ? CUDAQ_OK : CUDAQ_ERR_INVALID_ARG;
 }
 
-static cudaq_status_t
-udp_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
+static cudaq_status_t udp_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
   auto *ctx = reinterpret_cast<UdpBridgeContext *>(handle);

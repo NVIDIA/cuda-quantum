@@ -93,18 +93,18 @@ struct CpuRoceBridgeContext {
   std::string device = "mlx5_0";
   std::string local_ip = "10.0.0.2";
   std::string qp_config = "rendezvous";
-  std::string peer_ip;         // hsb_fpga: FPGA/emulator data-plane IPv4
-  uint16_t tcp_port = 0;       // rendezvous TCP port (0 = ephemeral)
-  uint32_t remote_qp = 0x2;    // hsb_fpga: FPGA data-plane QP
+  std::string peer_ip;      // hsb_fpga: FPGA/emulator data-plane IPv4
+  uint16_t tcp_port = 0;    // rendezvous TCP port (0 = ephemeral)
+  uint32_t remote_qp = 0x2; // hsb_fpga: FPGA data-plane QP
   uint32_t num_slots = 8;
   uint32_t slot_size = 256;
-  size_t frame_size = 0;       // hsb_fpga TX SGE bytes; 0 => slot_size
+  size_t frame_size = 0; // hsb_fpga TX SGE bytes; 0 => slot_size
 
   // Live state.
   cpu_roce_transceiver_t transceiver = nullptr;
-  int listen_fd = -1;          // rendezvous: bound+listening after create()
-  uint16_t bound_port = 0;     // rendezvous: actual TCP port after create()
-  std::thread monitor;         // started by launch()
+  int listen_fd = -1;      // rendezvous: bound+listening after create()
+  uint16_t bound_port = 0; // rendezvous: actual TCP port after create()
+  std::thread monitor;     // started by launch()
   bool connected = false;
 };
 
@@ -186,14 +186,13 @@ cudaq_status_t create_rendezvous(CpuRoceBridgeContext *ctx) {
     return CUDAQ_ERR_INTERNAL;
   }
   int reuse = 1;
-  ::setsockopt(ctx->listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuse,
-               sizeof(reuse));
+  ::setsockopt(ctx->listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
   sockaddr_in srv{};
   srv.sin_family = AF_INET;
   srv.sin_addr.s_addr = htonl(INADDR_ANY);
   srv.sin_port = htons(ctx->tcp_port);
-  if (::bind(ctx->listen_fd, reinterpret_cast<sockaddr *>(&srv),
-             sizeof(srv)) != 0 ||
+  if (::bind(ctx->listen_fd, reinterpret_cast<sockaddr *>(&srv), sizeof(srv)) !=
+          0 ||
       ::listen(ctx->listen_fd, 1) != 0) {
     std::cerr << "ERROR: cpu_roce bridge: rendezvous bind/listen failed"
               << std::endl;
@@ -366,10 +365,10 @@ static cudaq_status_t cpu_roce_bridge_get_transport_context(
       cpu_roce_get_rx_ring_flag_addr(ctx->transceiver));
   auto *tx_flags = reinterpret_cast<volatile uint64_t *>(
       cpu_roce_get_tx_ring_flag_addr(ctx->transceiver));
-  auto *rx_data =
-      reinterpret_cast<uint8_t *>(cpu_roce_get_rx_ring_data_addr(ctx->transceiver));
-  auto *tx_data =
-      reinterpret_cast<uint8_t *>(cpu_roce_get_tx_ring_data_addr(ctx->transceiver));
+  auto *rx_data = reinterpret_cast<uint8_t *>(
+      cpu_roce_get_rx_ring_data_addr(ctx->transceiver));
+  auto *tx_data = reinterpret_cast<uint8_t *>(
+      cpu_roce_get_tx_ring_data_addr(ctx->transceiver));
   if (!rx_flags || !tx_flags || !rx_data || !tx_data)
     return CUDAQ_ERR_INTERNAL;
 
@@ -422,8 +421,8 @@ cpu_roce_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
   RendezvousInfo peer{};
   in_addr local_addr{};
   if (::inet_pton(AF_INET, ctx->local_ip.c_str(), &local_addr) != 1) {
-    std::cerr << "ERROR: cpu_roce bridge: invalid --local-ip '"
-              << ctx->local_ip << "'" << std::endl;
+    std::cerr << "ERROR: cpu_roce bridge: invalid --local-ip '" << ctx->local_ip
+              << "'" << std::endl;
     ::close(conn_fd);
     return CUDAQ_ERR_INVALID_ARG;
   }
@@ -504,8 +503,7 @@ cpu_roce_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle,
         static_cast<unsigned long long>(
             cpu_roce_get_buffer_addr(ctx->transceiver)));
   else
-    n = std::snprintf(buf, buf_len,
-                      "transport=cpu_roce port=%u roce_ip=%s",
+    n = std::snprintf(buf, buf_len, "transport=cpu_roce port=%u roce_ip=%s",
                       static_cast<unsigned>(ctx->bound_port),
                       ctx->local_ip.c_str());
   return (n > 0 && static_cast<size_t>(n) < buf_len) ? CUDAQ_OK

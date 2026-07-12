@@ -298,11 +298,11 @@ cpu_udp_transceiver_t cpu_udp_create_transceiver(size_t page_size,
 cpu_udp_transceiver_t cpu_udp_create_transceiver_ext(
     size_t page_size, unsigned num_pages, volatile uint64_t *rx_flags,
     volatile uint64_t *tx_flags, uint8_t *rx_data, uint8_t *tx_data) {
-  if (page_size == 0 || num_pages == 0 || !rx_flags || !tx_flags ||
-      !rx_data || !tx_data)
+  if (page_size == 0 || num_pages == 0 || !rx_flags || !tx_flags || !rx_data ||
+      !tx_data)
     return nullptr;
-  auto *xcvr = new (std::nothrow) UdpTransceiver(
-      page_size, num_pages, rx_flags, tx_flags, rx_data, tx_data);
+  auto *xcvr = new (std::nothrow) UdpTransceiver(page_size, num_pages, rx_flags,
+                                                 tx_flags, rx_data, tx_data);
   if (!xcvr || !xcvr->valid()) {
     delete xcvr;
     return nullptr;

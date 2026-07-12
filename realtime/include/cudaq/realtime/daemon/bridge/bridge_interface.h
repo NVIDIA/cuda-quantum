@@ -231,8 +231,8 @@ typedef struct {
 
   /// One-line `key=value` endpoint description; see
   /// cudaq_bridge_get_endpoint_info.
-  cudaq_status_t (*get_endpoint_info)(cudaq_realtime_bridge_handle_t,
-                                      char *buf, size_t buf_len);
+  cudaq_status_t (*get_endpoint_info)(cudaq_realtime_bridge_handle_t, char *buf,
+                                      size_t buf_len);
 
   /// Ring geometry (slot count / slot stride); see
   /// cudaq_bridge_get_ring_geometry.

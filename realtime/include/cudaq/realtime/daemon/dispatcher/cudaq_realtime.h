@@ -337,10 +337,9 @@ cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
 // completed.  Uses asynchronous copies on a private non-blocking stream, so
 // it is safe to call while the dispatch graph is resident (live or wedged).
 // Any output pointer may be NULL to skip that value.
-CUDAQ_REALTIME_DISPATCH_API cudaError_t
-cudaq_dispatch_get_trigger_debug(int *trigger_rc,
-                                 unsigned long long *trigger_fires,
-                                 unsigned long long *tail_relaunches);
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_dispatch_get_trigger_debug(
+    int *trigger_rc, unsigned long long *trigger_fires,
+    unsigned long long *tail_relaunches);
 
 #endif
 

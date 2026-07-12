@@ -149,8 +149,7 @@ argumentsForDevice(const DeviceCallRuntimeConfig &config,
         assign(key, value, false);
       } else if (pass == 1 && scoped) {
         char *end = nullptr;
-        const unsigned long id =
-            std::strtoul(key.c_str() + dot + 1, &end, 10);
+        const unsigned long id = std::strtoul(key.c_str() + dot + 1, &end, 10);
         if (static_cast<std::uint32_t>(id) == deviceId)
           assign(key.substr(0, dot), value, true);
       }
@@ -664,9 +663,8 @@ public:
           return;
         }
       }
-      throw DeviceCallError(
-          DeviceCallStatus::NotInitialized,
-          "external device_call channel is not initialized");
+      throw DeviceCallError(DeviceCallStatus::NotInitialized,
+                            "external device_call channel is not initialized");
     }
 
     // Locate and load the per-device service plugin (linked-in shim library
