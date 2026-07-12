@@ -49,8 +49,18 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 
   const auto it = provider_interface_map.find(provider);
   if (it != provider_interface_map.end()) {
+    // Provider already loaded (e.g. a second bridge instance on the same
+    // transport -- one ring per decoder).  The new handle must be published
+    // in bridge_handle_interface_map exactly like the first-load path, or
+    // every subsequent cudaq_bridge_* call on it fails with an
+    // invalid-handle error.
     auto *bridge_interface = it->second;
-    return bridge_interface->create(out_bridge_handle, argc, argv);
+    if (!out_bridge_handle)
+      return CUDAQ_ERR_INVALID_ARG;
+    const auto status = bridge_interface->create(out_bridge_handle, argc, argv);
+    if (status == CUDAQ_OK)
+      bridge_handle_interface_map[*out_bridge_handle] = bridge_interface;
+    return status;
   }
 
   const std::string lib_name = [&]() {
