@@ -24,7 +24,7 @@
 ///   --num-slots=N     ring slots on both rings            [default 8]
 ///   --slot-size=N     slot stride in bytes on both rings  [default 256]
 ///   --pinned-rings    allocate the rings as CUDA pinned+mapped host memory
-///                     so a GPU consumer (e.g. the QEC device-graph
+///                     so a GPU consumer (e.g. a device-resident dispatch
 ///                     scheduler) can poll them directly; requires a CUDA
 ///                     device at create()
 ///

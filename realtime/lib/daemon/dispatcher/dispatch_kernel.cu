@@ -46,11 +46,11 @@ __device__ std::size_t g_graph_dispatch_cursor = 0;
 
 // Trigger-path debug state (see cudaq_dispatch_get_trigger_debug):
 // rc of the most recent device-side fire-and-forget of the triggered
-// (decode) graph, count of fires, and count of tail self-relaunches
-// actually reached.  A wedge signature of {rc=0, fires=N, tails=N-1}
-// means the child launched but never completed (tail launch waits on
-// fire-and-forget children) -- e.g. a cooperative decode grid that
-// cannot become co-resident.  {rc!=0} means the device-side launch
+// graph, count of fires, and count of tail self-relaunches actually
+// reached.  A wedge signature of {rc=0, fires=N, tails=N-1} means the
+// child launched but never completed (tail launch waits on
+// fire-and-forget children) -- e.g. a cooperative grid that cannot
+// become co-resident.  {rc!=0} means the device-side launch
 // itself failed.
 __device__ int g_dispatch_trigger_rc = -1000; // -1000: never fired
 __device__ unsigned long long g_dispatch_trigger_fires = 0;
@@ -502,7 +502,7 @@ __global__ void dispatch_kernel_with_graph(
                   // wedged pipeline can be diagnosed from the host (see
                   // cudaq_dispatch_get_trigger_debug); previously this rc was
                   // dropped, making trigger failures indistinguishable from a
-                  // hung decode graph.
+                  // hung triggered graph.
                   cudaError_t trigger_rc = cudaGraphLaunch(
                       triggered_graph_exec, cudaStreamGraphFireAndForget);
                   cudaq::realtime::g_dispatch_trigger_rc =
