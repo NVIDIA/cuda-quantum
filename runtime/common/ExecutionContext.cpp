@@ -21,7 +21,7 @@ namespace cudaq {
 ExecutionContext *getExecutionContext() { return currentExecutionContext; }
 
 bool isInTracerMode() {
-  return currentExecutionContext && currentExecutionContext->isTraceCapture;
+  return currentExecutionContext && currentExecutionContext->name == "tracer";
 }
 
 bool isInBatchMode() {

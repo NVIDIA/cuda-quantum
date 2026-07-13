@@ -171,8 +171,11 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   const auto *noisePtr = platform.get_noise();
   const auto &noiseModel = noisePtr ? *noisePtr : kEmptyNoiseModel;
 
-  ExecutionContext ctx(cudaq::ptsbe::sample_policy::name, shots);
-  ctx.isTraceCapture = true;
+  // Stage 0: launch the kernel under a dedicated "tracer" context so the
+  // execution manager records the circuit into ctx.kernelTrace instead of
+  // executing it. finalizePTSBE (invoked by launch's finalize) then builds the
+  // batch and replays it under its own separate sampling context.
+  ExecutionContext ctx("tracer", shots);
   ctx.kernelName = kernelName;
   ctx.noiseModel = &noiseModel;
 

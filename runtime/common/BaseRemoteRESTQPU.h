@@ -319,7 +319,7 @@ public:
 
     // Check to see if we are simply drawing the circuit. If so, perform the
     // trace here and then return.
-    if (executionContext->isTraceCapture && codes.size() == 1) {
+    if (executionContext->name == "tracer" && codes.size() == 1) {
       assert(codes[0].jit);
       cudaq::ExecutionContext context("tracer");
       context.executionManager = cudaq::getDefaultExecutionManager();
