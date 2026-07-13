@@ -53,9 +53,15 @@ public:
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;
+  async_sample_result launchKernel(const async_sample_policy &policy,
+                                   const CompiledModule &module,
+                                   KernelArgs args) override;
   observe_result launchKernel(const observe_policy &policy,
                               const CompiledModule &module,
                               KernelArgs args) override;
+  async_observe_result launchKernel(const async_observe_policy &policy,
+                                    const CompiledModule &module,
+                                    KernelArgs args) override;
 
 private:
   void configure(std::shared_ptr<QDMIPlatformDevice> device,
