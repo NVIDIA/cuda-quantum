@@ -20,6 +20,10 @@ inputs:
     description: 'Base branch to fall back to. Auto-detected from PR target when empty.'
     required: false
     default: ''
+  head-branch:
+    description: 'Head branch to fall back to. Auto-detected from the PR head (or the ref name for branch dispatches) when empty. Matches the branch tag ccache-push writes for non-PR builds.'
+    required: false
+    default: ''
 
 outputs:
   restored:
@@ -49,14 +53,23 @@ runs:
           pr_number="${BASH_REMATCH[2]}"
         fi
 
-        # Auto-detect base branch from PR if not provided
+        # Auto-detect base and head branch from the PR if not provided (one
+        # API call for both). The head branch falls back to the ref name for
+        # branch dispatches. ccache-push tags non-PR builds with the branch
+        # name, so caches prebuilt by e.g. a Deployments run on a feature
+        # branch are found via the head-branch tag.
         base_branch="${{ inputs.base-branch }}"
-        if [ -z "$base_branch" ] && [ -n "$pr_number" ]; then
+        head_branch="${{ inputs.head-branch }}"
+        if [ -n "$pr_number" ] && { [ -z "$base_branch" ] || [ -z "$head_branch" ]; }; then
           export GH_TOKEN="${{ inputs.registry-token }}"
-          base_branch=$(gh pr view "$pr_number" -R "${{ github.repository }}" \
-            --json baseRefName --jq .baseRefName 2>/dev/null || true)
+          pr_branches=$(gh pr view "$pr_number" -R "${{ github.repository }}" \
+            --json baseRefName,headRefName \
+            --jq '.baseRefName + " " + .headRefName' 2>/dev/null || true)
+          base_branch="${base_branch:-${pr_branches%% *}}"
+          head_branch="${head_branch:-${pr_branches##* }}"
         fi
         base_branch="${base_branch:-main}"
+        head_branch="${head_branch:-${{ github.head_ref || github.ref_name }}}"
 
         echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -64,16 +77,29 @@ runs:
         mkdir -p "$output_path"
 
         # Try tags in priority order: PR-specific cache first (most relevant),
-        # then the PR's target branch (e.g. releases/0.9), then main as
-        # final fallback.
+        # then the head branch (written by non-PR builds, e.g. Deployments
+        # dispatched on a feature branch), then the PR's target branch
+        # (e.g. releases/0.9), then main as final fallback. Branch names get
+        # slashes replaced the same way ccache-push does when tagging.
         tags=()
+        add_branch_tag() {
+          local t="${cache_key}-$(echo "$1" | tr '/' '-')"
+          local existing
+          for existing in "${tags[@]}"; do
+            if [ "$existing" = "$t" ]; then return 0; fi
+          done
+          tags+=("$t")
+        }
         if [ -n "$pr_number" ]; then
           tags+=("${cache_key}-pr-${pr_number}")
         fi
-        if [ -n "$base_branch" ] && [ "$base_branch" != "main" ]; then
-          tags+=("${cache_key}-${base_branch}")
+        if [ -n "$head_branch" ]; then
+          add_branch_tag "$head_branch"
         fi
-        tags+=("${cache_key}-main")
+        if [ -n "$base_branch" ] && [ "$base_branch" != "main" ]; then
+          add_branch_tag "$base_branch"
+        fi
+        add_branch_tag main
 
         restored=false
         for tag in "${tags[@]}"; do
