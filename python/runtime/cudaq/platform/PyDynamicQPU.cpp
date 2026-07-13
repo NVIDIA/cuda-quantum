@@ -25,7 +25,11 @@
 #include <stdexcept>
 #include <vector>
 
-// Method names in the Python API
+// Type alias for `kwargs` argument to pass to nanobind Python function calls.
+using KwArgs = nanobind::detail::kwargs_proxy;
+
+// Method names in the Python API. These must match the method names in
+// `python/cudaq/experimental/qpu.py`
 static const char *const SAMPLE_LAUNCH_NAME = "launch_sample";
 static const char *const OBSERVE_LAUNCH_NAME = "launch_observe";
 static const char *const SAMPLE_COMPILE_TARGET_NAME =
@@ -139,7 +143,7 @@ cudaq::PyDynamicQPU::getCompileTarget(const sample_policy &policy) {
       getCallable<cudaq::CompileTarget>(pyObject, SAMPLE_COMPILE_TARGET_NAME);
   if (!callable)
     throw std::runtime_error(
-        "no CompileTarget defined for sample_policy on this QPU");
+        "QPU does not implement the SupportsSampleQPU protocol");
   return std::make_unique<cudaq::CompileTarget>((*callable)());
 }
 
@@ -150,7 +154,7 @@ cudaq::PyDynamicQPU::getCompileTarget(const observe_policy &policy) {
       getCallable<cudaq::CompileTarget>(pyObject, OBSERVE_COMPILE_TARGET_NAME);
   if (!callable)
     throw std::runtime_error(
-        "no CompileTarget defined for observe_policy on this QPU");
+        "QPU does not implement the SupportsObserveQPU protocol");
   return std::make_unique<cudaq::CompileTarget>((*callable)());
 }
 
@@ -160,14 +164,16 @@ cudaq::PyDynamicQPU::launchKernel(const sample_policy &policy,
                                   KernelArgs args) {
   nanobind::gil_scoped_acquire gil;
   auto callable =
-      getCallable<cudaq::sample_result, const CompiledModule &, PyKernelArgs>(
-          pyObject, SAMPLE_LAUNCH_NAME);
+      getCallable<cudaq::sample_result, const CompiledModule &, PyKernelArgs,
+                  KwArgs>(pyObject, SAMPLE_LAUNCH_NAME);
   if (!callable)
     throw std::runtime_error(
         "QPU does not implement the SupportsSampleQPU protocol");
   CUDAQ_INFO("PyDynamicQPU::launchKernel {}", policy.name);
   auto pyArgs = PyKernelArgs(std::move(args), module);
-  return (*callable)(module, std::move(pyArgs));
+  auto kwargs = nanobind::dict();
+  kwargs["shots_count"] = policy.options.shots;
+  return (*callable)(module, std::move(pyArgs), **kwargs);
 }
 
 cudaq::observe_result
@@ -176,14 +182,17 @@ cudaq::PyDynamicQPU::launchKernel(const observe_policy &policy,
                                   KernelArgs args) {
   nanobind::gil_scoped_acquire gil;
   auto callable =
-      getCallable<cudaq::observe_result, const CompiledModule &, PyKernelArgs>(
-          pyObject, OBSERVE_LAUNCH_NAME);
+      getCallable<cudaq::observe_result, const CompiledModule &, PyKernelArgs,
+                  KwArgs>(pyObject, OBSERVE_LAUNCH_NAME);
   if (!callable)
     throw std::runtime_error(
         "QPU does not implement the SupportsObserveQPU protocol");
   CUDAQ_INFO("PyDynamicQPU::launchKernel {}", policy.name);
   auto pyArgs = PyKernelArgs(std::move(args), module);
-  return (*callable)(module, std::move(pyArgs));
+  auto kwargs = nanobind::dict();
+  if (policy.options.shots != -1)
+    kwargs["shots_count"] = policy.options.shots;
+  return (*callable)(module, std::move(pyArgs), **kwargs);
 }
 
 static std::string reprStr(const std::string &s) { return "'" + s + "'"; }

@@ -31,6 +31,7 @@ class SupportsSampleQPU(Protocol):
         self,
         module: CompiledModule,
         args: KernelArgs,
+        **kwargs,
     ) -> SampleResult:
         """Execute a compiled kernel under the sample policy."""
         ...
@@ -48,6 +49,7 @@ class SupportsObserveQPU(Protocol):
         self,
         module: CompiledModule,
         args: KernelArgs,
+        **kwargs,
     ) -> ObserveResult:
         """Execute a compiled kernel under the observe policy."""
         ...

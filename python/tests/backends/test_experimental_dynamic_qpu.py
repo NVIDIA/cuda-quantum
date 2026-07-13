@@ -13,8 +13,6 @@
 # Registering it via ``cudaq.set_target(<qpu_instance>)`` selects the
 # "python-dynamic" target and wraps the object in the internal C++
 # ``PyDynamicQPU``, which forwards compile/launch calls to the Python methods.
-#
-# See docs/sphinx/using/extending/python_qpu.rst for the full protocol reference.
 
 import cudaq
 import cudaq.mlir.ir as mlir
@@ -54,8 +52,9 @@ class DemoQPU:
         self.traced_calls.append("get_compile_target_sample")
         return CompileTarget.default_sample()
 
-    def launch_sample(self, module, args):
-        self.traced_calls.append(f"launch_sample({args})")
+    def launch_sample(self, module, args, shots_count):
+        self.traced_calls.append(
+            f"launch_sample({args}, shots_count={shots_count})")
         self.mlir_module = module.mlir_module
         return SampleResult()
 
@@ -65,7 +64,7 @@ class DemoQPU:
         self.traced_calls.append("get_compile_target_observe")
         return CompileTarget.default_observe()
 
-    def launch_observe(self, module, args):
+    def launch_observe(self, module, args, **kwargs):
         self.traced_calls.append(f"launch_observe({args})")
         self.mlir_module = module.mlir_module
         return ObserveResult(1.0, cudaq.spin.x(0), SampleResult())
@@ -100,7 +99,7 @@ def test_sample_launch():
     cudaq.sample(kernel, 1, [1, 2, 3])
     assert qpu.traced_calls == [
         "get_compile_target_sample",
-        'launch_sample(KernelArgs([1, <instance of !cc.stdvec<i64>>]))'
+        'launch_sample(KernelArgs([1, <instance of !cc.stdvec<i64>>]), shots_count=1000)'
     ]
     assert isinstance(qpu.mlir_module, mlir.Module)
 
@@ -126,9 +125,9 @@ def test_sample_twice():
     cudaq.sample(kernel, 2, [1, 2, 3])
     assert qpu.traced_calls == [
         "get_compile_target_sample",
-        'launch_sample(KernelArgs([1, <instance of !cc.stdvec<i64>>]))',
+        'launch_sample(KernelArgs([1, <instance of !cc.stdvec<i64>>]), shots_count=1000)',
         "get_compile_target_sample",
-        'launch_sample(KernelArgs([2, <instance of !cc.stdvec<i64>>]))'
+        'launch_sample(KernelArgs([2, <instance of !cc.stdvec<i64>>]), shots_count=1000)'
     ]
 
 
@@ -170,8 +169,6 @@ def test_observe_fails_when_sample_only():
         cudaq.observe(kernel, cudaq.spin.x(0), 2, [])
 
 
-# leave in place so `pytest test_python_dynamic_qpu.py` behaves like the rest of
-# the backends suite when run standalone
 if __name__ == "__main__":
     import sys
     pytest.main([__file__, "-v"] + sys.argv[1:])
