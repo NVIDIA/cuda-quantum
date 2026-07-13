@@ -378,6 +378,13 @@ cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx);
 
+// CPU data-plane wiring for the host unified path. `cpu_dataplane` is a
+// `cudaq_cpu_dataplane_t*` obtained from the bridge. When set, the dispatcher
+// runs the single-thread unified loop over it.
+cudaq_status_t
+cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
+                                   void *cpu_dataplane);
+
 // Start/stop
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
