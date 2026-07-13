@@ -15,10 +15,7 @@
 #include "cudaq/runtime/logger/logger.h"
 
 #include <algorithm>
-#include <exception>
-#include <future>
 #include <map>
-#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -166,27 +163,6 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
   return result;
 }
 
-cudaq::detail::future
-submitJobsAsync(cudaq::QDMIQPU &qpu,
-                std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
-                std::vector<cudaq::KernelExecution> codes,
-                cudaq::detail::ExecutionContextType execType,
-                std::size_t shotCount) {
-  auto promise = std::make_shared<std::promise<cudaq::sample_result>>();
-  auto future = promise->get_future();
-  cudaq::QuantumTask task =
-      [promise, platformDevice = std::move(platformDevice),
-       codes = std::move(codes), execType, shotCount]() mutable {
-        try {
-          promise->set_value(submitJobs(std::move(platformDevice),
-                                        std::move(codes), execType, shotCount));
-        } catch (...) {
-          promise->set_exception(std::current_exception());
-        }
-      };
-  qpu.enqueue(task);
-  return cudaq::detail::future(std::move(future));
-}
 } // namespace
 
 namespace cudaq {
@@ -309,16 +285,6 @@ sample_result QDMIQPU::launchKernel(const sample_policy &policy,
                     detail::ExecutionContextType::sample, shotCount);
 }
 
-async_sample_result
-QDMIQPU::launchKernel(const async_sample_policy &policy,
-                      const CompiledModule &module, KernelArgs) {
-  auto codes = runCodegen(module, getCompileTarget(policy.inner));
-  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
-  return async_sample_result(submitJobsAsync(
-      *this, platformDevice, std::move(codes),
-      detail::ExecutionContextType::sample, shotCount));
-}
-
 observe_result QDMIQPU::launchKernel(const observe_policy &policy,
                                      const CompiledModule &module, KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy));
@@ -326,17 +292,6 @@ observe_result QDMIQPU::launchKernel(const observe_policy &policy,
   return observeResultFromCounts(
       policy, submitJobs(platformDevice, std::move(codes),
                          detail::ExecutionContextType::observe, shotCount));
-}
-
-async_observe_result
-QDMIQPU::launchKernel(const async_observe_policy &policy,
-                      const CompiledModule &module, KernelArgs) {
-  auto codes = runCodegen(module, getCompileTarget(policy.inner));
-  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
-  return async_observe_result(
-      submitJobsAsync(*this, platformDevice, std::move(codes),
-                      detail::ExecutionContextType::observe, shotCount),
-      &policy.inner.spin);
 }
 
 } // namespace cudaq

@@ -67,6 +67,6 @@ advertise support for ``QDMI_PROGRAM_FORMAT_QASM2``. CUDA-Q emulation mode,
 ``cudaq.run``, and CUDA-Q noise models are not supported by this target.
 The target currently exposes the root device from one QDMI device library as
 CUDA-Q QPU 0; child devices and multiple QDMI devices are not exposed as
-additional CUDA-Q QPUs. Asynchronous ``cudaq.sample_async`` and
-``cudaq.observe_async`` jobs are supported in process and are serialized for
-that QPU because QDMI does not guarantee concurrent access to a device session.
+additional CUDA-Q QPUs. The asynchronous ``cudaq.sample_async`` and
+``cudaq.observe_async`` APIs are not supported because QDMI does not guarantee
+concurrent access to a device session.
