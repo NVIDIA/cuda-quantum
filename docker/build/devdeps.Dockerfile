@@ -175,7 +175,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
 ENV PATH="${PATH}:/usr/local/cmake-3.28/bin"
 COPY requirements.txt /cuda-quantum/requirements.txt
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
-COPY requirements-tests-backend.txt /cuda-quantum/requirements-tests-backend.txt
+COPY requirements-mock-qpu.txt /cuda-quantum/requirements-mock-qpu.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git gdb ninja-build file lldb ccache libatomic1 \
         libstdc++-13-dev \
