@@ -11,3 +11,6 @@
 # and coverage scripts reference a single source of truth.
 iqm-client==28.0.0
 qio~=0.1.33
+fastapi==0.111.0
+uvicorn==0.29.0
+llvmlite==0.47.0

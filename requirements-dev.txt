@@ -18,11 +18,9 @@ numpy==1.26.4; python_version < "3.14"
 numpy>=2.3.2; python_version >= "3.14"
 -r requirements.txt
 nbconvert==7.17.1
-llvmlite==0.47.0
+-r requirements-tests-backend.txt
 scipy==1.16.3
 requests==2.33.0
-fastapi==0.111.0
-uvicorn==0.29.0
 pydantic==2.12.5
 openfermionpyscf==0.5; python_version < "3.14"
 h5py==3.12.1; python_version < "3.14"
