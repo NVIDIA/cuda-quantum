@@ -12,14 +12,13 @@
 #include "common/RuntimeTarget.h"
 #include "qdmi/driver/Driver.hpp"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "llvm/Support/Base64.h"
 
 #include <algorithm>
 #include <array>
-#include <charconv>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -29,7 +28,6 @@
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -37,17 +35,6 @@ namespace {
 using BackendConfig = std::map<std::string, std::string>;
 using QDMISite = typename decltype(std::declval<cudaq::FoMaCDevice &>()
                                        .getRegularSites())::value_type;
-
-std::string decodeBackendValue(std::string value) {
-  if (!value.starts_with("base64_"))
-    return value;
-
-  value.erase(0, 7);
-  std::vector<char> decoded;
-  if (auto err = llvm::decodeBase64(value, decoded))
-    throw std::runtime_error("DecodeBase64 error");
-  return std::string(decoded.data(), decoded.size());
-}
 
 BackendConfig parseBackendConfig(const std::string &description,
                                  std::string &targetName) {
@@ -64,7 +51,7 @@ BackendConfig parseBackendConfig(const std::string &description,
         "Backend config must be provided as key-value pairs.");
 
   for (std::size_t i = 1; i < split.size(); i += 2)
-    config.insert({split[i], decodeBackendValue(split[i + 1])});
+    config.insert({split[i], split[i + 1]});
   return config;
 }
 
@@ -79,58 +66,11 @@ std::optional<std::string> getValue(const BackendConfig &config,
   return std::nullopt;
 }
 
-fomac::CustomJobParameter parseJobParameter(const std::string &value) {
-  constexpr std::string_view stringPrefix = "string:";
-  constexpr std::string_view boolPrefix = "bool:";
-  constexpr std::string_view intPrefix = "int:";
-  constexpr std::string_view doublePrefix = "double:";
-
-  if (value.starts_with(stringPrefix))
-    return value.substr(stringPrefix.size());
-
-  if (value.starts_with(boolPrefix)) {
-    const auto boolValue = std::string_view(value).substr(boolPrefix.size());
-    if (boolValue == "true")
-      return true;
-    if (boolValue == "false")
-      return false;
-    throw std::runtime_error(
-        "QDMI Boolean job parameters must be 'bool:true' or 'bool:false'.");
-  }
-
-  if (value.starts_with(intPrefix)) {
-    const auto intValue = std::string_view(value).substr(intPrefix.size());
-    int result = 0;
-    const auto [end, error] = std::from_chars(
-        intValue.data(), intValue.data() + intValue.size(), result);
-    if (error != std::errc{} || end != intValue.data() + intValue.size())
-      throw std::runtime_error(
-          "QDMI integer job parameters must use the form 'int:<value>'.");
-    return result;
-  }
-
-  if (value.starts_with(doublePrefix)) {
-    const auto doubleValue = value.substr(doublePrefix.size());
-    std::size_t end = 0;
-    try {
-      const auto result = std::stod(doubleValue, &end);
-      if (end == doubleValue.size())
-        return result;
-    } catch (const std::exception &) {
-    }
-    throw std::runtime_error(
-        "QDMI floating-point job parameters must use the form "
-        "'double:<value>'.");
-  }
-
-  return value;
-}
-
 std::optional<fomac::CustomJobParameter>
 getJobParameter(const BackendConfig &config, const std::string &key,
                 const char *envName) {
   if (auto value = getValue(config, key, envName))
-    return parseJobParameter(*value);
+    return fomac::CustomJobParameter{std::move(*value)};
   return std::nullopt;
 }
 
@@ -168,13 +108,13 @@ cudaq::config::TargetConfig loadTargetConfig(const std::string &targetName) {
 
   std::ifstream configFile(configFilePath.string());
   if (!configFile)
-    throw std::runtime_error("Could not open QDMI target configuration.");
+    throw std::runtime_error("Could not open QDMI target configuration '" +
+                             configFilePath.string() + "'.");
 
   const std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                    std::istreambuf_iterator<char>());
   cudaq::config::TargetConfig config;
-  llvm::yaml::Input input(configContents.c_str());
-  input >> config;
+  cudaq::detail::parseTargetConfigYml(configContents, config);
   return config;
 }
 
@@ -249,8 +189,11 @@ getQubitIndex(const QDMISite &site,
               const std::map<std::size_t, std::size_t> &positions,
               std::size_t qubitCount) {
   const auto siteIndex = site.getIndex();
-  if (auto iter = positions.find(siteIndex); iter != positions.end())
-    return iter->second;
+  if (auto iter = positions.find(siteIndex); iter != positions.end()) {
+    if (iter->second < qubitCount)
+      return iter->second;
+    return std::nullopt;
+  }
   if (siteIndex < qubitCount)
     return siteIndex;
   return std::nullopt;
@@ -300,17 +243,8 @@ makePlatformDevice(cudaq::FoMaCDevice device) {
       std::make_shared<cudaq::QDMIPlatformDevice>(std::move(device));
   platformDevice->name = platformDevice->fomacDevice.getName();
 
-  std::optional<std::vector<QDMI_Program_Format>> programFormats;
-  try {
-    programFormats = platformDevice->fomacDevice.getSupportedProgramFormats();
-  } catch (const std::exception &e) {
-    CUDAQ_DBG("QDMI program format metadata is unavailable: {}", e.what());
-  }
-  if (programFormats) {
-    platformDevice->programFormat = selectProgramFormat(*programFormats);
-  } else {
-    platformDevice->programFormat = QDMI_PROGRAM_FORMAT_QASM2;
-  }
+  platformDevice->programFormat = selectProgramFormat(
+      platformDevice->fomacDevice.getSupportedProgramFormats());
   platformDevice->qubitCount = platformDevice->fomacDevice.getQubitsNum();
   platformDevice->connectivity = queryConnectivity(platformDevice->fomacDevice,
                                                    platformDevice->qubitCount);
@@ -383,6 +317,9 @@ private:
     platformQPUs.back()->setId(0);
   }
 
+  // MQT Core's driver owns loaded device libraries for the process lifetime
+  // and does not expose an unregister operation. Keep one wrapper per resolved
+  // device-session configuration to match that ownership model.
   std::map<BackendConfig, std::shared_ptr<cudaq::QDMIPlatformDevice>>
       loadedPlatformDevices;
 };
