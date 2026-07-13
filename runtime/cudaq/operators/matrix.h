@@ -89,6 +89,7 @@ public:
       : dimensions{other.dimensions}, data{other.data},
         internal_order(other.internal_order) {
     other.data = nullptr;
+    other.dimensions = {};
   }
 
   complex_matrix(const std::vector<value_type> &v,
