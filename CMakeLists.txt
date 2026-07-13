@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
 
 # Policies
 # ==============================================================================
@@ -72,6 +72,9 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
+# Disable scanning since we have no C++20 modules.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 # Set warnings as errors by default.
 # Individual targets and the command line invocation can override this behavior.

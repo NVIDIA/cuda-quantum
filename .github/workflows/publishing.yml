@@ -360,7 +360,7 @@ jobs:
   
       - name: Upload CUDA-Q assets
         if: steps.artifacts.outputs.releases != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.assets_retrieval.outputs.artifact_name }}
           path: /tmp/assets
@@ -396,20 +396,20 @@ jobs:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Load docker assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
@@ -459,7 +459,7 @@ jobs:
 
       - name: Log in to default registry
         if: steps.release_info.outputs.push_to_ngc != 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ vars.registry }}
           username: ${{ github.actor }}
@@ -467,14 +467,14 @@ jobs:
 
       - name: Log in to NGC registry
         if: steps.release_info.outputs.push_to_ngc == 'true'
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: 'nvcr.io'
           username: '$oauthtoken'
           password: ${{ secrets.NGC_CREDENTIALS }}
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           version: v0.19.0
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
@@ -488,7 +488,7 @@ jobs:
 
       - name: Extract cuda-quantum metadata
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.release_info.outputs.image_name }}
           flavor: latest=false
@@ -499,7 +499,9 @@ jobs:
 
       - name: Build cuda-quantum image
         id: cudaq_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/cudaq.ext.Dockerfile
@@ -523,7 +525,9 @@ jobs:
         env:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Install NGC CLI
         if: steps.release_info.outputs.push_to_ngc == 'true'
@@ -560,7 +564,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Configure validation
-        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: docker_images
           matrix-key: ${{ matrix.info_file }}
@@ -594,7 +598,7 @@ jobs:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load build assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
@@ -627,20 +631,20 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           version: v0.19.0
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
@@ -653,7 +657,9 @@ jobs:
           enable-apt: false
 
       - name: Build installer
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/installer.Dockerfile
@@ -677,7 +683,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-installer
           path: /tmp/install
@@ -720,7 +726,7 @@ jobs:
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
-        python_version: ['3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.12', '3.13', '3.14']
       fail-fast: false
 
     runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
@@ -732,7 +738,7 @@ jobs:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheel assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
@@ -762,13 +768,13 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -779,7 +785,7 @@ jobs:
           docker context create builder_context
   
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -795,7 +801,9 @@ jobs:
 
       - name: Build cuda-quantum wheel
         id: build_wheel
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/release/cudaq.wheel.Dockerfile
@@ -818,7 +826,7 @@ jobs:
           fi
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-py${{ matrix.python_version }}-wheels
           path: /tmp/wheels
@@ -857,7 +865,7 @@ jobs:
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.assets.outputs.cudaq_version }}
-      python_versions: "['3.11', '3.12', '3.13']"
+      python_versions: "['3.11', '3.12', '3.13', '3.14']"
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: '*-wheels'
       github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
@@ -921,7 +929,7 @@ jobs:
 
       - name: Upload macOS wheels
         if: steps.fetch.outputs.has_macos_wheels == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: darwin-arm64-wheels
           path: wheels/
@@ -930,7 +938,7 @@ jobs:
 
       - name: Upload macOS installer
         if: steps.fetch.outputs.has_macos_installer == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: darwin-arm64-installer
           path: installer/
@@ -946,9 +954,14 @@ jobs:
       docker_images: ${{ steps.validation.outputs.docker_images }}
 
     steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
       - name: Get matrix job output
         id: read_json
-        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: docker_images
 
@@ -1097,7 +1110,7 @@ jobs:
           echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
 
       - name: Load installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
           path: /tmp/install
@@ -1249,7 +1262,7 @@ jobs:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: '*-wheels'
           path: /tmp/wheels
@@ -1257,7 +1270,7 @@ jobs:
 
       - name: Load metapackage
         if: ${{ matrix.cuda_major == '' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/packages
@@ -1354,14 +1367,14 @@ jobs:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: '*-wheels'
           path: /tmp/wheels
           merge-multiple: true
       
       - name: Load metapackage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/packages
@@ -1420,18 +1433,18 @@ jobs:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Download macOS wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: darwin-arm64-wheels
           path: /tmp/wheels
 
       - name: Download metapackage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/metapackages
@@ -1493,25 +1506,25 @@ jobs:
 
     steps:
       - name: Download CUDA-Q installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: '*-installer'
           path: installers
 
       - name: Download CUDA-Q Python wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: '*-wheels'
           path: wheelhouse
 
       - name: Download CUDA-Q metapackages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: metapackages
 
       - name: Download CUDA-Q Realtime installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: 'install_cuda_quantum_realtime_*'
           path: installers
@@ -1591,7 +1604,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Delete artifacts
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const res = await github.rest.actions.listArtifactsForRepo({

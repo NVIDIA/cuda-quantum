@@ -15,7 +15,7 @@ ninja install
 
 ## Requirements
 
-- CMake 3.22+
+- CMake 4.0+
 
 - CUDA toolkit (12+)
 

@@ -107,7 +107,12 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: realtime_integration_cuda_deps
@@ -130,7 +135,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -141,7 +146,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -192,7 +197,7 @@ jobs:
           fi
 
       - name: Build realtime integration
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/release/cudaq.realtime-integration.Dockerfile
@@ -231,7 +236,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -242,7 +247,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -293,7 +298,7 @@ jobs:
           fi
 
       - name: Build cpu_roce device_call harness (build-only)
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/release/cudaq.realtime-integration.Dockerfile

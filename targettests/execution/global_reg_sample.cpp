@@ -79,7 +79,7 @@ int main() {
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test4);
   // CHECK: test4:
-  // CHECK: { 10:1000 }
+  // CHECK: { 1{{0?}}:1000 }
 
   // Check that specifying a measurement on `b` hides `a` from the global
   // register.

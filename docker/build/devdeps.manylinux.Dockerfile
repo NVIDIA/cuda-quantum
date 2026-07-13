@@ -62,14 +62,25 @@ RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
-# Installing ninja-build, cmake, python3-devel, and ccache required by the LLVM build.
+# Installing python3-devel, and ccache required by the LLVM build.
 # Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
-RUN dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9\
-        ninja-build cmake python3-devel ccache
+RUN dnf install -y --nobest --setopt=install_weak_deps=False python3-devel ccache unzip
 
-RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).sh -o cmake-install.sh \
-    && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
+# Install CMake >= 4.0 and Ninja >= 1.10
+ARG CMAKE_VERSION=4.0.7
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).sh -o cmake-install.sh \
+    && bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local \
     && rm cmake-install.sh
+
+ARG NINJA_VERSION=1.12.1
+RUN case "$(uname -m)" in \
+    x86_64) ninja_zip=ninja-linux.zip ;; \
+    aarch64) ninja_zip=ninja-linux-aarch64.zip ;; \
+    *) echo "Unsupported architecture: $(uname -m)" && exit 1 ;; \
+    esac \
+    && curl -L "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/${ninja_zip}" -o ninja.zip \
+    && unzip -o ninja.zip -d /usr/local/bin && rm ninja.zip \
+    && chmod +x /usr/local/bin/ninja
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
