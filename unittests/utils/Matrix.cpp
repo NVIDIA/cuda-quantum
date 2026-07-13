@@ -74,6 +74,11 @@ TEST(Tensor, assignment) {
   copy = copy;
   EXPECT_EQ(copy, large);
 
+  cudaq::complex_matrix moveSource(large);
+  cudaq::complex_matrix moveConstructed(std::move(moveSource));
+  EXPECT_EQ(moveConstructed, large);
+  EXPECT_EQ(moveSource, empty);
+
   cudaq::complex_matrix moved({7., 8., 9., 10.});
   for (std::size_t i = 0; i < 100; ++i) {
     moved = cudaq::complex_matrix();

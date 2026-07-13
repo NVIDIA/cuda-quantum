@@ -85,11 +85,7 @@ public:
 
   complex_matrix(const complex_matrix &other, order order);
 
-  complex_matrix(complex_matrix &&other) noexcept
-      : dimensions{other.dimensions}, data{other.data},
-        internal_order(other.internal_order) {
-    other.data = nullptr;
-  }
+  complex_matrix(complex_matrix &&other) noexcept { swap(other); }
 
   complex_matrix(const std::vector<value_type> &v,
                  const Dimensions &dim = {2, 2}, order order = order::row_major)
@@ -106,8 +102,7 @@ public:
   }
 
   complex_matrix &operator=(complex_matrix &&other) noexcept {
-    complex_matrix moved(std::move(other));
-    swap(moved);
+    swap(other);
     return *this;
   }
 
@@ -233,10 +228,9 @@ private:
   static void check_size(std::size_t size, const Dimensions &dim);
 
   void swap(complex_matrix &other) noexcept {
-    using std::swap;
-    swap(dimensions, other.dimensions);
-    swap(data, other.data);
-    swap(internal_order, other.internal_order);
+    std::swap(dimensions, other.dimensions);
+    std::swap(data, other.data);
+    std::swap(internal_order, other.internal_order);
   }
 
   void swap(complex_matrix::value_type *new_data) {
