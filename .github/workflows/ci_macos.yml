@@ -120,8 +120,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          submodules: true
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git submodule update --init --recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -214,8 +217,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          submodules: true
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git submodule update --init --recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -368,8 +374,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          submodules: true
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git submodule update --init --recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6

@@ -38,16 +38,11 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
     ctx.kernelName = kernel_name
     has_vector_args = isa_kernel_decorator(kernel) and any(
         hasattr(a, 'shape') and len(a.shape) == 2 for a in args)
-    if has_vector_args:
-        ctx.allowJitEngineCaching = True
-        ctx.useParametricJit = True
     policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, spin_operator)
     for i, a in enumerate(argSet):
         ctx.batchIteration = i
         results.append(
             cudaq_runtime.launch_observe(policy, ctx, lambda a=a: kernel(*a)))
-    if has_vector_args:
-        ctx.unset_jit_engine()
     return results
 
 
@@ -171,7 +166,6 @@ def observe(kernel,
         else:
             ctx = cudaq_runtime.ExecutionContext('observe', 0, qpu_id)
         ctx.setSpinOperator(localOp)
-        ctx.allowJitEngineCaching = True
         if num_trajectories is not None:
             if noise_model is None:
                 raise RuntimeError(
@@ -202,7 +196,6 @@ def observe(kernel,
             results.append(
                 cudaq_runtime.ObserveResult(exp_val, op,
                                             observeResult.counts()))
-        ctx.unset_jit_engine()
 
     if noise_model != None:
         cudaq_runtime.unset_noise()
