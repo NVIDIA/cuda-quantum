@@ -277,6 +277,7 @@ enum
 et
 excitations
 executables
+exponentials
 exponentiated
 expressibility
 expressivity
