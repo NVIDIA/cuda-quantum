@@ -119,6 +119,12 @@ runs:
         fi
         echo "restored=$restored" >> $GITHUB_OUTPUT
 
+        # Let ccache-push flag high miss rates without per-workflow wiring.
+        echo "CCACHE_RESTORED=$restored" >> $GITHUB_ENV
+        if $restored; then
+          echo "CCACHE_RESTORED_TAG=$image:$tag" >> $GITHUB_ENV
+        fi
+
         # Zero stats after restore so ccache -s only reflects the current run
         # (the restored tarball includes stale stats from the previous run).
         ccache -z 2>/dev/null || true

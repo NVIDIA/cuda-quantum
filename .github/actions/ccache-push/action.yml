@@ -68,9 +68,8 @@ runs:
         # Use ccache's miss rate to decide whether the cache is worth saving.
         # File-count growth is a poor proxy: a small percentage change can still
         # represent hundreds of missed compile results in a large cache.
-        # Stats arrive in one of three formats: tab-separated `--print-stats`
-        # (ccache >= 4.1), human `ccache -s` from 4.x ("Cacheable calls:"), or
-        # human `ccache -s` from 3.x (EPEL 8 ships 3.7, no --print-stats).
+        # Stats may be --print-stats (>= 4.1, tab-separated), human 4.x, or
+        # human 3.x output (EPEL 8 ships ccache 3.7 without --print-stats).
         read -r cacheable_calls cache_misses <<< "$(echo "$stats_output" | awk '
           /^direct_cache_hit[ \t]/          { mdh = $2; machine = 1 }
           /^preprocessed_cache_hit[ \t]/    { mph = $2; machine = 1 }
@@ -91,6 +90,12 @@ runs:
            [ "$cacheable_calls" -gt 0 ]; then
           miss_pct=$((cache_misses * 100 / cacheable_calls))
           echo "Cache miss rate: ${miss_pct}% (${cache_misses} misses / ${cacheable_calls} cacheable calls)"
+        fi
+
+        # Restored cache + high miss rate suggests unstable compile hashes.
+        # Warn only: legitimate big changes also miss.
+        if [ "${CCACHE_RESTORED:-false}" = "true" ] && [ -n "$miss_pct" ] && [ "$miss_pct" -ge 50 ]; then
+          echo "::warning title=ccache miss rate ${miss_pct}% despite restored cache::Restored ${CCACHE_RESTORED_TAG:-a cache} but ${cache_misses} of ${cacheable_calls} cacheable calls missed. If sources barely changed, compile hashes are unstable (per-run paths or compiler binary churn)."
         fi
 
         # Always push on the default branch to keep the baseline fresh.

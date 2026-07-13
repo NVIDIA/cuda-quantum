@@ -276,9 +276,12 @@ fi
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
   if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
     echo "Installing toolchain ${toolchain}..."
-    if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
+    # Honor a preset LLVM_STAGE1_BUILD so stage-2 ccache hashes stay reproducible.
+    if [ "$toolchain" = "llvm" ] && [ -z "$LLVM_STAGE1_BUILD" ]; then
       llvm_stage1_tmpdir="$(mktemp -d)"
       LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
+    fi
+    if [ "$toolchain" = "llvm" ]; then
       echo "Installing LLVM stage-1 build in $LLVM_STAGE1_BUILD."
     fi
 

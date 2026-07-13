@@ -89,6 +89,9 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     LLVM_STAGE1_BUILD=/usr/local/llvm-stage1 \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
+    if [ ! -x /usr/local/llvm-stage1/bin/clang ]; then \
+        echo "stage-1 toolchain missing from pinned path; stage-2 ccache would never hit" >&2; exit 1; \
+    fi && \
     (ccache -s 2>/dev/null || true) && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > "$CCACHE_DIR/_build_stats.txt"
 
