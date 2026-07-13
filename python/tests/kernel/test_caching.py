@@ -276,9 +276,7 @@ def test_synthesized_kernel_does_not_cache():
 
 def test_kernel_with_unused_argument():
     """A kernel that takes an argument but never uses it must still run
-    correctly for varying arg values. (The current predicate marks this kind
-    of kernel as fully-synthesized and bypasses the cache; correctness is
-    preserved, only the perf optimization is lost.)"""
+    correctly for varying arg values."""
 
     @cudaq.kernel
     def k(n: int) -> bool:
@@ -288,15 +286,11 @@ def test_kernel_with_unused_argument():
 
     assert k(5) is True
     assert k(7) is True
-    # Documented limitation: cache slot stays empty because every formal
-    # arg is dead, so isFullySynthesized() reports true.
-    assert (not hasattr(k, '_compiled_module') or k._compiled_module.name == "")
+    assert_cached(k)
 
 
 def test_captured_kernel_change_reflected_after_first_launch():
-    """A kernel that captures another kernel from its enclosing scope must
-    not cache: rebinding the captured name to a different body has to take
-    effect on the next call, not be masked by a stale JIT artifact."""
+    """Changing the captured kernel must invalidate the cache."""
 
     @cudaq.kernel
     def inner(q: cudaq.qubit):
@@ -319,8 +313,24 @@ def test_captured_kernel_change_reflected_after_first_launch():
 
     assert outer() is False
 
-    # The parent kernel must not have been cached — caching would freeze the
-    # captured-kernel body inside the JIT artifact and the rebind above would
-    # silently no-op.
-    assert (not hasattr(outer, '_compiled_module') or
-            outer._compiled_module.name == "")
+    assert_cached(outer)
+
+
+def test_remote_rest_target_disables_cache():
+    cudaq.set_target("quantinuum", emulate=True)
+    try:
+
+        @cudaq.kernel
+        def simple():
+            q = cudaq.qubit()
+            x(q)
+            mz(q)
+
+        cudaq.sample(simple, shots_count=10)
+
+        # Caching is disabled for this target: the slot must never be written
+        # with a compiled module.
+        assert (not hasattr(simple, '_compiled_module') or
+                simple._compiled_module.name == "")
+    finally:
+        cudaq.reset_target()

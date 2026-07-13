@@ -55,7 +55,7 @@ on:
       matrix_key:
         required: false
         type: string
-        description: The key to use for the json entry in the output of the cloudposse GitHub action (only needed when the workflow runs as part of a matrix job).
+        description: The key to use for the json entry in the output of the matrix-outputs action (only needed when the workflow runs as part of a matrix job).
       matrix_step_name:
         required: false
         type: string
@@ -110,6 +110,7 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' && inputs.update_registry_cache == '' }}
 
     steps:
       - name: Checkout repository
@@ -178,7 +179,7 @@ jobs:
 
       - name: Extract metadata for Docker image
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.build_info.outputs.image_name }}
           flavor: |
@@ -213,20 +214,26 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' && inputs.update_registry_cache == '' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
-          submodules: ${{ inputs.checkout_submodules }}
+
+      - name: Initialize submodules (with retry)
+        if: ${{ inputs.checkout_submodules }}
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git submodule update --init --recursive
 
       - name: Set up context for buildx
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -242,13 +249,13 @@ jobs:
           enable-apt: false
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -340,7 +347,7 @@ jobs:
           fi
 
       - name: Check out local cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
@@ -349,7 +356,9 @@ jobs:
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
@@ -378,7 +387,9 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ needs.metadata.outputs.image_tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up build cache
@@ -391,7 +402,7 @@ jobs:
 
       - name: Update local cache
         if: inputs.create_local_cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
@@ -452,7 +463,7 @@ jobs:
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         id: cache_upload
         if: steps.uploaded_image.outcome != 'skipped' && steps.uploaded_image.outputs.image_hash == ''
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
           key: ${{ steps.cache.outputs.tar_cache }}
@@ -470,7 +481,12 @@ jobs:
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
-      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-write
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_step_name || (inputs.matrix_key && 'dev_environment') }}

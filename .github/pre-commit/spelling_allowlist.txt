@@ -236,6 +236,8 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+datagram
+datagrams
 ddots
 deallocate
 deallocated
@@ -279,6 +281,7 @@ enum
 et
 excitations
 executables
+exponentials
 exponentiated
 expressibility
 expressivity
@@ -383,6 +386,7 @@ responder
 resultData
 reusability
 rkey
+runnable
 runtime
 runtimes
 rvalue

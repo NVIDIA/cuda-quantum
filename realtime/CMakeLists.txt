@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
+cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
 
 include(FetchContent)
 
@@ -166,21 +166,25 @@ endif()
 
 add_subdirectory(lib)
 
-if (CUDA_FOUND)
-  configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cudaq-realtime-config.cmake.in
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+# Install the export set and package config unconditionally: members of
+# cudaq-realtime-targets exist on CUDA-less configures too (the UDP transport
+# is always built), and CMake silently installs an orphaned archive if a
+# target joins an export set that is never itself installed. The config file
+# only requires CUDAToolkit when this build had CUDA (see the @CUDA_FOUND@
+# substitution in cudaq-realtime-config.cmake.in).
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cudaq-realtime-config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
 
-  install(EXPORT cudaq-realtime-targets
-    FILE cudaq-realtime-targets.cmake
-    NAMESPACE cudaq::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+install(EXPORT cudaq-realtime-targets
+  FILE cudaq-realtime-targets.cmake
+  NAMESPACE cudaq::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
 
-  install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
-endif()
+install(FILES
+  ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
 
 if (CUDAQ_REALTIME_BUILD_EXAMPLES)
   message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")
