@@ -524,7 +524,7 @@ bool packComponentsBacktracking(
 /// this exhaustive backtracking search is gated behind BFD and bounded by an
 /// exploration budget; on the small, few-island device graphs that reach here
 /// the search space is tiny. Returns a feasible plan, or nullopt if none exists
-/// (or the budget is exhausted). The component ordering matches BFD so that,
+/// or the budget is exhausted. The component ordering matches BFD so that,
 /// where both succeed, they agree, and so that the hardest components are
 /// placed first for better pruning.
 ///
@@ -532,10 +532,17 @@ bool packComponentsBacktracking(
 /// `island-packing-attempt-budget` pass option for the rationale and default.
 /// A value of 0 disables the exhaustive fallback entirely (best-fit-decreasing
 /// only), restoring the pre-fallback behavior.
+///
+/// `budgetExhausted` is set to true only when the search was cut off by the
+/// budget (so no conclusion about feasibility can be drawn) and left false when
+/// the search completed - i.e. the instance is genuinely infeasible - or the
+/// fallback was disabled. This lets the caller tell "increase the budget" apart
+/// from "this topology cannot be packed".
 std::optional<SmallVector<IslandPlan>>
 buildFeasibleIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
                         SmallVector<SmallVector<unsigned>> virtualComponents,
-                        std::size_t attemptBudget) {
+                        std::size_t attemptBudget, bool &budgetExhausted) {
+  budgetExhausted = false;
   if (attemptBudget == 0)
     return std::nullopt;
 
@@ -567,12 +574,15 @@ buildFeasibleIslandPlan(SmallVector<SmallVector<unsigned>> deviceIslands,
   // Safety valve against adversarial inputs. This is only reached after BFD has
   // already failed. Realistic (feasible) disconnected devices settle in a
   // handful of attempts; the budget bounds the cost of proving infeasibility on
-  // pathological all-distinct-capacity instances, where hitting the cap yields
-  // the same "no packing" result the exhaustive proof would.
+  // pathological all-distinct-capacity instances. `budget` is consumed as the
+  // search proceeds, so a value of 0 on return means the cap - not an exhausted
+  // search tree - is why no packing was found.
   std::size_t budget = attemptBudget;
   if (!packComponentsBacktracking(/*componentId=*/0, virtualComponents, plan,
-                                  remaining, budget))
+                                  remaining, budget)) {
+    budgetExhausted = (budget == 0);
     return std::nullopt;
+  }
   return plan;
 }
 
@@ -586,7 +596,8 @@ std::optional<SmallVector<unsigned>>
 buildGreedySeed(unsigned numV, const cudaq::Device &device,
                 const VirtualInteractionGraph &interactions,
                 ArrayRef<bool> userVirtualQubits,
-                std::size_t islandPackingAttemptBudget) {
+                std::size_t islandPackingAttemptBudget, bool &budgetExhausted) {
+  budgetExhausted = false;
   SmallVector<SmallVector<unsigned>> deviceIslands =
       computeDeviceIslands(device);
   SmallVector<SmallVector<unsigned>> virtualComponents =
@@ -602,7 +613,7 @@ buildGreedySeed(unsigned numV, const cudaq::Device &device,
   if (!plan)
     plan = buildFeasibleIslandPlan(std::move(deviceIslands),
                                    std::move(virtualComponents),
-                                   islandPackingAttemptBudget);
+                                   islandPackingAttemptBudget, budgetExhausted);
   if (!plan)
     return std::nullopt;
 
@@ -645,11 +656,15 @@ void pushSeedIfNew(SmallVector<SmallVector<unsigned>> &seeds,
 
 /// Generate the seed layouts to try, in deterministic order. Each seed only
 /// proposes a starting virtual-to-physical qubit mapping. The router decides
-/// the rest.
+/// the rest. `islandPackingBudgetExhausted` is set when the greedy seed is
+/// missing specifically because the island-packing fallback hit its attempt
+/// budget, so the caller can distinguish that from an unroutable topology.
 SmallVector<SmallVector<unsigned>> buildPlacementSeeds(
     PlacementStrategy strategy, unsigned numV, const cudaq::Device &device,
     const VirtualInteractionGraph &interactions,
-    ArrayRef<bool> userVirtualQubits, std::size_t islandPackingAttemptBudget) {
+    ArrayRef<bool> userVirtualQubits, std::size_t islandPackingAttemptBudget,
+    bool &islandPackingBudgetExhausted) {
+  islandPackingBudgetExhausted = false;
   SmallVector<SmallVector<unsigned>> seeds;
 
   if (strategy == PlacementStrategy::Auto ||
@@ -662,13 +677,16 @@ SmallVector<SmallVector<unsigned>> buildPlacementSeeds(
 
   if (strategy == PlacementStrategy::Auto ||
       strategy == PlacementStrategy::Greedy) {
+    bool budgetExhausted = false;
     if (auto greedy =
             buildGreedySeed(numV, device, interactions, userVirtualQubits,
-                            islandPackingAttemptBudget)) {
+                            islandPackingAttemptBudget, budgetExhausted)) {
       // For `auto`, greedy degenerates to identity when there are no
       // interactions to place, so skip the duplicate rather than route the
       // identity layout twice.
       pushSeedIfNew(seeds, std::move(*greedy));
+    } else {
+      islandPackingBudgetExhausted = budgetExhausted;
     }
   }
 
@@ -2646,9 +2664,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     const unsigned numV = sources.size();
     const unsigned numPhy = deviceInstance->getNumQubits();
 
+    bool islandPackingBudgetExhausted = false;
     SmallVector<SmallVector<unsigned>> seeds = buildPlacementSeeds(
         placementStrategy, numV, *deviceInstance, interactions,
-        userVirtualQubits, islandPackingAttemptBudget);
+        userVirtualQubits, islandPackingAttemptBudget,
+        islandPackingBudgetExhausted);
     std::optional<std::pair<unsigned, unsigned>> identityBlockedInteraction;
     auto shouldDiscardSeed = [&](ArrayRef<unsigned> seed) {
       auto blocked =
@@ -2662,7 +2682,17 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     };
     llvm::erase_if(seeds, shouldDiscardSeed);
     if (seeds.empty()) {
-      if (identityBlockedInteraction) {
+      if (islandPackingBudgetExhausted) {
+        // The packing fallback ran out of attempts before it could either find
+        // a layout or prove none exists, so point the user at the knob rather
+        // than reporting the topology as unroutable.
+        func.emitError("could not find a routable initial layout for "
+                       "disconnected device topology within the island-packing "
+                       "attempt budget of " +
+                       std::to_string(islandPackingAttemptBudget) +
+                       " attempts; increase island-packing-attempt-budget to "
+                       "search further");
+      } else if (identityBlockedInteraction) {
         func.emitError("cannot place two-qubit interaction between virtual "
                        "qubits " +
                        std::to_string(identityBlockedInteraction->first) +

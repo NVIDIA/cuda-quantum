@@ -1024,7 +1024,8 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "make before giving up. The fallback only runs when the fast "
            "best-fit-decreasing packer fails, and feasible packings settle in a "
            "handful of attempts; this bound caps the cost of proving "
-           "infeasibility on pathological topologies. 0 disables the fallback "
+           "infeasibility on pathological topologies. Exhausting it emits a "
+           "diagnostic suggesting a larger value. 0 disables the fallback "
            "(best-fit-decreasing only) (advanced)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
