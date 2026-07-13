@@ -67,6 +67,7 @@ add_cudaq_library(OptTransforms
   RealtimeDeviceCall.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  RepairLinearType.cpp
   ReplaceStateWithKernel.cpp
   ResetBeforeReuse.cpp
   ResourceCount.cpp

@@ -8,6 +8,8 @@
 
 #include "PTSBESamplerImpl.h"
 #include "common/Environment.h"
+#include "common/ExecutionContext.h"
+#include "cudaq/ptsbe/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include <numeric>
@@ -263,18 +265,6 @@ std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
   return samplePTSBEGeneric(sim, batch);
 }
 
-/// Finalize and tear down the execution context and deallocate qubits.
-/// finalizeExecutionContext must precede deallocateQubits because
-/// CircuitSimulatorBase::deallocateQubits is a no-op while a context is set.
-void teardown(nvqir::CircuitSimulator *sim, cudaq::ExecutionContext &ctx,
-              std::size_t nQubits) {
-  sim->finalizeExecutionContext(ctx);
-  cudaq::detail::resetExecutionContext();
-  std::vector<std::size_t> qubitIds(nQubits);
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  sim->deallocateQubits(qubitIds);
-}
-
 } // namespace
 
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
@@ -295,32 +285,37 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   }
 }
 
-std::vector<cudaq::sample_result>
-samplePTSBEWithLifecycle(const PTSBatch &batch,
-                         const std::string &contextType) {
-  ScopedTraceWithContext("ptsbe::samplePTSBEWithLifecycle");
-  auto *sim = nvqir::getCircuitSimulatorInternal();
-  const auto nQubits = numQubits(batch.trace);
+ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
+  if (!policy.batch)
+    throw std::runtime_error(
+        "ptsbe::sample_policy has no PTSBatch attached. PTSBE cannot be "
+        "finalized by name-only dispatch.");
 
-  cudaq::ExecutionContext ctx(contextType, batch.totalShots());
-  cudaq::detail::setExecutionContext(&ctx);
-  sim->configureExecutionContext(ctx);
-  sim->allocateQubits(nQubits);
+  auto results = samplePTSBE(*policy.batch);
+  auto aggregated = aggregateResults(results);
+  policy.perTrajectoryResults = std::move(results);
+  return ptsbe::sample_result(std::move(aggregated));
+}
 
-  // Teardown must run on both normal exit and exception (e.g. std::bad_alloc
-  // from a BatchSimulator). Without it, a thrown exception leaves the
-  // execution context set, causing all subsequent simulator calls to fail
-  // with "Context already set".
-  std::vector<cudaq::sample_result> results;
+void allocateBatchQubits(std::size_t nQubits) {
+  nvqir::getCircuitSimulatorInternal()->allocateQubits(nQubits);
+}
+
+void releaseBatchQubits(std::size_t nQubits) {
+  std::vector<std::size_t> qubitIds(nQubits);
+  std::iota(qubitIds.begin(), qubitIds.end(), 0);
+  auto *ctx = cudaq::getExecutionContext();
+  if (ctx)
+    cudaq::detail::resetExecutionContext();
   try {
-    results = samplePTSBE(batch);
+    nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubitIds);
   } catch (...) {
-    teardown(sim, ctx, nQubits);
+    if (ctx)
+      cudaq::detail::setExecutionContext(ctx);
     throw;
   }
-
-  teardown(sim, ctx, nQubits);
-  return results;
+  if (ctx)
+    cudaq::detail::setExecutionContext(ctx);
 }
 
 } // namespace cudaq::ptsbe::detail

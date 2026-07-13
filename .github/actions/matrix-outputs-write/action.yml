@@ -1,0 +1,50 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: 'Matrix outputs - write'
+description: |
+  Record a matrix job's outputs for aggregation by matrix-outputs-read.
+  Independent, interface-compatible reimplementation of the unmaintained
+  cloudposse/github-action-matrix-outputs-write (Apache-2.0).
+  Requires the repository to be checked out.
+
+inputs:
+  matrix-step-name:
+    required: false
+    description: 'Matrix step name to record the outputs under (must be set together with matrix-key)'
+  matrix-key:
+    required: false
+    description: 'Key identifying this job within the matrix (must be set together with matrix-step-name)'
+  outputs:
+    required: false
+    description: 'Flat YAML map (one "key: value" per line) of outputs to record'
+
+outputs:
+  result:
+    description: 'JSON encoding of the outputs map'
+    value: ${{ steps.prepare.outputs.result }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare matrix outputs
+      id: prepare
+      uses: ./.github/actions/matrix-outputs-write/prepare
+      with:
+        matrix-step-name: ${{ inputs.matrix-step-name }}
+        matrix-key: ${{ inputs.matrix-key }}
+        outputs: ${{ inputs.outputs }}
+
+    - name: Upload matrix outputs
+      if: steps.prepare.outputs.upload == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.prepare.outputs.artifact-name }}
+        path: ${{ steps.prepare.outputs.artifact-path }}
+        if-no-files-found: error
+        overwrite: true
