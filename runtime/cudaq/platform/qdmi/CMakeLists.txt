@@ -8,7 +8,7 @@
 
 set(LIBRARY_NAME cudaq-platform-qdmi)
 
-set(CUDAQ_QDMI_DDSIM_AVAILABLE OFF CACHE INTERNAL
+set(CUDAQ_QDMI_DDSIM_AVAILABLE 0 CACHE INTERNAL
   "Whether the QDMI DDSIM device is available for target tests" FORCE)
 set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY "" CACHE INTERNAL
   "QDMI DDSIM device library for target tests" FORCE)
@@ -37,7 +37,7 @@ if (TARGET MQT::CoreQDMI_DDSIM_Device)
     set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY
       "${_qdmi_ddsim_device_library}" CACHE INTERNAL
       "QDMI DDSIM device library for target tests" FORCE)
-    set(CUDAQ_QDMI_DDSIM_AVAILABLE ON CACHE INTERNAL
+    set(CUDAQ_QDMI_DDSIM_AVAILABLE 1 CACHE INTERNAL
       "Whether the QDMI DDSIM device is available for target tests" FORCE)
   endif()
 endif()
