@@ -16,7 +16,6 @@
 #include "cudaq/runtime/logger/logger.h"
 
 #include <algorithm>
-#include <future>
 #include <map>
 #include <stdexcept>
 #include <utility>
@@ -75,7 +74,7 @@ std::size_t resolveShots(std::optional<int> configuredShots,
   return 1000;
 }
 
-cudaq::detail::future
+cudaq::sample_result
 submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
            std::vector<cudaq::KernelExecution> codes,
            cudaq::detail::ExecutionContextType execType,
@@ -85,54 +84,49 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
   if (execType == cudaq::detail::ExecutionContextType::run)
     throw std::runtime_error("QDMI backend does not support cudaq::run.");
 
-  return std::async(
-      std::launch::async, [platformDevice = std::move(platformDevice),
-                           codes = std::move(codes), execType, shotCount]() {
-        cudaq::sample_result result;
-        bool hasResult = false;
+  cudaq::sample_result result;
+  bool hasResult = false;
 
-        for (const auto &code : codes) {
-          auto job = platformDevice->fomacDevice.submitJob(
-              code.code, platformDevice->programFormat, shotCount,
-              platformDevice->jobCustom1, platformDevice->jobCustom2,
-              platformDevice->jobCustom3, platformDevice->jobCustom4,
-              platformDevice->jobCustom5);
-          if (!job.wait())
-            throw std::runtime_error("QDMI job timed out.");
+  for (const auto &code : codes) {
+    auto job = platformDevice->fomacDevice.submitJob(
+        code.code, platformDevice->programFormat, shotCount,
+        platformDevice->jobCustom1, platformDevice->jobCustom2,
+        platformDevice->jobCustom3, platformDevice->jobCustom4,
+        platformDevice->jobCustom5);
+    if (!job.wait())
+      throw std::runtime_error("QDMI job timed out.");
 
-          const auto status = job.check();
-          if (status == QDMI_JOB_STATUS_FAILED)
-            throw std::runtime_error("QDMI job failed.");
-          if (status == QDMI_JOB_STATUS_CANCELED)
-            throw std::runtime_error("QDMI job was canceled.");
-          if (status != QDMI_JOB_STATUS_DONE)
-            throw std::runtime_error("QDMI job did not complete.");
+    const auto status = job.check();
+    if (status == QDMI_JOB_STATUS_FAILED)
+      throw std::runtime_error("QDMI job failed.");
+    if (status == QDMI_JOB_STATUS_CANCELED)
+      throw std::runtime_error("QDMI job was canceled.");
+    if (status != QDMI_JOB_STATUS_DONE)
+      throw std::runtime_error("QDMI job did not complete.");
 
-          const bool observe =
-              execType == cudaq::detail::ExecutionContextType::observe;
-          const auto registerName =
-              observe ? code.name : cudaq::GlobalRegisterName;
-          cudaq::ExecutionResult executionResult(
-              toCountsDictionary(job.getCounts()), registerName);
-          try {
-            executionResult.sequentialData = toShotData(job.getShots());
-          } catch (const std::exception &e) {
-            CUDAQ_DBG("QDMI shot data is unavailable: {}", e.what());
-          }
+    const bool observe =
+        execType == cudaq::detail::ExecutionContextType::observe;
+    const auto registerName = observe ? code.name : cudaq::GlobalRegisterName;
+    cudaq::ExecutionResult executionResult(toCountsDictionary(job.getCounts()),
+                                           registerName);
+    try {
+      executionResult.sequentialData = toShotData(job.getShots());
+    } catch (const std::exception &e) {
+      CUDAQ_DBG("QDMI shot data is unavailable: {}", e.what());
+    }
 
-          cudaq::sample_result jobResult(std::move(executionResult));
-          if (!code.mapping_reorder_idx.empty())
-            jobResult.reorder(code.mapping_reorder_idx, registerName);
-          if (hasResult) {
-            result += jobResult;
-          } else {
-            result = std::move(jobResult);
-            hasResult = true;
-          }
-        }
+    cudaq::sample_result jobResult(std::move(executionResult));
+    if (!code.mapping_reorder_idx.empty())
+      jobResult.reorder(code.mapping_reorder_idx, registerName);
+    if (hasResult) {
+      result += jobResult;
+    } else {
+      result = std::move(jobResult);
+      hasResult = true;
+    }
+  }
 
-        return result;
-      });
+  return result;
 }
 } // namespace
 
@@ -252,38 +246,17 @@ sample_result QDMIQPU::launchKernel(const sample_policy &policy,
                                     const CompiledModule &module, KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy));
   const auto shotCount = resolveShots(nShots, policy.options.shots);
-  auto future = submitJobs(platformDevice, std::move(codes),
-                           detail::ExecutionContextType::sample, shotCount);
-  return future.get();
-}
-
-async_sample_result QDMIQPU::launchKernel(const async_sample_policy &policy,
-                                          const CompiledModule &module,
-                                          KernelArgs) {
-  auto codes = runCodegen(module, getCompileTarget(policy.inner));
-  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
-  auto future = submitJobs(platformDevice, std::move(codes),
-                           detail::ExecutionContextType::sample, shotCount);
-  return async_sample_result(std::move(future));
+  return submitJobs(platformDevice, std::move(codes),
+                    detail::ExecutionContextType::sample, shotCount);
 }
 
 observe_result QDMIQPU::launchKernel(const observe_policy &policy,
                                      const CompiledModule &module, KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy));
   const auto shotCount = resolveShots(nShots, policy.options.shots);
-  auto future = submitJobs(platformDevice, std::move(codes),
-                           detail::ExecutionContextType::observe, shotCount);
-  return observeResultFromCounts(policy, future.get());
-}
-
-async_observe_result QDMIQPU::launchKernel(const async_observe_policy &policy,
-                                           const CompiledModule &module,
-                                           KernelArgs) {
-  auto codes = runCodegen(module, getCompileTarget(policy.inner));
-  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
-  auto future = submitJobs(platformDevice, std::move(codes),
-                           detail::ExecutionContextType::observe, shotCount);
-  return async_observe_result(std::move(future), &policy.inner.spin);
+  return observeResultFromCounts(
+      policy, submitJobs(platformDevice, std::move(codes),
+                         detail::ExecutionContextType::observe, shotCount));
 }
 
 } // namespace cudaq

@@ -263,6 +263,28 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
+  # Build the optional QDMI platform against MQT Core and exercise it with the
+  # DDSIM QDMI device. TODO: Pin the source revision until the corresponding MQT Core
+  # release is available, then replace this with the release tag.
+  qdmi_build_and_test:
+    name: QDMI build and DDSIM tests
+    needs: [metadata, config_devdeps]
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/amd64
+      dockerfile: build/cudaq.qdmi.Dockerfile
+      build_target: test
+      build_args: |
+        base_image=${{ fromJson(needs.config_devdeps.outputs.json).image_hash['amd64-llvm'] }}
+        mqt_core_ref=def69f1517602ba802d1401ab97e6fa331e99d2e
+      build_config_id: qdmi-llvm
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      checkout_submodules: true
+      environment: ghcr-ci
+
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
@@ -376,6 +398,7 @@ jobs:
       - config_wheeldeps
       - config_source_build
       - build_and_test
+      - qdmi_build_and_test
       - gen_code_coverage
       - docker_image
       - python_wheels
