@@ -85,7 +85,8 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
-    (ccache -s 2>/dev/null || true)
+    (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > "$CCACHE_DIR/_build_stats.txt"
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \

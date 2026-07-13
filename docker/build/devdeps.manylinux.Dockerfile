@@ -109,7 +109,8 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
     bash /scripts/build_llvm.sh -c Release -v && \
-    (ccache -s 2>/dev/null || true)
+    (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > "$CCACHE_DIR/_build_stats.txt"
     # The build directory at /llvm-project/build is intentionally retained:
     # build_mlir_python_bindings.sh reuses it in the wheel container to add
     # the python-binding targets per Python version without recompiling

@@ -126,6 +126,7 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
     fi && \
     (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > "$CCACHE_DIR/_build_stats.txt" && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # [CUDA-Q Dev Environment]

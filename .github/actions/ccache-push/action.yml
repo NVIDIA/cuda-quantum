@@ -68,8 +68,23 @@ runs:
         # Use ccache's miss rate to decide whether the cache is worth saving.
         # File-count growth is a poor proxy: a small percentage change can still
         # represent hundreds of missed compile results in a large cache.
-        cacheable_calls=$(echo "$stats_output" | awk '/^Cacheable calls:/ {print $3; exit}')
-        cache_misses=$(echo "$stats_output" | awk '/^  Misses:/ {print $2; exit}')
+        # Stats arrive in one of three formats: tab-separated `--print-stats`
+        # (ccache >= 4.1), human `ccache -s` from 4.x ("Cacheable calls:"), or
+        # human `ccache -s` from 3.x (EPEL 8 ships 3.7, no --print-stats).
+        read -r cacheable_calls cache_misses <<< "$(echo "$stats_output" | awk '
+          /^direct_cache_hit[ \t]/          { mdh = $2; machine = 1 }
+          /^preprocessed_cache_hit[ \t]/    { mph = $2; machine = 1 }
+          /^cache_miss[ \t]/                { mm = $2; machine = 1 }
+          /^Cacheable calls:/               { if (h4c == "") h4c = $3 }
+          /^  Misses:/                      { if (h4m == "") h4m = $2 }
+          /^cache hit \(direct\)/           { h3dh = $4 }
+          /^cache hit \(preprocessed\)/     { h3ph = $4 }
+          /^cache miss/                     { h3m = $3 }
+          END {
+            if (machine)        print mdh + mph + mm, mm
+            else if (h4c != "") print h4c, h4m
+            else if (h3m != "") print h3dh + h3ph + h3m, h3m
+          }')"
         miss_pct=""
         if [[ "$cacheable_calls" =~ ^[0-9]+$ ]] && \
            [[ "$cache_misses" =~ ^[0-9]+$ ]] && \
