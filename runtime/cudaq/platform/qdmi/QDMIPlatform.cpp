@@ -18,6 +18,8 @@
 #include "llvm/Support/Base64.h"
 
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -27,6 +29,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -76,6 +79,86 @@ std::optional<std::string> getValue(const BackendConfig &config,
   return std::nullopt;
 }
 
+fomac::CustomJobParameter parseJobParameter(const std::string &value) {
+  constexpr std::string_view stringPrefix = "string:";
+  constexpr std::string_view boolPrefix = "bool:";
+  constexpr std::string_view intPrefix = "int:";
+  constexpr std::string_view doublePrefix = "double:";
+
+  if (value.starts_with(stringPrefix))
+    return value.substr(stringPrefix.size());
+
+  if (value.starts_with(boolPrefix)) {
+    const auto boolValue = std::string_view(value).substr(boolPrefix.size());
+    if (boolValue == "true")
+      return true;
+    if (boolValue == "false")
+      return false;
+    throw std::runtime_error(
+        "QDMI Boolean job parameters must be 'bool:true' or 'bool:false'.");
+  }
+
+  if (value.starts_with(intPrefix)) {
+    const auto intValue = std::string_view(value).substr(intPrefix.size());
+    int result = 0;
+    const auto [end, error] = std::from_chars(
+        intValue.data(), intValue.data() + intValue.size(), result);
+    if (error != std::errc{} || end != intValue.data() + intValue.size())
+      throw std::runtime_error(
+          "QDMI integer job parameters must use the form 'int:<value>'.");
+    return result;
+  }
+
+  if (value.starts_with(doublePrefix)) {
+    const auto doubleValue = value.substr(doublePrefix.size());
+    std::size_t end = 0;
+    try {
+      const auto result = std::stod(doubleValue, &end);
+      if (end == doubleValue.size())
+        return result;
+    } catch (const std::exception &) {
+    }
+    throw std::runtime_error(
+        "QDMI floating-point job parameters must use the form "
+        "'double:<value>'.");
+  }
+
+  return value;
+}
+
+std::optional<fomac::CustomJobParameter>
+getJobParameter(const BackendConfig &config, const std::string &key,
+                const char *envName) {
+  if (auto value = getValue(config, key, envName))
+    return parseJobParameter(*value);
+  return std::nullopt;
+}
+
+BackendConfig resolveDeviceConfig(const BackendConfig &config) {
+  constexpr std::array environmentOptions{
+      std::pair{"qdmi_library", "CUDAQ_QDMI_LIBRARY"},
+      std::pair{"qdmi_prefix", "CUDAQ_QDMI_PREFIX"},
+      std::pair{"qdmi_base_url", "CUDAQ_QDMI_BASE_URL"},
+      std::pair{"qdmi_token", "CUDAQ_QDMI_TOKEN"},
+      std::pair{"qdmi_auth_file", "CUDAQ_QDMI_AUTH_FILE"},
+      std::pair{"qdmi_auth_url", "CUDAQ_QDMI_AUTH_URL"},
+      std::pair{"qdmi_username", "CUDAQ_QDMI_USERNAME"},
+      std::pair{"qdmi_password", "CUDAQ_QDMI_PASSWORD"},
+      std::pair{"qdmi_session_custom1", "CUDAQ_QDMI_SESSION_CUSTOM1"},
+      std::pair{"qdmi_session_custom2", "CUDAQ_QDMI_SESSION_CUSTOM2"},
+      std::pair{"qdmi_session_custom3", "CUDAQ_QDMI_SESSION_CUSTOM3"},
+      std::pair{"qdmi_session_custom4", "CUDAQ_QDMI_SESSION_CUSTOM4"},
+      std::pair{"qdmi_session_custom5", "CUDAQ_QDMI_SESSION_CUSTOM5"},
+  };
+
+  BackendConfig resolved;
+  for (const auto &[key, envName] : environmentOptions) {
+    if (const auto value = getValue(config, key, envName))
+      resolved.emplace(key, *value);
+  }
+  return resolved;
+}
+
 cudaq::config::TargetConfig loadTargetConfig(const std::string &targetName) {
   std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
   const auto platformPath =
@@ -121,7 +204,7 @@ qdmi::DeviceSessionConfig makeDeviceSessionConfig(const BackendConfig &config) {
   return sessionConfig;
 }
 
-std::vector<cudaq::FoMaCDevice> loadDevices(const BackendConfig &config) {
+cudaq::FoMaCDevice loadDevice(const BackendConfig &config) {
   const auto library = getValue(config, "qdmi_library", "CUDAQ_QDMI_LIBRARY");
   const auto prefix = getValue(config, "qdmi_prefix", "CUDAQ_QDMI_PREFIX");
   if (!library)
@@ -133,7 +216,7 @@ std::vector<cudaq::FoMaCDevice> loadDevices(const BackendConfig &config) {
       *library, *prefix, makeDeviceSessionConfig(config));
 
   CUDAQ_INFO("Loaded QDMI device library '{}'.", *library);
-  return {fomac::Session::createSessionlessDevice(rootDevice)};
+  return fomac::Session::createSessionlessDevice(rootDevice);
 }
 
 QDMI_Program_Format
@@ -212,25 +295,20 @@ queryConnectivity(const cudaq::FoMaCDevice &device, std::size_t qubitCount) {
 }
 
 std::shared_ptr<cudaq::QDMIPlatformDevice>
-makePlatformDevice(cudaq::FoMaCDevice device, const BackendConfig &config) {
+makePlatformDevice(cudaq::FoMaCDevice device) {
   auto platformDevice =
       std::make_shared<cudaq::QDMIPlatformDevice>(std::move(device));
-  platformDevice->jobCustom1 =
-      getValue(config, "qdmi_job_custom1", "CUDAQ_QDMI_JOB_CUSTOM1");
-  platformDevice->jobCustom2 =
-      getValue(config, "qdmi_job_custom2", "CUDAQ_QDMI_JOB_CUSTOM2");
-  platformDevice->jobCustom3 =
-      getValue(config, "qdmi_job_custom3", "CUDAQ_QDMI_JOB_CUSTOM3");
-  platformDevice->jobCustom4 =
-      getValue(config, "qdmi_job_custom4", "CUDAQ_QDMI_JOB_CUSTOM4");
-  platformDevice->jobCustom5 =
-      getValue(config, "qdmi_job_custom5", "CUDAQ_QDMI_JOB_CUSTOM5");
   platformDevice->name = platformDevice->fomacDevice.getName();
+
+  std::optional<std::vector<QDMI_Program_Format>> programFormats;
   try {
-    platformDevice->programFormat = selectProgramFormat(
-        platformDevice->fomacDevice.getSupportedProgramFormats());
+    programFormats = platformDevice->fomacDevice.getSupportedProgramFormats();
   } catch (const std::exception &e) {
     CUDAQ_DBG("QDMI program format metadata is unavailable: {}", e.what());
+  }
+  if (programFormats) {
+    platformDevice->programFormat = selectProgramFormat(*programFormats);
+  } else {
     platformDevice->programFormat = QDMI_PROGRAM_FORMAT_QASM2;
   }
   platformDevice->qubitCount = platformDevice->fomacDevice.getQubitsNum();
@@ -242,18 +320,29 @@ makePlatformDevice(cudaq::FoMaCDevice device, const BackendConfig &config) {
   return platformDevice;
 }
 
-class QDMIQuantumPlatform : public cudaq::quantum_platform {
-public:
-  bool supports_task_distribution() const override {
-    return platformQPUs.size() > 1;
-  }
+std::shared_ptr<cudaq::QDMIPlatformDevice> makeJobConfiguredDevice(
+    const std::shared_ptr<cudaq::QDMIPlatformDevice> &device,
+    const BackendConfig &config) {
+  auto configuredDevice = std::make_shared<cudaq::QDMIPlatformDevice>(*device);
+  configuredDevice->jobCustom1 =
+      getJobParameter(config, "qdmi_job_custom1", "CUDAQ_QDMI_JOB_CUSTOM1");
+  configuredDevice->jobCustom2 =
+      getJobParameter(config, "qdmi_job_custom2", "CUDAQ_QDMI_JOB_CUSTOM2");
+  configuredDevice->jobCustom3 =
+      getJobParameter(config, "qdmi_job_custom3", "CUDAQ_QDMI_JOB_CUSTOM3");
+  configuredDevice->jobCustom4 =
+      getJobParameter(config, "qdmi_job_custom4", "CUDAQ_QDMI_JOB_CUSTOM4");
+  configuredDevice->jobCustom5 =
+      getJobParameter(config, "qdmi_job_custom5", "CUDAQ_QDMI_JOB_CUSTOM5");
+  return configuredDevice;
+}
 
+class QDMIQuantumPlatform : public cudaq::quantum_platform {
 private:
   void setTargetBackend(const std::string &description) override {
-    CUDAQ_INFO("QDMI target backend string is {}.", description);
-
     std::string targetName;
     auto backendConfig = parseBackendConfig(description, targetName);
+    CUDAQ_INFO("QDMI platform is targeting '{}'.", targetName);
     if (auto iter = backendConfig.find("emulate");
         iter != backendConfig.end() && iter->second == "true")
       throw std::runtime_error(
@@ -275,14 +364,27 @@ private:
 
     platformQPUs.clear();
 
-    auto devices = loadDevices(backendConfig);
-    for (std::size_t qpuId = 0; auto &device : devices) {
-      platformQPUs.emplace_back(std::make_unique<cudaq::QDMIQPU>(
-          makePlatformDevice(std::move(device), backendConfig), targetConfig,
-          backendConfig));
-      platformQPUs.back()->setId(qpuId++);
+    const auto deviceConfig = resolveDeviceConfig(backendConfig);
+
+    auto [deviceIter, inserted] =
+        loadedPlatformDevices.try_emplace(deviceConfig);
+    if (inserted) {
+      try {
+        deviceIter->second = makePlatformDevice(loadDevice(deviceConfig));
+      } catch (...) {
+        loadedPlatformDevices.erase(deviceIter);
+        throw;
+      }
     }
+
+    platformQPUs.emplace_back(std::make_unique<cudaq::QDMIQPU>(
+        makeJobConfiguredDevice(deviceIter->second, backendConfig),
+        targetConfig, backendConfig));
+    platformQPUs.back()->setId(0);
   }
+
+  std::map<BackendConfig, std::shared_ptr<cudaq::QDMIPlatformDevice>>
+      loadedPlatformDevices;
 };
 } // namespace
 
