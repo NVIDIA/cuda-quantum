@@ -12,8 +12,6 @@ set(CUDAQ_QDMI_DDSIM_AVAILABLE OFF CACHE INTERNAL
   "Whether the QDMI DDSIM device is available for target tests" FORCE)
 set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY "" CACHE INTERNAL
   "QDMI DDSIM device library for target tests" FORCE)
-set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY_DIR "" CACHE INTERNAL
-  "QDMI DDSIM device library directory for target tests" FORCE)
 
 find_package(mqt-core CONFIG QUIET)
 if (NOT TARGET MQT::CoreFoMaC)
@@ -36,14 +34,9 @@ if (TARGET MQT::CoreQDMI_DDSIM_Device)
       MQT::CoreQDMI_DDSIM_Device IMPORTED_LOCATION)
   endif()
   if (EXISTS "${_qdmi_ddsim_device_library}")
-    get_filename_component(_qdmi_ddsim_device_library_dir
-      "${_qdmi_ddsim_device_library}" DIRECTORY)
     set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY
       "${_qdmi_ddsim_device_library}" CACHE INTERNAL
       "QDMI DDSIM device library for target tests" FORCE)
-    set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY_DIR
-      "${_qdmi_ddsim_device_library_dir}" CACHE INTERNAL
-      "QDMI DDSIM device library directory for target tests" FORCE)
     set(CUDAQ_QDMI_DDSIM_AVAILABLE ON CACHE INTERNAL
       "Whether the QDMI DDSIM device is available for target tests" FORCE)
   endif()

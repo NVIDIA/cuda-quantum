@@ -94,7 +94,9 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
         for (const auto &code : codes) {
           auto job = platformDevice->fomacDevice.submitJob(
               code.code, platformDevice->programFormat, shotCount,
-              platformDevice->jobConfig);
+              platformDevice->jobCustom1, platformDevice->jobCustom2,
+              platformDevice->jobCustom3, platformDevice->jobCustom4,
+              platformDevice->jobCustom5);
           if (!job.wait())
             throw std::runtime_error("QDMI job timed out.");
 
