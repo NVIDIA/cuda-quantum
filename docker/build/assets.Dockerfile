@@ -83,6 +83,10 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         mkdir -p "$CCACHE_DIR" && cp -a /tmp/ccache-import/. "$CCACHE_DIR/" && (ccache -z 2>/dev/null || true); \
     else mkdir -p "$CCACHE_DIR"; fi && \
     cd /cuda-quantum && source scripts/configure_build.sh && \
+    # Pin stage-1 to a fixed path: a per-run mktemp path lands in every stage-2
+    # compile (clang resource headers), so stage-2 ccache could never hit.
+    mkdir -p /usr/local/llvm-stage1 && \
+    LLVM_STAGE1_BUILD=/usr/local/llvm-stage1 \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     (ccache -s 2>/dev/null || true) && \
@@ -250,7 +254,7 @@ RUN cd /cuda-quantum && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     rm -rf "${LLVM_INSTALL_PREFIX}" && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
+    LLVM_STAGE1_BUILD=/usr/local/llvm-stage1 \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
