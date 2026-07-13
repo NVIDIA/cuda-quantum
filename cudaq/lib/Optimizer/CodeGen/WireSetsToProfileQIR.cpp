@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CallGraphFix.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -65,6 +66,29 @@ struct QuakeTypeConverter : public TypeConverter {
     });
     addConversion([](cudaq::quake::MeasureType ty) {
       return cudaq::cg::getResultType(ty.getContext());
+    });
+    addConversion([](cudaq::cc::MeasureHandleType ty) -> Type {
+      return IntegerType::get(ty.getContext(), 64);
+    });
+    // Keep these materializations abstract until all `!cc.measure_handle`
+    // types become `i64`; the pipeline canonicalizer can then erase them
+    // instead of lowering `cc.cast` to an equal-width LLVM truncation.
+    addTargetMaterialization([](OpBuilder &builder, Type type,
+                                ValueRange inputs, Location loc) -> Value {
+      if (inputs.size() != 1 ||
+          !isa<cudaq::cc::MeasureHandleType>(inputs.front().getType()) ||
+          !type.isInteger(64))
+        return {};
+      return UnrealizedConversionCastOp::create(builder, loc, type, inputs)
+          .getResult(0);
+    });
+    addSourceMaterialization([](OpBuilder &builder, Type type,
+                                ValueRange inputs, Location loc) -> Value {
+      if (!isa<cudaq::cc::MeasureHandleType>(type) || inputs.size() != 1 ||
+          !inputs.front().getType().isInteger(64))
+        return Value{};
+      return UnrealizedConversionCastOp::create(builder, loc, type, inputs)
+          .getResult(0);
     });
   }
 };
@@ -269,7 +293,13 @@ struct MzRewrite : OpConversionPattern<cudaq::quake::MzOp> {
   matchAndRewrite(cudaq::quake::MzOp meas, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
 
-    bool measureFollowedByDiscriminate = [&]() {
+    const bool measOutIsHandle =
+        isa<cudaq::cc::MeasureHandleType>(meas.getMeasOut().getType());
+    const auto regName = meas.getRegisterName();
+    const ModuleOp mod = meas->getParentOfType<ModuleOp>();
+    const bool isCudaqRun = meas->getParentOfType<func::FuncOp>()->hasAttr(
+        cudaq::runtime::enableCudaqRun);
+    const bool measureFollowedByDiscriminate = [&]() {
       for (auto user : meas->getResult(0).getUsers())
         if (isa<cudaq::quake::DiscriminateOp>(user))
           return true;
@@ -288,14 +318,17 @@ struct MzRewrite : OpConversionPattern<cudaq::quake::MzOp> {
         rewriter, loc, cudaq::cg::getResultType(rewriter.getContext()), idCon);
     func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
                          ValueRange{adaptor.getTargets()[0], resultVal});
-    rewriter.replaceOp(meas, ValueRange{resultVal, adaptor.getTargets()[0]});
+    Value measOut = resultVal;
+    if (measOutIsHandle)
+      measOut = cudaq::cc::CastOp::create(rewriter, loc, rewriter.getI64Type(),
+                                          resultVal);
+    rewriter.replaceOp(meas, ValueRange{measOut, adaptor.getTargets()[0]});
 
-    auto regName = meas.getRegisterName();
-    // Populate __quantum__rt__result_record_output if there is a register name
-    // without any downstream DiscriminateOp's.
-    if (regName && !measureFollowedByDiscriminate) {
+    // Handles are recorded here even when directly discriminated. Legacy
+    // measures are recorded here only when not directly discriminated.
+    if (regName && !isCudaqRun &&
+        (measOutIsHandle || !measureFollowedByDiscriminate)) {
       cudaq::IRBuilder irb(rewriter.getContext());
-      auto mod = meas->getParentOfType<ModuleOp>();
       // NB: This is thread safe as it should never do an insertion, just a
       // lookup.
       auto nameObj = irb.genCStringLiteralAppendNul(loc, mod, *regName);
@@ -347,30 +380,44 @@ struct DiscriminateRewrite : OpConversionPattern<cudaq::quake::DiscriminateOp> {
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
 
-    auto mod = disc->getParentOfType<ModuleOp>();
-    cudaq::IRBuilder irb(rewriter.getContext());
-    auto iter = regNameMap.find(disc.getOperation());
-    assert(iter != regNameMap.end() && "discriminate must be in map");
-    // NB: This is thread safe as it should never do an insertion, just a
-    // lookup.
-    auto nameObj = irb.genCStringLiteralAppendNul(loc, mod, iter->second);
-    auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
-                                                  iter->second.size() + 1);
-    auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
-    Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, loc, ptrArrTy,
-                                                   nameObj.getName());
-    auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-    Value nameValCStr =
-        cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
+    const bool operandIsHandle =
+        isa<cudaq::cc::MeasureHandleType>(disc.getMeasurement().getType());
+    Value resultVal = adaptor.getMeasurement();
+    if (operandIsHandle) {
+      auto i64Ty = rewriter.getI64Type();
+      if (resultVal.getType() != i64Ty)
+        resultVal = cudaq::cc::CastOp::create(rewriter, loc, i64Ty, resultVal);
+      resultVal = cudaq::cc::CastOp::create(
+          rewriter, loc, cudaq::cg::getResultType(rewriter.getContext()),
+          resultVal);
+    }
 
-    func::CallOp::create(rewriter, loc, mlir::TypeRange{},
-                         cudaq::opt::QIRRecordOutput,
-                         ValueRange{adaptor.getMeasurement(), nameValCStr});
-    if (isAdaptiveProfile) {
+    if (!operandIsHandle && !disc->getParentOfType<func::FuncOp>()->hasAttr(
+                                cudaq::runtime::enableCudaqRun)) {
+      auto mod = disc->getParentOfType<ModuleOp>();
+      cudaq::IRBuilder irb(rewriter.getContext());
+      auto iter = regNameMap.find(disc.getOperation());
+      assert(iter != regNameMap.end() && "discriminate must be in map");
+      // NB: This is thread safe as it should never do an insertion, just a
+      // lookup.
+      auto nameObj = irb.genCStringLiteralAppendNul(loc, mod, iter->second);
+      auto arrI8Ty = mlir::LLVM::LLVMArrayType::get(rewriter.getI8Type(),
+                                                    iter->second.size() + 1);
+      auto ptrArrTy = cudaq::cc::PointerType::get(arrI8Ty);
+      Value nameVal = cudaq::cc::AddressOfOp::create(rewriter, loc, ptrArrTy,
+                                                     nameObj.getName());
+      auto cstrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+      Value nameValCStr =
+          cudaq::cc::CastOp::create(rewriter, loc, cstrTy, nameVal);
+
+      func::CallOp::create(rewriter, loc, mlir::TypeRange{},
+                           cudaq::opt::QIRRecordOutput,
+                           ValueRange{resultVal, nameValCStr});
+    }
+    if (operandIsHandle || isAdaptiveProfile) {
       std::string funcName = toQisBodyName(std::string("read_result"));
       rewriter.replaceOpWithNewOp<func::CallOp>(
-          disc, rewriter.getI1Type(), funcName,
-          ValueRange{adaptor.getMeasurement()});
+          disc, rewriter.getI1Type(), funcName, ValueRange{resultVal});
     } else {
       Value undef =
           cudaq::cc::UndefOp::create(rewriter, loc, rewriter.getI1Type());
@@ -671,6 +718,7 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPost());
   // Perform final cleanup for other dialect conversions (like func.func)
   pm.addPass(cudaq::opt::createConvertToQIR());
+  pm.addPass(createCanonicalizerPass());
   if (profile.starts_with("qir"))
     cudaq::opt::addQIRProfilePipeline(pm, profile);
 }
