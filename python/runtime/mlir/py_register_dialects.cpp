@@ -47,9 +47,8 @@ static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
         if (!registered) {
 #ifdef __APPLE__
           cudaq_internal::compiler::initializeMLIR();
-#else
-          cudaq::registerCudaqPassesAndPipelines();
 #endif
+          cudaq::registerAllPasses();
           registered = true;
         }
       },
@@ -400,7 +399,7 @@ void cudaq::bindRegisterDialects(nanobind::module_ &mod) {
   });
 
   mod.def("register_all_dialects", [](MlirContext context) {
-    ::cudaqRegisterAllDialects(context);
+    ::cudaqLoadAllDialects(context);
     auto *mlirContext = unwrap(context);
     mlirContext->getOrLoadDialect<cudaq::codegen::CodeGenDialect>();
   });
