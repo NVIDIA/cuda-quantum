@@ -121,31 +121,7 @@ qdmi::DeviceSessionConfig makeDeviceSessionConfig(const BackendConfig &config) {
   return sessionConfig;
 }
 
-fomac::JobConfig makeJobConfig(const BackendConfig &config) {
-  fomac::JobConfig jobConfig;
-  jobConfig.custom1 =
-      getValue(config, "qdmi_job_custom1", "CUDAQ_QDMI_JOB_CUSTOM1");
-  jobConfig.custom2 =
-      getValue(config, "qdmi_job_custom2", "CUDAQ_QDMI_JOB_CUSTOM2");
-  jobConfig.custom3 =
-      getValue(config, "qdmi_job_custom3", "CUDAQ_QDMI_JOB_CUSTOM3");
-  jobConfig.custom4 =
-      getValue(config, "qdmi_job_custom4", "CUDAQ_QDMI_JOB_CUSTOM4");
-  jobConfig.custom5 =
-      getValue(config, "qdmi_job_custom5", "CUDAQ_QDMI_JOB_CUSTOM5");
-  return jobConfig;
-}
-
-std::set<QDMI_Device> getDeviceHandles(fomac::Session &session) {
-  std::set<QDMI_Device> handles;
-  for (const auto &device : session.getDevices())
-    handles.insert(static_cast<QDMI_Device>(device));
-  return handles;
-}
-
-std::vector<cudaq::FoMaCDevice>
-loadDevices(const BackendConfig &config,
-            std::unique_ptr<fomac::Session> &session) {
+std::vector<cudaq::FoMaCDevice> loadDevices(const BackendConfig &config) {
   const auto library = getValue(config, "qdmi_library", "CUDAQ_QDMI_LIBRARY");
   const auto prefix = getValue(config, "qdmi_prefix", "CUDAQ_QDMI_PREFIX");
   if (!library)
@@ -153,42 +129,11 @@ loadDevices(const BackendConfig &config,
   if (!prefix)
     throw std::runtime_error("QDMI function prefix is required.");
 
-  const fomac::SessionConfig sessionConfig;
-  std::set<QDMI_Device> oldDevices;
-  {
-    fomac::Session previousSession(sessionConfig);
-    oldDevices = getDeviceHandles(previousSession);
-  }
-
   const auto rootDevice = qdmi::Driver::get().addDynamicDeviceLibrary(
       *library, *prefix, makeDeviceSessionConfig(config));
 
-  session = std::make_unique<fomac::Session>(sessionConfig);
-  auto devices = session->getDevices();
-  std::vector<cudaq::FoMaCDevice> selectedDevices;
-  std::set<QDMI_Device> selectedHandles;
-
-  for (auto &device : devices) {
-    const auto handle = static_cast<QDMI_Device>(device);
-    if (oldDevices.contains(handle))
-      continue;
-    if (selectedHandles.insert(handle).second)
-      selectedDevices.emplace_back(std::move(device));
-  }
-
-  if (selectedDevices.empty()) {
-    for (auto &device : devices) {
-      const auto handle = static_cast<QDMI_Device>(device);
-      if (handle == rootDevice && selectedHandles.insert(handle).second)
-        selectedDevices.emplace_back(std::move(device));
-    }
-  }
-
-  if (selectedDevices.empty())
-    throw std::runtime_error("No QDMI devices were discovered.");
-
   CUDAQ_INFO("Loaded QDMI device library '{}'.", *library);
-  return selectedDevices;
+  return {fomac::Session::createSessionlessDevice(rootDevice)};
 }
 
 QDMI_Program_Format
@@ -267,10 +212,19 @@ queryConnectivity(const cudaq::FoMaCDevice &device, std::size_t qubitCount) {
 }
 
 std::shared_ptr<cudaq::QDMIPlatformDevice>
-makePlatformDevice(cudaq::FoMaCDevice device, fomac::JobConfig jobConfig) {
+makePlatformDevice(cudaq::FoMaCDevice device, const BackendConfig &config) {
   auto platformDevice =
       std::make_shared<cudaq::QDMIPlatformDevice>(std::move(device));
-  platformDevice->jobConfig = std::move(jobConfig);
+  platformDevice->jobCustom1 =
+      getValue(config, "qdmi_job_custom1", "CUDAQ_QDMI_JOB_CUSTOM1");
+  platformDevice->jobCustom2 =
+      getValue(config, "qdmi_job_custom2", "CUDAQ_QDMI_JOB_CUSTOM2");
+  platformDevice->jobCustom3 =
+      getValue(config, "qdmi_job_custom3", "CUDAQ_QDMI_JOB_CUSTOM3");
+  platformDevice->jobCustom4 =
+      getValue(config, "qdmi_job_custom4", "CUDAQ_QDMI_JOB_CUSTOM4");
+  platformDevice->jobCustom5 =
+      getValue(config, "qdmi_job_custom5", "CUDAQ_QDMI_JOB_CUSTOM5");
   platformDevice->name = platformDevice->fomacDevice.getName();
   try {
     platformDevice->programFormat = selectProgramFormat(
@@ -290,11 +244,6 @@ makePlatformDevice(cudaq::FoMaCDevice device, fomac::JobConfig jobConfig) {
 
 class QDMIQuantumPlatform : public cudaq::quantum_platform {
 public:
-  ~QDMIQuantumPlatform() override {
-    platformQPUs.clear();
-    session.reset();
-  }
-
   bool supports_task_distribution() const override {
     return platformQPUs.size() > 1;
   }
@@ -325,19 +274,15 @@ private:
     }
 
     platformQPUs.clear();
-    session.reset();
 
-    auto devices = loadDevices(backendConfig, session);
-    auto jobConfig = makeJobConfig(backendConfig);
+    auto devices = loadDevices(backendConfig);
     for (std::size_t qpuId = 0; auto &device : devices) {
       platformQPUs.emplace_back(std::make_unique<cudaq::QDMIQPU>(
-          makePlatformDevice(std::move(device), jobConfig), targetConfig,
+          makePlatformDevice(std::move(device), backendConfig), targetConfig,
           backendConfig));
       platformQPUs.back()->setId(qpuId++);
     }
   }
-
-  std::unique_ptr<fomac::Session> session;
 };
 } // namespace
 

@@ -107,7 +107,6 @@ else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
 
 config.cudaq_backends_qdmi = "@CUDAQ_QDMI_DDSIM_AVAILABLE@"
-config.substitutions.append(('%qdmi_ddsim_library_dir', lit_config.substitute(path(r"@CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY_DIR@"))))
 config.substitutions.append(('%qdmi_ddsim_library', lit_config.substitute(path(r"@CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY@"))))
 config.substitutions.append(('%qdmi_ddsim_prefix', 'MQT_DDSIM'))
 if cmake_boolvar_to_bool(config.cudaq_backends_qdmi):
