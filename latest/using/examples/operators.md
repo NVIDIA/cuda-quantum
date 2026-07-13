@@ -1875,6 +1875,10 @@ Python
 ::: highlight
     import cudaq
     from cudaq import spin
+
+    operator = 2 * spin.x(0) * spin.y(1) * spin.x(2) - 3 * spin.z(0) * spin.z(
+        1) * spin.y(2)
+    print(operator)
 :::
 :::
 :::
@@ -1885,6 +1889,14 @@ C++
 ::: {.highlight-cpp .notranslate}
 ::: highlight
     #include <cudaq.h>
+    #include <iostream>
+
+    void build_operator() {
+      auto op =
+          2.0 * cudaq::spin_op::x(0) * cudaq::spin_op::y(1) * cudaq::spin_op::x(2) -
+          3.0 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) * cudaq::spin_op::y(2);
+      std::cout << op.to_string() << '\n';
+    }
 :::
 :::
 :::
@@ -1908,8 +1920,14 @@ list of Pauli words, along with their coefficients, are provided as
 kernel inputs and converted into operators by the [`exp_pauli`{.code
 .docutils .literal .notranslate}]{.pre} function.
 
-The code below applies the following operation: [\\(e\^{i(0.432XYZ)} +
-e\^{i(0.324IXX)}\\)]{.math .notranslate .nohighlight}
+The code below applies the product of exponentials
+[\\(e\^{i\\,0.324\\,ZXX} \\, e\^{i\\,0.432\\,ZYX}\\)]{.math .notranslate
+.nohighlight} to the qubit register. Each call to [`exp_pauli`{.docutils
+.literal .notranslate}]{.pre} appends one unitary to the circuit, so the
+operator applied first ([`ZYX`{.docutils .literal .notranslate}]{.pre})
+appears on the right of the product. Because these Pauli terms do not
+commute, reversing the order of the [`exp_pauli`{.docutils .literal
+.notranslate}]{.pre} calls produces a different final state.
 
 ::: {.tab-set .docutils}
 Python
@@ -1917,7 +1935,7 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    words = ['XYZ', 'IXX']
+    words = ['ZYX', 'ZXX']
     coefficients = [0.432, 0.324]
 
 
@@ -1938,14 +1956,8 @@ C++
 ::: highlight
     __qpu__ void kernel() {
       cudaq::qvector qvector(3);
-      exp_pauli(0.432, qvector, "XYZ");
-      exp_pauli(0.324, qvector, "IXX");
-    }
-
-    int main() {
-      auto result = cudaq::sample(kernel);
-      result.dump();
-      return 0;
+      exp_pauli(0.432, qvector, "ZYX");
+      exp_pauli(0.324, qvector, "ZXX");
     }
 :::
 :::

@@ -1884,7 +1884,7 @@ top-level [`CMakeLists.txt`{.code .docutils .literal
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+    cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
     project(myCudaQApp LANGUAGES CXX)
     find_package(CUDAQ REQUIRED)
     add_executable(ghz_exe ghz.cpp)

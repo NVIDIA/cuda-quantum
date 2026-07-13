@@ -3803,14 +3803,31 @@ discriminated bits into an integer.)
 
     *[property]{.pre}[ ]{.w}*[[degrees]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.degrees "Permalink to this definition"){.headerlink}
 
-    :   Returns a vector that lists all degrees of freedom that the
-        operator targets. The order of degrees is from smallest to
-        largest and reflects the ordering of the matrix returned by
-        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
-        Specifically, the indices of a statevector with two qubits are
-        {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
-        that a state where the qubit with index 0 equals 1 with
-        probability 1 is given by the vector {0., 1., 0., 0.}.
+    :   qubit 0 contributes 2\^0 to the statevector index, qubit 1
+        contributes 2\^1, and so on. For two qubits, statevector index 1
+        corresponds to the basis state [[\|]{#id3
+        .problematic}](#id2)q_0 q_1\> = [[\|]{#id5
+        .problematic}](#id4)10\> (qubit 0 in [[\|]{#id7
+        .problematic}](#id6)1\>, qubit 1 in [[\|]{#id9
+        .problematic}](#id8)0\>), so a state where qubit 0 equals 1 with
+        probability 1 is the vector {0., 1., 0., 0.}. This convention
+        matches [`cudaq.get_state`{.code .docutils .literal
+        .notranslate}]{.pre}, [`SampleResult`{.code .docutils .literal
+        .notranslate}]{.pre} bitstring keys, and the Pauli word produced
+        by [`get_pauli_word()`{.code .docutils .literal
+        .notranslate}]{.pre}, all of which place qubit 0 as the
+        left-most character. Note that writing the statevector index as
+        a binary number (e.g. index 1 as [`01`{.code .docutils .literal
+        .notranslate}]{.pre}) places qubit 0 on the right, since it is
+        the least-significant bit.
+
+        Type[:]{.colon}
+
+        :   Returns a vector that lists all degrees of freedom (qubit
+            indices) that the operator targets, from smallest to
+            largest. This ordering reflects the basis ordering of the
+            matrix returned by [`to_matrix`{.code .docutils .literal
+            .notranslate}]{.pre}
 
     [[distribute_terms]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.distribute_terms "Permalink to this definition"){.headerlink}
 
@@ -3840,7 +3857,7 @@ discriminated bits into an integer.)
 
     *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.max_degree "Permalink to this definition"){.headerlink}
 
-    :   Returns the smallest index of the degrees of freedom that the
+    :   Returns the largest index of the degrees of freedom that the
         operator targets.
 
     *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.min_degree "Permalink to this definition"){.headerlink}

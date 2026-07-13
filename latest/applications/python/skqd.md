@@ -2424,7 +2424,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![c53e9b604952433294e3e38ad95ab886](../../_images/speedup.png){.no-scaled-link
+![f6dd72a26afc4ac08ad63f0b7bbf1a84](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2438,9 +2438,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![f2759fd4876447f799f9c134ea74387e](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![82a1e7826d024859a3a270d1391818dc](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![a215f85e59ce41329e59ca2b15dc18eb](../../_images/efficiency.jpeg){.no-scaled-link
+![3a3aa070b3ff45059268aa6d818f5ed2](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

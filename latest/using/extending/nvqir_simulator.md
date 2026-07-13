@@ -1996,7 +1996,7 @@ repository for this code called [`my-simulator`{.code .docutils .literal
 
 ::: {.highlight-cmake .notranslate}
 ::: highlight
-    cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+    cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
     project(DemoCreateNVQIRBackend VERSION 1.0.0 LANGUAGES CXX)
     find_package(NVQIR REQUIRED)
     nvqir_add_backend(MySimulator MySimulator.cpp "")

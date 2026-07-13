@@ -2612,13 +2612,16 @@ C++
 :::
 :::
 
-Unlike [`sample`{.code .docutils .literal .notranslate}]{.pre}, the
-default [`shots_count`{.code .docutils .literal .notranslate}]{.pre} for
-[`observe`{.code .docutils .literal .notranslate}]{.pre} is 1. This
-result is deterministic and equivalent to the expectation value in the
-limit of infinite shots. To produce an approximate expectation value
-from sampling, [`shots_count`{.code .docutils .literal
-.notranslate}]{.pre} can be specified to any integer.
+Unlike [`sample`{.code .docutils .literal .notranslate}]{.pre},
+[`observe`{.code .docutils .literal .notranslate}]{.pre} does not
+perform shots-based sampling by default ([`shots_count`{.code .docutils
+.literal .notranslate}]{.pre} defaults to [`-1`{.code .docutils .literal
+.notranslate}]{.pre}). In this mode the returned expectation value is
+computed analytically from the quantum state and is deterministic,
+equivalent to the expectation value in the limit of infinite shots. To
+produce an approximate expectation value from sampling instead, pass a
+positive integer as [`shots_count`{.code .docutils .literal
+.notranslate}]{.pre}.
 
 ::: {.tab-set .docutils}
 Python
