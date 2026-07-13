@@ -8,6 +8,7 @@
 
 set(LIBRARY_NAME cudaq-platform-qdmi)
 
+# Lit substitutions expect canonical CMake boolean values (0 or 1).
 set(CUDAQ_QDMI_DDSIM_AVAILABLE 0 CACHE INTERNAL
   "Whether the QDMI DDSIM device is available for target tests" FORCE)
 set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY "" CACHE INTERNAL
