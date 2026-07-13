@@ -208,7 +208,7 @@ jobs:
           # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
           # incremental rebuild scoped to the binding targets.
           # Initialize nanobind submodule which are needed for MLIR Python bindings
-          git submodule update --init --recursive tpls/nanobind
+          retry git submodule update --init --recursive tpls/nanobind
 
           source scripts/set_env_defaults.sh
           
@@ -246,7 +246,9 @@ jobs:
         if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''
         env:
           DIGEST: ${{ steps.push_image.outputs.digest }}
-        run: cosign sign --yes "${DIGEST}"
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry cosign sign --yes "${DIGEST}"
 
       - name: Set image hash
         id: image_hash

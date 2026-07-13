@@ -9,14 +9,10 @@
 #include "py_dem.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
-#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "cudaq/algorithms/dem.h"
 #include "cudaq/platform.h"
-#include "mlir/Bindings/Python/NanobindAdaptors.h"
-#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
-#include <optional>
 #include <string>
 
 using namespace cudaq;
@@ -57,43 +53,41 @@ static cudaq::dem_options parseDemOptions(const nanobind::dict &d) {
   return opts;
 }
 
-static nanobind::object dem_from_kernel_impl(const std::string &kernelName,
-                                             MlirModule kernelMod,
-                                             std::optional<noise_model> noise,
-                                             nanobind::dict dem_options_dict,
-                                             nanobind::args args) {
-  auto &platform = cudaq::get_platform();
-  args = simplifiedValidateInputArguments(args);
+static void construct_dem_policy(dem_policy *self,
+                                 const std::string &kernelName,
+                                 const noise_model *noise,
+                                 const nanobind::dict &options) {
+  new (self) dem_policy();
+  self->kernelName = kernelName;
+  self->noiseModel = noise;
+  self->options = parseDemOptions(options);
+}
 
-  const cudaq::noise_model *noisePtr = noise ? &(*noise) : nullptr;
-  const cudaq::dem_options opts = parseDemOptions(dem_options_dict);
-
-  auto launch = [&]() {
-    [[maybe_unused]] auto result =
-        cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
-  };
-
-  cudaq::M2DSparseMatrix m2d_storage;
-  cudaq::M2OSparseMatrix m2o_storage;
-  cudaq::M2DSparseMatrix *m2d_ptr =
-      opts.return_measurement_matrices ? &m2d_storage : nullptr;
-  cudaq::M2OSparseMatrix *m2o_ptr =
-      opts.return_measurement_matrices ? &m2o_storage : nullptr;
-  std::string dem_text = cudaq::detail::runDemFromKernel(
-      kernelName, platform, noisePtr, launch, opts, /*plugin_name=*/"stim",
-      m2d_ptr, m2o_ptr);
-
-  if (!opts.return_measurement_matrices)
-    return nanobind::cast(std::move(dem_text));
-
-  return nanobind::make_tuple(nanobind::cast(std::move(dem_text)),
-                              nanobind::cast(m2d_storage.num_measurements),
-                              nanobind::cast(std::move(m2d_storage.rows)),
-                              nanobind::cast(std::move(m2o_storage.rows)));
+static nanobind::object launch_dem(const dem_policy &policy,
+                                   nanobind::callable callable) {
+  auto result = cudaq::detail::launchDem(policy, cudaq::get_platform(),
+                                         [&]() { callable(); });
+  if (!policy.options.return_measurement_matrices)
+    return nanobind::cast(std::move(result.dem));
+  // Positional 4-tuple contract with `dem.py`: (dem_text, num_measurements,
+  // det_rows, obs_rows).
+  return nanobind::make_tuple(nanobind::cast(std::move(result.dem)),
+                              nanobind::cast(result.m2d.num_measurements),
+                              nanobind::cast(std::move(result.m2d.rows)),
+                              nanobind::cast(std::move(result.m2o.rows)));
 }
 
 void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
-  mod.def("dem_from_kernel_impl", dem_from_kernel_impl, nanobind::arg(),
-          nanobind::arg(), nanobind::arg().none(), nanobind::arg("dem_options"),
-          nanobind::arg(), "See python documentation for dem_from_kernel.");
+  nanobind::class_<dem_policy>(mod, "DemPolicy")
+      .def("__init__", construct_dem_policy, nanobind::arg("kernel_name"),
+           nanobind::arg("noise_model").none(), nanobind::arg("options"),
+           nanobind::keep_alive<1, 3>())
+      .def_prop_ro("kernel_name",
+                   [](const dem_policy &policy) { return policy.kernelName; })
+      .def_prop_ro("return_measurement_matrices", [](const dem_policy &policy) {
+        return policy.options.return_measurement_matrices;
+      });
+
+  mod.def("launch_dem", launch_dem, "Policy based DEM launch.",
+          nanobind::arg("policy"), nanobind::arg("callable"));
 }

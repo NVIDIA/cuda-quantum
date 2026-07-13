@@ -9,6 +9,7 @@
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <cctype>
+#include <functional>
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
 static void substitutePipelinePlaceholders(
@@ -96,4 +97,42 @@ cudaq::CompileTarget::CompileTarget(
     pipelineConfig.disableQubitMapping = true;
     CUDAQ_INFO("{:<27} {}\n", "disable_qubit_mapping:", "true");
   }
+}
+
+template <typename T>
+inline void hash_combine(std::size_t &seed, const T &val) {
+  std::hash<T> hasher;
+  seed ^= hasher(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+template <typename... Args>
+inline std::size_t hash_val(const Args &...args) {
+  std::size_t seed = 0;
+  (hash_combine(seed, args), ...);
+  return seed;
+}
+
+std::size_t std::hash<cudaq::CompileTarget>::operator()(
+    const cudaq::CompileTarget &t) const noexcept {
+  std::size_t seed = hash_val(
+      t.pipelineConfig.overridePassPipeline, t.pipelineConfig.highLevelPipeline,
+      t.pipelineConfig.midLevelPipeline, t.pipelineConfig.lowLevelPipeline,
+      t.pipelineConfig.codegenTranslation, t.pipelineConfig.postCodeGenPasses,
+      t.pipelineConfig.skipTargetLoweringPipeline,
+      t.pipelineConfig.disableQubitMapping,
+      t.pipelineConfig.replaceStateWithKernel, t.pipelineConfig.addMeasurements,
+      t.overrideAOTCompilation, t.emulate, t.warnNamedMeasurements,
+      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+      t.storeReorderIdx, t.emitResourceCounts, t.emitJit, t.emitTargetCode,
+      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics);
+
+  // Optional spin observable: include its string representation when present.
+  if (t.pauliTermSplitObservable)
+    hash_combine(seed, t.pauliTermSplitObservable->to_string());
+
+  return seed;
+}
+
+std::size_t cudaq::CompileTarget::hash() const {
+  return std::hash<cudaq::CompileTarget>{}(*this);
 }

@@ -81,6 +81,13 @@ protected:
   cudaq::config::TargetConfig targetConfig;
 
 public:
+  // This class overrides `launchKernel(dem_policy)` (local DEM generation,
+  // shared by all remote QPUs) but not the `sample`/`observe` overloads (those
+  // are overridden in the leaf QPUs). Re-import QPU's `launchKernel` overloads
+  // so this partial override does not trip nvcc "overloaded virtual function
+  // only partially overridden" error.
+  using QPU::launchKernel;
+
   /// @brief The constructor
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
@@ -131,10 +138,9 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count" &&
-        context.name != "dem")
-      throw std::runtime_error("Illegal use of an analysis simulator (resource "
-                               "counter / DEM) on a remote QPU.");
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
+      throw std::runtime_error(
+          "Illegal use of a resource counter on a remote QPU.");
 
     CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
                context.name);
@@ -231,6 +237,9 @@ public:
       serverHelper->updatePassPipeline(platformPath, passPipeline);
     }
 
+    /// Disable compiled-module caching for the remote REST target.
+    std::size_t hash() const override { return 0; }
+
   private:
     cudaq::ServerHelper *serverHelper;
     std::filesystem::path platformPath;
@@ -248,13 +257,9 @@ public:
         serverHelper.get(), targetConfig, backendConfig, emulate);
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
-    if (ctx && ctx->name == "resource-count") {
+    if (ctx && ctx->name == "resource-count")
       target->emitResourceCounts = true;
-    } else if (ctx && ctx->name == "dem") {
-      target->emitJit = true;
-      target->emitTargetCode = false;
-      target->pipelineConfig.skipTargetLoweringPipeline = true;
-    }
+
     return target;
   }
 
@@ -278,6 +283,34 @@ public:
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
     return target;
+  }
+
+  /// Build a local JIT artifact for DEM analysis. No provider target code is
+  /// emitted or submitted while this policy is active.
+  std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
+    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
+        serverHelper.get(), targetConfig, backendConfig, emulate);
+    target->pipelineConfig.replaceStateWithKernel = true;
+    target->overrideAOTCompilation = true;
+    target->emitJit = true;
+    target->emitTargetCode = false;
+    target->pipelineConfig.skipTargetLoweringPipeline = true;
+    return target;
+  }
+
+  /// Generate the DEM locally while preserving the selected remote target.
+  dem_result launchKernel(const dem_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override {
+    CUDAQ_INFO("BaseRemoteRESTQPU::launchKernel {} locally", policy.name);
+    if (!module.getJit())
+      throw std::runtime_error(
+          "Remote QPU could not produce the local JIT artifact required for "
+          "detector error model generation.");
+
+    return cudaq::ExecutionManager::with_default_em(policy, [&] {
+      [[maybe_unused]] auto kernelResult = runJITCompiledModule(module, args);
+    });
   }
 
   void completeLaunchKernel(const std::string &kernelName,
@@ -308,23 +341,6 @@ public:
           std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
-      return;
-    }
-
-    if (executionContext->name == "dem") {
-      assert(codes.size() == 1 && codes[0].jit);
-      cudaq::ExecutionContext context("dem");
-      context.executionManager = cudaq::getDefaultExecutionManager();
-      context.noiseModel = executionContext->noiseModel;
-      context.qpuId = executionContext->qpuId;
-      context.dem_opts = executionContext->dem_opts;
-      context.hasConditionalsOnMeasureResults =
-          codes[0].hasConditionalsOnMeasureResults;
-      cudaq::platform::with_execution_context(
-          context, [&]() { codes[0].jit->run(kernelName); });
-      executionContext->dem_text = std::move(context.dem_text);
-      executionContext->measurement_matrices =
-          std::move(context.measurement_matrices);
       return;
     }
 
