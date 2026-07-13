@@ -357,13 +357,14 @@ ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
 
   const auto nQubits = numQubits(batch.trace);
   ptsbe::sample_result result;
+  std::vector<cudaq::sample_result> perTrajectoryResults;
   cudaq::detail::with_policy_and_ctx(policy, sampleCtx, [&] {
     nvqir::getCircuitSimulatorInternal()->configureExecutionContext(sampleCtx);
     try {
       allocateBatchQubits(nQubits);
       auto results = samplePTSBE(batch);
       result = ptsbe::sample_result(aggregateResults(results));
-      policy.perTrajectoryResults = std::move(results);
+      perTrajectoryResults = std::move(results);
     } catch (...) {
       releaseBatchQubits(nQubits);
       throw;
@@ -374,7 +375,7 @@ ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
   if (executionData) {
     populateExecutionDataTrajectories(*executionData,
                                       std::move(batch.trajectories),
-                                      std::move(policy.perTrajectoryResults));
+                                      std::move(perTrajectoryResults));
     result.set_execution_data(std::move(*executionData));
   }
 
@@ -390,18 +391,9 @@ void allocateBatchQubits(std::size_t nQubits) {
 void releaseBatchQubits(std::size_t nQubits) {
   std::vector<std::size_t> qubitIds(nQubits);
   std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  auto *ctx = cudaq::getExecutionContext();
-  if (ctx)
-    cudaq::detail::resetExecutionContext();
-  try {
+  withClearedExecutionContext([&] {
     nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubitIds);
-  } catch (...) {
-    if (ctx)
-      cudaq::detail::setExecutionContext(ctx);
-    throw;
-  }
-  if (ctx)
-    cudaq::detail::setExecutionContext(ctx);
+  });
 }
 
 } // namespace cudaq::ptsbe::detail
