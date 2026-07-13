@@ -231,11 +231,15 @@ public:
       serverHelper->updatePassPipeline(platformPath, passPipeline);
     }
 
+    /// Disable compiled-module caching for the remote REST target.
+    std::size_t hash() const override { return 0; }
+
   private:
     cudaq::ServerHelper *serverHelper;
     std::filesystem::path platformPath;
   };
 
+  using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &, ExecutionContext *ctx) override {
     if (!ctx)
