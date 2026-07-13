@@ -182,9 +182,9 @@ int main() {
 // CHECK: avgH = {{.*}} ms
 // CHECK: avgRx = {{.*}} ms
 // CHECK: avgCNOT = {{.*}} ms
-// CHECK: {{.*}} CircuitSimulator 'qpp' Total Program Metrics [tag=5]:
-// CHECK: {{.*}} Gate Count = 1210
-// CHECK: {{.*}} Control Count = 900
-// CHECK: {{.*}} Target Count = 1210
-// CHECK: {{.*}} State Vector I/O (GB) = 0.024904
-// CHECK: {{.*}} State Vector GFLOPs = 0.010895
+// CHECK: CircuitSimulator 'qpp' Total Program Metrics [tag=5]:
+// CHECK: Gate Count = 1210
+// CHECK: Control Count = 900
+// CHECK: Target Count = 1210
+// CHECK: State Vector I/O (GB) = 0.024904
+// CHECK: State Vector GFLOPs = 0.010895
