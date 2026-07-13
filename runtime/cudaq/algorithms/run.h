@@ -54,7 +54,7 @@ runTheKernel(std::function<void()> &&kernel, quantum_platform &platform,
              const std::string &kernel_name, const std::string &original_name,
              std::size_t shots,
              const cudaq_internal::compiler::LayoutInfoType &layoutInfo,
-             std::size_t qpu_id = 0, bool allowCaching = true);
+             std::size_t qpu_id = 0);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a
