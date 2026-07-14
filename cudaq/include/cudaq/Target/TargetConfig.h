@@ -120,7 +120,7 @@ struct BackendEndConfigEntry {
   std::vector<std::string> CompilerFlags;
   /// Extra libraries to be linked in if any
   std::vector<std::string> LinkLibs;
-  /// List of plugin shared libraries to dlopen at runtime (B3)
+  /// List of plugin shared libraries to dlopen at runtime
   std::vector<std::string> PluginLibraries;
   /// Extra linker flags for this target if any
   std::vector<std::string> LinkerFlags;
