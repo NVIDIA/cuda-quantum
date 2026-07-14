@@ -108,9 +108,9 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
 
 static std::vector<nanobind::object>
 pyReadResults(detail::RunResultSpan results, mlir::ModuleOp mod,
-              std::size_t shots_count, const std::string &name) {
+              const std::string &name) {
   auto returnTy = recoverReturnType(mod, name);
-  return readRunResults(mod, returnTy, results, shots_count);
+  return readRunResults(mod, returnTy, results, results.resultCount);
 }
 
 /// @brief Run `cudaq::run` on the provided kernel.
@@ -140,7 +140,7 @@ run_impl(const std::string &shortName, MlirModule module,
     span = pyRunTheKernel(shortName, platform, mod, compiled, shots_count,
                           qpu_id, opaques);
   }
-  auto results = pyReadResults(span, mod, shots_count, shortName);
+  auto results = pyReadResults(span, mod, shortName);
 
   if (noise_model.has_value())
     platform.reset_noise();
@@ -239,13 +239,13 @@ run_async_impl(const std::string &shortName, MlirModule module,
         std::launch::deferred,
         [sf = std::move(spanFuture), ef = std::move(errorFuture),
          errorPtr = result.error.get(), resultsPtr = result.results.get(), mod,
-         shots_count, shortName]() mutable {
+         shortName]() mutable {
           auto error = ef.get();
           std::swap(*errorPtr, error);
           if (error.empty()) {
             auto span = sf.get();
             nanobind::gil_scoped_acquire gil{};
-            auto results = pyReadResults(span, mod, shots_count, shortName);
+            auto results = pyReadResults(span, mod, shortName);
             std::swap(*resultsPtr, results);
           }
         });
@@ -271,7 +271,8 @@ Args:
   noise_model: The optional noise model to add noise to the kernel execution.
 
 Returns:
-  A list of kernel return values from each execution. The length equals `shots_count`.
+  A list containing the return value from each successful execution. Its length
+  may be less than `shots_count` if the backend reports failed shots.
 )#");
 }
 
@@ -309,6 +310,8 @@ Args:
   qpu_id: The id of the QPU. Defaults to 0.
 
 Returns:
-  AsyncRunResult: A handle which can be waited on via a `get()` method.
+  AsyncRunResult: A handle whose `get()` method returns one value per successful
+  execution. The result may contain fewer than `shots_count` values if the
+  backend reports failed shots.
 )#");
 }

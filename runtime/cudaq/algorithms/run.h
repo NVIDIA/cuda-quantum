@@ -42,13 +42,17 @@ namespace detail {
 struct RunResultSpan {
   char *data;
   std::uint64_t lengthInBytes;
+  std::uint64_t resultCount = 0;
 };
 
 // The main entry point to launching a kernel, \p kernel, in a `cudaq::run`
 // context and getting back a span containing the results. (The kernel is
 // logically executed \p shots times, which can result in up to \p shots
 // distinct result values. The results are returned in a span, which is a
-// pointer to a buffer and the size of that buffer in bytes.
+// pointer to a buffer and the size of that buffer in bytes. Backend
+// executions with nonzero END status are omitted, so the returned span may
+// contain fewer than \p shots results and reports its actual count.
+
 RunResultSpan
 runTheKernel(std::function<void()> &&kernel, quantum_platform &platform,
              const std::string &kernel_name, const std::string &original_name,
