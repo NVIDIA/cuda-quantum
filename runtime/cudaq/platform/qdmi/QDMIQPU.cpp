@@ -14,35 +14,23 @@
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq/runtime/logger/logger.h"
 
-#include <algorithm>
+#include <exception>
+#include <future>
 #include <map>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
 namespace {
-// DDSIM returns QDMI result strings in the reverse of CUDA-Q's result order.
-// QDMI currently provides no result-order metadata, so the adapter applies
-// this conversion to both histogram keys and individual shot results.
-std::string toCudaqBitOrder(std::string bits) {
-  std::reverse(bits.begin(), bits.end());
-  return bits;
-}
-
 cudaq::CountsDictionary
 toCountsDictionary(const std::map<std::string, std::size_t> &counts) {
   cudaq::CountsDictionary result;
   result.reserve(counts.size());
   for (const auto &[bits, count] : counts)
-    result[toCudaqBitOrder(bits)] = count;
+    result[bits] = count;
   return result;
-}
-
-std::vector<std::string> toShotData(std::vector<std::string> shots) {
-  for (auto &bits : shots)
-    bits = toCudaqBitOrder(std::move(bits));
-  return shots;
 }
 
 std::map<std::string, std::size_t>
@@ -147,7 +135,7 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
     cudaq::ExecutionResult executionResult(toCountsDictionary(counts),
                                            registerName);
     if (shots)
-      executionResult.sequentialData = toShotData(std::move(*shots));
+      executionResult.sequentialData = std::move(*shots);
 
     cudaq::sample_result jobResult(std::move(executionResult));
     if (!code.mapping_reorder_idx.empty())
@@ -161,6 +149,28 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
   }
 
   return result;
+}
+
+cudaq::detail::future
+submitJobsAsync(cudaq::QDMIQPU &qpu,
+                std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
+                std::vector<cudaq::KernelExecution> codes,
+                cudaq::detail::ExecutionContextType execType,
+                std::size_t shotCount) {
+  auto promise = std::make_shared<std::promise<cudaq::sample_result>>();
+  auto future = promise->get_future();
+  cudaq::QuantumTask task =
+      [promise, platformDevice = std::move(platformDevice),
+       codes = std::move(codes), execType, shotCount]() mutable {
+        try {
+          promise->set_value(submitJobs(std::move(platformDevice),
+                                        std::move(codes), execType, shotCount));
+        } catch (...) {
+          promise->set_exception(std::current_exception());
+        }
+      };
+  qpu.enqueue(task);
+  return cudaq::detail::future(std::move(future));
 }
 
 } // namespace
@@ -285,6 +295,16 @@ sample_result QDMIQPU::launchKernel(const sample_policy &policy,
                     detail::ExecutionContextType::sample, shotCount);
 }
 
+async_sample_result QDMIQPU::launchKernel(const async_sample_policy &policy,
+                                          const CompiledModule &module,
+                                          KernelArgs) {
+  auto codes = runCodegen(module, getCompileTarget(policy.inner));
+  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
+  return async_sample_result(
+      submitJobsAsync(*this, platformDevice, std::move(codes),
+                      detail::ExecutionContextType::sample, shotCount));
+}
+
 observe_result QDMIQPU::launchKernel(const observe_policy &policy,
                                      const CompiledModule &module, KernelArgs) {
   auto codes = runCodegen(module, getCompileTarget(policy));
@@ -292,6 +312,17 @@ observe_result QDMIQPU::launchKernel(const observe_policy &policy,
   return observeResultFromCounts(
       policy, submitJobs(platformDevice, std::move(codes),
                          detail::ExecutionContextType::observe, shotCount));
+}
+
+async_observe_result QDMIQPU::launchKernel(const async_observe_policy &policy,
+                                           const CompiledModule &module,
+                                           KernelArgs) {
+  auto codes = runCodegen(module, getCompileTarget(policy.inner));
+  const auto shotCount = resolveShots(nShots, policy.inner.options.shots);
+  return async_observe_result(
+      submitJobsAsync(*this, platformDevice, std::move(codes),
+                      detail::ExecutionContextType::observe, shotCount),
+      &policy.inner.spin);
 }
 
 } // namespace cudaq

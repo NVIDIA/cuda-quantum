@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -56,44 +55,32 @@ BackendConfig parseBackendConfig(const std::string &description,
 }
 
 std::optional<std::string> getValue(const BackendConfig &config,
-                                    const std::string &key,
-                                    const char *envName) {
+                                    const std::string &key) {
   if (auto iter = config.find(key);
       iter != config.end() && !iter->second.empty())
     return iter->second;
-  if (const char *value = std::getenv(envName); value && value[0] != '\0')
-    return std::string(value);
   return std::nullopt;
 }
 
 std::optional<fomac::CustomJobParameter>
-getJobParameter(const BackendConfig &config, const std::string &key,
-                const char *envName) {
-  if (auto value = getValue(config, key, envName))
+getJobParameter(const BackendConfig &config, const std::string &key) {
+  if (auto value = getValue(config, key))
     return fomac::CustomJobParameter{std::move(*value)};
   return std::nullopt;
 }
 
 BackendConfig resolveDeviceConfig(const BackendConfig &config) {
-  constexpr std::array environmentOptions{
-      std::pair{"qdmi_library", "CUDAQ_QDMI_LIBRARY"},
-      std::pair{"qdmi_prefix", "CUDAQ_QDMI_PREFIX"},
-      std::pair{"qdmi_base_url", "CUDAQ_QDMI_BASE_URL"},
-      std::pair{"qdmi_token", "CUDAQ_QDMI_TOKEN"},
-      std::pair{"qdmi_auth_file", "CUDAQ_QDMI_AUTH_FILE"},
-      std::pair{"qdmi_auth_url", "CUDAQ_QDMI_AUTH_URL"},
-      std::pair{"qdmi_username", "CUDAQ_QDMI_USERNAME"},
-      std::pair{"qdmi_password", "CUDAQ_QDMI_PASSWORD"},
-      std::pair{"qdmi_session_custom1", "CUDAQ_QDMI_SESSION_CUSTOM1"},
-      std::pair{"qdmi_session_custom2", "CUDAQ_QDMI_SESSION_CUSTOM2"},
-      std::pair{"qdmi_session_custom3", "CUDAQ_QDMI_SESSION_CUSTOM3"},
-      std::pair{"qdmi_session_custom4", "CUDAQ_QDMI_SESSION_CUSTOM4"},
-      std::pair{"qdmi_session_custom5", "CUDAQ_QDMI_SESSION_CUSTOM5"},
+  constexpr std::array deviceOptions{
+      "qdmi_library",         "qdmi_prefix",          "qdmi_base_url",
+      "qdmi_token",           "qdmi_auth_file",       "qdmi_auth_url",
+      "qdmi_username",        "qdmi_password",        "qdmi_session_custom1",
+      "qdmi_session_custom2", "qdmi_session_custom3", "qdmi_session_custom4",
+      "qdmi_session_custom5",
   };
 
   BackendConfig resolved;
-  for (const auto &[key, envName] : environmentOptions) {
-    if (const auto value = getValue(config, key, envName))
+  for (const auto *key : deviceOptions) {
+    if (const auto value = getValue(config, key))
       resolved.emplace(key, *value);
   }
   return resolved;
@@ -120,33 +107,23 @@ cudaq::config::TargetConfig loadTargetConfig(const std::string &targetName) {
 
 qdmi::DeviceSessionConfig makeDeviceSessionConfig(const BackendConfig &config) {
   qdmi::DeviceSessionConfig sessionConfig;
-  sessionConfig.baseUrl =
-      getValue(config, "qdmi_base_url", "CUDAQ_QDMI_BASE_URL");
-  sessionConfig.token = getValue(config, "qdmi_token", "CUDAQ_QDMI_TOKEN");
-  sessionConfig.authFile =
-      getValue(config, "qdmi_auth_file", "CUDAQ_QDMI_AUTH_FILE");
-  sessionConfig.authUrl =
-      getValue(config, "qdmi_auth_url", "CUDAQ_QDMI_AUTH_URL");
-  sessionConfig.username =
-      getValue(config, "qdmi_username", "CUDAQ_QDMI_USERNAME");
-  sessionConfig.password =
-      getValue(config, "qdmi_password", "CUDAQ_QDMI_PASSWORD");
-  sessionConfig.custom1 =
-      getValue(config, "qdmi_session_custom1", "CUDAQ_QDMI_SESSION_CUSTOM1");
-  sessionConfig.custom2 =
-      getValue(config, "qdmi_session_custom2", "CUDAQ_QDMI_SESSION_CUSTOM2");
-  sessionConfig.custom3 =
-      getValue(config, "qdmi_session_custom3", "CUDAQ_QDMI_SESSION_CUSTOM3");
-  sessionConfig.custom4 =
-      getValue(config, "qdmi_session_custom4", "CUDAQ_QDMI_SESSION_CUSTOM4");
-  sessionConfig.custom5 =
-      getValue(config, "qdmi_session_custom5", "CUDAQ_QDMI_SESSION_CUSTOM5");
+  sessionConfig.baseUrl = getValue(config, "qdmi_base_url");
+  sessionConfig.token = getValue(config, "qdmi_token");
+  sessionConfig.authFile = getValue(config, "qdmi_auth_file");
+  sessionConfig.authUrl = getValue(config, "qdmi_auth_url");
+  sessionConfig.username = getValue(config, "qdmi_username");
+  sessionConfig.password = getValue(config, "qdmi_password");
+  sessionConfig.custom1 = getValue(config, "qdmi_session_custom1");
+  sessionConfig.custom2 = getValue(config, "qdmi_session_custom2");
+  sessionConfig.custom3 = getValue(config, "qdmi_session_custom3");
+  sessionConfig.custom4 = getValue(config, "qdmi_session_custom4");
+  sessionConfig.custom5 = getValue(config, "qdmi_session_custom5");
   return sessionConfig;
 }
 
 cudaq::FoMaCDevice loadDevice(const BackendConfig &config) {
-  const auto library = getValue(config, "qdmi_library", "CUDAQ_QDMI_LIBRARY");
-  const auto prefix = getValue(config, "qdmi_prefix", "CUDAQ_QDMI_PREFIX");
+  const auto library = getValue(config, "qdmi_library");
+  const auto prefix = getValue(config, "qdmi_prefix");
   if (!library)
     throw std::runtime_error("QDMI device library is required.");
   if (!prefix)
@@ -212,27 +189,12 @@ queryConnectivity(const cudaq::FoMaCDevice &device, std::size_t qubitCount) {
     edges.emplace(std::min(*source, *target), std::max(*source, *target));
   };
 
-  if (auto couplingMap = device.getCouplingMap()) {
-    for (const auto &[source, target] : *couplingMap)
-      addEdge(source, target);
-    return std::vector<std::pair<std::size_t, std::size_t>>(edges.begin(),
-                                                            edges.end());
-  }
-
-  try {
-    for (const auto &operation : device.getOperations()) {
-      if (auto sitePairs = operation.getSitePairs()) {
-        for (const auto &[source, target] : *sitePairs)
-          addEdge(source, target);
-      }
-    }
-  } catch (const std::exception &e) {
-    CUDAQ_DBG("QDMI operation connectivity metadata is unavailable: {}",
-              e.what());
-  }
-
-  if (edges.empty())
+  const auto couplingMap = device.getCouplingMap();
+  if (!couplingMap)
     return std::nullopt;
+
+  for (const auto &[source, target] : *couplingMap)
+    addEdge(source, target);
   return std::vector<std::pair<std::size_t, std::size_t>>(edges.begin(),
                                                           edges.end());
 }
@@ -258,16 +220,11 @@ std::shared_ptr<cudaq::QDMIPlatformDevice> makeJobConfiguredDevice(
     const std::shared_ptr<cudaq::QDMIPlatformDevice> &device,
     const BackendConfig &config) {
   auto configuredDevice = std::make_shared<cudaq::QDMIPlatformDevice>(*device);
-  configuredDevice->jobCustom1 =
-      getJobParameter(config, "qdmi_job_custom1", "CUDAQ_QDMI_JOB_CUSTOM1");
-  configuredDevice->jobCustom2 =
-      getJobParameter(config, "qdmi_job_custom2", "CUDAQ_QDMI_JOB_CUSTOM2");
-  configuredDevice->jobCustom3 =
-      getJobParameter(config, "qdmi_job_custom3", "CUDAQ_QDMI_JOB_CUSTOM3");
-  configuredDevice->jobCustom4 =
-      getJobParameter(config, "qdmi_job_custom4", "CUDAQ_QDMI_JOB_CUSTOM4");
-  configuredDevice->jobCustom5 =
-      getJobParameter(config, "qdmi_job_custom5", "CUDAQ_QDMI_JOB_CUSTOM5");
+  configuredDevice->jobCustom1 = getJobParameter(config, "qdmi_job_custom1");
+  configuredDevice->jobCustom2 = getJobParameter(config, "qdmi_job_custom2");
+  configuredDevice->jobCustom3 = getJobParameter(config, "qdmi_job_custom3");
+  configuredDevice->jobCustom4 = getJobParameter(config, "qdmi_job_custom4");
+  configuredDevice->jobCustom5 = getJobParameter(config, "qdmi_job_custom5");
   return configuredDevice;
 }
 
