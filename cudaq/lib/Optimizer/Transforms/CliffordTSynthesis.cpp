@@ -139,15 +139,16 @@ struct PreCheck {
 
 // Validates the common preconditions shared by every rotation lowering:
 //   - controls non-empty                  -> remark, LeaveInPlace
-//   - non-constant angle, on-dyn=error    -> error,  LeaveInPlace
+//   - non-constant angle, on-dyn=error    -> error,  LeaveInPlace (hard error)
 //   - non-constant angle, on-dyn=skip     -> remark, LeaveInPlace
-//   - NaN/Inf angle                       -> error,  LeaveInPlace
+//   - NaN/Inf angle                       -> error,  LeaveInPlace (hard error)
 //   - |theta| < skipBelow                 -> erase,  Erased
 //   - otherwise                           -> Lower with the constant angle
 PreCheck validateRotationOperands(Operation *op, Value angleVal,
                                   ValueRange controls,
                                   PatternRewriter &rewriter,
-                                  const RotationOptions &opts) {
+                                  const RotationOptions &opts,
+                                  bool *hadHardError) {
   if (!controls.empty()) {
     op->emitRemark("clifford-t-synthesis: skipping controlled rotation; run "
                    "ApplyOpSpecialization to materialize controls before "
@@ -164,6 +165,7 @@ PreCheck validateRotationOperands(Operation *op, Value angleVal,
       op->emitError("clifford-t-synthesis: rotation angle is not a "
                     "compile-time constant. Fold the angle upstream or set "
                     "--on-dynamic-angle=skip to leave the op alone.");
+      *hadHardError = true;
     }
     return {PreCheck::Action::LeaveInPlace, 0.0};
   }
@@ -171,6 +173,7 @@ PreCheck validateRotationOperands(Operation *op, Value angleVal,
   double theta = attr.getValueAsDouble();
   if (!std::isfinite(theta)) {
     op->emitError("clifford-t-synthesis: rotation angle is NaN or Inf");
+    *hadHardError = true;
     return {PreCheck::Action::LeaveInPlace, 0.0};
   }
 
@@ -183,13 +186,15 @@ PreCheck validateRotationOperands(Operation *op, Value angleVal,
 }
 
 struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
-  RzPattern(MLIRContext *ctx, RotationOptions opts, SynthState *state)
-      : OpRewritePattern(ctx), opts(std::move(opts)), state(state) {}
+  RzPattern(MLIRContext *ctx, RotationOptions opts, SynthState *state,
+            bool *hadHardError)
+      : OpRewritePattern(ctx), opts(std::move(opts)), state(state),
+        hadHardError(hadHardError) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(op, op.getParameter(),
-                                          op.getControls(), rewriter, opts);
+    auto check = validateRotationOperands(
+        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
     switch (check.action) {
     case PreCheck::Action::LeaveInPlace:
       return failure();
@@ -219,18 +224,20 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
 
   RotationOptions opts;
   SynthState *state;
+  bool *hadHardError;
 };
 
 // Rx(theta) = H . Rz(theta) . H. The greedy driver then re-fires RzPattern
 // on the inner Rz to do the actual Clifford+T expansion.
 struct RxPattern : OpRewritePattern<cudaq::quake::RxOp> {
-  RxPattern(MLIRContext *ctx, RotationOptions opts)
-      : OpRewritePattern(ctx), opts(std::move(opts)) {}
+  RxPattern(MLIRContext *ctx, RotationOptions opts, bool *hadHardError)
+      : OpRewritePattern(ctx), opts(std::move(opts)),
+        hadHardError(hadHardError) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(op, op.getParameter(),
-                                          op.getControls(), rewriter, opts);
+    auto check = validateRotationOperands(
+        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
     switch (check.action) {
     case PreCheck::Action::LeaveInPlace:
       return failure();
@@ -252,19 +259,21 @@ struct RxPattern : OpRewritePattern<cudaq::quake::RxOp> {
   }
 
   RotationOptions opts;
+  bool *hadHardError;
 };
 
 // Ry(theta) = S . H . Rz(theta) . H . S^dagger. Emitted as S.S.S . H . Rz .
 // H . S in circuit order (S^dagger = S^3 since S^4 = I), keeping the output
 // strictly in the Clifford+T alphabet {H, S, T, X}.
 struct RyPattern : OpRewritePattern<cudaq::quake::RyOp> {
-  RyPattern(MLIRContext *ctx, RotationOptions opts)
-      : OpRewritePattern(ctx), opts(std::move(opts)) {}
+  RyPattern(MLIRContext *ctx, RotationOptions opts, bool *hadHardError)
+      : OpRewritePattern(ctx), opts(std::move(opts)),
+        hadHardError(hadHardError) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
                                 PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(op, op.getParameter(),
-                                          op.getControls(), rewriter, opts);
+    auto check = validateRotationOperands(
+        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
     switch (check.action) {
     case PreCheck::Action::LeaveInPlace:
       return failure();
@@ -290,19 +299,21 @@ struct RyPattern : OpRewritePattern<cudaq::quake::RyOp> {
   }
 
   RotationOptions opts;
+  bool *hadHardError;
 };
 
 // R1(theta) = e^{i theta/2} . Rz(theta). The leading global phase is
 // dropped for now and we will revisit when controlled rotations are
 // reintroduced.
 struct R1Pattern : OpRewritePattern<cudaq::quake::R1Op> {
-  R1Pattern(MLIRContext *ctx, RotationOptions opts)
-      : OpRewritePattern(ctx), opts(std::move(opts)) {}
+  R1Pattern(MLIRContext *ctx, RotationOptions opts, bool *hadHardError)
+      : OpRewritePattern(ctx), opts(std::move(opts)),
+        hadHardError(hadHardError) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op op,
                                 PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(op, op.getParameter(),
-                                          op.getControls(), rewriter, opts);
+    auto check = validateRotationOperands(
+        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
     switch (check.action) {
     case PreCheck::Action::LeaveInPlace:
       return failure();
@@ -322,6 +333,7 @@ struct R1Pattern : OpRewritePattern<cudaq::quake::R1Op> {
   }
 
   RotationOptions opts;
+  bool *hadHardError;
 };
 
 } // namespace
@@ -396,11 +408,13 @@ public:
     MLIRContext *ctx = &getContext();
     SynthState state;
     state.module = getOperation();
+    bool hadHardError = false;
     RewritePatternSet patterns(ctx);
-    patterns.add<R1Pattern, RxPattern, RyPattern>(ctx, opts);
-    patterns.add<RzPattern>(ctx, opts, &state);
+    patterns.add<R1Pattern, RxPattern, RyPattern>(ctx, opts, &hadHardError);
+    patterns.add<RzPattern>(ctx, opts, &state, &hadHardError);
 
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))) ||
+        hadHardError)
       signalPassFailure();
 
     cudaq::opt::detail::mutableLastCacheHits() = state.hits;
