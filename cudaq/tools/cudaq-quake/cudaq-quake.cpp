@@ -68,15 +68,17 @@ static cl::opt<std::string> outputFilename("o",
 static cl::list<std::string>
     kernelNames("filter", cl::desc("Names of quantum kernels to convert."));
 
-static cl::opt<bool>
-    emitLLVM("emit-llvm-file",
-             cl::desc("Emit the LLVM IR for the C++ input to <input>.ll file."),
-             cl::init(false));
+static cl::opt<std::string> emitLLVMFile(
+    "emit-llvm-file",
+    cl::desc("Emit the LLVM IR for the C++ input. An optional filename may be "
+             "specified with --emit-llvm-file=<path>; otherwise writes to "
+             "<input-basename>.ll."),
+    cl::value_desc("filename"), cl::init(""), cl::ValueOptional);
 
 static cl::opt<bool> llvmOnly(
     "llvm-only",
-    cl::desc("Emit the LLVM IR for the C++ input to <input>.ll file and do not "
-             "emit the MLIR code. --emit-llvm-file has higher precedence."),
+    cl::desc("Emit the LLVM IR for the C++ input and do not emit the MLIR "
+             "code. --emit-llvm-file has higher precedence."),
     cl::init(false));
 
 static cl::opt<bool>
@@ -212,6 +214,13 @@ public:
 
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &ci, StringRef inFile) override {
+    // Force the classical LLVM IR to be written to the requested path. The
+    // clang tooling invocation strips/ignores a "-o" passed through its args,
+    // so set the frontend output file directly here before the base
+    // EmitLLVMAction computes its output stream. When empty, the base derives
+    // the name from the input file (<input-basename>.ll).
+    if (!emitLLVMFile.empty())
+      ci.getFrontendOpts().OutputFile = emitLLVMFile.getValue();
     auto llvmConsumer = this->Base::CreateASTConsumer(ci, inFile);
     auto mlirConsumer = mlirAction.CreateASTConsumer(ci, inFile);
     return std::make_unique<CudaQASTConsumer>(llvmConsumer, mlirConsumer);
@@ -466,6 +475,8 @@ int main(int argc, char **argv) {
 
   // Set the mangled kernel names map.
   CudaQAction::MangledKernelNamesMap mangledKernelNameMap;
+
+  const bool emitLLVM = emitLLVMFile.getNumOccurrences() > 0;
 
   std::string inputFile = isStdinInput(inputFilename)
                               ? std::string("input.cc")

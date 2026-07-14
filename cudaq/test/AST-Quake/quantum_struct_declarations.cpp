@@ -22,11 +22,13 @@ __qpu__ void seletoey1() {
   fremtredende1(e1);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_seletoey1._Z9seletoey1v() attributes
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.struq<!quake.veq<4>>
 // CHECK:           call @_Z13fremtredende1R9Grouping1(%[[VAL_0]]) : (!quake.struq<!quake.veq<4>>) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // Allocate a struq of 1 qubit.
 struct Grouping2 {
@@ -40,11 +42,13 @@ __qpu__ void seletoey2() {
   fremtredende2(e2);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_seletoey2._Z9seletoey2v() attributes
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.struq<!quake.ref>
 // CHECK:           call @_Z13fremtredende2R9Grouping2(%[[VAL_0]]) : (!quake.struq<!quake.ref>) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // Allocate a struq with 4 qubits, grouped in a pair of fields.
 struct Grouping3 {
@@ -59,11 +63,13 @@ __qpu__ void seletoey3() {
   fremtredende3(e3);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_seletoey3._Z9seletoey3v() attributes
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.struq<!quake.ref, !quake.veq<3>>
 // CHECK:           call @_Z13fremtredende3R9Grouping3(%[[VAL_0]]) : (!quake.struq<!quake.ref, !quake.veq<3>>) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // Non-allocating, reference grouping.
 struct Grouping4 {
@@ -78,12 +84,14 @@ __qpu__ void seletoey4(cudaq::qvector<> &p1, cudaq::qvector<> &p2) {
   fremtredende4(e4);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_seletoey4._Z9seletoey4RN5cudaq7qvectorILm2EEES2_(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<?>) attributes
 // CHECK:           %[[VAL_2:.*]] = quake.make_struq %[[VAL_0]], %[[VAL_1]] : (!quake.veq<?>, !quake.veq<?>) -> !quake.struq<!quake.veq<?>, !quake.veq<?>>
 // CHECK:           call @_Z13fremtredende4R9Grouping4(%[[VAL_2]]) : (!quake.struq<!quake.veq<?>, !quake.veq<?>>) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // Non-allocating, reference grouping. We cannot copy a qvector, but we can
 // build a struct of references to them.
@@ -101,10 +109,11 @@ __qpu__ void seletoey5(cudaq::qvector<> &p1, cudaq::qvector<> &p2,
   fremtredende5(e5);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_seletoey5._Z9seletoey5RN5cudaq7qvectorILm2EEES2_S2_(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<?>, %[[VAL_2:.*]]: !quake.veq<?>) attributes
 // CHECK:           %[[VAL_3:.*]] = quake.make_struq %[[VAL_0]], %[[VAL_1]], %[[VAL_2]] : (!quake.veq<?>, !quake.veq<?>, !quake.veq<?>) -> !quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>
 // CHECK:           call @_Z13fremtredende5R9Grouping5(%[[VAL_3]]) : (!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.veq<?>>) -> ()
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

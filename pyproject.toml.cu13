@@ -23,16 +23,17 @@ dependencies = [
   'scipy >= 1.10.1',
   'requests >= 2.32.3',
   # CUDA dependencies - excluded on macOS (CPU-only support)
-  'custatevec-cu13 ~= 1.13.1; sys_platform != "darwin"',
-  'cutensornet-cu13 ~= 2.12.1; sys_platform != "darwin"',
-  'cudensitymat-cu13 ~= 0.5.1; sys_platform != "darwin"',
+  'custatevec-cu13 ~= 1.14.0; sys_platform != "darwin"',
+  'cutensornet-cu13 ~= 2.13.0; sys_platform != "darwin"',
+  'cudensitymat-cu13 ~= 0.6.0; sys_platform != "darwin"',
   'nvidia-cublas ~= 13.0; sys_platform != "darwin"',
   'nvidia-curand ~= 10.4; sys_platform != "darwin"',
   'nvidia-cusparse ~= 12.6; sys_platform != "darwin"',
   'nvidia-cuda-runtime ~= 13.0; sys_platform != "darwin"',
   'nvidia-cusolver ~= 12.0; sys_platform != "darwin"',
   'nvidia-cuda-nvrtc ~= 13.0; sys_platform != "darwin"',
-  'cupy-cuda13x ~= 13.6.0; sys_platform != "darwin"',
+  'cupy-cuda13x ~= 13.6.0; sys_platform != "darwin" and python_version < "3.14"',
+  'cupy-cuda13x >= 14.0.0; sys_platform != "darwin" and python_version >= "3.14"',
 ]
 classifiers = [
     'Intended Audience :: Science/Research',
@@ -42,6 +43,7 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     "Environment :: GPU :: NVIDIA CUDA",
     "Environment :: GPU :: NVIDIA CUDA :: 12",
     "Environment :: GPU :: NVIDIA CUDA :: 13",
@@ -58,20 +60,20 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 # We must use h5py<3.11 because 3.11 doesn't include aarch64 Linux wheels.
 # https://github.com/h5py/h5py/issues/2408
 [project.optional-dependencies]
-chemistry = [ "openfermionpyscf==0.5", "h5py<3.11"  ]
+chemistry = [ "openfermionpyscf==0.5; python_version < '3.14'", "h5py<3.11; python_version < '3.14'"  ]
 visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 # Additional torch-based integrator
 integrators = [ "torchdiffeq" ]
 
 [build-system]
-requires = ["scikit-build-core==0.11.6", "cmake>=3.27,<3.29", "numpy>=1.24", "pytest==9.0.3", "nanobind>=2.12.0"]
+requires = ["scikit-build-core==0.11.6", "cmake>=4.0", "numpy>=1.24", "pytest==9.0.3", "nanobind>=2.12.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 wheel.packages = ["python/cudaq"]
 build-dir = "_skbuild"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-cmake.version = ">=3.27,<3.29"
+cmake.version = ">=4.0"
 cmake.build-type = "Release"
 cmake.verbose = false
 cmake.args = [

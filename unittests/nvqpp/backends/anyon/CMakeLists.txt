@@ -29,3 +29,20 @@ add_test(NAME anyon-emulation-tests COMMAND bash AnyonStartServerAndTest.sh test
 
 # Tests are sharing the same port
 set_tests_properties(anyon-tests anyon-emulation-tests PROPERTIES RESOURCE_LOCK "anyon_port")
+
+# Test for Anyon helper functions
+add_backend_unittest_executable(test_anyon_util
+  SOURCES AnyonUtilTester.cpp
+
+  INCLUDES
+  ../..
+  ${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/default/rest/helpers/anyon
+
+  LINK_LIBS
+  cudaq
+  cudaq-common
+  cudaq-operator
+  cudaq-platform-default
+  gtest_main
+)
+cudaq_gtest_discover_tests(test_anyon_util DISCOVERY_TIMEOUT 120)

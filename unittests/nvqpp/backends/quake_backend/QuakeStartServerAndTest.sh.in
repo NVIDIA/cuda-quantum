@@ -28,7 +28,7 @@ else
 fi
 
 
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python:@CMAKE_SOURCE_DIR@/python/tests/utils/mock_qpu @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
@@ -105,6 +105,23 @@ else
     test_err_sum=$((test_err_sum+1))
   else
     echo ":white_check_mark: Successfully ran test_app (emulation)"
+  fi
+fi
+
+# Loop emulation test. This covers structured control flow that survives the
+# target pipeline before local wire-set-to-QIR lowering.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.cpp -o test_loop_app_emulate
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_loop_app (emulation)"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_loop_app (emulation) with nvq++"
+  ./test_loop_app_emulate
+  if [ $? -ne 0 ]; then
+    echo ":x: test_loop_app failed (emulation)"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_loop_app (emulation)"
   fi
 fi
 

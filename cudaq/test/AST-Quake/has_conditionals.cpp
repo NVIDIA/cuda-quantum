@@ -10,38 +10,44 @@
 
 #include <cudaq.h>
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel
 // CHECK-SAME: () attributes {
 // CHECK-SAME: {{("cudaq-entrypoint".*qubitMeasurementFeedback = true.*[}])|([{].*qubitMeasurementFeedback = true.*"cudaq-entrypoint")}} {
+// clang-format on
 struct kernel {
-    void operator()() __qpu__ {
-        cudaq::qarray<3> q;
-        h(q[1]);
-        x<cudaq::ctrl>(q[1],q[2]);
+  void operator()() __qpu__ {
+    cudaq::qarray<3> q;
+    h(q[1]);
+    x<cudaq::ctrl>(q[1], q[2]);
 
-        cnot(q[0], q[1]);
-        h(q[0]);
+    cnot(q[0], q[1]);
+    h(q[0]);
 
-        auto b0 = mz(q[0]);
-        auto b1 = mz(q[1]);
+    auto b0 = mz(q[0]);
+    auto b1 = mz(q[1]);
 
-        if (b1) x(q[2]);
-        if (b0) z(q[2]);
-    }
+    if (b1)
+      x(q[2]);
+    if (b0)
+      z(q[2]);
+  }
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelNoConditional
 // CHECK-SAME: () attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
 struct kernelNoConditional {
-    void operator()() __qpu__ {
-        cudaq::qarray<1> q;
-        h(q[0]);
-    }
+  void operator()() __qpu__ {
+    cudaq::qarray<1> q;
+    h(q[0]);
+  }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelComplex
 // CHECK-SAME: () attributes {
 // CHECK-SAME: {{("cudaq-entrypoint".*qubitMeasurementFeedback = true.*[}])|([{].*qubitMeasurementFeedback = true.*"cudaq-entrypoint")}} {
+// clang-format on
 struct kernelComplex {
   void operator()() __qpu__ {
     // Allocate the qubits

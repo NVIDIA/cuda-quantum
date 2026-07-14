@@ -27,7 +27,7 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu16') || 'linux-amd64-cpu16' }}
     permissions:
       contents: read
       packages: write
@@ -39,14 +39,14 @@ jobs:
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_image == ''
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -72,7 +72,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -134,6 +134,9 @@ jobs:
             --target test-mpi
 
       - name: Extract ccache from build
+        # Write cache only on merge-queue/scheduled runs; PRs (event 'push' =
+        # pull-request/*) are read-only, skipping the ~6-7 min extract+push.
+        if: github.event_name != 'push'
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -154,6 +157,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: github.event_name != 'push'
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
@@ -185,7 +189,7 @@ jobs:
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
       - name: Upload environment
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: inputs.export_environment
         with:
           name: ${{ steps.env_save.outputs.filename }}
@@ -194,7 +198,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu16') || 'linux-amd64-cpu16' }}
     permissions:
       contents: read
       packages: write
@@ -206,14 +210,14 @@ jobs:
       - name: Restore environment
         id: restore_devdeps
         if: inputs.devdeps_image == ''
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ inputs.devdeps_archive }}
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -239,7 +243,7 @@ jobs:
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -330,6 +334,7 @@ jobs:
             fi
 
       - name: Extract ccache from container
+        if: github.event_name != 'push'
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -342,6 +347,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: github.event_name != 'push'
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
@@ -364,7 +370,7 @@ jobs:
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
       - name: Upload environment
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: inputs.export_environment
         with:
           name: ${{ steps.env_save.outputs.filename }}

@@ -98,8 +98,8 @@ getDefaultPythonCompileTargetImpl() {
   const bool enablePythonCodegenDump =
       cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
   if (enablePythonCodegenDump) {
-    CUDAQ_WARN("CUDAQ_PYTHON_CODEGEN_DUMP is no longer supported and will be "
-               "ignored. Use CUDAQ_MLIR_PRINT_EACH_PASS instead.");
+    CUDAQ_WARN("CUDAQ_PYTHON_CODEGEN_DUMP is no longer supported. Use "
+               "CUDAQ_MLIR_PRINT_EACH_PASS=argsynth instead.");
   }
   std::unique_ptr<cudaq::CompileTarget> ct;
   auto *rt = platform->get_runtime_target();
@@ -135,17 +135,19 @@ getDefaultCompileTarget(const observe_policy &) {
   return ct;
 }
 std::unique_ptr<cudaq::CompileTarget>
+getDefaultCompileTarget(const dem_policy &) {
+  auto ct = getDefaultPythonCompileTargetImpl();
+  ct->overrideAOTCompilation = false;
+  ct->emitJit = true;
+  ct->emitTargetCode = false;
+  ct->pipelineConfig.skipTargetLoweringPipeline = true;
+  return ct;
+}
+std::unique_ptr<cudaq::CompileTarget>
 getDefaultCompileTarget(const other_policies &, ExecutionContext *context) {
   auto ct = getDefaultPythonCompileTargetImpl();
   ct->overrideAOTCompilation = false;
-
-  if (context && context->name == "dem") {
-    ct->emitJit = true;
-    ct->emitTargetCode = false;
-    ct->pipelineConfig.skipTargetLoweringPipeline = true;
-  }
   ct->emitResourceCounts = context && context->name == "resource-count";
-
   return ct;
 }
 

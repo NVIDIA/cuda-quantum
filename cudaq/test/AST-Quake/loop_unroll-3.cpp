@@ -64,6 +64,7 @@ __qpu__ void another_test() {
   } while (i++ < 9);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_another_test
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<10>
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<10>) -> !quake.ref
@@ -88,6 +89,7 @@ __qpu__ void another_test() {
 // CHECK:           %[[VAL_20:.*]] = quake.mz %[[VAL_19]] : (!quake.ref) -> !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct Qernel {
   // Loop that decrements. Loop is not unrolled. It needs to be normalized.
@@ -99,6 +101,7 @@ struct Qernel {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
@@ -110,3 +113,4 @@ struct Qernel {
 // CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<1>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
+// clang-format on

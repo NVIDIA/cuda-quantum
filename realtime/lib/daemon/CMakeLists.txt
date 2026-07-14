@@ -101,7 +101,7 @@ if(CUDA_FOUND)
   # include paths. Host-only code; no device code in this TU.
   add_library(cudaq-realtime-host-dispatch STATIC
     dispatcher/host_dispatcher.cu
-    dispatcher/host_dispatcher_capi.cu
+    dispatcher/graph_launch_engine.cu
   )
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.

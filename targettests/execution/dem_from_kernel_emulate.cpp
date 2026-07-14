@@ -23,6 +23,7 @@
 #include <cudaq/algorithms/dem.h>
 #include <exception>
 #include <string>
+#include <vector>
 
 struct singleDetector {
   void operator()() __qpu__ {
@@ -42,6 +43,19 @@ struct threeMzMultiDetector {
     auto m2 = mz(q2);
     cudaq::detector(m0, m1, m2);
     cudaq::logical_observable(m0);
+  }
+};
+
+struct correlatedXXHyperedge {
+  void operator()() __qpu__ {
+    cudaq::qubit q0, q1;
+    x<cudaq::ctrl>(q0, q1);
+    auto m0 = mz(q0);
+    auto m1 = mz(q1);
+    cudaq::detector(m0);
+    cudaq::detector(m0);
+    cudaq::detector(m1);
+    cudaq::detector(m1);
   }
 };
 
@@ -93,11 +107,51 @@ static void runCase(const char *label, Kernel &&kernel) {
   }
 }
 
+// Unlike dem_from_kernel, cudaq::sample routes through
+// createEmulationTargetPrepPipeline, which must strip QEC ops.
+template <typename Kernel>
+static void runSampleCase(const char *label, Kernel &&kernel) {
+  try {
+    auto counts = cudaq::sample(std::forward<Kernel>(kernel));
+    std::printf("%s most_probable=%s\n", label, counts.most_probable().c_str());
+  } catch (const std::exception &e) {
+    std::printf("%s THREW: %s\n", label, e.what());
+  }
+}
+
+template <typename Kernel>
+static void runDecomposeCase(const char *label, Kernel &&kernel) {
+  try {
+    std::vector<cudaq::real> pauli2Probs(15, 0.0);
+    pauli2Probs[4] = 0.25; // XX
+    cudaq::noise_model noise;
+    noise.add_channel("x", {0, 1}, cudaq::pauli2(pauli2Probs));
+
+    std::string demRaw = cudaq::dem_from_kernel(kernel, &noise);
+    std::string demDecomposed = cudaq::dem_from_kernel(
+        kernel, &noise,
+        /*options=*/cudaq::dem_options{.decompose_errors = true});
+    std::printf("%s_RAW hyperedge=%d caret=%d\n", label,
+                demRaw.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
+                demRaw.find('^') != std::string::npos ? 1 : 0);
+    std::printf("%s_DECOMPOSED hyperedge=%d caret=%d\n", label,
+                demDecomposed.find("D0 D1 D2 D3") != std::string::npos ? 1 : 0,
+                demDecomposed.find('^') != std::string::npos ? 1 : 0);
+  } catch (const std::exception &e) {
+    std::printf("%s THREW: %s\n", label, e.what());
+  }
+}
+
 int main() {
   runCase("SINGLE", singleDetector{});
   runCase("THREE_MZ", threeMzMultiDetector{});
+  runDecomposeCase("CORRELATED_XX", correlatedXXHyperedge{});
+  runSampleCase("SAMPLE_QEC_KERNEL", singleDetector{});
   return 0;
 }
 
 // CHECK: SINGLE detectors=1 observables=0
 // CHECK: THREE_MZ detectors=1 observables=1
+// CHECK: CORRELATED_XX_RAW hyperedge=1 caret=0
+// CHECK: CORRELATED_XX_DECOMPOSED hyperedge=0 caret=1
+// CHECK: SAMPLE_QEC_KERNEL most_probable=0

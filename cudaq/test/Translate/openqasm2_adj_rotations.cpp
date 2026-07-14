@@ -35,7 +35,6 @@ struct kernel {
   }
 };
 
-
 int main() {
   auto counts = cudaq::sample(kernel{});
   counts.dump();

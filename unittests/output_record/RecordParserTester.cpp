@@ -8,7 +8,14 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/RecordLogParser.h"
+#include <array>
+#include <cmath>
 #include <cudaq.h>
+#include <limits>
+
+//===----------------------------------------------------------------------===//
+// Scalar output
+//===----------------------------------------------------------------------===//
 
 CUDAQ_TEST(ParserTester, checkSingleBoolean) {
   {
@@ -41,6 +48,7 @@ CUDAQ_TEST(ParserTester, checkMoreBoolean) {
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
   EXPECT_EQ(2, bufferSize / sizeof(char));
+  EXPECT_EQ(2, parser.getResultCount());
   char *buffer = static_cast<char *>(malloc(bufferSize));
   std::memcpy(buffer, origBuffer, bufferSize);
   EXPECT_EQ(true, buffer[0]);
@@ -108,6 +116,40 @@ CUDAQ_TEST(ParserTester, checkDoubles) {
   buffer = nullptr;
   origBuffer = nullptr;
 }
+
+CUDAQ_TEST(ParserTester, checkFloatingPointValueParsing) {
+  const std::string log = "OUTPUT\tDOUBLE\t1e+3\tf64\n"
+                          "OUTPUT\tDOUBLE\t2.5e-2\tf64\n"
+                          "OUTPUT\tDOUBLE\t-3.5\tf64\n"
+                          "OUTPUT\tDOUBLE\tINF\tf64\n"
+                          "OUTPUT\tDOUBLE\t-INFINITY\tf64\n"
+                          "OUTPUT\tDOUBLE\t+NAN\tf64\n"
+                          "OUTPUT\tDOUBLE\tinf\tf64\n"
+                          "OUTPUT\tDOUBLE\t-InFiNiTy\tf64\n"
+                          "OUTPUT\tDOUBLE\tnan\tf64\n";
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  ASSERT_EQ(parser.getBufferSize(), 9 * sizeof(double));
+  std::array<double, 9> values{};
+  std::memcpy(values.data(), parser.getBufferPtr(), sizeof(values));
+  EXPECT_DOUBLE_EQ(values[0], 1e3);
+  EXPECT_DOUBLE_EQ(values[1], 2.5e-2);
+  EXPECT_DOUBLE_EQ(values[2], -3.5);
+  EXPECT_TRUE(std::isinf(values[3]));
+  EXPECT_FALSE(std::signbit(values[3]));
+  EXPECT_TRUE(std::isinf(values[4]));
+  EXPECT_TRUE(std::signbit(values[4]));
+  EXPECT_TRUE(std::isnan(values[5]));
+  EXPECT_TRUE(std::isinf(values[6]));
+  EXPECT_FALSE(std::signbit(values[6]));
+  EXPECT_TRUE(std::isinf(values[7]));
+  EXPECT_TRUE(std::signbit(values[7]));
+  EXPECT_TRUE(std::isnan(values[8]));
+}
+
+//===----------------------------------------------------------------------===//
+// Ordered and labeled containers
+//===----------------------------------------------------------------------===//
 
 CUDAQ_TEST(ParserTester, checkArrayOrdered) {
   const std::string log = "OUTPUT\tARRAY\t2\n"
@@ -243,15 +285,6 @@ CUDAQ_TEST(ParserTester, checkTupleOrdered) {
   origBuffer = nullptr;
 }
 
-CUDAQ_TEST(ParserTester, checkTupleLabeled) {
-  const std::string log = "OUTPUT\tTUPLE\t3\ttuple<i1, i32, f64>\n"
-                          "OUTPUT\tBOOL\ttrue\t.0\n"
-                          "OUTPUT\tINT\t37\t.1\n"
-                          "OUTPUT\tDOUBLE\t3.1416\t.2\n";
-  cudaq::RecordLogParser parser;
-  EXPECT_ANY_THROW(parser.parse("log"));
-}
-
 CUDAQ_TEST(ParserTester, checkMultipleShots) {
   const std::string log = "HEADER\tschema_id\tlabeled\n"
                           "START\n"
@@ -370,6 +403,10 @@ CUDAQ_TEST(ParserTester, checkTupleWithLayoutAndBool) {
   origBuffer = nullptr;
 }
 
+//===----------------------------------------------------------------------===//
+// Grammar, value, and aggregate validation
+//===----------------------------------------------------------------------===//
+
 CUDAQ_TEST(ParserTester, checkFailureCases) {
   cudaq::RecordLogParser parser;
   {
@@ -457,6 +494,128 @@ CUDAQ_TEST(ParserTester, checkFailureCases) {
     EXPECT_ANY_THROW(parser.parse(missingIndex));
   }
 }
+
+CUDAQ_TEST(ParserTester, checkMetadataValidation) {
+  cudaq::RecordLogParser validParser;
+  EXPECT_NO_THROW(validParser.parse("METADATA\tentry_point\n"));
+
+  for (const auto &log : {"METADATA\n", "METADATA\tkey\tvalue\textra\n"}) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkNumericValidation) {
+  const std::vector<std::string> invalidLogs = {
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[99999999999]\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[abc]\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t0\t[]\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkStrictValueValidation) {
+  const std::string sizeOverflow =
+      std::to_string(std::numeric_limits<std::size_t>::max()) + "0";
+  const std::vector<std::string> invalidLogs = {
+      "OUTPUT\tINT\t1junk\ti32\n",
+      "OUTPUT\tINT\t128\ti8\n",
+      "OUTPUT\tINT\t-129\ti8\n",
+      "OUTPUT\tINT\t+-1\ti32\n",
+      "OUTPUT\tDOUBLE\t1junk\tf64\n",
+      "OUTPUT\tDOUBLE\t+-1\tf64\n",
+      "OUTPUT\tDOUBLE\t1e99999\tf64\n",
+      "OUTPUT\tDOUBLE\t 1\tf64\n",
+      "OUTPUT\tARRAY\t1junk\tarray<i32 x 1>\n",
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1junk>\n",
+      "OUTPUT\tARRAY\t" + sizeOverflow + "\tarray<i32 x 1>\n",
+      "START\nOUTPUT\tINT\t7\ti32\nEND\t1junk\n",
+      "METADATA\trequired_num_results\t1junk\n"
+      "OUTPUT\tRESULT\t0\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+
+  cudaq::RecordLogParser zeroStatusParser;
+  EXPECT_NO_THROW(
+      zeroStatusParser.parse("START\nOUTPUT\tINT\t7\ti32\nEND\t00\n"));
+  ASSERT_EQ(zeroStatusParser.getBufferSize(), sizeof(std::int32_t));
+  std::int32_t value = 0;
+  std::memcpy(&value, zeroStatusParser.getBufferPtr(), sizeof(value));
+  EXPECT_EQ(value, 7);
+}
+
+CUDAQ_TEST(ParserTester, checkRecordGrammarValidation) {
+  const std::vector<std::string> invalidLogs = {
+      "HEADER\tschema_id\tlabeled\textra\n",
+      "START\textra\nEND\t0\n",
+      "END\t0\n",
+      "START\nEND\t0\textra\n",
+      "START\nSTART\nEND\t0\n",
+      "START\nOUTPUT\tINT\t1\ti32\n",
+      "OUTPUT\tINT\t1\ti32\nSTART\nEND\t0\n",
+      "START\nOUTPUT\tINT\t1\ti32\nEND\t0\nOUTPUT\tINT\t1\ti32\n",
+      "HEADER\tschema_id\tlabeled\nOUTPUT\tINT\t1\n",
+      "HEADER\tschema_id\tordered\nOUTPUT\tINT\t1\ti32\n",
+      "OUTPUT\tINT\t1\ti32\textra\n",
+      "HEADER\tschema_id\tlabeled\nSTART\nOUTPUT\tINT\t1\nEND\t1\n",
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_id\tordered\n",
+      "OUTPUT\tINT\t1\ti32\nHEADER\tschema_id\tordered\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+
+  cudaq::RecordLogParser orderedParser;
+  EXPECT_NO_THROW(
+      orderedParser.parse("HEADER\tschema_id\tordered\nOUTPUT\tINT\t1\n"));
+  cudaq::RecordLogParser labeledParser;
+  EXPECT_NO_THROW(
+      labeledParser.parse("HEADER\tschema_id\tlabeled\nOUTPUT\tINT\t1\ti32\n"));
+}
+
+CUDAQ_TEST(ParserTester, checkContainerValidation) {
+  const std::vector<std::string> invalidLogs = {
+      // A scalar root cannot be followed by an implicit RESULT array.
+      "OUTPUT\tINT\t1\n"
+      "OUTPUT\tRESULT\t0\n",
+      // A scalar root cannot be followed by an explicit array.
+      "OUTPUT\tINT\t1\n"
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t9\t[0]\n",
+      // Flat and preallocated array representations cannot be mixed.
+      "OUTPUT\tARRAY\t1\n"
+      "OUTPUT\tINT\t7\ti32\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tBOOL\t1\t[0]\n"};
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkTupleLayoutValidation) {
+  const std::pair<std::size_t, std::vector<std::size_t>> layout{2, {0, 1}};
+  cudaq::RecordLogParser parser(layout);
+  const std::string log = "OUTPUT\tTUPLE\t2\ttuple<i8, i32>\n"
+                          "OUTPUT\tINT\t1\t.0\n"
+                          "OUTPUT\tINT\t9\t.1\n";
+  EXPECT_ANY_THROW(parser.parse(log));
+
+  cudaq::detail::BufferHandler buffer;
+  buffer.resizeBuffer(2);
+  EXPECT_ANY_THROW(buffer.insertIntoTuple<std::int32_t>(1, 9));
+}
+
+//===----------------------------------------------------------------------===//
+// RESULT normalization and shot filtering
+//===----------------------------------------------------------------------===//
 
 CUDAQ_TEST(ParserTester, checkResultType) {
   const std::string log =
@@ -563,7 +722,7 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithRegisterName) {
   origBuffer = nullptr;
 }
 
-CUDAQ_TEST(ParserTester, checkFailedShot_0) {
+CUDAQ_TEST(ParserTester, checkFailedShotProducesNoResult) {
   const std::string log = "START\n"
                           "OUTPUT\tDOUBLE\t0.00\tf64\n"
                           "END\t1\n";
@@ -576,7 +735,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_0) {
   EXPECT_EQ(nullptr, origBuffer);
 }
 
-CUDAQ_TEST(ParserTester, checkFailedShot_1) {
+CUDAQ_TEST(ParserTester, checkFailedArrayShotIsDiscarded) {
   const std::string log = "HEADER\tschema_id\tlabeled\n"
                           "START\n"
                           "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
@@ -617,39 +776,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_1) {
   origBuffer = nullptr;
 }
 
-CUDAQ_TEST(ParserTester, checkFailedShot_2) {
-  std::string log =
-      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
-      "0\nSTART\nMETADATA\tentry_point\nMETADATA\toutput_labeling_"
-      "schema\tschema_id\nMETADATA\tqir_profiles\tadaptive_"
-      "profile\nMETADATA\trequired_num_qubits\t2\nMETADATA\trequired_num_"
-      "results\t2\nOUTPUT\tINT\t0\ti64\nEND\t1\nSTART\nOUTPUT\tINT\t2\ti64\nE"
-      "ND\t0\nSTART\nOUTPUT\tINT\t0\ti64\nEND\t0\nSTART\nOUTPUT\tINT\t0\ti64"
-      "\nEND\t5\nSTART\nOUTPUT\tINT\t0\ti64\nEND\t0\nSTART\nOUTPUT\tINT\t2\ti"
-      "64\nEND\t127\nSTART\nOUTPUT\tINT\t0\ti64\nEND\t0";
-
-  cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
-  std::vector<std::int64_t> results = {
-      reinterpret_cast<std::int64_t *>(span.data),
-      reinterpret_cast<std::int64_t *>(span.data + span.lengthInBytes)};
-  // Only 4 successful shots
-  EXPECT_EQ(4, results.size());
-  for (const auto &result : results) {
-    // Result should be either 0 or 2
-    EXPECT_TRUE(result == 0 || result == 2);
-  }
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
-}
-
-CUDAQ_TEST(ParserTester, checkFailedShot_3) {
+CUDAQ_TEST(ParserTester, checkFailedResultShotIsDiscarded) {
   std::string log =
       "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
       "0\nSTART\nMETADATA\tentry_point\nMETADATA\toutput_labeling_"
@@ -857,4 +984,98 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithArray) {
   free(buffer);
   buffer = nullptr;
   origBuffer = nullptr;
+}
+
+//===----------------------------------------------------------------------===//
+// Containment regressions
+//===----------------------------------------------------------------------===//
+
+CUDAQ_TEST(ParserTester, checkEmptySuccessfulShot) {
+  cudaq::RecordLogParser parser;
+  EXPECT_NO_THROW(parser.parse("START\nEND\t0"));
+  EXPECT_EQ(nullptr, parser.getBufferPtr());
+  EXPECT_EQ(0, parser.getBufferSize());
+  EXPECT_EQ(0, parser.getResultCount());
+}
+
+CUDAQ_TEST(ParserTester, checkAggregateCompleteness) {
+  const std::vector<std::string> invalidLogs = {
+      // A duplicate array index must not count as a second element.
+      "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
+      "OUTPUT\tINT\t1\t[0]\n"
+      "OUTPUT\tINT\t2\t[0]\n",
+      // Labeled arrays must provide every declared element.
+      "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
+      "OUTPUT\tINT\t1\t[0]\n",
+      // Labeled tuples must provide every declared member.
+      "OUTPUT\tTUPLE\t2\ttuple<i32, f64>\n"
+      "OUTPUT\tINT\t1\t.0\n",
+      // Ordered containers must contain exactly the declared number of values.
+      "OUTPUT\tARRAY\t2\n"
+      "OUTPUT\tINT\t1\ti32\n",
+      // A second result container cannot begin while the first is incomplete.
+      "OUTPUT\tARRAY\t2\tarray<i32 x 2>\n"
+      "OUTPUT\tINT\t1\t[0]\n"
+      "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
+      "OUTPUT\tINT\t2\t[0]\n"};
+
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkAggregateAllocationBounds) {
+  const std::vector<std::string> invalidLogs = {
+      // The element-byte calculation must not wrap to a small allocation.
+      "OUTPUT\tARRAY\t4611686018427387905\t"
+      "array<i32 x 4611686018427387905>\n",
+      // A small log must not request a disproportionately large array payload.
+      "OUTPUT\tARRAY\t1000000\tarray<i8 x 1000000>\n",
+      // Reject an oversized tracking vector before allocating it.
+      "OUTPUT\tARRAY\t8000000000\tarray<i8 x 8000000000>\n",
+      // Reject oversized RESULT tracking declared through metadata.
+      "METADATA\trequired_results\t8000000000\n"
+      "OUTPUT\tRESULT\t1\tr00000\n"};
+
+  for (const auto &log : invalidLogs) {
+    cudaq::RecordLogParser parser;
+    EXPECT_ANY_THROW(parser.parse(log));
+  }
+}
+
+CUDAQ_TEST(ParserTester, checkFailedScalarShotsAndResultCount) {
+  // Every nonzero END status marks a failed shot, regardless of its value.
+  // Only the four successfully decoded results contribute to the count and
+  // buffer.
+  const std::string log =
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\n"
+      "START\nOUTPUT\tINT\t0\ti64\nEND\t1\n"
+      "START\nOUTPUT\tINT\t2\ti64\nEND\t0\n"
+      "START\nOUTPUT\tINT\t4\ti64\nEND\t0\n"
+      "START\nOUTPUT\tINT\t6\ti64\nEND\t5\n"
+      "START\nOUTPUT\tINT\t8\ti64\nEND\t0\n"
+      "START\nOUTPUT\tINT\t9\ti64\nEND\t127\n"
+      "START\nOUTPUT\tINT\t10\ti64\nEND\t0\n";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  ASSERT_NE(origBuffer, nullptr);
+  EXPECT_EQ(32, bufferSize);
+  EXPECT_EQ(4, parser.getResultCount());
+
+  // Verify we can read back the correct values
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  std::vector<std::int64_t> results = {
+      reinterpret_cast<std::int64_t *>(buffer),
+      reinterpret_cast<std::int64_t *>(buffer + bufferSize)};
+  EXPECT_EQ(4, results.size());
+  EXPECT_EQ(2, results[0]);
+  EXPECT_EQ(4, results[1]);
+  EXPECT_EQ(8, results[2]);
+  EXPECT_EQ(10, results[3]);
+  free(buffer);
 }

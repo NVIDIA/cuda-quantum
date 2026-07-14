@@ -435,6 +435,10 @@ def test_sample_marginalize():
     marginal_result = sample_result.get_marginal_counts([1, 2, 3])
     assert marginal_result.most_probable() == "101"
 
+    # Index 4 equals the bitstring width and is therefore out of bounds.
+    with pytest.raises(RuntimeError):
+        sample_result.get_marginal_counts([4])
+
 
 def test_swap_2q():
     """
@@ -592,6 +596,102 @@ def test_issue_1218():
     assert len(counts) == 2
     assert "0000" in counts
     assert "1111" in counts
+
+
+def test_sample_preserves_externally_set_noise():
+    """
+    Tests that cudaq.sample does not clear a noise model set by the user.
+    """
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        kernel = cudaq.make_kernel()
+        qubit = kernel.qalloc()
+        kernel.x(qubit)
+        kernel.mz(qubit)
+
+        noise = cudaq.NoiseModel()
+        noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
+
+        cudaq.set_noise(noise)
+        first_result = cudaq.sample(kernel, shots_count=100)
+        second_result = cudaq.sample(kernel, shots_count=100)
+
+        assert first_result["0"] == 100
+        assert second_result["0"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_sample_clears_argument_noise_on_exception():
+    """
+    Tests that cudaq.sample clears its temporary noise model on failure.
+    """
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        clean_kernel = cudaq.make_kernel()
+        qubit = clean_kernel.qalloc()
+        clean_kernel.x(qubit)
+        clean_kernel.mz(qubit)
+
+        bad_kernel, arg0, arg1 = cudaq.make_kernel(float, float)
+        bad_qubit = bad_kernel.qalloc()
+        bad_kernel.x(bad_qubit)
+        bad_kernel.mz(bad_qubit)
+
+        noise = cudaq.NoiseModel()
+        noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
+
+        with pytest.raises(RuntimeError):
+            cudaq.sample(bad_kernel,
+                         np.array([[1.0], [2.0]]),
+                         3.14,
+                         shots_count=100,
+                         noise_model=noise)
+
+        result = cudaq.sample(clean_kernel, shots_count=100)
+        assert result["1"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_sample_restores_externally_set_noise_after_argument_noise():
+    """
+    Tests that cudaq.sample restores user noise after a per-call noise model.
+    """
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        kernel = cudaq.make_kernel()
+        qubit = kernel.qalloc()
+        kernel.x(qubit)
+        kernel.mz(qubit)
+
+        external_noise = cudaq.NoiseModel()
+        external_noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
+        call_noise = cudaq.NoiseModel()
+        call_noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(0.0))
+
+        cudaq.set_noise(external_noise)
+        call_result = cudaq.sample(kernel,
+                                   shots_count=100,
+                                   noise_model=call_noise)
+        restored_result = cudaq.sample(kernel, shots_count=100)
+
+        assert call_result["1"] == 100
+        assert restored_result["0"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
 
 
 # leave for gdb debugging

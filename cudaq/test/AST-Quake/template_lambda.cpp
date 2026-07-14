@@ -26,6 +26,7 @@ int main() {
   test{}([](cudaq::qubit &q) __qpu__ { x(q); });
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__thisWorks
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0(
@@ -39,4 +40,4 @@ int main() {
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %{{.*}}[1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.apply @__nvqpp__mlirgen__Z4mainE3$_0 [%[[VAL_6]]] %[[VAL_9]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
-
+// clang-format on

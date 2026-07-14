@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -8,14 +8,21 @@
 
 #pragma once
 
-#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/algorithms/dem/options.h"
+#include "cudaq/algorithms/dem/result.h"
+#include <string>
 
-#include <cuda_runtime_api.h>
+namespace cudaq {
 
-namespace cudaq_internal::device_call {
+class noise_model;
 
-// Optional service-provided synchronizer used when the dispatch loop is owned
-// by the service artifact rather than by a CUDA-Q-created stream.
-using DeviceCallDispatchSynchronizeFn = cudaError_t (*)();
+/// @brief Tag and options for Detector Error Model (DEM) generation.
+struct dem_policy {
+  static constexpr char name[] = "dem";
+  using result_type = dem_result;
+  dem_options options;
+  std::string kernelName;
+  const noise_model *noiseModel = nullptr;
+};
 
-} // namespace cudaq_internal::device_call
+} // namespace cudaq

@@ -42,13 +42,15 @@ RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \
     fi && \
     # just here for convenience:
     apt-get install -y --no-install-recommends curl jq 
+ADD ./requirements.txt /tmp/requirements.txt
 RUN if [ -x "$(command -v pip)" ]; then \
         apt-get install -y --no-install-recommends gcc libpython3-dev \
-        && pip install --no-cache-dir jupyterlab==4.3.4; \
+        && pip install --no-cache-dir -r /tmp/requirements.txt; \
         if [ -n "$MPI_ROOT" ]; then \
             pip install --no-cache-dir mpi4py~=4.1; \
         fi; \
-    fi
+    fi \
+    && rm /tmp/requirements.txt
 # Install CUDA Python packages based on CUDA version
 RUN cuda_major_version=$(echo ${CUDA_VERSION} | cut -d . -f1) && \
     if [ "$cuda_major_version" = "12" ]; then \

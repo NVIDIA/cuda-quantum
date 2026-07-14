@@ -37,9 +37,9 @@
 //   2. Calls `foo(a, b)` directly (same device module, zero overhead).
 //   3. Writes the returned `int` into the TX byte buffer.
 
-#include "cudaq_internal/device_call/DeviceCallService.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
+#include "cudaq/realtime/device_call_service.h"
 
 #include <cuda_runtime.h>
 
@@ -47,11 +47,19 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <memory>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 
 namespace cudaq_internal::device_call::detail {
+
+using cudaq::realtime::DeviceCallDispatchMode;
+using cudaq::realtime::DeviceCallDispatchTable;
+using cudaq::realtime::DeviceCallService;
+using cudaq::realtime::DeviceCallServiceSession;
 
 // Canonical payload storage for the first prototype ABI. References and
 // cv-qualification are erased before packing/unpacking so the wire format uses
@@ -100,6 +108,105 @@ __host__ __device__ constexpr std::uint64_t scalarAlignment() {
     return 1;
 }
 
+__host__ __device__ constexpr std::uint64_t
+packedByteCount(std::uint64_t bitCount) {
+  return bitCount / 8 + (bitCount % 8 != 0);
+}
+
+template <typename>
+inline constexpr bool unsupported_schema_type = false;
+
+template <typename T>
+consteval cudaq_type_desc_t scalarTypeDescriptor() {
+  using S = scalar_storage_t<T>;
+  std::uint8_t typeId = 0;
+  if constexpr (std::is_same_v<S, float>)
+    typeId = CUDAQ_TYPE_FLOAT32;
+  else if constexpr (std::is_same_v<S, double>)
+    typeId = CUDAQ_TYPE_FLOAT64;
+  else if constexpr (std::is_integral_v<S> && sizeof(S) == sizeof(std::uint8_t))
+    typeId = CUDAQ_TYPE_UINT8;
+  else if constexpr (std::is_integral_v<S> && sizeof(S) == sizeof(std::int32_t))
+    typeId = CUDAQ_TYPE_INT32;
+  else if constexpr (std::is_integral_v<S> && sizeof(S) == sizeof(std::int64_t))
+    typeId = CUDAQ_TYPE_INT64;
+  else
+    static_assert(unsupported_schema_type<S>,
+                  "unsupported scalar device_call schema type");
+  return {typeId, {0}, sizeof(S), 1};
+}
+
+template <typename T>
+consteval cudaq_type_desc_t arrayTypeDescriptor() {
+  using Element = std::remove_cv_t<T>;
+  std::uint8_t typeId = 0;
+  if constexpr (std::is_same_v<Element, bool>)
+    typeId = CUDAQ_TYPE_BIT_PACKED;
+  else if constexpr (std::is_same_v<Element, std::uint8_t>)
+    typeId = CUDAQ_TYPE_ARRAY_UINT8;
+  else if constexpr (std::is_integral_v<Element> &&
+                     sizeof(Element) == sizeof(std::int32_t))
+    typeId = CUDAQ_TYPE_ARRAY_INT32;
+  else if constexpr (std::is_same_v<Element, float>)
+    typeId = CUDAQ_TYPE_ARRAY_FLOAT32;
+  else if constexpr (std::is_same_v<Element, double>)
+    typeId = CUDAQ_TYPE_ARRAY_FLOAT64;
+  else
+    static_assert(unsupported_schema_type<Element>,
+                  "unsupported array device_call schema type");
+  // Arrays are dynamically sized; their logical element count and payload
+  // byte count are carried by each request rather than fixed in the table.
+  return {typeId, {0}, 0, 0};
+}
+
+template <auto Fn>
+struct HandlerSchema;
+
+template <typename R, typename... Args, R (*Fn)(Args...)>
+struct HandlerSchema<Fn> {
+  static consteval cudaq_handler_schema_t make() {
+    cudaq_handler_schema_t schema{};
+    appendArgument<0>(schema);
+    if constexpr (!std::is_void_v<R>)
+      schema.results[schema.num_results++] = scalarTypeDescriptor<R>();
+    return schema;
+  }
+
+private:
+  template <std::size_t Index>
+  static consteval void appendArgument(cudaq_handler_schema_t &schema) {
+    if constexpr (Index < sizeof...(Args)) {
+      using Arg = std::tuple_element_t<Index, std::tuple<Args...>>;
+      using S = scalar_storage_t<Arg>;
+      if constexpr (std::is_pointer_v<S>) {
+        static_assert(Index + 1 < sizeof...(Args),
+                      "cudaq device_call array pointer requires a following "
+                      "element count");
+        using LengthArg = std::tuple_element_t<Index + 1, std::tuple<Args...>>;
+        static_assert(std::is_integral_v<scalar_storage_t<LengthArg>> &&
+                          sizeof(scalar_storage_t<LengthArg>) ==
+                              sizeof(std::uint64_t),
+                      "cudaq device_call array element count must be 64-bit");
+        using Element = array_element_t<Arg>;
+        const auto descriptor = arrayTypeDescriptor<Element>();
+        if constexpr (is_output_array_pointer<Arg>::value)
+          schema.results[schema.num_results++] = descriptor;
+        else
+          schema.args[schema.num_args++] = descriptor;
+        appendArgument<Index + 2>(schema);
+      } else {
+        schema.args[schema.num_args++] = scalarTypeDescriptor<Arg>();
+        appendArgument<Index + 1>(schema);
+      }
+    }
+  }
+};
+
+template <auto Fn>
+consteval cudaq_handler_schema_t makeHandlerSchema() {
+  return HandlerSchema<Fn>::make();
+}
+
 // --- Decode helpers ----------------------------------------------------------
 
 // Caller must have aligned `offset` via alignOffset before calling; the
@@ -139,18 +246,18 @@ __device__ inline bool alignOffset(std::uint64_t &offset,
 // Decodes a single scalar of payload type `T` from `args`, advancing `offset`.
 // alignOffset should be a no-op if the MLIR marshalling packed this scalar at
 // the correct alignment boundary; a non-zero advance signals a marshalling bug.
-// Returns 0 on success or -1 if the buffer is malformed.
+// Returns true on success or false if the buffer is malformed.
 template <typename T>
-__device__ inline std::int32_t
-decodeScalar(const std::uint8_t *args, std::uint64_t argLen,
-             std::uint64_t &offset, scalar_storage_t<T> &out) {
+__device__ inline bool decodeScalar(const std::uint8_t *args,
+                                    std::uint64_t argLen, std::uint64_t &offset,
+                                    scalar_storage_t<T> &out) {
   using S = scalar_storage_t<T>;
   if (!alignOffset(offset, scalarAlignment<T>(), argLen) ||
       sizeof(S) > argLen - offset)
-    return -1; // malformed payload — likely a marshalling mismatch
+    return false; // malformed payload — likely a marshalling mismatch
   out = loadScalar<T>(args, offset);
   offset += sizeof(S);
-  return 0;
+  return true;
 }
 
 // --- Adapter wrappers --------------------------------------------------------
@@ -172,39 +279,46 @@ struct DeviceCallWrapper<Fn> {
                                       std::uint32_t *resultLen) {
     // The realtime payload is exactly the canonical device-call argument
     // buffer.
-    if (!resultLen || (argLen > 0 && !input))
-      return -1; // malformed payload
-
     const auto *const args = static_cast<const std::uint8_t *>(input);
-    return decodeAndInvoke<0>(args, argLen, 0, output, maxResultLen, resultLen,
-                              0);
+    const bool success =
+        resultLen && (argLen == 0 || input) &&
+        decodeAndInvoke<0>(args, argLen, 0, output, maxResultLen, resultLen, 0);
+    // This test-only library has a single error code, -1. Convert the internal
+    // boolean result at the Realtime handler ABI boundary.
+    return success ? 0 : -1;
   }
 
 private:
+  // Returns true when the decoded function is invoked and its result is
+  // stored successfully. Returns false when the result buffer is invalid or
+  // too small.
   template <typename... Decoded>
-  __device__ static std::int32_t
-  invokeDecoded(void *output, std::uint32_t maxResultLen,
-                std::uint32_t *resultLen, std::uint32_t byRefResultLen,
-                Decoded... decoded) {
+  __device__ static bool invokeDecoded(void *output, std::uint32_t maxResultLen,
+                                       std::uint32_t *resultLen,
+                                       std::uint32_t byRefResultLen,
+                                       Decoded... decoded) {
     // The realtime ABI always reports an explicit result length. Void
     // functions either produce no bytes or fill one by-ref result array;
     // scalar functions store one packed result.
     if constexpr (std::is_void_v<R>) {
       Fn(decoded...);
       *resultLen = byRefResultLen;
-      return 0;
+      return true;
     } else {
       if (!output || maxResultLen < sizeof(scalar_storage_t<R>))
-        return -1; // result buffer too small
+        return false; // result buffer too small
       const R result = Fn(decoded...);
       storeScalar(output, result);
       *resultLen = sizeof(scalar_storage_t<R>);
-      return 0;
+      return true;
     }
   }
 
+  // Returns true when all arguments are decoded and the function is invoked
+  // successfully. Returns false for malformed payloads, insufficient result
+  // storage, or allocation failures.
   template <std::size_t Index, typename... Decoded>
-  __device__ static std::int32_t
+  __device__ static bool
   decodeAndInvoke(const std::uint8_t *args, std::uint64_t argLen,
                   std::uint64_t offset, void *output,
                   std::uint32_t maxResultLen, std::uint32_t *resultLen,
@@ -212,7 +326,7 @@ private:
     if constexpr (Index == sizeof...(Args)) {
       // Base case: all arguments decoded; invoke the function.
       if (offset != argLen)
-        return -1; // malformed payload
+        return false; // malformed payload
       return invokeDecoded(output, maxResultLen, resultLen, byRefResultLen,
                            decoded...);
     } else {
@@ -227,51 +341,101 @@ private:
         using LengthArg = std::tuple_element_t<Index + 1, std::tuple<Args...>>;
         using Element = scalar_storage_t<array_element_t<Arg>>;
         std::uint64_t elementCount = 0;
-        if (auto rc =
-                decodeScalar<std::uint64_t>(args, argLen, offset, elementCount))
-          return rc;
+        if (!decodeScalar<std::uint64_t>(args, argLen, offset, elementCount))
+          return false;
         using Pointer = scalar_storage_t<Arg>;
         Pointer elements = nullptr;
         if constexpr (is_output_array_pointer<Arg>::value) {
           // Output array (non-const pointer): elements are written into the TX
           // result buffer rather than read from the RX argument buffer.
-          if (byRefResultLen > maxResultLen ||
-              elementCount > (maxResultLen - byRefResultLen) / sizeof(Element))
-            return -1; // result buffer too small
-          const auto arrayBytes =
-              static_cast<std::uint32_t>(elementCount * sizeof(Element));
+          if (byRefResultLen > maxResultLen)
+            return false; // result buffer too small
+          if constexpr (!std::is_same_v<Element, bool>)
+            if (elementCount >
+                (maxResultLen - byRefResultLen) / sizeof(Element))
+              return false; // result buffer too small
+          const std::uint64_t arrayBytes = [&] {
+            if constexpr (std::is_same_v<Element, bool>)
+              return packedByteCount(elementCount);
+            return elementCount * sizeof(Element);
+          }();
+          if (arrayBytes > maxResultLen - byRefResultLen)
+            return false; // result buffer too small
           if (arrayBytes && !output)
-            return -1; // result buffer too small
-          if (arrayBytes) {
-            auto *outBytes = static_cast<std::uint8_t *>(output);
-            elements = reinterpret_cast<Pointer>(outBytes + byRefResultLen);
+            return false; // result buffer too small
+
+          if constexpr (std::is_same_v<Element, bool>) {
+            auto *boolElements =
+                static_cast<bool *>(malloc(elementCount * sizeof(bool)));
+            if (elementCount && !boolElements)
+              return false;
+            for (std::uint64_t i = 0; i < elementCount; ++i)
+              boolElements[i] = false;
+            const bool success = decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen + arrayBytes, decoded..., boolElements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
+            if (success && arrayBytes) {
+              auto *const packed =
+                  static_cast<std::uint8_t *>(output) + byRefResultLen;
+              for (std::uint64_t i = 0; i < arrayBytes; ++i)
+                packed[i] = 0;
+              for (std::uint64_t i = 0; i < elementCount; ++i)
+                if (boolElements[i])
+                  packed[i / 8] |= std::uint8_t{1} << (i % 8);
+            }
+            free(boolElements);
+            return success;
+          } else {
+            if (arrayBytes) {
+              auto *outBytes = static_cast<std::uint8_t *>(output);
+              elements = reinterpret_cast<Pointer>(outBytes + byRefResultLen);
+            }
+            return decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen + arrayBytes, decoded..., elements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
           }
-          return decodeAndInvoke<Index + 2>(
-              args, argLen, offset, output, maxResultLen, resultLen,
-              byRefResultLen + arrayBytes, decoded..., elements,
-              static_cast<scalar_storage_t<LengthArg>>(elementCount));
         } else {
-          // Input array (const pointer): elements are read directly from the
-          // RX argument buffer with no copy.
-          if (elementCount > (argLen - offset) / sizeof(Element))
-            return -1; // malformed payload
-          const Element *const constElements =
-              reinterpret_cast<const Element *>(args + offset);
-          offset += elementCount * sizeof(Element);
-          if constexpr (std::is_const_v<std::remove_pointer_t<Pointer>>)
-            elements = constElements;
-          else
-            elements = const_cast<Element *>(constElements);
-          return decodeAndInvoke<Index + 2>(
-              args, argLen, offset, output, maxResultLen, resultLen,
-              byRefResultLen, decoded..., elements,
-              static_cast<scalar_storage_t<LengthArg>>(elementCount));
+          if constexpr (std::is_same_v<Element, bool>) {
+            const std::uint64_t arrayBytes = packedByteCount(elementCount);
+            if (arrayBytes > argLen - offset)
+              return false; // malformed payload
+            auto *boolElements =
+                static_cast<bool *>(malloc(elementCount * sizeof(bool)));
+            if (elementCount && !boolElements)
+              return false;
+            for (std::uint64_t i = 0; i < elementCount; ++i)
+              boolElements[i] = ((args[offset + i / 8] >> (i % 8)) & 1u) != 0;
+            offset += arrayBytes;
+            const bool success = decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen, decoded..., boolElements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
+            free(boolElements);
+            return success;
+          } else {
+            // Non-boolean input arrays are read directly from the RX buffer.
+            if (elementCount > (argLen - offset) / sizeof(Element))
+              return false; // malformed payload
+            const Element *const constElements =
+                reinterpret_cast<const Element *>(args + offset);
+            offset += elementCount * sizeof(Element);
+            if constexpr (std::is_const_v<std::remove_pointer_t<Pointer>>)
+              elements = constElements;
+            else
+              elements = const_cast<Element *>(constElements);
+            return decodeAndInvoke<Index + 2>(
+                args, argLen, offset, output, maxResultLen, resultLen,
+                byRefResultLen, decoded..., elements,
+                static_cast<scalar_storage_t<LengthArg>>(elementCount));
+          }
         }
       } else {
         // Scalar argument: decode one value from the buffer and recurse.
         scalar_storage_t<Arg> value;
-        if (auto rc = decodeScalar<Arg>(args, argLen, offset, value))
-          return rc;
+        if (!decodeScalar<Arg>(args, argLen, offset, value))
+          return false;
         return decodeAndInvoke<Index + 1>(args, argLen, offset, output,
                                           maxResultLen, resultLen,
                                           byRefResultLen, decoded..., value);
@@ -289,7 +453,7 @@ __device__ void fillEntry(cudaq_function_entry_t &entry,
       reinterpret_cast<void *>(&DeviceCallWrapper<Fn>::call);
   entry.function_id = functionId;
   entry.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-  entry.schema = {};
+  entry.schema = makeHandlerSchema<Fn>();
 }
 
 inline cudaError_t reportCudaError(cudaError_t err, const char *expr) {
@@ -305,8 +469,56 @@ inline cudaError_t reportCudaError(cudaError_t err, const char *expr) {
 // Parameterized by the per-TU table-init kernel and entry count, so each
 // translation unit gets its own instantiation (and its own dispatch stream).
 template <auto InitTableKernel, std::uint32_t Count>
-struct GeneratedDeviceCallService : public DeviceCallService {
+struct GeneratedDeviceCallSession : public DeviceCallServiceSession {
   static inline cudaStream_t dispatchStream = nullptr;
+
+  GeneratedDeviceCallSession() {
+    if constexpr (Count == 0)
+      throw std::runtime_error("device_call service exported no functions");
+
+    const auto bytes = Count * sizeof(cudaq_function_entry_t);
+    void *allocated = nullptr;
+    if (cudaMalloc(&allocated, bytes) != cudaSuccess)
+      throw std::runtime_error("failed to allocate device_call function table");
+    deviceEntries = static_cast<cudaq_function_entry_t *>(allocated);
+
+    if (cudaMemset(deviceEntries, 0, bytes) != cudaSuccess) {
+      cudaFree(deviceEntries);
+      deviceEntries = nullptr;
+      throw std::runtime_error(
+          "failed to initialize device_call function table");
+    }
+
+    InitTableKernel<<<1, 1>>>(deviceEntries);
+    if (reportCudaError(cudaGetLastError(), "device_call_init_table launch") !=
+            cudaSuccess ||
+        reportCudaError(cudaDeviceSynchronize(),
+                        "device_call_init_table synchronize") != cudaSuccess) {
+      cudaFree(deviceEntries);
+      deviceEntries = nullptr;
+      throw std::runtime_error("failed to populate device_call function table");
+    }
+
+    table.mode = DeviceCallDispatchMode::Gpu;
+    table.entries = deviceEntries;
+    table.count = Count;
+    table.launchFn = &launchDispatchKernel;
+    table.synchronizeFn = &synchronizeDispatchKernel;
+  }
+
+  ~GeneratedDeviceCallSession() override {
+    stop();
+    if (deviceEntries)
+      reportCudaError(cudaFree(deviceEntries), "cudaFree device_call table");
+  }
+
+  const DeviceCallDispatchTable &dispatchTable() const noexcept override {
+    return table;
+  }
+
+  void stop() noexcept override {
+    reportCudaError(synchronizeDispatchKernel(), "synchronizeDispatchKernel");
+  }
 
   static cudaError_t getDispatchStream(cudaStream_t *stream) {
     if (!stream)
@@ -353,28 +565,19 @@ struct GeneratedDeviceCallService : public DeviceCallService {
     return syncErr != cudaSuccess ? syncErr : destroyErr;
   }
 
-  int create(const void *, std::size_t) override { return 0; }
-  int destroy() noexcept override { return 0; }
-  std::uint32_t getFunctionCount() const override { return Count; }
-  int start() override { return 0; }
-  int stop() noexcept override {
-    return reportCudaError(synchronizeDispatchKernel(),
-                           "synchronizeDispatchKernel") != cudaSuccess;
-  }
-  int populateTable(cudaq_function_entry_t *entries, std::uint32_t capacity,
-                    cudaStream_t stream) override {
-    if (!entries || capacity < Count)
-      return 1;
-    InitTableKernel<<<1, 1, 0, stream>>>(entries);
-    return reportCudaError(cudaGetLastError(),
-                           "device_call_init_table launch") != cudaSuccess;
-  }
-  cudaq_dispatch_launch_fn_t getDeviceDispatchLaunch() const override {
-    return &launchDispatchKernel;
-  }
-  DeviceCallDispatchSynchronizeFn
-  getDeviceDispatchSynchronize() const override {
-    return &synchronizeDispatchKernel;
+private:
+  cudaq_function_entry_t *deviceEntries = nullptr;
+  DeviceCallDispatchTable table;
+};
+
+template <auto InitTableKernel, std::uint32_t Count>
+struct GeneratedDeviceCallService : public DeviceCallService {
+  std::unique_ptr<DeviceCallServiceSession>
+  createDispatchSession(DeviceCallDispatchMode mode) override {
+    if (mode != DeviceCallDispatchMode::Gpu)
+      return nullptr;
+    return std::make_unique<
+        GeneratedDeviceCallSession<InitTableKernel, Count>>();
   }
 
   static DeviceCallService *getService() {
@@ -395,7 +598,7 @@ using DeviceCallAbiHandler = std::int32_t (*)(const void *, void *,
 // `realtime/unittests/test_host_dispatcher.cu`; this kernel adds function-table
 // dispatch on top of that base pattern.
 //
-// Launch protocol (performed by `GeneratedHostDispatchService` before each
+// Launch protocol (performed for `GeneratedHostDispatchSession` before each
 // `cudaGraphLaunch`):
 //   1. Host fills `GraphIOContext { rx_slot, tx_slot, tx_flag, ... }`.
 //   2. Host writes `GraphIOContext*` into the pinned mailbox slot.
@@ -588,8 +791,7 @@ struct GeneratedHostDispatchGraphTable {
       return 1;
 
     for (std::uint32_t i = 0; i < Count; ++i) {
-      if (reportCudaError(createHostDispatchGraph(&graphExecs[i],
-                                                  d_mailbox + i,
+      if (reportCudaError(createHostDispatchGraph(&graphExecs[i], d_mailbox + i,
                                                   d_entries, Count),
                           "createHostDispatchGraph") != cudaSuccess)
         return 1;
@@ -609,30 +811,44 @@ struct GeneratedHostDispatchGraphTable {
 };
 
 template <auto InitTableKernel, std::uint32_t Count>
-struct GeneratedHostDispatchService : public DeviceCallService {
+struct GeneratedHostDispatchSession : public DeviceCallServiceSession {
   using Table = GeneratedHostDispatchGraphTable<InitTableKernel, Count>;
-  int create(const void *, std::size_t) override { return 0; }
 
-  int destroy() noexcept override {
-    Table::teardown();
-    return 0;
-  }
-
-  std::uint32_t getFunctionCount() const override { return Count; }
-
-  int getHostDispatchTable(DeviceCallHostDispatchTable &table) override {
+  GeneratedHostDispatchSession() {
+    if constexpr (Count == 0)
+      throw std::runtime_error("device_call service exported no functions");
     if (Table::setup() != 0)
-      return 1;
+      throw std::runtime_error("host device_call service table setup failed");
+    table.mode = DeviceCallDispatchMode::Host;
     table.entries = Table::h_entries;
     table.count = Count;
     table.deviceId = 0;
     table.mailbox = Table::h_mailbox;
-    return 0;
   }
 
-  int stop() noexcept override {
+  ~GeneratedHostDispatchSession() override { stop(); }
+
+  const DeviceCallDispatchTable &dispatchTable() const noexcept override {
+    return table;
+  }
+
+  void stop() noexcept override {
     Table::teardown();
-    return 0;
+    table = {};
+  }
+
+private:
+  DeviceCallDispatchTable table;
+};
+
+template <auto InitTableKernel, std::uint32_t Count>
+struct GeneratedHostDispatchService : public DeviceCallService {
+  std::unique_ptr<DeviceCallServiceSession>
+  createDispatchSession(DeviceCallDispatchMode mode) override {
+    if (mode != DeviceCallDispatchMode::Host)
+      return nullptr;
+    return std::make_unique<
+        GeneratedHostDispatchSession<InitTableKernel, Count>>();
   }
 
   static DeviceCallService *getService() {
@@ -657,14 +873,13 @@ struct GeneratedHostDispatchService : public DeviceCallService {
 // translation unit in this prototype.
 #define CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(name)                                  \
   namespace {                                                                  \
-  ::cudaq_internal::device_call::DeviceCallService *                           \
-  __cudaq_device_call_get_service();                                           \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service();     \
   }                                                                            \
-  extern "C" ::cudaq_internal::device_call::DeviceCallServicePluginInfo        \
+  extern "C" ::cudaq::realtime::DeviceCallServicePluginInfo                    \
   CUDAQ_DEVICE_CALL_SERVICE_PLUGIN_INFO_NAME(name)() {                         \
     return {#name, &__cudaq_device_call_get_service};                          \
   }                                                                            \
-  extern "C" ::cudaq_internal::device_call::DeviceCallServicePluginInfo        \
+  extern "C" ::cudaq::realtime::DeviceCallServicePluginInfo                    \
   cudaqGetDeviceCallServicePluginInfo() {                                      \
     return CUDAQ_DEVICE_CALL_SERVICE_PLUGIN_INFO_NAME(name)();                 \
   }                                                                            \
@@ -684,8 +899,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
       entries[__COUNTER__ - __cudaq_device_call_counter_begin - 1],            \
       cudaq::realtime::fnv1a_hash(#function));
 
-// Finish the table and export the service plugin info entry point. The CUDA-Q
-// runtime owns function table allocation and dispatch session lifecycle.
+// Finish the table and export the service plugin info entry point.
 #define CUDAQ_DEVICE_CALL_LIBRARY_END()                                        \
   } /* close __cudaq_device_call_init_table */                                 \
   constexpr std::uint32_t __cudaq_device_call_count =                          \
@@ -694,8 +908,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedDeviceCallService<       \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq_internal::device_call::DeviceCallService *                           \
-  __cudaq_device_call_get_service() {                                          \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service() {    \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
   } /* close anonymous namespace */
@@ -708,8 +921,7 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedHostDispatchService<     \
           &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
-  ::cudaq_internal::device_call::DeviceCallService *                           \
-  __cudaq_device_call_get_service() {                                          \
+  ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service() {    \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \
   } /* close anonymous namespace */

@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
 
 # Policies
 # ==============================================================================
@@ -73,6 +73,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
+# Disable scanning since we have no C++20 modules.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # Set warnings as errors by default.
 # Individual targets and the command line invocation can override this behavior.
 if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
@@ -82,6 +85,16 @@ endif()
 # Enable the REST code by default.
 if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
+endif()
+
+# Enable the ensmallen optimizer by default. Requires BLAS.
+if (NOT DEFINED CUDAQ_ENABLE_ENSMALLEN)
+  set(CUDAQ_ENABLE_ENSMALLEN ON CACHE BOOL "Enable building the ensmallen optimizer (requires BLAS).")
+endif()
+
+# Enable the NLopt optimizer by default.
+if (NOT DEFINED CUDAQ_ENABLE_NLOPT)
+  set(CUDAQ_ENABLE_NLOPT ON CACHE BOOL "Enable building the NLopt optimizer.")
 endif()
 
 # CUDAQ_ENABLE_ALL_BACKEND, if defined, becomes the default value used for
@@ -476,9 +489,9 @@ if (CUDAQ_STATIC_DEPS)
   message(STATUS "Static external dependencies enabled.")
 endif()
 
-# ZLIB is required when we build LLVM with zlib support.
-# ZLIB support in LLVM is good to have e.g. for the linker,
-# since some binaries will use zlib compression to store symbols.
+# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
+# good to have e.g. for the linker, since some binaries will use zlib
+# compression to store symbols.
 find_package(ZLIB REQUIRED)
 include(ExternalProject)
 
@@ -691,7 +704,30 @@ configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
 # Check optional dependencies
 # ==============================================================================
 
+if (CUDAQ_ENABLE_ENSMALLEN)
+  if (DEFINED ENV{BLAS_INSTALL_PREFIX})
+    find_library(BLAS_LIBRARIES blas
+      HINTS "$ENV{BLAS_INSTALL_PREFIX}" "$ENV{BLAS_INSTALL_PREFIX}/lib")
+  endif()
+  find_package(BLAS)
+  if (NOT BLAS_FOUND)
+    message(WARNING "BLAS not found — disabling ensmallen optimizer. "
+      "Install BLAS or set BLAS_INSTALL_PREFIX to enable it.")
+    set(CUDAQ_ENABLE_ENSMALLEN OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
+
 find_package(OpenSSL)
+if (CUDAQ_ENABLE_REST)
+  if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found — disabling REST. "
+      "OpenSSL is required when CUDAQ_ENABLE_REST is enabled (the default). "
+      "Install OpenSSL, set OPENSSL_ROOT_DIR, or pass -DCUDAQ_ENABLE_REST=OFF "
+      "to disable REST support.")
+    set(CUDAQ_ENABLE_REST OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
+
 if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
@@ -962,6 +998,7 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     endif()
   endif()
   include(GoogleTest)
+  include(CUDAQGtestDiscovery)
   include(CTest)
   if (NOT CUDAQ_DISABLE_RUNTIME)
     add_subdirectory(targettests)

@@ -1000,7 +1000,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
     pm.addPass(cudaq::opt::createQuakePropagateMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -1038,13 +1038,13 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addPass(cudaq::opt::createCCToLLVM());
     pm.addPass(createCanonicalizerPass());
 
-    auto enablePrintMLIREachPass =
-        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+    auto printEachPass =
+        cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
     auto disableThreading =
         cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-    if (enablePrintMLIREachPass || disableThreading) {
+    if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading) {
       module->getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
+      if (printEachPass == cudaq::PrintEachPassMode::All)
         pm.enableIRPrinting();
     }
 

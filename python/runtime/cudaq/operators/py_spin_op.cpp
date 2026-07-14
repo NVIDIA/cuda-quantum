@@ -149,21 +149,26 @@ void bindSpinOperator(nanobind::module_ &mod) {
                    "name to its description.")
       .def_prop_ro("degrees", &spin_op::degrees,
                    "Returns a vector that lists all degrees of "
-                   "freedom that the operator targets. "
-                   "The order of degrees is from smallest to largest "
-                   "and reflects the ordering of "
-                   "the matrix returned by `to_matrix`. "
-                   "Specifically, the indices of a statevector "
-                   "with two qubits are {00, 01, 10, 11}. An "
-                   "ordering of degrees {0, 1} then indicates "
-                   "that a state where the qubit with index 0 equals "
-                   "1 with probability 1 is given by "
-                   "the vector {0., 1., 0., 0.}.")
+                   "freedom (qubit indices) that the operator targets, "
+                   "from smallest to largest. This ordering reflects the "
+                   "basis ordering of the matrix returned by `to_matrix`: "
+                   "qubit 0 contributes 2^0 to the statevector index, "
+                   "qubit 1 contributes 2^1, and so on. For two qubits, "
+                   "statevector index 1 corresponds to the basis state "
+                   "|q_0 q_1> = |10> (qubit 0 in |1>, qubit 1 in |0>), "
+                   "so a state where qubit 0 equals 1 with probability 1 "
+                   "is the vector {0., 1., 0., 0.}. This convention matches "
+                   "`cudaq.get_state`, `SampleResult` bitstring keys, and "
+                   "the Pauli word produced by `get_pauli_word()`, all of "
+                   "which place qubit 0 as the left-most character. Note "
+                   "that writing the statevector index as a binary number "
+                   "(e.g. index 1 as `01`) places qubit 0 on the right, "
+                   "since it is the least-significant bit.")
       .def_prop_ro("min_degree", &spin_op::min_degree,
                    "Returns the smallest index of the degrees of "
                    "freedom that the operator targets.")
       .def_prop_ro("max_degree", &spin_op::max_degree,
-                   "Returns the smallest index of the degrees of "
+                   "Returns the largest index of the degrees of "
                    "freedom that the operator targets.")
       .def_prop_ro("term_count", &spin_op::num_terms,
                    "Returns the number of terms in the operator.")
@@ -482,153 +487,6 @@ void bindSpinOperator(nanobind::module_ &mod) {
       .def("distribute_terms", &spin_op::distribute_terms,
            "Partitions the terms of the sums into the given number of separate "
            "sums.");
-
-  // deprecated bindings
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-  spin_op_class
-      .def(
-          "get_coefficient",
-          [](const spin_op &op) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "use `evaluate_coefficient` on each term (product "
-                         "operator) instead",
-                         1);
-            if (op.num_terms() == 0)
-              return std::complex<double>(0.);
-            if (op.num_terms() != 1)
-              throw std::runtime_error(
-                  "expecting a spin op with at most one term");
-            return op.begin()->evaluate_coefficient();
-          },
-          "Deprecated - use `evaluate_coefficient` on each term (product "
-          "operator) instead.")
-      // deprecated just to make naming more consistent across the entire API
-      .def(
-          "get_term_count",
-          [](const spin_op &op) {
-            PyErr_WarnEx(PyExc_DeprecationWarning, "use `term_count` instead",
-                         1);
-            return op.num_terms();
-          },
-          "Deprecated - use `term_count` instead.")
-      // deprecated just to make naming more consistent across the entire API
-      .def(
-          "get_qubit_count",
-          [](const spin_op &op) {
-            PyErr_WarnEx(PyExc_DeprecationWarning, "use `qubit_count` instead",
-                         1);
-            return op.num_qubits();
-          },
-          "Deprecated - use `qubit_count` instead.")
-      .def(
-          "get_raw_data",
-          [](const spin_op &self) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "raw data access will no longer be supported", 1);
-            return self.get_raw_data();
-          },
-          "Deprecated.")
-      .def(
-          "is_identity",
-          [](const spin_op &self) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "is_identity will only be supported on each term "
-                         "(product operator) in future releases",
-                         1);
-            return self.is_identity();
-          },
-          "Deprecated - is_identity will only be supported on each term "
-          "(product operator) in future releases.")
-      // constructor for old serialization format
-      .def(
-          "__init__",
-          [](spin_op *self, const std::vector<double> &data,
-             std::size_t num_qubits) {
-            PyErr_WarnEx(
-                PyExc_DeprecationWarning,
-                "serialization format changed - use the constructor without a "
-                "size_t argument to create a spin_op from the new format",
-                1);
-            new (self) spin_op(data, num_qubits);
-          },
-          nanobind::arg("data"), nanobind::arg("num_qubits"),
-          "Deprecated - use constructor without the `num_qubits` argument "
-          "instead.")
-      // new constructor with deprecation warning provided only for backwards
-      // compatibility (matching the deprecated data constructor for the old
-      // serialization format above)
-      .def(
-          "__init__",
-          [](spin_op *self, const std::string &fileName, bool legacy) {
-            binary_spin_op_reader reader;
-            PyErr_WarnEx(
-                PyExc_DeprecationWarning,
-                "overload provided for compatibility with the deprecated "
-                "serialization format - please migrate to the new format and "
-                "use the constructor without boolean argument",
-                1);
-            new (self) spin_op(reader.read(fileName, legacy));
-          },
-          nanobind::arg("filename"), nanobind::arg("legacy"),
-          "Constructor available for loading deprecated data representations "
-          "from file - will be removed in future releases.")
-      .def_static(
-          "empty_op",
-          []() {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "use `empty` instead to create an sum operator "
-                         "without any terms",
-                         1);
-            return spin_op::empty();
-          },
-          "Deprecated - use `empty` instead.")
-      .def(
-          "to_string",
-          [](const spin_op &self, bool print_coefficient) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "use overload without boolean argument or "
-                         "`get_pauli_word` on each term instead",
-                         1);
-            return self.to_string(print_coefficient);
-          },
-          nanobind::arg("print_coefficient") = true,
-          "Deprecated - use the standard `str` conversion or `get_pauli_word` "
-          "on each term instead.")
-      .def(
-          "for_each_term",
-          [](spin_op &self, nanobind::callable functor) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "use standard iteration instead", 1);
-            self.for_each_term(functor);
-          },
-          nanobind::arg("function"),
-          "Deprecated - use standard iteration instead.")
-      .def(
-          "for_each_pauli",
-          [](spin_op &self, nanobind::callable functor) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "iterate over the sum to get each term and then "
-                         "iterate over the term(s) instead",
-                         1);
-            self.for_each_pauli(functor);
-          },
-          nanobind::arg("function"),
-          "Deprecated - iterator over sum and then iterator over term "
-          "instead.");
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
   spin_op_term_class
       .def(
@@ -983,83 +841,6 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "The canonicalization will throw a runtime exception if the operator "
           "acts on any degrees "
           "of freedom that are not included in the given set.");
-
-  // deprecated bindings
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-  spin_op_term_class
-      .def(
-          "get_coefficient",
-          [](const spin_op_term &op) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "use `evaluate_coefficient` instead", 1);
-            return op.evaluate_coefficient();
-          },
-          "Deprecated - use `evaluate_coefficient` instead.")
-      // deprecated just to make naming more consistent across the entire API
-      .def(
-          "get_qubit_count",
-          [](const spin_op_term &op) {
-            PyErr_WarnEx(PyExc_DeprecationWarning, "use `qubit_count` instead",
-                         1);
-            return op.num_qubits();
-          },
-          "Deprecated - use `qubit_count` instead.")
-      .def(
-          "get_raw_data",
-          [](const spin_op_term &self) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "raw data access will no longer be supported", 1);
-            return spin_op(self).get_raw_data();
-          },
-          "Deprecated.")
-      .def(
-          "to_string",
-          [](const spin_op_term &self, bool print_coefficient) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "use overload without boolean argument or use "
-                         "`get_pauli_word` instead",
-                         1);
-            return self.to_string(print_coefficient);
-          },
-          nanobind::arg("print_coefficient") = true,
-          "Deprecated - use the standard `str` conversion or use "
-          "`get_pauli_word` instead.")
-      .def(
-          "distribute_terms",
-          [](spin_op_term &op, std::size_t chunks) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "instantiate a `SpinOperator` from this "
-                         "`SpinOperatorTerm` and call distribute_terms on that",
-                         1);
-            return spin_op(op).distribute_terms(chunks);
-          },
-          nanobind::arg("chunk_count"),
-          "Deprecated - instantiate a `SpinOperator` from this "
-          "`SpinOperatorTerm` "
-          "and call distribute_terms on that.")
-      .def(
-          "for_each_pauli",
-          [](spin_op_term &self, nanobind::callable functor) {
-            PyErr_WarnEx(PyExc_DeprecationWarning,
-                         "use standard iteration instead", 1);
-            spin_op(self).for_each_pauli(functor);
-          },
-          nanobind::arg("function"),
-          "Deprecated - use standard iteration instead.");
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 }
 
 void bindSpinWrapper(nanobind::module_ &mod) {

@@ -9,41 +9,25 @@
 #include "cudaq/algorithms/dem.h"
 #include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
-#include "common/NoiseModel.h"
 #include "nvqir/dem/DemScope.h"
-#include "cudaq/platform.h"
 #include <stdexcept>
-#include <string>
-#include <utility>
 
 namespace cudaq::detail {
 
-std::string runDemFromKernel(const std::string &kernelName,
-                             cudaq::quantum_platform &platform,
-                             const cudaq::noise_model *noise,
-                             const std::function<void()> &kernel,
-                             const std::string &plugin_name) {
-
-  if (cudaq::kernelHasConditionalFeedback(kernelName))
+cudaq::dem_result launchDemPolicy(const cudaq::dem_policy &policy,
+                                  cudaq::ExecutionContext &ctx,
+                                  const dem_policy_launcher &launchPolicy,
+                                  const std::string &plugin_name) {
+  if (cudaq::kernelHasConditionalFeedback(policy.kernelName))
     throw std::runtime_error(
-        "`cudaq::dem_from_kernel`: kernel '" + kernelName +
+        "`cudaq::dem_from_kernel`: kernel '" + policy.kernelName +
         "' branches on a measurement result. DEM analysis not supported.");
 
-  cudaq::ExecutionContext ctx("dem");
-  ctx.kernelName = kernelName;
-  ctx.qpuId = cudaq::getCurrentQpuId();
-  ctx.asyncExec = false;
-  if (noise)
-    ctx.noiseModel = noise;
-
-  // RAII: claim the thread-local analysis-simulator slot backed by the `stim`
-  // plugin. The scope starts from a clean simulator and releases the override
-  // on every exit path.
+  // RAII: claim the thread-local analysis-simulator slot backed by the
+  // @p plugin_name plugin. The scope starts from a clean simulator and
+  // releases the override on every exit path.
   auto demScope = nvqir::dem::make_scope(plugin_name);
-
-  platform.with_execution_context(ctx, kernel);
-
-  return std::move(ctx.dem_text);
+  return launchPolicy(policy, ctx);
 }
 
 } // namespace cudaq::detail

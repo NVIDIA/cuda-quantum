@@ -159,11 +159,10 @@ private:
 } // namespace
 
 static bool opResultOfType(Operation *op, Type ofTy) {
-  auto results = op->getResults();
-  for (auto r : results)
-    if (r.getType() == ofTy)
-      return true;
-  return false;
+  if (op->getNumResults() == 0)
+    return false;
+  return llvm::any_of(op->getResultTypes(),
+                      [ofTy](Type t) { return t == ofTy; });
 }
 
 /// Return true if and only if the value \p defVal is the result of an Operation
@@ -212,12 +211,15 @@ public:
 
   explicit RegionDataFlow(Operation *op) {
     // Stitch together the control-flow across op's regions.
+    SmallPtrSet<Block *, 2> entryBlocks;
+    SmallPtrSet<Block *, 2> exitBlocks;
+    DenseMap<Block *, SmallPtrSet<Block *, 2>> reverseCFG;
     if (auto regionOp = dyn_cast<RegionBranchOpInterface>(op)) {
       SmallVector<RegionSuccessor> successors;
       regionOp.getSuccessorRegions(RegionBranchPoint::parent(), successors);
       for (auto iter : successors)
         if (iter.getSuccessor() && !iter.getSuccessor()->empty())
-          entryCFG.insert(&iter.getSuccessor()->front());
+          entryBlocks.insert(&iter.getSuccessor()->front());
       for (auto &region : op->getRegions()) {
         if (region.empty())
           continue;
@@ -235,9 +237,9 @@ public:
             auto *succ = iter.getSuccessor();
             if (succ) {
               auto *s = &succ->front();
-              backwardCFG[s].insert(b);
+              reverseCFG[s].insert(b);
             } else {
-              exitCFG.insert(b);
+              exitBlocks.insert(b);
             }
           }
       }
@@ -245,10 +247,18 @@ public:
       for (auto &region : op->getRegions())
         for (auto &b : region) {
           if (b.isEntryBlock())
-            entryCFG.insert(&b);
+            entryBlocks.insert(&b);
           if (b.hasNoSuccessors())
-            exitCFG.insert(&b);
+            exitBlocks.insert(&b);
         }
+    }
+    entryCFG.append(entryBlocks.begin(), entryBlocks.end());
+    exitCFG.append(exitBlocks.begin(), exitBlocks.end());
+    for (auto [succBlk, predBlks] : reverseCFG) {
+      auto &preds = backwardCFG[succBlk];
+      for (Block *p : predBlks)
+        if (!llvm::is_contained(preds, p))
+          preds.push_back(p);
     }
   }
 
@@ -260,23 +270,25 @@ public:
   // structure here.
   //===--------------------------------------------------------------------===//
 
-  bool isEntryBlock(Block *block) { return entryCFG.count(block); }
-
-  SmallVector<Block *> getEntryBlocks() {
-    return {entryCFG.begin(), entryCFG.end()};
+  bool isEntryBlock(Block *block) {
+    return llvm::is_contained(entryCFG, block);
   }
 
-  bool isExitBlock(Block *block) { return exitCFG.count(block); }
+  SmallVector<Block *> &getEntryBlocks() { return entryCFG; }
 
-  SmallVector<Block *> getExitBlocks() {
-    return {exitCFG.begin(), exitCFG.end()};
-  }
+  bool isExitBlock(Block *block) { return llvm::is_contained(exitCFG, block); }
 
-  SmallVector<Block *> getPredecessors(Block *block) {
+  SmallVector<Block *> &getExitBlocks() { return exitCFG; }
+
+  SmallVector<Block *> &getPredecessors(Block *block) {
     if (backwardCFG.count(block))
-      return {backwardCFG[block].begin(), backwardCFG[block].end()};
-    auto range = block->getPredecessors();
-    return {range.begin(), range.end()};
+      return backwardCFG[block];
+    // The CFG is constant, so cache it for efficiency.
+    if (!cachedPredCFG.count(block)) {
+      auto range = block->getPredecessors();
+      cachedPredCFG[block].append(range.begin(), range.end());
+    }
+    return cachedPredCFG[block];
   }
 
   /// Add \p block to the data-flow map for processing. This will add arguments
@@ -314,8 +326,22 @@ public:
 
   /// Returns a binding. The binding must be present in the map.
   SSAReg getBinding(Block *block, MemRef mr) {
-    assert(block && rMap.count(block) && mr && rMap[block].count(mr));
-    return rMap[block][mr];
+    assert(block && mr);
+    auto blockIt = rMap.find(block);
+    assert(blockIt != rMap.end());
+    auto mrIt = blockIt->second.find(mr);
+    assert(mrIt != blockIt->second.end());
+    return mrIt->second;
+  }
+
+  /// Returns the binding for \p mr in \p block, or a null Value if not
+  /// present or if the binding was cancelled.
+  SSAReg lookupBinding(Block *block, MemRef mr) {
+    assert(block && mr);
+    auto blockIt = rMap.find(block);
+    assert(blockIt != rMap.end());
+    auto mrIt = blockIt->second.find(mr);
+    return mrIt != blockIt->second.end() ? mrIt->second : SSAReg{};
   }
 
   /// Create a re-load of a memory reference. This can be used to place a
@@ -346,8 +372,10 @@ public:
 
   SSAReg maybeAddLiveInToBlock(Block *block, MemRef mr) {
     assert(block && liveInMap.count(block) && mr);
-    if (liveInMap[block].count(mr))
-      return liveInMap[block][mr];
+    auto &blockMap = liveInMap[block];
+    auto it = blockMap.find(mr);
+    if (it != blockMap.end())
+      return it->second;
     return addLiveInToBlock(block, mr);
   }
 
@@ -377,30 +405,24 @@ public:
 
   /// Returns a vector of memory references. These memory references are the
   /// ordered list of arguments to \p block.
-  SmallVector<MemRef> getLiveInToBlock(Block *block) {
+  unsigned getLiveInToBlock(SmallVectorImpl<MemRef> &result, Block *block) {
     assert(block && liveInMap.count(block));
-    std::map<unsigned, MemRef> sortedMap;
+    unsigned offset = std::numeric_limits<unsigned>::max();
     for (auto [mr, val] : liveInMap[block])
-      if (auto arg = dyn_cast<BlockArgument>(val))
-        if (arg.getOwner() == block)
-          sortedMap[arg.getArgNumber()] = mr;
-
-#ifndef NDEBUG
-    // Sanity check that these arguments are contiguous.
-    if (!sortedMap.empty()) {
-      auto iter = sortedMap.begin();
-      unsigned index = iter->first;
-      for (++iter; iter != sortedMap.end(); ++iter) {
-        assert(iter->first == index + 1);
-        index = iter->first;
+      if (auto arg = dyn_cast<BlockArgument>(val);
+          arg && arg.getOwner() == block) {
+        auto argNum = arg.getArgNumber();
+        result[argNum] = mr;
+        if (argNum < offset)
+          offset = argNum;
       }
-    }
-#endif
 
-    SmallVector<MemRef> result;
-    for (auto [index, mr] : sortedMap)
-      result.push_back(mr);
-    return result;
+    LLVM_DEBUG(
+        std::for_each(result.begin() + offset, result.end(), [](MemRef mr) {
+          if (!mr)
+            llvm::dbgs() << "block argument value must be present\n";
+        }));
+    return offset;
   }
 
   /// Promote the memory dereference \p memuse to immediately before the parent
@@ -443,35 +465,47 @@ public:
         continue;
       liveInArgs.push_back(promotedDefs[liveOut]);
     }
+    // Phase 1: In one pass, collect unique blocks and snapshot (user, block)
+    // pairs per def. Snapshotting here avoids re-traversing promotedDefs and
+    // re-calling findParentBlock in phase 3.
+    using UserBlocksType = SmallVector<std::pair<Operation *, Block *>>;
+    using DefInfo = std::tuple<MemRef, SSAReg, UserBlocksType>;
+    SmallVector<DefInfo> defInfos;
     SmallPtrSet<Block *, 4> blockSet;
     for (auto [mr, val] : promotedDefs) {
       if (onlyLinearTypes && !isLinearType(val))
         continue;
-      if (liveOutSet.count(mr)) {
-        SmallVector<Operation *> users(val.getUsers().begin(),
-                                       val.getUsers().end());
-        for (auto *user : users) {
-          auto *block = findParentBlock(parent, user->getBlock());
-          if (!blockSet.count(block)) {
-            // Add the promoted defs to this block as arguments. Add all of them
-            // in order so that the argument list doesn't get permuted. Use the
-            // unsafe call here because liveInMap should already have a binding
-            // for memref to the promoted load value. That binding will be
-            // overwritten.
-            for (auto memref : liveOutSet) {
-              if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
-                continue;
-              unsafeAddLiveInToBlock(block, memref);
-            }
-            blockSet.insert(block);
-            worklist.push_back(block);
-            appendToWorklist(worklist, getPredecessors(block));
-          }
-          Value newReg = liveInMap[block][mr];
-          if (!hasBinding(block, mr) || getBinding(block, mr) == val)
-            addBinding(block, mr, newReg);
-          user->replaceUsesOfWith(val, newReg);
-        }
+      if (!liveOutSet.count(mr))
+        continue;
+      auto &info = defInfos.emplace_back(mr, val, UserBlocksType{});
+      for (auto *user : val.getUsers()) {
+        auto *block = findParentBlock(parent, user->getBlock());
+        blockSet.insert(block);
+        std::get<UserBlocksType>(info).emplace_back(user, block);
+      }
+    }
+    // Phase 2: For each unique block, add live-in block args and queue preds.
+    // Add all promoted defs in order so that the argument list doesn't get
+    // permuted. Use the unsafe call here because liveInMap should already have
+    // a binding for memref to the promoted load value. That binding will be
+    // overwritten.
+    for (auto *block : blockSet) {
+      for (auto memref : liveOutSet) {
+        if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
+          continue;
+        unsafeAddLiveInToBlock(block, memref);
+      }
+      worklist.push_back(block);
+      appendToWorklist(worklist, getPredecessors(block));
+    }
+    // Phase 3: Update bindings and replace uses with the new block args.
+    for (auto &info : defInfos) {
+      for (auto [user, block] : std::get<UserBlocksType>(info)) {
+        Value newReg = liveInMap[block][std::get<0>(info)];
+        if (!hasBinding(block, std::get<0>(info)) ||
+            getBinding(block, std::get<0>(info)) == std::get<1>(info))
+          addBinding(block, std::get<0>(info), newReg);
+        user->replaceUsesOfWith(std::get<1>(info), newReg);
       }
     }
   }
@@ -539,9 +573,10 @@ private:
   /// function.
   SetVector<MemRef> liveOutSet;
 
-  SmallPtrSet<Block *, 2> entryCFG;
-  SmallPtrSet<Block *, 2> exitCFG;
-  DenseMap<Block *, SmallPtrSet<Block *, 2>> backwardCFG;
+  SmallVector<Block *> entryCFG;
+  SmallVector<Block *> exitCFG;
+  DenseMap<Block *, SmallVector<Block *>> backwardCFG;
+  DenseMap<Block *, SmallVector<Block *>> cachedPredCFG;
 };
 } // namespace
 
@@ -844,15 +879,15 @@ public:
               }
             } else if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op);
                        alloc && alloc.hasInitializedState()) {
-              // If this is an quake.alloca followed by a quake.init_state, just
-              // skip this op. It has to remain in reference form and there
-              // can't be any other ops between this pairing.
+              // If this is an quake.alloca followed by a quake.init_state,
+              // just skip this op. It has to remain in reference form and
+              // there can't be any other ops between this pairing.
             } else {
               OpBuilder builder(ctx);
               builder.setInsertionPoint(op);
               for (auto v : op->getOperands())
-                if (v.getType() == qrefTy && dataFlow.hasBinding(block, v))
-                  if (auto vBinding = dataFlow.getBinding(block, v)) {
+                if (v.getType() == qrefTy)
+                  if (auto vBinding = dataFlow.lookupBinding(block, v)) {
                     cudaq::quake::WrapOp::create(builder, op->getLoc(),
                                                  vBinding, v);
                     dataFlow.cancelBinding(block, v);
@@ -994,8 +1029,8 @@ public:
           // If op uses a quantum reference, then halt forwarding the unwrap
           // use chain and leave a wrap dominating op.
           for (auto v : op->getOperands())
-            if ((v.getType() == qrefTy) && dataFlow.hasBinding(block, v))
-              if (auto vBinding = dataFlow.getBinding(block, v)) {
+            if (v.getType() == qrefTy)
+              if (auto vBinding = dataFlow.lookupBinding(block, v)) {
                 OpBuilder builder(op);
                 cudaq::quake::WrapOp::create(builder, op->getLoc(), vBinding,
                                              v);
@@ -1026,11 +1061,9 @@ public:
     });
 
     // 4. Update the block arguments and terminators to thread the values
-    // between the blocks in the CFG.
-    // If there are defs that are live-out for parent, then they need to be
-    // added to each terminator.
-    // Update each pred's terminator to pass all the live-in values to a
-    // successor.
+    // between the blocks in the CFG. If there are defs that are live-out for
+    // parent, then they need to be added to each terminator. Update each pred's
+    // terminator to pass all the live-in values to a successor.
     auto liveOutParent = dataFlow.getLiveOutOfParent();
 
     auto addTerminatorArgument = [&](Operation *term, Block *target,
@@ -1056,12 +1089,13 @@ public:
 
     const bool usePromo = neverTakesRegionArguments(parent);
     const bool onlyLinear = onlyTakesLinearTypeArguments(parent);
-    auto updateTerminator = [&](Operation *term, Block *target, auto bindings) {
-      auto *block = term->getBlock();
-      for (auto i : llvm::enumerate(bindings)) {
-        auto liveOut = i.value();
-        if (i.index() < dataFlow.numBindingsAdded(term, target))
-          continue;
+    auto updateTerminator = [&](Operation *term, Block *target,
+                                ValueRange bindings) {
+      Block *block = term->getBlock();
+      auto numAddedBindings = dataFlow.numBindingsAdded(term, target);
+      if (bindings.size() <= numAddedBindings)
+        return;
+      for (Value liveOut : bindings.drop_front(numAddedBindings)) {
         if (dataFlow.hasBinding(block, liveOut)) {
           if (!isFunctionBlock(block) && !usePromo && !onlyLinear)
             dataFlow.maybeAddBalancedLiveInToBlock(block, liveOut);
@@ -1087,11 +1121,14 @@ public:
       }
     };
 
-    auto updateExitTerminator = [&](Block *block, auto bindings) {
-      return updateTerminator(block->getTerminator(), nullptr, bindings);
+    auto updateExitTerminator = [&](Block *block, auto &bindings) {
+      return updateTerminator(
+          block->getTerminator(), nullptr,
+          llvm::make_range(bindings.begin(), bindings.end()));
     };
 
     SmallPtrSet<Block *, 8> blocksVisited;
+    SmallVector<Value> liveInBlock;
     while (!worklist.empty()) {
       Block *block = worklist.front();
       worklist.pop_front();
@@ -1100,16 +1137,22 @@ public:
         updateExitTerminator(block, liveOutParent);
 
       // Check that preds are threading all live-in values.
-      auto liveInBlock = dataFlow.getLiveInToBlock(block);
-      if (!liveInBlock.empty()) {
-        auto preds = dataFlow.getPredecessors(block);
+      liveInBlock.assign(block->getNumArguments(), Value{});
+      auto offset = dataFlow.getLiveInToBlock(liveInBlock, block);
+      auto preds = dataFlow.getPredecessors(block);
+      if (offset != std::numeric_limits<decltype(offset)>::max()) {
+        // Block arguments were added. Update the terminator(s). It's possible
+        // that some terminators were already updated from other successor
+        // blocks, so we must check each predecessor individually.
         for (auto *pred : preds)
-          updateTerminator(pred->getTerminator(), block, liveInBlock);
+          updateTerminator(pred->getTerminator(), block,
+                           llvm::make_range(liveInBlock.begin() + offset,
+                                            liveInBlock.end()));
       }
 
-      // We should visit all the blocks at least once.
+      // We should visit all the predecessor blocks at least once. Add any
+      // blocks not yet visited to the worklist.
       blocksVisited.insert(block);
-      auto preds = dataFlow.getPredecessors(block);
       for (auto *pred : preds)
         if (!blocksVisited.count(pred))
           worklist.push_back(pred);

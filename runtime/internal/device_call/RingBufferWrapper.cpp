@@ -20,6 +20,7 @@
 #include <atomic>
 #include <cassert>
 #include <chrono>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
@@ -85,13 +86,31 @@ void checkDispatcherStatus(cudaq_status_t status, const char *call,
   throw DeviceCallError(statusFromCudaqStatus(status), message);
 }
 
+// True when the error means no CUDA device can ever be used in this process
+// (as opposed to a recoverable failure like exhausted pinned memory).
+static bool isNoDeviceError(cudaError_t err) {
+  return err == cudaErrorNoDevice || err == cudaErrorInsufficientDriver ||
+         err == cudaErrorInitializationError;
+}
+
 bool RingBufferWrapper::PinnedAllocation::allocate(std::size_t bytes) {
   reset();
 
   void *hostPtr = nullptr;
   cudaError_t err = cudaHostAlloc(&hostPtr, bytes, cudaHostAllocMapped);
-  if (err != cudaSuccess)
-    return false;
+  if (err != cudaSuccess) {
+    if (!isNoDeviceError(err))
+      return false;
+    // No CUDA device in this process: nothing can read the ring from the
+    // device, so plain host memory is equivalent. Host-only dispatch never
+    // touches devicePtr(), and any GPU work fails at its own CUDA calls.
+    (void)cudaGetLastError();
+    hostPtr = std::calloc(bytes, 1);
+    if (!hostPtr)
+      return false;
+    host = hostPtr;
+    return true;
+  }
 
   void *devicePtr = nullptr;
   err = cudaHostGetDevicePointer(&devicePtr, hostPtr, /*flags=*/0);
@@ -103,14 +122,20 @@ bool RingBufferWrapper::PinnedAllocation::allocate(std::size_t bytes) {
   std::memset(hostPtr, 0, bytes);
   host = hostPtr;
   device = devicePtr;
+  pinned = true;
   return true;
 }
 
 void RingBufferWrapper::PinnedAllocation::reset() noexcept {
-  if (host)
-    cudaFreeHost(host);
+  if (host) {
+    if (pinned)
+      cudaFreeHost(host);
+    else
+      std::free(host);
+  }
   host = nullptr;
   device = nullptr;
+  pinned = false;
 }
 
 void RingBufferWrapper::configure(const char *channelName, int deviceId,
@@ -125,9 +150,17 @@ void RingBufferWrapper::configure(const char *channelName, int deviceId,
   slotSizeValue = llvm::alignTo(config.slotSize, RingSlotAlignmentBytes);
   timeoutMsValue = config.timeoutMs;
 
-  if (cudaSetDevice(deviceId) != cudaSuccess)
-    throw DeviceCallError(DeviceCallStatus::CudaError,
-                          "failed to set CUDA device for device_call");
+  if (const cudaError_t err = cudaSetDevice(deviceId); err != cudaSuccess) {
+    if (!isNoDeviceError(err))
+      throw DeviceCallError(DeviceCallStatus::CudaError,
+                            "failed to set CUDA device for device_call");
+    // No CUDA device: host-only dispatch still works (see allocate above);
+    // GPU dispatch fails at its own CUDA calls.
+    (void)cudaGetLastError();
+    CUDAQ_INFO("[device-call] {} channel has no usable CUDA device; using "
+               "host-only ring storage",
+               channelName);
+  }
 
   if (!allocateStorage(channelName, numSlotsValue, slotSizeValue))
     throw DeviceCallError(DeviceCallStatus::CudaError,
