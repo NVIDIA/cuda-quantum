@@ -45,6 +45,33 @@ done
 
 echo "Server started successfully"
 test_err_sum=0
+runMappedSampleTest() {
+  local mode="$1"
+  local topology_name="$2"
+  local device="$3"
+  local executable="test_mapping_app_${mode}_${topology_name}"
+  local compile_args=(--target quake_fake --quake_fake-device "$device")
+
+  if [ "$mode" = "emulation" ]; then
+    compile_args+=(--emulate)
+  fi
+
+  PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ "${compile_args[@]}" @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_mapping_app.cpp -o "$executable"
+  if [ $? -ne 0 ]; then
+    echo ":x: nvq++ compilation failed for mapped $mode test ($topology_name)"
+    test_err_sum=$((test_err_sum+1))
+    return
+  fi
+
+  ./"$executable"
+  if [ $? -ne 0 ]; then
+    echo ":x: Mapped $mode test failed ($topology_name)"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran mapped $mode test ($topology_name)"
+  fi
+}
+
 # Test the app nvq++ (remote execution on the mock server)
 PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app
 if [ $? -ne 0 ]; then
@@ -90,6 +117,10 @@ else
   fi
 fi
 
+runMappedSampleTest mock path3 "path(3)"
+runMappedSampleTest mock offset_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_line.txt)"
+runMappedSampleTest mock noncontiguous_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_noncontiguous_line.txt)"
+
 # Emulation test
 # Note: for emulation, we need to link in the device library. 
 PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
@@ -124,6 +155,10 @@ else
     echo ":white_check_mark: Successfully ran test_loop_app (emulation)"
   fi
 fi
+
+runMappedSampleTest emulation path3 "path(3)"
+runMappedSampleTest emulation offset_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_line.txt)"
+runMappedSampleTest emulation noncontiguous_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_noncontiguous_line.txt)"
 
 # Run the Python test
 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.py

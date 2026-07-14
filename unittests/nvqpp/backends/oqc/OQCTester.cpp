@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
@@ -63,6 +65,48 @@ CUDAQ_TEST(OQCTester, checkSampleAsyncLoadFromFile) {
   EXPECT_EQ(counts.size(), 2);
 
   std::remove("saveMe.json");
+}
+
+// Provider-specific parsing: OQC returns counts under a "results" object with
+// a sibling "task_error". Verify that processResults uses enriched output_names
+// to reconstruct compact QIR results into user-visible terminal order.
+// This matches the default-sampling convention, as validated in
+// `test_explicit_measurements.py::test_measurement_order`:
+// measured bits follow qubit allocation order, not `mz` execution order.
+CUDAQ_TEST(OQCTester, processResultsParsesProviderResponse) {
+  auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("oqc");
+  ASSERT_TRUE(serverHelper);
+
+  cudaq::BackendConfig config;
+  config["emulate"] = "true";
+  config["output_names.oqc-parse-job-id"] =
+      R"([[[0, [2, "r00000", 2]], [1, [0, "r00001", 0]], [2, [1, "r00002", 1]]]])";
+  serverHelper->initialize(config);
+
+  cudaq::ServerMessage response = {{"results", {{"110", 1000}}},
+                                   {"task_error", nullptr}};
+  std::string jobId = "oqc-parse-job-id";
+  auto result = serverHelper->processResults(response, jobId);
+
+  EXPECT_EQ(result.count("101"), 1000);
+  EXPECT_EQ(result.count("1", "r00000"), 1000);
+  EXPECT_EQ(result.count("1", "r00001"), 1000);
+  EXPECT_EQ(result.count("0", "r00002"), 1000);
+}
+
+CUDAQ_TEST(OQCTester, processResultsRequiresOutputNames) {
+  auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("oqc");
+  ASSERT_TRUE(serverHelper);
+
+  cudaq::BackendConfig config;
+  config["emulate"] = "true";
+  serverHelper->initialize(config);
+
+  cudaq::ServerMessage response = {{"results", {{"0", 1}}},
+                                   {"task_error", nullptr}};
+  std::string jobId = "oqc-missing-output-names";
+
+  EXPECT_ANY_THROW(serverHelper->processResults(response, jobId));
 }
 
 CUDAQ_TEST(OQCTester, checkObserveSync) {

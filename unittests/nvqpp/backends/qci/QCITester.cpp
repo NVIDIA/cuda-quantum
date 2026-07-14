@@ -29,6 +29,35 @@ CUDAQ_TEST(QCITester, checkSampleSync) {
   EXPECT_EQ(counts.size(), 2);
 }
 
+// The terminal-order and partial-measurement tests below match the
+// default-sampling ordering convention, as validated in
+// `test_explicit_measurements.py::test_measurement_order`:
+// measured bits follow qubit allocation order, not `mz` execution order.
+CUDAQ_TEST(QCITester, terminalMeasurementOutputOrder) {
+  auto kernel = cudaq::make_kernel();
+  auto qubits = kernel.qalloc(3);
+  kernel.x(qubits[0]);
+  kernel.x(qubits[2]);
+  kernel.mz(qubits[2]);
+  kernel.mz(qubits[0]);
+  kernel.mz(qubits[1]);
+
+  auto counts = cudaq::sample(32, kernel);
+  EXPECT_EQ(counts.count("101"), 32);
+}
+
+CUDAQ_TEST(QCITester, partialTerminalMeasurement) {
+  auto kernel = cudaq::make_kernel();
+  auto qubits = kernel.qalloc(3);
+  kernel.x(qubits[0]);
+  kernel.x(qubits[1]);
+  kernel.mz(qubits[2]);
+  kernel.mz(qubits[0]);
+
+  auto counts = cudaq::sample(32, kernel);
+  EXPECT_EQ(counts.count("10"), 32);
+}
+
 CUDAQ_TEST(QCITester, checkSampleAsync) {
 
   auto kernel = cudaq::make_kernel();

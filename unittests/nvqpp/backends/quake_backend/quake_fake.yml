@@ -8,6 +8,14 @@
 
 name: quake_fake
 description: "CUDA-Q target for Quake fake target."
+
+target-arguments:
+  - key: device
+    required: false
+    type: string
+    platform-arg: device
+    help-string: "Device topology for mapped backend tests. Defaults to bypass."
+
 config:
   # Tell DefaultQuantumPlatform what QPU subtype to use
   platform-qpu: remote_rest
@@ -19,7 +27,7 @@ config:
   link-libs: ["-lcudaq-rest-qpu"]
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
-  jit-mid-level-pipeline: "func.func(add-dealloc,expand-control-veqs,combine-quantum-alloc,canonicalize,cc-loop-normalize,cc-loop-unroll{unroll-only-wire-blocking-loops=true},canonicalize,cse,factor-quantum-alloc,dqe,cable-rough-in,canonicalize,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
+  jit-mid-level-pipeline: "func.func(add-dealloc,expand-control-veqs,combine-quantum-alloc,canonicalize,cc-loop-normalize,cc-loop-unroll{unroll-only-wire-blocking-loops=true},canonicalize,cse,factor-quantum-alloc,dqe,cable-rough-in,canonicalize,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass% placement=auto search=sabre raise-fatal-errors=1},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
   jit-low-level-pipeline: "return-to-output-log,symbol-dce"
   # Tell the rest-qpu that we are simply dumping CUDA-Q MLIR code.
   codegen-emission: nop

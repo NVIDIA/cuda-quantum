@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
 #include "cudaq/Todo.h"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
@@ -226,7 +227,8 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     assert(iter != infoMap.end());
     rewriter.startOpModification(op);
     const auto &info = iter->second;
-    nlohmann::json resultQubitJSON{info.resultQubitVals};
+    auto resultQubitJSON =
+        cudaq::opt::buildEnrichedOutputNamesJson(info.resultQubitVals, {});
     bool isAdaptive = convertTo == "qir-adaptive";
     const char *profileName = isAdaptive ? "adaptive_profile" : "base_profile";
 

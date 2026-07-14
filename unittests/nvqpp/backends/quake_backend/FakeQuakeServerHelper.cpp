@@ -27,7 +27,10 @@ public:
 
   RestHeaders getHeaders() override { return RestHeaders(); }
 
-  void initialize(BackendConfig config) override { backendConfig = config; }
+  void initialize(BackendConfig config) override {
+    backendConfig = config;
+    parseConfigForCommonParams(config);
+  }
 
   void updatePassPipeline(const std::filesystem::path &,
                           std::string &passPipeline) override {
@@ -87,7 +90,20 @@ public:
 
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override {
-    return cudaq::sample_result();
+    auto sampleResult = createSampleResultFromQirOutput(
+        extractOutputLog(postJobResponse, jobId));
+    const auto &response = postJobResponse[0];
+    if (response.contains("output_names") &&
+        !response["output_names"].empty()) {
+      const auto resultMap =
+          makeResultOutputMapFromEnrichedOutputNames(response["output_names"]);
+      return reconstructSampleResultFromResultIndexedMeasurements(
+          sampleResult.to_map(), resultMap);
+    }
+    if (auto result =
+            tryReconstructFromResultIndexedCounts(jobId, sampleResult.to_map()))
+      return *result;
+    return sampleResult;
   }
 };
 

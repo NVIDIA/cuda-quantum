@@ -13,6 +13,32 @@
 
 namespace cudaq {
 
+std::optional<ResultOutputMap>
+ServerHelper::resultMapForJob(const std::string &jobId) const {
+  const auto iter = outputNames.find(jobId);
+  if (iter == outputNames.end() || iter->second.empty())
+    return std::nullopt;
+
+  ResultOutputMap resultMap;
+  resultMap.outputs.reserve(iter->second.size());
+  for (const auto &[result, info] : iter->second)
+    resultMap.outputs.push_back({.resultIndex = result,
+                                 .outputName = info.registerName,
+                                 .outputPosition = info.outputPosition});
+  return resultMap;
+}
+
+std::optional<sample_result>
+ServerHelper::tryReconstructFromResultIndexedCounts(
+    const std::string &jobId, const CountsDictionary &counts,
+    const std::vector<std::string> &sequentialData) {
+  const auto resultMap = resultMapForJob(jobId);
+  if (!resultMap)
+    return std::nullopt;
+  return reconstructSampleResultFromResultIndexedMeasurements(
+      counts, *resultMap, sequentialData);
+}
+
 void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
   // Parse common parameters for each job and place into member variables
   for (auto &[key, val] : config) {
@@ -28,11 +54,18 @@ void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
       // LowerToQIRProfile.cpp for an example of how this was populated.
       OutputNamesType jobOutputNames;
       nlohmann::json outputNamesJSON = nlohmann::json::parse(val);
+      std::size_t denseResultIndex = 0;
       for (const auto &el : outputNamesJSON[0]) {
-        auto result = el[0].get<std::size_t>();
-        auto qubitNum = el[1][0].get<std::size_t>();
-        auto registerName = el[1][1].get<std::string>();
-        jobOutputNames[result] = {qubitNum, registerName};
+        const auto result = el[0].get<std::size_t>();
+        const auto &outputLocation = el[1];
+        const auto qubitNum = outputLocation[0].get<std::size_t>();
+        auto registerName = outputLocation[1].get<std::string>();
+        std::size_t outputPosition = denseResultIndex;
+        if (outputLocation.size() > 2)
+          outputPosition = outputLocation[2].get<std::size_t>();
+        jobOutputNames[result] = {qubitNum, std::move(registerName),
+                                  outputPosition};
+        ++denseResultIndex;
       }
 
       this->outputNames[newKey] = jobOutputNames;

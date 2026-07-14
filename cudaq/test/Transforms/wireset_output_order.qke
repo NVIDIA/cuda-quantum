@@ -1,0 +1,54 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --wireset-to-profile-qir-prep --wireset-to-profile-qir --symbol-dce %s | FileCheck %s
+// `mapping_v2p` maps logical qubits 0, 1, and 2 to physical qubits 5, 9,
+// and 1. Verify that wire-set QIR lowering inverts this mapping when building
+// enriched `output_names`, so each result retains its physical QIR qubit while
+// its output position follows logical-qubit order. The partial case also
+// verifies that output positions are densely ranked over the measured subset.
+
+// This matches the default-sampling convention, as validated in
+// `test_explicit_measurements.py::test_measurement_order`:
+// measured bits follow qubit allocation order, not `mz` execution order.
+
+quake.wire_set @phys[10]
+
+func.func @reversed_terminal_order() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [5, 9, 1]} {
+  %q2 = quake.borrow_wire @phys[1] : !quake.wire
+  %q0 = quake.borrow_wire @phys[5] : !quake.wire
+  %q1 = quake.borrow_wire @phys[9] : !quake.wire
+  %m2, %w2 = quake.mz %q2 name "r2" : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m0, %w0 = quake.mz %q0 name "r0" : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %q1 name "r1" : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  quake.return_wire %w2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @reversed_terminal_order() attributes
+// Inverse mapping: physical [1, 5, 9] -> logical/output positions [2, 0, 1].
+// CHECK-SAME: output_names = "{{\[\[}}[0,[1,\22r2\22,2]],[1,[5,\22r0\22,0]],[2,[9,\22r1\22,1]]]]"
+
+func.func @partial_terminal_measurement() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [5, 9, 1]} {
+  %q2 = quake.borrow_wire @phys[1] : !quake.wire
+  %q0 = quake.borrow_wire @phys[5] : !quake.wire
+  %q1 = quake.borrow_wire @phys[9] : !quake.wire
+  %m2, %w2 = quake.mz %q2 name "r2" : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m0, %w0 = quake.mz %q0 name "r0" : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %q1 : !quake.wire
+  quake.return_wire %w2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @partial_terminal_measurement() attributes
+// Measured inverse mapping: physical [1, 5] -> logical [2, 0].
+// Dense ranking of that logical subset gives output positions [1, 0].
+// CHECK-SAME: output_names = "{{\[\[}}[0,[1,\22r2\22,1]],[1,[5,\22r0\22,0]]]]"

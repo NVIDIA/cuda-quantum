@@ -246,6 +246,16 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
+# Focused tests for provider result-coordinate reconstruction.
+add_executable(test_result_reconstruction main.cpp
+  nvqpp/common/ResultReconstructionTester.cpp)
+target_include_directories(test_result_reconstruction PRIVATE
+  ${CMAKE_SOURCE_DIR}/runtime)
+target_link_libraries(test_result_reconstruction PRIVATE
+  cudaq-common
+  gtest_main)
+cudaq_gtest_discover_tests(test_result_reconstruction DISCOVERY_TIMEOUT 120)
+
 add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)

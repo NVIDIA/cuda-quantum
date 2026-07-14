@@ -629,7 +629,11 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
         resultResponse["data"]["attributes"]["results"];
     CUDAQ_DBG("Count result data: {}", qirResults);
 
-    return createSampleResultFromQirOutput(qirResults);
+    auto sampleResult = createSampleResultFromQirOutput(qirResults);
+    if (auto result = tryReconstructFromResultIndexedCounts(
+            jobId, sampleResult.to_map(), sampleResult.sequential_data()))
+      return *result;
+    return sampleResult;
   }
 }
 

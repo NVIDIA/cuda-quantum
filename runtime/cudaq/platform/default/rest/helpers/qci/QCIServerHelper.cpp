@@ -276,7 +276,11 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_INFO("jobId: {}", jobId);
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   auto qirResults = getOutputLog(outputPath);
-  return createSampleResultFromQirOutput(qirResults);
+  auto sampleResult = createSampleResultFromQirOutput(qirResults);
+  if (auto result = tryReconstructFromResultIndexedCounts(
+          jobId, sampleResult.to_map(), sampleResult.sequential_data()))
+    return *result;
+  return sampleResult;
 }
 
 std::map<std::string, std::string>

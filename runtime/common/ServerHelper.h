@@ -14,11 +14,13 @@
 #include "KernelExecution.h"
 #include "Registry.h"
 #include "Resources.h"
+#include "ResultReconstruction.h"
 #include "RuntimeTarget.h"
 #include "SampleResult.h"
 #include "common/RecordLogParser.h"
 #include "cudaq_json.h"
 #include <filesystem>
+#include <optional>
 
 namespace cudaq {
 
@@ -44,6 +46,7 @@ using ServerJobPayload =
 struct ResultInfoType {
   std::size_t qubitNum;
   std::string registerName;
+  std::size_t outputPosition = 0;
 };
 
 /// @brief Results information, indexed by 0-based result number
@@ -72,6 +75,15 @@ protected:
 
   /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
+
+  /// Build the output map for a job from enriched output_names.
+  std::optional<ResultOutputMap>
+  resultMapForJob(const std::string &jobId) const;
+
+  /// Reconstruct QIR-style counts whose bit positions are compact result ids.
+  std::optional<sample_result> tryReconstructFromResultIndexedCounts(
+      const std::string &jobId, const CountsDictionary &counts,
+      const std::vector<std::string> &sequentialData = {});
 
   /// @brief  Information about the runtime target managing this server helper.
   RuntimeTarget runtimeTarget;

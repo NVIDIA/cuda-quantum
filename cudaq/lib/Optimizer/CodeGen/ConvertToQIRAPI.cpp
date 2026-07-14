@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
@@ -1784,10 +1785,8 @@ struct AnnotateKernelsWithMeasurementStringsPattern
     if (nameMap.empty())
       return failure();
 
-    // Append the name map. Use a `const T&` to introduce another layer of
-    // brackets here to maintain backwards compatibility.
-    const auto &outputNameMapRef = nameMap;
-    nlohmann::json outputNames{outputNameMapRef};
+    nlohmann::json outputNames =
+        cudaq::opt::buildEnrichedOutputNamesJson(nameMap, {});
     std::string outputNamesStr = outputNames.dump();
     SmallVector<Attribute> funcAttrs(passthru.begin(), passthru.end());
     funcAttrs.push_back(

@@ -22,6 +22,7 @@ set(COMMON_RUNTIME_SRC
   Future.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
+  ResultReconstruction.cpp
   Resources.cpp
   RuntimeTarget.cpp
   SampleResult.cpp

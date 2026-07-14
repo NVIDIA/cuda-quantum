@@ -8,7 +8,7 @@
 
 import cudaq
 from fastapi import FastAPI, HTTPException, Request
-import uvicorn, uuid, base64, ctypes, sys, re
+import uvicorn, uuid, base64, ctypes, sys, re, json
 from llvmlite import binding as llvm
 from preallocated_qubits_context import PreallocatedQubitsContext
 from cudaq.mlir.passmanager import PassManager
@@ -112,6 +112,25 @@ def getNumRequiredResults(function):
                     "\"", "").replace("'", ""))
 
 
+def getOutputNames(function):
+    for attribute in function.attributes:
+        # `llvmlite` may expose function attributes as either bytes or a
+        # string-like object, so normalize them before inspecting the text.
+        value = (attribute.decode("utf-8")
+                 if isinstance(attribute, bytes) else str(attribute))
+        # The enriched JSON is stored in the QIR function's `output_names`
+        # string attribute.
+        marker = 'output_names\"=\"'
+        if marker not in value:
+            continue
+        # Quotes within an LLVM string attribute are encoded as `\22`. The
+        # next ordinary quote therefore terminates the attribute value.
+        encoded = value.split(marker, 1)[1].split('\"', 1)[0]
+        return json.loads(encoded.replace('\\22', '"'))
+    # Some QIR entry points do not carry result metadata.
+    return []
+
+
 def getKernelFunction(module):
     for f in module.functions:
         if not f.is_declaration:
@@ -191,6 +210,7 @@ async def postJob(request: Request):
         raise Exception("Could not find kernel function")
     numQubitsRequired = getNumRequiredQubits(function)
     numResultsRequired = getNumRequiredResults(function)
+    outputNames = getOutputNames(function)
     kernelFunctionName = function.name
 
     # Job ID
@@ -217,7 +237,7 @@ async def postJob(request: Request):
         qir_log += "END\t0\n"
 
     engine.remove_module(m)
-    createdJobs[newId] = qir_log
+    createdJobs[newId] = {"qir_output": qir_log, "output_names": outputNames}
     # Job "created", return the id
     return ({"id": newId}, 201)
 
@@ -228,10 +248,10 @@ async def getJob(jobId: str):
         raise HTTPException(status_code=404, detail="Job ID not found")
 
     job_output = createdJobs[jobId]
-    if job_output.startswith("FAILURE:"):
-        res = ({"status": "error", "message": job_output}, 200)
+    if job_output["qir_output"].startswith("FAILURE:"):
+        res = ({"status": "error", "message": job_output["qir_output"]}, 200)
     else:
-        res = ({"status": "done", "qir_output": job_output}, 201)
+        res = ({"status": "done", **job_output}, 201)
     return res
 
 
