@@ -39,6 +39,86 @@ typedef enum {
   UNIFIED = 1,     /// Unified transport context  for unified dispatch
 } cudaq_realtime_transport_context_t;
 
+/// Result of a non-blocking RX poll on the ringbuffer dataplane.
+typedef enum {
+  CUDAQ_RX_READY = 0, ///< A request is ready
+  CUDAQ_RX_EMPTY = 1, ///< No request ready
+} cudaq_rx_status_t;
+
+/// Non-blocking inbound-poll hook.
+///
+/// This hook is necessary for providers supporting the unified dispatcher loop.
+///
+/// Behavior: check whether the transport has a fully received RPC request
+/// ready for the dispatcher to process:
+///   - If one is ready, claim it (advance the transport's RX cursor), write its
+///     ringbuffer slot index to `*out_slot`, and return CUDAQ_RX_READY. The
+///     request's RPCHeader + payload MUST already be fully written and visible
+///     to the CPU before this returns (i.e. publish with acquire/release
+///     ordering, not just a bare store).
+///
+///   - Otherwise leave `*out_slot` unchanged and return CUDAQ_RX_EMPTY.
+///
+/// Interface:
+///   - `ctx`      : the provider's own state pointer, handed back unchanged
+///                  from the `ctx` field the provider set in
+///                  `cudaq_cpu_dataplane_t`.
+///
+///   - `out_slot` : output parameter, set to a slot index in `[0, num_slots)`
+///                  only when returning CUDAQ_RX_READY.
+///
+/// Contract: MUST NOT block (return CUDAQ_RX_EMPTY instead of waiting) and
+/// should be cheap, the dispatch loop calls it in a tight spin.
+typedef cudaq_rx_status_t (*cudaq_cpu_rx_poll_fn_t)(void *ctx,
+                                                    uint32_t *out_slot);
+
+/// Outbound-publish hook a unified transport provider must implement.
+///
+/// This hook is necessary for providers supporting the unified dispatcher loop.
+///
+/// Behavior: transmit the response the dispatch loop has just written into the
+/// TX slot at `slot`. The implementation is responsible for whatever it takes
+/// to put that slot on the wire: an ordering/visibility fence, any
+/// host<->device or device<->wire copy, and ringing the transport's TX
+/// doorbell.
+///
+/// Interface:
+///   - `ctx`    : the provider's own state pointer, handed back unchanged from
+///                the `ctx` field the provider set in `cudaq_cpu_dataplane_t`.
+///   - `slot`   : the ring slot index to publish.
+///   - returns  : CUDAQ_OK on success, or a cudaq_status_t error code.
+///
+/// Contract: invoked only from the dispatcher's single unified thread.  It is
+/// slot-addressed rather than FIFO, so responses MAY be published out of the
+/// order their requests arrived.
+typedef cudaq_status_t (*cudaq_cpu_tx_publish_fn_t)(void *ctx, uint32_t slot);
+
+/// The CPU/host-driven unified data-plane: a device-visible ringbuffer plus the
+/// two host-callable ops that drive it, which a transport provider exposes for
+/// the CPU dispatch loop.
+///
+/// The library's single-thread unified dispatch loop
+/// (`cudaq_host_unified_loop`, used for CUDAQ_DISPATCH_PATH_HOST +
+/// CUDAQ_KERNEL_UNIFIED) owns one of these and, on its own thread, repeatedly
+/// calls `rx_poll` to pull the next request out of `ring`, dispatches it
+/// (HOST_CALL inline, GRAPH_LAUNCH via the graph engine), and calls
+/// `tx_publish` to send each response back out `ring`.  A provider that
+/// supports this shape returns a fully populated instance from its
+/// `get_cpu_dataplane` callback; providers that do not leave that callback
+/// NULL.
+typedef struct {
+  void *ctx; ///< Transport-resident ring state.  Passed verbatim as the first
+             ///< argument to `rx_poll` and `tx_publish`; opaque to the library.
+  cudaq_ringbuffer_t ring; ///< Device-visible RX/TX data + tx flags together
+                           ///< with their host-mapped views.  The unified loop
+                           ///< reads `rx_data_host` / `tx_data_host` (and
+                           ///< `tx_flags_host` to detect GRAPH_LAUNCH graph
+                           ///< completion), so the host-view pointers and slot
+                           ///< strides MUST be populated.
+  cudaq_cpu_rx_poll_fn_t rx_poll; ///< Non-blocking inbound poll; required.
+  cudaq_cpu_tx_publish_fn_t tx_publish; ///< Outbound publish; required.
+} cudaq_cpu_dataplane_t;
+
 /// @brief Create and initialize a transport bridge for the specified provider.
 /// For the built-in Hololink provider, this loads the Hololink shared library
 /// and initializes the transceiver with the provided `args`.  For the EXTERNAL
@@ -87,6 +167,12 @@ typedef struct {
   cudaq_status_t (*connect)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*launch)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
+
+  /// Fills *out with the ring data-plane the library's single-thread
+  /// unified CPU loop drives. `out` must be set to NULL if the transport does
+  /// not support the unified shape.
+  cudaq_status_t (*get_cpu_dataplane)(cudaq_realtime_bridge_handle_t,
+                                      cudaq_cpu_dataplane_t *out);
 
 } cudaq_realtime_bridge_interface_t;
 
