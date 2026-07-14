@@ -388,8 +388,7 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
-# Stats-only export: lets CI evaluate the push gate without extracting
-# the multi-GB cache (see .github/actions/ccache-extract).
+# Stats-only export for the CI extraction gate (ccache-extract action).
 FROM scratch AS ccache-export-stats
 COPY --from=cpp_build /root/.ccache/_build_stats.txt /
 

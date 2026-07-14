@@ -101,9 +101,8 @@ runs:
         fi
         add_branch_tag main
 
-        # Reorder candidates newest-first by manifest creation time so a
-        # stale PR tag cannot shadow a fresher branch or main cache.
-        # Tags without a readable timestamp keep their priority order.
+        # Try candidates newest-first (manifest creation time) so a stale PR
+        # tag cannot shadow a fresher branch or main cache.
         stamped=""
         unstamped=""
         for tag in "${tags[@]}"; do

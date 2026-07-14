@@ -61,9 +61,8 @@ runs:
 
         threshold="${{ inputs.miss-threshold }}"
         if ! $always_push && [ "$threshold" -gt 0 ] 2>/dev/null; then
-          # Stats-only export is a few KB; the full cache tar is multi-GB.
           # A missing -stats stage or unparsable stats falls through to the
-          # full extraction, matching the previous behavior.
+          # full extraction.
           mkdir -p /tmp/ccache-stats
           build "${{ inputs.export-target }}-stats" /tmp/ccache-stats || true
           if [ -f /tmp/ccache-stats/_build_stats.txt ]; then

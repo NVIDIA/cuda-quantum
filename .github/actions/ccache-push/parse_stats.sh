@@ -1,7 +1,6 @@
 #!/bin/bash
-# Parses ccache stats from stdin and prints "<cacheable_calls> <cache_misses>".
-# Prints nothing when the format is unrecognized. Handles all three formats:
-# tab-separated --print-stats (>= 4.1), human 4.x, and human 3.x output.
+# Prints "<cacheable_calls> <cache_misses>" parsed from ccache stats on stdin;
+# nothing if unrecognized. Handles --print-stats, human 4.x, and human 3.x.
 awk '
   /^direct_cache_hit[ \t]/          { mdh = $2; machine = 1 }
   /^preprocessed_cache_hit[ \t]/    { mph = $2; machine = 1 }
