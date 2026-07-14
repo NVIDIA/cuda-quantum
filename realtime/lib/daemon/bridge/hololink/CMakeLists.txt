@@ -170,7 +170,6 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
 
   target_link_libraries(cudaq-realtime-bridge-hololink
     PRIVATE
-      hololink_wrapper_generic
       ${GPU_ROCE_TRANSCEIVER_LIB}
       ${BASE_RECEIVER_OP_LIB}
       ${HOLOLINK_CORE_LIB}
@@ -190,7 +189,6 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     "LINKER:--allow-multiple-definition")
 
   if (holoscan_FOUND)
-    target_link_libraries(cudaq-realtime-bridge-hololink PRIVATE holoscan::core)
     target_link_libraries(cudaq-realtime-bridge-hololink PRIVATE holoscan::core)
   endif()
 
