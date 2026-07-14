@@ -687,8 +687,12 @@ if (DEFINED ENV{CUDA_QUANTUM_VERSION})
   # use the value provided as is.
   set(CUDA_QUANTUM_VERSION "$ENV{CUDA_QUANTUM_VERSION}")
 else()
-  # Otherwise, create a version based on the nearest tag in the git repo.
+  # Otherwise, create a version based on the nearest release tag in the git repo.
+  # Restrict the match to X.Y.Z-style release tags so that non-release lightweight
+  # tags (e.g. proto-*, slush-*, staging-*) are not picked up: those are not valid
+  # semantic versions and would fail external-backend cudaq-version validation.
   execute_process(COMMAND git describe --tags --abbrev=0 --dirty=-developer
+                          --match "[0-9]*.[0-9]*.[0-9]*"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE CUDA_QUANTUM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET)
