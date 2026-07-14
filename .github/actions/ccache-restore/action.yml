@@ -38,6 +38,8 @@ runs:
       continue-on-error: true
       shell: bash
       run: |
+        # continue-on-error hides failures here; make them visible on the run.
+        trap 'echo "::warning title=ccache restore failed::Unexpected error in ccache-restore; the build runs with a cold cache."' ERR
         repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
         image="ghcr.io/${repo_owner}/cuda-quantum-${platform}-ccache"
@@ -106,8 +108,9 @@ runs:
         stamped=""
         unstamped=""
         for tag in "${tags[@]}"; do
+          # Guarded: runs under -e -o pipefail, and fetches of missing tags fail.
           created=$(oras manifest fetch "$image:$tag" 2>/dev/null \
-            | sed -n 's/.*"org\.opencontainers\.image\.created" *: *"\([^"]*\)".*/\1/p' | head -1)
+            | sed -n 's/.*"org\.opencontainers\.image\.created" *: *"\([^"]*\)".*/\1/p' | head -1 || true)
           if [ -n "$created" ]; then
             stamped="${stamped}${created} ${tag}"$'\n'
           else
