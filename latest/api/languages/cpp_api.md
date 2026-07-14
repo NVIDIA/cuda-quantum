@@ -12614,9 +12614,8 @@ discriminate a vector of handles.
 
     []{#structcudaq_1_1dem__options_1a00307bf104a7b5ddd47746d1b2aebf98 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[return_measurement_matrices]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options27return_measurement_matricesE "Permalink to this definition"){.headerlink}\
 
-    :   When true, the DEM execution also populates
-        [`ExecutionContext::measurement_matrices`{.docutils .literal
-        .notranslate}]{.pre}.
+    :   When true, also compute the measurement-to-detector and
+        measurement-to-observable matrices.
     :::
 
 ```{=html}

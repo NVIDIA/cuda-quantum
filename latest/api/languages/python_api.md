@@ -2762,13 +2762,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 :   Generate a detector error model (DEM) from a CUDA-Q kernel.
 
     Runs [`kernel`{.code .docutils .literal .notranslate}]{.pre} under
-    the internal [`"dem"`{.code .docutils .literal .notranslate}]{.pre}
-    execution context, captures the recorded circuit from the backend,
-    and returns Stim's standard [`.dem`{.code .docutils .literal
-    .notranslate}]{.pre} text via
+    [`dem_policy`{.code .docutils .literal .notranslate}]{.pre} with a
+    thread-local Stim analysis scope, then returns Stim's standard
+    [`.dem`{.code .docutils .literal .notranslate}]{.pre} text via
     [`stim::DetectorErrorModel::str()`{.code .docutils .literal
-    .notranslate}]{.pre}. The active CUDA-Q target is unaffected; the
-    analysis simulator is an internal, thread-local override.
+    .notranslate}]{.pre}. The active CUDA-Q target is unaffected.
 
     Parameters[:]{.colon}
 
