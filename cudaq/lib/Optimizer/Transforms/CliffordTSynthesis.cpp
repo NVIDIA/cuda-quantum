@@ -65,7 +65,7 @@ struct PreCheck {
 // Materialize a body of Clifford+T gates onto `qubit` from a synthesized
 // `Circuit`.
 static void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
-                     const cudaq::synth::Circuit &circuit) {
+                            const cudaq::synth::Circuit &circuit) {
   for (cudaq::synth::Gate g : circuit) {
     switch (g) {
     case cudaq::synth::Gate::H:
