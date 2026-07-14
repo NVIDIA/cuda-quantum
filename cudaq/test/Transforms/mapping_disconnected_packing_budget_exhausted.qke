@@ -18,7 +18,7 @@
 
 quake.wire_set @wires[2147483647]
 
-// expected-error @+1 {{within the island-packing attempt budget of 3 attempts}} {{increase island-packing-attempt-budget to search further}}
+// expected-error @+1 {{could not find a routable initial layout for disconnected device topology within the island-packing attempt budget of 3 attempts; increase island-packing-attempt-budget to search further}}
 func.func @packing_budget_exhausted() {
   %v0 = quake.borrow_wire @wires[0] : !quake.wire
   %v1 = quake.borrow_wire @wires[1] : !quake.wire
