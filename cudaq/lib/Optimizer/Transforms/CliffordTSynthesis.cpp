@@ -49,9 +49,22 @@ struct SynthState {
   uint64_t hits = 0;
 };
 
+// Outcome of validateRotationOperands. The caller maps each action to a
+// LogicalResult:
+//    Lower -> proceed and return success()
+//    LeaveInPlace -> return failure() with the op untouched
+//    Erased -> return success() with no further emission.
+struct PreCheck {
+  enum class Action { Lower, LeaveInPlace, Erased };
+  Action action;
+  double theta;
+};
+
+} // namespace
+
 // Materialize a body of Clifford+T gates onto `qubit` from a synthesized
 // `Circuit`.
-void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
+static void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
                      const cudaq::synth::Circuit &circuit) {
   for (cudaq::synth::Gate g : circuit) {
     switch (g) {
@@ -80,7 +93,7 @@ void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
 // miss we run gridsynth, materialize the helper at module top level, and
 // stash a FlatSymbolRefAttr so subsequent rotations with the same angle
 // just emit a func.call.
-llvm::FailureOr<mlir::FlatSymbolRefAttr>
+static llvm::FailureOr<mlir::FlatSymbolRefAttr>
 getOrCreateRzHelper(double theta, const RotationOptions &opts,
                     SynthState &state) {
   uint64_t key = llvm::bit_cast<uint64_t>(theta);
@@ -126,17 +139,6 @@ getOrCreateRzHelper(double theta, const RotationOptions &opts,
   return symRef;
 }
 
-// Outcome of validateRotationOperands. The caller maps each action to a
-// LogicalResult:
-//    Lower -> proceed and return success()
-//    LeaveInPlace -> return failure() with the op untouched
-//    Erased -> return success() with no further emission.
-struct PreCheck {
-  enum class Action { Lower, LeaveInPlace, Erased };
-  Action action;
-  double theta;
-};
-
 // Validates the common preconditions shared by every rotation lowering:
 //   - controls non-empty                  -> remark, LeaveInPlace
 //   - adjoint rotation                    -> error,  LeaveInPlace (hard error)
@@ -145,11 +147,11 @@ struct PreCheck {
 //   - NaN/Inf angle                       -> error,  LeaveInPlace (hard error)
 //   - |theta| < skipBelow                 -> erase,  Erased
 //   - otherwise                           -> Lower with the constant angle
-PreCheck validateRotationOperands(Operation *op, Value angleVal,
-                                  ValueRange controls,
-                                  PatternRewriter &rewriter,
-                                  const RotationOptions &opts,
-                                  bool *hadHardError) {
+static PreCheck validateRotationOperands(Operation *op, Value angleVal,
+                                         ValueRange controls,
+                                         PatternRewriter &rewriter,
+                                         const RotationOptions &opts,
+                                         bool *hadHardError) {
   if (!controls.empty()) {
     op->emitRemark("clifford-t-synthesis: skipping controlled rotation; run "
                    "ApplyOpSpecialization to materialize controls before "
@@ -192,6 +194,8 @@ PreCheck validateRotationOperands(Operation *op, Value angleVal,
 
   return {PreCheck::Action::Lower, theta};
 }
+
+namespace {
 
 struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
   RzPattern(MLIRContext *ctx, RotationOptions opts, SynthState *state,
