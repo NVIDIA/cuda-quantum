@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/ptsbe/policy.h"

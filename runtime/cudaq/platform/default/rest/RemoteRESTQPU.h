@@ -11,6 +11,11 @@
 #include "common/BaseRemoteRESTQPU.h"
 #include "common/CompiledModule.h"
 
+#if defined(__NVCC_DIAG_PRAGMA_SUPPORT__)
+#pragma nv_diagnostic push
+#pragma nv_diag_suppress 611
+#endif
+
 namespace cudaq {
 
 /// @brief The RemoteRESTQPU is a subtype of QPU that enables the
@@ -50,5 +55,9 @@ public:
                                     const CompiledModule &module,
                                     KernelArgs args) override;
 };
+
+#if defined(__NVCC_DIAG_PRAGMA_SUPPORT__)
+#pragma nv_diagnostic pop
+#endif
 
 } // namespace cudaq

@@ -11,6 +11,11 @@
 #include "common/BaseRemoteRESTQPU.h"
 #include <optional>
 
+#if defined(__NVCC_DIAG_PRAGMA_SUPPORT__)
+#pragma nv_diagnostic push
+#pragma nv_diag_suppress 611
+#endif
+
 namespace cudaq {
 
 /// @brief The `FermioniqBaseQPU` is a QPU that allows users to
@@ -64,5 +69,9 @@ public:
                                     const CompiledModule &module,
                                     KernelArgs args) override;
 };
+
+#if defined(__NVCC_DIAG_PRAGMA_SUPPORT__)
+#pragma nv_diagnostic pop
+#endif
 
 } // namespace cudaq
