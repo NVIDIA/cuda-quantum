@@ -73,7 +73,7 @@ keyword arguments for ``cudaq.set_target()``:
         help-string: "API key for the backend."
       - key: shots
         required: false
-        type: int
+        type: integer
         platform-arg: shots
         help-string: "Default shot count."
 
