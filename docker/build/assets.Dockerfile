@@ -164,7 +164,7 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
 # that can then be linked to and called from other C++ code compiled with a different toolchain
 # and linked against a different standard library.
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
+    LLVM_STAGE1_BUILD=/usr/local/llvm-stage1 \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
