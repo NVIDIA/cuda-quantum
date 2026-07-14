@@ -195,10 +195,6 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       kernel remain correct (the phase becomes an observable relative phase
       under `cudaq::control`).
 
-    The pass is gated at build time on `CUDAQ_HAS_CLIFFORD_T_SYNTHESIS`.
-    When the synthesis library is not available, `runOnOperation` emits a
-    fatal diagnostic.
-
     Gridsynth is probabilistic and slow (seconds per rotation). This pass
     is opt-in via the `cudaq-fault-tolerant-target` pipeline only; it is
     NOT added to the default target-prep pipeline.
