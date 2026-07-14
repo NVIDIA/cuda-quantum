@@ -165,25 +165,6 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   message(STATUS "Building hololink_bridge (generic increment)")
   message(STATUS "  GPU RoCE Transceiver: ${GPU_ROCE_TRANSCEIVER_LIB}")
 
-  # Hololink wrapper static library (compiled by g++, isolates fmt).
-  # Use the realtime source root so this path works when nested in CUDA-Q.
-  add_library(hololink_wrapper_generic STATIC
-    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
-
-  target_include_directories(hololink_wrapper_generic
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}
-      ${CUDAQ_REALTIME_INCLUDE_DIR}
-      "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
-      ${DOCA_INCLUDE_DIR}
-      ${CUDAToolkit_INCLUDE_DIRS}
-      ${FMT_INCLUDE_DIR})
-
-  target_link_libraries(hololink_wrapper_generic
-    PRIVATE ${GPU_ROCE_TRANSCEIVER_LIB})
-
-  target_compile_options(hololink_wrapper_generic PRIVATE -Wno-deprecated-declarations)
-
   # Increment function table (compiled by nvcc)
   add_library(rpc_increment_ft STATIC
     init_rpc_increment_function_table.cu)
@@ -217,7 +198,6 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       rpc_increment_ft
       cudaq-realtime-dispatch
       cudaq-realtime-bridge-hololink
-      hololink_wrapper_generic
       ${GPU_ROCE_TRANSCEIVER_LIB}
       ${BASE_RECEIVER_OP_LIB}
       ${HOLOLINK_CORE_LIB}
@@ -234,7 +214,6 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
 
   if (holoscan_FOUND)
     target_link_libraries(hololink_bridge PRIVATE holoscan::core)
-    target_link_libraries(hololink_wrapper_generic PRIVATE holoscan::core)
   endif()
 
   # Set RPATH for shared libraries
