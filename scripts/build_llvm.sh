@@ -205,10 +205,8 @@ if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
 fi
 
 # Use ccache to skip recompiling unchanged objects when it's available.
-# PCH stays enabled: CCACHE_SLOPPINESS must not include pch_defines, so
-# ccache refuses to cache .pch creation (flang's .pch embeds per-run mktemp
-# paths to the stage-1 toolchain, and a replayed .pch has dead paths) and
-# regenerates it fresh each build while still caching regular compilations.
+# pch_defines in CCACHE_SLOPPINESS also caches .pch creation; safe because the
+# stage-1 paths embedded in flang's .pch are pinned (LLVM_STAGE1_BUILD).
 ccache_cmake_args=""
 if command -v ccache >/dev/null 2>&1; then
   ccache_cmake_args=" \

@@ -93,7 +93,7 @@ ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
 # from a previous run. Needs the build_llvm.sh ccache launcher (PR #4484).
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/llvm-project
-ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
 ENV CCACHE_COMPILERCHECK=content
 ENV CCACHE_MAXSIZE=10G
 RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
