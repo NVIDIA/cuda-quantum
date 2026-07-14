@@ -69,6 +69,7 @@ void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
       break;
     case cudaq::synth::Gate::W:
       // omega = e^{i*pi/4} global phase - dropped.
+      // TODO: emit this phase once global-phase support lands in Quake.
       break;
     }
   }
