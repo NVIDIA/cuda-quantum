@@ -62,8 +62,8 @@ runs:
         threshold="${{ inputs.miss-threshold }}"
         if ! $always_push && [ "$threshold" -gt 0 ] 2>/dev/null; then
           # A missing -stats stage or unparsable stats falls through to the
-          # full extraction.
-          mkdir -p /tmp/ccache-stats
+          # full extraction. Clean first: stale stats must not gate this run.
+          rm -rf /tmp/ccache-stats && mkdir -p /tmp/ccache-stats
           build "${{ inputs.export-target }}-stats" /tmp/ccache-stats || true
           if [ -f /tmp/ccache-stats/_build_stats.txt ]; then
             read -r calls misses <<< "$(bash "${{ github.action_path }}/../ccache-push/parse_stats.sh" < /tmp/ccache-stats/_build_stats.txt)"
@@ -79,7 +79,7 @@ runs:
         fi
 
         out="${{ inputs.output-path }}"
-        mkdir -p "$out"
+        rm -rf "$out" && mkdir -p "$out"
         build "${{ inputs.export-target }}" "$out"
         [ -f "$out/ccache.tar" ] || { echo "No ccache.tar produced; skipping push."; exit 0; }
         mkdir -p "$out/ccache"
