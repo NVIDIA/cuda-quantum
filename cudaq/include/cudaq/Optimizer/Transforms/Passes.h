@@ -61,8 +61,18 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// constant propagation
 /// CliffordTSynthesis
 /// Decomposition to the {H, S, T, X, Z, CNOT} basis
-/// Opt-in only.
-/// This helper is not added to default target pipelines.
+///
+/// Intent: this is the production entry point for fault-tolerant lowering. It
+/// is the exact sub-pipeline registered as `cudaq-fault-tolerant-target` (see
+/// registerFaultTolerantTargetPipeline), not a test-only helper. The prelude
+/// passes (UnitarySynthesis, ApplyOpSpecialization, constant propagation) are
+/// included on purpose so the sub-pipeline is self-contained and establishes
+/// CliffordTSynthesis's preconditions (materialized controls/adjoints, folded
+/// constant angles) regardless of what ran before it. That means these passes
+/// may re-run if an enclosing pipeline already scheduled them; the passes are
+/// idempotent on already-lowered IR, so the duplication is safe.
+///
+/// Opt-in only. This helper is not added to default target pipelines.
 void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
 
 void registerAOTPipelines();
