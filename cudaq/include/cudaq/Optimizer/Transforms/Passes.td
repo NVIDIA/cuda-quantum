@@ -212,7 +212,10 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       /*default=*/"\"error\"",
       "Behavior on non-constant rotation angles: 'error' or 'skip'.">,
     Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
-      "Skip rotations whose |theta| is below this threshold.">,
+      "Erase (treat as identity) rotations whose |theta| is below this "
+      "threshold, rather than synthesizing a Clifford+T approximation for "
+      "them. Set to 0 to disable and synthesize every constant-angle "
+      "rotation.">,
   ];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
