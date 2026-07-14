@@ -12,15 +12,10 @@ ARG base_image
 FROM ${base_image} AS qdmi-build
 SHELL ["/bin/bash", "-c"]
 
-# Use the released MQT Core package by default. The CI workflow pins a source
-# revision until the required MQT Core changes are released.
-ARG mqt_core_ref=
-RUN if [ -n "$mqt_core_ref" ]; then \
-        python3 -m pip install --break-system-packages \
-          "git+https://github.com/munich-quantum-toolkit/core.git@$mqt_core_ref"; \
-    else \
-        python3 -m pip install --break-system-packages mqt-core; \
-    fi
+# TODO: Use the released package once
+# https://github.com/munich-quantum-toolkit/core/pull/1887 is released.
+RUN python3 -m pip install --break-system-packages \
+      "git+https://github.com/munich-quantum-toolkit/core.git@def69f1517602ba802d1401ab97e6fa331e99d2e"
 
 ARG workspace=.
 ARG destination="$CUDAQ_REPO_ROOT"
