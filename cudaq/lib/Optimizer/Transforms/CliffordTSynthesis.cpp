@@ -139,6 +139,7 @@ struct PreCheck {
 
 // Validates the common preconditions shared by every rotation lowering:
 //   - controls non-empty                  -> remark, LeaveInPlace
+//   - adjoint rotation                    -> error,  LeaveInPlace (hard error)
 //   - non-constant angle, on-dyn=error    -> error,  LeaveInPlace (hard error)
 //   - non-constant angle, on-dyn=skip     -> remark, LeaveInPlace
 //   - NaN/Inf angle                       -> error,  LeaveInPlace (hard error)
@@ -153,6 +154,13 @@ PreCheck validateRotationOperands(Operation *op, Value angleVal,
     op->emitRemark("clifford-t-synthesis: skipping controlled rotation; run "
                    "ApplyOpSpecialization to materialize controls before "
                    "synthesis");
+    return {PreCheck::Action::LeaveInPlace, 0.0};
+  }
+
+  // Adjoint rotations must be resolved before this pass.
+  if (cast<cudaq::quake::OperatorInterface>(op).isAdj()) {
+    op->emitError("clifford-t-synthesis: adjoint rotation reached synthesis.");
+    *hadHardError = true;
     return {PreCheck::Action::LeaveInPlace, 0.0};
   }
 
