@@ -47,8 +47,9 @@ static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
         if (!registered) {
 #ifdef __APPLE__
           cudaq_internal::compiler::initializeMLIR();
-#endif
+#else
           cudaq::registerAllPasses();
+#endif
           registered = true;
         }
       },
