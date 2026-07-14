@@ -191,8 +191,10 @@ void IQMServerHelper::initialize(BackendConfig config) {
   } else {
     // Set alternative iqmclient-cli tokens file path if provided via env var
     auto envTokenFilePath = getenv("IQM_TOKENS_FILE");
+    const char *homeDir = getenv("HOME");
     auto defaultTokensFilePath =
-        std::string(getenv("HOME")) + "/.cache/iqm-client-cli/tokens.json";
+        homeDir ? std::string(homeDir) + "/.cache/iqm-client-cli/tokens.json"
+                : std::string();
     if (envTokenFilePath) {
       tokensFilePath = std::string(envTokenFilePath);
     } else if (cudaq::fileExists(defaultTokensFilePath)) {
@@ -630,7 +632,6 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
   }
 
   fclose(file);
-  close(fd);
 
   return quantumArchitectureFilePath;
 } // IQMServerHelper::writeQuantumArchitectureFile()
