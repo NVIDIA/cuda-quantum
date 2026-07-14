@@ -106,7 +106,9 @@ jobs:
           registry_cache=`echo "${{ inputs.build_cache }}" | (egrep -o 'type=registry,ref=[a-zA-Z0-9_:/\.-]*' || echo)`
           registry_cache_image=`echo $registry_cache | rev | cut -d : -f2- | rev`
 
-          ccache_key=${platform_tag}-${build_config_id:+$build_config_id-}assets
+          # Same key the source_build (prereqs) caching jobs use, so the
+          # installer restores the LLVM cache they pushed earlier in the run.
+          ccache_key=assets-${platform_tag}${build_config_id:+-$build_config_id}
 
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
