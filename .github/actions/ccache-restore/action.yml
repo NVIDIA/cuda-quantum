@@ -101,8 +101,25 @@ runs:
         fi
         add_branch_tag main
 
-        restored=false
+        # Reorder candidates newest-first by manifest creation time so a
+        # stale PR tag cannot shadow a fresher branch or main cache.
+        # Tags without a readable timestamp keep their priority order.
+        stamped=""
+        unstamped=""
         for tag in "${tags[@]}"; do
+          created=$(oras manifest fetch "$image:$tag" 2>/dev/null \
+            | sed -n 's/.*"org\.opencontainers\.image\.created" *: *"\([^"]*\)".*/\1/p' | head -1)
+          if [ -n "$created" ]; then
+            stamped="${stamped}${created} ${tag}"$'\n'
+          else
+            unstamped="${unstamped}${tag}"$'\n'
+          fi
+        done
+        ordered_tags=$( { printf '%s' "$stamped" | sort -r | awk '{print $2}'; printf '%s' "$unstamped"; } )
+        echo "Restore candidate order:" $ordered_tags
+
+        restored=false
+        for tag in $ordered_tags; do
           echo "Trying $image:$tag ..."
           if oras pull "$image:$tag" 2>/dev/null; then
             echo "Downloaded ccache tarball: $(du -sh ccache-data.tar.gz | cut -f1)"
