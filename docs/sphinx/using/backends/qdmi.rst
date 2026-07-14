@@ -55,9 +55,7 @@ The available target arguments are:
 * Device job: ``job_custom1`` through ``job_custom5``.
 
 Python uses the names above. The corresponding ``nvq++`` options use hyphens
-and the ``--qdmi-`` prefix, for example ``--qdmi-base-url``. Every argument can
-also be supplied through its uppercase ``CUDAQ_QDMI_`` environment variable,
-for example ``CUDAQ_QDMI_BASE_URL``.
+and the ``--qdmi-`` prefix, for example ``--qdmi-base-url``.
 
 Current limitations
 ```````````````````
@@ -65,8 +63,3 @@ Current limitations
 The current CUDA-Q QDMI target emits OpenQASM 2. The selected device must
 advertise support for ``QDMI_PROGRAM_FORMAT_QASM2``. CUDA-Q emulation mode,
 ``cudaq.run``, and CUDA-Q noise models are not supported by this target.
-The target currently exposes the root device from one QDMI device library as
-CUDA-Q QPU 0; child devices and multiple QDMI devices are not exposed as
-additional CUDA-Q QPUs. The asynchronous ``cudaq.sample_async`` and
-``cudaq.observe_async`` APIs are not supported because QDMI does not guarantee
-concurrent access to a device session.

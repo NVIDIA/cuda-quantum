@@ -8,12 +8,6 @@
 
 set(LIBRARY_NAME cudaq-platform-qdmi)
 
-# Lit substitutions expect canonical CMake boolean values (0 or 1).
-set(CUDAQ_QDMI_DDSIM_AVAILABLE 0 CACHE INTERNAL
-  "Whether the QDMI DDSIM device is available for target tests" FORCE)
-set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY "" CACHE INTERNAL
-  "QDMI DDSIM device library for target tests" FORCE)
-
 find_package(mqt-core CONFIG REQUIRED)
 if (NOT TARGET MQT::CoreFoMaC)
   message(FATAL_ERROR
@@ -27,31 +21,6 @@ add_library(${LIBRARY_NAME}
     QDMIPlatform.cpp
     QDMIQPU.cpp
 )
-
-if (TARGET MQT::CoreQDMI_DDSIM_Device)
-  get_target_property(_qdmi_ddsim_configs
-    MQT::CoreQDMI_DDSIM_Device IMPORTED_CONFIGURATIONS)
-  foreach(_qdmi_ddsim_config IN LISTS _qdmi_ddsim_configs)
-    string(TOUPPER "${_qdmi_ddsim_config}" _qdmi_ddsim_config_upper)
-    get_target_property(_qdmi_ddsim_device_library
-      MQT::CoreQDMI_DDSIM_Device
-      "IMPORTED_LOCATION_${_qdmi_ddsim_config_upper}")
-    if (_qdmi_ddsim_device_library)
-      break()
-    endif()
-  endforeach()
-  if (NOT _qdmi_ddsim_device_library)
-    get_target_property(_qdmi_ddsim_device_library
-      MQT::CoreQDMI_DDSIM_Device IMPORTED_LOCATION)
-  endif()
-  if (EXISTS "${_qdmi_ddsim_device_library}")
-    set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY
-      "${_qdmi_ddsim_device_library}" CACHE INTERNAL
-      "QDMI DDSIM device library for target tests" FORCE)
-    set(CUDAQ_QDMI_DDSIM_AVAILABLE 1 CACHE INTERNAL
-      "Whether the QDMI DDSIM device is available for target tests" FORCE)
-  endif()
-endif()
 
 target_include_directories(${LIBRARY_NAME} PRIVATE .
   PUBLIC
