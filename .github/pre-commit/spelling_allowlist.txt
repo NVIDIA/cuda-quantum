@@ -242,6 +242,7 @@ cudaq
 dataflow
 datagram
 datagrams
+dataplane
 ddots
 deallocate
 deallocated
@@ -285,6 +286,7 @@ enum
 et
 excitations
 executables
+exponentials
 exponentiated
 expressibility
 expressivity
@@ -391,6 +393,7 @@ reproducibility
 responder
 resultData
 reusability
+ringbuffer
 rkey
 runnable
 runtime

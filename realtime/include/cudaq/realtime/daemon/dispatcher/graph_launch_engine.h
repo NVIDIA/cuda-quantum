@@ -19,6 +19,7 @@
 /// a table with zero GRAPH_LAUNCH entries (a HOST_CALL-only deployment needs no
 /// engine).
 
+#include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
 #include <cuda_runtime.h>
@@ -103,10 +104,15 @@ typedef struct {
 /// If `external_mailbox` is non-NULL it is used (caller-owned, must be pinned
 /// mapped and sized >= num_graph_launch_entries * sizeof(void*)); otherwise the
 /// engine allocates and owns its own.
+///
+/// `skip_tx_markers`: when non-zero, the engine does NOT write the
+/// CUDAQ_TX_FLAG_IN_FLIGHT sentinel before a graph launch (set it when an
+/// external consumer polls the same tx_flags, e.g. the Hololink TX kernel). The
+/// single-thread unified loop needs the markers (its publish_ready
+/// distinguishes in-flight from done), so it must pass 0.
 cudaq_graph_launch_engine_t *cudaq_graph_launch_engine_create(
     const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
-    const cudaq_dispatcher_config_t *config, void **external_mailbox,
-    cudaq_status_t *out_status);
+    int skip_tx_markers, void **external_mailbox, cudaq_status_t *out_status);
 
 /// Destroy worker streams and free engine-owned resources.  Call after the
 /// driving loop has stopped (and after `..._drain`).
@@ -116,13 +122,10 @@ void cudaq_graph_launch_engine_destroy(cudaq_graph_launch_engine_t *engine);
 // Per-dispatch mechanics
 //===----------------------------------------------------------------------===//
 
-/// Pick a free worker for `function_id`.  Returns the worker id, or -1 when
-/// none is free (backpressure).  When `use_function_table` is non-zero and
-/// `entry` is a GRAPH_LAUNCH entry (or `entry` is NULL), the free worker is
-/// matched to `function_id`; otherwise the first free worker is returned.
+/// Pick a free worker matched to `function_id` (and `routing_key`, the arg0
+/// sub-filter for the multi-instance GRAPH_LAUNCH pattern).  Returns the worker
+/// id, or -1 when none is free (backpressure).
 int cudaq_graph_launch_engine_acquire(const cudaq_graph_launch_engine_t *engine,
-                                      int use_function_table,
-                                      const cudaq_function_entry_t *entry,
                                       uint32_t function_id,
                                       uint64_t routing_key);
 
@@ -140,6 +143,19 @@ void cudaq_graph_launch_engine_sweep(const cudaq_graph_launch_engine_t *engine);
 
 /// Synchronize every worker stream (call once when the driving loop exits).
 void cudaq_graph_launch_engine_drain(const cudaq_graph_launch_engine_t *engine);
+
+/// Publish + recycle every worker whose graph has signaled completion via its
+/// TX doorbell: `publish(ctx, slot)` runs for each completed slot (skipped for
+/// launch-error completions) before its worker is recycled, so a finished
+/// worker is never freed before its response is sent.  A single non-blocking
+/// pass; slot-addressed, so responses may be published out of the order their
+/// requests were launched.  TX-publishing counterpart to
+/// cudaq_graph_launch_engine_sweep (which only recycles); the single-thread
+/// unified loop uses this, while the ring loop uses sweep because its transport
+/// threads own TX.
+void cudaq_graph_launch_engine_publish_ready(
+    const cudaq_graph_launch_engine_t *engine,
+    cudaq_status_t (*publish)(void *ctx, uint32_t slot), void *ctx);
 
 /// Return a worker to the idle pool (consumer-side recycle counterpart).
 cudaq_status_t
@@ -162,28 +178,18 @@ void cudaq_host_ring_dispatch_loop(const cudaq_ringbuffer_t *ringbuffer,
                                    uint64_t *stats);
 
 //===----------------------------------------------------------------------===//
-// Host dispatcher thread (runs the ring loop on its own thread)
+// Single-thread unified dispatch loop
 //===----------------------------------------------------------------------===//
 
-typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
-
-// Run cudaq_host_ring_dispatch_loop on a new thread.  Called from
-// cudaq_dispatcher_start for CUDAQ_DISPATCH_PATH_HOST with kernel_type !=
-// CUDAQ_KERNEL_UNIFIED.  Builds a GRAPH_LAUNCH engine (NULL for a
-// HOST_CALL-only table).  Returns a handle for stop, or NULL on error.  If
-// external_mailbox is non-NULL, uses it instead of allocating internally.
-cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
-    const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
-    const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
-    uint64_t *stats, void **external_mailbox);
-
-// Stop the host dispatcher thread and free resources.
-void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle);
-
-// Release a worker back to the idle pool (handle-level, called by API layer).
-cudaq_status_t
-cudaq_host_dispatcher_release_worker(cudaq_host_dispatcher_handle_t *handle,
-                                     int worker_id);
+/// Drive `cpu_dataplane` from one thread: poll rx_poll for a ready slot, run
+/// its dispatch mode inline (HOST_CALL run inline, GRAPH_LAUNCH via `engine`),
+/// then publish it with tx_publish.  `engine` is created and destroyed by the
+/// caller (NULL for a HOST_CALL-only table).  Blocks until `*shutdown_flag !=
+/// 0`.
+void cudaq_host_unified_loop(cudaq_cpu_dataplane_t *cpu_dataplane,
+                             const cudaq_function_table_t *table,
+                             cudaq_graph_launch_engine_t *engine,
+                             volatile int *shutdown_flag, uint64_t *stats);
 
 #ifdef __cplusplus
 }

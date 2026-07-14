@@ -165,6 +165,25 @@ def test_adjoint():
     #assert len(counts) == 1 and '00000000' in counts
 
 
+def test_uccsd_odd_electrons():
+    num_qubits = 6
+    num_electrons = 3
+    num_parameters = cudaq.kernels.uccsd_num_parameters(num_electrons,
+                                                        num_qubits)
+    thetas = [0.01] * num_parameters
+
+    @cudaq.kernel
+    def kernel(qn: int, ne: int, parameters: list[float]):
+        qubits = cudaq.qvector(qn)
+        for i in range(ne):
+            x(qubits[i])
+        cudaq.kernels.uccsd(qubits, parameters, ne, qn)
+
+    expectation = cudaq.observe(kernel, spin.z(0), num_qubits, num_electrons,
+                                thetas).expectation()
+    assert -1.0 <= expectation <= 1.0
+
+
 def test_control():
     """Test that we can control on kernel functions."""
 

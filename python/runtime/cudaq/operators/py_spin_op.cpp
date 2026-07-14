@@ -149,21 +149,26 @@ void bindSpinOperator(nanobind::module_ &mod) {
                    "name to its description.")
       .def_prop_ro("degrees", &spin_op::degrees,
                    "Returns a vector that lists all degrees of "
-                   "freedom that the operator targets. "
-                   "The order of degrees is from smallest to largest "
-                   "and reflects the ordering of "
-                   "the matrix returned by `to_matrix`. "
-                   "Specifically, the indices of a statevector "
-                   "with two qubits are {00, 01, 10, 11}. An "
-                   "ordering of degrees {0, 1} then indicates "
-                   "that a state where the qubit with index 0 equals "
-                   "1 with probability 1 is given by "
-                   "the vector {0., 1., 0., 0.}.")
+                   "freedom (qubit indices) that the operator targets, "
+                   "from smallest to largest. This ordering reflects the "
+                   "basis ordering of the matrix returned by `to_matrix`: "
+                   "qubit 0 contributes 2^0 to the statevector index, "
+                   "qubit 1 contributes 2^1, and so on. For two qubits, "
+                   "statevector index 1 corresponds to the basis state "
+                   "|q_0 q_1> = |10> (qubit 0 in |1>, qubit 1 in |0>), "
+                   "so a state where qubit 0 equals 1 with probability 1 "
+                   "is the vector {0., 1., 0., 0.}. This convention matches "
+                   "`cudaq.get_state`, `SampleResult` bitstring keys, and "
+                   "the Pauli word produced by `get_pauli_word()`, all of "
+                   "which place qubit 0 as the left-most character. Note "
+                   "that writing the statevector index as a binary number "
+                   "(e.g. index 1 as `01`) places qubit 0 on the right, "
+                   "since it is the least-significant bit.")
       .def_prop_ro("min_degree", &spin_op::min_degree,
                    "Returns the smallest index of the degrees of "
                    "freedom that the operator targets.")
       .def_prop_ro("max_degree", &spin_op::max_degree,
-                   "Returns the smallest index of the degrees of "
+                   "Returns the largest index of the degrees of "
                    "freedom that the operator targets.")
       .def_prop_ro("term_count", &spin_op::num_terms,
                    "Returns the number of terms in the operator.")

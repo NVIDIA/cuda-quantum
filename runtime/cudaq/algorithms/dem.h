@@ -9,64 +9,83 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
+#include "cudaq/algorithms/dem/options.h"
+#include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/algorithms/dem/result.h"
+#include "cudaq/algorithms/launch.h"
 #include "cudaq/platform.h"
 #include <concepts>
-#include <cstddef>
 #include <functional>
 #include <string>
 #include <utility>
-#include <vector>
 
 namespace cudaq {
-
 class noise_model;
-
-/// @brief Sparse binary matrix mapping detectors (rows) to measurements
-/// (columns). Returned alongside `M2OSparseMatrix` when
-/// `return_measurement_matrices=True` is passed to `dem_from_kernel` (Python),
-/// or via the `m2d_out` / `m2o_out` reference overloads (C++).
-///
-/// `rows[d]` lists the chronological measurement indices that contribute to
-/// detector `d` (i.e. are XOR-ed together to form its syndrome bit).
-/// `num_measurements` gives the total column count (shape is
-/// `rows.size() × num_measurements`).
-struct M2DSparseMatrix {
-  std::size_t num_measurements = 0;
-  std::vector<std::vector<std::size_t>> rows;
-};
-
-/// @brief Sparse binary matrix mapping observables (rows) to measurements
-/// (columns). Returned alongside `M2DSparseMatrix` when
-/// `return_measurement_matrices=True` is passed to `dem_from_kernel` (Python),
-/// or via the `m2d_out` / `m2o_out` reference overloads (C++).
-///
-/// `rows[k]` lists the chronological measurement indices that contribute to
-/// observable `k`. `num_measurements` gives the total column count (shape is
-/// `rows.size() × num_measurements`).
-struct M2OSparseMatrix {
-  std::size_t num_measurements = 0;
-  std::vector<std::vector<std::size_t>> rows;
-};
-
-} // namespace cudaq
+}
 
 namespace cudaq::detail {
 
-/// @brief Type-erased core of `dem_from_kernel`.
-///
-/// @param m2d_out  Optional output for the m2d matrix.
-/// @param m2o_out  Optional output for the m2o matrix.
-///                 Pass `nullptr` (default) to skip either computation.
-///                 Both are computed in a single circuit pass; requesting
-///                 one automatically computes the other.
-std::string runDemFromKernel(const std::string &kernelName,
-                             cudaq::quantum_platform &platform,
-                             const cudaq::noise_model *noise,
-                             const std::function<void()> &wrappedKernel,
-                             const cudaq::dem_options &options = {},
-                             const std::string &plugin_name = "stim",
-                             cudaq::M2DSparseMatrix *m2d_out = nullptr,
-                             cudaq::M2OSparseMatrix *m2o_out = nullptr);
+using dem_policy_launcher = std::function<cudaq::dem_result(
+    const cudaq::dem_policy &, cudaq::ExecutionContext &)>;
+
+/// @brief Shared DEM core: conditional-feedback check + Stim analysis scope,
+/// then delegates to @p launchPolicy. Reached through `launchDem`, the shared
+/// helper behind both DEM entry points (C++ `runDemFromKernel`, Python
+/// `launch_dem`).
+cudaq::dem_result launchDemPolicy(const cudaq::dem_policy &policy,
+                                  cudaq::ExecutionContext &ctx,
+                                  const dem_policy_launcher &launchPolicy,
+                                  const std::string &plugin_name = "stim");
+
+/// @brief Shared launch core for C++ and Python DEM entry points: builds the
+/// execution context, then runs the policy through `launchDemPolicy` +
+/// `detail::launch`. `detail::launch` stays inline so JIT compiler references
+/// remain in the caller TU.
+inline cudaq::dem_result launchDem(const cudaq::dem_policy &policy,
+                                   cudaq::quantum_platform &platform,
+                                   const std::function<void()> &kernel,
+                                   const std::string &plugin_name = "stim") {
+  cudaq::ExecutionContext ctx(policy.name);
+  ctx.qpuId = cudaq::getCurrentQpuId();
+  // Mirror the noise model onto the `ExecutionContext`: the local kernel-launch
+  // path reconfigures the simulator from the context, which would otherwise
+  // overwrite the policy-derived model with null and silence in-kernel
+  // `apply_noise` (dropping every error mechanism from the DEM).
+  ctx.noiseModel = policy.noiseModel;
+  return launchDemPolicy(
+      policy, ctx,
+      [&](const cudaq::dem_policy &activePolicy,
+          cudaq::ExecutionContext &activeCtx) {
+        return cudaq::detail::launch(activePolicy, activeCtx.qpuId, activeCtx,
+                                     platform, kernel);
+      },
+      plugin_name);
+}
+
+inline std::string runDemFromKernel(const std::string &kernelName,
+                                    cudaq::quantum_platform &platform,
+                                    const cudaq::noise_model *noise,
+                                    const std::function<void()> &wrappedKernel,
+                                    const cudaq::dem_options &options = {},
+                                    const std::string &plugin_name = "stim",
+                                    cudaq::M2DSparseMatrix *m2d_out = nullptr,
+                                    cudaq::M2OSparseMatrix *m2o_out = nullptr) {
+  cudaq::dem_policy policy;
+  policy.kernelName = kernelName;
+  policy.noiseModel = noise;
+  policy.options = options;
+  // Pointer existence is authoritative: non-null enables matrix computation
+  // even if the flag is false; null suppresses it even if the flag is set.
+  policy.options.return_measurement_matrices = m2d_out || m2o_out;
+
+  auto result = launchDem(policy, platform, wrappedKernel, plugin_name);
+
+  if (m2d_out)
+    *m2d_out = std::move(result.m2d);
+  if (m2o_out)
+    *m2o_out = std::move(result.m2o);
+  return std::move(result.dem);
+}
 
 } // namespace cudaq::detail
 
