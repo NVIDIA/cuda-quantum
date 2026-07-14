@@ -12,8 +12,8 @@ ARG base_image
 FROM ${base_image} AS qdmi-build
 SHELL ["/bin/bash", "-c"]
 
-# Use the released MQT Core package by default. A source revision can be pinned
-# while CUDA-Q depends on changes that have not been released yet. TODO: remove pin
+# Use the released MQT Core package by default. The CI workflow pins a source
+# revision until the required MQT Core changes are released.
 ARG mqt_core_ref=
 RUN if [ -n "$mqt_core_ref" ]; then \
         python3 -m pip install --break-system-packages \
@@ -31,8 +31,8 @@ RUN CMAKE_BUILD_TYPE=Debug bash scripts/build_cudaq.sh -v -- \
       -DCUDAQ_ENABLE_QDMI_BACKEND=ON \
       -DCUDAQ_TEST_OMP_SLOTS=2 \
       "-DCMAKE_PREFIX_PATH=$(mqt-core-cli --cmake_dir)" && \
-    grep -q '^CUDAQ_QDMI_DDSIM_AVAILABLE:INTERNAL=1$' \
-      "$CUDAQ_REPO_ROOT/build/CMakeCache.txt"
+    grep -q 'config.cudaq_backends_qdmi = "1"' \
+      "$CUDAQ_REPO_ROOT/build/targettests/lit.site.cfg.py"
 
 FROM qdmi-build AS test
 RUN cmake --build build --target check-targets

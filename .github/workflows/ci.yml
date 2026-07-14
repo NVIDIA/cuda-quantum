@@ -44,10 +44,25 @@ jobs:
       nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
+      qdmi_changes: ${{ steps.qdmi_changes.outputs.matched }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Check for QDMI changes
+        id: qdmi_changes
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            runtime/cudaq/platform/qdmi/
+            targettests/CMakeLists.txt
+            targettests/lit.site.cfg.py.in
+            docker/build/cudaq.qdmi.Dockerfile
+            docs/sphinx/using/backends/qdmi.rst
+            CMakeLists.txt
+            runtime/cudaq/platform/CMakeLists.txt
+            .github/workflows/ci.yml
 
       - id: config
         run: |
@@ -263,12 +278,11 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
-  # Build the optional QDMI platform against MQT Core and exercise it with the
-  # DDSIM QDMI device. TODO: Pin the source revision until the corresponding MQT Core
-  # release is available, then replace this with the release tag.
+  # Build and test the optional QDMI platform only when related files change.
   qdmi_build_and_test:
     name: QDMI build and DDSIM tests
     needs: [metadata, config_devdeps]
+    if: needs.metadata.outputs.qdmi_changes == 'true'
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
