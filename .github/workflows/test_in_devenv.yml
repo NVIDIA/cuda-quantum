@@ -137,24 +137,19 @@ jobs:
         # Write cache only on merge-queue/scheduled runs; PRs (event 'push' =
         # pull-request/*) are read-only, skipping the ~6-7 min extract+push.
         if: github.event_name != 'push'
-        timeout-minutes: 15
+        timeout-minutes: 30
         continue-on-error: true
-        run: |
-          mkdir -p /tmp/ccache-export
-          docker buildx build \
-            -f docker/build/cudaq.dev.Dockerfile . \
-            --build-context ccache-data=/tmp/ccache-data \
-            --build-arg base_image=${{ steps.build.outputs.base_image }} \
-            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}" \
-            --target ccache-export \
-            --output type=local,dest=/tmp/ccache-export \
-            2>&1 | tail -20
-          if [ -f /tmp/ccache-export/ccache.tar ]; then
-            mkdir -p /tmp/ccache-export/ccache
-            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
-            rm -f /tmp/ccache-export/ccache.tar
-          fi
+        uses: ./.github/actions/ccache-extract
+        with:
+          platform: ${{ inputs.platform }}
+          dockerfile: docker/build/cudaq.dev.Dockerfile
+          # Keep in sync with the build step above for builder cache reuse
+          # (values here are the shell-expanded forms, without quotes).
+          build-args: |
+            base_image=${{ steps.build.outputs.base_image }}
+            install=CMAKE_BUILD_TYPE=Debug
+            mpi=${{ inputs.mpi }}
+            run_tests=true
 
       - name: Push ccache to GHCR
         if: github.event_name != 'push'

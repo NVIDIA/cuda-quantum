@@ -388,6 +388,11 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
+# Stats-only export: lets CI evaluate the push gate without extracting
+# the multi-GB cache (see .github/actions/ccache-extract).
+FROM scratch AS ccache-export-stats
+COPY --from=cpp_build /root/.ccache/_build_stats.txt /
+
 # Same export but rooted at prereqs, for build_target=prereqs jobs that only
 # build the LLVM toolchain (CI source_build). Build with --target ccache-export-prereqs.
 FROM prereqs AS ccache-tar-prereqs
@@ -395,6 +400,9 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 
 FROM scratch AS ccache-export-prereqs
 COPY --from=ccache-tar-prereqs /ccache.tar /
+
+FROM scratch AS ccache-export-prereqs-stats
+COPY --from=prereqs /root/.ccache/_build_stats.txt /
 
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse

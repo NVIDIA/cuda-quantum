@@ -68,22 +68,9 @@ runs:
         # Use ccache's miss rate to decide whether the cache is worth saving.
         # File-count growth is a poor proxy: a small percentage change can still
         # represent hundreds of missed compile results in a large cache.
-        # Stats may be --print-stats (>= 4.1, tab-separated), human 4.x, or
-        # human 3.x output (EPEL 8 ships ccache 3.7 without --print-stats).
-        read -r cacheable_calls cache_misses <<< "$(echo "$stats_output" | awk '
-          /^direct_cache_hit[ \t]/          { mdh = $2; machine = 1 }
-          /^preprocessed_cache_hit[ \t]/    { mph = $2; machine = 1 }
-          /^cache_miss[ \t]/                { mm = $2; machine = 1 }
-          /^Cacheable calls:/               { if (h4c == "") h4c = $3 }
-          /^  Misses:/                      { if (h4m == "") h4m = $2 }
-          /^cache hit \(direct\)/           { h3dh = $4 }
-          /^cache hit \(preprocessed\)/     { h3ph = $4 }
-          /^cache miss/                     { h3m = $3 }
-          END {
-            if (machine)        print mdh + mph + mm, mm
-            else if (h4c != "") print h4c, h4m
-            else if (h3m != "") print h3dh + h3ph + h3m, h3m
-          }')"
+        # parse_stats.sh handles all three stats formats; ccache-extract
+        # uses the same script for its extraction gate.
+        read -r cacheable_calls cache_misses <<< "$(echo "$stats_output" | bash "${{ github.action_path }}/parse_stats.sh")"
         miss_pct=""
         if [[ "$cacheable_calls" =~ ^[0-9]+$ ]] && \
            [[ "$cache_misses" =~ ^[0-9]+$ ]] && \
@@ -128,6 +115,10 @@ runs:
           mv "$cache_path/ccache.log" "${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
         fi
         rm -f "$stats_file" "$cache_path/_restore_file_count.txt"
+
+        # Drop entries unused for two weeks so dead generations do not
+        # accumulate in the pushed artifact (hits refresh entry mtimes).
+        CCACHE_DIR="$cache_path" ccache --evict-older-than 14d 2>/dev/null || true
 
         # Determine tag
         repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')

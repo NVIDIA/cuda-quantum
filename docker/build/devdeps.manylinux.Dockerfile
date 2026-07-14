@@ -160,5 +160,9 @@ RUN tar cf /ccache.tar -C "$CCACHE_DIR" .
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
+# Stats-only export for the CI extraction gate (ccache-extract action).
+FROM scratch AS ccache-export-stats
+COPY --from=devdeps /root/.ccache/_build_stats.txt /
+
 # Default target stays the devdeps image; callers pass no --target.
 FROM devdeps

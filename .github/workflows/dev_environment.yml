@@ -428,19 +428,13 @@ jobs:
 
       - name: Extract and persist ccache
         if: inputs.ccache_key != ''
-        timeout-minutes: 15
+        timeout-minutes: 30
         continue-on-error: true
-        run: |
-          args=()
-          while IFS= read -r a; do [ -n "$a" ] && args+=(--build-arg "$a"); done <<< "${{ inputs.build_args }}"
-          mkdir -p /tmp/ccache-export
-          docker buildx build -f ./docker/${{ needs.metadata.outputs.dockerfile }} . \
-            --build-context ccache-data=/tmp/ccache-data \
-            "${args[@]}" \
-            --target ${{ inputs.ccache_export_target }} --output type=local,dest=/tmp/ccache-export 2>&1 | tail -20
-          [ -f /tmp/ccache-export/ccache.tar ] || { echo "No ccache.tar produced; skipping push."; exit 0; }
-          mkdir -p /tmp/ccache-export/ccache
-          tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+        uses: ./.github/actions/ccache-extract
+        with:
+          dockerfile: ./docker/${{ needs.metadata.outputs.dockerfile }}
+          build-args: ${{ inputs.build_args }}
+          export-target: ${{ inputs.ccache_export_target }}
 
       - name: Push ccache to GHCR
         if: inputs.ccache_key != ''
