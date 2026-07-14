@@ -293,7 +293,6 @@ jobs:
       build_target: test
       build_args: |
         base_image=${{ fromJson(needs.config_devdeps.outputs.json).image_hash['amd64-llvm'] }}
-        mqt_core_ref=def69f1517602ba802d1401ab97e6fa331e99d2e
       build_config_id: qdmi-llvm
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
