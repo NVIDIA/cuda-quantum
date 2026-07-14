@@ -49,12 +49,17 @@ void validateOutputRecord(
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
-  CUDAQ_DBG("Parsing log:\n{}", outputLog);
+  CUDAQ_DBG("Parsing output log ({} bytes).", outputLog.size());
+  completedResultCount = 0;
+  // Limit logical array-payload and slot-tracking charges to the raw log size.
+  // Under the current textual grammar, each charged element has its own record
+  // whose text exceeds its combined payload and tracking charge. Revisit this
+  // bound if the format gains compact encodings or larger element types.
+  bufferHandler.setDynamicAllocationBudget(outputLog.size());
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
 
-  // Collect log from a single shot and process it only if it is successful.
   bool processingShot = false;
   // Track whether we have seen framed output (between START and END) or not
   bool sawFramedOutput = false;
@@ -63,11 +68,11 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   // Keep explicit declarations separate: `schema` is also inferred from
   // legacy labeled container records.
   std::optional<RecordSchemaType> declaredSchema;
-  // Maintain the starting index of each shot's data
-  std::size_t shotStart = 0;
+  // Defer OUTPUT decoding until END reports success. An explicit collection,
+  // instead of line-index sentinel, also represents a shot with no output.
+  std::vector<std::vector<std::string>> shotOutputRecords;
 
-  for (std::size_t idx = 0; idx < lines.size(); ++idx) {
-    const auto &line = lines[idx];
+  for (const auto &line : lines) {
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
@@ -87,13 +92,13 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
       if (sawUnframedOutput)
         throw std::runtime_error("Mixed framed and unframed output");
       processingShot = true;
-      shotStart = 0;
+      shotOutputRecords.clear();
     } else if (recordType == "OUTPUT") {
       validateOutputRecord(entries, declaredSchema);
       sawOutput = true;
       if (processingShot) {
         sawFramedOutput = true;
-        shotStart = shotStart == 0 ? idx : shotStart;
+        shotOutputRecords.push_back(std::move(entries));
       } else {
         if (sawFramedOutput)
           throw std::runtime_error("Mixed framed and unframed output");
@@ -106,16 +111,14 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
       if (!processingShot)
         throw std::runtime_error("END record without START");
       if (detail::parseSize(entries[1]) == 0) {
-        if (processingShot) {
-          // Successful shot, process it
-          for (std::size_t j = shotStart; j < idx; ++j)
-            handleOutput(cudaq::split(lines[j], '\t'));
-        }
+        for (const auto &outputRecord : shotOutputRecords)
+          handleOutput(outputRecord);
+        rejectIncompleteContainer();
       } else {
         CUDAQ_DBG("Discarding shot data due to non-zero END status.");
       }
       processingShot = false;
-      shotStart = 0;
+      shotOutputRecords.clear();
       containerMeta.reset();
     } else {
       throw std::runtime_error("Invalid record type: " + recordType);
@@ -124,6 +127,7 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
 
   if (processingShot)
     throw std::runtime_error("Unterminated shot");
+  rejectIncompleteContainer();
 }
 
 void cudaq::RecordLogParser::handleHeader(
@@ -199,7 +203,10 @@ void cudaq::RecordLogParser::handleOutput(
       containerMeta.elementCount =
           detail::parseSize(metadata[ResultCountMetadataName]);
       containerMeta.arrayType = "i1";
+      bufferHandler.chargeContainerTracking(containerMeta.elementCount);
+      containerMeta.processedSlots.assign(containerMeta.elementCount, false);
       preallocateArray();
+      countAndResetContainerIfComplete();
     }
 
     // Note: For ordered schema, we expect the results are sequential in the
@@ -240,10 +247,12 @@ void cudaq::RecordLogParser::handleOutput(
     }
 
     processArrayEntry(recValue, fmt::format("[{}]", idxLabel));
-    containerMeta.processedElements++;
+    countAndResetContainerIfComplete();
     return;
   }
   if (recType == "ARRAY") {
+    if (containerMeta.active())
+      throw std::runtime_error("New container before previous container ends");
     validateRootContainer(ContainerType::ARRAY,
                           recLabel.empty() ? ContainerStorage::FLAT
                                            : ContainerStorage::PREALLOCATED);
@@ -252,11 +261,16 @@ void cudaq::RecordLogParser::handleOutput(
     if (!recLabel.empty()) {
       schema = RecordSchemaType::LABELED;
       containerMeta.extractArrayInfo(recLabel);
+      bufferHandler.chargeContainerTracking(containerMeta.elementCount);
+      containerMeta.processedSlots.assign(containerMeta.elementCount, false);
       preallocateArray();
     }
+    countAndResetContainerIfComplete();
     return;
   }
   if (recType == "TUPLE") {
+    if (containerMeta.active())
+      throw std::runtime_error("New container before previous container ends");
     validateRootContainer(ContainerType::TUPLE,
                           recLabel.empty() ? ContainerStorage::FLAT
                                            : ContainerStorage::PREALLOCATED);
@@ -265,8 +279,11 @@ void cudaq::RecordLogParser::handleOutput(
     if (!recLabel.empty()) {
       schema = RecordSchemaType::LABELED;
       containerMeta.extractTupleInfo(recLabel);
+      bufferHandler.chargeContainerTracking(containerMeta.elementCount);
+      containerMeta.processedSlots.assign(containerMeta.elementCount, false);
       preallocateTuple();
     }
+    countAndResetContainerIfComplete();
     return;
   }
   if (recType == "BOOL")
@@ -285,15 +302,29 @@ void cudaq::RecordLogParser::handleOutput(
       processArrayEntry(recValue, recLabel);
     else if (containerMeta.m_type == ContainerType::TUPLE)
       processTupleEntry(recValue, recLabel);
-    containerMeta.processedElements++;
-    if (containerMeta.processedElements == containerMeta.elementCount) {
-      containerMeta.reset();
-    }
-  } else {
-    if (containerMeta.elementCount == 0)
-      validateRootContainer(ContainerType::NONE);
+    countAndResetContainerIfComplete();
+  } else if (containerMeta.active()) {
     processSingleRecord(recValue, recLabel);
+    containerMeta.markProcessed(containerMeta.processedElements);
+    countAndResetContainerIfComplete();
+  } else {
+    validateRootContainer(ContainerType::NONE);
+    processSingleRecord(recValue, recLabel);
+    ++completedResultCount;
   }
+}
+
+void cudaq::RecordLogParser::countAndResetContainerIfComplete() {
+  if (!containerMeta.active() ||
+      containerMeta.processedElements != containerMeta.elementCount)
+    return;
+  ++completedResultCount;
+  containerMeta.reset();
+}
+
+void cudaq::RecordLogParser::rejectIncompleteContainer() const {
+  if (containerMeta.active())
+    throw std::runtime_error("Incomplete container in output log");
 }
 
 void cudaq::RecordLogParser::validateRootContainer(ContainerType type) {
@@ -400,8 +431,10 @@ void cudaq::RecordLogParser::processArrayEntry(const std::string &recValue,
   std::size_t index = containerMeta.extractIndex(recLabel);
   if (index >= containerMeta.elementCount)
     throw std::runtime_error("Array index out of bounds");
+  containerMeta.requireUnprocessed(index);
   cudaq::detail::DataHandlerBase &dh = getDataHandler(containerMeta.arrayType);
   dh.insertIntoArray(bufferHandler, containerMeta.dataOffset, index, recValue);
+  containerMeta.markProcessed(index);
 }
 
 void cudaq::RecordLogParser::processTupleEntry(const std::string &recValue,
@@ -409,9 +442,11 @@ void cudaq::RecordLogParser::processTupleEntry(const std::string &recValue,
   std::size_t index = containerMeta.extractIndex(recLabel);
   if (index >= containerMeta.elementCount)
     throw std::runtime_error("Tuple index out of bounds");
+  containerMeta.requireUnprocessed(index);
   cudaq::detail::DataHandlerBase &dh =
       getDataHandler(containerMeta.tupleTypes[index]);
   dh.insertIntoTuple(
       bufferHandler,
       containerMeta.dataOffset + containerMeta.tupleOffsets[index], recValue);
+  containerMeta.markProcessed(index);
 }
