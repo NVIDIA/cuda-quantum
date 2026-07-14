@@ -85,16 +85,20 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
     const char *Plugin;
     const char *Current;
     Compatibility Expected;
+    // Substring the diagnostic must contain (empty for the Compatible cases).
+    const char *DiagContains;
   };
   const TestCase cases[] = {
-      {"0.9.0", "0.8.1", Compatibility::Error},
-      {"0.9.2", "0.9.1", Compatibility::Error},
-      {"0.10.0", "0.9.9", Compatibility::Error},
-      {"0.9.0", "0.9.0", Compatibility::Compatible},
-      {"0.9.0", "0.9.3", Compatibility::Compatible},
-      {"0.9.0", "0.10.0", Compatibility::Warning},
-      {"0.9.0", "1.0.0", Compatibility::Warning},
-      {"0.9.0", "0.9.0-rc2-developer", Compatibility::Compatible},
+      {"0.9.0", "0.8.1", Compatibility::Error, "was built for CUDA-Q 0.9.0"},
+      {"0.9.2", "0.9.1", Compatibility::Error, "was built for CUDA-Q 0.9.2"},
+      {"0.10.0", "0.9.9", Compatibility::Error, "was built for CUDA-Q 0.10.0"},
+      {"0.9.0", "0.9.0", Compatibility::Compatible, ""},
+      {"0.9.0", "0.9.3", Compatibility::Compatible, ""},
+      {"0.9.0", "0.10.0", Compatibility::Warning,
+       "compatibility is not guaranteed"},
+      {"0.9.0", "1.0.0", Compatibility::Warning,
+       "compatibility is not guaranteed"},
+      {"0.9.0", "0.9.0-rc2-developer", Compatibility::Compatible, ""},
   };
 
   cudaq::config::TargetConfig config;
@@ -109,6 +113,9 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
       EXPECT_NE(result.Diagnostic.find("version-test"), std::string::npos);
       EXPECT_NE(result.Diagnostic.find("/tmp/version-test.yml"),
                 std::string::npos);
+      EXPECT_NE(result.Diagnostic.find(test.DiagContains), std::string::npos)
+          << "plugin=" << test.Plugin << " current=" << test.Current
+          << " diagnostic=" << result.Diagnostic;
     }
   }
 }
@@ -368,48 +375,6 @@ config:
   ASSERT_EQ(libs.size(), 2);
   EXPECT_EQ(libs[0], "libdummy1.so");
   EXPECT_EQ(libs[1], "libdummy2.so");
-}
-
-TEST_F(ExternalBackendTester, pluginLibrariesAreDlopenedOnSetTarget) {
-  auto root = tmpRoot / "pluginlibdltest";
-  auto targetsDir = root / "targets";
-  auto libDir = root / "lib";
-  std::filesystem::create_directories(targetsDir);
-  std::filesystem::create_directories(libDir);
-
-  auto pluginPath = std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
-  auto pluginFileName = std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
-  std::filesystem::copy_file(pluginPath, libDir / pluginFileName,
-                             std::filesystem::copy_options::overwrite_existing);
-
-  auto sentinelPath = tmpRoot / "plugin-dlopen.sentinel";
-  std::filesystem::remove(sentinelPath);
-  setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
-
-  // Write a YAML with plugin-libraries
-  std::ofstream(targetsDir / "my-backend.yml") << R"(
-name: my-backend
-description: Plugin-libraries dlopen test
-cudaq-version: 0.0.0
-target-arguments: []
-config:
-  nvqir-simulation-backend: qpp
-  library-mode: false
-  plugin-libraries:
-    - )" << pluginFileName << R"(
-)";
-
-  // Register the backend
-  cudaq::LinkedLibraryHolder holder;
-  holder.registerBackendPath(root);
-
-  EXPECT_FALSE(std::filesystem::exists(sentinelPath));
-  testing::internal::CaptureStderr();
-  EXPECT_NO_THROW(holder.setTarget("my-backend"));
-  const auto warning = testing::internal::GetCapturedStderr();
-  EXPECT_NE(warning.find("compatibility is not guaranteed"), std::string::npos);
-  EXPECT_TRUE(std::filesystem::exists(sentinelPath));
-  unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 
 TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {

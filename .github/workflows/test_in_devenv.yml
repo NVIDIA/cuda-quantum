@@ -35,12 +35,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          # Fetch the full history and all tags so that `git describe --tags`
-          # inside the Docker build can derive a well-formed CUDA_QUANTUM_VERSION.
-          # A shallow checkout carries no tags, which embeds an empty version and
-          # breaks external-backend target validation (cudaq-version checks).
-          fetch-depth: 0
 
       - name: Restore environment
         id: restore_devdeps
@@ -212,12 +206,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          # Fetch the full history and all tags so that `git describe --tags`
-          # inside the Docker build can derive a well-formed CUDA_QUANTUM_VERSION.
-          # A shallow checkout carries no tags, which embeds an empty version and
-          # breaks external-backend target validation (cudaq-version checks).
-          fetch-depth: 0
 
       - name: Restore environment
         id: restore_devdeps

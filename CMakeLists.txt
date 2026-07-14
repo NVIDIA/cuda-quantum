@@ -687,30 +687,10 @@ if (DEFINED ENV{CUDA_QUANTUM_VERSION})
   # use the value provided as is.
   set(CUDA_QUANTUM_VERSION "$ENV{CUDA_QUANTUM_VERSION}")
 else()
-  # Otherwise, create a version based on the nearest release tag in the git repo.
-  # Restrict the match to X.Y.Z-style release tags so that non-release lightweight
-  # tags (e.g. proto-*, slush-*, staging-*) are not picked up: those are not valid
-  # semantic versions and would fail external-backend cudaq-version validation.
+  # Otherwise, create a version based on the nearest tag in the git repo.
   execute_process(COMMAND git describe --tags --abbrev=0 --dirty=-developer
-                          --match "[0-9]*.[0-9]*.[0-9]*"
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE CUDA_QUANTUM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET)
-endif()
-
-# A shallow checkout (e.g. a CI clone with fetch-depth 1) carries no tags, so
-# `git describe` yields an empty string and the build silently embeds an empty
-# version. External-backend targets declare a `cudaq-version` that is validated
-# against this value at load time, so an empty/malformed version makes every
-# such target fail. Surface the condition loudly instead of failing obscurely at
-# runtime; set the CUDA_QUANTUM_VERSION environment variable or build from a
-# clone that includes tags to embed an accurate version.
-if (NOT CUDA_QUANTUM_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+")
-  message(WARNING
-    "Could not determine a well-formed CUDA-Q version (got "
-    "'${CUDA_QUANTUM_VERSION}'). External-backend targets that declare a "
-    "cudaq-version will fail to load. Set the CUDA_QUANTUM_VERSION environment "
-    "variable, or build from a clone that includes git tags.")
+    OUTPUT_VARIABLE CUDA_QUANTUM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
 endif()
 
 # Retrieve the commit SHA for full revision description
