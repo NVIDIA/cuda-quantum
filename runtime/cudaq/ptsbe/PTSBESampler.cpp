@@ -272,6 +272,8 @@ std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   auto *baseSim = nvqir::getCircuitSimulatorInternal();
 
+  baseSim->allocateQubits(numQubits(batch.trace));
+
   if (baseSim->isSinglePrecision()) {
     auto *sim = dynamic_cast<nvqir::CircuitSimulatorBase<float> *>(baseSim);
     if (!sim)
@@ -287,113 +289,14 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   }
 }
 
-namespace {
-template <typename Fn>
-void withClearedExecutionContext(Fn &&f) {
-  auto *ctx = cudaq::getExecutionContext();
-  cudaq::detail::resetExecutionContext();
-  try {
-    f();
-  } catch (...) {
-    if (ctx)
-      cudaq::detail::setExecutionContext(ctx);
-    throw;
-  }
-  if (ctx)
-    cudaq::detail::setExecutionContext(ctx);
-}
-} // namespace
-
 ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
-  if (policy.batch) {
-    auto results = samplePTSBE(*policy.batch);
-    auto aggregated = aggregateResults(results);
-    policy.perTrajectoryResults = std::move(results);
-    return ptsbe::sample_result(std::move(aggregated));
-  }
-
   auto *ctx = cudaq::getExecutionContext();
-  if (!ctx || ctx->name != "tracer")
+  if (!ctx ||
+      (ctx->name != "tracer" && ctx->name != cudaq::ptsbe::sample_policy::name))
     throw std::runtime_error(
-        "ptsbe::sample_policy has no PTSBatch attached and no tracer "
-        "execution context is active. PTSBE cannot be finalized by name-only "
-        "dispatch.");
-
-  // stage 0: normalize tracer qubit bookkeeping under a cleared context
-  withClearedExecutionContext([&] { cleanupTracerQubits(ctx->kernelTrace); });
-  cudaq::info("[ptsbe] Trace captured: {} qubits, {} instructions",
-              ctx->kernelTrace.getNumQudits(),
-              ctx->kernelTrace.getNumInstructions());
-
-  // stage 1: validate eligibility (no dynamic circuits) and warn on named
-  // registers
-  validatePTSBEKernel(policy.kernelName, *ctx);
-  warnNamedRegisters(policy.kernelName, *ctx);
-
-  // stage 2: build the PTSBE trace from the captured kernel trace
-  static const cudaq::noise_model kEmptyNoiseModel;
-  const auto &noiseModel =
-      policy.noiseModel ? *policy.noiseModel : kEmptyNoiseModel;
-  auto ptsbeTrace = buildPTSBETrace(ctx->kernelTrace, noiseModel);
-
-  std::optional<PTSBEExecutionData> executionData;
-  if (policy.options.return_execution_data) {
-    executionData = PTSBEExecutionData{};
-    executionData->instructions = ptsbeTrace;
-  }
-
-  // stage 3: trajectory generation + shot allocation
-  auto batch = buildPTSBatchFromTrace(std::move(ptsbeTrace), policy.options,
-                                      policy.shots);
-  batch.includeSequentialData = policy.options.include_sequential_data;
-  cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
-              batch.totalShots(), batch.trajectories.size());
-
-  // stages 4 and 5: replay the trajectories under a dedicated sampling
-  // context, distinct from the tracer context that captured the trace.
-  cudaq::ExecutionContext sampleCtx(cudaq::ptsbe::sample_policy::name,
-                                    batch.totalShots());
-  sampleCtx.kernelName = policy.kernelName;
-
-  const auto nQubits = numQubits(batch.trace);
-  ptsbe::sample_result result;
-  std::vector<cudaq::sample_result> perTrajectoryResults;
-  cudaq::detail::with_policy_and_ctx(policy, sampleCtx, [&] {
-    nvqir::getCircuitSimulatorInternal()->configureExecutionContext(sampleCtx);
-    try {
-      allocateBatchQubits(nQubits);
-      auto results = samplePTSBE(batch);
-      result = ptsbe::sample_result(aggregateResults(results));
-      perTrajectoryResults = std::move(results);
-    } catch (...) {
-      releaseBatchQubits(nQubits);
-      throw;
-    }
-  });
-
-  // stage 6: attach trajectories + execution data if requested
-  if (executionData) {
-    populateExecutionDataTrajectories(*executionData,
-                                      std::move(batch.trajectories),
-                                      std::move(perTrajectoryResults));
-    result.set_execution_data(std::move(*executionData));
-  }
-
-  cudaq::info("[ptsbe] Complete: {} unique bitstrings from {} shots",
-              result.size(), result.get_total_shots());
-  return result;
-}
-
-void allocateBatchQubits(std::size_t nQubits) {
-  nvqir::getCircuitSimulatorInternal()->allocateQubits(nQubits);
-}
-
-void releaseBatchQubits(std::size_t nQubits) {
-  std::vector<std::size_t> qubitIds(nQubits);
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
-  withClearedExecutionContext([&] {
-    nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubitIds);
-  });
+        "PTSBE finalize invoked without an active PTSBE or tracer execution "
+        "context. PTSBE cannot be finalized by name-only dispatch.");
+  return ptsbe::sample_result{};
 }
 
 } // namespace cudaq::ptsbe::detail

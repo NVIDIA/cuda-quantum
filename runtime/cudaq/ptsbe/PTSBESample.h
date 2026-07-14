@@ -171,22 +171,62 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   const auto *noisePtr = platform.get_noise();
   const auto &noiseModel = noisePtr ? *noisePtr : kEmptyNoiseModel;
 
-  // Stage 0: launch the kernel under a dedicated "tracer" context so the
-  // execution manager records the circuit into ctx.kernelTrace instead of
-  // executing it. finalizePTSBE (invoked by launch's finalize) then builds the
-  // batch and replays it under its own separate sampling context.
-  ExecutionContext ctx("tracer", shots);
-  ctx.kernelName = kernelName;
-  ctx.noiseModel = &noiseModel;
-
   cudaq::ptsbe::sample_policy policy;
   policy.kernelName = kernelName;
   policy.shots = shots;
   policy.options = options;
   policy.noiseModel = &noiseModel;
 
-  return cudaq::detail::launch(policy, /*qpu_id=*/0, ctx, platform,
-                               std::forward<KernelFunctor>(wrappedKernel));
+  // Stage 0: capture the kernel trace by launching under a dedicated "tracer"
+  // context.
+  ExecutionContext traceCtx("tracer", shots);
+  traceCtx.kernelName = kernelName;
+  traceCtx.noiseModel = &noiseModel;
+  cudaq::detail::launch(policy, /*qpu_id=*/0, traceCtx, platform,
+                        std::forward<KernelFunctor>(wrappedKernel));
+
+  cleanupTracerQubits(traceCtx.kernelTrace);
+  cudaq::info("[ptsbe] Trace captured: {} qubits, {} instructions",
+              traceCtx.kernelTrace.getNumQudits(),
+              traceCtx.kernelTrace.getNumInstructions());
+
+  // Stage 1: validate kernel eligibility (no dynamic circuits)
+  validatePTSBEKernel(kernelName, traceCtx);
+  warnNamedRegisters(kernelName, traceCtx);
+
+  // Stage 2: build the PTSBE trace once, shared between execution data + batch
+  auto ptsbeTrace = buildPTSBETrace(traceCtx.kernelTrace, noiseModel);
+
+  std::optional<PTSBEExecutionData> executionData;
+  if (options.return_execution_data) {
+    executionData = PTSBEExecutionData{};
+    executionData->instructions = ptsbeTrace;
+  }
+
+  // Stage 3: build the PTSBatch (trajectory generation + shot allocation)
+  auto batch = buildPTSBatchFromTrace(std::move(ptsbeTrace), options, shots);
+  batch.includeSequentialData = options.include_sequential_data;
+  cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
+              batch.totalShots(), batch.trajectories.size());
+
+  // Stages 4+5: replay the batch as its own policy execution. executeBatch runs
+  // it under the policy machinery (samplePTSBE allocates the batch qubits,
+  // endExecution releases them) and returns the per-trajectory results, which
+  // we aggregate into the final result.
+  auto perTrajectoryResults = executeBatch(policy, batch);
+  sample_result result(aggregateResults(perTrajectoryResults));
+
+  // Stage 6: attach trajectories + execution data on the result if requested
+  if (executionData) {
+    populateExecutionDataTrajectories(*executionData,
+                                      std::move(batch.trajectories),
+                                      std::move(perTrajectoryResults));
+    result.set_execution_data(std::move(*executionData));
+  }
+
+  cudaq::info("[ptsbe] Complete: {} unique bitstrings from {} shots",
+              result.size(), result.get_total_shots());
+  return result;
 }
 
 /// @brief Capture kernel trace and construct PTSBatch (for testing)
