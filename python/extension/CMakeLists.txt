@@ -54,6 +54,17 @@ declare_mlir_dialect_python_bindings(
     dialects/qec.py
   DIALECT_NAME qec)
 
+# Define the register_dialects hook to populate the default DialectRegistry
+# for every Context.
+declare_mlir_python_extension(CUDAQuantumPythonSources.SiteInitialize
+  MODULE_NAME _site_initialize_0
+  ADD_TO_PARENT CUDAQuantumPythonSources
+  SOURCES
+    SiteInitialize.cpp
+  EMBED_CAPI_LINK_LIBS
+    CUDAQuantumMLIRCAPI
+)
+
 if(APPLE)
   set(_quakeDialects_mlir_runtime_sources "")
   set(_quakeDialects_extra_link_libs
@@ -189,11 +200,11 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
   INSTALL_DESTINATION cudaq/mlir/_mlir_libs
   OUTPUT_DIRECTORY "${MLIR_BINARY_DIR}/python/cudaq/mlir/_mlir_libs"
   RELATIVE_INSTALL_ROOT "../.."
+  EMBED_LIBS
+    MLIRCAPITransforms
+    MLIRCAPIConversion
   DECLARED_SOURCES
     CUDAQuantumPythonSources
-    # TODO: Remove this in favor of showing fine grained registration once
-    # available.
-    MLIRPythonExtension.RegisterEverything
     MLIRPythonSources.Core
     # Include full MLIRPythonSources so dialect extensions' EMBED_CAPI_LINK_LIBS
     # (e.g. obj.MLIRCAPILLVM for the LLVM dialect) are embedded into the common
@@ -223,9 +234,6 @@ add_mlir_python_modules(CUDAQuantumPythonModules
   INSTALL_PREFIX "cudaq/mlir"
   DECLARED_SOURCES
     CUDAQuantumPythonSources
-    # TODO: Remove this in favor of showing fine grained registration once
-    # available.
-    MLIRPythonExtension.RegisterEverything
     MLIRPythonSources
   COMMON_CAPI_LINK_LIBS
     CUDAQuantumPythonCAPI
