@@ -58,11 +58,10 @@ RUN dnf -y install nvcomp pkgconfig
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 
 # [CMake]
-# Hololink requires a newer CMake version
-ARG CMAKE_VERSION=3.31.11
+ARG CMAKE_VERSION=4.0.7
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).sh -O cmake-install.sh && \
-    bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
-   
+    bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
+
 # [Holoscan SDK]
 ARG HOLOSCAN_SDK_VERSION=4.0.0.1
 ENV HOLOSCAN_SDK_INSTALL_PREFIX=/opt/nvidia/holoscan

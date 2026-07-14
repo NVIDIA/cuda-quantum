@@ -195,16 +195,6 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   virtual void generateMSM() {}
 
-  /// @brief For simulators that support detector error model (DEM) analysis,
-  /// compute the DEM from the recorded circuit and return it as `.dem` text.
-  ///
-  /// `.dem` is the Detector Error Model text format defined by Stim; only the
-  /// `stim` backend currently implements this.
-  virtual std::string generateDem() {
-    throw std::runtime_error(
-        "Detector error model (DEM) analysis not supported.");
-  }
-
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -322,6 +312,11 @@ public:
   finalizeExecutionContext(const cudaq::observe_policy &policy) = 0;
   virtual cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
+  virtual cudaq::dem_result
+  finalizeExecutionContext(const cudaq::dem_policy &) {
+    throw std::runtime_error(
+        "This target does not support detector error model generation.");
+  }
 
   /// @brief Clean up after execution ends.
   virtual void endExecution() {}
@@ -344,6 +339,13 @@ public:
     noiseModel = policy.noiseModel;
     currentCircuitName = policy.kernelName;
     policy.canHandleObserve = canHandleObserve();
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(const cudaq::dem_policy &policy) {
+    noiseModel = policy.noiseModel;
+    currentCircuitName = policy.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
@@ -1219,9 +1221,6 @@ protected:
     if (context.name == "msm") {
       generateMSM();
     }
-
-    if (context.name == "dem")
-      context.dem_text = generateDem();
   }
 
 public:
