@@ -76,5 +76,5 @@ cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
 
   // 6. Pass the span back as a RunResultSpan. NB: it is the responsibility of
   // the caller to free the buffer.
-  return {buffer, bufferSize};
+  return {buffer, bufferSize, resultCount};
 }
