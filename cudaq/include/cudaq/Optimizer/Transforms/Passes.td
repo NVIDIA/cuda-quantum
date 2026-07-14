@@ -190,6 +190,10 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
       first. The omega global-phase contributions are dropped on the
       assumption that no consumer wraps the kernel with `cudaq::control`
       after this pass runs.
+      TODO: track and preserve the omega global phase once global-phase
+      support lands in Quake, so that controlled uses of a synthesized
+      kernel remain correct (the phase becomes an observable relative phase
+      under `cudaq::control`).
 
     The pass is gated at build time on `CUDAQ_HAS_CLIFFORD_T_SYNTHESIS`.
     When the synthesis library is not available, `runOnOperation` emits a
