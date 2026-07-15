@@ -23,6 +23,7 @@ CPUs
 CUDA
 Cartesian
 CentOS
+CodeGen
 Conda
 ConnectX
 CuPy

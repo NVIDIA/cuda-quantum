@@ -34,9 +34,9 @@ def cc_PointerType : CCType<"Pointer", "ptr"> {
     memory. That includes declarations such as `T*` (pointer to T), `T&`
     (lvalue reference to T), and `T&&` (rvalue reference to T).
 
-    This is a more permissive type than the LLVMPointerType, which has
-    restrictions on its element type that makes it harder to use at time.
-    Ultimately, !cc.ptr types will become LLVM IR pointers.
+    CC retains the element type while it represents high-level C++ memory
+    semantics. LLVM dialect pointers are opaque and do not retain an element
+    type. Ultimately, `!cc.ptr` types become LLVM dialect pointers.
   }];
 
   let parameters = (ins "mlir::Type":$elementType);
@@ -60,7 +60,7 @@ def cc_StructType : CCType<"Struct", "struct",
     [DeclareTypeInterfaceMethods<DataLayoutTypeInterface>]> {
   let summary = "Primitive aggregate C/C++ type.";
   let description = [{
-    A struct is first-class type for an aggregate tuple value composed of
+    A struct is a first-class type for an aggregate tuple value composed of
     multiple ordered subvalues of any type. A value of type struct need not be
     a memory object like an array.
 
@@ -137,8 +137,8 @@ def cc_StructType : CCType<"Struct", "struct",
 def cc_ArrayType : CCType<"Array", "array"> {
   let summary = "Primitive C-like, one-dimensional sequential type.";
   let description = [{
-    A value in memory of type `!cc.array` is similar to a `!cc.pointer` but
-    allows 0-based indexing into a sequence of values. A `!cc.pointer` by
+    A value in memory of type `!cc.array` is similar to a `!cc.ptr` but
+    allows 0-based indexing into a sequence of values. A `!cc.ptr` by
     contrast points to a single object.
 
     A value of type `!cc.array` should ordinarily be an object in memory. This
@@ -146,7 +146,7 @@ def cc_ArrayType : CCType<"Array", "array"> {
     `!cc.array` should itself reside in memory. More precisely, loading an array
     into a register is not portable.
 
-    See also the StdVectorType type as another aggregate sequence of values.
+    See also `!cc.stdvec` as another aggregate sequence of values.
   }];
 
   let parameters = (ins
@@ -229,8 +229,8 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
   let summary = "Proxy for a std::vector<T> in cc";
   let description = [{
     This captures a C++ std::vector<T> template type as an abstract CC
-    type. The intention is to allow us to reason about std::vectors at the
-    CC level before decomposing these into more refined data structures.
+    type. The intention is to allow us to reason about `std::vector` values at
+    the CC level before decomposing these into more refined data structures.
 
     ```c++
     void foo(std::vector<int> vec) ...
@@ -263,8 +263,8 @@ def cc_CharSpanType
     : CCType<"Charspan", "charspan", [], "cudaq::cc::SpanLikeType"> {
   let summary = "Proxy for a span over a std::string in cc";
   let description = [{
-    This captures a C++ std::string(of char) type as an abstract CC type. The
-    intention is to allow us to reason about std::string at the CC level before
+    This captures a C++ `std::string` as an abstract CC type. The intention is
+    to allow us to reason about `std::string` at the CC level before
     decomposing these into more refined data structures.
 
     ```c++
@@ -291,11 +291,12 @@ def cc_MeasureHandleType : CCType<"MeasureHandle", "measure_handle"> {
   let summary = "An opaque word-sized handle for a measurement event.";
   let description = [{
     The IR alias of the C++ `cudaq::measure_handle` class. Semantically an
-    opaque, word-sized classical value (an `i64` payload) whose only meaningful
-    consumer is `quake.discriminate`. The bridge emits this type so that
-    verification passes can reject entry-point kernels that leak handles across
-    the host-device boundary; a late lowering pass replaces it with `i64`
-    before QIR emission.
+    opaque, word-sized classical value (an `i64` payload). It may be consumed by
+    `quake.discriminate` or by QEC declaration operations. The bridge emits this
+    type so that the front end can classify signatures containing handles as
+    device-only and the marshaling layer can mark them ineligible for host-side
+    entry points. A late lowering pass replaces it with `i64` before QIR
+    emission.
 
     ```mlir
       %mh = quake.mz %q name "mh" : (!quake.ref) -> !cc.measure_handle

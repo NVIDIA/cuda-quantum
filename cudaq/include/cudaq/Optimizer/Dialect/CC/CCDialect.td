@@ -25,9 +25,9 @@ def CCDialect : Dialect {
   let name = "cc";
   let summary = "Classical compute dialect for the CUDA-Q programming model.";
   let description = [{
-    CC is envisioned to be a high-level, portable MLIR dialect that is very
-    close to the classical computing side of the CUDA-Q programming model.
-    The classical computation found in CUDA-Q is a restricted subdomain of C++.
+    CC is a high-level, portable MLIR dialect for the classical computing side
+    of the CUDA-Q programming model. It represents the subset of C++ supported
+    in CUDA-Q kernels.
   }];
 
   let cppNamespace = "cudaq::cc";
