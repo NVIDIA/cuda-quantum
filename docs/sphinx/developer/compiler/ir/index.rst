@@ -44,8 +44,7 @@ CodeGen
 ========
 
 CodeGen is an internal dialect used while lowering CUDA-Q IR toward target
-representations. Its definitions and implementation are the current source of
-truth. CUDA-Q does not publish a generated CodeGen reference.
+representations.
 
 Sources: `dialect <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/CodeGen/CodeGenDialect.td>`__,
 `operations <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/CodeGen/CodeGenOps.td>`__,
@@ -53,9 +52,9 @@ Sources: `dialect <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/includ
 `implementation <https://github.com/NVIDIA/cuda-quantum/tree/main/cudaq/lib/Optimizer/CodeGen>`__.
 
 .. toctree::
-   :caption: Generated References
+   :caption: Dialect Documentation
    :maxdepth: 1
 
-      Quake Operation and Type Reference <quake-reference>
-      CC Operation and Type Reference <cc-reference>
-      QEC Operation Reference <qec-reference>
+      Quake <quake>
+      CC <cc>
+      QEC <qec>
