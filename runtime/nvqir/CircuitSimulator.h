@@ -124,6 +124,13 @@ protected:
   /// should be emitted.
   bool warnAboutNamedMeasurements = false;
 
+  template <typename Policy>
+  void configureExecutionContextImpl(Policy policy) {
+    noiseModel = policy.noiseModel;
+    currentCircuitName = policy.kernelName;
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -161,29 +168,6 @@ public:
   /// previously applied gates have truly been applied by the underlying
   /// simulator.
   virtual void synchronize() {}
-
-  /// @brief For simulators that support generating an MSM, this returns the
-  /// number of rows and columns in the MSM (for a given noisy kernel)
-  virtual std::optional<std::pair<std::size_t, std::size_t>> generateMSMSize() {
-    return std::nullopt;
-  }
-
-  /// @brief For simulators that support generating an MSM, this generates the
-  /// MSM and returns it as an msm_result. The result is only
-  /// valid for a specific kernel with a specific noise profile.
-  /// Note: Measurement Syndrome Matrix is defined in
-  /// https://arxiv.org/pdf/2407.13826.
-  virtual cudaq::msm_result generateMSM() { return {}; }
-
-  /// @brief For simulators that support detector error model (DEM) analysis,
-  /// compute the DEM from the recorded circuit and return it as `.dem` text.
-  ///
-  /// `.dem` is the Detector Error Model text format defined by Stim; only the
-  /// `stim` backend currently implements this.
-  virtual std::string generateDem() {
-    throw std::runtime_error(
-        "Detector error model (DEM) analysis not supported.");
-  }
 
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
@@ -303,13 +287,19 @@ public:
   virtual cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
   virtual cudaq::msm_dimensions
-  finalizeExecutionContext(const cudaq::msm_size_policy &policy) = 0;
+  finalizeExecutionContext(const cudaq::msm_size_policy &policy) {
+    throw std::runtime_error("This target does not support policy" +
+                             std::string(policy.name));
+  }
   virtual cudaq::msm_result
-  finalizeExecutionContext(const cudaq::msm_policy &policy) = 0;
+  finalizeExecutionContext(const cudaq::msm_policy &policy) {
+    throw std::runtime_error("This target does not support policy" +
+                             std::string(policy.name));
+  }
   virtual cudaq::dem_result
-  finalizeExecutionContext(const cudaq::dem_policy &) {
-    throw std::runtime_error(
-        "This target does not support detector error model generation.");
+  finalizeExecutionContext(const cudaq::dem_policy &policy) {
+    throw std::runtime_error("This target does not support policy" +
+                             std::string(policy.name));
   }
 
   /// @brief Clean up after execution ends.
@@ -322,25 +312,20 @@ public:
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::sample_policy &policy) {
+    configureExecutionContextImpl(policy);
     warnAboutNamedMeasurements = true;
-    noiseModel = policy.noiseModel;
-    currentCircuitName = policy.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::observe_policy &policy) {
-    noiseModel = policy.noiseModel;
-    currentCircuitName = policy.kernelName;
+    configureExecutionContextImpl(policy);
     policy.canHandleObserve = canHandleObserve();
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
   /// @brief Set the execution context
-  void configureExecutionContext(const cudaq::dem_policy &policy) {
-    noiseModel = policy.noiseModel;
-    currentCircuitName = policy.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  virtual void configureExecutionContext(const cudaq::dem_policy &policy) {
+    throw std::runtime_error("This target does not support policy" +
+                             std::string(policy.name));
   }
 
   /// @brief Set the execution context
@@ -359,16 +344,14 @@ public:
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::msm_size_policy &policy) {
-    noiseModel = policy.noiseModel;
-    currentCircuitName = policy.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+    throw std::runtime_error("This target does not support policy" +
+                             std::string(policy.name));
   }
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::msm_policy &policy) {
-    noiseModel = policy.noiseModel;
-    currentCircuitName = policy.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+    throw std::runtime_error("This target does not support policy" +
+                             std::string(policy.name));
   }
 
   /// @brief Set the execution context
@@ -1249,25 +1232,6 @@ protected:
     currentCircuitName = "";
 
     return internalResult;
-  }
-
-  cudaq::msm_dimensions
-  finalizeExecutionContext(const cudaq::msm_size_policy &policy) override {
-    if (nQubitsAllocated == 0)
-      return {};
-    finalizeExecutionContextImpl();
-    auto dimensions = generateMSMSize();
-    if (!dimensions)
-      throw std::runtime_error("MSM size analysis not supported.");
-    return *dimensions;
-  }
-
-  cudaq::msm_result
-  finalizeExecutionContext(const cudaq::msm_policy &policy) override {
-    if (nQubitsAllocated == 0)
-      return {};
-    finalizeExecutionContextImpl();
-    return generateMSM();
   }
 
   void finalizeExecutionContext(const cudaq::other_policies &policy,

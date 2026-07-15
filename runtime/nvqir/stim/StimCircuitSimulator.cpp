@@ -189,12 +189,11 @@ protected:
 
   /// @brief Return the number of rows and columns needed for a Parity Check
   /// Matrix
-  std::optional<std::pair<std::size_t, std::size_t>>
-  generateMSMSize() override {
+  std::optional<std::pair<std::size_t, std::size_t>> generateMSMSize() {
     return std::make_pair(num_measurements, msm_err_count);
   }
 
-  cudaq::msm_result generateMSM() override {
+  cudaq::msm_result generateMSM() {
     const auto num_cols = getBatchSize();
     stim::simd_bit_table<W> msmSample = sampleSim->m_record.storage;
     // Disabled because it's too verbose, but left here as comments for
@@ -322,6 +321,25 @@ protected:
     if (policy.options.return_measurement_matrices)
       computeMeasurementMatrices(result);
     return result;
+  }
+
+  cudaq::msm_dimensions
+  finalizeExecutionContext(const cudaq::msm_size_policy &policy) override {
+    if (nQubitsAllocated == 0)
+      return {};
+    finalizeExecutionContextImpl();
+    auto dimensions = generateMSMSize();
+    if (!dimensions)
+      throw std::runtime_error("MSM size analysis not supported.");
+    return *dimensions;
+  }
+
+  cudaq::msm_result
+  finalizeExecutionContext(const cudaq::msm_policy &policy) override {
+    if (nQubitsAllocated == 0)
+      return {};
+    finalizeExecutionContextImpl();
+    return generateMSM();
   }
 
   /// @brief Override the default sized allocation of qubits
@@ -675,6 +693,7 @@ protected:
   QubitOrdering getQubitOrdering() const override { return QubitOrdering::msb; }
 
 public:
+  using StimSimulatorBase::configureExecutionContext;
   StimCircuitSimulator() : randomEngine(std::random_device{}()) {
     // Populate the correct name so it is printed correctly during
     // deconstructor.
@@ -861,9 +880,19 @@ public:
   }
 
   void configureExecutionContext(const cudaq::msm_policy &policy) override {
+    StimSimulatorBase::configureExecutionContextImpl(policy);
     is_msm_mode = true;
     activeMsmDimensions = policy.dimensions;
     StimSimulatorBase::configureExecutionContext(policy);
+  }
+
+  void
+  configureExecutionContext(const cudaq::msm_size_policy &policy) override {
+    StimSimulatorBase::configureExecutionContextImpl(policy);
+  }
+
+  void configureExecutionContext(const cudaq::dem_policy &policy) override {
+    StimSimulatorBase::configureExecutionContextImpl(policy);
   }
 
   // TODO - remove after CUDAQX use of the ExecutionContext is removed
