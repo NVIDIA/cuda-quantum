@@ -999,6 +999,52 @@ jobs:
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-cpu-roce-transport.a"
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-device-call-runtime.so"
 
+      - name: Realtime validation (released image)
+        shell: bash
+        run: |
+          # realtime_validation covers the dev image. This step checks that
+          # realtime survives the copy into the released image, whose runtime
+          # dependencies (e.g. libibverbs for the cpu_roce transport) come
+          # from the base image rather than cudaq.Dockerfile.
+          for lib in libcudaq-realtime.so libcudaq-device-call-runtime.so; do
+            if [ ! -f "$CUDA_QUANTUM_PATH/lib/$lib" ]; then
+              echo "::error::$lib is missing from the released image."
+              exit 1
+            fi
+            if ldd "$CUDA_QUANTUM_PATH/lib/$lib" | grep "not found"; then
+              echo "::error::$lib has unresolved dynamic dependencies."
+              exit 1
+            fi
+          done
+
+          cat > /tmp/realtime_probe.cpp <<'EOF'
+          #include "cudaq/realtime.h"
+          #include <cstdio>
+          #include <exception>
+          int main() {
+            try {
+              cudaq::realtime::initialize();
+              printf("realtime probe: initialize succeeded\n");
+            } catch (const std::exception &e) {
+              printf("realtime probe: %s\n", e.what());
+            }
+            return 0;
+          }
+          EOF
+          cd /tmp && nvq++ -frealtime-lowering realtime_probe.cpp -o realtime_probe
+          CUDAQ_LOG_LEVEL=info ./realtime_probe 2>&1 | tee /tmp/realtime_probe.out
+
+          # A shim-less app must reach the plugin's service lookup. The stub
+          # warning or a plugin load failure means realtime is broken in the
+          # released image even if the dev-image tests passed.
+          if grep -q "compiled without realtime support" /tmp/realtime_probe.out; then
+            echo "::error::libcudaq.so was built without CUDAQ_ENABLE_REALTIME."
+            exit 1
+          fi
+          if ! grep -Eq "initialize succeeded|device_call service plugin was not found" /tmp/realtime_probe.out; then
+            echo "::error::Realtime plugin failed to load in the released image."
+            exit 1
+          fi
   image_validation_config:
     name: Configure image validation
     needs: cudaq_images
