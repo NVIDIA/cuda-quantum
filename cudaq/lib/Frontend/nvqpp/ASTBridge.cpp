@@ -13,7 +13,10 @@
 #include "clang/AST/ParentMapContext.h"
 #include "clang/Basic/TargetCXXABI.h"
 #include "clang/Basic/TargetInfo.h"
+#include "clang/Frontend/DependencyOutputOptions.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
+#include "clang/Frontend/Utils.h"
+#include "clang/Lex/Preprocessor.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -33,6 +36,27 @@ using namespace mlir;
 // spurious crashes. Setting this to `2` omits trying to print the Values at
 // all, which will avoid any/all random crashes in the MLIR printer.
 llvm::cl::opt<unsigned> debugOpNameOnly("lower-ast-values", llvm::cl::init(0));
+
+void cudaq::ASTBridgeAction::attachDependencyFileGenerator(
+    clang::CompilerInstance &ci) {
+  if (dependencyFileOptions.outputFile.empty())
+    return;
+  clang::DependencyOutputOptions depOpts;
+  depOpts.OutputFile = dependencyFileOptions.outputFile;
+  depOpts.IncludeSystemHeaders = dependencyFileOptions.includeSystemHeaders;
+  // -MP: emit a phony target for every header so deleting a header does not
+  // wedge the build with a "missing prerequisite" error on the next run.
+  depOpts.UsePhonyTargets = true;
+  // DependencyFileGenerator requires at least one target; nvq++ always supplies
+  // one via -MT, but fall back to the output path to stay well-formed.
+  if (dependencyFileOptions.targets.empty())
+    depOpts.Targets.push_back(dependencyFileOptions.outputFile);
+  else
+    depOpts.Targets = dependencyFileOptions.targets;
+  auto gen = std::make_shared<clang::DependencyFileGenerator>(depOpts);
+  gen->attachToPreprocessor(ci.getPreprocessor());
+  ci.addDependencyCollector(gen);
+}
 
 // Generate a list (as a vector) of all the reachable functions recorded in the
 // call graph, \p cgn.
