@@ -19,6 +19,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
+from pygments.lexers.special import TextLexer
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
@@ -164,6 +165,7 @@ htmlhelp_basename = 'cudaqDoc'
 
 
 def setup(app):
+    app.add_lexer('mlir', TextLexer)
     app.add_css_file('cudaq_override.css')
 
 

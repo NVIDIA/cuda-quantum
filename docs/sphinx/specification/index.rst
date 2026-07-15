@@ -9,3 +9,4 @@ The following specifications for the CUDA-Q programming model and toolchain are 
 
       Language Specification <cudaq.rst>
       Quake Specification <quake-dialect>
+      Quake Operation and Type Reference <quake-reference>
