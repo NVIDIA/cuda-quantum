@@ -8,7 +8,7 @@
 
 add_cudaq_dialect(Quake quake)
 add_cudaq_interface(QuakeInterfaces)
-add_cudaq_dialect_doc(QuakeDialect quake)
+add_cudaq_doc(QuakeOps Dialects/Quake -gen-dialect-doc -dialect quake)
 
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
         DESTINATION include/cudaq/Optimizer/Dialect/Quake
