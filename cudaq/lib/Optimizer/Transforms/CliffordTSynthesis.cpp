@@ -422,6 +422,13 @@ public:
       }
     }
 
+    // Working precision (in bits) for the MPFR-backed reals gridsynth uses.
+    // Representing a target of accuracy epsilon needs about log2(1/epsilon)
+    // significant bits. The 4x factor supplies guard bits so rounding in
+    // gridsynth's iterative arithmetic (candidate enumeration, Diophantine
+    // solving) stays well below the epsilon budget, and the +64 / max(64, ...)
+    // floor guarantees a sane minimum even for loose epsilon. This is an
+    // empirical heuristic.
     auto prec = static_cast<mpfr_prec_t>(
         std::max<double>(64.0, std::ceil(-std::log2(epsilon) * 4.0 + 64.0)));
     cudaq::synth::Real::set_default_precision(prec);
