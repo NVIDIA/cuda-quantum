@@ -239,6 +239,19 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
   bool *hadHardError;
 };
 
+// The Rx/Ry/R1 patterns below reduce those rotations to an inner Rz, which
+// RzPattern then expands to Clifford+T. Ideally this pass would accept Rz-only
+// IR and leave all gateset reduction to the shared Decomposition pass, but that
+// library currently has no Rx->Rz or Ry->Rz pattern (only Rx/Ry->PhasedRx), so
+// there is no upstream path to force a Rz+Clifford gateset here. R1->Rz does
+// exist upstream (R1ToRz). R1Pattern is kept only to keep this pass
+// self-contained.
+//
+// TODO: move the Rx->Rz (H.Rz.H) and Ry->Rz reductions into
+// DecompositionPatterns.cpp so any pass can request a Rz+Clifford basis, then
+// run decomposition-to-{rz,clifford} ahead of this pass and drop RxPattern,
+// RyPattern, and R1Pattern, leaving CliffordTSynthesis to handle Rz only.
+
 // Rx(theta) = H . Rz(theta) . H. The greedy driver then re-fires RzPattern
 // on the inner Rz to do the actual Clifford+T expansion.
 struct RxPattern : OpRewritePattern<cudaq::quake::RxOp> {
