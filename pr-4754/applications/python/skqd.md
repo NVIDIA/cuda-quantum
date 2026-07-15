@@ -1233,8 +1233,8 @@ pr-4754
         -   [Plugin Directory
             Structure](../../using/extending/backend.html#plugin-directory-structure){.reference
             .internal}
-        -   [REST-Style Backends
-            (ServerHelper)](../../using/extending/backend.html#rest-style-backends-serverhelper){.reference
+        -   [REST-Style Backends (Server
+            Helper)](../../using/extending/backend.html#rest-style-backends-server-helper){.reference
             .internal}
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
@@ -1242,7 +1242,8 @@ pr-4754
             -   [Target YAML
                 Configuration](../../using/extending/backend.html#target-yaml-configuration){.reference
                 .internal}
-            -   [CMakeLists.txt](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [CMake Build
+                File](../../using/extending/backend.html#cmake-build-file){.reference
                 .internal}
         -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/backend.html#auxiliary-files-and-plugin-root){.reference
@@ -2471,7 +2472,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![8f544a213c88497f9014f35298fecf30](../../_images/speedup.png){.no-scaled-link
+![a2b777c0e22f456d807d0903347aeabc](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2485,9 +2486,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![ec88a42a456544089f93ecde86c97683](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![9a7adc9874ff40c09d0ba0e4ac1e01a8](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![135a5cea70ec4aecb15c1d723ee49e69](../../_images/efficiency.jpeg){.no-scaled-link
+![17ed5a63f1ea45bcb88a78a165104c0c](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

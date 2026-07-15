@@ -758,10 +758,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../using/extending/extending.html">   Extending</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Implement a Hardware Backend</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#plugin-directory-structure">Plugin Directory Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#rest-style-backends-serverhelper">REST-Style Backends (ServerHelper)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#rest-style-backends-server-helper">REST-Style Backends (Server Helper)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#server-helper-class">Server Helper Class</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#target-yaml-configuration">Target YAML Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmakelists-txt">CMakeLists.txt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmake-build-file">CMake Build File</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#auxiliary-files-and-plugin-root">Auxiliary Files and <code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
@@ -8194,7 +8194,7 @@ like this:</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq11dem_options27return_measurement_matricesE">
 <span class="target" id="structcudaq_1_1dem__options_1a00307bf104a7b5ddd47746d1b2aebf98"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">return_measurement_matrices</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq11dem_options27return_measurement_matricesE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>When true, the DEM execution also populates <code class="docutils literal notranslate"><span class="pre">ExecutionContext::measurement_matrices</span></code>. </p>
+<dd><p>When true, also compute the measurement-to-detector and measurement-to-observable matrices. </p>
 </dd></dl>
 
 </div>

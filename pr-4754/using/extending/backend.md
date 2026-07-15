@@ -1228,15 +1228,16 @@ pr-4754
         -   [Plugin Directory
             Structure](#plugin-directory-structure){.reference
             .internal}
-        -   [REST-Style Backends
-            (ServerHelper)](#rest-style-backends-serverhelper){.reference
+        -   [REST-Style Backends (Server
+            Helper)](#rest-style-backends-server-helper){.reference
             .internal}
             -   [Server Helper Class](#server-helper-class){.reference
                 .internal}
             -   [Target YAML
                 Configuration](#target-yaml-configuration){.reference
                 .internal}
-            -   [CMakeLists.txt](#cmakelists-txt){.reference .internal}
+            -   [CMake Build File](#cmake-build-file){.reference
+                .internal}
         -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
             .notranslate}]{.pre}](#auxiliary-files-and-plugin-root){.reference
             .internal}
@@ -1926,7 +1927,7 @@ Every backend plugin follows this layout:
     ├── targets/
     │   └── my-backend.yml       # Target configuration
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so   # (or libcudaq-qpu-my-backend.so)
+    │   └── libcudaq-serverhelper-my-backend.so
     └── data/                    # Optional auxiliary files
         └── topology.txt
 :::
@@ -1940,8 +1941,8 @@ that implement the backend. The optional [`data/`{.docutils .literal
 noise models, calibration data, etc.).
 :::
 
-::: {#rest-style-backends-serverhelper .section}
-## REST-Style Backends (ServerHelper)[¶](#rest-style-backends-serverhelper "Permalink to this heading"){.headerlink}
+::: {#rest-style-backends-server-helper .section}
+## REST-Style Backends (Server Helper)[¶](#rest-style-backends-server-helper "Permalink to this heading"){.headerlink}
 
 A REST-style backend communicates with a provider's HTTP API. You
 implement a [`ServerHelper`{.docutils .literal .notranslate}]{.pre}
@@ -1966,128 +1967,84 @@ Here's a template for implementing a server helper class:
 ::: {.highlight-cpp .notranslate}
 ::: highlight
     // ProviderNameServerHelper.cpp
-    #include "cudaq/runtime/logger/logger.h"
-    #include "common/RestClient.h"
     #include "common/ServerHelper.h"
-    #include "cudaq/Support/Version.h"
-    #include "cudaq/utils/cudaq_utils.h"
-    #include <bitset>
-    #include <fstream>
-    #include <iostream>
-    #include <map>
-    #include <regex>
-    #include <sstream>
-    #include <thread>
-    #include <unordered_set>
-
-    using json = nlohmann::json;
+    #include "nlohmann/json.hpp"
 
     namespace cudaq {
 
-    /// @brief The ProviderNameServerHelper class extends the ServerHelper class
-    /// to handle interactions with the Provider Name server for submitting and
-    /// retrieving quantum computation jobs.
+    /// @brief Handles job submission and result retrieval for Provider Name.
     class ProviderNameServerHelper : public ServerHelper {
       static constexpr const char *DEFAULT_URL = "https://api.provider-name.com";
-      static constexpr const char *DEFAULT_VERSION = "v1.0";
 
     public:
       const std::string name() const override { return "<provider_name>"; }
 
-      /// @brief Example implementation of authentication headers.
+      void initialize(BackendConfig config) override {
+        backendConfig = config;
+        parseConfigForCommonParams(backendConfig);
+        if (!backendConfig.count("url"))
+          backendConfig["url"] = DEFAULT_URL;
+        if (auto it = config.find("shots"); it != config.end())
+          setShots(std::stoul(it->second));
+      }
+
       RestHeaders getHeaders() override {
         RestHeaders headers;
         headers["Content-Type"] = "application/json";
-
-        // Add authentication headers if needed
         if (backendConfig.count("api_key"))
           headers["Authorization"] = "Bearer " + backendConfig["api_key"];
-
         return headers;
       }
 
-      /// @brief Example implementation of backend initialization.
-      void initialize(BackendConfig config) override {
-        CUDAQ_INFO("Initializing Provider Name Backend");
-        backendConfig = config;
-
-        if (!backendConfig.count("url"))
-          backendConfig["url"] = DEFAULT_URL;
-        if (!backendConfig.count("version"))
-          backendConfig["version"] = DEFAULT_VERSION;
-
-        // Set shots if provided
-        if (config.find("shots") != config.end())
-          this->setShots(std::stoul(config["shots"]));
-      }
-
-      /// @brief Example implementation of simple job creation.
+      /// @brief Build one task JSON per compiled kernel and POST them together.
       ServerJobPayload createJob(std::vector<KernelExecution> &circuitCodes) override {
-        ServerMessage job;
-        job["content"] = circuitCodes[0].code;
-        job["shots"] = shots;
-
-        RestHeaders headers = getHeaders();
-        std::string path = "/jobs";
-
-        return std::make_tuple(backendConfig["url"] + path, headers,
-                              std::vector<ServerMessage>{job});
+        std::vector<ServerMessage> tasks;
+        tasks.reserve(circuitCodes.size());
+        for (const auto &circuit : circuitCodes) {
+          ServerMessage task;
+          task["content"] = circuit.code;
+          task["shots"] = shots;
+          tasks.push_back(std::move(task));
+        }
+        return {backendConfig["url"] + "/jobs", getHeaders(), std::move(tasks)};
       }
 
-      /// @brief Example implementation of job ID tracking.
       std::string extractJobId(ServerMessage &postResponse) override {
         if (!postResponse.contains("id"))
           return "";
-
         return postResponse.at("id");
       }
 
-      /// @brief Example implementation of job ID tracking.
-      std::string constructGetJobPath(ServerMessage &postResponse) override {
-        return extractJobId(postResponse);
-      }
-
-      /// @brief Example implementation of job ID tracking.
+      /// @brief Both overloads must return a full URL, not just the job ID.
       std::string constructGetJobPath(std::string &jobId) override {
         return backendConfig["url"] + "/jobs/" + jobId;
       }
 
-      /// @brief Example implementation of job status checking.
+      std::string constructGetJobPath(ServerMessage &postResponse) override {
+        auto jobId = extractJobId(postResponse);
+        return constructGetJobPath(jobId);
+      }
+
       bool jobIsDone(ServerMessage &getJobResponse) override {
         if (!getJobResponse.contains("status"))
           return false;
-
         std::string status = getJobResponse["status"];
         return status == "COMPLETED" || status == "FAILED";
       }
 
-      /// @brief Example implementation of result processing.
+      /// @brief Map provider result counts to a CUDA-Q sample_result.
       ///
-      /// The raw results from quantum hardware often need post-processing (bit
+      /// Raw results from quantum hardware often need post-processing (bit
       /// reordering, normalization, etc.) to match CUDA-Q's expectations.
-      /// This is the place to do that.
-      cudaq::sample_result processResults(ServerMessage &getJobResponse,
+      cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                          std::string &jobId) override {
-        CUDAQ_INFO("Processing results: {}", getJobResponse.dump());
-
-        // Extract measurement results from the response
-        auto samplesJson = getJobResponse["results"]["counts"];
+        auto samplesJson = postJobResponse["results"]["counts"];
         cudaq::CountsDictionary counts;
-
-        for (auto &item : samplesJson.items()) {
-          std::string bitstring = item.key();
-          std::size_t count = item.value();
+        for (auto &[bitstring, count] : samplesJson.items())
           counts[bitstring] = count;
-        }
-
-        // Create an ExecutionResult
-        cudaq::ExecutionResult execResult{counts};
-
-        // Return the sample_result
-        return cudaq::sample_result{execResult};
+        return cudaq::sample_result{cudaq::ExecutionResult{counts}};
       }
 
-      /// @brief Example implementation of polling configuration.
       std::chrono::microseconds
       nextResultPollingInterval(ServerMessage &postResponse) override {
         return std::chrono::seconds(5);
@@ -2096,7 +2053,6 @@ Here's a template for implementing a server helper class:
 
     } // namespace cudaq
 
-    // Register the server helper in the CUDA-Q server helper factory
     CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::ProviderNameServerHelper, <provider_name>)
 :::
 :::
@@ -2116,26 +2072,21 @@ Create a YAML file that tells CUDA-Q how to activate your target:
     # <provider_name>.yml
     name: "<provider_name>"
     description: "CUDA-Q target for Provider Name."
+    cudaq-version: "@CUDA_QUANTUM_VERSION@"
 
     config:
-      # Tell DefaultQuantumPlatform what QPU subtype to use
       platform-qpu: remote_rest
-      # Add the rest-qpu library to the link list
       link-libs: ["-lcudaq-rest-qpu"]
-      # Tell NVQ++ to generate glue code to set the target backend name
       gen-target-backend: true
-      # Add preprocessor defines to compilation
       preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-      # Define the JIT lowering pipeline
-      # This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.
+      # Optional: customize the JIT lowering pipeline for your gate set.
+      # Contact the CUDA-Q team for help setting this up.
       jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce,<provider_name>-gate-set-mapping"
-      # Tell the rest-qpu that we are generating QIR base profile.
-      # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
+      # Supported values: qir-base, qir-adaptive, qasm2
       codegen-emission: qir-base
       library-mode: false
 
-    # Some examples of target arguments are shown below.
-    # You do not need to add any arguments for your backend if you do not need them.
+    # target-arguments are optional; omit the section if your backend needs none.
     target-arguments:
       - key: api-key
         required: true
@@ -2156,6 +2107,11 @@ Create a YAML file that tells CUDA-Q how to activate your target:
 :::
 
 Key fields:
+
+-   [`cudaq-version`{.docutils .literal .notranslate}]{.pre} --- the
+    CUDA-Q version this plugin was built against. Set via CMake's
+    [`@CUDA_QUANTUM_VERSION@`{.docutils .literal .notranslate}]{.pre}
+    substitution; checked at target-load time for compatibility.
 
 -   [`platform-qpu:`{.docutils .literal
     .notranslate}]{.pre}` `{.docutils .literal
@@ -2184,22 +2140,25 @@ Key fields:
     .notranslate}[`api_key=...)`{.docutils .literal .notranslate}]{.pre}
     in Python.
 
-For a complete working example of a REST-style plugin, see the
-[mock_rest reference
+For the full list of recognized YAML fields see the mapping traits in
+[TargetConfigYaml.cpp](https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/lib/Target/Yaml/TargetConfigYaml.cpp){.reference
+.external}. For a complete working example of a REST-style plugin, see
+the [mock_rest reference
 plugin](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest){.reference
 .external}.
 :::
 
-::: {#cmakelists-txt .section}
-### CMakeLists.txt[¶](#cmakelists-txt "Permalink to this heading"){.headerlink}
+::: {#cmake-build-file .section}
+### CMake Build File[¶](#cmake-build-file "Permalink to this heading"){.headerlink}
 
 A minimal [`CMakeLists.txt`{.docutils .literal .notranslate}]{.pre} for
 a REST-style plugin:
 
 ::: {.highlight-cmake .notranslate}
 ::: highlight
-    cmake_minimum_required(VERSION 3.22)
-    project(my-backend-plugin)
+    # No cmake_minimum_required / project() — this file runs as an
+    # add_subdirectory() child of the CUDA-Q build via CUDAQ_EXTERNAL_PROJECTS,
+    # so it inherits the CUDA-Q project scope and all its CMake targets.
 
     set(plugin_root ${CMAKE_CURRENT_BINARY_DIR})
     set(plugin_lib_dir ${plugin_root}/lib)

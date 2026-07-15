@@ -1229,8 +1229,8 @@ pr-4754
         -   [Plugin Directory
             Structure](backend.html#plugin-directory-structure){.reference
             .internal}
-        -   [REST-Style Backends
-            (ServerHelper)](backend.html#rest-style-backends-serverhelper){.reference
+        -   [REST-Style Backends (Server
+            Helper)](backend.html#rest-style-backends-server-helper){.reference
             .internal}
             -   [Server Helper
                 Class](backend.html#server-helper-class){.reference
@@ -1238,7 +1238,8 @@ pr-4754
             -   [Target YAML
                 Configuration](backend.html#target-yaml-configuration){.reference
                 .internal}
-            -   [CMakeLists.txt](backend.html#cmakelists-txt){.reference
+            -   [CMake Build
+                File](backend.html#cmake-build-file){.reference
                 .internal}
         -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
             .notranslate}]{.pre}](backend.html#auxiliary-files-and-plugin-root){.reference
@@ -2048,7 +2049,7 @@ repository for this code called [`my-simulator`{.code .docutils .literal
 
 ::: {.highlight-cmake .notranslate}
 ::: highlight
-    cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+    cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
     project(DemoCreateNVQIRBackend VERSION 1.0.0 LANGUAGES CXX)
     find_package(NVQIR REQUIRED)
     nvqir_add_backend(MySimulator MySimulator.cpp "")

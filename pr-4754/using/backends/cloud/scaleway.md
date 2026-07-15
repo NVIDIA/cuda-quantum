@@ -1219,8 +1219,8 @@ pr-4754
         -   [Plugin Directory
             Structure](../../extending/backend.html#plugin-directory-structure){.reference
             .internal}
-        -   [REST-Style Backends
-            (ServerHelper)](../../extending/backend.html#rest-style-backends-serverhelper){.reference
+        -   [REST-Style Backends (Server
+            Helper)](../../extending/backend.html#rest-style-backends-server-helper){.reference
             .internal}
             -   [Server Helper
                 Class](../../extending/backend.html#server-helper-class){.reference
@@ -1228,7 +1228,8 @@ pr-4754
             -   [Target YAML
                 Configuration](../../extending/backend.html#target-yaml-configuration){.reference
                 .internal}
-            -   [CMakeLists.txt](../../extending/backend.html#cmakelists-txt){.reference
+            -   [CMake Build
+                File](../../extending/backend.html#cmake-build-file){.reference
                 .internal}
         -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
             .notranslate}]{.pre}](../../extending/backend.html#auxiliary-files-and-plugin-root){.reference

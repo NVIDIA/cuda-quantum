@@ -756,10 +756,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="extending.html">   Extending</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Implement a Hardware Backend</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#plugin-directory-structure">Plugin Directory Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#rest-style-backends-serverhelper">REST-Style Backends (ServerHelper)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#rest-style-backends-server-helper">REST-Style Backends (Server Helper)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#server-helper-class">Server Helper Class</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#target-yaml-configuration">Target YAML Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#cmakelists-txt">CMakeLists.txt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cmake-build-file">CMake Build File</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#auxiliary-files-and-plugin-root">Auxiliary Files and <code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
@@ -1100,7 +1100,7 @@ described in <a class="reference internal" href="packaging.html"><span class="do
 ├── targets/
 │   └── my-backend.yml       # Target configuration
 ├── lib/
-│   └── libcudaq-serverhelper-my-backend.so   # (or libcudaq-qpu-my-backend.so)
+│   └── libcudaq-serverhelper-my-backend.so
 └── data/                    # Optional auxiliary files
     └── topology.txt
 </pre></div>
@@ -1110,8 +1110,8 @@ The <code class="docutils literal notranslate"><span class="pre">lib/</span></co
 The optional <code class="docutils literal notranslate"><span class="pre">data/</span></code> directory holds auxiliary files (device topologies, noise
 models, calibration data, etc.).</p>
 </section>
-<section id="rest-style-backends-serverhelper">
-<h2>REST-Style Backends (ServerHelper)<a class="headerlink" href="#rest-style-backends-serverhelper" title="Permalink to this heading">¶</a></h2>
+<section id="rest-style-backends-server-helper">
+<h2>REST-Style Backends (Server Helper)<a class="headerlink" href="#rest-style-backends-server-helper" title="Permalink to this heading">¶</a></h2>
 <p>A REST-style backend communicates with a provider’s HTTP API. You implement a
 <code class="docutils literal notranslate"><span class="pre">ServerHelper</span></code> subclass that handles authentication, job submission, polling,
 and result processing. The built-in <code class="docutils literal notranslate"><span class="pre">remote_rest</span></code> QPU handles the execution
@@ -1125,128 +1125,84 @@ provider-specific functionality. The base class definition can be found in the
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/runtime/common/ServerHelper.h">CUDA-Q repository</a>.</p>
 <p>Here’s a template for implementing a server helper class:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// ProviderNameServerHelper.cpp</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/runtime/logger/logger.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/RestClient.h&quot;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;common/ServerHelper.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/Support/Version.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cudaq/utils/cudaq_utils.h&quot;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;bitset&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iostream&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;regex&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;sstream&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;thread&gt;</span>
-<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unordered_set&gt;</span>
-
-<span class="k">using</span><span class="w"> </span><span class="n">json</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nlohmann</span><span class="o">::</span><span class="n">json</span><span class="p">;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;nlohmann/json.hpp&quot;</span>
 
 <span class="k">namespace</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="p">{</span>
 
-<span class="c1">/// @brief The ProviderNameServerHelper class extends the ServerHelper class</span>
-<span class="c1">/// to handle interactions with the Provider Name server for submitting and</span>
-<span class="c1">/// retrieving quantum computation jobs.</span>
+<span class="c1">/// @brief Handles job submission and result retrieval for Provider Name.</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ProviderNameServerHelper</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">ServerHelper</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">DEFAULT_URL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;https://api.provider-name.com&quot;</span><span class="p">;</span>
-<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">DEFAULT_VERSION</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;v1.0&quot;</span><span class="p">;</span>
 
 <span class="k">public</span><span class="o">:</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;&lt;provider_name&gt;&quot;</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">/// @brief Example implementation of authentication headers.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">initialize</span><span class="p">(</span><span class="n">BackendConfig</span><span class="w"> </span><span class="n">config</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">backendConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">config</span><span class="p">;</span>
+<span class="w">    </span><span class="n">parseConfigForCommonParams</span><span class="p">(</span><span class="n">backendConfig</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;url&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DEFAULT_URL</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;shots&quot;</span><span class="p">);</span><span class="w"> </span><span class="n">it</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">end</span><span class="p">())</span>
+<span class="w">      </span><span class="n">setShots</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">stoul</span><span class="p">(</span><span class="n">it</span><span class="o">-&gt;</span><span class="n">second</span><span class="p">));</span>
+<span class="w">  </span><span class="p">}</span>
+
 <span class="w">  </span><span class="n">RestHeaders</span><span class="w"> </span><span class="n">getHeaders</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">RestHeaders</span><span class="w"> </span><span class="n">headers</span><span class="p">;</span>
 <span class="w">    </span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Content-Type&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;application/json&quot;</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// Add authentication headers if needed</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;api_key&quot;</span><span class="p">))</span>
 <span class="w">      </span><span class="n">headers</span><span class="p">[</span><span class="s">&quot;Authorization&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Bearer &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;api_key&quot;</span><span class="p">];</span>
-
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">headers</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">/// @brief Example implementation of backend initialization.</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">initialize</span><span class="p">(</span><span class="n">BackendConfig</span><span class="w"> </span><span class="n">config</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">CUDAQ_INFO</span><span class="p">(</span><span class="s">&quot;Initializing Provider Name Backend&quot;</span><span class="p">);</span>
-<span class="w">    </span><span class="n">backendConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">config</span><span class="p">;</span>
-
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;url&quot;</span><span class="p">))</span>
-<span class="w">      </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DEFAULT_URL</span><span class="p">;</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;version&quot;</span><span class="p">))</span>
-<span class="w">      </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;version&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DEFAULT_VERSION</span><span class="p">;</span>
-
-<span class="w">    </span><span class="c1">// Set shots if provided</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">config</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;shots&quot;</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">config</span><span class="p">.</span><span class="n">end</span><span class="p">())</span>
-<span class="w">      </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">setShots</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">stoul</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;shots&quot;</span><span class="p">]));</span>
-<span class="w">  </span><span class="p">}</span>
-
-<span class="w">  </span><span class="c1">/// @brief Example implementation of simple job creation.</span>
+<span class="w">  </span><span class="c1">/// @brief Build one task JSON per compiled kernel and POST them together.</span>
 <span class="w">  </span><span class="n">ServerJobPayload</span><span class="w"> </span><span class="n">createJob</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">KernelExecution</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="n">circuitCodes</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">ServerMessage</span><span class="w"> </span><span class="n">job</span><span class="p">;</span>
-<span class="w">    </span><span class="n">job</span><span class="p">[</span><span class="s">&quot;content&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circuitCodes</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">code</span><span class="p">;</span>
-<span class="w">    </span><span class="n">job</span><span class="p">[</span><span class="s">&quot;shots&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shots</span><span class="p">;</span>
-
-<span class="w">    </span><span class="n">RestHeaders</span><span class="w"> </span><span class="n">headers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getHeaders</span><span class="p">();</span>
-<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;/jobs&quot;</span><span class="p">;</span>
-
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_tuple</span><span class="p">(</span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="n">headers</span><span class="p">,</span>
-<span class="w">                          </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">ServerMessage</span><span class="o">&gt;</span><span class="p">{</span><span class="n">job</span><span class="p">});</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">ServerMessage</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tasks</span><span class="p">;</span>
+<span class="w">    </span><span class="n">tasks</span><span class="p">.</span><span class="n">reserve</span><span class="p">(</span><span class="n">circuitCodes</span><span class="p">.</span><span class="n">size</span><span class="p">());</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">circuit</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">circuitCodes</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">ServerMessage</span><span class="w"> </span><span class="n">task</span><span class="p">;</span>
+<span class="w">      </span><span class="n">task</span><span class="p">[</span><span class="s">&quot;content&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">circuit</span><span class="p">.</span><span class="n">code</span><span class="p">;</span>
+<span class="w">      </span><span class="n">task</span><span class="p">[</span><span class="s">&quot;shots&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">shots</span><span class="p">;</span>
+<span class="w">      </span><span class="n">tasks</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">task</span><span class="p">));</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;/jobs&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">getHeaders</span><span class="p">(),</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">tasks</span><span class="p">)};</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">/// @brief Example implementation of job ID tracking.</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">extractJobId</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">postResponse</span><span class="p">.</span><span class="n">contains</span><span class="p">(</span><span class="s">&quot;id&quot;</span><span class="p">))</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="p">;</span>
-
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">postResponse</span><span class="p">.</span><span class="n">at</span><span class="p">(</span><span class="s">&quot;id&quot;</span><span class="p">);</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">/// @brief Example implementation of job ID tracking.</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">constructGetJobPath</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">extractJobId</span><span class="p">(</span><span class="n">postResponse</span><span class="p">);</span>
-<span class="w">  </span><span class="p">}</span>
-
-<span class="w">  </span><span class="c1">/// @brief Example implementation of job ID tracking.</span>
+<span class="w">  </span><span class="c1">/// @brief Both overloads must return a full URL, not just the job ID.</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">constructGetJobPath</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">jobId</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">backendConfig</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;/jobs/&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">jobId</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">/// @brief Example implementation of job status checking.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">constructGetJobPath</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">jobId</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">extractJobId</span><span class="p">(</span><span class="n">postResponse</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">constructGetJobPath</span><span class="p">(</span><span class="n">jobId</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">jobIsDone</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">getJobResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">getJobResponse</span><span class="p">.</span><span class="n">contains</span><span class="p">(</span><span class="s">&quot;status&quot;</span><span class="p">))</span>
 <span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
-
 <span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">[</span><span class="s">&quot;status&quot;</span><span class="p">];</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;COMPLETED&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">&quot;FAILED&quot;</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">/// @brief Example implementation of result processing.</span>
+<span class="w">  </span><span class="c1">/// @brief Map provider result counts to a CUDA-Q sample_result.</span>
 <span class="w">  </span><span class="c1">///</span>
-<span class="w">  </span><span class="c1">/// The raw results from quantum hardware often need post-processing (bit</span>
+<span class="w">  </span><span class="c1">/// Raw results from quantum hardware often need post-processing (bit</span>
 <span class="w">  </span><span class="c1">/// reordering, normalization, etc.) to match CUDA-Q&#39;s expectations.</span>
-<span class="w">  </span><span class="c1">/// This is the place to do that.</span>
-<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="w"> </span><span class="n">processResults</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">getJobResponse</span><span class="p">,</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="w"> </span><span class="n">processResults</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postJobResponse</span><span class="p">,</span>
 <span class="w">                                     </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">jobId</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">CUDAQ_INFO</span><span class="p">(</span><span class="s">&quot;Processing results: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">.</span><span class="n">dump</span><span class="p">());</span>
-
-<span class="w">    </span><span class="c1">// Extract measurement results from the response</span>
-<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">samplesJson</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">[</span><span class="s">&quot;results&quot;</span><span class="p">][</span><span class="s">&quot;counts&quot;</span><span class="p">];</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">samplesJson</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">postJobResponse</span><span class="p">[</span><span class="s">&quot;results&quot;</span><span class="p">][</span><span class="s">&quot;counts&quot;</span><span class="p">];</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">CountsDictionary</span><span class="w"> </span><span class="n">counts</span><span class="p">;</span>
-
-<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">item</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">samplesJson</span><span class="p">.</span><span class="n">items</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">bitstring</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">item</span><span class="p">.</span><span class="n">key</span><span class="p">();</span>
-<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">item</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="p">[</span><span class="n">bitstring</span><span class="p">,</span><span class="w"> </span><span class="n">count</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">samplesJson</span><span class="p">.</span><span class="n">items</span><span class="p">())</span>
 <span class="w">      </span><span class="n">counts</span><span class="p">[</span><span class="n">bitstring</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">count</span><span class="p">;</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="c1">// Create an ExecutionResult</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ExecutionResult</span><span class="w"> </span><span class="n">execResult</span><span class="p">{</span><span class="n">counts</span><span class="p">};</span>
-
-<span class="w">    </span><span class="c1">// Return the sample_result</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="p">{</span><span class="n">execResult</span><span class="p">};</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="p">{</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ExecutionResult</span><span class="p">{</span><span class="n">counts</span><span class="p">}};</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">/// @brief Example implementation of polling configuration.</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">microseconds</span>
 <span class="w">  </span><span class="n">nextResultPollingInterval</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">postResponse</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">seconds</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
@@ -1255,7 +1211,6 @@ provider-specific functionality. The base class definition can be found in the
 
 <span class="p">}</span><span class="w"> </span><span class="c1">// namespace cudaq</span>
 
-<span class="c1">// Register the server helper in the CUDA-Q server helper factory</span>
 <span class="n">CUDAQ_REGISTER_TYPE</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ServerHelper</span><span class="p">,</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">ProviderNameServerHelper</span><span class="p">,</span><span class="w"> </span><span class="o">&lt;</span><span class="n">provider_name</span><span class="o">&gt;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1268,26 +1223,21 @@ the runtime can find it by name when the target is activated.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># &lt;provider_name&gt;.yml</span>
 <span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;provider_name&gt;&quot;</span>
 <span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;CUDA-Q</span><span class="nv"> </span><span class="s">target</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">Provider</span><span class="nv"> </span><span class="s">Name.&quot;</span>
+<span class="nt">cudaq-version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;@CUDA_QUANTUM_VERSION@&quot;</span>
 
 <span class="nt">config</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># Tell DefaultQuantumPlatform what QPU subtype to use</span>
 <span class="w">  </span><span class="nt">platform-qpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remote_rest</span>
-<span class="w">  </span><span class="c1"># Add the rest-qpu library to the link list</span>
 <span class="w">  </span><span class="nt">link-libs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;-lcudaq-rest-qpu&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="c1"># Tell NVQ++ to generate glue code to set the target backend name</span>
 <span class="w">  </span><span class="nt">gen-target-backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="c1"># Add preprocessor defines to compilation</span>
 <span class="w">  </span><span class="nt">preprocessor-defines</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;-D</span><span class="nv"> </span><span class="s">CUDAQ_QUANTUM_DEVICE&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="c1"># Define the JIT lowering pipeline</span>
-<span class="w">  </span><span class="c1"># This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.</span>
+<span class="w">  </span><span class="c1"># Optional: customize the JIT lowering pipeline for your gate set.</span>
+<span class="w">  </span><span class="c1"># Contact the CUDA-Q team for help setting this up.</span>
 <span class="w">  </span><span class="nt">jit-mid-level-pipeline</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce,&lt;provider_name&gt;-gate-set-mapping&quot;</span>
-<span class="w">  </span><span class="c1"># Tell the rest-qpu that we are generating QIR base profile.</span>
-<span class="w">  </span><span class="c1"># As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.</span>
+<span class="w">  </span><span class="c1"># Supported values: qir-base, qir-adaptive, qasm2</span>
 <span class="w">  </span><span class="nt">codegen-emission</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">qir-base</span>
 <span class="w">  </span><span class="nt">library-mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 
-<span class="c1"># Some examples of target arguments are shown below.</span>
-<span class="c1"># You do not need to add any arguments for your backend if you do not need them.</span>
+<span class="c1"># target-arguments are optional; omit the section if your backend needs none.</span>
 <span class="nt">target-arguments</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
 <span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
@@ -1308,6 +1258,9 @@ the runtime can find it by name when the target is activated.</p>
 </div>
 <p>Key fields:</p>
 <ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cudaq-version</span></code> — the CUDA-Q version this plugin was built against. Set via
+CMake’s <code class="docutils literal notranslate"><span class="pre">&#64;CUDA_QUANTUM_VERSION&#64;</span></code> substitution; checked at target-load time
+for compatibility.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">platform-qpu:</span> <span class="pre">remote_rest</span></code> — use the built-in REST QPU (no custom QPU
 subclass needed).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">link-libs</span></code> — libraries to link when compiling with <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p></li>
@@ -1317,14 +1270,17 @@ subclass needed).</p></li>
 <code class="docutils literal notranslate"><span class="pre">--my-backend-api-key</span> <span class="pre">&lt;value&gt;</span></code> on the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> command line and as keyword
 arguments to <code class="docutils literal notranslate"><span class="pre">cudaq.set_target(&quot;my-backend&quot;,</span> <span class="pre">api_key=...)</span></code> in Python.</p></li>
 </ul>
-<p>For a complete working example of a REST-style plugin, see the
+<p>For the full list of recognized YAML fields see the mapping traits in
+<a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/lib/Target/Yaml/TargetConfigYaml.cpp">TargetConfigYaml.cpp</a>.
+For a complete working example of a REST-style plugin, see the
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest">mock_rest reference plugin</a>.</p>
 </section>
-<section id="cmakelists-txt">
-<h3>CMakeLists.txt<a class="headerlink" href="#cmakelists-txt" title="Permalink to this heading">¶</a></h3>
+<section id="cmake-build-file">
+<h3>CMake Build File<a class="headerlink" href="#cmake-build-file" title="Permalink to this heading">¶</a></h3>
 <p>A minimal <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> for a REST-style plugin:</p>
-<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="nb">cmake_minimum_required</span><span class="p">(</span><span class="s">VERSION</span><span class="w"> </span><span class="s">3.22</span><span class="p">)</span>
-<span class="nb">project</span><span class="p">(</span><span class="s">my-backend-plugin</span><span class="p">)</span>
+<div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="c"># No cmake_minimum_required / project() — this file runs as an</span>
+<span class="c"># add_subdirectory() child of the CUDA-Q build via CUDAQ_EXTERNAL_PROJECTS,</span>
+<span class="c"># so it inherits the CUDA-Q project scope and all its CMake targets.</span>
 
 <span class="nb">set</span><span class="p">(</span><span class="s">plugin_root</span><span class="w"> </span><span class="o">${</span><span class="nv">CMAKE_CURRENT_BINARY_DIR</span><span class="o">}</span><span class="p">)</span>
 <span class="nb">set</span><span class="p">(</span><span class="s">plugin_lib_dir</span><span class="w"> </span><span class="o">${</span><span class="nv">plugin_root</span><span class="o">}</span><span class="s">/lib</span><span class="p">)</span>

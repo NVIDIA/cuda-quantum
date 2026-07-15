@@ -756,10 +756,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="extending.html">   Extending</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="backend.html">Implement a Hardware Backend</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="backend.html#plugin-directory-structure">Plugin Directory Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend.html#rest-style-backends-serverhelper">REST-Style Backends (ServerHelper)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="backend.html#rest-style-backends-server-helper">REST-Style Backends (Server Helper)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="backend.html#server-helper-class">Server Helper Class</a></li>
 <li class="toctree-l4"><a class="reference internal" href="backend.html#target-yaml-configuration">Target YAML Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend.html#cmakelists-txt">CMakeLists.txt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backend.html#cmake-build-file">CMake Build File</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="backend.html#auxiliary-files-and-plugin-root">Auxiliary Files and <code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
@@ -1123,7 +1123,7 @@ time:</p>
 <span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">device</span>
 </pre></div>
 </div>
-<p>Use this to reference files shipped inside the plugin without hardcoding
+<p>Use this to reference files shipped inside the plugin without hard-coding
 install paths.</p>
 </section>
 <section id="target-arguments">
@@ -1138,7 +1138,7 @@ keyword arguments for <code class="docutils literal notranslate"><span class="pr
 <span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;API</span><span class="nv"> </span><span class="s">key</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">backend.&quot;</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shots</span>
 <span class="w">    </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">int</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
 <span class="w">    </span><span class="nt">platform-arg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shots</span>
 <span class="w">    </span><span class="nt">help-string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Default</span><span class="nv"> </span><span class="s">shot</span><span class="nv"> </span><span class="s">count.&quot;</span>
 </pre></div>

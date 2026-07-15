@@ -758,10 +758,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../../using/extending/extending.html">   Extending</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Implement a Hardware Backend</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#plugin-directory-structure">Plugin Directory Structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#rest-style-backends-serverhelper">REST-Style Backends (ServerHelper)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#rest-style-backends-server-helper">REST-Style Backends (Server Helper)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#server-helper-class">Server Helper Class</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#target-yaml-configuration">Target YAML Configuration</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmakelists-txt">CMakeLists.txt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmake-build-file">CMake Build File</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#auxiliary-files-and-plugin-root">Auxiliary Files and <code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
@@ -1701,11 +1701,10 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <dt class="sig sig-object py" id="cudaq.dem_from_kernel">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">dem_from_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">dem_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.dem_from_kernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a detector error model (DEM) from a CUDA-Q kernel.</p>
-<p>Runs <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> under the internal <code class="code docutils literal notranslate"><span class="pre">&quot;dem&quot;</span></code> execution context, captures
-the recorded circuit from the backend, and returns Stim’s standard
-<code class="code docutils literal notranslate"><span class="pre">.dem</span></code> text via <code class="code docutils literal notranslate"><span class="pre">stim::DetectorErrorModel::str()</span></code>. The active CUDA-Q
-target is unaffected; the analysis simulator is an internal,
-thread-local override.</p>
+<p>Runs <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> under <code class="code docutils literal notranslate"><span class="pre">dem_policy</span></code> with a thread-local Stim analysis
+scope, then returns Stim’s standard <code class="code docutils literal notranslate"><span class="pre">.dem</span></code> text via
+<code class="code docutils literal notranslate"><span class="pre">stim::DetectorErrorModel::str()</span></code>. The active CUDA-Q target is
+unaffected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -2364,7 +2363,12 @@ on multiple degrees of freedom.</p></li>
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.degrees">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">degrees</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.degrees" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a vector that lists all degrees of freedom that the operator targets. The order of degrees is from smallest to largest and reflects the ordering of the matrix returned by <code class="code docutils literal notranslate"><span class="pre">to_matrix</span></code>. Specifically, the indices of a statevector with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates that a state where the qubit with index 0 equals 1 with probability 1 is given by the vector {0., 1., 0., 0.}.</p>
+<dd><p>qubit 0 contributes 2^0 to the statevector index, qubit 1 contributes 2^1, and so on. For two qubits, statevector index 1 corresponds to the basis state <a href="#id2"><span class="problematic" id="id3">|</span></a>q_0 q_1&gt; = <a href="#id4"><span class="problematic" id="id5">|</span></a>10&gt; (qubit 0 in <a href="#id6"><span class="problematic" id="id7">|</span></a>1&gt;, qubit 1 in <a href="#id8"><span class="problematic" id="id9">|</span></a>0&gt;), so a state where qubit 0 equals 1 with probability 1 is the vector {0., 1., 0., 0.}. This convention matches <code class="code docutils literal notranslate"><span class="pre">cudaq.get_state</span></code>, <code class="code docutils literal notranslate"><span class="pre">SampleResult</span></code> bitstring keys, and the Pauli word produced by <code class="code docutils literal notranslate"><span class="pre">get_pauli_word()</span></code>, all of which place qubit 0 as the left-most character. Note that writing the statevector index as a binary number (e.g. index 1 as <code class="code docutils literal notranslate"><span class="pre">01</span></code>) places qubit 0 on the right, since it is the least-significant bit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns a vector that lists all degrees of freedom (qubit indices) that the operator targets, from smallest to largest. This ordering reflects the basis ordering of the matrix returned by <code class="code docutils literal notranslate"><span class="pre">to_matrix</span></code></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2402,7 +2406,7 @@ on multiple degrees of freedom.</p></li>
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.max_degree">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_degree</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.max_degree" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the smallest index of the degrees of freedom that the operator targets.</p>
+<dd><p>Returns the largest index of the degrees of freedom that the operator targets.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -3653,7 +3657,7 @@ on multiple degrees of freedom.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.State.from_data">
-<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0xb33a230&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0x3f95960&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">

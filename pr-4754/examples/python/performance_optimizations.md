@@ -1248,8 +1248,8 @@ pr-4754
         -   [Plugin Directory
             Structure](../../using/extending/backend.html#plugin-directory-structure){.reference
             .internal}
-        -   [REST-Style Backends
-            (ServerHelper)](../../using/extending/backend.html#rest-style-backends-serverhelper){.reference
+        -   [REST-Style Backends (Server
+            Helper)](../../using/extending/backend.html#rest-style-backends-server-helper){.reference
             .internal}
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
@@ -1257,7 +1257,8 @@ pr-4754
             -   [Target YAML
                 Configuration](../../using/extending/backend.html#target-yaml-configuration){.reference
                 .internal}
-            -   [CMakeLists.txt](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [CMake Build
+                File](../../using/extending/backend.html#cmake-build-file){.reference
                 .internal}
         -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/backend.html#auxiliary-files-and-plugin-root){.reference
@@ -1958,14 +1959,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![4cf09d7078a54f45aa95edb2dc43ea18](../../_images/gate-fuse.png)
+![81e580750b794dcf9ce6f206f90c2e61](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![d7b783ea9e0741778af93da3bb623f8f](../../_images/gatefusion.png)
+![0dc17605b34840aa8ead009dd23ad163](../../_images/gatefusion.png)
 :::
 :::
 :::

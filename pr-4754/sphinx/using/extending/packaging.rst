@@ -54,7 +54,7 @@ time:
         default: "%PLUGIN_ROOT%/data/topology.txt"
         platform-arg: device
 
-Use this to reference files shipped inside the plugin without hardcoding
+Use this to reference files shipped inside the plugin without hard-coding
 install paths.
 
 ``target-arguments``
@@ -73,7 +73,7 @@ keyword arguments for ``cudaq.set_target()``:
         help-string: "API key for the backend."
       - key: shots
         required: false
-        type: int
+        type: integer
         platform-arg: shots
         help-string: "Default shot count."
 
