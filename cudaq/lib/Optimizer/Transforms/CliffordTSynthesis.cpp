@@ -23,6 +23,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <limits>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CLIFFORDTSYNTHESIS
@@ -89,6 +90,20 @@ static void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
   }
 }
 
+// Compute `base << shift` as an int32_t timeout, saturating at INT32_MAX
+// instead of overflowing. `base` and `shift` are validated non-negative by the
+// pass before this is called, so the only hazard is the retry loop scaling the
+// timeout past what int32_t can hold.
+static int32_t saturatingShlToInt32(int32_t base, int32_t shift) {
+  assert(base >= 0 && shift >= 0 && "timeouts and retry count must be >= 0");
+  constexpr int32_t kMax = std::numeric_limits<int32_t>::max();
+  // Shifting an int32_t by >= 31 always overflows a non-negative base.
+  if (shift >= 31)
+    return kMax;
+  int64_t scaled = static_cast<int64_t>(base) << shift;
+  return static_cast<int32_t>(std::min<int64_t>(scaled, kMax));
+}
+
 // Resolve (theta, epsilon) to a private helper func that applies the
 // synthesized Clifford+T sequence to its `!quake.ref` argument. On a cache
 // miss we run gridsynth, materialize the helper at module top level, and
@@ -112,8 +127,8 @@ getOrCreateRzHelper(double theta, const RotationOptions &opts,
   for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
     circuit = cudaq::synth::gridsynth(
         thetaReal, epsilonReal,
-        static_cast<int32_t>(opts.diophantineTimeoutMs << attempt),
-        static_cast<int32_t>(opts.factoringTimeoutMs << attempt));
+        saturatingShlToInt32(opts.diophantineTimeoutMs, attempt),
+        saturatingShlToInt32(opts.factoringTimeoutMs, attempt));
     if (llvm::succeeded(circuit))
       break;
   }
@@ -401,6 +416,20 @@ public:
                << " factoring-timeout-ms=" << factoringTimeoutMs
                << " retry-count=" << retryCount << " on-dynamic-angle="
                << onDynamicAngle << " skip-below=" << skipBelow << '\n');
+
+    // Validate the numeric options. gridsynth needs a positive epsilon
+    // (-log2(epsilon) feeds the precision heuristic), and the timeouts/retry
+    // count must be non-negative because the retry loop left-shifts the
+    // timeouts by `attempt`.
+    if (!(epsilon > 0.0) || diophantineTimeoutMs < 0 ||
+        factoringTimeoutMs < 0 || retryCount < 0 || skipBelow < 0.0) {
+      getOperation().emitError(
+          "clifford-t-synthesis: invalid options; require epsilon > 0 and "
+          "non-negative diophantine-timeout-ms, factoring-timeout-ms, "
+          "retry-count, and skip-below.");
+      signalPassFailure();
+      return;
+    }
 
     // Reject value-semantics IR.
     {
