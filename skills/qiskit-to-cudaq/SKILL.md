@@ -2,7 +2,7 @@
 name: "qiskit-to-cudaq"
 title: "Qiskit to CUDA-Q"
 description: "Use when porting Qiskit Python circuits to CUDA-Q kernels while preserving algorithms and validation fidelity."
-version: "1.0.0"
+version: "1.0.1"
 author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
 tags: [cuda-quantum, quantum-computing, qiskit, porting, migration, kernels, nvidia]
 tools: [Read, Glob, Grep]
