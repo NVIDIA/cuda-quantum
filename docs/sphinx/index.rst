@@ -28,6 +28,7 @@ You are browsing the documentation for |version| version of CUDA-Q. You can find
       Installation <using/install/install.rst>
       Integration <using/integration/integration.rst>
       Extending <using/extending/extending.rst>
+      Compiler Development <developer/compiler/index.rst>
       Specifications <specification/index.rst>
       API Reference <api/api.rst>
       Other Versions <versions.rst>
