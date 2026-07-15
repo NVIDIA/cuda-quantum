@@ -40,11 +40,19 @@ public:
                                     const CompiledModule &module,
                                     KernelArgs args) override;
 
+  dem_result launchKernel(const dem_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override;
+
+  using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(const sample_policy &policy) override;
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const observe_policy &policy) override;
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const dem_policy &policy) override;
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &policy,

@@ -210,18 +210,20 @@ protected:
     getExecutionContext()->result = result;
   }
 
-  /// @brief Populate the m2 fields in @p ctx from `recordedCircuit`.
+  /// @brief Populate the measurement matrices in @p result from
+  /// `recordedCircuit`.
   /// Rows = detectors/observables, cols = measurements; non-zero entries are 1.
   ///
   /// Duplicate measurement targets within a single DETECTOR or
   /// OBSERVABLE_INCLUDE instruction are collapsed modulo 2 (GF(2) XOR): an
   /// index that appears an even number of times cancels out.
-  void computeM2IntoContext(cudaq::ExecutionContext &ctx) {
+  void computeMeasurementMatrices(cudaq::dem_result &result) {
     auto flat = recordedCircuit.flattened();
     auto stats = flat.compute_stats();
-    ctx.measurement_matrices.num_measurements = stats.num_measurements;
-    ctx.measurement_matrices.det_rows.resize(stats.num_detectors);
-    ctx.measurement_matrices.obs_rows.resize(stats.num_observables);
+    result.m2d.num_measurements = stats.num_measurements;
+    result.m2o.num_measurements = stats.num_measurements;
+    result.m2d.rows.resize(stats.num_detectors);
+    result.m2o.rows.resize(stats.num_observables);
 
     // XOR-dedup: remove indices that appear an even number of times in @p row.
     auto xorDedup = [](std::vector<std::size_t> &row) {
@@ -245,7 +247,7 @@ protected:
       if (n > 0) {
         meas_so_far += n;
       } else if (op.gate_type == stim::GateType::DETECTOR) {
-        auto &row = ctx.measurement_matrices.det_rows[det_so_far];
+        auto &row = result.m2d.rows[det_so_far];
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
@@ -261,7 +263,7 @@ protected:
         ++det_so_far;
       } else if (op.gate_type == stim::GateType::OBSERVABLE_INCLUDE) {
         auto obs_idx = static_cast<std::size_t>(op.args[0]);
-        auto &row = ctx.measurement_matrices.obs_rows[obs_idx];
+        auto &row = result.m2o.rows[obs_idx];
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
@@ -278,25 +280,6 @@ protected:
     });
   }
 
-  /// @brief Compute the detector error model from the accumulated
-  /// `recordedCircuit` and return it as `.dem` text.
-  std::string generateDem() override {
-    auto *ctx = getExecutionContext();
-    const cudaq::dem_options opts = ctx ? ctx->dem_opts : cudaq::dem_options{};
-    stim::DetectorErrorModel dem =
-        stim::ErrorAnalyzer::circuit_to_detector_error_model(
-            recordedCircuit, opts.decompose_errors, opts.fold_loops,
-            opts.allow_gauge_detectors,
-            opts.approximate_disjoint_errors_threshold,
-            opts.ignore_decomposition_failures,
-            opts.block_decomposition_from_introducing_remnant_edges);
-
-    if (ctx && ctx->dem_opts.return_measurement_matrices)
-      computeM2IntoContext(*ctx);
-
-    return dem.str();
-  }
-
   /// @brief Finalize the execution context, ensuring the simulator is left in a
   /// clean state even if finalization throws.
   void finalizeExecutionContext(const cudaq::other_policies &policy,
@@ -308,6 +291,24 @@ protected:
       endExecution();
       throw;
     }
+  }
+
+  cudaq::dem_result
+  finalizeExecutionContext(const cudaq::dem_policy &policy) override {
+    finalizeExecutionContextImpl();
+
+    cudaq::dem_result result;
+    const auto &options = policy.options;
+    result.dem = stim::ErrorAnalyzer::circuit_to_detector_error_model(
+                     recordedCircuit, options.decompose_errors,
+                     options.fold_loops, options.allow_gauge_detectors,
+                     options.approximate_disjoint_errors_threshold,
+                     options.ignore_decomposition_failures,
+                     options.block_decomposition_from_introducing_remnant_edges)
+                     .str();
+    if (policy.options.return_measurement_matrices)
+      computeMeasurementMatrices(result);
+    return result;
   }
 
   /// @brief Override the default sized allocation of qubits
