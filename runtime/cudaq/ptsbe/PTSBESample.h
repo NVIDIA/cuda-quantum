@@ -35,6 +35,7 @@
 #include "common/Future.h"
 #include "common/NoiseModel.h"
 #include "cudaq/algorithms/broadcast.h"
+#include "cudaq/algorithms/launch.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -111,23 +112,6 @@ extractMeasureQubits(std::span<const TraceInstruction> trace);
 /// @param kernelTrace Captured kernel trace containing qubit IDs
 void cleanupTracerQubits(const Trace &kernelTrace);
 
-/// @brief Build PTSBEExecutionData with interleaved instructions (no
-/// trajectories)
-///
-/// Converts the internal kernel trace into the user-facing
-/// PTSBEExecutionData format. For each gate in the kernel trace, a Gate
-/// instruction is added. If the noise model defines noise at that gate, a
-/// Noise instruction follows. Measurement instructions are appended for all
-/// measured qubits. The trajectories vector is left empty.
-///
-/// @param kernelTrace Captured kernel trace
-/// @param noiseModel Noise model for identifying noise sites
-/// @return PTSBEExecutionData with interleaved instructions and empty
-///         trajectories
-PTSBEExecutionData
-buildExecutionDataInstructions(const cudaq::Trace &kernelTrace,
-                               const noise_model &noiseModel);
-
 /// @brief Populate trajectories on an existing PTSBEExecutionData
 ///
 /// Takes ownership of trajectories and results. Remaps each KrausSelection's
@@ -187,19 +171,26 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   const auto *noisePtr = platform.get_noise();
   const auto &noiseModel = noisePtr ? *noisePtr : kEmptyNoiseModel;
 
-  // Stage 0: Capture trace via ExecutionContext("tracer")
+  cudaq::ptsbe::sample_policy policy;
+  policy.kernelName = kernelName;
+  policy.shots = shots;
+  policy.options = options;
+  policy.noiseModel = &noiseModel;
+
+  // Stage 0: capture the kernel trace under a dedicated "tracer" context.
   ExecutionContext traceCtx("tracer");
   platform.with_execution_context(traceCtx, [&]() { wrappedKernel(); });
+
   cleanupTracerQubits(traceCtx.kernelTrace);
   cudaq::info("[ptsbe] Trace captured: {} qubits, {} instructions",
               traceCtx.kernelTrace.getNumQudits(),
               traceCtx.kernelTrace.getNumInstructions());
 
-  // Stage 1: Validate kernel eligibility (no dynamic circuits)
+  // Stage 1: validate kernel eligibility (no dynamic circuits)
   validatePTSBEKernel(kernelName, traceCtx);
   warnNamedRegisters(kernelName, traceCtx);
 
-  // Stage 2: Build PTSBE trace once, share between execution data and batch
+  // Stage 2: build the PTSBE trace once, shared between execution data + batch
   auto ptsbeTrace = buildPTSBETrace(traceCtx.kernelTrace, noiseModel);
 
   std::optional<PTSBEExecutionData> executionData;
@@ -208,28 +199,24 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
     executionData->instructions = ptsbeTrace;
   }
 
-  // Stage 3: Build PTSBatch with trajectory generation and shot allocation
+  // Stage 3: build the PTSBatch (trajectory generation + shot allocation)
   auto batch = buildPTSBatchFromTrace(std::move(ptsbeTrace), options, shots);
   batch.includeSequentialData = options.include_sequential_data;
   cudaq::info("[ptsbe] Allocated {} shots across {} trajectories",
               batch.totalShots(), batch.trajectories.size());
 
-  // Stages 4+5: Execute the batch through the policy machinery. The result
-  // arrives aggregated. Per-trajectory results are stored on the policy.
-  cudaq::ptsbe::sample_policy policy;
-  policy.kernelName = kernelName;
-  policy.shots = shots;
-  policy.options = options;
-  policy.noiseModel = &noiseModel;
-  policy.batch = &batch;
+  // Stages 4+5: replay the batch as its own policy execution. executeBatch runs
+  // it under the policy machinery (samplePTSBE allocates the batch qubits,
+  // endExecution releases them) and returns the per-trajectory results, which
+  // we aggregate into the final result.
+  auto perTrajectoryResults = executeBatch(policy, batch);
+  sample_result result(aggregateResults(perTrajectoryResults));
 
-  sample_result result = executeBatch(policy);
-
-  // Stage 6: Attach trajectories and set execution data on result if requested
+  // Stage 6: attach trajectories + execution data on the result if requested
   if (executionData) {
     populateExecutionDataTrajectories(*executionData,
                                       std::move(batch.trajectories),
-                                      std::move(policy.perTrajectoryResults));
+                                      std::move(perTrajectoryResults));
     result.set_execution_data(std::move(*executionData));
   }
 
