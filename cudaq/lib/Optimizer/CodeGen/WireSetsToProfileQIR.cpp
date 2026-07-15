@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "llvm/ADT/DepthFirstIterator.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"
@@ -457,14 +458,12 @@ struct WireSetToProfileQIRPass
     // this pipeline. Preserve that sparse physical coordinate space while
     // tracking both its required size and the allocation-order fallback.
     std::optional<std::uint32_t> highestIdentity;
-    std::vector<std::uint32_t> borrowOrder;
+    llvm::SmallSetVector<std::uint32_t, 16> borrowOrder;
     op.walk([&](cudaq::quake::BorrowWireOp op) {
       highestIdentity = highestIdentity
                             ? std::max(*highestIdentity, op.getIdentity())
                             : op.getIdentity();
-      if (std::find(borrowOrder.begin(), borrowOrder.end(), op.getIdentity()) ==
-          borrowOrder.end())
-        borrowOrder.push_back(op.getIdentity());
+      borrowOrder.insert(op.getIdentity());
     });
     const bool hasVirtualToPhysicalMapping = op->hasAttr("mapping_v2p");
     const auto virtualToPhysical =

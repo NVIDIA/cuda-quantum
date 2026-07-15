@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
+#include "llvm/ADT/STLExtras.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Operation.h"
 #include <algorithm>
@@ -65,12 +66,11 @@ nlohmann::json cudaq::opt::buildEnrichedOutputNamesJson(
   // Emit entries in result-id order, attaching the independently computed
   // user-visible position as the third output-location element.
   auto entries = nlohmann::json::array();
-  std::size_t entryIndex = 0;
-  for (const auto &[resultId, qubitAndName] : resultQubitVals) {
+  for (auto &&[entryIndex, resultQubitVal] : llvm::enumerate(resultQubitVals)) {
+    const auto &[resultId, qubitAndName] = resultQubitVal;
     entries.push_back({resultId,
                        {qubitAndName.first, qubitAndName.second,
                         outputPositions[entryIndex]}});
-    ++entryIndex;
   }
   return nlohmann::json::array({std::move(entries)});
 }
@@ -78,13 +78,13 @@ nlohmann::json cudaq::opt::buildEnrichedOutputNamesJson(
 nlohmann::json cudaq::opt::buildEnrichedOutputNamesJsonFromV2PMapping(
     const ResultQubitVals &resultQubitVals,
     const std::vector<std::size_t> &virtualToPhysical) {
-  // Size the inverse lookup for every physical qubit referenced by either the
-  // measurements or `mapping_v2p`.
-  std::size_t numQubits = 0;
-  for (const auto &resultQubitVal : resultQubitVals)
-    numQubits = std::max(numQubits, resultQubitVal.second.first + 1);
-  for (const auto physicalQubit : virtualToPhysical)
-    numQubits = std::max(numQubits, physicalQubit + 1);
+  // Only mapped physical qubits need lookup entries. The common builder uses
+  // identity ordering for a measured qubit outside this range.
+  const std::size_t numQubits =
+      virtualToPhysical.empty() ? 0
+                                : *std::max_element(virtualToPhysical.begin(),
+                                                    virtualToPhysical.end()) +
+                                      1;
 
   // The enriched metadata needs the inverse direction: physical QIR qubit id
   // to original virtual-qubit order. Start with identity so an absent mapping,
