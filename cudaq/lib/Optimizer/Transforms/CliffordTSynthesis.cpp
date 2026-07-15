@@ -382,26 +382,6 @@ struct R1Pattern : OpRewritePattern<cudaq::quake::R1Op> {
 
 } // namespace
 
-namespace cudaq::opt::detail {
-
-namespace {
-uint64_t &mutableLastCacheHits() {
-  static uint64_t v = 0;
-  return v;
-}
-uint64_t &mutableLastCacheUniqueAngles() {
-  static uint64_t v = 0;
-  return v;
-}
-} // namespace
-
-uint64_t lastCliffordTSynthCacheHits() { return mutableLastCacheHits(); }
-uint64_t lastCliffordTSynthCacheUniqueAngles() {
-  return mutableLastCacheUniqueAngles();
-}
-
-} // namespace cudaq::opt::detail
-
 namespace {
 
 class CliffordTSynthesisPass
@@ -485,9 +465,6 @@ public:
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))) ||
         hadHardError)
       signalPassFailure();
-
-    cudaq::opt::detail::mutableLastCacheHits() = state.hits;
-    cudaq::opt::detail::mutableLastCacheUniqueAngles() = state.cache.size();
 
     LLVM_DEBUG(llvm::dbgs() << "clifford-t-synthesis: outlined "
                             << state.cache.size() << " unique angle(s), reused "
