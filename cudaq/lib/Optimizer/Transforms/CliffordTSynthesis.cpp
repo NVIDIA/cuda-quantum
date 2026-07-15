@@ -187,6 +187,9 @@ static PreCheck validateRotationOperands(Operation *op, Value angleVal,
     return {PreCheck::Action::LeaveInPlace, 0.0};
   }
 
+  // TODO: Here the negligible rotation pruning is generally useful. Consider
+  // extracting it into a standalone pass users can run independently of
+  // Clifford+T synthesis.
   if (std::abs(theta) < opts.skipBelow) {
     rewriter.eraseOp(op);
     return {PreCheck::Action::Erased, 0.0};
