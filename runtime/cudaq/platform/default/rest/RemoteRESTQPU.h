@@ -33,6 +33,7 @@ public:
   KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
                                             KernelArgs args) override;
 
+  using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;
