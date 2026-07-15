@@ -77,11 +77,12 @@ struct PreCheck {
 template <typename OpTy>
 static Value emitCliffordGate(OpBuilder &b, Location loc, Value target) {
   if (isa<cudaq::quake::WireType>(target.getType())) {
-    auto op = OpTy::create(b, loc, TypeRange{target.getType()}, /*is_adj=*/false,
-                           /*parameters=*/ValueRange{},
-                           /*controls=*/ValueRange{},
-                           /*targets=*/ValueRange{target},
-                           /*negated_qubit_controls=*/DenseBoolArrayAttr{});
+    auto op =
+        OpTy::create(b, loc, TypeRange{target.getType()}, /*is_adj=*/false,
+                     /*parameters=*/ValueRange{},
+                     /*controls=*/ValueRange{},
+                     /*targets=*/ValueRange{target},
+                     /*negated_qubit_controls=*/DenseBoolArrayAttr{});
     return op.getWires()[0];
   }
   OpTy::create(b, loc, ValueRange{target});
@@ -185,9 +186,8 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
 
   MLIRContext *ctx = state.module.getContext();
   std::string name =
-      valueSemantics
-          ? llvm::formatv("__cliffordt_rz_wire_{0:x-16}", bits).str()
-          : llvm::formatv("__cliffordt_rz_{0:x-16}", bits).str();
+      valueSemantics ? llvm::formatv("__cliffordt_rz_wire_{0:x-16}", bits).str()
+                     : llvm::formatv("__cliffordt_rz_{0:x-16}", bits).str();
   Location loc = state.module.getLoc();
   Type qubitType = valueSemantics ? Type(cudaq::quake::WireType::get(ctx))
                                   : Type(cudaq::quake::RefType::get(ctx));
