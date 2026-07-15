@@ -158,37 +158,59 @@ public:
 
   std::size_t getBufferSize() const { return buffer.size(); }
 
-  void resizeBuffer(std::size_t more) { buffer.resize(buffer.size() + more); }
+  /// Set the per-parse limit for logical array-payload and container-tracking
+  /// charges. This does not measure the result buffer, allocation overhead, or
+  /// parser temporaries.
+  void setDynamicAllocationBudget(std::size_t budget) {
+    dynamicAllocationBudget = budget;
+    chargedDynamicAllocationBytes = 0;
+  }
+
+  void chargeContainerTracking(std::size_t elements) {
+    // Charge one byte per logical slot before allocating `processedSlots`.
+    chargeDynamicAllocation(elements);
+  }
+
+  void resizeBuffer(std::size_t more) {
+    if (more > std::numeric_limits<std::size_t>::max() - buffer.size())
+      throw std::runtime_error("Result buffer size overflow");
+    buffer.resize(buffer.size() + more);
+  }
 
   template <typename T>
   void addPrimitiveRecord(T value) {
     std::size_t position = buffer.size();
-    buffer.resize(position + sizeof(T));
+    resizeBuffer(sizeof(T));
     std::memcpy(buffer.data() + position, &value, sizeof(T));
   }
 
   template <typename T>
-  size_t allocateArrayRecord(size_t arrSize) {
-    size_t vectorOffset = buffer.size();
+  std::size_t allocateArrayRecord(std::size_t arrSize) {
+    std::size_t vectorOffset = buffer.size();
     if constexpr (std::is_same_v<T, bool>) {
+      chargeDynamicAllocation(arrSize);
       auto *allocation = new std::vector<bool>(arrSize);
-      if (!allocation)
-        throw std::runtime_error("Memory allocation failed");
       auto byteLength = sizeof(*allocation);
-      buffer.resize(vectorOffset + byteLength);
+      resizeBuffer(byteLength);
       std::memcpy(buffer.data() + vectorOffset, allocation, byteLength);
       return vectorOffset;
     }
 
-    buffer.resize(vectorOffset + 3 * sizeof(T *));
-    size_t byteLength = arrSize * sizeof(T);
-    T *innerBuffer = static_cast<T *>(malloc(byteLength));
-    if (!innerBuffer)
-      throw std::runtime_error("Memory allocation failed");
-    std::memset(innerBuffer, 0, byteLength);
+    if (arrSize > std::numeric_limits<std::size_t>::max() / sizeof(T))
+      throw std::runtime_error("Array allocation size overflow");
+    const std::size_t byteLength = arrSize * sizeof(T);
+    chargeDynamicAllocation(byteLength);
+    resizeBuffer(3 * sizeof(T *));
+    T *innerBuffer = nullptr;
+    if (byteLength != 0) {
+      innerBuffer = static_cast<T *>(malloc(byteLength));
+      if (!innerBuffer)
+        throw std::runtime_error("Memory allocation failed");
+      std::memset(innerBuffer, 0, byteLength);
+    }
     /// Initialize the three pointers of the inner vector
     T *startPtr = innerBuffer;
-    T *end0Ptr = innerBuffer + arrSize;
+    T *end0Ptr = byteLength == 0 ? nullptr : innerBuffer + arrSize;
     T *end1Ptr = end0Ptr;
     /// Store the pointers into the outer vector (buffer) without assuming the
     /// byte offset is suitably aligned for a T** access.
@@ -198,7 +220,7 @@ public:
   }
 
   template <typename T>
-  void insertIntoArray(size_t offset, std::size_t index, T value) {
+  void insertIntoArray(std::size_t offset, std::size_t index, T value) {
     if constexpr (std::is_same_v<T, bool>) {
       auto *v = reinterpret_cast<std::vector<bool> *>(buffer.data() + offset);
       (*v)[index] = value;
@@ -211,21 +233,33 @@ public:
 
   /// NOTE: This is used only if data layout (alignment) is missing
   template <typename T>
-  size_t allocateTupleRecord() {
-    size_t position = buffer.size();
-    buffer.resize(position + sizeof(T));
+  std::size_t allocateTupleRecord() {
+    std::size_t position = buffer.size();
+    resizeBuffer(sizeof(T));
     return position;
   }
 
   template <typename T>
-  void insertIntoTuple(size_t offset, T value) {
+  void insertIntoTuple(std::size_t offset, T value) {
     if (offset > buffer.size() || sizeof(T) > buffer.size() - offset)
       throw std::runtime_error("Tuple element exceeds result buffer");
     std::memcpy(buffer.data() + offset, &value, sizeof(T));
   }
 
 private:
+  /// Charge a logical allocation before requesting memory. The subtraction
+  /// form prevents overflow and rejects charges larger than the remaining
+  /// per-parse budget.
+  void chargeDynamicAllocation(std::size_t bytes) {
+    if (chargedDynamicAllocationBytes > dynamicAllocationBudget ||
+        bytes > dynamicAllocationBudget - chargedDynamicAllocationBytes)
+      throw std::runtime_error("Decoded aggregate exceeds allocation budget");
+    chargedDynamicAllocationBytes += bytes;
+  }
+
   std::vector<char> buffer;
+  std::size_t dynamicAllocationBudget = std::numeric_limits<std::size_t>::max();
+  std::size_t chargedDynamicAllocationBytes = 0;
 };
 
 //===----------------------------------------------------------------------===//
@@ -247,6 +281,21 @@ public:
     dataOffset = 0;
     tupleTypes.clear();
     tupleOffsets.clear();
+    processedSlots.clear();
+  }
+
+  bool active() const { return m_type != ContainerType::NONE; }
+
+  void requireUnprocessed(std::size_t index) const {
+    if (!processedSlots.empty() && processedSlots[index])
+      throw std::runtime_error("Duplicate container index");
+  }
+
+  void markProcessed(std::size_t index) {
+    if (!processedSlots.empty()) {
+      processedSlots[index] = true;
+    }
+    ++processedElements;
   }
 
   /// Parse string like "array<i32 x 4>"
@@ -298,13 +347,14 @@ public:
     return value;
   }
 
-  ContainerType m_type = ContainerType::ARRAY;
+  ContainerType m_type = ContainerType::NONE;
   std::size_t elementCount = 0;
   std::size_t processedElements = 0;
   std::size_t dataOffset = 0;
   std::string arrayType;
   std::vector<std::string> tupleTypes;
   std::vector<std::size_t> tupleOffsets;
+  std::vector<bool> processedSlots;
 };
 
 //===----------------------------------------------------------------------===//
@@ -316,10 +366,10 @@ class DataHandlerBase {
 public:
   virtual ~DataHandlerBase() = default;
   virtual void addRecord(BufferHandler &bh, const std::string &value) = 0;
-  virtual size_t allocateArray(BufferHandler &bh, std::size_t arrSize) = 0;
+  virtual std::size_t allocateArray(BufferHandler &bh, std::size_t arrSize) = 0;
   virtual void insertIntoArray(BufferHandler &bh, std::size_t offset,
                                std::size_t index, const std::string &value) = 0;
-  virtual size_t allocateTuple(BufferHandler &bh) = 0;
+  virtual std::size_t allocateTuple(BufferHandler &bh) = 0;
   virtual void insertIntoTuple(BufferHandler &bh, std::size_t offset,
                                const std::string &value) = 0;
 };
@@ -335,14 +385,14 @@ public:
   void addRecord(BufferHandler &bh, const std::string &value) override {
     bh.addPrimitiveRecord<T>(converter->convert(value));
   }
-  size_t allocateArray(BufferHandler &bh, std::size_t arrSize) override {
+  std::size_t allocateArray(BufferHandler &bh, std::size_t arrSize) override {
     return bh.allocateArrayRecord<T>(arrSize);
   }
   void insertIntoArray(BufferHandler &bh, std::size_t offset, std::size_t index,
                        const std::string &value) override {
     bh.insertIntoArray<T>(offset, index, converter->convert(value));
   }
-  size_t allocateTuple(BufferHandler &bh) override {
+  std::size_t allocateTuple(BufferHandler &bh) override {
     return bh.allocateTupleRecord<T>();
   }
   void insertIntoTuple(BufferHandler &bh, std::size_t offset,
@@ -386,6 +436,10 @@ public:
   /// Get the size of the data buffer (in bytes).
   std::size_t getBufferSize() const { return bufferHandler.getBufferSize(); }
 
+  /// Get the number of results completed during the most recent parse attempt.
+  /// Failed framed shots do not contribute to this count.
+  std::size_t getResultCount() const { return completedResultCount; }
+
 private:
   /// Result-buffer storage for aggregate roots. FLAT appends element bytes;
   /// PREALLOCATED reserves the host layout before indexed insertion. This is
@@ -401,9 +455,9 @@ private:
   /// Central dispatcher that handles different output types including scalar
   /// values, arrays, and tuples.
   void handleOutput(const std::vector<std::string> &);
-  /// Allocate inner buffer for array records - one per shot
+  /// Allocate storage for the current array result.
   void preallocateArray();
-  /// Allocate contiguous memory for tuple records - one per shot
+  /// Allocate contiguous storage for the current tuple result.
   void preallocateTuple();
   /// Process scalar values and non-labeled array/tuple entries
   void processSingleRecord(const std::string &, const std::string &);
@@ -411,6 +465,10 @@ private:
   /// appropriate type and store in the pre-allocated buffer
   void processArrayEntry(const std::string &, const std::string &);
   void processTupleEntry(const std::string &, const std::string &);
+  /// Count and clear the current aggregate once all declared elements arrive.
+  void countAndResetContainerIfComplete();
+  /// Reject an aggregate that still has unprocessed elements.
+  void rejectIncompleteContainer() const;
   /// Require every root result in a log to use one container shape.
   void validateRootContainer(ContainerType);
   /// Require every aggregate root to use one storage representation.
@@ -432,5 +490,6 @@ private:
   /// Metadata information extracted from the log
   std::unordered_map<std::string, std::string> metadata = {
       {ResultCountMetadataName, "1"}};
+  std::size_t completedResultCount = 0;
 };
 } // namespace cudaq
