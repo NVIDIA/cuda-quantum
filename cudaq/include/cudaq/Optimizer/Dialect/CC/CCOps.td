@@ -1066,10 +1066,6 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
     member, or complex component. Struct indices must be constant, and the
     result element type must match the selected subobject type.
 
-    CC-to-LLVM lowering replaces this operation with `llvm.getelementptr`. It
-    adds a leading zero index when the CC base pointer refers to a single object
-    rather than an unknown-length array.
-
     Example:
 
     ```mlir

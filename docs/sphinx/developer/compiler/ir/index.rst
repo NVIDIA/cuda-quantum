@@ -12,8 +12,7 @@ Quake
 
 Quake represents quantum operations, quantum data, and measurement. The
 :doc:`Quake specification </specification/quake-dialect>` documents semantics
-that apply across operations. The generated reference documents individual
-operations and types.
+that apply across operations.
 
 Sources: `dialect <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/Quake/QuakeDialect.td>`__,
 `operations <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td>`__,
@@ -24,8 +23,7 @@ CC
 ==
 
 CC represents the classical computation in a CUDA-Q kernel before lowering to
-LLVM IR. Its generated page is a compiler reference, not a separate public
-language specification.
+LLVM IR.
 
 Sources: `dialect <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/CC/CCDialect.td>`__,
 `operations <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/CC/CCOps.td>`__,
@@ -36,8 +34,7 @@ QEC
 ===
 
 QEC represents declarations that associate measurement results with detectors
-and logical observables. Its generated page is a compiler reference, not a
-separate public language specification.
+and logical observables.
 
 Sources: `dialect <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/QEC/QECDialect.td>`__,
 `operations <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/QEC/QECOps.td>`__, and

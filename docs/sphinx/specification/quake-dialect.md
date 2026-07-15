@@ -23,9 +23,8 @@ to a specific subset of qubits.  The number of qubits must be equal to (or
 greater than) the number of target qubits intrinsic to the operator.  If
 greater, the extra qubits are considered controls.
 
-The [generated Quake operation and type reference](../developer/compiler/ir/quake-reference.md)
-documents operation-local syntax, traits, arguments, results, and types. This
-page documents the semantics that apply across Quake operations.
+See the [generated Quake reference](../developer/compiler/ir/quake-reference.md)
+for operation and type details.
 
 ## Motivation
 
