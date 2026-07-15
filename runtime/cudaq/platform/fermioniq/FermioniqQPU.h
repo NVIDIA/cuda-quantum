@@ -11,11 +11,6 @@
 #include "common/BaseRemoteRESTQPU.h"
 #include <optional>
 
-#if defined(__NVCC_DIAG_PRAGMA_SUPPORT__)
-#pragma nv_diagnostic push
-#pragma nv_diag_suppress 611
-#endif
-
 namespace cudaq {
 
 /// @brief The `FermioniqBaseQPU` is a QPU that allows users to
@@ -23,7 +18,7 @@ namespace cudaq {
 class FermioniqQPU : public BaseRemoteRESTQPU {
 public:
   // Overrides the `sample`/`observe` `launchKernel` overloads but inherits
-  // `launchKernel(dem_policy)` from `BaseRemoteRESTQPU`.
+  // others (eg `launchKernel(dem_policy)`) from `BaseRemoteRESTQPU`.
   using BaseRemoteRESTQPU::launchKernel;
 
   ~FermioniqQPU() override;
@@ -69,9 +64,5 @@ public:
                                     const CompiledModule &module,
                                     KernelArgs args) override;
 };
-
-#if defined(__NVCC_DIAG_PRAGMA_SUPPORT__)
-#pragma nv_diagnostic pop
-#endif
 
 } // namespace cudaq
