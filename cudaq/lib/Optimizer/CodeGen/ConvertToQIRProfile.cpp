@@ -227,8 +227,12 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     assert(iter != infoMap.end());
     rewriter.startOpModification(op);
     const auto &info = iter->second;
+    const auto virtualToPhysical =
+        cudaq::opt::getVirtualToPhysicalMapping(op.getOperation());
+
     auto resultQubitJSON =
-        cudaq::opt::buildEnrichedOutputNamesJson(info.resultQubitVals, {});
+        cudaq::opt::buildEnrichedOutputNamesJsonFromV2PMapping(
+            info.resultQubitVals, virtualToPhysical);
     bool isAdaptive = convertTo == "qir-adaptive";
     const char *profileName = isAdaptive ? "adaptive_profile" : "base_profile";
 

@@ -8,8 +8,31 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+mode="$1"
+if [ "$mode" != "mock" ] && [ "$mode" != "emulation" ]; then
+  echo "Usage: $0 {mock|emulation}"
+  exit 2
+fi
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  LIB_EXT="dylib"
+else
+  LIB_EXT="so"
+fi
+
+test_err_sum=0
+server_pid=""
+compile_pids=()
+compile_executables=()
+topology_names=(
+  path3
+  offset_island
+  noncontiguous_island
+)
+
+
 checkServerConnection() {
-  PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
+  PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF_PYTHON
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -17,180 +40,217 @@ try:
     s.close()
 except Exception:
     exit(1)
-EOF
+EOF_PYTHON
 }
 
-# Launch the fake server
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  LIB_EXT="dylib"
-else
-  LIB_EXT="so"
-fi
-
-
-PYTHONPATH=@CMAKE_BINARY_DIR@/python:@CMAKE_SOURCE_DIR@/python/tests/utils/mock_qpu @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
-# we'll need the process id to kill it
-pid=$(echo "$!")
-n=0
-while ! checkServerConnection; do
-  sleep 1
-  n=$((n+1))
-  if [ "$n" -eq "60" ]; then
-    echo "Failed to start the server after 20 seconds"
-    # kill the server
-    kill -INT $pid
-    exit 99
+stopServer() {
+  if [ -n "$server_pid" ] && kill -0 "$server_pid" 2>/dev/null; then
+    kill -INT "$server_pid"
+    wait "$server_pid" 2>/dev/null
   fi
-done
+}
+trap stopServer EXIT
 
-echo "Server started successfully"
-test_err_sum=0
-runMappedSampleTest() {
-  local mode="$1"
-  local topology_name="$2"
-  local device="$3"
-  local executable="test_mapping_app_${mode}_${topology_name}"
-  local compile_args=(--target quake_fake --quake_fake-device "$device")
+startServer() {
+  PYTHONPATH=@CMAKE_BINARY_DIR@/python:@CMAKE_SOURCE_DIR@/python/tests/utils/mock_qpu \
+    @Python_EXECUTABLE@ \
+    @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mock_server.py \
+    -device-lib \
+    @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
+  server_pid=$!
+}
 
-  if [ "$mode" = "emulation" ]; then
-    compile_args+=(--emulate)
+waitForServer() {
+  local attempt=0
+  while ! checkServerConnection; do
+    sleep 1
+    attempt=$((attempt+1))
+    if ! kill -0 "$server_pid" 2>/dev/null; then
+      echo "The mock server exited before accepting connections"
+      exit 99
+    fi
+    if [ "$attempt" -eq 60 ]; then
+      echo "Failed to start the server after 60 seconds"
+      exit 99
+    fi
+  done
+  echo "Server started successfully"
+}
+
+# Run independent nvq++ invocations concurrently. Each compiler writes to a
+# separate log so diagnostics remain readable if one of them fails.
+queueCompilation() {
+  local executable="$1"
+  shift
+  rm -f "$executable" "$executable.compile.out"
+  (
+    PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ "$@" -o "$executable" \
+      > "$executable.compile.out" 2>&1
+  ) &
+  compile_pids+=("$!")
+  compile_executables+=("$executable")
+}
+
+waitForCompilations() {
+  local index
+  for ((index = 0; index < ${#compile_pids[@]}; ++index)); do
+    local executable="${compile_executables[$index]}"
+    if wait "${compile_pids[$index]}"; then
+      echo ":white_check_mark: Successfully compiled $executable with nvq++"
+      rm -f "$executable.compile.out"
+    else
+      echo ":x: nvq++ compilation failed for $executable"
+      cat "$executable.compile.out"
+      test_err_sum=$((test_err_sum+1))
+    fi
+  done
+}
+
+queueMappedSampleTests() {
+  local topology_devices=(
+    "path(3)"
+    "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_line.txt)"
+    "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_noncontiguous_line.txt)"
+  )
+  local index
+  for ((index = 0; index < ${#topology_names[@]}; ++index)); do
+    local executable="test_mapping_app_${mode}_${topology_names[$index]}"
+    local compile_args=(
+      --target quake_fake
+      --quake_fake-device "${topology_devices[$index]}"
+    )
+    if [ "$mode" = "emulation" ]; then
+      compile_args+=(--emulate)
+    fi
+    queueCompilation "$executable" "${compile_args[@]}" \
+      @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_mapping_app.cpp
+  done
+}
+
+runTest() {
+  local description="$1"
+  local executable="$2"
+  if [ ! -x "$executable" ]; then
+    return
   fi
-
-  PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ "${compile_args[@]}" @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_mapping_app.cpp -o "$executable"
-  if [ $? -ne 0 ]; then
-    echo ":x: nvq++ compilation failed for mapped $mode test ($topology_name)"
+  if ./"$executable"; then
+    echo ":white_check_mark: Successfully ran $description"
+  else
+    echo ":x: $description failed"
     test_err_sum=$((test_err_sum+1))
+  fi
+}
+
+runMappedSampleTests() {
+  local topology_name
+  for topology_name in "${topology_names[@]}"; do
+    runTest "mapped $mode test ($topology_name)" \
+      "test_mapping_app_${mode}_${topology_name}"
+  done
+}
+
+runLoopTest() {
+  local executable="test_loop_app_$mode"
+  if [ ! -x "$executable" ]; then
     return
   fi
 
-  ./"$executable"
-  if [ $? -ne 0 ]; then
-    echo ":x: Mapped $mode test failed ($topology_name)"
-    test_err_sum=$((test_err_sum+1))
-  else
-    echo ":white_check_mark: Successfully ran mapped $mode test ($topology_name)"
-  fi
-}
+  if [ "$mode" = "mock" ]; then
+    CUDAQ_DUMP_JIT_IR=1 ./"$executable" > "$executable.out" 2>&1
+    if [ $? -ne 0 ]; then
+      echo ":x: $executable failed"
+      cat "$executable.out"
+      test_err_sum=$((test_err_sum+1))
+      return
+    fi
 
-# Test the app nvq++ (remote execution on the mock server)
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app
-if [ $? -ne 0 ]; then
-  echo ":x: nvq++ compilation failed"
-  test_err_sum=$((test_err_sum+1))
-else
-  echo ":white_check_mark: Successfully compiled test_app with nvq++"
-  # Run the test app
-  ./test_app
-  if [ $? -ne 0 ]; then
-    echo ":x: test_app failed"
-    test_err_sum=$((test_err_sum+1))
-  else
-    echo ":white_check_mark: Successfully ran test_app"
-  fi
-fi
-
-# Loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the client
-# preserves cc.loop operations, and the mock server validates and executes the
-# submitted payload.
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.cpp -o test_loop_app
-if [ $? -ne 0 ]; then
-  echo ":x: nvq++ compilation failed for test_loop_app"
-  test_err_sum=$((test_err_sum+1))
-else
-  echo ":white_check_mark: Successfully compiled test_loop_app with nvq++"
-  CUDAQ_DUMP_JIT_IR=1 ./test_loop_app > test_loop_app.out 2>&1
-  if [ $? -ne 0 ]; then
-    echo ":x: test_loop_app failed"
-    cat test_loop_app.out
-    test_err_sum=$((test_err_sum+1))
-  else
-    loop_count=$(grep -c "cc.loop" test_loop_app.out)
+    local loop_count
+    loop_count=$(grep -c "cc.loop" "$executable.out")
     # Expected loops: the nested for lowers to two cc.loop ops, and the while
     # lowers to one.
     if [ "$loop_count" -lt 3 ]; then
-      echo ":x: test_loop_app client IR did not preserve expected cc.loop ops"
-      cat test_loop_app.out
+      echo ":x: $executable client IR did not preserve expected cc.loop ops"
+      cat "$executable.out"
+      test_err_sum=$((test_err_sum+1))
+      return
+    fi
+    echo ":white_check_mark: Successfully ran $executable with preserved client loops"
+    return
+  fi
+
+  runTest "$executable" "$executable"
+}
+
+runPythonTests() {
+  PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ \
+    @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.py
+  if [ $? -ne 0 ]; then
+    echo ":x: Python test_app.py failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran Python test_app.py"
+  fi
+
+  # CUDAQ_DUMP_JIT_IR validates that Python's nop codegen path preserves the
+  # three structured loops in the client IR.
+  CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python \
+    @Python_EXECUTABLE@ \
+    @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.py \
+    > test_loop_app_python.out 2>&1
+  if [ $? -ne 0 ]; then
+    echo ":x: Python test_loop_app.py failed"
+    cat test_loop_app_python.out
+    test_err_sum=$((test_err_sum+1))
+  else
+    local loop_count
+    loop_count=$(grep -c "cc.loop" test_loop_app_python.out)
+    if [ "$loop_count" -lt 3 ]; then
+      echo ":x: Python test_loop_app.py client IR did not preserve expected cc.loop ops"
+      cat test_loop_app_python.out
       test_err_sum=$((test_err_sum+1))
     else
-      echo ":white_check_mark: Successfully ran test_loop_app with preserved client loops"
+      echo ":white_check_mark: Successfully ran Python test_loop_app.py with preserved client loops"
     fi
   fi
+}
+
+if [ "$mode" = "mock" ]; then
+  # Python mock execution below overlaps only the independent C++ compilations.
+  startServer
+  waitForServer
 fi
 
-runMappedSampleTest mock path3 "path(3)"
-runMappedSampleTest mock offset_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_line.txt)"
-runMappedSampleTest mock noncontiguous_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_noncontiguous_line.txt)"
-
-# Emulation test
-# Note: for emulation, we need to link in the device library. 
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
-if [ $? -ne 0 ]; then
-  echo ":x: nvq++ compilation failed"
-  test_err_sum=$((test_err_sum+1))
-else
-  echo ":white_check_mark: Successfully compiled test_app (emulation) with nvq++"
-  # Run the test app
-  ./test_app
-  if [ $? -ne 0 ]; then
-    echo ":x: test_app failed"
-    test_err_sum=$((test_err_sum+1))
-  else
-    echo ":white_check_mark: Successfully ran test_app (emulation)"
-  fi
+common_compile_args=(--target quake_fake)
+if [ "$mode" = "emulation" ]; then
+  common_compile_args+=(--emulate)
 fi
 
-# Loop emulation test. This covers structured control flow that survives the
-# target pipeline before local wire-set-to-QIR lowering.
-PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.cpp -o test_loop_app_emulate
-if [ $? -ne 0 ]; then
-  echo ":x: nvq++ compilation failed for test_loop_app (emulation)"
-  test_err_sum=$((test_err_sum+1))
-else
-  echo ":white_check_mark: Successfully compiled test_loop_app (emulation) with nvq++"
-  ./test_loop_app_emulate
-  if [ $? -ne 0 ]; then
-    echo ":x: test_loop_app failed (emulation)"
-    test_err_sum=$((test_err_sum+1))
-  else
-    echo ":white_check_mark: Successfully ran test_loop_app (emulation)"
-  fi
+app_compile_args=(
+  "${common_compile_args[@]}"
+  @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp
+)
+if [ "$mode" = "emulation" ]; then
+  app_compile_args+=(
+    @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
+  )
+fi
+queueCompilation "test_app_$mode" "${app_compile_args[@]}"
+queueCompilation "test_loop_app_$mode" "${common_compile_args[@]}" \
+  @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.cpp
+queueMappedSampleTests
+if [ "$mode" = "mock" ]; then
+  runPythonTests
 fi
 
-runMappedSampleTest emulation path3 "path(3)"
-runMappedSampleTest emulation offset_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_line.txt)"
-runMappedSampleTest emulation noncontiguous_island "file(@CMAKE_SOURCE_DIR@/cudaq/test/Transforms/mapping_disconnected_noncontiguous_line.txt)"
+waitForCompilations
 
-# Run the Python test
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.py
-if [ $? -ne 0 ]; then
-  echo ":x: Python test_app.py failed"
-  test_err_sum=$((test_err_sum+1))
-else
-  echo ":white_check_mark: Successfully ran Python test_app.py"
-fi
+# Executions remain sequential: mock jobs share one server, while emulation
+# runtime is small compared with compilation and gains little from concurrency.
+runTest "test_app ($mode)" "test_app_$mode"
+runLoopTest
+runMappedSampleTests
 
-# Python loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the Python
-# client preserves cc.loop operations for the nop codegen path.
-CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.py > test_loop_app.py.out 2>&1
-if [ $? -ne 0 ]; then
-  echo ":x: Python test_loop_app.py failed"
-  cat test_loop_app.py.out
-  test_err_sum=$((test_err_sum+1))
-else
-  loop_count=$(grep -c "cc.loop" test_loop_app.py.out)
-  if [ "$loop_count" -lt 3 ]; then
-    echo ":x: Python test_loop_app.py client IR did not preserve expected cc.loop ops"
-    cat test_loop_app.py.out
-    test_err_sum=$((test_err_sum+1))
-  else
-    echo ":white_check_mark: Successfully ran Python test_loop_app.py with preserved client loops"
-  fi
-fi
-
-# kill the server
-kill -INT $pid
-# return success / failure
-if [ ! $test_err_sum -eq 0 ]; then
+if [ "$test_err_sum" -ne 0 ]; then
   echo "::error::${test_err_sum} tests failed."
   exit 1
 fi

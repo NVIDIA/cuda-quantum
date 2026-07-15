@@ -94,6 +94,39 @@ CUDAQ_TEST(OQCTester, processResultsParsesProviderResponse) {
   EXPECT_EQ(result.count("0", "r00002"), 1000);
 }
 
+// The OQC compilation of `x(q[0]); swap(q[0], q[2]); mz(q)` maps virtual
+// qubits [0, 1, 2] to physical qubits [0, 2, 1]. The QIR results therefore
+// retain physical qubit ids [0, 2, 1], while their enriched output positions
+// recover the original virtual-qubit order [0, 1, 2]. Verify that the remote
+// provider response path reconstructs the CUDA-Q bit string from that metadata
+// without applying the legacy non-identity `reorderIdx` a second time.
+CUDAQ_TEST(OQCTester, processResultsMappedTerminalMeasurements) {
+  auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("oqc");
+  ASSERT_TRUE(serverHelper);
+
+  cudaq::BackendConfig config;
+  config["entry_url"] = "http://localhost:62442";
+  config["auth_token"] = "fake_auth_token";
+  config["device"] = "qpu:uk:-1:1234567890";
+  config["output_names.oqc-mapped-job-id"] =
+      R"([[[0, [0, "r00000", 0]], [1, [2, "r00001", 1]], [2, [1, "r00002", 2]]]])";
+  config["reorderIdx.oqc-mapped-job-id"] = R"([0, 2, 1])";
+  serverHelper->initialize(config);
+
+  cudaq::ServerMessage response = {{"results", {{"001", 1000}}},
+                                   {"task_error", nullptr}};
+  std::string jobId = "oqc-mapped-job-id";
+  auto result = serverHelper->processResults(response, jobId);
+
+  // Although `mapping_v2p` is [0, 2, 1], `mz(q)` assigns QIR result ids in
+  // logical measurement order. The corrected output positions [0, 1, 2]
+  // therefore preserve the raw provider count "001" as the global result.
+  EXPECT_EQ(result.count("001"), 1000);
+  EXPECT_EQ(result.count("0", "r00000"), 1000);
+  EXPECT_EQ(result.count("0", "r00001"), 1000);
+  EXPECT_EQ(result.count("1", "r00002"), 1000);
+}
+
 CUDAQ_TEST(OQCTester, processResultsRequiresOutputNames) {
   auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("oqc");
   ASSERT_TRUE(serverHelper);

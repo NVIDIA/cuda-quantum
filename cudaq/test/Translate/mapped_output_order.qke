@@ -1,0 +1,30 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s | FileCheck --check-prefix=API %s
+// RUN: cudaq-translate --convert-to=qir-base %s | FileCheck --check-prefix=PROFILE %s
+
+// The mapped physical QIR qubits remain [0, 2, 1], while enriched output
+// positions recover the original virtual-qubit order [0, 1, 2].
+
+func.func @mapped_terminal_measurements() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0, 2, 1], mapping_v2p = [0, 2, 1]} {
+  %qubits = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %qubits[0] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %qubits[2] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %qubits[1] : (!quake.veq<3>) -> !quake.ref
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  %m1 = quake.mz %q2 : (!quake.ref) -> !quake.measure
+  %m2 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  quake.dealloc %qubits : !quake.veq<3>
+  return
+}
+
+// API-LABEL: func.func @mapped_terminal_measurements() attributes
+// API-SAME: ["output_names", "{{\[\[}}[0,[0,\22r00000\22,0]],[1,[2,\22r00001\22,1]],[2,[1,\22r00002\22,2]]]]"
+// PROFILE-LABEL: define void @mapped_terminal_measurements()
+// PROFILE: "output_names"="{{\[\[\[}}0,[0,\22r00000\22,0]],[1,[2,\22r00001\22,1]],[2,[1,\22r00002\22,2]]]]"

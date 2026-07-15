@@ -1785,8 +1785,12 @@ struct AnnotateKernelsWithMeasurementStringsPattern
     if (nameMap.empty())
       return failure();
 
+    const auto virtualToPhysical =
+        cudaq::opt::getVirtualToPhysicalMapping(func.getOperation());
+
     nlohmann::json outputNames =
-        cudaq::opt::buildEnrichedOutputNamesJson(nameMap, {});
+        cudaq::opt::buildEnrichedOutputNamesJsonFromV2PMapping(
+            nameMap, virtualToPhysical);
     std::string outputNamesStr = outputNames.dump();
     SmallVector<Attribute> funcAttrs(passthru.begin(), passthru.end());
     funcAttrs.push_back(

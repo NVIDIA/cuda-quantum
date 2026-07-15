@@ -7,8 +7,24 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/QIRCodeGenUtils.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/Operation.h"
 #include <algorithm>
 #include <numeric>
+
+std::vector<std::size_t>
+cudaq::opt::getVirtualToPhysicalMapping(mlir::Operation *operation) {
+  std::vector<std::size_t> mapping;
+  const auto mappingAttr =
+      operation->getAttrOfType<mlir::ArrayAttr>("mapping_v2p");
+  if (!mappingAttr)
+    return mapping;
+
+  mapping.reserve(mappingAttr.size());
+  for (const auto attr : mappingAttr)
+    mapping.push_back(mlir::cast<mlir::IntegerAttr>(attr).getInt());
+  return mapping;
+}
 
 nlohmann::json cudaq::opt::buildEnrichedOutputNamesJson(
     const ResultQubitVals &resultQubitVals,
@@ -57,4 +73,29 @@ nlohmann::json cudaq::opt::buildEnrichedOutputNamesJson(
     ++entryIndex;
   }
   return nlohmann::json::array({std::move(entries)});
+}
+
+nlohmann::json cudaq::opt::buildEnrichedOutputNamesJsonFromV2PMapping(
+    const ResultQubitVals &resultQubitVals,
+    const std::vector<std::size_t> &virtualToPhysical) {
+  // Size the inverse lookup for every physical qubit referenced by either the
+  // measurements or `mapping_v2p`.
+  std::size_t numQubits = 0;
+  for (const auto &resultQubitVal : resultQubitVals)
+    numQubits = std::max(numQubits, resultQubitVal.second.first + 1);
+  for (const auto physicalQubit : virtualToPhysical)
+    numQubits = std::max(numQubits, physicalQubit + 1);
+
+  // The enriched metadata needs the inverse direction: physical QIR qubit id
+  // to original virtual-qubit order. Start with identity so an absent mapping,
+  // or a physical qubit not represented in it, retains the legacy behavior.
+  std::vector<std::size_t> qubitToOutputOrder(numQubits);
+  std::iota(qubitToOutputOrder.begin(), qubitToOutputOrder.end(), 0);
+  for (std::size_t virtualQubit = 0; virtualQubit < virtualToPhysical.size();
+       ++virtualQubit)
+    qubitToOutputOrder[virtualToPhysical[virtualQubit]] = virtualQubit;
+
+  // The common builder densely ranks measured logical orders and emits the
+  // entries in QIR result-id order.
+  return buildEnrichedOutputNamesJson(resultQubitVals, qubitToOutputOrder);
 }

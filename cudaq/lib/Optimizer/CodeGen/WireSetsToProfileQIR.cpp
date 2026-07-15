@@ -466,30 +466,19 @@ struct WireSetToProfileQIRPass
           borrowOrder.end())
         borrowOrder.push_back(op.getIdentity());
     });
-    // Build the lookup consumed by enriched `output_names`: QIR qubit index to
-    // user-visible output order. Identity initialization preserves the legacy
-    // behavior for qubits not mentioned by the mapping.
+    const bool hasVirtualToPhysicalMapping = op->hasAttr("mapping_v2p");
+    const auto virtualToPhysical =
+        cudaq::opt::getVirtualToPhysicalMapping(op.getOperation());
+
+    // Without mapping metadata, first borrow appearance is the available
+    // allocation-order signal for an explicitly constructed wire set. Build
+    // the QIR-qubit-to-output-order lookup used by the generic metadata helper.
     std::vector<std::size_t> qirQubitToOutputOrder;
-    if (highestIdentity) {
+    if (highestIdentity && !hasVirtualToPhysicalMapping) {
       qirQubitToOutputOrder.resize(*highestIdentity + 1);
       std::iota(qirQubitToOutputOrder.begin(), qirQubitToOutputOrder.end(), 0);
-      if (auto mappingAttr =
-              dyn_cast_if_present<ArrayAttr>(op->getAttr("mapping_v2p"))) {
-        // `mapping_v2p[virtual]` is the final physical qubit. Invert it so a
-        // measurement against a physical QIR qubit recovers its original
-        // virtual-qubit order after placement and routing.
-        for (auto [virtualQubit, physicalAttr] : llvm::enumerate(mappingAttr)) {
-          const auto physicalQubit = static_cast<std::size_t>(
-              cast<IntegerAttr>(physicalAttr).getInt());
-          if (physicalQubit < qirQubitToOutputOrder.size())
-            qirQubitToOutputOrder[physicalQubit] = virtualQubit;
-        }
-      } else {
-        // Without mapping metadata, first borrow appearance is the available
-        // allocation-order signal for an explicitly constructed wire set.
-        for (auto &&[outputOrder, qubit] : llvm::enumerate(borrowOrder))
-          qirQubitToOutputOrder[qubit] = outputOrder;
-      }
+      for (auto &&[outputOrder, qubit] : llvm::enumerate(borrowOrder))
+        qirQubitToOutputOrder[qubit] = outputOrder;
     }
     if (highestIdentity)
       op->setAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName,
@@ -527,8 +516,12 @@ struct WireSetToProfileQIRPass
     if (resultCounter > 0) {
       // The helper densely ranks only measured qubits. Partial terminal
       // measurements therefore remain compact while retaining logical order.
-      auto resultQubitJSON = cudaq::opt::buildEnrichedOutputNamesJson(
-          resultQubitVals, qirQubitToOutputOrder);
+      const auto resultQubitJSON =
+          !hasVirtualToPhysicalMapping
+              ? cudaq::opt::buildEnrichedOutputNamesJson(resultQubitVals,
+                                                         qirQubitToOutputOrder)
+              : cudaq::opt::buildEnrichedOutputNamesJsonFromV2PMapping(
+                    resultQubitVals, virtualToPhysical);
       op->setAttr(cudaq::opt::QIROutputNamesAttrName,
                   builder.getStringAttr(resultQubitJSON.dump()));
     }
