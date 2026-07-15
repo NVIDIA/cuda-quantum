@@ -75,12 +75,6 @@ static cl::opt<std::string> emitLLVMFile(
              "<input-basename>.ll."),
     cl::value_desc("filename"), cl::init(""), cl::ValueOptional);
 
-static cl::opt<bool> llvmOnly(
-    "llvm-only",
-    cl::desc("Emit the LLVM IR for the C++ input and do not emit the MLIR "
-             "code. --emit-llvm-file has higher precedence."),
-    cl::init(false));
-
 static cl::opt<bool>
     verifyMode("verify", cl::desc("Run in diagnostic verification mode."),
                cl::init(false));
@@ -521,17 +515,12 @@ int main(int argc, char **argv) {
   std::string inputFile = isStdinInput(inputFilename)
                               ? std::string("input.cc")
                               : sys::path::filename(inputFilename).str();
-  if (auto rc =
-          emitLLVM
-              ? runTool<CudaQAction>(module, mangledKernelNameMap,
-                                     cplusplusCode, clArgs, inputFile,
-                                     depFileOpts)
-              : (llvmOnly ? runTool<InterceptCudaQAction>(
-                                module, mangledKernelNameMap, cplusplusCode,
-                                clArgs, inputFile, depFileOpts)
-                          : runTool<cudaq::ASTBridgeAction>(
-                                module, mangledKernelNameMap, cplusplusCode,
-                                clArgs, inputFile, depFileOpts)))
+  if (auto rc = emitLLVM ? runTool<CudaQAction>(module, mangledKernelNameMap,
+                                                cplusplusCode, clArgs,
+                                                inputFile, depFileOpts)
+                         : runTool<cudaq::ASTBridgeAction>(
+                               module, mangledKernelNameMap, cplusplusCode,
+                               clArgs, inputFile, depFileOpts))
     return rc;
 
   // Success! Dump the IR and exit.
