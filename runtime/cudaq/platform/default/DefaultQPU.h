@@ -44,6 +44,10 @@ public:
                           const CompiledModule &module,
                           KernelArgs args) override;
 
+  ptsbe::sample_policy::result_type
+  launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args) override;
+
   using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(const sample_policy &policy) override;
