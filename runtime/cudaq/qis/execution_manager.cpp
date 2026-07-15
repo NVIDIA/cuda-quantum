@@ -58,6 +58,10 @@ void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
 }
 
+void ExecutionManager::configureExecutionContext(const dem_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
 void ExecutionManager::configureExecutionContext(
     const ptsbe::sample_policy &policy) {
   if (auto *ctx = getExecutionContext())

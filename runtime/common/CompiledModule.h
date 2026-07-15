@@ -191,7 +191,11 @@ public:
     std::vector<std::size_t> reorderIdx;
     /// Whether the kernel has conditional feedback on measure results.
     bool hasConditionalsOnMeasureResults = false;
-    // TODO: Add hash of target to check against for cache reusability
+    /// Hash of the CompileTarget used to compile this module.
+    std::size_t targetHash = 0;
+    /// Hash of the entire ModuleOp IR (only required when kernel includes
+    /// calls to captured kernels that may change and invalidate the cache).
+    std::size_t moduleHash = 0;
   };
 
   // --- Queries ---
@@ -318,6 +322,9 @@ public:
   // `CompiledModuleHelper`.
   CompiledModule() : FatQuakeModule(std::string{}) {}
   explicit CompiledModule(SourceModule src) : FatQuakeModule(std::move(src)) {}
+
+  /// Stamp the cache key (targetHash + moduleHash) for the compiled module.
+  void setCacheKey(std::size_t targetHash, std::size_t moduleHash);
 };
 
 using AnyModule = std::variant<SourceModule, CompiledModule>;
