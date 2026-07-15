@@ -47,7 +47,11 @@ struct RotationOptions {
 
 struct SynthState {
   mlir::ModuleOp module;
-  llvm::DenseMap<uint64_t, mlir::FlatSymbolRefAttr> cache;
+  // Keyed on (theta bits, valueSemantics ? 1 : 0): a ref-form and a wire-form
+  // helper for the same angle have different signatures, so they must not
+  // collide.
+  // Note: DenseMapInfo has no hash for `bool`, hence the unsigned tag.
+  llvm::DenseMap<std::pair<uint64_t, unsigned>, mlir::FlatSymbolRefAttr> cache;
   uint64_t hits = 0;
 };
 
@@ -64,23 +68,63 @@ struct PreCheck {
 
 } // namespace
 
+// Emit a single-target, parameter-free Clifford gate on `target`. In value
+// semantics `target` is a `!quake.wire`: the gate consumes it and produces a
+// fresh wire, which is returned so the caller can thread it into the next
+// gate. In memory semantics `target` is a `!quake.ref`: the gate mutates it in
+// place and the same value is returned unchanged. Detecting the form from the
+// operand type lets one code path serve both.
+template <typename OpTy>
+static Value emitCliffordGate(OpBuilder &b, Location loc, Value target) {
+  if (isa<cudaq::quake::WireType>(target.getType())) {
+    auto op = OpTy::create(b, loc, TypeRange{target.getType()}, /*is_adj=*/false,
+                           /*parameters=*/ValueRange{},
+                           /*controls=*/ValueRange{},
+                           /*targets=*/ValueRange{target},
+                           /*negated_qubit_controls=*/DenseBoolArrayAttr{});
+    return op.getWires()[0];
+  }
+  OpTy::create(b, loc, ValueRange{target});
+  return target;
+}
+
+// Emit Rz(angle) on `target`, threading the wire in value semantics (see
+// emitCliffordGate). Rz alone carries a rotation parameter, so it needs its own
+// helper rather than the parameter-free template above.
+static Value emitRz(OpBuilder &b, Location loc, Value angle, Value target) {
+  if (isa<cudaq::quake::WireType>(target.getType())) {
+    auto op = cudaq::quake::RzOp::create(
+        b, loc, TypeRange{target.getType()}, /*is_adj=*/false,
+        /*parameters=*/ValueRange{angle}, /*controls=*/ValueRange{},
+        /*targets=*/ValueRange{target},
+        /*negated_qubit_controls=*/DenseBoolArrayAttr{});
+    return op.getWires()[0];
+  }
+  cudaq::quake::RzOp::create(b, loc, ValueRange{angle}, ValueRange{},
+                             ValueRange{target});
+  return target;
+}
+
 // Materialize a body of Clifford+T gates onto `qubit` from a synthesized
-// `Circuit`.
-static void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
-                            const cudaq::synth::Circuit &circuit) {
+// `Circuit`, threading value-semantics wires when `qubit` is a `!quake.wire`.
+// Returns the final qubit value (the last wire for value semantics, or `qubit`
+// unchanged for memory semantics).
+static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
+                             const cudaq::synth::Circuit &circuit) {
+  Value cur = qubit;
   for (cudaq::synth::Gate g : circuit) {
     switch (g) {
     case cudaq::synth::Gate::H:
-      cudaq::quake::HOp::create(b, loc, ValueRange{qubit});
+      cur = emitCliffordGate<cudaq::quake::HOp>(b, loc, cur);
       break;
     case cudaq::synth::Gate::S:
-      cudaq::quake::SOp::create(b, loc, ValueRange{qubit});
+      cur = emitCliffordGate<cudaq::quake::SOp>(b, loc, cur);
       break;
     case cudaq::synth::Gate::T:
-      cudaq::quake::TOp::create(b, loc, ValueRange{qubit});
+      cur = emitCliffordGate<cudaq::quake::TOp>(b, loc, cur);
       break;
     case cudaq::synth::Gate::X:
-      cudaq::quake::XOp::create(b, loc, ValueRange{qubit});
+      cur = emitCliffordGate<cudaq::quake::XOp>(b, loc, cur);
       break;
     case cudaq::synth::Gate::W:
       // omega = e^{i*pi/4} global phase - dropped.
@@ -88,6 +132,7 @@ static void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
       break;
     }
   }
+  return cur;
 }
 
 // Compute `base << shift` as an int32_t timeout, saturating at INT32_MAX
@@ -105,14 +150,17 @@ static int32_t saturatingShlToInt32(int32_t base, int32_t shift) {
 }
 
 // Resolve (theta, epsilon) to a private helper func that applies the
-// synthesized Clifford+T sequence to its `!quake.ref` argument. On a cache
-// miss we run gridsynth, materialize the helper at module top level, and
-// stash a FlatSymbolRefAttr so subsequent rotations with the same angle
-// just emit a func.call.
+// synthesized Clifford+T sequence to its qubit argument. `valueSemantics`
+// selects the signature: `(!quake.wire) -> !quake.wire` (threading the wire)
+// when true, `(!quake.ref) -> ()` (in-place) when false. On a cache miss we
+// run gridsynth, materialize the helper at module top level, and stash a
+// FlatSymbolRefAttr so subsequent rotations with the same angle and form just
+// emit a func.call.
 static llvm::FailureOr<mlir::FlatSymbolRefAttr>
-getOrCreateRzHelper(double theta, const RotationOptions &opts,
-                    SynthState &state) {
-  uint64_t key = llvm::bit_cast<uint64_t>(theta);
+getOrCreateRzHelper(double theta, bool valueSemantics,
+                    const RotationOptions &opts, SynthState &state) {
+  uint64_t bits = llvm::bit_cast<uint64_t>(theta);
+  auto key = std::make_pair(bits, valueSemantics ? 1u : 0u);
   auto it = state.cache.find(key);
   if (it != state.cache.end()) {
     ++state.hits;
@@ -136,19 +184,28 @@ getOrCreateRzHelper(double theta, const RotationOptions &opts,
     return llvm::failure();
 
   MLIRContext *ctx = state.module.getContext();
-  std::string name = llvm::formatv("__cliffordt_rz_{0:x-16}", key).str();
+  std::string name =
+      valueSemantics
+          ? llvm::formatv("__cliffordt_rz_wire_{0:x-16}", bits).str()
+          : llvm::formatv("__cliffordt_rz_{0:x-16}", bits).str();
   Location loc = state.module.getLoc();
-  auto refType = cudaq::quake::RefType::get(ctx);
+  Type qubitType = valueSemantics ? Type(cudaq::quake::WireType::get(ctx))
+                                  : Type(cudaq::quake::RefType::get(ctx));
 
   OpBuilder b(ctx);
   b.setInsertionPointToStart(state.module.getBody());
-  auto funcOp =
-      func::FuncOp::create(b, loc, name, b.getFunctionType({refType}, {}));
+  FunctionType fnType = valueSemantics
+                            ? b.getFunctionType({qubitType}, {qubitType})
+                            : b.getFunctionType({qubitType}, {});
+  auto funcOp = func::FuncOp::create(b, loc, name, fnType);
   funcOp.setPrivate();
   Block *entry = funcOp.addEntryBlock();
   b.setInsertionPointToStart(entry);
-  emitCircuitBody(b, loc, entry->getArgument(0), *circuit);
-  func::ReturnOp::create(b, loc);
+  Value out = emitCircuitBody(b, loc, entry->getArgument(0), *circuit);
+  if (valueSemantics)
+    func::ReturnOp::create(b, loc, ValueRange{out});
+  else
+    func::ReturnOp::create(b, loc);
 
   auto symRef = mlir::FlatSymbolRefAttr::get(ctx, funcOp.getNameAttr());
   state.cache.try_emplace(key, symRef);
@@ -235,7 +292,10 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
       break;
     }
 
-    auto symRef = getOrCreateRzHelper(check.theta, opts, *state);
+    Value target = op.getTarget();
+    bool valueSemantics = isa<cudaq::quake::WireType>(target.getType());
+    auto symRef =
+        getOrCreateRzHelper(check.theta, valueSemantics, opts, *state);
     if (llvm::failed(symRef)) {
       op.emitError("clifford-t-synthesis: gridsynth failed for theta=")
           << check.theta << " after " << (opts.retryCount + 1)
@@ -247,9 +307,14 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
     // Replace the rotation with a call to the per-angle helper. Inlining
     // every rotation site would bloat the IR by O(rotations * gate_count).
     // Calling a shared helper keeps it at O(rotations + unique_angles *
-    // gate_count).
-    rewriter.replaceOpWithNewOp<func::CallOp>(op, *symRef, TypeRange{},
-                                              ValueRange{op.getTarget()});
+    // gate_count). In value semantics the call consumes and produces the
+    // qubit wire; in memory semantics it returns nothing.
+    if (valueSemantics)
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          op, *symRef, TypeRange{target.getType()}, ValueRange{target});
+    else
+      rewriter.replaceOpWithNewOp<func::CallOp>(op, *symRef, TypeRange{},
+                                                ValueRange{target});
     return success();
   }
 
@@ -294,11 +359,13 @@ struct RxPattern : OpRewritePattern<cudaq::quake::RxOp> {
     Location loc = op.getLoc();
     Value target = op.getTarget();
     Value angle = op.getParameter();
-    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
-    cudaq::quake::RzOp::create(rewriter, loc, ValueRange{angle}, ValueRange{},
-                               ValueRange{target});
-    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
-    rewriter.eraseOp(op);
+    Value cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, target);
+    cur = emitRz(rewriter, loc, angle, cur);
+    cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, cur);
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      rewriter.replaceOp(op, cur);
+    else
+      rewriter.eraseOp(op);
     return success();
   }
 
@@ -330,15 +397,17 @@ struct RyPattern : OpRewritePattern<cudaq::quake::RyOp> {
     Location loc = op.getLoc();
     Value target = op.getTarget();
     Value angle = op.getParameter();
-    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
-    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
-    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
-    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
-    cudaq::quake::RzOp::create(rewriter, loc, ValueRange{angle}, ValueRange{},
-                               ValueRange{target});
-    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
-    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
-    rewriter.eraseOp(op);
+    Value cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, target);
+    cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, cur);
+    cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, cur);
+    cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, cur);
+    cur = emitRz(rewriter, loc, angle, cur);
+    cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, cur);
+    cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, cur);
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      rewriter.replaceOp(op, cur);
+    else
+      rewriter.eraseOp(op);
     return success();
   }
 
@@ -370,9 +439,11 @@ struct R1Pattern : OpRewritePattern<cudaq::quake::R1Op> {
     Location loc = op.getLoc();
     Value target = op.getTarget();
     Value angle = op.getParameter();
-    cudaq::quake::RzOp::create(rewriter, loc, ValueRange{angle}, ValueRange{},
-                               ValueRange{target});
-    rewriter.eraseOp(op);
+    Value cur = emitRz(rewriter, loc, angle, target);
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      rewriter.replaceOp(op, cur);
+    else
+      rewriter.eraseOp(op);
     return success();
   }
 
@@ -409,30 +480,6 @@ public:
           "retry-count, and skip-below.");
       signalPassFailure();
       return;
-    }
-
-    // Reject value-semantics IR.
-    {
-      WalkResult walk = getOperation().walk([&](Operation *op) {
-        if (!isa<cudaq::quake::RxOp, cudaq::quake::RyOp, cudaq::quake::RzOp,
-                 cudaq::quake::R1Op>(op))
-          return WalkResult::advance();
-        for (Value target :
-             cast<cudaq::quake::OperatorInterface>(op).getTargets()) {
-          if (!cudaq::quake::isQuantumReferenceType(target.getType())) {
-            op->emitError(
-                "clifford-t-synthesis: rotation target is in value-semantics "
-                "form (!quake.wire/!quake.cable); run `regtomem` to convert to "
-                "memory semantics (!quake.ref) before this pass.");
-            return WalkResult::interrupt();
-          }
-        }
-        return WalkResult::advance();
-      });
-      if (walk.wasInterrupted()) {
-        signalPassFailure();
-        return;
-      }
     }
 
     // Working precision (in bits) for the MPFR-backed reals gridsynth uses.
