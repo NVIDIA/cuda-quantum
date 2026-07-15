@@ -67,7 +67,7 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// registerFaultTolerantTargetPipeline), not a test-only helper. The prelude
 /// passes (UnitarySynthesis, ApplyOpSpecialization, constant propagation) are
 /// included on purpose so the sub-pipeline is self-contained and establishes
-/// CliffordTSynthesis's preconditions (materialized controls/adjoints, folded
+/// CliffordTSynthesis's preconditions (materialized controls/`adjoints`, folded
 /// constant angles) regardless of what ran before it. That means these passes
 /// may re-run if an enclosing pipeline already scheduled them; the passes are
 /// idempotent on already-lowered IR, so the duplication is safe.
