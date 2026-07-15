@@ -94,10 +94,6 @@ static cl::opt<bool> verboseClang("v",
 static cl::opt<bool> debugMode("g", cl::desc("Add -g to clang tool arguments."),
                                cl::init(false));
 
-static cl::opt<bool> dumpToStderr("llvm-to-stderr",
-                                  cl::desc("Echo the LLVM IR to stderr"),
-                                  cl::init(false));
-
 static cl::opt<std::string>
     resourceDir("resource-dir",
                 cl::desc("Specify the clang resource directory"), cl::init(""));
@@ -250,24 +246,6 @@ private:
   cudaq::ASTBridgeAction mlirAction;
 };
 
-/// This is the front-end action to convert the C++ code to LLVM IR to a file.
-class InterceptCudaQAction : public clang::EmitLLVMAction {
-public:
-  using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
-
-  InterceptCudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &,
-                       MangledKernelNamesMap &,
-                       const cudaq::ASTBridgeAction::DependencyFileOptions &)
-      : clang::EmitLLVMAction{} {}
-  virtual ~InterceptCudaQAction() = default;
-
-  void EndSourceFileAction() override {
-    clang::EmitLLVMAction::EndSourceFileAction();
-    // Dump the IR to stderr if the command-line option was given.
-    if (dumpToStderr)
-      takeModule().get()->print(errs(), nullptr, false, true);
-  }
-};
 } // namespace
 
 template <typename ACTION>
