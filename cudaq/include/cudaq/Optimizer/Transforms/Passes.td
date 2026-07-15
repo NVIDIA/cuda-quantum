@@ -183,6 +183,10 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     (Ross & Selinger, arXiv:1403.2975) provided by the embedded
     `cudaq::synth` library.
 
+    Both memory semantics (`!quake.ref` targets, in-place) and value
+    semantics (`!quake.wire` targets, threaded) are handled. The synthesized
+    per-angle helper mirrors the form of the rotation it replaces.
+
     Preconditions (must be enforced by upstream passes):
     - Rotation angles are folded to constants - run `ArgumentSynthesis` and
       constant-propagation passes first.
