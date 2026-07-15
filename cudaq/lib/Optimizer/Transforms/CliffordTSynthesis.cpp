@@ -15,6 +15,7 @@
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -434,6 +435,10 @@ public:
     // empirical heuristic.
     auto prec = static_cast<mpfr_prec_t>(
         std::max<double>(64.0, std::ceil(-std::log2(epsilon) * 4.0 + 64.0)));
+    const mpfr_prec_t savedPrecision =
+        cudaq::synth::Real::get_default_precision();
+    llvm::scope_exit precisionRestore(
+        [&] { cudaq::synth::Real::set_default_precision(savedPrecision); });
     cudaq::synth::Real::set_default_precision(prec);
 
     RotationOptions opts{
