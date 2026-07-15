@@ -177,7 +177,7 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   policy.options = options;
   policy.noiseModel = &noiseModel;
 
-  // Stage 0: capture the kernel trace under a dedicated "tracer" context.\
+  // Stage 0: capture the kernel trace under a dedicated "tracer" context.
   ExecutionContext traceCtx("tracer");
   platform.with_execution_context(traceCtx, [&]() { wrappedKernel(); });
 
