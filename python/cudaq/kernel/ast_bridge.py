@@ -404,6 +404,12 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentAssignVariableName = None
         self.walkingReturnNode = False
         self.controlNegations = []
+        # Cache qualified-name and decorator-recovery results, including a
+        # missing decorator, for this bridge. Compilation assumes module and
+        # definition-frame bindings remain stable while translating the kernel
+        # AST. These caches are not shared across kernels.
+        self.qualifiedNameCache = {}
+        self.qualifiedDecoratorCache = {}
         self.pushPointerValue = False
         # Constant ``cudaq.qvector(N)`` sizes for compile-time checks.
         self.staticVeqSizes = {}
@@ -2842,7 +2848,11 @@ class PyASTBridge(ast.NodeVisitor):
             if path:
                 name = f"{path}.{name}"
 
-            decorator = recover_value_of_or_none(name, self.defFrame)
+            if name in self.qualifiedDecoratorCache:
+                decorator = self.qualifiedDecoratorCache[name]
+            else:
+                decorator = recover_value_of_or_none(name, self.defFrame)
+                self.qualifiedDecoratorCache[name] = decorator
             if decorator is None or not isa_kernel_decorator(decorator):
                 return None
 
@@ -2907,6 +2917,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
                 moduleNames.append(value.id)
                 moduleNames.reverse()
+                qualifiedName = tuple(moduleNames) + (pyVal.attr,)
+                if qualifiedName in self.qualifiedNameCache:
+                    return self.qualifiedNameCache[qualifiedName]
 
                 # Helper method to check that the module `obj`
                 # contains the proper path defined by the submodules
@@ -2929,7 +2942,9 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = module
                             devKey = checkModule(obj, moduleNames)
                             if devKey:
-                                return devKey, pyVal.attr
+                                result = (devKey, pyVal.attr)
+                                self.qualifiedNameCache[qualifiedName] = result
+                                return result
                         except AttributeError:
                             continue
 
@@ -2948,10 +2963,14 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = obj[-1]
                         devKey = checkModule(obj, moduleNames)
                         if devKey:
-                            return devKey, pyVal.attr
+                            result = (devKey, pyVal.attr)
+                            self.qualifiedNameCache[qualifiedName] = result
+                            return result
 
                 # Default return value
-                return '.'.join(moduleNames), pyVal.attr
+                result = ('.'.join(moduleNames), pyVal.attr)
+                self.qualifiedNameCache[qualifiedName] = result
+                return result
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):

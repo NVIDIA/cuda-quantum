@@ -52,6 +52,20 @@ observe_result cudaq::QPU::launchKernel(const observe_policy &policy,
       "This QPU does not support launching the observe_policy.");
 }
 
+msm_dimensions cudaq::QPU::launchKernel(const msm_size_policy &policy,
+                                        const CompiledModule &module,
+                                        KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the msm_size_policy.");
+}
+
+msm_result cudaq::QPU::launchKernel(const msm_policy &policy,
+                                    const CompiledModule &module,
+                                    KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the msm_policy.");
+}
+
 async_observe_result
 cudaq::QPU::launchKernel(const async_observe_policy &policy,
                          const CompiledModule &module, KernelArgs args) {
@@ -64,6 +78,13 @@ dem_result cudaq::QPU::launchKernel(const dem_policy &policy,
                                     KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the dem_policy.");
+}
+
+ptsbe::sample_policy::result_type
+cudaq::QPU::launchKernel(const ptsbe::sample_policy &policy,
+                         const CompiledModule &module, KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the ptsbe::sample_policy.");
 }
 
 void cudaq::QPU::rethrowDeferredKernelException() {
@@ -156,6 +177,16 @@ std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const dem_policy &) {
   throw std::runtime_error(
       "This QPU does not support detector error model generation.");
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const msm_size_policy &) {
+  return getCompileTarget(other_policies{}, nullptr);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const msm_policy &) {
+  return getCompileTarget(other_policies{}, nullptr);
 }
 
 std::unique_ptr<cudaq::CompileTarget>
