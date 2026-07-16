@@ -1,36 +1,42 @@
 ---
-name: "qiskit-to-cudaq"
-title: "Qiskit to CUDA-Q"
-description: "Use when porting Qiskit Python circuits to CUDA-Q kernels while preserving algorithms and validation fidelity."
-version: "1.0.1"
+name: "cudaq-importing"
+title: "CUDA-Q Importing"
+description: "Use when porting circuits from another framework (e.g. Qiskit) into CUDA-Q kernels while preserving the source algorithm and validation fidelity."
+version: "1.0.0"
 author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
-tags: [cuda-quantum, quantum-computing, qiskit, porting, migration, kernels, nvidia]
+tags: [cuda-quantum, quantum-computing, importing, porting, migration, qiskit, kernels, nvidia]
 tools: [Read, Glob, Grep]
 license: "Apache-2.0"
 compatibility: "Python 3.10+"
 metadata:
     author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
-    short-description: "Port Qiskit circuits to CUDA-Q"
+    short-description: "Port circuits from other frameworks into CUDA-Q"
     tags:
         - cuda-quantum
         - quantum-computing
-        - qiskit
+        - importing
         - porting
         - migration
+        - qiskit
         - nvidia
     languages:
         - python
     domain: "quantum"
 ---
 
-# Qiskit to CUDA-Q
+# CUDA-Q Importing
 
 ## Purpose
 
-Use this skill to port Qiskit Python code, or code with Qiskit-style circuit
-construction, to CUDA-Q Python kernels. The goal is a framework-free CUDA-Q port
-that preserves the source quantum algorithm, matches source behavior at small
-test sizes, and documents any unavoidable CUDA-Q limitations.
+Use this skill to port quantum circuits from another framework into CUDA-Q
+Python kernels. This includes Qiskit code and Qiskit-style circuit construction,
+as well as other framework-driven circuit builders. The goal is a framework-free
+CUDA-Q port that preserves the source quantum algorithm, matches source behavior
+at small test sizes, and documents any unavoidable CUDA-Q limitations.
+
+For authoring new CUDA-Q kernels from scratch, and for CUDA-Q installation,
+simulation targets, QPU access, and parallelization, use the `cudaq-guide`
+skill (`/cudaq-guide author` for kernel authoring).
 
 ## Prerequisites
 
@@ -39,8 +45,9 @@ test sizes, and documents any unavoidable CUDA-Q limitations.
   `python -c "import cudaq; print(getattr(cudaq, '__version__', 'unknown'))"`.
 - Access to the source implementation and a way to run or inspect its expected
   behavior.
-- For validation against Qiskit, Qiskit/Aer must be installed in the validation
-  environment. The final CUDA-Q port itself must not require Qiskit.
+- To validate against the source framework (e.g. Qiskit/Aer), it must be
+  installed in the validation environment only. The final CUDA-Q port itself
+  must not require the source framework.
 - When using CUDA-Q documentation or repository MCP connectors, verify the
   connector is available before relying on it; otherwise use local docs or the
   source tree.
@@ -76,11 +83,11 @@ test sizes, and documents any unavoidable CUDA-Q limitations.
 - Do not introduce fixed qubit caps, fixed control arities, or source-framework
   imports unless they are genuinely unavoidable and documented.
 - Prefer native CUDA-Q gates (`r1.ctrl`, `x.ctrl`, `swap.ctrl`, etc.) over
-  transpiling through Qiskit.
+  transpiling through the source framework.
 - Keep bit-order conversion at the port boundary: allocation order,
   measurement return list, or final count-key formatting.
-- Match floating-point precision when comparing CUDA-Q and Qiskit results if
-  fidelity differences matter.
+- Match floating-point precision when comparing CUDA-Q and source results if
+  fidelity differences matter (CUDA-Q defaults to fp32, Qiskit to fp64).
 - Accept source flags that become no-ops in CUDA-Q when doing so preserves
   source-compatible behavior.
 
@@ -101,10 +108,11 @@ you need any of the following:
 - Guidance targets CUDA-Q 0.14/0.15 decorator-mode Python APIs. Re-check
   behavior against the installed CUDA-Q version for version-sensitive features.
 - Some CUDA-Q kernel-language constructs are constrained compared with normal
-  Python; use the companion `cudaq-guide` skill for core CUDA-Q authoring
-  constraints and shared kernel patterns.
-- CUDA-Q and Qiskit differ in default precision and count-key display order.
-  Apparent fidelity or bitstring mismatches may be convention differences.
+  Python; use the companion `cudaq-guide` skill (`/cudaq-guide author`) for core
+  CUDA-Q authoring constraints and shared kernel patterns.
+- CUDA-Q and source frameworks differ in default precision and count-key display
+  order. Apparent fidelity or bitstring mismatches may be convention
+  differences.
 - Hardware-target behavior, available backends, and target options depend on
   the local CUDA-Q installation.
 - This skill does not guarantee equivalent performance; it focuses on
@@ -114,18 +122,20 @@ you need any of the following:
 
 Use this format when diagnosing failures:
 
-- **Error:** `ModuleNotFoundError: qiskit` from a CUDA-Q path.
+- **Error:** `ModuleNotFoundError: qiskit` (or another source framework) from a
+  CUDA-Q path.
   **Cause:** The port still imports the source framework.
   **Solution:** Move pure helpers into a framework-free module and verify with
   the import-blocker pattern in the reference.
 
 - **Error:** Fidelity looks plausible but raw keys are reversed.
-  **Cause:** Qiskit and CUDA-Q count-key ordering differ.
+  **Cause:** The source framework and CUDA-Q count-key ordering differ.
   **Solution:** Fix allocation, return-list order, or formatting at the port
   boundary. Do not alter the algorithm.
 
 - **Error:** Deep-circuit fidelity differs between frameworks.
-  **Cause:** CUDA-Q and Qiskit may be using different floating-point precision.
+  **Cause:** CUDA-Q and the source framework may be using different
+  floating-point precision.
   **Solution:** Match precision before comparing, then rerun the smallest
   failing deterministic case.
 
