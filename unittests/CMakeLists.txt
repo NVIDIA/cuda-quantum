@@ -251,4 +251,5 @@ add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
 add_subdirectory(backends)
+add_subdirectory(ptsbe)
 
