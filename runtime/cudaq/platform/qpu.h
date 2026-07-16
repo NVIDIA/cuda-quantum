@@ -181,6 +181,10 @@ public:
                                   const CompiledModule &module,
                                   KernelArgs args);
 
+  virtual ptsbe::sample_policy::result_type
+  launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 

@@ -58,6 +58,61 @@ CUDAQ_TEST(ParserTester, checkMoreBoolean) {
   origBuffer = nullptr;
 }
 
+CUDAQ_TEST(ParserTester, checkOwningResultVectors) {
+  const auto parseResults = [](const std::string &log) {
+    cudaq::RecordLogParser parser;
+    return parser.parseResults(log);
+  };
+
+  EXPECT_TRUE(parseResults("").empty());
+  {
+    const std::string log = "METADATA\trequired_num_results\t1\n"
+                            "START\nOUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
+    const auto results = parseResults(log);
+    ASSERT_EQ(1, results.size());
+    EXPECT_EQ(std::vector<bool>({true}), results[0]);
+  }
+  {
+    const std::string log =
+        "METADATA\trequired_num_results\t3\n"
+        "START\nOUTPUT\tRESULT\t1\tr00000\n"
+        "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t1\tr00002\nEND\t0\n"
+        "START\nOUTPUT\tRESULT\t0\tr00000\n"
+        "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t0\tr00002\nEND\t0\n";
+    const auto results = parseResults(log);
+    ASSERT_EQ(2, results.size());
+    EXPECT_EQ(std::vector<bool>({true, false, true}), results[0]);
+    EXPECT_EQ(std::vector<bool>({false, true, false}), results[1]);
+  }
+  {
+    const std::string log =
+        "HEADER\tschema_id\tlabeled\n"
+        "START\nOUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+        "OUTPUT\tRESULT\t1\t[0]\nOUTPUT\tRESULT\t0\t[1]\nEND\t0\n"
+        "START\nOUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+        "OUTPUT\tRESULT\t0\t[0]\nOUTPUT\tRESULT\t1\t[1]\nEND\t0\n";
+    const auto results = parseResults(log);
+    ASSERT_EQ(2, results.size());
+    EXPECT_EQ(std::vector<bool>({true, false}), results[0]);
+    EXPECT_EQ(std::vector<bool>({false, true}), results[1]);
+  }
+
+  EXPECT_ANY_THROW(parseResults("METADATA\trequired_num_results\t2\n"
+                                "START\nOUTPUT\tRESULT\t1\tr00000\n"
+                                "OUTPUT\tRESULT\t0\tr00000\nEND\t0\n"));
+  EXPECT_ANY_THROW(parseResults("METADATA\trequired_num_results\t8000000000\n"
+                                "OUTPUT\tRESULT\t1\tr00000\n"));
+}
+
+CUDAQ_TEST(ParserTester, checkParseAfterParsingResults) {
+  const std::string log = "METADATA\trequired_num_results\t1\n"
+                          "START\nOUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
+  cudaq::RecordLogParser parser;
+  parser.parseResults(log);
+  parser.parse(log);
+  EXPECT_EQ(sizeof(std::vector<bool>), parser.getBufferSize());
+}
+
 CUDAQ_TEST(ParserTester, checkIntegers) {
   {
     const std::string log = "OUTPUT\tINT\t0\ti32\n"

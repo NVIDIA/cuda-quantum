@@ -66,6 +66,13 @@ dem_result cudaq::QPU::launchKernel(const dem_policy &policy,
       "This QPU does not support launching the dem_policy.");
 }
 
+ptsbe::sample_policy::result_type
+cudaq::QPU::launchKernel(const ptsbe::sample_policy &policy,
+                         const CompiledModule &module, KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the ptsbe::sample_policy.");
+}
+
 void cudaq::QPU::rethrowDeferredKernelException() {
   if (auto *ctx = getExecutionContext(); ctx && ctx->deferredKernelException) {
     auto deferred = ctx->deferredKernelException;

@@ -47,7 +47,20 @@ void validateOutputRecord(
 }
 } // namespace
 
+std::vector<std::vector<bool>>
+cudaq::RecordLogParser::parseResults(const std::string &outputLog) {
+  std::vector<std::vector<bool>> parsedResults;
+  parseImpl(outputLog, &parsedResults);
+  return parsedResults;
+}
+
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
+  parseImpl(outputLog, nullptr);
+}
+
+void cudaq::RecordLogParser::parseImpl(
+    const std::string &outputLog,
+    std::vector<std::vector<bool>> *parsedResults) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
   CUDAQ_DBG("Parsing output log ({} bytes).", outputLog.size());
   completedResultCount = 0;
@@ -103,7 +116,7 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
         if (sawFramedOutput)
           throw std::runtime_error("Mixed framed and unframed output");
         sawUnframedOutput = true;
-        handleOutput(entries);
+        handleOutput(entries, parsedResults);
       }
     } else if (recordType == "END") {
       if (entries.size() != 2)
@@ -112,7 +125,7 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
         throw std::runtime_error("END record without START");
       if (detail::parseSize(entries[1]) == 0) {
         for (const auto &outputRecord : shotOutputRecords)
-          handleOutput(outputRecord);
+          handleOutput(outputRecord, parsedResults);
         rejectIncompleteContainer();
       } else {
         CUDAQ_DBG("Discarding shot data due to non-zero END status.");
@@ -169,7 +182,8 @@ void cudaq::RecordLogParser::handleMetadata(
 }
 
 void cudaq::RecordLogParser::handleOutput(
-    const std::vector<std::string> &entries) {
+    const std::vector<std::string> &entries,
+    std::vector<std::vector<bool>> *parsedResults) {
   const std::string &recType = entries[1];
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
@@ -205,8 +219,23 @@ void cudaq::RecordLogParser::handleOutput(
       containerMeta.arrayType = "i1";
       bufferHandler.chargeContainerTracking(containerMeta.elementCount);
       containerMeta.processedSlots.assign(containerMeta.elementCount, false);
-      preallocateArray();
+      if (parsedResults) {
+        bufferHandler.chargeResultStorage(containerMeta.elementCount);
+        parsedResults->emplace_back(containerMeta.elementCount);
+      } else {
+        preallocateArray();
+      }
       countAndResetContainerIfComplete();
+    }
+
+    if (parsedResults) {
+      if (!containerMeta.arrayType.empty() && containerMeta.arrayType != "i1")
+        throw std::runtime_error("Sample result array must contain i1 values");
+      if (containerMeta.processedElements == 0 &&
+          parsedResults->size() == completedResultCount) {
+        bufferHandler.chargeResultStorage(containerMeta.elementCount);
+        parsedResults->emplace_back(containerMeta.elementCount);
+      }
     }
 
     // Note: For ordered schema, we expect the results are sequential in the
@@ -246,7 +275,18 @@ void cudaq::RecordLogParser::handleOutput(
       }
     }
 
-    processArrayEntry(recValue, fmt::format("[{}]", idxLabel));
+    if (parsedResults) {
+      const auto index =
+          containerMeta.extractIndex(fmt::format("[{}]", idxLabel));
+      if (index >= containerMeta.elementCount)
+        throw std::runtime_error("Array index out of bounds");
+      containerMeta.requireUnprocessed(index);
+      parsedResults->back()[index] =
+          detail::BooleanConverter().convert(recValue);
+      containerMeta.markProcessed(index);
+    } else {
+      processArrayEntry(recValue, fmt::format("[{}]", idxLabel));
+    }
     countAndResetContainerIfComplete();
     return;
   }
@@ -263,11 +303,14 @@ void cudaq::RecordLogParser::handleOutput(
       containerMeta.extractArrayInfo(recLabel);
       bufferHandler.chargeContainerTracking(containerMeta.elementCount);
       containerMeta.processedSlots.assign(containerMeta.elementCount, false);
-      preallocateArray();
+      if (!parsedResults)
+        preallocateArray();
     }
     countAndResetContainerIfComplete();
     return;
   }
+  if (parsedResults)
+    throw std::runtime_error("Sample output must contain RESULT values");
   if (recType == "TUPLE") {
     if (containerMeta.active())
       throw std::runtime_error("New container before previous container ends");
