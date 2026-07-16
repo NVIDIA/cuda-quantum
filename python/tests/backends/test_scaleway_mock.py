@@ -16,6 +16,8 @@ import numpy as np
 
 qio = pytest.importorskip("qio")
 
+pytestmark = pytest.mark.xdist_group("scaleway_mock")
+
 TEST_PORT = 62450
 TEST_PLATFORM = "EMU-CUDAQ-FAKE"
 TEST_URL = f"http://localhost:{TEST_PORT}"

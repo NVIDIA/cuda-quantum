@@ -17,6 +17,8 @@ from network_utils import check_server_connection
 
 from utils.mock_qpu.qci import startServer
 
+pytestmark = pytest.mark.xdist_group("qci_mock")
+
 # Define the port for the mock server
 port = 62449
 
