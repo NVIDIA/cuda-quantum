@@ -134,9 +134,19 @@ public:
   /// arithmetic for the disk constraint; MPFR rounding on the dot-product
   /// side is absorbed by the cached widened bounds further downstream.
   bool contains(const DOmega &u) const override {
-    Real cos_similarity = u.real() * z_x + u.imag() * z_y;
-    return DSqrt2::from_domega(u.conj() * u) <= DSqrt2{1} &&
-           cos_similarity >= dot_threshold;
+    if (!(DSqrt2::from_domega(u.conj() * u) <= DSqrt2{1}))
+      return false;
+
+    // Re(u) and Im(u) share the same sqrt(2)^k factor. coords_into computes
+    // both from a single inv_scale so pow_sqrt2 runs once instead of twice
+    // (as it would via u.real() + u.imag()).
+    static const Real sqrt2_over_2 = sqrt(Real(2)) / 2;
+    Real inv_scale = 1 / u.scale();
+    Real u_real, u_imag;
+    coords_into(u, inv_scale, sqrt2_over_2, u_real, u_imag);
+
+    Real cos_similarity = u_real * z_x + u_imag * z_y;
+    return cos_similarity >= dot_threshold;
   }
 
   /// Intersect the ray u(t) = u0 + t*v with R_epsilon, returning the
