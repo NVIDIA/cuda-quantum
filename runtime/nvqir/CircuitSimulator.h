@@ -336,13 +336,6 @@ public:
   }
 
   /// @brief Set the execution context
-  void configureExecutionContext(const cudaq::ptsbe::sample_policy &policy) {
-    noiseModel = nullptr;
-    currentCircuitName = policy.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
-  }
-
-  /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::msm_size_policy &policy) {
     throw std::runtime_error("This target does not support policy " +
                              std::string(policy.name));
