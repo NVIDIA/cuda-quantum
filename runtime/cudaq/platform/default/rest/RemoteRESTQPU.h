@@ -18,6 +18,10 @@ namespace cudaq {
 /// services via a REST Client / Server interaction.
 class RemoteRESTQPU : public BaseRemoteRESTQPU {
 public:
+  // Overrides the `sample`/`observe` `launchKernel` overloads but inherits
+  // `launchKernel(dem_policy)` from `BaseRemoteRESTQPU`.
+  using BaseRemoteRESTQPU::launchKernel;
+
   RemoteRESTQPU() : BaseRemoteRESTQPU() {}
   RemoteRESTQPU(RemoteRESTQPU &&) = delete;
   ~RemoteRESTQPU() override;
@@ -29,6 +33,7 @@ public:
   KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
                                             KernelArgs args) override;
 
+  using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;

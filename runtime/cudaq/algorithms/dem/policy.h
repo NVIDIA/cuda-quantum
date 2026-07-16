@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,14 +8,21 @@
 
 #pragma once
 
-#include "cudaq/algorithms/dem/policy.h"
-#include "cudaq/algorithms/observe/policy.h"
-#include "cudaq/algorithms/sample/policy.h"
-#include "cudaq/ptsbe/policy.h"
+#include "cudaq/algorithms/dem/options.h"
+#include "cudaq/algorithms/dem/result.h"
+#include <string>
 
 namespace cudaq {
 
-/// @brief Fallback policy tag used when no specific policy matches.
-struct other_policies {};
+class noise_model;
+
+/// @brief Tag and options for Detector Error Model (DEM) generation.
+struct dem_policy {
+  static constexpr char name[] = "dem";
+  using result_type = dem_result;
+  dem_options options;
+  std::string kernelName;
+  const noise_model *noiseModel = nullptr;
+};
 
 } // namespace cudaq

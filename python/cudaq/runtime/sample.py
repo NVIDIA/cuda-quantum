@@ -166,7 +166,6 @@ def sample(kernel,
         ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
         ctx.kernelName = kernel_name
         ctx.explicitMeasurements = explicit_measurements
-        ctx.allowJitEngineCaching = True
         policy = cudaq_runtime.SamplePolicy(ctx, kernel_name,
                                             explicit_measurements)
 
@@ -194,7 +193,6 @@ def sample(kernel,
                     "results when executed. Exiting shot loop to avoid infinite "
                     "loop.")
                 break
-        ctx.unset_jit_engine()
         return counts
     finally:
         if set_noise_for_call:

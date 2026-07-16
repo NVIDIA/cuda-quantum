@@ -17,6 +17,10 @@ namespace cudaq {
 // submit kernels to the Fermioniq simulator.
 class FermioniqQPU : public BaseRemoteRESTQPU {
 public:
+  // Overrides the `sample`/`observe` `launchKernel` overloads but inherits
+  // `launchKernel(dem_policy)` from `BaseRemoteRESTQPU`.
+  using BaseRemoteRESTQPU::launchKernel;
+
   ~FermioniqQPU() override;
 
   virtual bool isRemote() override { return true; }
@@ -43,6 +47,7 @@ public:
     return target;
   }
 
+  using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;

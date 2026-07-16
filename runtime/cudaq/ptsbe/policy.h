@@ -22,8 +22,6 @@ class ExecutionContext;
 
 namespace ptsbe {
 
-struct PTSBatch;
-
 /// @brief Tag and options for PTSBE (pre-trajectory sampling with batch
 /// execution) sampling.
 struct sample_policy {
@@ -48,14 +46,6 @@ struct sample_policy {
   /// PTSBE applies noise as explicit trajectory unitaries resolved into the
   /// trace before execution.
   mutable const noise_model *noiseModel = nullptr;
-
-  /// @brief The pre-built batch to execute (trace + trajectories + measure
-  /// qubits).
-  const PTSBatch *batch = nullptr;
-
-  /// @brief Per-trajectory results populated during finalization,
-  /// needed for execution-data attachment on the aggregated result.
-  mutable std::vector<cudaq::sample_result> perTrajectoryResults;
 
   friend result_type
   finalize_execution_manager_impl(ExecutionManager &mgr,

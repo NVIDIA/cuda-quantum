@@ -17,5 +17,12 @@ add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI
   QuakeDialect
   CCDialect
   QECDialect
-  MLIRRegisterAllDialects
+  MLIRArithDialect
+  MLIRControlFlowDialect
+  MLIRComplexDialect
+  MLIRFuncDialect
+  MLIRLLVMDialect
+  MLIRMathDialect
+  MLIRFuncInlinerExtension
+  MLIRLLVMIRTransforms
 )
