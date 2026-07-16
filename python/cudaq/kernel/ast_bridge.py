@@ -849,10 +849,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def hasTerminator(self, block):
         """Return True if the given Block has a Terminator operation."""
-        if len(block.operations) > 0:
-            return cudaq_runtime.isTerminator(
-                block.operations[len(block.operations) - 1])
-        return False
+        return cudaq_runtime.blockHasTerminator(block)
 
     def isArithmeticType(self, type):
         """Return True if the given type is an integer, float, or complex
