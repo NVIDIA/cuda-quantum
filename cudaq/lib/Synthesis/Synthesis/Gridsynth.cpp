@@ -303,13 +303,16 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
       // when n != 0, which matches the solvability condition; the residue
       // check here is the cheapest test that filters out the unsolvable
       // ones before paying for factoring.
-      if ((z * z.conj()).residue() == 0)
+      //
+      // Compute conj(z) * z once and reuse.
+      DOmega z_conj_z = z.conj() * z;
+      if (z_conj_z.residue() == 0)
         continue;
 
       // Step 2(b-c): solve conj(t) * t = xi for xi = 1 - conj(z) * z in
       // D[sqrt(2)]. DSqrt2::from_domega is well-defined because conj(z) * z
       // is real and lies in D[sqrt(2)] for any z in D[omega].
-      DSqrt2 xi = DSqrt2(1) - DSqrt2::from_domega(z.conj() * z);
+      DSqrt2 xi = DSqrt2(1) - DSqrt2::from_domega(z_conj_z);
       llvm::FailureOr<DOmega> w_or =
           diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
 
