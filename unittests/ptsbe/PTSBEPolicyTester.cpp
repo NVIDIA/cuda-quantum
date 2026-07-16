@@ -45,16 +45,16 @@ CUDAQ_TEST(PTSBEPolicyTest, ExecuteBatchAggregatesResults) {
                                   3);
 
   ptsbe::sample_policy policy;
-  policy.batch = &batch;
   policy.shots = batch.totalShots();
 
-  auto result = ptsbe::detail::executeBatch(policy);
+  auto perTrajectoryResults = ptsbe::detail::executeBatch(policy, batch);
+  auto result = ptsbe::detail::aggregateResults(perTrajectoryResults);
 
   EXPECT_EQ(result.count("1"), 10);
   EXPECT_EQ(result.count("0"), 0);
-  ASSERT_EQ(policy.perTrajectoryResults.size(), 2);
-  EXPECT_EQ(policy.perTrajectoryResults[0].count("1"), 7);
-  EXPECT_EQ(policy.perTrajectoryResults[1].count("1"), 3);
+  ASSERT_EQ(perTrajectoryResults.size(), 2);
+  EXPECT_EQ(perTrajectoryResults[0].count("1"), 7);
+  EXPECT_EQ(perTrajectoryResults[1].count("1"), 3);
 
   EXPECT_EQ(cudaq::getExecutionContext(), nullptr);
 }
@@ -73,10 +73,9 @@ CUDAQ_TEST(PTSBEPolicyTest, ContextRestoredAfterFailure) {
                                      1.0, 5);
 
   ptsbe::sample_policy policy;
-  policy.batch = &badBatch;
   policy.shots = badBatch.totalShots();
 
-  EXPECT_ANY_THROW(ptsbe::detail::executeBatch(policy));
+  EXPECT_ANY_THROW(ptsbe::detail::executeBatch(policy, badBatch));
   EXPECT_EQ(cudaq::getExecutionContext(), nullptr);
 
   ptsbe::PTSBatch goodBatch;

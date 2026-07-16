@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "cudaq/algorithms/launch.h"
+#include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/builder/kernels.h"
 #include <iostream>
 
@@ -323,30 +325,26 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_only) {
 
   // Stage 1 - get the MSM size by running with "msm_size". The
   // result will be returned in ctx_msm_size.shots.
-  cudaq::ExecutionContext ctx_msm_size("msm_size");
-  auto &platform = cudaq::get_platform();
-  platform.with_execution_context(ctx_msm_size, multi_round_ghz{}, num_qubits,
-                                  num_rounds);
+  auto msm_dimensions = cudaq::launch(
+      cudaq::msm_size_policy{}, multi_round_ghz{}, num_qubits, num_rounds);
 
   // Stage 2 - get the MSM using the size calculated above
   // (ctx_msm_size.msm_dimensions).
-  cudaq::ExecutionContext ctx_msm("msm");
-  ctx_msm.noiseModel = &noise;
-  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.with_execution_context(ctx_msm, multi_round_ghz{}, num_qubits,
-                                  num_rounds);
+  cudaq::msm_policy policy;
+  policy.dimensions = msm_dimensions;
+  auto msm = cudaq::launch(policy, multi_round_ghz{}, num_qubits, num_rounds);
 
   // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
   // MSM is stored there, but some post-processing may be required to
   // eliminate duplicate columns.
-  auto msm_as_strings = ctx_msm.result.sequential_data();
+  auto msm_as_strings = msm.samples.sequential_data();
   printf("Columns of MSM:\n");
   for (int col = 0; auto x : msm_as_strings) {
     // For this multi_round_ghz, we expect a 15x15 identity matrix.
     std::string expected_string(num_qubits * num_rounds, '0');
     expected_string[col] = '1';
     EXPECT_EQ(expected_string, x);
-    auto p = ctx_msm.msm_probabilities.value()[col];
+    auto p = msm.probabilities[col];
     printf("Column %02d (Prob %.6f): %s\n", col, p, x.c_str());
     EXPECT_EQ(p, noise_bf_prob);
     col++;
@@ -384,23 +382,21 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_corr) {
 
   // Stage 1 - get the MSM size by running with "msm_size". The
   // result will be returned in ctx_msm_size.shots.
-  cudaq::ExecutionContext ctx_msm_size("msm_size");
-  auto &platform = cudaq::get_platform();
-  platform.with_execution_context(ctx_msm_size, multi_round_ghz{}, num_qubits,
-                                  num_rounds, noise_bf_prob);
+  auto msm_dimensions =
+      cudaq::launch(cudaq::msm_size_policy{}, multi_round_ghz{}, num_qubits,
+                    num_rounds, noise_bf_prob);
 
   // Stage 2 - get the MSM using the size calculated above
   // (ctx_msm_size.msm_dimensions).
-  cudaq::ExecutionContext ctx_msm("msm");
-  ctx_msm.noiseModel = &noise;
-  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.with_execution_context(ctx_msm, multi_round_ghz{}, num_qubits,
-                                  num_rounds, noise_bf_prob);
+  cudaq::msm_policy policy;
+  policy.dimensions = msm_dimensions;
+  auto msm = cudaq::launch(policy, multi_round_ghz{}, num_qubits, num_rounds,
+                           noise_bf_prob);
 
   // The MSM is now stored in ctx_msm.result. More precisely, the unfiltered
   // MSM is stored there, but some post-processing may be required to
   // eliminate duplicate columns.
-  auto msm_as_strings = ctx_msm.result.sequential_data();
+  auto msm_as_strings = msm.samples.sequential_data();
   auto msm_transpose = transpose_msm(msm_as_strings);
 
   const std::vector<std::string> expected = {
@@ -438,11 +434,10 @@ CUDAQ_TEST(KernelsTester, msmTester_mz_and_depol1_corr) {
       13, 13, 14, 14, 14, 15, 16, 17, 18, 19, 20, 20, 20, 21, 21,
       21, 22, 22, 22, 23, 23, 23, 24, 24, 24, 25, 26, 27, 28, 29};
   for (std::size_t i = 0; i < expected_probabilities.size(); i++)
-    EXPECT_NEAR(expected_probabilities[i], ctx_msm.msm_probabilities.value()[i],
-                1e-5)
+    EXPECT_NEAR(expected_probabilities[i], msm.probabilities[i], 1e-5)
         << "Mismatch at index " << i;
-  for (std::size_t i = 0; i < ctx_msm.msm_prob_err_id.value().size(); i++)
-    EXPECT_EQ(ctx_msm.msm_prob_err_id.value()[i], expected_err_ids[i])
+  for (std::size_t i = 0; i < msm.probability_error_ids.size(); i++)
+    EXPECT_EQ(msm.probability_error_ids[i], expected_err_ids[i])
         << "Mismatch at index " << i;
 }
 
@@ -484,20 +479,17 @@ get_msm_test(double noise_probability) {
 
   // Stage 1 - get the MSM size by running with "msm_size". The
   // result will be returned in ctx_msm_size.shots.
-  cudaq::ExecutionContext ctx_msm_size("msm_size");
-  auto &platform = cudaq::get_platform();
-  platform.with_execution_context(ctx_msm_size, simple_test{},
-                                  noise_probability);
+  auto msm_dimensions =
+      cudaq::launch(cudaq::msm_size_policy{}, simple_test{}, noise_probability);
 
   // Stage 2 - get the MSM using the size calculated above
   // (ctx_msm_size.msm_dimensions).
-  cudaq::ExecutionContext ctx_msm("msm");
-  ctx_msm.noiseModel = &noise;
-  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.with_execution_context(ctx_msm, simple_test{}, noise_probability);
+  cudaq::msm_policy policy;
+  policy.dimensions = msm_dimensions;
+  auto msm = cudaq::launch(policy, simple_test{}, noise_probability);
 
-  return {transpose_msm(ctx_msm.result.sequential_data()),
-          ctx_msm.msm_probabilities.value(), ctx_msm.msm_prob_err_id.value()};
+  return {transpose_msm(msm.samples.sequential_data()), msm.probabilities,
+          msm.probability_error_ids};
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_depol2) {
@@ -612,30 +604,26 @@ CUDAQ_TEST(KernelsTester, msmTester_two_qubit_depol_broadcast) {
       /*num_controls=*/1);
   cudaq::set_noise(noise);
 
-  cudaq::ExecutionContext ctx_msm_size("msm_size");
-  auto &platform = cudaq::get_platform();
-  platform.with_execution_context(ctx_msm_size, cx_kernel{});
+  auto msm_dimensions = cudaq::launch(cudaq::msm_size_policy{}, cx_kernel{});
 
-  cudaq::ExecutionContext ctx_msm("msm");
-  ctx_msm.noiseModel = &noise;
-  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.with_execution_context(ctx_msm, cx_kernel{});
+  cudaq::msm_policy policy;
+  policy.dimensions = msm_dimensions;
+  auto msm = cudaq::launch(policy, cx_kernel{});
 
-  auto msm_transpose = transpose_msm(ctx_msm.result.sequential_data());
+  auto msm_transpose = transpose_msm(msm.samples.sequential_data());
 
   // Mechanisms {X,Y,Z} on q0 then {X,Y,Z} on q1; only X and Y flip the
   // Z-basis measurement. Row 0 is q0, row 1 is q1.
   const std::vector<std::string> expected = {"11....", "...11."};
   EXPECT_EQ(msm_transpose, expected);
 
-  ASSERT_EQ(ctx_msm.msm_probabilities.value().size(), 6u);
+  ASSERT_EQ(msm.probabilities.size(), 6u);
   for (std::size_t i = 0; i < 6; i++)
-    EXPECT_NEAR(ctx_msm.msm_probabilities.value()[i], p / 3, 1e-5)
-        << "Mismatch at index " << i;
+    EXPECT_NEAR(msm.probabilities[i], p / 3, 1e-5) << "Mismatch at index " << i;
 
   // Each qubit is an independent error source with its own error id.
   const std::vector<std::size_t> expected_err_ids = {0, 0, 0, 1, 1, 1};
-  EXPECT_EQ(ctx_msm.msm_prob_err_id.value(), expected_err_ids);
+  EXPECT_EQ(msm.probability_error_ids, expected_err_ids);
 
   cudaq::unset_noise();
 }
@@ -666,28 +654,24 @@ CUDAQ_TEST(KernelsTester, msmTester_two_qubit_bitflip_broadcast) {
       /*num_controls=*/1);
   cudaq::set_noise(noise);
 
-  cudaq::ExecutionContext ctx_msm_size("msm_size");
-  auto &platform = cudaq::get_platform();
-  platform.with_execution_context(ctx_msm_size, cx_kernel{});
+  auto msm_dimensions = cudaq::launch(cudaq::msm_size_policy{}, cx_kernel{});
 
-  cudaq::ExecutionContext ctx_msm("msm");
-  ctx_msm.noiseModel = &noise;
-  ctx_msm.msm_dimensions = ctx_msm_size.msm_dimensions;
-  platform.with_execution_context(ctx_msm, cx_kernel{});
+  cudaq::msm_policy policy;
+  policy.dimensions = msm_dimensions;
+  auto msm = cudaq::launch(policy, cx_kernel{});
 
-  auto msm_transpose = transpose_msm(ctx_msm.result.sequential_data());
+  auto msm_transpose = transpose_msm(msm.samples.sequential_data());
 
   // Two mechanisms: X on q0 (flips row 0) and X on q1 (flips row 1).
   const std::vector<std::string> expected = {"1.", ".1"};
   EXPECT_EQ(msm_transpose, expected);
 
-  ASSERT_EQ(ctx_msm.msm_probabilities.value().size(), 2u);
+  ASSERT_EQ(msm.probabilities.size(), 2u);
   for (std::size_t i = 0; i < 2; i++)
-    EXPECT_NEAR(ctx_msm.msm_probabilities.value()[i], p, 1e-5)
-        << "Mismatch at index " << i;
+    EXPECT_NEAR(msm.probabilities[i], p, 1e-5) << "Mismatch at index " << i;
 
   const std::vector<std::size_t> expected_err_ids = {0, 1};
-  EXPECT_EQ(ctx_msm.msm_prob_err_id.value(), expected_err_ids);
+  EXPECT_EQ(msm.probability_error_ids, expected_err_ids);
 
   cudaq::unset_noise();
 }
