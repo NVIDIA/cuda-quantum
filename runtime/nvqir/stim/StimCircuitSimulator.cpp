@@ -883,7 +883,6 @@ public:
     StimSimulatorBase::configureExecutionContextImpl(policy);
     is_msm_mode = true;
     activeMsmDimensions = policy.dimensions;
-    StimSimulatorBase::configureExecutionContext(policy);
   }
 
   void

@@ -288,17 +288,17 @@ public:
   finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
   virtual cudaq::msm_dimensions
   finalizeExecutionContext(const cudaq::msm_size_policy &policy) {
-    throw std::runtime_error("This target does not support policy" +
+    throw std::runtime_error("This target does not support policy " +
                              std::string(policy.name));
   }
   virtual cudaq::msm_result
   finalizeExecutionContext(const cudaq::msm_policy &policy) {
-    throw std::runtime_error("This target does not support policy" +
+    throw std::runtime_error("This target does not support policy " +
                              std::string(policy.name));
   }
   virtual cudaq::dem_result
   finalizeExecutionContext(const cudaq::dem_policy &policy) {
-    throw std::runtime_error("This target does not support policy" +
+    throw std::runtime_error("This target does not support policy " +
                              std::string(policy.name));
   }
 
@@ -324,7 +324,7 @@ public:
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::dem_policy &policy) {
-    throw std::runtime_error("This target does not support policy" +
+    throw std::runtime_error("This target does not support policy " +
                              std::string(policy.name));
   }
 
@@ -344,13 +344,13 @@ public:
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::msm_size_policy &policy) {
-    throw std::runtime_error("This target does not support policy" +
+    throw std::runtime_error("This target does not support policy " +
                              std::string(policy.name));
   }
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::msm_policy &policy) {
-    throw std::runtime_error("This target does not support policy" +
+    throw std::runtime_error("This target does not support policy " +
                              std::string(policy.name));
   }
 
