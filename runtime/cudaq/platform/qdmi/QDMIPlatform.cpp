@@ -19,6 +19,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
+#include <cerrno>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -29,6 +32,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <unistd.h>
 
 namespace {
 using BackendConfig = std::map<std::string, std::string>;
@@ -199,6 +203,91 @@ queryConnectivity(const cudaq::FoMaCDevice &device, std::size_t qubitCount) {
                                                           edges.end());
 }
 
+std::optional<std::string> writeConnectivityFile(
+    const std::optional<std::vector<std::pair<std::size_t, std::size_t>>>
+        &connectivity,
+    std::size_t qubitCount) {
+  if (!connectivity)
+    return std::nullopt;
+
+  auto path =
+      (std::filesystem::temp_directory_path() /
+       "cudaq-qdmi-connectivity-XXXXXX")
+          .string();
+  const auto fd = mkstemp(path.data());
+  if (fd < 0)
+    throw std::runtime_error("Could not create QDMI connectivity file: " +
+                             std::string(std::strerror(errno)));
+
+  std::vector<std::set<std::size_t>> adjacency(qubitCount);
+  for (const auto &[source, target] : *connectivity) {
+    adjacency[source].insert(target);
+    adjacency[target].insert(source);
+  }
+
+  close(fd);
+  std::ofstream output(path);
+  output << "Number of nodes: " << qubitCount << "\n";
+  for (std::size_t qubit = 0; qubit < qubitCount; ++qubit) {
+    if (adjacency[qubit].empty())
+      continue;
+    output << qubit << " --> {";
+    bool first = true;
+    for (const auto neighbor : adjacency[qubit]) {
+      if (!first)
+        output << ", ";
+      output << neighbor;
+      first = false;
+    }
+    output << "}\n";
+  }
+  output.flush();
+  if (output.fail())
+    throw std::runtime_error("Could not write QDMI connectivity file.");
+  return path;
+}
+
+std::string serializeConnectivity(
+    const std::optional<std::string> &connectivityFile) {
+  if (!connectivityFile)
+    return "bypass";
+  return "file('" + *connectivityFile + "')";
+}
+
+std::string serializeBasis(const cudaq::FoMaCDevice &device) {
+  std::set<std::string> basis;
+  try {
+    for (const auto &operation : device.getOperations()) {
+      auto name = operation.getName();
+      std::ranges::transform(name, name.begin(), [](const unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+      });
+      const auto qubits = operation.getQubitsNum();
+      if (!qubits || *qubits == 0 || *qubits > 3)
+        continue;
+
+      if (*qubits == 1)
+        basis.emplace(std::move(name));
+      else
+        basis.emplace(std::move(name) + "(" +
+                      std::to_string(*qubits - 1) + ")");
+    }
+  } catch (const std::exception &e) {
+    CUDAQ_DBG("QDMI operation metadata is unavailable: {}", e.what());
+  }
+
+  if (basis.empty())
+    return "bypass";
+
+  std::string result;
+  for (const auto &gate : basis) {
+    if (!result.empty())
+      result += ",";
+    result += gate;
+  }
+  return result;
+}
+
 std::shared_ptr<cudaq::QDMIPlatformDevice>
 makePlatformDevice(cudaq::FoMaCDevice device) {
   auto platformDevice =
@@ -210,6 +299,8 @@ makePlatformDevice(cudaq::FoMaCDevice device) {
   platformDevice->qubitCount = platformDevice->fomacDevice.getQubitsNum();
   platformDevice->connectivity = queryConnectivity(platformDevice->fomacDevice,
                                                    platformDevice->qubitCount);
+  platformDevice->connectivityFile = writeConnectivityFile(
+      platformDevice->connectivity, platformDevice->qubitCount);
 
   CUDAQ_INFO("Discovered QDMI device '{}' with {} qubits.",
              platformDevice->name, platformDevice->qubitCount);
@@ -267,6 +358,11 @@ private:
         throw;
       }
     }
+
+    backendConfig["qdmi_connectivity"] = serializeConnectivity(
+        deviceIter->second->connectivityFile);
+    backendConfig["qdmi_basis"] =
+        serializeBasis(deviceIter->second->fomacDevice);
 
     platformQPUs.emplace_back(std::make_unique<cudaq::QDMIQPU>(
         makeJobConfiguredDevice(deviceIter->second, backendConfig),

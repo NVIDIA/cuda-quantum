@@ -12,7 +12,7 @@ config:
   platform-library: qdmi
   gen-target-backend: true
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-  jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
+  jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),qdmi-gate-set-mapping{basis=%qdmi_basis%},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe,memtoreg,quake-simplify,canonicalize,dqe),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%qdmi_connectivity%},func.func(quake-simplify,canonicalize,dqe,regtomem),quake-to-cc-prep,qdmi-gate-set-mapping{basis=%qdmi_basis%},func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
   codegen-emission: qasm2
 
 target-arguments:

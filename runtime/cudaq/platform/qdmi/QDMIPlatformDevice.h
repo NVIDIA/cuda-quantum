@@ -34,6 +34,7 @@ struct QDMIPlatformDevice {
   std::string name;
   std::size_t qubitCount = 0;
   std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
+  std::optional<std::string> connectivityFile;
 };
 
 } // namespace cudaq
