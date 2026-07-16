@@ -158,7 +158,7 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Determine build cache
         id: cache
@@ -259,7 +259,7 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Determine build cache
         id: cache

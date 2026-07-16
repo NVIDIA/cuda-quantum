@@ -246,7 +246,7 @@ jobs:
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Log in to DockerHub
         uses: docker/login-action@v4
