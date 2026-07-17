@@ -889,7 +889,7 @@ public:
         if (reg.empty())
           return success();
         auto &block = reg.front();
-	// Empty blocks in, for example, else regions are not errors.
+        // Empty blocks in, for example, else regions are not errors.
         if (failed(reverseTheOpsInTheBlock(loc, block.getTerminator(),
                                            getOpsToInvert(block), newApplyOps)))
           return failure();
