@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Whitelist of MLIR libraries that cudaqMLIR whole-archives and downstream
+# Allowlist of MLIR libraries that cudaqMLIR whole-archives and downstream
 # plugins can link against.
 
 # Core IR + support

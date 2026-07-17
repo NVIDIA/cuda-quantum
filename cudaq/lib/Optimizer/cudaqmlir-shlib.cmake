@@ -13,7 +13,7 @@
 #  - All the object files of the libraries registered via register_cudaq_mlir_lib
 #  - All the MLIR libraries listed in mlir-libs-allowlist.txt
 #
-# We mark the MLIR libraries as WHOLE_ARCHIVE dependencies so their full symbol set is
+# MLIR libraries are linked as WHOLE_ARCHIVE so their full symbol set is
 # exported for downstream plugins.
 ################################################################################
 
@@ -57,10 +57,13 @@ add_library(${LIBRARY_NAME} SHARED ${_cudaq_bundle_objs})
 # 2. Pull in the dependencies
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_libs})
 
-# 3. WHOLE_ARCHIVE the allowlisted MLIR libraries so their full symbol set is
-# exported for downstream plugins.
+# 3. WHOLE_ARCHIVE the allowlisted MLIR libraries and C-API dependencies so their
+# full symbol set is exported for downstream plugins.
 cudaq_read_symbol_list(
   "${CMAKE_CURRENT_SOURCE_DIR}/mlir-libs-allowlist.txt" _cudaq_mlir_whole_archive)
+get_property(_cudaq_required_mlir_libs GLOBAL PROPERTY CUDAQ_MLIR_REQUIRED_LIBS)
+list(APPEND _cudaq_mlir_whole_archive ${_cudaq_required_mlir_libs})
+list(REMOVE_DUPLICATES _cudaq_mlir_whole_archive)
 foreach(_lib IN LISTS _cudaq_mlir_whole_archive)
   if(TARGET ${_lib})
     target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
@@ -70,31 +73,13 @@ foreach(_lib IN LISTS _cudaq_mlir_whole_archive)
   endif()
 endforeach()
 
-# 4. Hide all symbols from the blocklist.
-cudaq_read_symbol_list(
-  "${CMAKE_CURRENT_SOURCE_DIR}/mlir-symbols-blocklist.txt" _cudaq_blocklist_patterns)
-if(APPLE)
-  # ld64: one glob per line; localize via -unexported_symbols_list.
-  set(_cudaq_symbol_list "${CMAKE_CURRENT_BINARY_DIR}/cudaqMLIR-unexported.txt")
-  # relink if the symbol list changes
-  set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY LINK_DEPENDS "${_cudaq_symbol_list}")
-  string(REPLACE ";" "\n" _cudaq_unexported "${_cudaq_blocklist_patterns}")
-  file(WRITE "${_cudaq_symbol_list}" "${_cudaq_unexported}\n")
-  target_link_options(${LIBRARY_NAME} PRIVATE
-    "LINKER:-unexported_symbols_list,${_cudaq_symbol_list}")
-else()
-  # GNU ld / lld: a version script with a local: block leaves the rest exported.
-  set(_cudaq_version_script "${CMAKE_CURRENT_BINARY_DIR}/cudaqMLIR-hidden.map")
-  # relink if the version script changes
-  set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY LINK_DEPENDS "${_cudaq_version_script}")
-  set(_cudaq_blocklist_body "")
-  foreach(_pat IN LISTS _cudaq_blocklist_patterns)
-    string(APPEND _cudaq_blocklist_body "    ${_pat};\n")
-  endforeach()
-  file(WRITE "${_cudaq_version_script}" "{\n  local:\n${_cudaq_blocklist_body}};\n")
-  target_link_options(${LIBRARY_NAME} PRIVATE
-    "LINKER:--version-script=${_cudaq_version_script}")
-endif()
+# 4. Bundle the LLVM native target for JITing.
+llvm_map_components_to_libnames(_cudaq_llvm_native_libs native nativecodegen)
+foreach(_lib IN LISTS _cudaq_llvm_native_libs)
+  if(TARGET ${_lib})
+    target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
+  endif()
+endforeach()
 
 # We are using the following linker flags:
 #   - -Bsymbolic-functions: ELF treats symbols as preemptible by default. This adds a
@@ -112,5 +97,5 @@ else()
   target_link_options(${LIBRARY_NAME} PRIVATE "LINKER:--gc-sections")
 endif()
 
-install(TARGETS ${LIBRARY_NAME} EXPORT CUDAQTargets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 set_target_properties(${LIBRARY_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

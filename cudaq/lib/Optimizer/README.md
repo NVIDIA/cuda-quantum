@@ -14,23 +14,14 @@ CUDAQ defines as one shared `mondo` library. The goal is twofold:
 
 ## Build strategy
 
-The `libcudaqMLIR` library can be thought of as having three layers:
+The `libcudaqMLIR` library is built in two layers:
 
-1. First, all object files from CUDAQ MLIR libraries (registered with `register_cudaq_mlir_lib`)
+1. All object files from CUDAQ MLIR libraries (registered with `register_cudaq_mlir_lib`)
    are bundled together in the shared library.
-2. Next, all MLIR targets listed in [`mlir-libs-allowlist.txt`](mlir-libs-allowlist.txt)
+2. All MLIR targets listed in [`mlir-libs-allowlist.txt`](mlir-libs-allowlist.txt)
    are added as static dependencies. By using CMake's `WHOLE_ARCHIVE` flag, we
    ensure that all symbols from these libraries are re-exported, so that CUDAQ libraries
    as well as downstream extensions can use them.
-3. Finally, we reduce the surface area of the shared library by hiding symbols
-   from the block-list [`mlir-symbols-blocklist.txt`](mlir-symbols-blocklist.txt).
-   This list contains symbols that are both unused by CUDAQ and (we estimate)
-   are unlikely to become useful in the future for either CUDAQ or downstream extensions.
-
-This somewhat complex setup allows us to ship as much as needed but as little as
-possible of MLIR. If at any point, symbols from MLIR are needed that are either
-not within the allow-listed MLIR components or are hidden by the block-list, we
-can adjust these lists accordingly.
 
 ## Adding a new library
 
@@ -42,5 +33,4 @@ register_cudaq_mlir_lib(MyNewLib)
 ```
 
 If the library needs additional upstream MLIR symbols, add the corresponding `MLIR*`
-target to `mlir-libs-allowlist.txt` and ensure the required symbols are not hidden
-by the block-list.
+target to `mlir-libs-allowlist.txt`.

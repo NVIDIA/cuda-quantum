@@ -98,6 +98,7 @@ function(add_cudaq_capi_shared_library name)
   add_library(${name} SHARED ${_objects})
   target_link_libraries(${name} PRIVATE cudaqMLIR)
   set_target_properties(${name} PROPERTIES
+    LINKER_LANGUAGE CXX
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
