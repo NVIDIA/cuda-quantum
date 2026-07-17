@@ -178,7 +178,7 @@ jobs:
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Build Open MPI
         id: docker_build
@@ -341,7 +341,7 @@ jobs:
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Set up ccache and ORAS
         uses: ./.github/actions/ccache-setup
@@ -615,7 +615,7 @@ jobs:
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Set up ccache and ORAS
         uses: ./.github/actions/ccache-setup
