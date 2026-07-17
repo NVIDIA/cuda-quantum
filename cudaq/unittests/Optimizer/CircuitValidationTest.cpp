@@ -21,6 +21,7 @@ using namespace mlir;
 
 using cudaq::opt::BoundedUnitaryDomainStatus;
 using cudaq::opt::checkBoundedUnitaryDomain;
+using cudaq::opt::compareUnitaries;
 using cudaq::opt::DomainRejectionKind;
 
 static void loadTestDialects(MLIRContext &context) {
@@ -141,4 +142,88 @@ TEST_F(CircuitValidationTest, RejectsTooManyQubits) {
   EXPECT_FALSE(status.supported);
   EXPECT_TRUE(hasKind(status, DomainRejectionKind::TooManyQubits));
   EXPECT_EQ(status.maxQubits, 4u);
+}
+
+// Two kernels with the same gate sequence have identical unitaries.
+TEST_F(CircuitValidationTest, CompareIdenticalKernels) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy}, builder);
+  cudaq::quake::HOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy}, builder);
+  cudaq::quake::HOp::create(builder, loc, cand.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareUnitaries(base, cand);
+  EXPECT_TRUE(result.computed);
+  EXPECT_TRUE(result.strictEqual);
+  EXPECT_TRUE(result.equalUpToGlobalPhase);
+  EXPECT_TRUE(result.phaseIsZero);
+}
+
+// A pair of self-cancelling gates (x·x = I) leaves the unitary unchanged.
+TEST_F(CircuitValidationTest, CompareCancellingGatesAreEqual) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy}, builder);
+  cudaq::quake::HOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy}, builder);
+  cudaq::quake::HOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareUnitaries(base, cand);
+  EXPECT_TRUE(result.computed);
+  EXPECT_TRUE(result.strictEqual);
+}
+
+// Genuinely different circuits are not equivalent, but the comparison still
+// succeeds (computed == true).
+TEST_F(CircuitValidationTest, CompareDifferentKernels) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy}, builder);
+  cudaq::quake::HOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareUnitaries(base, cand);
+  EXPECT_TRUE(result.computed);
+  EXPECT_FALSE(result.strictEqual);
+  EXPECT_FALSE(result.equalUpToGlobalPhase);
+}
+
+// Kernels on different numbers of qubits cannot be compared; the result reports
+// computed == false rather than a false equivalence.
+TEST_F(CircuitValidationTest, CompareDimensionMismatch) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy, refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(1));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareUnitaries(base, cand);
+  EXPECT_FALSE(result.computed);
+  EXPECT_FALSE(result.error.empty());
 }

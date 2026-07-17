@@ -7,11 +7,14 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Analysis/CircuitValidation.h"
+#include "cudaq/Optimizer/Analysis/UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Interfaces/CallInterfaces.h"
+#include <cmath>
+#include <complex>
 #include <optional>
 
 using namespace mlir;
@@ -97,7 +100,7 @@ BoundedUnitaryDomainStatus checkBoundedUnitaryDomain(ModuleOp module,
       checker.tally(arg.getType(), func.getOperation());
 
     func.walk([&](Operation *op) {
-      // Structural disqualifiers, most specific first.
+      // Structural checks that exclude a kernel, most specific first.
       if (isa<quake::MeasurementInterface>(op)) {
         checker.reject(DomainRejectionKind::Measurement, op,
                        op->getName().getStringRef().str());
@@ -128,6 +131,54 @@ BoundedUnitaryDomainStatus checkBoundedUnitaryDomain(ModuleOp module,
   }
 
   return status;
+}
+
+/// Build the dense unitary of \p func directly from the IR.
+static LogicalResult computeKernelUnitary(func::FuncOp func,
+                                          UnitaryBuilder::UMatrix &unitary) {
+  UnitaryBuilder builder(unitary, /*upToMapping=*/false);
+  return builder.build(func);
+}
+
+UnitaryComparisonResult compareUnitaries(func::FuncOp baseline,
+                                         func::FuncOp candidate, double rtol,
+                                         double atol) {
+  UnitaryComparisonResult result;
+
+  UnitaryBuilder::UMatrix baselineU;
+  UnitaryBuilder::UMatrix candidateU;
+  if (failed(computeKernelUnitary(baseline, baselineU))) {
+    result.error = "failed to build baseline unitary";
+    return result;
+  }
+  if (failed(computeKernelUnitary(candidate, candidateU))) {
+    result.error = "failed to build candidate unitary";
+    return result;
+  }
+  if (baselineU.rows() != candidateU.rows() ||
+      baselineU.cols() != candidateU.cols()) {
+    result.error = "unitary dimension mismatch (different qubit counts)";
+    return result;
+  }
+
+  result.computed = true;
+  result.strictEqual = isApproxEqual(baselineU, candidateU,
+                                     /*up_to_global_phase=*/false, rtol, atol);
+  result.equalUpToGlobalPhase = isApproxEqual(
+      baselineU, candidateU, /*up_to_global_phase=*/true, rtol, atol);
+
+  if (result.equalUpToGlobalPhase) {
+    // getGlobalPhaseConjugate(M) = exp(-i*arg(m0)) where m0 is the first
+    // nonzero element of column 0. If normalizing both matrices makes them
+    // equal, then candidate = exp(i*phase) * baseline with
+    //   phase = arg(baseMult) - arg(candMult) = arg(baseMult * conj(candMult)).
+    auto baseMult = getGlobalPhaseConjugate(baselineU, atol);
+    auto candMult = getGlobalPhaseConjugate(candidateU, atol);
+    result.phase = std::arg(baseMult * std::conj(candMult));
+    result.phaseIsZero = std::abs(result.phase) <= atol;
+  }
+
+  return result;
 }
 
 } // namespace cudaq::opt
