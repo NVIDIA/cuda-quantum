@@ -168,7 +168,8 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createGetConcreteMatrix());
   pm.addPass(createUnitarySynthesis());
-  pm.addPass(createApplySpecialization());
+  cudaq::opt::ApplySpecializationOptions aso{.legacyClassical = true};
+  pm.addPass(createApplySpecialization(aso));
   addAggressiveInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

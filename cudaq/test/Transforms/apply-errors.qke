@@ -1,0 +1,108 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization --convert-to-qir-api --split-input-file --verify-diagnostics %s
+
+// A quake.apply that survives to codegen could not be specialized (here its
+// callee was only forward-declared, so apply-op-specialization left it in
+// place). At codegen the kernel is fully processed, so the apply is
+// unambiguously unlowerable and must be diagnosed rather than silently trapped.
+// See: https://github.com/NVIDIA/cuda-quantum/issues/4268
+
+func.func private @test(!quake.ref)
+
+func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.ref
+  // expected-error@+1 {{could not generate the specialized form of kernel 'test'; its body was not available (it may be only forward-declared)}}
+  quake.apply <adj> @test %0 : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// This is not reversible as %arg31 depends on the prior loop's output, %1#1.
+// Since we're reversing the control-flow the first loop will necessarily be run// after the second loop and therefore the def-use between the two loops is
+// inverted and incorrect.
+
+func.func @test_caller() {
+  %c8_i64 = arith.constant 8 : i64
+  %10 = quake.alloca !quake.veq<8>
+  // expected-error@+2 {{could not generate the specialized form}}
+  // expected-error@+1 {{could not reverse the kernel}}
+  %11 = cc.create_lambda {
+    ^bb9(%arg0: !quake.veq<?>, %arg1: i64):
+    %c4_i64 = arith.constant 4 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0 = cc.undef i64
+
+    %1:2 = cc.loop while ((%arg2 = %c0_i64, %arg3 = %arg1) -> (i64, i64)) {
+      %3 = arith.cmpi slt, %arg2, %c4_i64 : i64
+      cc.condition %3(%arg2, %arg3 : i64, i64)
+    } do {
+    ^bb0(%arg2: i64, %arg3: i64):
+      %3 = quake.extract_ref %arg0[%arg2] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.x %3 : (!quake.ref) -> ()
+      %4 = arith.subi %arg3, %c1_i64 : i64
+      cc.continue %arg2, %4 : i64, i64
+    } step {
+    ^bb0(%arg2: i64, %arg3: i64):
+      %3 = arith.addi %arg2, %c1_i64 : i64
+      cc.continue %3, %arg3 : i64, i64
+    }
+
+    // expected-error@+1 {{control-flow def-use not reversible}}
+    %2:2 = cc.loop while ((%arg2 = %c4_i64, %arg31 = %1#1) -> (i64, i64)) {
+      %3 = arith.cmpi slt, %arg2, %arg1 : i64
+      cc.condition %3(%arg2, %arg31 : i64, i64)
+    } do {
+    ^bb0(%arg2: i64, %arg31: i64):
+      %3 = quake.extract_ref %arg0[%arg31] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.h %3 : (!quake.ref) -> ()
+      %4 = arith.subi %arg31, %c1_i64: i64
+      cc.continue %arg2, %4 : i64, i64
+    } step {
+    ^bb0(%arg2: i64, %arg31: i64):
+      %3 = arith.addi %arg2, %c1_i64 : i64
+      cc.continue %3, %arg31 : i64, i64
+    }
+    cc.return	
+  } : !cc.callable<(!quake.veq<8>, i64) -> ()>
+  // expected-error@+1 {{could not generate the specialized form}}
+  quake.apply<adj> %11 %10, %c8_i64 : (!quake.veq<8>, i64) -> ()
+  return
+}
+
+// -----
+
+// Here we are attempting to create the adjoint of classical code that is not
+// reversible. The compiler does not make heroic efforts for such cases, but
+// will generate a diagnostic to inform the user that they'll have to generate
+// their own adjoint operation by hand.
+
+// expected-error@+1 {{could not reverse the kernel}}
+func.func private @lossy_classical_expression(%0: !quake.veq<2>, %arg0: f64, %arg1: f64) -> f64 {
+  %1 = math.absf %arg0 : f64
+  %2 = arith.mulf %arg1, %arg1 : f64
+  %3 = arith.addf %1, %2 : f64
+  // expected-error@+1 {{no quantum operations to reverse}}
+  return %3 : f64
+}
+
+func.func private @fake_use(f64)
+
+func.func @bad_adjoint() {
+  %0 = arith.constant 2.1 : f64
+  %1 = arith.constant 5.4 : f64
+  %2 = quake.alloca !quake.veq<2>
+  
+  // expected-error@+1 {{could not generate the specialized form}}
+  %3 = quake.apply<adj> @lossy_classical_expression %2, %0, %1 : (!quake.veq<2>, f64, f64) -> f64
+  call @fake_use(%3) : (f64) -> ()
+  return
+}
