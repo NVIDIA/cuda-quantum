@@ -62,7 +62,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.SiteInitialize
   SOURCES
     SiteInitialize.cpp
   EMBED_CAPI_LINK_LIBS
-    CUDAQuantumMLIRCAPI
+    cudaqDialectsCAPI
 )
 
 if(APPLE)
@@ -161,7 +161,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/internal/compiler/RuntimePyMLIR.cpp
 
   EMBED_CAPI_LINK_LIBS
-   CUDAQuantumMLIRCAPI
+   cudaqDialectsCAPI
    MLIRCAPIExecutionEngine
   PRIVATE_LINK_LIBS
    ${_quakeDialects_pipeline_carrying_link_libs}

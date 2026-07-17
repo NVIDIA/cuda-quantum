@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Whitelist of MLIR libraries that cudaqMLIR whole-archives and downstream
+# Allowlist of MLIR libraries that cudaqMLIR whole-archives and downstream
 # plugins can link against.
 
 # Core IR + support
@@ -51,6 +51,7 @@ MLIROpenACCDialect
 
 # JIT / execution engine and pass-manager tools
 MLIRExecutionEngine
+MLIRExecutionEngineUtils
 MLIROptLib
 MLIRTranslateLib
 
@@ -59,6 +60,7 @@ MLIRTargetLLVMIRExport
 MLIRLLVMCommonConversion
 MLIRLLVMToLLVMIRTranslation
 MLIRBuiltinToLLVMIRTranslation
+MLIROpenMPToLLVMIRTranslation
 MLIRLLVMIRTransforms
 
 # Arithmetic and type lowerings used by OptCodeGen

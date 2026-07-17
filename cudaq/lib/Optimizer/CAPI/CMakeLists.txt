@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI
+add_mlir_public_c_api_library(cudaqDialectsCAPI
   Dialects.cpp
 
   DEPENDS
@@ -28,7 +28,6 @@ add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI
 )
 
 add_cudaq_capi_shared_library(cudaqMLIRCAPI
-  cudaqDialectsCAPI
   MLIRCAPIDebug
   MLIRCAPIExecutionEngine
   MLIRCAPIFunc
@@ -39,6 +38,6 @@ add_cudaq_capi_shared_library(cudaqMLIRCAPI
   MLIRCAPITransforms)
 
 install(TARGETS cudaqMLIRCAPI
-  EXPORT CUDAQTargets
+  EXPORT cudaq-targets
   COMPONENT CUDAQuantumPythonModules
   DESTINATION lib)
