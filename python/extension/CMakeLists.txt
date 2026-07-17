@@ -73,6 +73,7 @@ if(APPLE)
     CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
+    OptAnalysis
   )
   set(_quakeDialects_pipeline_carrying_link_libs "")
 else()
@@ -89,6 +90,7 @@ else()
   )
   set(_quakeDialects_extra_link_libs "")
   set(_quakeDialects_pipeline_carrying_link_libs
+    OptAnalysis
     OptCodeGen
     OptTransforms
     MLIRPass
@@ -144,6 +146,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/cudaq/trace/py_trace.cpp
+    ../runtime/mlir/py_optimization_validation.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/CodeGenConfig.cpp
