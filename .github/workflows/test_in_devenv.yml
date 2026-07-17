@@ -83,7 +83,7 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Build CUDA Quantum
         id: build
@@ -254,7 +254,7 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: false
+          enable-apt: true
 
       - name: Set up dev environment
         id: dev_env

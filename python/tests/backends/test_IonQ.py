@@ -14,6 +14,8 @@ from multiprocessing import Process
 from network_utils import check_server_connection
 from utils.mock_qpu.ionq import startServer
 
+pytestmark = pytest.mark.xdist_group("ionq_mock")
+
 # Define the port for the mock server
 port = 62441
 

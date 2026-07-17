@@ -124,6 +124,26 @@ protected:
   /// should be emitted.
   bool warnAboutNamedMeasurements = false;
 
+  /// @brief Record a fatal kernel error. Inside a kernel frame
+  /// (`ExecutionContext::inKernelLaunch`) the exception is stashed for the
+  /// launcher to re-throw above the JIT boundary, since exceptions cannot
+  /// unwind through JIT frames on macOS arm64; otherwise throw directly.
+  static void deferOrThrowKernelException(const std::string &msg) {
+    auto *ctx = cudaq::getExecutionContext();
+    if (!ctx || !ctx->inKernelLaunch)
+      throw std::runtime_error(msg);
+    if (!ctx->deferredKernelException)
+      ctx->deferredKernelException =
+          std::make_exception_ptr(std::runtime_error(msg));
+  }
+
+  /// @brief True once the current kernel run has recorded a deferred error;
+  /// gate enqueue and queue flushing become no-ops in this state.
+  static bool kernelExecutionDeferred() {
+    auto *ctx = cudaq::getExecutionContext();
+    return ctx && ctx->deferredKernelException;
+  }
+
   template <typename Policy>
   void configureExecutionContextImpl(Policy policy) {
     noiseModel = policy.noiseModel;
@@ -180,23 +200,29 @@ public:
         // exp(i*theta*Id) is noop if this is not a controlled gate.
         return;
       } else {
-        // Throw an error if this exp_pauli(i*theta*Id) becomes a non-trivial
+        // Raise an error if this exp_pauli(i*theta*Id) becomes a non-trivial
         // gate due to control qubits.
         // FIXME: revisit this once
         // https://github.com/NVIDIA/cuda-quantum/issues/483 is implemented.
-        throw std::logic_error("Applying controlled global phase via exp_pauli "
-                               "of identity operator is not supported");
+        deferOrThrowKernelException(
+            "Applying controlled global phase via exp_pauli "
+            "of identity operator is not supported");
+        return;
       }
     }
     flushGateQueue();
+    if (kernelExecutionDeferred())
+      return;
     CUDAQ_INFO(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
                term.to_string());
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
-    if (term.num_ops() != qubitIds.size())
-      throw std::runtime_error(
+    if (term.num_ops() != qubitIds.size()) {
+      deferOrThrowKernelException(
           "incorrect number of qubits in exp_pauli - expecting " +
           std::to_string(term.num_ops()) + " qubits");
+      return;
+    }
 
     std::size_t idx = 0;
     for (const auto &op : term) {
@@ -931,34 +957,6 @@ protected:
       return;
 
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
-  }
-
-  /// @brief Record a fatal kernel error. While a JIT/AOT-compiled kernel frame
-  /// is executing (`ExecutionContext::inKernelLaunch`) the exception is stashed
-  /// on the context (`deferredKernelException`) so the launcher can re-throw it
-  /// from a C++ frame above the JIT boundary; this is required on platforms
-  /// such as macOS arm64 where a C++ exception cannot unwind through a
-  /// JIT-compiled kernel frame and would otherwise call `std::terminate`.
-  /// Outside such a frame (for example, gate application during sample/observe
-  /// finalization, or with no active context) there is no JIT frame to escape,
-  /// so throw directly, exactly as callers expect on every platform. Only the
-  /// first error per kernel run is retained; later ones are suppressed since
-  /// the kernel result is discarded.
-  static void deferOrThrowKernelException(const std::string &msg) {
-    auto *ctx = cudaq::getExecutionContext();
-    if (!ctx || !ctx->inKernelLaunch)
-      throw std::runtime_error(msg);
-    if (!ctx->deferredKernelException)
-      ctx->deferredKernelException =
-          std::make_exception_ptr(std::runtime_error(msg));
-  }
-
-  /// @brief True once the current kernel run has recorded a deferred error.
-  /// Gate enqueue and queue flushing become no-ops in this state so the
-  /// simulator is not mutated after the failure and no re-entrant throw occurs.
-  static bool kernelExecutionDeferred() {
-    auto *ctx = cudaq::getExecutionContext();
-    return ctx && ctx->deferredKernelException;
   }
 
   /// @brief Flush the gate queue, run all queued gate
