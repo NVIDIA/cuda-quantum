@@ -12,7 +12,7 @@ func.func private @bar(!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>)
 func.func private @corge(!quake.veq<3>)
 func.func private @waldo(!cc.callable<(!quake.veq<3>) -> i32>, !quake.veq<3>) -> i32
 func.func private @fred(!quake.veq<3>) -> i16
-func.func private @garply(!cc.callable<(!quake.veq<3>) -> f64>, !quake.veq<3>, i64) -> f64
+func.func private @garply(!cc.callable<(!quake.veq<3>, i64) -> f64>, !quake.veq<3>, i64) -> f64
 func.func private @plugh(!quake.veq<3>, i32) -> f32
 
 func.func @foo(%0: !cc.callable<(!quake.veq<3>) -> ()>) {
@@ -207,11 +207,11 @@ func.func @akua(%0: !cc.callable<(!quake.veq<3>) -> f64>, %1: !quake.veq<3>, %2:
 // CHECK:         ret double %[[VAL_15]]
 // CHECK:       }
 
-func.func private @alii(!cc.callable<(!quake.veq<3>) -> f64>)
+func.func private @alii(!cc.callable<(!quake.veq<3>, i64) -> f64>)
 
 func.func @ala(%0: i32, %1: i32) {
-  %2 = cc.instantiate_callable @garply(%0, %1) : (i32, i32) -> !cc.callable<(!quake.veq<3>) -> f64>
-  call @alii(%2) : (!cc.callable<(!quake.veq<3>) -> f64>) -> ()
+  %2 = cc.instantiate_callable @garply(%0, %1) : (i32, i32) -> !cc.callable<(!quake.veq<3>, i64) -> f64>
+  call @alii(%2) : (!cc.callable<(!quake.veq<3>, i64) -> f64>) -> ()
   return
 }
 
