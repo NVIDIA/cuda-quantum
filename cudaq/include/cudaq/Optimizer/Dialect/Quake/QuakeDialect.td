@@ -17,12 +17,13 @@ include "mlir/IR/OpBase.td"
 
 def QuakeDialect : Dialect {
   let name = "quake";
-  let summary = "Higher level, memory-semantics dialect for cudaq. ";
+  let summary = "Hardware-independent quantum dialect for CUDA-Q.";
   let description = [{
-    Quake is envisioned to be a high-level, portable MLIR dialect that is very
-    close to the CUDA-Q programming model. Quake is a "circuit building"
-    language in which one writes programs that build quantum circuits. Quake is 
-    not tied to a particular quantum hardware/machine.
+    Quake is a high-level, portable MLIR dialect for CUDA-Q quantum programs.
+    It represents quantum allocation and lifetime, quantum operations,
+    measurement, and calls between quantum kernels. Quake supports both
+    reference-oriented and value-oriented forms and is not tied to a particular
+    quantum hardware or machine.
   }];
   let cppNamespace = "cudaq::quake";
   let useDefaultTypePrinterParser = 1;

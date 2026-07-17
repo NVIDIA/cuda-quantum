@@ -40,12 +40,16 @@ function(add_cudaq_doc tablegen_file output_path command)
   string(MAKE_C_IDENTIFIER ${output_path} output_id)
   tablegen(MLIR ${output_id}.md ${command} ${ARGN})
   set(GEN_DOC_FILE ${CUDAQ_BINARY_DIR}/docs/${output_path}.md)
+  set(PROCESS_DOC_SCRIPT
+      ${CUDAQ_SOURCE_DIR}/cmake/modules/ProcessMLIRMarkdown.cmake)
   add_custom_command(
     OUTPUT ${GEN_DOC_FILE}
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md
-    ${GEN_DOC_FILE}
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md)
+    COMMAND ${CMAKE_COMMAND}
+      -DINPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md
+      -DOUTPUT_FILE=${GEN_DOC_FILE}
+      -P ${PROCESS_DOC_SCRIPT}
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md ${PROCESS_DOC_SCRIPT}
+    VERBATIM)
   add_custom_target(${output_id}DocGen DEPENDS ${GEN_DOC_FILE})
   add_dependencies(cudaq-doc ${output_id}DocGen)
 endfunction()

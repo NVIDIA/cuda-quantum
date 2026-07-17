@@ -1,10 +1,13 @@
 Extending CUDA-Q
-****************************
+****************
+
+Contributor documentation is organized by the part of CUDA-Q being developed
+or extended.
 
 .. toctree::
-  :maxdepth: 1
+   :maxdepth: 2
+   :titlesonly:
 
-  Add a new Hardware Backend <backend.rst>
-  Create a new NVQIR Simulator <nvqir_simulator.rst>
-  Working with CUDA-Q IR <cudaq_ir.rst>
-  Create an MLIR Pass for CUDA-Q <mlir_pass.rst>
+   Compiler development <compiler/index>
+   Add a hardware backend <backend>
+   Create an NVQIR simulator <nvqir_simulator>
