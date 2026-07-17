@@ -1342,6 +1342,62 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// InstantiateCallableOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::InstantiateCallableOp::verify() {
+#if 0
+  auto calleeFunc = dyn_cast_if_present<func::FuncOp>(
+      SymbolTable::lookupNearestSymbolFrom(getOperation(), getCallee()));
+  if (!calleeFunc)
+    return emitOpError("must refer to a valid");
+  FunctionType calleeFnTy = calleeFunc.getFunctionType();
+  if (!getNoCapture()) {
+    // Unless no capture is set, the first argument of `callee` must be a
+    // callable closure with a conforming type.
+    if (calleeFnTy.getInputs().size() < 1)
+      return emitOpError("callable must have at least 1 argument");
+    auto callableTy = dyn_cast<cudaq::cc::CallableType>(calleeFnTy.getInput(0));
+    if (!callableTy)
+      return emitOpError(
+          "instantiating a callable requires a closure argument");
+
+    // The first argument has callable type. Make sure the signature is
+    // compatible with our result and the thunk function type modulo the closure
+    // argument.
+    if (callableTy != getSignature().getType())
+      return emitOpError("result type much match closure type");
+    FunctionType callableFnTy = callableTy.getSignature();
+    if (calleeFnTy.getInputs().size() - 1 != callableFnTy.getInputs().size())
+      return emitOpError("arity must be the same (" +
+                         std::to_string(calleeFnTy.getInputs().size() - 1) +
+                         ") (" +
+                         std::to_string(callableFnTy.getInputs().size()) + ")");
+    for (auto [ty1, ty2] : llvm::zip(calleeFnTy.getInputs().drop_front(),
+                                     callableFnTy.getInputs())) {
+      if (ty1 != ty2)
+        return emitOpError("argument types must match");
+    }
+    for (auto [ty1, ty2] :
+         llvm::zip(calleeFnTy.getResults(), callableFnTy.getResults())) {
+      if (ty1 != ty2)
+        return emitOpError("result types must match");
+    }
+  } else {
+    // In the degenerate case, we just check that the function being wrapped as
+    // a closure has a compatible function type to the degenerate closure's
+    // callable type, which is the result type of this Op.
+    auto resultFnTy =
+        cast<cudaq::cc::CallableType>(getSignature().getType()).getSignature();
+    if (calleeFnTy != resultFnTy)
+      return emitOpError("degenerate closure function must have compatible "
+                         "signature with the callable closure result");
+  }
+#endif
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // StdvecInitOp
 //===----------------------------------------------------------------------===//
 

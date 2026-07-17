@@ -38,7 +38,7 @@ struct LoopComponents {
 
   std::int64_t extendValue(unsigned width, std::size_t val) const;
 
-  unsigned induction = 0;
+  std::optional<unsigned> induction = std::nullopt;
   mlir::Value initialValue;
   mlir::Operation *compareOp = nullptr;
   mlir::Value compareValue;

@@ -82,7 +82,8 @@ void createCommonTargetCodegenPipeline(
     // A final round of apply specialization after loop unrolling. This should
     // eliminate any residual control structures so the kernel specializations
     // can succeed.
-    pm.addPass(cudaq::opt::createApplySpecialization());
+    cudaq::opt::ApplySpecializationOptions aso{.legacyClassical = true};
+    pm.addPass(cudaq::opt::createApplySpecialization(aso));
     // If there was any specialization, we want another round in inlining to
     // inline the apply calls properly.
     cudaq::opt::addAggressiveInlining(pm);
@@ -158,7 +159,8 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createGetConcreteMatrix());
   pm.addPass(createUnitarySynthesis());
-  pm.addPass(createApplySpecialization());
+  cudaq::opt::ApplySpecializationOptions aso{.legacyClassical = true};
+  pm.addPass(createApplySpecialization(aso));
   addAggressiveInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

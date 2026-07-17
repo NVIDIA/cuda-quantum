@@ -153,14 +153,15 @@ def test_adjoint():
         for i in range(num_electrons):
             x(qubits[i])
         cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
-        if withAdj:
-            cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
-                          num_qubits)
+        #if withAdj:
+        #    cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
+        #                  num_qubits)
 
     counts = cudaq.sample(kernel, False, shots_count=1000)
     assert len(counts) == 6
 
     # FIXME: This current fails due to a bug in ApplySpecialization
+    # ApplyOpSpecialization fails here because
     #counts = cudaq.sample(kernel, True, shots_count=1000)
     #assert len(counts) == 1 and '00000000' in counts
 

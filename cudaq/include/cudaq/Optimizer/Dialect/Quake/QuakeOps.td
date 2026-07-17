@@ -394,7 +394,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 
   let arguments = (ins
     OptionalAttr<SymbolRefAttr>:$callee,
-    Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
+    Optional<cc_CallableType>:$indirect_callee,
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
     Variadic<AnyType>:$actuals,
@@ -428,16 +428,56 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::UnitAttr":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   is_adj, controls, args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
                    "bool":$is_adj,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
-      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   is_adj, controls, args, {}, {});
+    }]>,
+
+    // CallOp like builders. adj=false, controls=[]
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::StringRef":$callee,
+                   "mlir::ValueRange":$args), [{
+      auto *ctx = $_builder.getContext();
+      return build($_builder, $_state, retTy,
+                   mlir::SymbolRefAttr::get(ctx, callee), {}, /*is_adj=*/false,
+                   mlir::ValueRange{}, args, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::Value":$callable,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, callable,
+                   /*is_adj=*/false, mlir::ValueRange{}, args, {}, {});
+    }]>,
+
+    // CallOpInterface builders using CallInterfaceCallable variant.
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::CallInterfaceCallable":$call_variant,
+                   "mlir::ValueRange":$ctrls,
+                   "mlir::ValueRange":$args), [{
+      if (auto indirect = dyn_cast<mlir::Value>(call_variant))
+        return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, indirect,
+                     /*is_adj=*/false, ctrls, args, {}, {});
+      auto sym = cast<mlir::SymbolRefAttr>(call_variant);
+      return build($_builder, $_state, retTy, sym, mlir::Value{},
+                   /*is_adj=*/false, ctrls, args, {}, {});
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$retTy,
+                   "mlir::CallInterfaceCallable":$call_variant,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$args), [{
+      if (auto indirect = dyn_cast<mlir::Value>(call_variant))
+        return build($_builder, $_state, retTy, mlir::SymbolRefAttr{}, indirect,
+                     is_adj, mlir::ValueRange{}, args, {}, {});
+      auto sym = cast<mlir::SymbolRefAttr>(call_variant);
+      return build($_builder, $_state, retTy, sym, mlir::Value{}, is_adj,
+                   mlir::ValueRange{}, args, {}, {});
     }]>
   ];
 
@@ -469,7 +509,7 @@ def quake_ApplyOp : QuakeOp<"apply",
     mlir::CallInterfaceCallable getCallableForCallee() {
       if (getCallee())
         return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
-      return getIndirectCallee().front();
+      return getIndirectCallee();
     }
 
     /// Set the callee for this operation.

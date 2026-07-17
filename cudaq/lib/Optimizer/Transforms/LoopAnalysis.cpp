@@ -330,7 +330,8 @@ bool opt::LoopComponents::stepIsAnAddOp() const {
 
 bool opt::LoopComponents::shouldCommuteStepOp() const {
   if (auto addOp = dyn_cast_or_null<arith::AddIOp>(stepOp))
-    return addOp.getRhs() == stepRegion->front().getArgument(induction);
+    if (induction.has_value())
+      return addOp.getRhs() == stepRegion->front().getArgument(*induction);
   // Note: we don't allow induction on lhs of subtraction.
   return false;
 }
@@ -696,7 +697,7 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   if (!result.stepOp)
     return {};
 
-  result.initialValue = loop.getInitialArgs()[result.induction];
+  result.initialValue = loop.getInitialArgs()[*result.induction];
 
   // The comparison operation allows for the induction value to appear as part
   // of a loop-invariant linear expression on one side of the comparison. This
@@ -708,10 +709,10 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
   // and open those up to further analysis and transformations such as loop
   // unrolling.
   if (getLinearExpr(cmpOp.getLhs(), result, loop) ==
-      whileEntry.getArgument(result.induction))
+      whileEntry.getArgument(*result.induction))
     result.compareValue = cmpOp.getRhs();
   else if (getLinearExpr(cmpOp.getRhs(), result, loop) ==
-           whileEntry.getArgument(result.induction))
+           whileEntry.getArgument(*result.induction))
     result.compareValue = cmpOp.getLhs();
   else
     return {};

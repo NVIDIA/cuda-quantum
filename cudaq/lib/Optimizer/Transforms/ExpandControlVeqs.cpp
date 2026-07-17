@@ -76,7 +76,7 @@ public:
         op, op.getIsAdj(), op.getParameters(), newControls, op.getTargets(),
         op.getNegatedQubitControlsAttr());
 
-    newOp->setAttr("operand_segment_sizes", segmentSizes);
+    newOp->setAttr("operandSegmentSizes", segmentSizes);
 
     return success();
   }
