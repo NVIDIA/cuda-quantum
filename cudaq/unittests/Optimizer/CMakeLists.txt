@@ -33,6 +33,7 @@ create_cudaq_unittest_check_target("OptimizerUnitTests" "optimizer-unit-tests")
 
 add_cudaq_unittest("AnalysisPassUnitTests" "analysis-passes"
     SOURCES
+        CircuitValidationTest.cpp
         UnitaryOpGroupingTest.cpp
     INCLUDES
     LINKED_LIBS

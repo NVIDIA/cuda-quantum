@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 add_cudaq_library(OptAnalysis
+  CircuitValidation.cpp
   UnitaryOpGrouping.cpp
 
   DEPENDS
