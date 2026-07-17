@@ -14,7 +14,9 @@
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq/runtime/logger/logger.h"
 
+#include <cstdlib>
 #include <exception>
+#include <fstream>
 #include <future>
 #include <map>
 #include <memory>
@@ -76,6 +78,26 @@ std::size_t resolveShots(std::optional<int> configuredShots,
   return 1000;
 }
 
+cudaq::config::TargetConfig
+makeTargetConfigForProgramFormat(cudaq::config::TargetConfig targetConfig,
+                                 QDMI_Program_Format programFormat) {
+  if (!targetConfig.BackendConfig)
+    throw std::runtime_error("QDMI target has no backend configuration.");
+
+  switch (programFormat) {
+  case QDMI_PROGRAM_FORMAT_QASM2:
+    targetConfig.BackendConfig->CodegenEmission = "qasm2";
+    break;
+  case QDMI_PROGRAM_FORMAT_QIRBASESTRING:
+    targetConfig.BackendConfig->CodegenEmission = "qir-base";
+    break;
+  default:
+    throw std::runtime_error(
+        "QDMI target selected an unsupported program format.");
+  }
+  return targetConfig;
+}
+
 cudaq::sample_result
 submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
            std::vector<cudaq::KernelExecution> codes,
@@ -90,6 +112,10 @@ submitJobs(std::shared_ptr<cudaq::QDMIPlatformDevice> platformDevice,
   bool hasResult = false;
 
   for (const auto &code : codes) {
+    if (const auto *dumpPath = std::getenv("CUDAQ_QDMI_DUMP_PROGRAM")) {
+      std::ofstream dump(dumpPath);
+      dump << code.code;
+    }
     auto job = platformDevice->fomacDevice.submitJob(
         code.code, platformDevice->programFormat, shotCount,
         platformDevice->jobCustom1, platformDevice->jobCustom2,
@@ -260,8 +286,10 @@ void QDMIQPU::setTargetBackend(const std::string &) {
 
 std::unique_ptr<CompileTarget>
 QDMIQPU::getCompileTarget(const sample_policy &) {
-  auto target = std::make_unique<CompileTarget>(targetConfig, backendConfig,
-                                                /*emulate=*/false);
+  auto target = std::make_unique<CompileTarget>(
+      makeTargetConfigForProgramFormat(targetConfig,
+                                       platformDevice->programFormat),
+      backendConfig, /*emulate=*/false);
   target->supportConditionalsOnMeasureResults = false;
   target->pipelineConfig.addMeasurements = true;
   target->storeReorderIdx = true;
@@ -272,8 +300,10 @@ QDMIQPU::getCompileTarget(const sample_policy &) {
 
 std::unique_ptr<CompileTarget>
 QDMIQPU::getCompileTarget(const observe_policy &policy) {
-  auto target = std::make_unique<CompileTarget>(targetConfig, backendConfig,
-                                                /*emulate=*/false);
+  auto target = std::make_unique<CompileTarget>(
+      makeTargetConfigForProgramFormat(targetConfig,
+                                       platformDevice->programFormat),
+      backendConfig, /*emulate=*/false);
   target->supportConditionalsOnMeasureResults = false;
   target->overrideAOTCompilation = true;
   target->pauliTermSplitObservable = policy.spin;

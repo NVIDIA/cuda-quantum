@@ -4,8 +4,9 @@ QDMI Devices
 The `Quantum Device Management Interface (QDMI)
 <https://github.com/Munich-Quantum-Software-Stack/QDMI>`__ provides a common
 interface to communicate with quantum resources.
-CUDA-Q can load any QDMI device (library) that supports OpenQASM 2 programs and
-submit ``cudaq.sample`` and ``cudaq.observe`` jobs through it.
+CUDA-Q can load any QDMI device (library) that supports QIR base-string or
+OpenQASM 2 programs and submit ``cudaq.sample`` and ``cudaq.observe`` jobs
+through it.
 
 Building the QDMI target
 ````````````````````````
@@ -60,6 +61,9 @@ and the ``--qdmi-`` prefix, for example ``--qdmi-base-url``.
 Current limitations
 ```````````````````
 
-The current CUDA-Q QDMI target emits OpenQASM 2. The selected device must
-advertise support for ``QDMI_PROGRAM_FORMAT_QASM2``. CUDA-Q emulation mode,
-``cudaq.run``, and CUDA-Q noise models are not supported by this target.
+The CUDA-Q QDMI target requires support for either ``QDMI_PROGRAM_FORMAT_QIRBASESTRING``
+or ``QDMI_PROGRAM_FORMAT_QASM2``. The device must make ``QDMI_DEVICE_PROPERTY_OPERATIONS``
+(including each operation's ``QDMI_OPERATION_PROPERTY_NAME``), ``QDMI_DEVICE_PROPERTY_SITES``,
+and ``QDMI_DEVICE_PROPERTY_COUPLINGMAP`` queryable for compilation. CUDA-Q emulation mode,
+``cudaq.run``, and CUDA-Q noise models are not supported
+by this target.

@@ -30,9 +30,9 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <unistd.h>
 #include <utility>
 #include <vector>
-#include <unistd.h>
 
 namespace {
 using BackendConfig = std::map<std::string, std::string>;
@@ -146,10 +146,13 @@ selectProgramFormat(const std::vector<QDMI_Program_Format> &formats) {
     return std::find(formats.begin(), formats.end(), format) != formats.end();
   };
 
+  if (supports(QDMI_PROGRAM_FORMAT_QIRBASESTRING))
+    return QDMI_PROGRAM_FORMAT_QIRBASESTRING;
   if (supports(QDMI_PROGRAM_FORMAT_QASM2))
     return QDMI_PROGRAM_FORMAT_QASM2;
 
-  throw std::runtime_error("CUDA-Q QDMI target requires QASM2 support.");
+  throw std::runtime_error(
+      "CUDA-Q QDMI target requires QIR base string or QASM2 support.");
 }
 
 std::map<std::size_t, std::size_t>
@@ -210,10 +213,9 @@ std::optional<std::string> writeConnectivityFile(
   if (!connectivity)
     return std::nullopt;
 
-  auto path =
-      (std::filesystem::temp_directory_path() /
-       "cudaq-qdmi-connectivity-XXXXXX")
-          .string();
+  auto path = (std::filesystem::temp_directory_path() /
+               "cudaq-qdmi-connectivity-XXXXXX")
+                  .string();
   const auto fd = mkstemp(path.data());
   if (fd < 0)
     throw std::runtime_error("Could not create QDMI connectivity file: " +
@@ -247,14 +249,21 @@ std::optional<std::string> writeConnectivityFile(
   return path;
 }
 
-std::string serializeConnectivity(
-    const std::optional<std::string> &connectivityFile) {
+std::string
+serializeConnectivity(const std::optional<std::string> &connectivityFile) {
   if (!connectivityFile)
     return "bypass";
   return "file('" + *connectivityFile + "')";
 }
 
 std::string serializeBasis(const cudaq::FoMaCDevice &device) {
+  static const std::map<std::string, std::string> operationAliases{
+      // Common QASM names to CUDA-Q's canonical operation names.
+      {"prx", "phased_rx"}, {"cnot", "x"}, {"cx", "x"},   {"ccnot", "x"},
+      {"cz", "z"},          {"cy", "y"},   {"ch", "h"},   {"crx", "rx"},
+      {"cry", "ry"},        {"crz", "rz"}, {"cu1", "r1"}, {"cphaseshift", "r1"},
+      {"ccx", "x"},         {"sdg", "s"},  {"tdg", "t"},  {"u1", "r1"},
+  };
   std::set<std::string> basis;
   try {
     for (const auto &operation : device.getOperations()) {
@@ -262,15 +271,23 @@ std::string serializeBasis(const cudaq::FoMaCDevice &device) {
       std::ranges::transform(name, name.begin(), [](const unsigned char c) {
         return static_cast<char>(std::tolower(c));
       });
+      if (const auto alias = operationAliases.find(name);
+          alias != operationAliases.end())
+        name = alias->second;
       const auto qubits = operation.getQubitsNum();
       if (!qubits || *qubits == 0 || *qubits > 3)
         continue;
 
-      if (*qubits == 1)
+      if (name == "swap") {
+        // swap has two targets; the optional suffix denotes controls.
+        basis.emplace("swap");
+      } else if (name == "cswap") {
+        basis.emplace("swap(1)");
+      } else if (*qubits == 1)
         basis.emplace(std::move(name));
       else
-        basis.emplace(std::move(name) + "(" +
-                      std::to_string(*qubits - 1) + ")");
+        basis.emplace(std::move(name) + "(" + std::to_string(*qubits - 1) +
+                      ")");
     }
   } catch (const std::exception &e) {
     CUDAQ_DBG("QDMI operation metadata is unavailable: {}", e.what());
@@ -294,8 +311,13 @@ makePlatformDevice(cudaq::FoMaCDevice device) {
       std::make_shared<cudaq::QDMIPlatformDevice>(std::move(device));
   platformDevice->name = platformDevice->fomacDevice.getName();
 
-  platformDevice->programFormat = selectProgramFormat(
-      platformDevice->fomacDevice.getSupportedProgramFormats());
+  const auto formats = platformDevice->fomacDevice.getSupportedProgramFormats();
+  platformDevice->programFormat = selectProgramFormat(formats);
+  CUDAQ_INFO("QDMI device '{}' selected program format {}.",
+             platformDevice->name,
+             platformDevice->programFormat == QDMI_PROGRAM_FORMAT_QASM2
+                 ? "QASM2"
+                 : "QIR base string");
   platformDevice->qubitCount = platformDevice->fomacDevice.getQubitsNum();
   platformDevice->connectivity = queryConnectivity(platformDevice->fomacDevice,
                                                    platformDevice->qubitCount);
@@ -359,8 +381,8 @@ private:
       }
     }
 
-    backendConfig["qdmi_connectivity"] = serializeConnectivity(
-        deviceIter->second->connectivityFile);
+    backendConfig["qdmi_connectivity"] =
+        serializeConnectivity(deviceIter->second->connectivityFile);
     backendConfig["qdmi_basis"] =
         serializeBasis(deviceIter->second->fomacDevice);
 
