@@ -159,17 +159,7 @@ public:
   createSampleResultFromQirOutput(const std::string &qirOutputLog) {
     // Parse the QIR output log
     cudaq::RecordLogParser parser;
-    parser.parse(qirOutputLog);
-
-    // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *origBuffer = parser.getBufferPtr();
-    std::size_t bufferSize = parser.getBufferSize();
-    char *buffer = static_cast<char *>(malloc(bufferSize));
-    std::memcpy(buffer, origBuffer, bufferSize);
-
-    std::vector<std::vector<bool>> results = {
-        reinterpret_cast<std::vector<bool> *>(buffer),
-        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
+    auto results = parser.parseResults(qirOutputLog);
     const auto numShots = results.size();
     // Create the counts dictionary
     cudaq::CountsDictionary globalCounts;

@@ -404,6 +404,18 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentAssignVariableName = None
         self.walkingReturnNode = False
         self.controlNegations = []
+        # Cache qualified-name and decorator-recovery results, including a
+        # missing decorator, for this bridge. Compilation assumes module and
+        # definition-frame bindings remain stable while translating the kernel
+        # AST. These caches are not shared across kernels.
+        self.qualifiedNameCache = {}
+        self.qualifiedDecoratorCache = {}
+        # Cache only the monotone fact that a scalar handle `alloca` has a
+        # non-`undef` store. The AST bridge appends operations while visiting the
+        # source, and the pass pipeline runs only after the visit completes, so
+        # a witnessed store cannot disappear during this cache's lifetime. Do
+        # not cache the unbound verdict: a later store can change it.
+        self._measureHandleAllocasWithNonUndefStore = set()
         self.pushPointerValue = False
         # Constant ``cudaq.qvector(N)`` sizes for compile-time checks.
         self.staticVeqSizes = {}
@@ -843,10 +855,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def hasTerminator(self, block):
         """Return True if the given Block has a Terminator operation."""
-        if len(block.operations) > 0:
-            return cudaq_runtime.isTerminator(
-                block.operations[len(block.operations) - 1])
-        return False
+        return cudaq_runtime.blockHasTerminator(block)
 
     def isArithmeticType(self, type):
         """Return True if the given type is an integer, float, or complex
@@ -885,11 +894,7 @@ class PyASTBridge(ast.NodeVisitor):
     def __isMeasurementGate(self, id):
         return id in ['mx', 'my', 'mz']
 
-    def __isProvablyUnboundHandleSource(self, value):
-        """Return True if `value` provably comes from a default-constructed
-        `cudaq.measure_handle()` that was never bound by `mz`/`mx`/`my`.
-        """
-
+    def __measureHandleOperationName(self, operation):
         # The MLIR Python bindings return two different wrapper kinds
         # depending on how we reach an op: `Value.owner` and
         # `Value.operands[i].owner` give a raw `mlir.ir.Operation`
@@ -898,30 +903,46 @@ class PyASTBridge(ast.NodeVisitor):
         # `OpView` subclass (e.g. `_LoadOp`) whose op name lives on the
         # `OPERATION_NAME` *class* attribute and *not* on `.name`. This
         # helper handles both shapes uniformly.
-        def _opName(o):
-            n = getattr(o, 'name', None)
-            return n if isinstance(n, str) else getattr(o, 'OPERATION_NAME',
-                                                        None)
+        name = getattr(operation, 'name', None)
+        return (name if isinstance(name, str) else getattr(
+            operation, 'OPERATION_NAME', None))
+
+    def __scanMeasureHandleAllocaStores(self, ptr):
+        """Return whether `ptr` has a store and a non-`undef` store."""
+        sawStore = False
+        for use in ptr.uses:
+            if self.__measureHandleOperationName(use.owner) != 'cc.store':
+                continue
+            sawStore = True
+            stored = use.owner.operands[0]
+            if (not hasattr(stored, 'owner') or
+                    self.__measureHandleOperationName(
+                        stored.owner) != 'cc.undef'):
+                return sawStore, True
+        return sawStore, False
+
+    def __isProvablyUnboundHandleSource(self, value):
+        """Return True if `value` provably comes from a default-constructed
+        `cudaq.measure_handle()` that was never bound by `mz`/`mx`/`my`.
+        """
 
         if not hasattr(value, 'owner'):
             return False
-        defName = _opName(value.owner)
+        defName = self.__measureHandleOperationName(value.owner)
         if defName == 'cc.undef':
             return True
         if defName != 'cc.load':
             return False
         ptr = value.owner.operands[0]
-        if not hasattr(ptr, 'owner') or _opName(ptr.owner) != 'cc.alloca':
+        if (not hasattr(ptr, 'owner') or
+                self.__measureHandleOperationName(ptr.owner) != 'cc.alloca'):
             return False
-        sawStore = False
-        for use in ptr.uses:
-            if _opName(use.owner) != 'cc.store':
-                continue
-            sawStore = True
-            stored = use.owner.operands[0]
-            if not hasattr(stored, 'owner') or _opName(
-                    stored.owner) != 'cc.undef':
-                return False
+        if ptr in self._measureHandleAllocasWithNonUndefStore:
+            return False
+        sawStore, sawNonUndefStore = self.__scanMeasureHandleAllocaStores(ptr)
+        if sawNonUndefStore:
+            self._measureHandleAllocasWithNonUndefStore.add(ptr)
+            return False
         return sawStore
 
     def __discriminateIfMeasureHandle(self, value, node):
@@ -2842,7 +2863,11 @@ class PyASTBridge(ast.NodeVisitor):
             if path:
                 name = f"{path}.{name}"
 
-            decorator = recover_value_of_or_none(name, self.defFrame)
+            if name in self.qualifiedDecoratorCache:
+                decorator = self.qualifiedDecoratorCache[name]
+            else:
+                decorator = recover_value_of_or_none(name, self.defFrame)
+                self.qualifiedDecoratorCache[name] = decorator
             if decorator is None or not isa_kernel_decorator(decorator):
                 return None
 
@@ -2907,6 +2932,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
                 moduleNames.append(value.id)
                 moduleNames.reverse()
+                qualifiedName = tuple(moduleNames) + (pyVal.attr,)
+                if qualifiedName in self.qualifiedNameCache:
+                    return self.qualifiedNameCache[qualifiedName]
 
                 # Helper method to check that the module `obj`
                 # contains the proper path defined by the submodules
@@ -2929,7 +2957,9 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = module
                             devKey = checkModule(obj, moduleNames)
                             if devKey:
-                                return devKey, pyVal.attr
+                                result = (devKey, pyVal.attr)
+                                self.qualifiedNameCache[qualifiedName] = result
+                                return result
                         except AttributeError:
                             continue
 
@@ -2948,10 +2978,14 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = obj[-1]
                         devKey = checkModule(obj, moduleNames)
                         if devKey:
-                            return devKey, pyVal.attr
+                            result = (devKey, pyVal.attr)
+                            self.qualifiedNameCache[qualifiedName] = result
+                            return result
 
                 # Default return value
-                return '.'.join(moduleNames), pyVal.attr
+                result = ('.'.join(moduleNames), pyVal.attr)
+                self.qualifiedNameCache[qualifiedName] = result
+                return result
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):

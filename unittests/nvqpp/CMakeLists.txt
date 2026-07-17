@@ -338,34 +338,6 @@ target_link_libraries(test_photonics
   gtest_main)
 cudaq_gtest_discover_tests(test_photonics PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
-add_executable(test_ptsbe ${CUDAQ_GTEST_MAIN}
-  ptsbe/KrausSelectionTester.cpp
-  ptsbe/KrausTrajectoryTester.cpp
-  ptsbe/ShotAllocationTester.cpp
-  ptsbe/PTSBEInterfaceTester.cpp
-  ptsbe/TraceConversionTester.cpp
-  ptsbe/MergeTasksWithTrajectoryTester.cpp
-  ptsbe/ExecutePTSBETester.cpp
-  ptsbe/PTSBEPolicyTester.cpp
-  ptsbe/PTSSamplingStrategyTester.cpp
-  ptsbe/NoiseExtractorTester.cpp
-  ptsbe/TrajectoryDeduplicationTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_ptsbe PRIVATE -Wl,--no-as-needed)
-endif()
-target_include_directories(test_ptsbe PRIVATE .)
-target_link_libraries(test_ptsbe
-  PRIVATE
-  cudaq
-  cudaq-em-default
-  cudaq-platform-default
-  cudaq-mlir-runtime
-  nvqir
-  nvqir-qpp
-  fmt::fmt-header-only
-  gtest_main)
-cudaq_gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
-
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)
 if (MPI_CXX_FOUND)

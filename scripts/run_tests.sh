@@ -43,7 +43,7 @@ export PYTHONPATH="$build_dir/python:${PYTHONPATH:-}"
 if [ "$(uname)" = "Darwin" ]; then
   num_jobs=$(sysctl -n hw.ncpu)
 else
-  num_jobs=$(nproc)
+  num_jobs=$(nproc --all)
 fi
 
 # Thread budget to avoid OpenMP oversubscription.

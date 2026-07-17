@@ -82,6 +82,8 @@ decltype(auto) withPolicy(std::string_view name, Func &&func) {
       {"sample", [](FuncRef f) -> Ret { return f(sample_policy{}); }},
       {"observe", [](FuncRef f) -> Ret { return f(observe_policy{}); }},
       {"dem", [](FuncRef f) -> Ret { return f(dem_policy{}); }},
+      {"msm_size", [](FuncRef f) -> Ret { return f(msm_size_policy{}); }},
+      {"msm", [](FuncRef f) -> Ret { return f(msm_policy{}); }},
       {"ptsbe-sample",
        [](FuncRef f) -> Ret { return f(ptsbe::sample_policy{}); }},
   };

@@ -121,6 +121,8 @@ public:
   /// Configure the execution context before an execution.
   void configureExecutionContext(const sample_policy &policy);
   void configureExecutionContext(const observe_policy &policy);
+  void configureExecutionContext(const msm_size_policy &policy);
+  void configureExecutionContext(const msm_policy &policy);
   void configureExecutionContext(const dem_policy &policy);
   void configureExecutionContext(const ptsbe::sample_policy &policy);
   void configureExecutionContext(ExecutionContext &ctx);
@@ -135,6 +137,11 @@ public:
 
   virtual observe_result
   finalizeExecutionContext(const observe_policy &policy) = 0;
+
+  virtual msm_dimensions
+  finalizeExecutionContext(const msm_size_policy &policy) = 0;
+
+  virtual msm_result finalizeExecutionContext(const msm_policy &policy) = 0;
 
   virtual dem_result finalizeExecutionContext(const dem_policy &) {
     throw std::runtime_error(
@@ -262,6 +269,19 @@ inline observe_result
 finalize_execution_manager_impl(ExecutionManager &mgr,
                                 const observe_policy &policy,
                                 ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline msm_dimensions
+finalize_execution_manager_impl(ExecutionManager &mgr,
+                                const msm_size_policy &policy,
+                                ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline msm_result finalize_execution_manager_impl(ExecutionManager &mgr,
+                                                  const msm_policy &policy,
+                                                  ExecutionContext &ctx) {
   return mgr.finalizeExecutionContext(policy);
 }
 

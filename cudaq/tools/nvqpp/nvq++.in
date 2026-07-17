@@ -527,6 +527,15 @@ ARGS=
 CUDAQ_QUAKE_ARGS=
 CUDAQ_OPT_ARGS=
 CUDAQ_TRANSLATE_ARGS=
+# GNU-style dependency-file generation (-MD/-MMD/-MT/-MF). These are collected
+# here and, for the kernel-compilation path, forwarded to cudaq-quake as
+# --dependency-* options (see below). The flags are also left in ${ARGS} so the
+# library-mode path (which compiles with ${CXX} directly) keeps generating the
+# depfile via the real compiler.
+DEP_GEN=false
+DEP_SYSTEM_HEADERS=false
+DEP_OUTPUT_FILE=
+DEP_TARGETS=
 MAPPING_FILE=
 DO_LINK=true
 SHOW_VERSION=false
@@ -752,20 +761,39 @@ while [ $# -ne 0 ]; do
 		OUTPUTFILE="$2"
 		shift
 		;;
-	-MT|-MF)
-		# GNU-style dependency-file flags (e.g. CMake's Ninja generator
-		# unconditionally appends "-MD -MT <obj> -MF <depfile>" to every
-		# CXX_COMPILER rule once it detects a GNU/Clang-family compiler,
-		# regardless of this custom driver script). Both take a separate
-		# argument; without an explicit case here, that argument (e.g. the
-		# object path after -MT, which ends in ".o") falls through to the
-		# "*.o" pattern below and gets misparsed as an object file to link,
-		# leaving -MT/-MF without their value and the depfile never written
-		# -- which then makes Ninja fail with "no such file or directory"
-		# reading the (nonexistent) depfile. Keep the flag and its value
-		# together, same as -isysroot's --Xcudaq forwarding above.
+	-MD)
+		# CMake's Ninja generator unconditionally appends
+		# "-MD -MT <obj> -MF <depfile>" to every CXX_COMPILER rule once it
+		# detects a GNU/Clang-family compiler, regardless of this custom
+		# driver script. -MD means "generate the depfile including system
+		# headers". Keep it in ${ARGS} for the library-mode ${CXX} compile,
+		# and record it so the kernel path drives cudaq-quake's dependency
+		# generator (clang::tooling strips -MD/-MT/-MF, so it cannot simply
+		# be forwarded via --Xcudaq).
+		DEP_GEN=true
+		DEP_SYSTEM_HEADERS=true
+		ARGS="${ARGS} $1"
+		;;
+	-MMD)
+		# Like -MD but excludes system headers from the depfile.
+		DEP_GEN=true
+		DEP_SYSTEM_HEADERS=false
+		ARGS="${ARGS} $1"
+		;;
+	-MT)
+		# Target name for the emitted dependency rule (typically the object
+		# path). Takes a separate argument; keep it with the flag in ${ARGS}
+		# for library mode and record it for the kernel path.
+		DEP_TARGETS="${DEP_TARGETS} $2"
 		ARGS="${ARGS} $1 $2"
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1 --Xcudaq $2"
+		shift
+		;;
+	-MF)
+		# Output path for the depfile. Takes a separate argument. Without an
+		# explicit case, the value (e.g. an object-adjacent ".o.d" path)
+		# would fall through to a catch-all and be misparsed.
+		DEP_OUTPUT_FILE="$2"
+		ARGS="${ARGS} $1 $2"
 		shift
 		;;
 	-o=*)
@@ -1049,6 +1077,23 @@ if ${CUDAQ_IS_APPLE}; then
 	rm -f "$probe_obj"
 fi
 
+# Translate the collected GNU-style dependency flags into cudaq-quake options.
+# cudaq-quake reads all the headers while lowering __qpu__ kernels, so it is the
+# right place to emit the Makefile-syntax depfile Ninja consumes; the flags
+# themselves cannot be forwarded to the clang it drives because clang::tooling
+# strips dependency-file flags. Library mode never reaches here (it compiles with
+# ${CXX} directly, which already honors -MD/-MT/-MF from ${ARGS}).
+CUDAQ_QUAKE_DEP_ARGS=
+if ${DEP_GEN} && [ -n "${DEP_OUTPUT_FILE}" ]; then
+	CUDAQ_QUAKE_DEP_ARGS="--dependency-file ${DEP_OUTPUT_FILE}"
+	for dep_target in ${DEP_TARGETS}; do
+		CUDAQ_QUAKE_DEP_ARGS="${CUDAQ_QUAKE_DEP_ARGS} --dependency-target ${dep_target}"
+	done
+	if ${DEP_SYSTEM_HEADERS}; then
+		CUDAQ_QUAKE_DEP_ARGS="${CUDAQ_QUAKE_DEP_ARGS} --dependency-system-headers"
+	fi
+fi
+
 for i in ${SRCS}; do
 	file_with_suffix=$(basename $i)
 	file=${file_with_suffix%.*}
@@ -1082,7 +1127,7 @@ for i in ${SRCS}; do
 
 	# If we make it here, we have CUDA-Q kernels, need to map to MLIR and
 	# output an LLVM file for the classical code
-	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file=${LL_FILE} $i -o ${QKE_FILE}
+	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} ${CUDAQ_QUAKE_DEP_ARGS} --emit-llvm-file=${LL_FILE} $i -o ${QKE_FILE}
 
 	# Run the MLIR passes
 	QUAKE_IN=${QKE_FILE}
