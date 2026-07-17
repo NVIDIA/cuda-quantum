@@ -111,6 +111,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/cudaq/trace/py_trace.cpp
+    ../runtime/mlir/py_optimization_validation.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/CodeGenConfig.cpp
@@ -132,6 +133,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
+    OptAnalysis
 )
 
 # MLIR/LLVM is built without RTTI (LLVM_ENABLE_RTTI=OFF). This file subclasses
