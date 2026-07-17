@@ -1349,7 +1349,7 @@ LogicalResult cudaq::cc::InstantiateCallableOp::verify() {
   auto calleeFunc = dyn_cast_if_present<func::FuncOp>(
       SymbolTable::lookupNearestSymbolFrom(getOperation(), getCallee()));
   if (!calleeFunc)
-    return emitOpError("must refer to a valid");
+    return emitOpError("must refer to a valid function");
   FunctionType calleeFnTy = calleeFunc.getFunctionType();
   if (!getNoCapture()) {
     // Unless no capture is set, the first argument of `callee` must be a
@@ -1365,7 +1365,7 @@ LogicalResult cudaq::cc::InstantiateCallableOp::verify() {
     // compatible with our result and the thunk function type modulo the closure
     // argument.
     if (callableTy != getSignature().getType())
-      return emitOpError("result type much match closure type");
+      return emitOpError("result type must match closure type");
     FunctionType callableFnTy = callableTy.getSignature();
     if (calleeFnTy.getInputs().size() - 1 != callableFnTy.getInputs().size())
       return emitOpError("arity must be the same (" +
