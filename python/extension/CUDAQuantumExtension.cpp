@@ -398,9 +398,14 @@ When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)
       "installs TracePassInstrumentation and releases the GIL. Used by "
       "cudaq.mlir.passmanager.PassManager.run() so every Python-side pass "
       "run is traced through the same chokepoint as the JIT path.");
-  cudaqRuntime.def("isTerminator", [](MlirOperation op) {
-    return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
-  });
+  cudaqRuntime.def(
+      "blockHasTerminator",
+      [](MlirBlock block) {
+        return !mlirOperationIsNull(mlirBlockGetTerminator(block));
+      },
+      "Return `true` if the block ends with an operation carrying the "
+      "`IsTerminator` trait.",
+      nanobind::arg("block"));
 
   auto ahsSubmodule = cudaqRuntime.def_submodule("ahs");
   bindAnalogHamiltonian(ahsSubmodule);
