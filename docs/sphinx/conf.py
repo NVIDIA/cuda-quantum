@@ -130,10 +130,14 @@ if compiler_developer_docs:
     tags.add('compiler_developer_docs')
     rst_epilog = '''
 .. |CUDA-Q dialect documentation| replace:: :doc:`CUDA-Q dialect documentation </using/extending/compiler/dialect_reference>`
+.. |compiler pass development guide| replace:: :doc:`compiler pass development guide </using/extending/compiler/mlir_pass>`
+.. |available compiler passes| replace:: :doc:`available compiler passes </using/extending/compiler/available_passes>`
 '''
 else:
     rst_epilog = '''
 .. |CUDA-Q dialect documentation| replace:: CUDA-Q dialect documentation
+.. |compiler pass development guide| replace:: compiler pass development guide
+.. |available compiler passes| replace:: available compiler passes
 '''
     exclude_patterns.extend([
         'using/extending/compiler/mlir_pass.rst',

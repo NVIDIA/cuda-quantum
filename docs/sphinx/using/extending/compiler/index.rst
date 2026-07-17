@@ -40,8 +40,15 @@ pipeline.
   see the :doc:`Quake semantic specification
   <../../../specification/quake-dialect>`.
 * See :doc:`pass_plugins` for the existing external pass plugin interface.
-* The opt-in compiler developer build also provides generated operation and
-  type references in the |CUDA-Q dialect documentation|.
+
+.. only:: compiler_developer_docs
+
+   * Browse the |CUDA-Q dialect documentation| for generated operation and type
+     references.
+   * Follow the |compiler pass development guide| to implement, test, and
+     integrate a compiler pass.
+   * Browse |available compiler passes| for the generated catalog of registered
+     CUDA-Q transformation and code generation passes and their options.
 
 .. rubric:: Code organization
 
