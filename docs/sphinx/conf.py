@@ -115,13 +115,12 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb',
+    '_doxygen/**', '_static/**', '_tags/**', '_templates/**',
+    '**/__pycache__/**', 'using/extending/_noise.rst', '.DS_Store',
+    'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
 ]
-
-#redirect links
-redirects = {"backends/dynamics": "../dynamics.html"}
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 default_role = 'code'  # NOTE: the following may be a better choice to error on the side of flagging anything that is referenced but but not declared
@@ -190,7 +189,12 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
 }
 
-redirects = {"versions": "../latest/releases.html"}
+redirects = {
+    "backends/dynamics": "../dynamics.html",
+    "versions": "../latest/releases.html",
+    "using/extending/cudaq_ir": "compiler/cudaq_ir.html",
+    "using/extending/mlir_pass": "compiler/pass_plugins.html",
+}
 
 nitpick_ignore = [
     ('cpp:identifier', 'GlobalRegisterName'),

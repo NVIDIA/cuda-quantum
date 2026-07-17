@@ -70,7 +70,7 @@ docs_build_output="$build_dir/docs"
 sphinx_output_dir="$docs_build_output/sphinx"
 doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
-dialect_reference_names=(Quake CC QEC)
+dialect_reference_names=(Quake CC QEC CodeGen)
 rm -rf "$docs_build_output"
 
 # Check if the cudaq Python package is installed and if not, build and install it
@@ -106,7 +106,7 @@ else
     for dialect_name in "${dialect_reference_names[@]}"; do
         dialect_reference_file="$dialect_output_dir/$dialect_name.md"
         if [ ! -f "$dialect_reference_file" ]; then
-            echo "Failed to generate the $dialect_name operation and type reference at $dialect_reference_file."
+            echo "Failed to generate the $dialect_name reference at $dialect_reference_file."
             docs_exit_code=10
         fi
     done
@@ -193,11 +193,11 @@ build_sphinx_docs() (
         echo "Failed to stage the Doxygen reference."
         return 10
     fi
-    mkdir -p sphinx/_mdgen/
+    mkdir -p sphinx/_mdgen/Dialects
     for dialect_name in "${dialect_reference_names[@]}"; do
         dialect_reference_file="$dialect_output_dir/$dialect_name.md"
-        if ! cp "$dialect_reference_file" "sphinx/_mdgen/$dialect_name.md"; then
-            echo "Failed to stage the $dialect_name operation and type reference."
+        if ! cp "$dialect_reference_file" "sphinx/_mdgen/Dialects/$dialect_name.md"; then
+            echo "Failed to stage the $dialect_name reference."
             return 10
         fi
     done
