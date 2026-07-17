@@ -13,11 +13,9 @@
 MLIRIR
 MLIRSupport
 
-# Textual / bytecode parsing and printing
+# Textual parsing and printing
 MLIRParser
 MLIRAsmParser
-MLIRBytecodeReader
-MLIRBytecodeWriter
 
 # Pass + analysis infrastructure
 MLIRPass
@@ -37,11 +35,7 @@ MLIRCastInterfaces
 MLIRControlFlowInterfaces
 MLIRDataLayoutInterfaces
 MLIRFunctionInterfaces
-MLIRInferIntRangeInterface
 MLIRInferTypeOpInterface
-MLIRLoopLikeInterface
-MLIRMemOpInterfaces
-MLIRMemorySlotInterfaces
 MLIRSideEffectInterfaces
 
 # Foundational building-block dialects most custom dialects/lowerings reuse
@@ -51,9 +45,6 @@ MLIRArithDialect
 MLIRControlFlowDialect
 MLIRComplexDialect
 MLIRMathDialect
-MLIRIndexDialect
-MLIRDLTIDialect
-MLIRUBDialect
 MLIRLLVMDialect
 MLIROpenMPDialect
 MLIROpenACCDialect

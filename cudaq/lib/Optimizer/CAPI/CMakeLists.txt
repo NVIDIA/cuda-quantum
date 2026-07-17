@@ -26,3 +26,19 @@ add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI
   MLIRFuncInlinerExtension
   MLIRLLVMIRTransforms
 )
+
+add_cudaq_capi_shared_library(cudaqMLIRCAPI
+  cudaqDialectsCAPI
+  MLIRCAPIDebug
+  MLIRCAPIExecutionEngine
+  MLIRCAPIFunc
+  MLIRCAPIIR
+  MLIRCAPIInterfaces
+  MLIRCAPILLVM
+  MLIRCAPITarget
+  MLIRCAPITransforms)
+
+install(TARGETS cudaqMLIRCAPI
+  EXPORT CUDAQTargets
+  COMPONENT CUDAQuantumPythonModules
+  DESTINATION lib)
