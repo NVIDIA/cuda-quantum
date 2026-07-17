@@ -13,6 +13,8 @@ from multiprocessing import Process
 from network_utils import check_server_connection
 from utils.mock_qpu.quantum_machines import start_server
 
+pytestmark = pytest.mark.xdist_group("quantum_machines_mock")
+
 skipIfQuantumMachinesNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("quantum_machines")),
     reason='Could not find `quantum_machines` in installation')

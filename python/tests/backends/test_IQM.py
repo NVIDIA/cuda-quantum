@@ -24,6 +24,8 @@ iqm_client = pytest.importorskip("iqm.iqm_client")
 from utils.mock_qpu.iqm import startServer
 from utils.mock_qpu.iqm.mock_iqm_cortex_cli import write_a_mock_tokens_file
 
+pytestmark = pytest.mark.xdist_group("iqm_mock")
+
 # Define the port for the mock server
 port = 62443
 
