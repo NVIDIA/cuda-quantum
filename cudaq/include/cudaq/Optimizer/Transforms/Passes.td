@@ -319,9 +319,9 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     patterns, ensuring every gate is decomposed to the specified basis in a
     unique way.
     
-    ## Options
+    #### Pattern selection
 
-    The following options are available and are all optional:
+    Pattern selection can be controlled with the following optional settings:
 
     - `disable-patterns`: used to filter out specific rewrite patterns from the
        selection.
@@ -382,7 +382,7 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
     used. If two virtual qubits have non-overlapping lifetimes, they can be
     assigned to the same physical qubit, as every virtual qubit is assumed to be
     fully reset before release. Failure to fully reset virtual qubits before
-    release is undefinied behavior, and will likely lead to incorrect output
+    release is undefined behavior and will likely lead to incorrect output
     when running DependencyAnalysis.
   }];
 
@@ -392,7 +392,7 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
     Statistic<"numVirtualQubits", "num-virtual-qubits",
               "Number of virtual qubits used">,
     Statistic<"numPhysicalQubits", "num-physical-qubits",
-              "Number of phyiscal qubits used">,
+              "Number of physical qubits used">,
     Statistic<"numCycles", "num-cycles",
               "Length of kernel in cycles">,
   ];
@@ -1071,7 +1071,7 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     Option<"classicalValues", "classical", "bool",
       /*default=*/"true", "Promote classical stack slots to values.">,
     Option<"quantumValues", "quantum", "bool",
-      /*default=*/"true", "Promote of quantum values.">
+      /*default=*/"true", "Promote quantum references to wire values.">
   ];
 }
 
@@ -1079,7 +1079,7 @@ def MultiControlDecomposition :
     Pass<"multicontrol-decomposition", "mlir::func::FuncOp"> {
   let summary = "Break down multi-control quantum operations.";
   let description = [{
-    This pass decomposes multi-control quantum operations. The decompostion
+    This pass decomposes multi-control quantum operations. The decomposition
     involves allocating new qubits to hold intermediate results. The number of
     extra qubits depends on the particular operation being decomposed.
     Pauli-X and Pauli-Z operations add _N_ - 2 qubits, while other operations
@@ -1116,7 +1116,7 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     First, a preprocessing step identifies each subcircuit consisting only of
     Swap, NOT, CNOT, and Rz gates. Currently, we restrict this subcircuit to
     only working with `!quake.ref` types directly from `quake.alloca`s, as
-    values extraced from `quake.veq`s via `extract_ref` may have hidden side
+    values extracted from `quake.veq`s via `extract_ref` may have hidden side
     effects that could cause the subcircuits to be incorrect.
 
     At the beginning of the subcircuit, each qubit is assigned a unique phase
@@ -1128,15 +1128,15 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     * A CNOT gate sets the phase of the target to the exclusive sum of the
       phase variables in the phases for the control and target qubits.
     * If multiple `rz` ops are found at the same phase, they will be combined
-      by replacing the rotation angle of the latter occuring op to the sum of
+      by replacing the rotation angle of the latter occurring op with the sum of
       the rotation angles of both ops, and removing the prior op.
   }];
 
   let options = [
     Option<"minimumBlockLength", "min-length", "unsigned", /*default=*/"20",
-    "Minimumn subcircuit length to run phase folding">,
+    "Minimum subcircuit length to run phase folding">,
     Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"20",
-    "Minimumn percentage of rz ops in subcircuit to run phase folding">,
+    "Minimum percentage of rz ops in subcircuit to run phase folding">,
   ];
 
   let dependentDialects = ["cudaq::cc::CCDialect",
@@ -1153,7 +1153,7 @@ def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
 }
 
 def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
-  let summary = "Removes artifical control constraints between quantum ops.";
+  let summary = "Removes artificial control constraints between quantum ops.";
   let description = [{
     In the value semantics, quantum gates may be overly constrained in terms of
     control qubits. These constraints can be removed within the IR to get a more
@@ -1207,10 +1207,10 @@ def PySynthCallableBlockArgs :
   let summary =
     "Synthesize / Inline cc.callable_func on function block arguments.";
   let description = [{
-    This pass is leveraged by the Python bindings to synthesize any 
-    cc.callable block arguments. By synthesis we mean replace all uses of the 
-    callable block argument with a specific in-Module function call (func.call) 
-    retrieved at runtime (the name of the function passed to the kernel at the 
+    The Python bindings use this pass to synthesize any
+    cc.callable block arguments. Synthesis replaces all uses of the callable
+    block argument with a specific in-module function call (`func.call`)
+    retrieved at runtime (the name of the function passed to the kernel at the
     cc.callable block argument index).
   }];
 }
@@ -1441,11 +1441,11 @@ def ResourceCountPreprocess :
       }
     ```
 
-    The initial `h(q[0])` will always be run once, so we can precount it and
-    remove it. Similarly, it is trivial to see that the loop will run 10 times,
-    so we can pre count `y(q[i])` ten times as well. However, because `x(q[i])`
-    is gated by `mz(q[i])`, it is not invariant, so it will remain and be
-    counted during simulation.
+    The initial `h(q[0])` will always be run once, so we can count it in advance
+    and remove it. Similarly, it is trivial to see that the loop will run 10
+    times, so we can count `y(q[i])` ten times in advance as well. However,
+    because `x(q[i])` is gated by `mz(q[i])`, it is not invariant, so it will
+    remain and be counted during simulation.
 
     Currently, the detection of "invariance" is purposefully dumb.
 
@@ -1468,16 +1468,15 @@ def ResourceCountPreprocess :
 }
 
 def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
-  let summary = "Run semantics hackery";
+  let summary = "Adapt vector results for cudaq::run entry points.";
   let description = [{
-    The design of the `cudaq::run` feature breaks the semantics of the host
-    language.  While that is a terrible design decision, we strive to work
-    around the inherent flaws. This pass should be used after the
-    `kernel-execution` pass to clean up some of the semantics potholes and
-    brokenness left behind.
-
-    Ideally, we'd just fix the CUDA-Q spec and use first-class output logging
-    functions.
+    `cudaq::run` entry points log kernel results instead of returning them
+    through the host ABI. After the `kernel-execution` pass creates the `.run`
+    wrapper, this pass finds wrappers that call kernels returning `!cc.stdvec`,
+    clones those kernels, removes calls to `__nvqpp_vectorCopyCtor` from the
+    clones, and redirects the wrappers to call the clones. It must run after
+    `kernel-execution`, while both the generated wrapper and original kernel are
+    present.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];

@@ -1,97 +1,71 @@
-Create your own CUDA-Q Compiler Pass 
-******************************************
+.. _external-compiler-pass-plugins:
 
-The CUDA-Q IR can be transformed, analyzed, or optimized 
-using standard MLIR patterns and tools. CUDA-Q provides a registration 
-mechanism for the :code:`cudaq-opt` tool that allows one to create, load, and 
-use custom MLIR passes on Quake code. 
+External compiler pass plugins
+******************************
 
-CUDA-Q MLIR Passes can only be created within an existing CUDA-Q 
-development environment. Therefore, you must clone the repository and add your 
-Pass code as part of the existing CUDA-Q CMake system. 
+``cudaq-opt`` can load a custom MLIR operation pass from a shared library. This
+keeps the pass outside CUDA-Q's built-in pass catalog and production pipelines
+while allowing it to transform CUDA-Q IR with the same MLIR APIs used by
+built-in passes. See :doc:`Developing compiler passes <mlir_pass>` for guidance
+on choosing an operation anchor, defining the accepted IR, and testing a
+transformation.
 
-As an example, clone the repository and add the following directory structure 
-under :code:`lib`, :code:`lib/Plugins/MyCustomPlugin/`. Within this directory create a 
-:code:`CMakeLists.txt` file and a :code:`MyCustomPlugin.cpp` file. In the CMake file, 
-add the following: 
+CUDA-Q currently builds and tests pass plugins within a CUDA-Q development
+build. A plugin must use CUDA-Q, LLVM, and MLIR headers and libraries compatible
+with the ``cudaq-opt`` binary that loads it. Rebuild the plugin when those
+dependencies change.
 
-.. code:: cmake 
+Implement and register the pass
+===============================
 
-    add_llvm_pass_plugin(MyCustomPlugin MyCustomPlugin.cpp)
+A plugin pass is an MLIR operation pass with a textual argument. Include
+``cudaq/Support/Plugin.h`` and place ``CUDAQ_REGISTER_MLIR_PASS`` at file scope
+after the pass definition. The macro exports the CUDA-Q plugin entry point and
+registers one default-constructible pass.
 
-Creating a CUDA-Q IR pass starts with the implementation of an 
-:code:`mlir::OperationPass`. A full discussion of the MLIR Pass infrastructure 
-is beyond the scope of this document; please see 
-`MLIR Passes <https://mlir.llvm.org/docs/PassManagement>`_. To create such 
-a pass, start with the following template in the :code:`MyCustomPlugin.cpp` file:
+The complete example below is included from the source compiled by the plugin
+test target. It replaces each ``quake.h`` operation with
+``quake.s`` so that the regression can observe the transformation. This example
+demonstrates plugin registration and does not preserve circuit semantics.
 
-.. code:: cpp 
-    
-    #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-    #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-    #include "cudaq/Support/Plugin.h"
-    #include "mlir/Rewrite/FrozenRewritePatternSet.h"
-    #include "mlir/Transforms/DialectConversion.h"
+.. literalinclude:: ../../../../../cudaq/test/plugin/CustomPassPlugin.cpp
+   :language: cpp
 
-    // Here is an example MLIR Pass that one can write externally and 
-    // use via the cudaq-opt tool, with the --load-cudaq-plugin flag. 
-    // The pass here is simple, replace Hadamard operations with S operations. 
+Build the plugin
+================
 
-    using namespace mlir;
+The tested CMake target uses LLVM's pass-plugin helper and depends on the
+generated Quake dialect headers:
 
-    namespace {
+.. :spellcheck-disable:
 
-    struct ReplaceH : public OpRewritePattern<cudaq::quake::HOp> {
-      using OpRewritePattern::OpRewritePattern;
-      LogicalResult matchAndRewrite(cudaq::quake::HOp hOp,
-                                    PatternRewriter &rewriter) const override {
-        rewriter.replaceOpWithNewOp<cudaq::quake::SOp>(
-            hOp, hOp.isAdj(), hOp.getParameters(), hOp.getControls(),
-            hOp.getTargets());
-        return success();
-      }
-    };
+.. literalinclude:: ../../../../../cudaq/test/plugin/CMakeLists.txt
+   :language: cmake
 
-    class CustomPassPlugin
-        : public PassWrapper<CustomPassPlugin, OperationPass<func::FuncOp>> {
-    public:
-      MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(CustomPassPlugin)
-  
-      llvm::StringRef getArgument() const override { return "cudaq-custom-pass"; }
+Build that target from a configured CUDA-Q build tree:
 
-      void runOnOperation() override {
-        auto circuit = getOperation();
-        auto ctx = circuit.getContext();
+.. code:: bash
 
-        RewritePatternSet patterns(ctx);
-        patterns.insert<ReplaceH>(ctx);
-        ConversionTarget target(*ctx);
-        target.addLegalDialect<cudaq::quake::QuakeDialect>();
-        target.addIllegalOp<cudaq::quake::HOp>();
-        if (failed(applyPartialConversion(circuit, target, std::move(patterns)))) {
-          circuit.emitOpError("simple pass failed");
-          signalPassFailure();
-        }
-      }
-    };
+   cmake --build build --target CustomPassPlugin
 
-    } // namespace
+.. :spellcheck-enable:
 
-    CUDAQ_REGISTER_MLIR_PASS(CustomPassPlugin)
+Load and test the plugin
+========================
 
-This example serves as a very simple template for creating custom MLIR 
-Passes that analyze the CUDA-Q Quake representation and perform 
-some general transformation. In this example, we create a rewrite pattern 
-that replaces :code:`Hadamard` operations with :code:`S` operations. 
+Load the shared library before naming its registered pass. This Linux command
+uses the paths produced by the in-tree build:
 
-Ensure that :code:`add_subdirectory(Plugins)` is in the :code:`lib/CMakeLists.txt` file, 
-and also that there is a :code:`lib/Plugins/CMakeLists.txt` file that adds your 
-plugin directory with :code:`add_subdirectory`.
+.. :spellcheck-disable:
 
-Then build CUDA-Q and you will have a :code:`MyCustomPlugin.so` plugin library 
-in the install. You can load the plugin and use it with :code:`cudaq-opt` as follows: 
+.. code:: bash
 
-.. code:: bash 
+   build/bin/cudaq-opt input.qke \
+     --load-cudaq-plugin build/lib/CustomPassPlugin.so \
+     --cudaq-custom-pass
 
-    cudaq-opt --load-cudaq-plugin MyCustomPlugin.so file.qke -cudaq-custom-pass
+.. :spellcheck-enable:
 
+A corresponding regression test loads the plugin into ``cudaq-opt`` and checks
+the transformed IR. The pass is registered only for that invocation and is not
+added to a CUDA-Q compilation pipeline.

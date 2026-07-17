@@ -116,7 +116,8 @@ master_doc = 'index'
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     '_doxygen/**', '_static/**', '_tags/**', '_templates/**',
-    '**/__pycache__/**', 'using/extending/_noise.rst', '.DS_Store',
+    '**/__pycache__/**', '_mdgen/Transforms.md', '_mdgen/CodeGenPasses.md',
+    'using/extending/_noise.rst', '.DS_Store',
     'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
