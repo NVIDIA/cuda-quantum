@@ -412,7 +412,9 @@ std::vector<Layer> layers_from_trace(const Trace &trace) {
   std::size_t ref = 0;
   for (const auto &inst : trace) {
     if (inst.type != cudaq::TraceInstructionType::Gate) {
-      ref += 1;
+      // Do not advance ref: boxes_from_trace skips non-Gate instructions
+      // without incrementing its counter, so both functions must use the
+      // same gate-only index scheme to stay in sync.
       continue;
     }
 

@@ -898,6 +898,7 @@ if ${ENABLE_AGGRESSIVE_INLINE}; then
 	else
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline")
 	fi
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(add-dealloc)")
 fi
 if ${ENABLE_ARRAY_CONVERSION}; then
 	RUN_OPT=true
