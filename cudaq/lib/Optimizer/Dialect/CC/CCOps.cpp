@@ -1345,9 +1345,7 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
 // InstantiateCallableOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult cudaq::cc::InstantiateCallableOp::verify() {
-  return success();
-}
+LogicalResult cudaq::cc::InstantiateCallableOp::verify() { return success(); }
 
 //===----------------------------------------------------------------------===//
 // StdvecInitOp
