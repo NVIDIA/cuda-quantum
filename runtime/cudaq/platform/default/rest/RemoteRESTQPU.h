@@ -19,7 +19,7 @@ namespace cudaq {
 class RemoteRESTQPU : public BaseRemoteRESTQPU {
 public:
   // Overrides the `sample`/`observe` `launchKernel` overloads but inherits
-  // `launchKernel(dem_policy)` from `BaseRemoteRESTQPU`.
+  // others (eg `launchKernel(dem_policy)`) from `BaseRemoteRESTQPU`.
   using BaseRemoteRESTQPU::launchKernel;
 
   RemoteRESTQPU() : BaseRemoteRESTQPU() {}

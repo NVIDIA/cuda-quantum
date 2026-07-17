@@ -75,12 +75,6 @@ static cl::opt<std::string> emitLLVMFile(
              "<input-basename>.ll."),
     cl::value_desc("filename"), cl::init(""), cl::ValueOptional);
 
-static cl::opt<bool> llvmOnly(
-    "llvm-only",
-    cl::desc("Emit the LLVM IR for the C++ input and do not emit the MLIR "
-             "code. --emit-llvm-file has higher precedence."),
-    cl::init(false));
-
 static cl::opt<bool>
     verifyMode("verify", cl::desc("Run in diagnostic verification mode."),
                cl::init(false));
@@ -99,10 +93,6 @@ static cl::opt<bool> verboseClang("v",
 
 static cl::opt<bool> debugMode("g", cl::desc("Add -g to clang tool arguments."),
                                cl::init(false));
-
-static cl::opt<bool> dumpToStderr("llvm-to-stderr",
-                                  cl::desc("Echo the LLVM IR to stderr"),
-                                  cl::init(false));
 
 static cl::opt<std::string>
     resourceDir("resource-dir",
@@ -123,6 +113,31 @@ static cl::opt<std::string> stdCpp(
     "std",
     cl::desc("Specify the C++ standard (c++20, c++23). The default is c++20."),
     cl::init("c++20"));
+
+// Dependency-file generation. nvq++ compiles __qpu__ kernels through this tool
+// (cudaq-quake -> llc -> object merge) instead of a plain clang -c, so the
+// GNU-style -MD/-MT/-MF flags CMake/Ninja rely on for header tracking never
+// reach a clang driver. Rather than forward them (clang::tooling strips
+// dependency-file flags via getClangStripDependencyFileAdjuster()), the driver
+// translates them into these options, which are passed to ASTBridgeAction (via
+// its constructor) to drive clang's DependencyFileGenerator off the same
+// preprocessor pass this tool already runs. No extra object is produced.
+static cl::opt<std::string> dependencyFile(
+    "dependency-file",
+    cl::desc("Write Makefile-syntax header dependencies to this file (the -MF "
+             "target of the GNU-style dependency flags)."),
+    cl::value_desc("filename"), cl::init(""));
+
+static cl::list<std::string> dependencyTargets(
+    "dependency-target",
+    cl::desc("Target name(s) for the emitted dependency rule (the -MT value). "
+             "May be given multiple times; defaults to the -o output."));
+
+static cl::opt<bool> dependencySystemHeaders(
+    "dependency-system-headers",
+    cl::desc("Include system headers in the dependency file (-MD semantics). "
+             "When false, system headers are omitted (-MMD semantics)."),
+    cl::init(false));
 
 inline bool isStdinInput(StringRef str) { return str == "-"; }
 
@@ -208,8 +223,9 @@ public:
   using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
 
   CudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &module,
-              MangledKernelNamesMap &kernelNames)
-      : mlirAction(module, kernelNames) {}
+              MangledKernelNamesMap &kernelNames,
+              const cudaq::ASTBridgeAction::DependencyFileOptions &depOpts)
+      : mlirAction(module, kernelNames, depOpts) {}
   virtual ~CudaQAction() = default;
 
   std::unique_ptr<clang::ASTConsumer>
@@ -230,35 +246,19 @@ private:
   cudaq::ASTBridgeAction mlirAction;
 };
 
-/// This is the front-end action to convert the C++ code to LLVM IR to a file.
-class InterceptCudaQAction : public clang::EmitLLVMAction {
-public:
-  using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
-
-  InterceptCudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &,
-                       MangledKernelNamesMap &)
-      : clang::EmitLLVMAction{} {}
-  virtual ~InterceptCudaQAction() = default;
-
-  void EndSourceFileAction() override {
-    clang::EmitLLVMAction::EndSourceFileAction();
-    // Dump the IR to stderr if the command-line option was given.
-    if (dumpToStderr)
-      takeModule().get()->print(errs(), nullptr, false, true);
-  }
-};
 } // namespace
 
 template <typename ACTION>
 bool runTool(mlir::OwningOpRef<mlir::ModuleOp> &module,
              CudaQAction::MangledKernelNamesMap &mangledKernelNameMap,
              StringRef cplusplusCode, std::vector<std::string> &clArgs,
-             const std::string &inputFileName) {
+             const std::string &inputFileName,
+             const cudaq::ASTBridgeAction::DependencyFileOptions &depFileOpts) {
   assert(cplusplusCode.size() > 0);
   assert(clArgs.size() > 0);
   if (!clang::tooling::runToolOnCodeWithArgs(
-          std::make_unique<ACTION>(module, mangledKernelNameMap), cplusplusCode,
-          clArgs, inputFileName, toolName)) {
+          std::make_unique<ACTION>(module, mangledKernelNameMap, depFileOpts),
+          cplusplusCode, clArgs, inputFileName, toolName)) {
     errs() << "error: could not translate ";
     if (inputFilename == "-")
       errs() << "input";
@@ -323,6 +323,18 @@ int main(int argc, char **argv) {
   // Process the command-line options, including reading in a file.
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, toolName);
+
+  cudaq::ASTBridgeAction::DependencyFileOptions depFileOpts;
+  if (!dependencyFile.empty()) {
+    depFileOpts.outputFile = dependencyFile;
+    depFileOpts.includeSystemHeaders = dependencySystemHeaders;
+    if (dependencyTargets.empty())
+      depFileOpts.targets.push_back(outputFilename);
+    else
+      depFileOpts.targets.assign(dependencyTargets.begin(),
+                                 dependencyTargets.end());
+  }
+
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrError =
       MemoryBuffer::getFileOrSTDIN(inputFilename);
   if (auto ec = fileOrError.getError()) {
@@ -481,15 +493,12 @@ int main(int argc, char **argv) {
   std::string inputFile = isStdinInput(inputFilename)
                               ? std::string("input.cc")
                               : sys::path::filename(inputFilename).str();
-  if (auto rc = emitLLVM
-                    ? runTool<CudaQAction>(module, mangledKernelNameMap,
-                                           cplusplusCode, clArgs, inputFile)
-                    : (llvmOnly ? runTool<InterceptCudaQAction>(
-                                      module, mangledKernelNameMap,
-                                      cplusplusCode, clArgs, inputFile)
-                                : runTool<cudaq::ASTBridgeAction>(
-                                      module, mangledKernelNameMap,
-                                      cplusplusCode, clArgs, inputFile)))
+  if (auto rc = emitLLVM ? runTool<CudaQAction>(module, mangledKernelNameMap,
+                                                cplusplusCode, clArgs,
+                                                inputFile, depFileOpts)
+                         : runTool<cudaq::ASTBridgeAction>(
+                               module, mangledKernelNameMap, cplusplusCode,
+                               clArgs, inputFile, depFileOpts))
     return rc;
 
   // Success! Dump the IR and exit.

@@ -17,6 +17,8 @@ from network_utils import check_server_connection
 
 from utils.mock_qpu.qbraid import startServer
 
+pytestmark = pytest.mark.xdist_group("qbraid_mock")
+
 port = 62454
 
 # Default machine for tests. Mirrors the real qBraid device string format.
