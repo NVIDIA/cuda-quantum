@@ -493,3 +493,50 @@ func.func @test(%0: !quake.veq<3>, %1: !quake.veq<2>, %2: !quake.ref) {
   %4 = quake.concat %0, %1, %2 : (!quake.veq<3>, !quake.veq<2>, !quake.ref) -> !quake.veq<34>
   return
 }
+
+// -----
+
+// expected-error @+1 {{must refer to a valid function}}
+%0 = cc.instantiate_callable @whoops() : () -> !cc.callable<(i64) -> ()>
+
+// -----
+
+func.func private @rapper()
+
+// expected-error @+1 {{callable must have at least 1 argument}}
+%0 = cc.instantiate_callable @rapper() : () -> !cc.callable<(i64) -> ()>
+
+// -----
+
+func.func private @rapper(i64)
+
+// expected-error @+1 {{instantiating a callable requires a closure argument}}
+%0 = cc.instantiate_callable @rapper() : () -> !cc.callable<(i64) -> ()>
+
+// -----
+
+func.func private @rapper(!cc.callable<(f64) -> i1>)
+
+// expected-error @+1 {{result type must match closure type}}
+%0 = cc.instantiate_callable @rapper() : () -> !cc.callable<(i64) -> i1>
+
+// -----
+
+func.func private @rapper(!cc.callable<(i64) -> ()>, i5, i6)
+
+// expected-error @+1 {{arity must be the same}}
+%0 = cc.instantiate_callable @rapper() : () -> !cc.callable<(i64) -> ()>
+
+// -----
+
+func.func private @rapper(!cc.callable<(i64) -> ()>, i65)
+
+// expected-error @+1 {{argument types must match}}
+%0 = cc.instantiate_callable @rapper() : () -> !cc.callable<(i64) -> ()>
+
+// -----
+
+func.func private @rapper(!cc.callable<(i64) -> i16>, i64) -> i32
+
+// expected-error @+1 {{result types must match}}
+%0 = cc.instantiate_callable @rapper() : () -> !cc.callable<(i64) -> i16>
