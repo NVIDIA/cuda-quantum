@@ -288,9 +288,8 @@ void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(ArrayRef<Type>{operandTys}.drop_front(isDirect ? 0 : 1),
                         (*this)->getResultTypes());
-  p.printOptionalAttrDict(
-      (*this)->getAttrs(),
-      {"operandSegmentSizes", "is_adj", getCalleeAttrNameStr()});
+  p.printOptionalAttrDict((*this)->getAttrs(), {"operandSegmentSizes", "is_adj",
+                                                getCalleeAttrNameStr()});
 }
 
 ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
