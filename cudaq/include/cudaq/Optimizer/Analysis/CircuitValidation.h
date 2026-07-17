@@ -10,6 +10,7 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Location.h"
 #include <cstddef>
@@ -31,8 +32,8 @@ enum class DomainRejectionKind {
   Reset,
   /// A noise channel (`quake.apply_noise`) is present.
   Noise,
-  /// Classical control flow (`cc.if`/`cc.loop`) is present. For now it supports only
-  /// straight-line circuits.
+  /// Classical control flow (`cc.if`/`cc.loop`) is present. Only straight-line
+  /// circuits are supported for now.
   DynamicControlFlow,
   /// An un-inlined call is present. The callee's body is not visible for exact
   /// unitary construction. Inline before validating.
@@ -86,5 +87,40 @@ inline constexpr unsigned kDefaultExactQubitBound = 14;
 BoundedUnitaryDomainStatus
 checkBoundedUnitaryDomain(mlir::ModuleOp module,
                           unsigned exactQubitBound = kDefaultExactQubitBound);
+
+/// Result of an exact unitary comparison of two straight-line kernels.
+struct UnitaryComparisonResult {
+  /// True iff both unitaries were built and have matching dimensions. When
+  /// false, no comparison was performed and \c error explains why.
+  bool computed = false;
+  /// Element-wise equality within tolerance.
+  bool strictEqual = false;
+  /// Equality after dividing a global phase out of each unitary.
+  bool equalUpToGlobalPhase = false;
+  /// Relative global phase (radians, in (-pi, pi]) of \c candidate with respect
+  /// to \c baseline. Only meaningful when \c equalUpToGlobalPhase is true.
+  double phase = 0.0;
+  /// True iff \c phase is within tolerance of zero.
+  bool phaseIsZero = false;
+  /// Populated only when \c computed is false.
+  std::string error;
+};
+
+/// Compare the unitaries of two straight-line, bounded-unitary kernels exactly.
+///
+/// Each dense unitary is built directly from the IR (no simulator, no target
+/// pipeline), then compared element-wise and up to a global phase. Current
+/// CUDA-Q circuit results are not global-phase observable for a complete
+/// kernel, so \c equalUpToGlobalPhase is the acceptance signal while \c phase /
+/// \c phaseIsZero record the delta for callers that need it.
+///
+/// Callers should confirm both kernels are in the supported domain (see
+/// \c checkBoundedUnitaryDomain) first. On a build failure or dimension
+/// mismatch the result reports \c computed == false rather than a false
+/// equivalence.
+UnitaryComparisonResult compareUnitaries(mlir::func::FuncOp baseline,
+                                         mlir::func::FuncOp candidate,
+                                         double rtol = 1e-5,
+                                         double atol = 1e-8);
 
 } // namespace cudaq::opt

@@ -8,11 +8,18 @@
 
 add_cudaq_library(OptAnalysis
   CircuitValidation.cpp
+  UnitaryBuilder.cpp
   UnitaryOpGrouping.cpp
 
   DEPENDS
     CCDialect
     QuakeDialect
+)
+
+# UnitaryBuilder builds dense unitaries with Eigen (via runtime/common/EigenDense.h).
+target_include_directories(OptAnalysis
+  PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
+  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
 register_cudaq_mlir_lib(OptAnalysis)
