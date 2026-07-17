@@ -99,6 +99,17 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
       {"0.9.0", "1.0.0", Compatibility::Warning,
        "compatibility is not guaranteed"},
       {"0.9.0", "0.9.0-rc2-developer", Compatibility::Compatible, ""},
+      // Non-numeric current version: string-compare, warn if different.
+      {"0.9.0", "developer", Compatibility::Warning,
+       "versions are non-numeric so compatibility cannot be verified"},
+      {"amd64-pr-1234", "amd64-pr-1234", Compatibility::Compatible, ""},
+      {"amd64-pr-1234", "amd64-pr-5678", Compatibility::Warning,
+       "versions are non-numeric so compatibility cannot be verified"},
+      // Both empty (CI dev builds with no version set): compatible.
+      {"", "", Compatibility::Compatible, ""},
+      // Mismatched empty vs non-empty: warn.
+      {"", "0.9.0", Compatibility::Warning,
+       "versions are non-numeric so compatibility cannot be verified"},
   };
 
   cudaq::config::TargetConfig config;
@@ -120,25 +131,28 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
   }
 }
 
-TEST(TargetConfigTester, rejectsMissingAndMalformedVersionMetadata) {
+TEST(TargetConfigTester, nonNumericVersionsFallBackToStringComparison) {
   using Compatibility = cudaq::config::TargetVersionCompatibility;
   cudaq::config::TargetConfig config;
   config.Name = "version-test";
 
+  // Non-numeric plugin versions produce a Warning (not Error) when they differ
+  // from the current version, and Compatible when they match.
   for (const auto *version : {"", "0.9", "v0.9.0", "0.-1.0"}) {
     config.CudaqVersion = version;
     const auto result = cudaq::config::checkExternalTargetVersion(
         config, "0.9.0", "/tmp/version-test.yml");
-    EXPECT_EQ(result.Status, Compatibility::Error);
-    EXPECT_NE(result.Diagnostic.find("missing or malformed"),
-              std::string::npos);
+    EXPECT_EQ(result.Status, Compatibility::Warning) << "plugin=" << version;
+    EXPECT_NE(result.Diagnostic.find("cannot be verified"), std::string::npos)
+        << "plugin=" << version;
   }
 
+  // Non-numeric current version also falls back to string comparison.
   config.CudaqVersion = "0.9.0";
-  const auto malformedCurrent = cudaq::config::checkExternalTargetVersion(
+  const auto nonNumericCurrent = cudaq::config::checkExternalTargetVersion(
       config, "developer", "/tmp/version-test.yml");
-  EXPECT_EQ(malformedCurrent.Status, Compatibility::Error);
-  EXPECT_NE(malformedCurrent.Diagnostic.find("current CUDA-Q version"),
+  EXPECT_EQ(nonNumericCurrent.Status, Compatibility::Warning);
+  EXPECT_NE(nonNumericCurrent.Diagnostic.find("cannot be verified"),
             std::string::npos);
 }
 

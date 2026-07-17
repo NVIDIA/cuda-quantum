@@ -101,19 +101,27 @@ cudaq::config::checkExternalTargetVersion(
     const TargetConfig &config, std::string_view currentVersion,
     const std::filesystem::path &configPath) {
   const auto pluginVersion = parseNumericVersion(config.CudaqVersion);
-  if (!pluginVersion) {
-    return {TargetVersionCompatibility::Error,
-            "error: target '" + config.Name +
-                "' has missing or malformed cudaq-version metadata" +
-                configLocation(configPath)};
-  }
-
   const auto current = parseNumericVersion(currentVersion);
-  if (!current) {
-    return {TargetVersionCompatibility::Error,
-            "error: cannot validate target '" + config.Name +
-                "' because the current CUDA-Q version '" +
-                std::string(currentVersion) + "' is malformed"};
+
+  // If either version is non-numeric (e.g. dev builds or empty), fall back to
+  // string comparison: warn if they differ, but do not block loading.
+  if (!pluginVersion || !current) {
+    if (config.CudaqVersion != std::string(currentVersion)) {
+      const auto pluginStr = config.CudaqVersion.empty()
+                                 ? std::string("(unknown)")
+                                 : config.CudaqVersion;
+      const auto currentStr = currentVersion.empty()
+                                  ? std::string("(unknown)")
+                                  : std::string(currentVersion);
+      return {TargetVersionCompatibility::Warning,
+              "warning: target '" + config.Name + "' was built for CUDA-Q " +
+                  pluginStr + ", but the current CUDA-Q version is " +
+                  currentStr +
+                  "; versions are non-numeric so compatibility cannot be "
+                  "verified" +
+                  configLocation(configPath)};
+    }
+    return {};
   }
 
   const auto pluginTuple = std::tie(pluginVersion->Major, pluginVersion->Minor,
