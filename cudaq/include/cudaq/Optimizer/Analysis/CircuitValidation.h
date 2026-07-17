@@ -1,0 +1,90 @@
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Location.h"
+#include <cstddef>
+#include <string>
+
+namespace cudaq::opt {
+
+/// Reasons a module can be rejected from the bounded-unitary validation domain.
+///
+/// The Optimization Validation Core accepts a rewrite only when the baseline
+/// and candidate are straight-line, bounded-unitary Quake circuits whose
+/// unitaries can be built and compared exactly. Any construct outside that
+/// domain is rejected here so the validator fails closed rather than silently
+/// validating something it cannot reason about.
+enum class DomainRejectionKind {
+  /// A measurement operation (`quake.mz`/`mx`/`my`, etc.) is present.
+  Measurement,
+  /// A `quake.reset` operation is present.
+  Reset,
+  /// A noise channel (`quake.apply_noise`) is present.
+  Noise,
+  /// Classical control flow (`cc.if`/`cc.loop`) is present. For now it supports only
+  /// straight-line circuits.
+  DynamicControlFlow,
+  /// An un-inlined call is present. The callee's body is not visible for exact
+  /// unitary construction. Inline before validating.
+  UnsupportedCall,
+  /// A dynamically-sized `!quake.veq` is present. The qubit count is not
+  /// statically knowable.
+  DynamicQubitRegister,
+  /// The kernel uses more qubits than the exact-unitary bound allows.
+  TooManyQubits,
+};
+
+/// Return a stable, machine-consumable slug for \p kind (e.g. "measurement").
+/// These strings are part of the validator's diagnostic contract and must stay
+/// stable across releases.
+llvm::StringRef toString(DomainRejectionKind kind);
+
+/// A reason a kernel was rejected, with enough context to diagnose it.
+struct DomainRejection {
+  DomainRejectionKind kind;
+  /// The kernel (function) symbol name the rejection was found in.
+  std::string kernel;
+  /// Context (e.g. the offending op name or qubit count).
+  std::string detail;
+  /// Source location of the offending construct, when available.
+  mlir::Location loc;
+};
+
+/// Result of a bounded-unitary domain preflight over a whole module.
+struct BoundedUnitaryDomainStatus {
+  /// True iff every kernel with a body is in the supported domain.
+  bool supported = true;
+  /// The largest statically-known qubit count observed across kernels.
+  std::size_t maxQubits = 0;
+  /// All rejections found, in discovery order. Empty iff \c supported.
+  llvm::SmallVector<DomainRejection> rejections;
+};
+
+/// Default upper bound on the number of qubits per kernel. A dense unitary of
+/// n qubits is a 2^n x 2^n complex matrix, so this bounds memory/time of the
+/// exact comparison.
+inline constexpr unsigned kDefaultExactQubitBound = 14;
+
+/// Determine whether every function-with-a-body in \p module is a
+/// straight-line, bounded-unitary Quake circuit suitable for exact unitary
+/// validation.
+///
+/// Declarations (empty bodies) are ignored. Each kernel is validated
+/// independently. \p exactQubitBound applies per kernel. The check is a fast,
+/// structural gate. The authoritative semantic check is the exact unitary
+/// comparison performed separately once a module is in the supported domain.
+BoundedUnitaryDomainStatus
+checkBoundedUnitaryDomain(mlir::ModuleOp module,
+                          unsigned exactQubitBound = kDefaultExactQubitBound);
+
+} // namespace cudaq::opt
