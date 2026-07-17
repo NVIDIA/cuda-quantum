@@ -410,8 +410,8 @@ class PyASTBridge(ast.NodeVisitor):
         # AST. These caches are not shared across kernels.
         self.qualifiedNameCache = {}
         self.qualifiedDecoratorCache = {}
-        # Cache only the monotone fact that a scalar handle alloca has a
-        # non-undef store. The AST bridge appends operations while visiting the
+        # Cache only the monotone fact that a scalar handle `alloca` has a
+        # non-`undef` store. The AST bridge appends operations while visiting the
         # source, and the pass pipeline runs only after the visit completes, so
         # a witnessed store cannot disappear during this cache's lifetime. Do
         # not cache the unbound verdict: a later store can change it.
@@ -911,7 +911,7 @@ class PyASTBridge(ast.NodeVisitor):
             operation, 'OPERATION_NAME', None))
 
     def __scanMeasureHandleAllocaStores(self, ptr):
-        """Return whether `ptr` has a store and a non-undef store."""
+        """Return whether `ptr` has a store and a non-`undef` store."""
         sawStore = False
         for use in ptr.uses:
             if self.__measureHandleOperationName(use.owner) != 'cc.store':
