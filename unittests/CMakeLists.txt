@@ -54,9 +54,10 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA::cudart_static
       gtest_main)
 
-  cudaq_gtest_discover_tests(test_device_call_dispatch
-    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
-    DISCOVERY_TIMEOUT 120)
+  add_test(NAME test_device_call_dispatch COMMAND test_device_call_dispatch)
+  set_tests_properties(test_device_call_dispatch PROPERTIES
+    LABELS "gpu_required;realtime"
+    RESOURCE_LOCK "gpu")
 
   # Pure-HOST_CALL host dispatch must work without a visible CUDA device. The
   # binary hides every device from itself (CUDA_VISIBLE_DEVICES="" in its own
