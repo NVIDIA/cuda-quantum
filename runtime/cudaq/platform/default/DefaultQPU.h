@@ -36,6 +36,14 @@ public:
                               const CompiledModule &module,
                               KernelArgs args) override;
 
+  msm_dimensions launchKernel(const msm_size_policy &policy,
+                              const CompiledModule &module,
+                              KernelArgs args) override;
+
+  msm_result launchKernel(const msm_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override;
+
   async_observe_result launchKernel(const async_observe_policy &policy,
                                     const CompiledModule &module,
                                     KernelArgs args) override;
