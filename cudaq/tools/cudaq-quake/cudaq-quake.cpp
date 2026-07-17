@@ -333,6 +333,16 @@ int main(int argc, char **argv) {
     else
       depFileOpts.targets.assign(dependencyTargets.begin(),
                                  dependencyTargets.end());
+    // The frontend runs through clang::tooling on an in-memory copy of the
+    // source mapped to a virtual (bare) name, so the dependency generator would
+    // record the main file under a non-existent relative path. Capture the real
+    // path here so that entry can be rewritten (see ASTBridge.cpp).
+    if (!isStdinInput(inputFilename)) {
+      SmallString<256> mainReal;
+      if (sys::fs::real_path(inputFilename, mainReal))
+        mainReal.assign(inputFilename);
+      depFileOpts.mainFileRealPath = std::string(mainReal);
+    }
   }
 
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrError =
