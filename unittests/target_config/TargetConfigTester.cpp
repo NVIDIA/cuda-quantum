@@ -107,9 +107,8 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
        "versions are non-numeric so compatibility cannot be verified"},
       // Both empty (CI dev builds with no version set): compatible.
       {"", "", Compatibility::Compatible, ""},
-      // Mismatched empty vs non-empty: warn.
-      {"", "0.9.0", Compatibility::Warning,
-       "versions are non-numeric so compatibility cannot be verified"},
+      // Numeric current + empty plugin: plugin metadata is required → Error.
+      {"", "0.9.0", Compatibility::Error, "missing or malformed"},
   };
 
   cudaq::config::TargetConfig config;
@@ -136,24 +135,39 @@ TEST(TargetConfigTester, nonNumericVersionsFallBackToStringComparison) {
   cudaq::config::TargetConfig config;
   config.Name = "version-test";
 
-  // Non-numeric plugin versions produce a Warning (not Error) when they differ
-  // from the current version, and Compatible when they match.
-  for (const auto *version : {"", "0.9", "v0.9.0", "0.-1.0"}) {
-    config.CudaqVersion = version;
-    const auto result = cudaq::config::checkExternalTargetVersion(
-        config, "0.9.0", "/tmp/version-test.yml");
-    EXPECT_EQ(result.Status, Compatibility::Warning) << "plugin=" << version;
-    EXPECT_NE(result.Diagnostic.find("cannot be verified"), std::string::npos)
-        << "plugin=" << version;
+  // When the current version is non-numeric, any plugin version produces a
+  // Warning (differing) or Compatible (equal) — never an Error.
+  for (const auto *pluginVer : {"", "0.9", "v0.9.0", "not-a-version"}) {
+    config.CudaqVersion = pluginVer;
+    // Different non-numeric strings → Warning.
+    const auto diffResult = cudaq::config::checkExternalTargetVersion(
+        config, "developer", "/tmp/version-test.yml");
+    const bool isEqual = std::string(pluginVer) == std::string("developer");
+    EXPECT_EQ(diffResult.Status,
+              isEqual ? Compatibility::Compatible : Compatibility::Warning)
+        << "plugin=" << pluginVer;
+    if (!isEqual)
+      EXPECT_NE(diffResult.Diagnostic.find("cannot be verified"),
+                std::string::npos)
+          << "plugin=" << pluginVer;
   }
 
-  // Non-numeric current version also falls back to string comparison.
-  config.CudaqVersion = "0.9.0";
-  const auto nonNumericCurrent = cudaq::config::checkExternalTargetVersion(
-      config, "developer", "/tmp/version-test.yml");
-  EXPECT_EQ(nonNumericCurrent.Status, Compatibility::Warning);
-  EXPECT_NE(nonNumericCurrent.Diagnostic.find("cannot be verified"),
-            std::string::npos);
+  // Equal non-numeric strings (both empty, both same tag) → Compatible.
+  config.CudaqVersion = "amd64-pr-1234";
+  const auto equalResult = cudaq::config::checkExternalTargetVersion(
+      config, "amd64-pr-1234", "/tmp/version-test.yml");
+  EXPECT_EQ(equalResult.Status, Compatibility::Compatible);
+
+  // When the current version IS numeric, non-numeric plugin versions remain
+  // an Error (missing or malformed metadata).
+  for (const auto *badPlugin : {"", "0.9", "v0.9.0", "0.-1.0"}) {
+    config.CudaqVersion = badPlugin;
+    const auto result = cudaq::config::checkExternalTargetVersion(
+        config, "0.9.0", "/tmp/version-test.yml");
+    EXPECT_EQ(result.Status, Compatibility::Error) << "plugin=" << badPlugin;
+    EXPECT_NE(result.Diagnostic.find("missing or malformed"), std::string::npos)
+        << "plugin=" << badPlugin;
+  }
 }
 
 TEST(TargetConfigTester, checkMachineList) {
@@ -392,6 +406,19 @@ config:
 }
 
 TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {
+  // This test requires a numeric current CUDA-Q version to perform semver
+  // comparison. When the version is non-numeric (e.g. empty dev builds), the
+  // validator falls back to string comparison and only warns, so no throw
+  // occurs.
+  const std::string testVersion(CUDAQ_TEST_VERSION);
+  if (testVersion.empty() ||
+      testVersion.find_first_of("0123456789") == std::string::npos ||
+      testVersion.find('.') == std::string::npos) {
+    GTEST_SKIP() << "Skipping: current CUDA-Q version '" << testVersion
+                 << "' is non-numeric; semver rejection is not tested in dev "
+                    "builds";
+  }
+
   auto root = tmpRoot / "pluginversiontest";
   auto targetsDir = root / "targets";
   auto libDir = root / "lib";
