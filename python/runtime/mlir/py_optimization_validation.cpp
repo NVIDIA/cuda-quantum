@@ -9,12 +9,14 @@
 #include "py_optimization_validation.h"
 #include "common/Resources.h"
 #include "cudaq/Optimizer/Analysis/CircuitValidation.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OwningOpRef.h"
+#include "mlir/Pass/PassManager.h"
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <optional>
@@ -106,6 +108,21 @@ static nb::dict count_resources_checkpoint(MlirModule module) {
   // countResourcesFromIR mutates its input (it erases counted gates), so count
   // on a clone and let the OwningOpRef destroy it when we return.
   mlir::OwningOpRef<mlir::ModuleOp> cloned(unwrap(module).clone());
+
+  // countResourcesFromIR only supports reference-semantics IR. On
+  // value-semantics (wire) form it fatally aborts ("op destroyed but still has
+  // uses"). Normalize any wire form back with regtomem first so counting at an
+  // arbitrary checkpoint is always safe. regtomem is a no-op on ref form.
+  {
+    mlir::PassManager pm(cloned.get().getContext());
+    pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createRegToMem());
+    if (mlir::failed(pm.run(cloned.get()))) {
+      result["computed"] = false;
+      result["error"] = "resource counting failed (regtomem normalization)";
+      return result;
+    }
+  }
+
   auto counts = cudaq::opt::countResourcesFromIR(cloned.get());
   if (mlir::failed(counts)) {
     result["computed"] = false;
