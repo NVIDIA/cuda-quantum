@@ -174,6 +174,16 @@ class PyScopedSymbolTable(object):
     def scopeRoot(self):
         return self._scope.root
 
+    def getIfAccessible(self, symbol):
+        """Return the value for an accessible `symbol`, otherwise None."""
+        scope = self._scope
+        while scope:
+            value, valid = scope.tryGet(symbol)
+            if value is not None:
+                return value if valid else None
+            scope = scope.parent
+        return None
+
     def __contains__(self, symbol):
         """Returns True if and only if a symbol with the given name is defined
         according to Python scoping rules.
@@ -1431,8 +1441,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         whileBlock = Block.create_at_start(loop.whileRegion, argTypes)
         with InsertionPoint(whileBlock):
+            self.symbolTable.beginBlock()
             condVal = evalCond(whileBlock.arguments)
             cc.ConditionOp(condVal, whileBlock.arguments)
+            self.symbolTable.endBlock()
 
         bodyBlock = Block.create_at_start(loop.bodyRegion, argTypes)
         with InsertionPoint(bodyBlock):
@@ -4936,6 +4948,38 @@ class PyASTBridge(ast.NodeVisitor):
             self.visit(node.value)
             var = self.popValue()
             self.isSubscriptRoot = subscriptRoot
+
+        if (quake.VeqType.isinstance(var.type) and
+                isinstance(node.slice, ast.Constant) and
+                type(node.slice.value) is int and node.slice.value >= 0):
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "indexing into a qvector does not produce a "
+                    "modifiable value", node)
+
+            # Cache the pure fixed extraction in the scoped symbol table, which
+            # already tracks whether a value's defining block dominates the
+            # current insertion point. The MLIR base value distinguishes
+            # separate allocations/views while allowing source aliases to
+            # share the same reference.
+            cacheKey = ("__cudaq_fixed_qref", var, node.slice.value)
+            cachedRef = self.symbolTable.getIfAccessible(cacheKey)
+            if cachedRef is not None:
+                self.pushValue(cachedRef)
+                return
+
+            ref = quake.ExtractRefOp(self.getRefType(), var,
+                                     node.slice.value).result
+
+            # Preserve the number and timing of diagnostics for a statically
+            # out-of-bounds index by emitting every invalid extraction.
+            staticSize = (quake.VeqType.getSize(var.type)
+                          if quake.VeqType.hasSpecifiedSize(var.type) else None)
+            if staticSize is None or node.slice.value < staticSize:
+                self.symbolTable[cacheKey] = ref
+
+            self.pushValue(ref)
+            return
 
         pushPtr = self.pushPointerValue
         self.pushPointerValue = False
