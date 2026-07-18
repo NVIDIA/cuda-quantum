@@ -460,8 +460,6 @@ public:
   /// @brief Reset the qubit
   /// @param qubitIdx
   void resetQubit(const std::size_t qubitIdx) override {
-    if (cudaq::isInTracerMode())
-      return;
     flushGateQueue();
     this->flushAnySamplingTasks();
     const int basisBits[] = {(int)qubitIdx};

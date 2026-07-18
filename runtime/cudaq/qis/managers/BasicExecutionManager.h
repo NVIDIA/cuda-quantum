@@ -112,22 +112,13 @@ public:
   }
 
   void returnQudit(const QuditInfo &qid) override {
-    auto *ctx = cudaq::getExecutionContext();
-    if (!ctx) {
+    if (!cudaq::getExecutionContext()) {
       deallocateQudit(qid);
       returnIndex(qid.id);
       return;
     }
 
     if (isInTracerMode()) {
-      returnIndex(qid.id);
-      return;
-    }
-
-    // For `run` contexts, deallocate immediately so the simulator can reuse
-    // the physical qubit slot for subsequent allocations in the same kernel.
-    if (ctx->name == "run") {
-      deallocateQudit(qid);
       returnIndex(qid.id);
       return;
     }
