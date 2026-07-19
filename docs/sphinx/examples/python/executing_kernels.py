@@ -199,7 +199,11 @@ Angle 1.4: 5/10 ones measured
  [End `RunAsyncOutput`] '''
 
 # [Begin Observe]
+import cudaq
+
 from cudaq import spin
+
+qubit_count = 2
 
 # Define a Hamiltonian in terms of Pauli Spin operators.
 hamiltonian = spin.z(0) + spin.y(1) + spin.x(0) * spin.z(0)
