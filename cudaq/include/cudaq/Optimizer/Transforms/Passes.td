@@ -1026,6 +1026,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "Layout search strategy: sabre (SABRE forward-backward-forward "
            "reverse-traversal refinement of each seed), none (single forward "
            "route per seed; legacy mapping is placement=identity search=none)">,
+    Option<"islandPackingAttemptBudget", "island-packing-attempt-budget",
+           "unsigned", /*default=*/"1048576",
+           "For disconnected devices with greedy placement: the maximum number "
+           "of placement attempts the exhaustive island-packing fallback may "
+           "make before giving up. The fallback only runs when the fast "
+           "best-fit-decreasing packer fails, and feasible packings settle in a "
+           "handful of attempts; this bound caps the cost of proving "
+           "infeasibility on pathological topologies. Exhausting it emits a "
+           "diagnostic suggesting a larger value. 0 disables the fallback "
+           "(best-fit-decreasing only) (advanced)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
            "internal compiler errors">
