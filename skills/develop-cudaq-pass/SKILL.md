@@ -48,9 +48,8 @@ Select the smallest extension point that owns the behavior:
 - Otherwise add a focused pass. Keep pass-dependent patterns and helpers local;
   share a helper only when it has more than one real caller.
 
-Do not use `quake-simplify` as the default home for an independent
-transformation. CUDA-Q has concrete compilation pipelines but no single
-standard Quake optimization pipeline. Do not invent one as part of a pass.
+`quake-simplify` contains existing transformations but is not the default home
+for new independent ones.
 
 ## Prepare the Implementation Brief
 
@@ -65,16 +64,16 @@ After tracing current behavior, present a proportional brief containing:
 - minimum sufficient test evidence
 - non-obvious correctness, compile-time, memory, convergence, or production
   risks
-- likely files and applicable routing from the current `.github/CODEOWNERS`
+- likely files and the repository that owns each change
 
 Separate prerequisite shared APIs, analyses, utilities, traits, interfaces, or
 IR semantics from pass-local implementation and pipeline activation. A local
 implementation does not establish that required owner review occurred.
 
 For an external plugin, keep its implementation, packaging, and tests in the
-plugin repository and use that repository's review routing. Put a required
-CUDA-Q shared API or IR change in a separate CUDA-Q review unit and use CUDA-Q's
-current `.github/CODEOWNERS` for that unit.
+plugin repository and follow that repository's contribution process. Put a
+required CUDA-Q shared API or IR change in a separate CUDA-Q review unit and
+follow CUDA-Q's contribution process for that unit.
 
 If the contributor requests a plan, design, proposal, or no edits, stop after
 the brief. Otherwise continue without another confirmation gate unless a
@@ -109,15 +108,14 @@ For every quantum transformation, state and justify one applicable relation:
 Verifier-valid IR and an improved gate count, depth, or other optimization
 metric are not evidence of semantics preservation. Use `CircuitCheck` only for
 small unitary IR within its supported scope and select its global-phase or
-mapping modes only when the pass claims that relation. Use contract-specific
-tests for measurement, reset, control flow, noise, or other non-unitary
-behavior.
+mapping modes only when the pass claims that relation. For measurement, reset,
+control flow, noise, or other non-unitary behavior, test the observable behavior
+that the pass claims to preserve.
 
 For Quake dependency-sensitive transformations, prefer value form when precise
 wire or cable use-def chains are required. Preserve linear value threading
 through operations and control flow. Treat calls and unsupported regions
-conservatively unless a pass-specific analysis establishes otherwise. Do not
-use `repair-linear-type` as evidence that a rewrite was sound.
+conservatively unless a pass-specific analysis establishes otherwise.
 
 ## Implement and Verify
 
