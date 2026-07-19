@@ -1,7 +1,7 @@
 schema_version: 1
 
 harbor:
-  # Drive read-only evaluation tasks from evals/evals.json.
+  # Drive evaluation tasks from evals/evals.json.
   task_source: evals_json
   custom_dockerfile_mode: rebase
   base_image_mode: reuse
@@ -13,40 +13,9 @@ harbor:
   timeout_multiplier: 2.0
 
 skill_workspace:
-  # Include only the CUDA-Q documentation and source fixtures needed by the
-  # prompts and grading criteria.
+  # Stage only this skill. Future source-editing qualification requires
+  # sanitized repository staging; see EVAL.md.
   mode: isolated
-  include:
-    - skills/develop-cudaq-pass/SKILL.md
-    - skills/develop-cudaq-pass/references/source-map.md
-    - docs/sphinx/using/extending/compiler/index.rst
-    - docs/sphinx/using/extending/compiler/cudaq_ir.rst
-    - docs/sphinx/using/extending/compiler/dialect_reference.rst
-    - docs/sphinx/using/extending/compiler/mlir_pass.rst
-    - docs/sphinx/using/extending/compiler/available_passes.md
-    - docs/sphinx/using/extending/compiler/pass_plugins.rst
-    - docs/sphinx/specification/quake-dialect.md
-    - cudaq/include/cudaq/Optimizer/Transforms/
-    - cudaq/include/cudaq/Optimizer/CodeGen/
-    - cudaq/include/cudaq/Optimizer/InitAllPasses.h
-    - cudaq/include/cudaq/Optimizer/Dialect/Quake/
-    - cudaq/include/cudaq/Optimizer/Dialect/CC/
-    - cudaq/lib/Optimizer/CMakeLists.txt
-    - cudaq/lib/Optimizer/Transforms/
-    - cudaq/lib/Optimizer/CodeGen/
-    - cudaq/lib/Optimizer/Dialect/Quake/
-    - cudaq/lib/Optimizer/Dialect/CC/
-    - cudaq/tools/cudaq-opt/
-    - runtime/cudaq/platform/
-    - cudaq/test/lit.cfg.py
-    - cudaq/test/Transforms/
-    - cudaq/test/AST-Quake/
-    - cudaq/test/Translate/
-    - cudaq/test/plugin/CustomPassPlugin.cpp
-    - cudaq/test/plugin/CMakeLists.txt
-    - cudaq/unittests/Optimizer/
-    - python/tests/mlir/
-    - utils/CircuitCheck/
 
 grading:
-  mode: aces_default
+  mode: default
