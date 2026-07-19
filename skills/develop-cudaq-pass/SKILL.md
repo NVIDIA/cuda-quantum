@@ -31,6 +31,9 @@ policy or dialect reference material into the result.
 
 ## Choose the Change Shape
 
+Before choosing the change shape, capture representative valid input IR at the
+intended pipeline boundary and state the output required by the next consumer.
+
 Select the smallest extension point that owns the behavior:
 
 - Use folding or operation canonicalization for a cheap, local, monotonic form
@@ -142,11 +145,10 @@ home.
 
 ## Stop and Report
 
-Stop for contributor or owner input when semantics are undefined, a shared or
-core IR requirement is unresolved, the required pipeline boundary is unknown,
-or a persistent performance test has no agreed home.
+Pause when implementation needs a contributor decision about undefined
+semantics, a shared or core IR change, pipeline placement, or the home for a
+persistent performance test.
 
-The completion report groups changes and evidence by proposed review unit. It
-names tests run and omitted, production findings, remaining risk, and required
-human review. Follow the current repository contribution policy for commits
-and remote actions.
+When finished, group changes and evidence by review unit. Report tests run and
+omitted, remaining risks, and unresolved decisions. Follow the repository's
+current contribution process.
