@@ -585,6 +585,13 @@ def mlirTypeFromAnnotation(annotation,
                 'list argument annotation must provide element type, e.g. list[float] instead of list.'
             )
 
+        if id == 'tuple' or id == 'Tuple':
+            localEmitFatalError(
+                'tuple argument annotation must provide element types, e.g. '
+                'tuple[int, int] or list[tuple[int, int]] instead of bare '
+                'tuple.'
+            )
+
         if id == 'int':
             return IntegerType.get_signless(64)
 
