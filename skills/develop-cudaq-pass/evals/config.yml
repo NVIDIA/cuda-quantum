@@ -13,9 +13,8 @@ harbor:
   timeout_multiplier: 2.0
 
 skill_workspace:
-  # Stage only this skill. Future source-editing qualification requires
-  # sanitized repository staging; see EVAL.md.
   mode: isolated
+  include: []
 
 grading:
   mode: default
