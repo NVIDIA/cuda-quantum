@@ -11,7 +11,6 @@ semantics; this file only routes to current sources.
 | Contribution and DCO policy | `Contributing.md` |
 | Build, style, and test workflow | `Developing.md` |
 | C++ API boundaries | `CppAPICodingStyle.md` |
-| Current review routing | `.github/CODEOWNERS` |
 | Compiler overview | `docs/sphinx/using/extending/compiler/index.rst` |
 | Compiler IR forms | `docs/sphinx/using/extending/compiler/cudaq_ir.rst` |
 | Dialect reference index | `docs/sphinx/using/extending/compiler/dialect_reference.rst` |
