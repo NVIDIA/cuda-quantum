@@ -166,11 +166,11 @@
   },
   {
     "id": "pass-source-edit-external-hxh",
-    "question": "Create an out-of-tree CUDA-Q compiler pass plugin under hxh-plugin/. Register the pass as cudaq-hxh-to-z and implement the semantics-preserving single-qubit optimization H X H -> Z. Build and test it against the provided CUDA-Q development environment. Do not modify CUDA-Q source or add the pass to a production pipeline.",
+    "question": "Create an out-of-tree CUDA-Q compiler pass plugin under hxh-plugin/. Register the pass as cudaq-hxh-to-z and implement the single-qubit optimization H X H -> Z. Build and test it against the provided CUDA-Q development environment. Do not modify CUDA-Q source or add the pass to a production pipeline.",
     "expected_skill": "develop-cudaq-pass",
     "expected_script": null,
     "should_trigger": true,
-    "ground_truth": "The agent activates develop-cudaq-pass, inspects the CUDA-Q pass and external-plugin guidance, and creates a complete external plugin project rather than changing CUDA-Q production source. It defines a conservative supported Quake boundary from current operation semantics, writes a failing behavioral test before the implementation, implements H X H to Z with correct quantum value threading, builds only the external target, and validates the exact unitary relation separately from textual IR and the three-to-one gate-count improvement. Unsupported valid shapes remain unchanged or are transformed only with evidence that the same exact relation holds.",
+    "ground_truth": "The agent uses develop-cudaq-pass to build a self-contained external plugin that rewrites a supported H X H sequence to Z without modifying CUDA-Q source. It derives the supported Quake pattern from current semantics, preserves quantum value threading, builds only the plugin, and verifies the rewrite with both IR checks and exact circuit equivalence. Valid inputs outside the supported pattern remain unchanged.",
     "expected_behavior": [
       "The agent reads the skill, external plugin guide, compiler IR guide, pass guide, Quake semantics, and the maintained plugin source before implementing.",
       "The agent keeps all authored project, implementation, and test files under hxh-plugin/ and does not change CUDA-Q source or a production pipeline.",
