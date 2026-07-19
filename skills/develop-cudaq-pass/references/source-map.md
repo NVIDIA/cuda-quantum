@@ -22,8 +22,9 @@ semantics; this file only routes to current sources.
 
 Load the compiler overview and pass guide for every pass-development task.
 Load the plugin guide only for external work. Load the compiler IR guide and a
-dialect reference only when that dialect or IR boundary is relevant. Load the
-Quake specification for Quake transformations and pipeline work.
+dialect reference only when the task depends on that IR boundary or dialect.
+Load the Quake specification for Quake transformations and pipeline tasks that
+operate on Quake.
 
 ## Generated References
 

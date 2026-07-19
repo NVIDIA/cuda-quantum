@@ -18,11 +18,13 @@ policy or dialect reference material into the result.
 2. Review the generated available-pass catalog before deciding whether to
    extend or add a pass. If its generated includes are absent, inspect both the
    Transform and CodeGen `Passes.td` files.
-3. Read the compiler IR guide and only the generated dialect references used by
-   the task. When a generated dialect page is absent, inspect its TableGen
-   definitions and implementations instead.
-4. For a Quake transformation or pipeline change, read the Quake semantic
-   specification. Do not assume Quake has one global canonical form.
+3. Read the compiler IR guide when the task depends on an IR boundary. Read
+   only the generated dialect references used by the task. When a generated
+   dialect page is absent, inspect its TableGen definitions and implementations
+   instead.
+4. For a Quake transformation, or a pipeline task that operates on Quake, read
+   the Quake semantic specification. Do not assume Quake has one global
+   canonical form.
 5. Trace the closest comparable declaration, implementation, registration,
    CMake entry, pipeline use, and tests. Load a named primary source when the
    requested algorithm depends on one.
@@ -69,9 +71,30 @@ Separate prerequisite shared APIs, analyses, utilities, traits, interfaces, or
 IR semantics from pass-local implementation and pipeline activation. A local
 implementation does not establish that required owner review occurred.
 
+For an external plugin, keep its implementation, packaging, and tests in the
+plugin repository and use that repository's review routing. Put a required
+CUDA-Q shared API or IR change in a separate CUDA-Q review unit and use CUDA-Q's
+current `.github/CODEOWNERS` for that unit.
+
 If the contributor requests a plan, design, proposal, or no edits, stop after
 the brief. Otherwise continue without another confirmation gate unless a
 stopping condition below applies.
+
+## Communicate the Work
+
+Apply these rules to briefs, progress reports, completion evidence,
+diagnostics, comments, and documentation:
+
+- Lead with the decision, result, action, or blocking question and provide the
+  evidence and rationale needed to act.
+- Use established CUDA-Q, MLIR, compiler, and quantum computing terms. Define
+  necessary specialized terms and write for an entry-level quantum compiler
+  developer without assuming local history or an unstated pipeline.
+- Prefer exact names, paths, commands, results, and measurements. Distinguish
+  verified facts, recommendations, assumptions, and unresolved decisions.
+- Preserve relevant preconditions, correctness risks, and tradeoffs without
+  inflated claims or unnecessary context.
+- Do not repeat the prompt, tool logs, repository policy, or source material.
 
 ## Preserve Quantum Semantics
 
