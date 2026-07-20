@@ -71,6 +71,7 @@ sphinx_output_dir="$docs_build_output/sphinx"
 doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
 dialect_reference_names=(Quake CC QEC CodeGen)
+build_compiler_developer_docs="${CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS:-0}"
 rm -rf "$docs_build_output"
 
 # Check if the cudaq Python package is installed and if not, build and install it
@@ -102,7 +103,7 @@ if [ ! "$cmake_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation from the cudaq-doc build target."
     echo "CMake exit code: $cmake_exit_code"
     docs_exit_code=10
-else
+elif [ "$build_compiler_developer_docs" = "1" ]; then
     for dialect_name in "${dialect_reference_names[@]}"; do
         dialect_reference_file="$dialect_output_dir/$dialect_name.md"
         if [ ! -f "$dialect_reference_file" ]; then
@@ -193,14 +194,16 @@ build_sphinx_docs() (
         echo "Failed to stage the Doxygen reference."
         return 10
     fi
-    mkdir -p sphinx/_mdgen/Dialects
-    for dialect_name in "${dialect_reference_names[@]}"; do
-        dialect_reference_file="$dialect_output_dir/$dialect_name.md"
-        if ! cp "$dialect_reference_file" "sphinx/_mdgen/Dialects/$dialect_name.md"; then
-            echo "Failed to stage the $dialect_name reference."
-            return 10
-        fi
-    done
+    if [ "$build_compiler_developer_docs" = "1" ]; then
+        mkdir -p sphinx/_mdgen/Dialects
+        for dialect_name in "${dialect_reference_names[@]}"; do
+            dialect_reference_file="$dialect_output_dir/$dialect_name.md"
+            if ! cp "$dialect_reference_file" "sphinx/_mdgen/Dialects/$dialect_name.md"; then
+                echo "Failed to stage the $dialect_name reference."
+                return 10
+            fi
+        done
+    fi
 
     rm -rf "$sphinx_output_dir"
     echo "Running sphinx in $PWD"

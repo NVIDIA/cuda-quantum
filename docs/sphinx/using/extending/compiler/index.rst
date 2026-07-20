@@ -6,8 +6,15 @@ CUDA-Q compiler development
    :maxdepth: 1
 
    Compiler IR <cudaq_ir>
-   CUDA-Q dialect documentation <dialect_reference>
    External compiler pass plugins <pass_plugins>
+
+.. only:: compiler_developer_docs
+
+   .. toctree::
+      :hidden:
+      :maxdepth: 1
+
+      CUDA-Q dialect documentation <dialect_reference>
 
 CUDA-Q compiles C++ and Python quantum kernels using the
 `MLIR compiler infrastructure <https://mlir.llvm.org/>`_. The language frontends
@@ -23,11 +30,15 @@ paths run a target-independent preparation pipeline before a kernel is compiled
 for execution.
 
 These modules use several dialects rather than representing kernels as sequences
-of standalone circuit instructions. :doc:`Quake </_mdgen/Dialects/Quake>`
-represents quantum operations and values, :doc:`CC </_mdgen/Dialects/CC>`
-represents classical constructs needed by CUDA-Q kernels, and the `upstream MLIR
-dialects <https://mlir.llvm.org/docs/Dialects/>`_ provide functions, arithmetic,
-control flow, and lower-level forms.
+of standalone circuit instructions. Quake represents quantum operations and
+values, CC represents classical constructs needed by CUDA-Q kernels, and the
+`upstream MLIR dialects <https://mlir.llvm.org/docs/Dialects/>`_ provide
+functions, arithmetic, control flow, and lower-level forms.
+
+.. only:: compiler_developer_docs
+
+   :doc:`Quake </_mdgen/Dialects/Quake>` and :doc:`CC
+   </_mdgen/Dialects/CC>` provide generated operation and type references.
 
 CUDA-Q registers individual passes and reusable pass pipelines with MLIR's
 `pass infrastructure <https://mlir.llvm.org/docs/PassManagement/>`_. CUDA-Q
@@ -41,9 +52,12 @@ pipeline.
   transformation consumes or produces. For Quake's reference and value models,
   see the :doc:`Quake semantic specification
   <../../../specification/quake-dialect>`.
-* Browse :doc:`dialect_reference` for the generated operation and type
-  documentation for the CUDA-Q dialects.
 * See :doc:`pass_plugins` for the existing external pass plugin interface.
+
+.. only:: compiler_developer_docs
+
+   * Browse :doc:`dialect_reference` for the generated operation and type
+     documentation for the CUDA-Q dialects.
 
 .. rubric:: Code organization
 

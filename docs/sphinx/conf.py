@@ -122,6 +122,22 @@ exclude_patterns = [
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
 ]
 
+compiler_developer_docs = (
+    os.getenv('CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS') == '1'
+)
+
+if compiler_developer_docs:
+    tags.add('compiler_developer_docs')
+else:
+    exclude_patterns.extend([
+        'using/extending/compiler/mlir_pass.rst',
+        'using/extending/compiler/available_passes.md',
+        'using/extending/compiler/dialect_reference.rst',
+        '_mdgen/Dialects/**',
+        '_mdgen/Transforms.md',
+        '_mdgen/CodeGenPasses.md',
+    ])
+
 # The reST default role (used for this markup: `text`) to use for all documents.
 default_role = 'code'  # NOTE: the following may be a better choice to error on the side of flagging anything that is referenced but but not declared
 #default_role = 'cpp:any' # see https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing

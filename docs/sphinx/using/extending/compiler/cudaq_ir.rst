@@ -43,8 +43,11 @@ requires one of these forms must state that requirement explicitly.
 The authored
 :doc:`Quake semantic specification <../../../specification/quake-dialect>`
 explains the reference and value models and the reasoning behind them.
-See the :doc:`generated Quake dialect documentation
-</_mdgen/Dialects/Quake>` for operation and type details.
+
+.. only:: compiler_developer_docs
+
+   See the :doc:`generated Quake dialect documentation
+   </_mdgen/Dialects/Quake>` for operation and type details.
 
 CC
 --
@@ -56,8 +59,11 @@ scope, loop, conditional, memory, and callable behavior before those concepts
 are lowered to target forms. Both CUDA-Q frontends use CC alongside Quake, so
 classical control and quantum operations can remain interleaved while their
 relationship is still visible.
-See the :doc:`generated CC dialect documentation
-</_mdgen/Dialects/CC>` for operation and type details.
+
+.. only:: compiler_developer_docs
+
+   See the :doc:`generated CC dialect documentation
+   </_mdgen/Dialects/CC>` for operation and type details.
 
 QEC
 ---
@@ -67,8 +73,11 @@ operations. Its detector and logical-observable operations describe parity
 relationships over measurement results. These operations consume CC
 measurement handles, which is one concrete example of CUDA-Q dialects sharing
 types and semantics within the same module.
-See the :doc:`generated QEC dialect documentation
-</_mdgen/Dialects/QEC>` for operation details.
+
+.. only:: compiler_developer_docs
+
+   See the :doc:`generated QEC dialect documentation
+   </_mdgen/Dialects/QEC>` for operation details.
 
 Code generation helpers
 -----------------------
@@ -79,8 +88,11 @@ being converted to lower-level target forms, including QIR and the LLVM
 dialect. ``CodeGen`` is not frontend IR or a general-purpose optimization
 dialect. A pass should produce ``CodeGen`` operations only when they are
 required by that code generation path.
-See the generated ``CodeGen`` :doc:`dialect documentation
-</_mdgen/Dialects/CodeGen>` for operation details.
+
+.. only:: compiler_developer_docs
+
+   See the generated ``CodeGen`` :doc:`dialect documentation
+   </_mdgen/Dialects/CodeGen>` for operation details.
 
 Upstream MLIR dialects
 ----------------------
