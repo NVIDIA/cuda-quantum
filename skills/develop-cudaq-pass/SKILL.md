@@ -7,8 +7,7 @@ description: "Use when planning, adding, modifying, debugging, hardening, or int
 
 Use the current CUDA-Q source and compiler contributor documentation to plan or
 implement one pass-sized change. Keep human documentation authoritative and use
-the [source map](references/source-map.md) to find it. Do not copy repository
-policy or dialect reference material into the result.
+the [source map](references/source-map.md) to find it.
 
 ## Load Sources Progressively
 
