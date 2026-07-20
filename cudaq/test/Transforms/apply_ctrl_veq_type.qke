@@ -1,0 +1,79 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Regression test for a bug where veq type specialization caused type
+// mismatches when creating control variants of functions that have inner calls
+// to other kernels expecting dynamic !quake.veq<?> types.
+//
+// The bug scenario:
+// 1. main_kernel allocates !quake.veq<2> and relaxes it to !quake.veq<?>
+// 2. A controlled apply to thunk_kernel with a constant argument triggers
+// constant propagation which would un-relax the veq type back to !quake.veq<2>
+// 3. The thunk calls inner_kernel which expects !quake.veq<?>
+// 4. When the .ctrl variant is created, the inner call has a type mismatch
+//
+// The fix: Don't specialize (un-relax) veq types when the function has inner
+// func.call operations, since those callees still expect the dynamic type.
+// An alternative fix would be to recursively specialize all callees in the
+// call tree, but that would increase code size.
+
+// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+
+module {
+  // Inner kernel that expects dynamic veq type
+  func.func @inner_kernel(%qubits: !quake.veq<?>, %angle: f64) attributes {"cudaq-kernel"} {
+    %0 = quake.extract_ref %qubits[0] : (!quake.veq<?>) -> !quake.ref
+    quake.rx (%angle) %0 : (f64, !quake.ref) -> ()
+    return
+  }
+
+  // Thunk kernel that calls inner_kernel - will be specialized with constant prop
+  func.func @thunk_kernel(%qubits: !quake.veq<?>, %angle: f64) attributes {"cudaq-kernel"} {
+    func.call @inner_kernel(%qubits, %angle) : (!quake.veq<?>, f64) -> ()
+    return
+  }
+
+  // Main kernel that uses controlled apply with a constant angle
+  func.func @main_kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %cst = arith.constant 0.1 : f64
+    %ancilla = quake.alloca !quake.ref
+    %qreg = quake.alloca !quake.veq<2>
+    %relaxed = quake.relax_size %qreg : (!quake.veq<2>) -> !quake.veq<?>
+    quake.h %ancilla : (!quake.ref) -> ()
+    // Controlled apply with constant - triggers specialization
+    quake.apply @thunk_kernel [%ancilla] %relaxed, %cst : (!quake.ref, !quake.veq<?>, f64) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func private @thunk_kernel.0.ctrl(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<2>) {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e-01 : f64
+// CHECK:           %[[VAL_3:.*]] = quake.relax_size %[[VAL_1]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           call @inner_kernel(%[[VAL_3]], %[[VAL_2]]) : (!quake.veq<?>, f64) -> ()
+
+// CHECK-LABEL:   func.func @inner_kernel(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64)
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.rx (%[[VAL_1]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
+
+// CHECK-LABEL:   func.func @thunk_kernel(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64)
+// CHECK:           call @inner_kernel(%[[VAL_0]], %[[VAL_1]]) : (!quake.veq<?>, f64) -> ()
+
+// CHECK-LABEL:   func.func @main_kernel()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.concat %[[VAL_0]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @thunk_kernel.0.ctrl(%[[VAL_2]], %[[VAL_1]]) : (!quake.veq<?>, !quake.veq<2>) -> ()
+
+// CHECK-LABEL:   func.func private @thunk_kernel.0(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<2>)
+// CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           call @inner_kernel(%[[VAL_2]], %{{.*}}) : (!quake.veq<?>, f64) -> ()

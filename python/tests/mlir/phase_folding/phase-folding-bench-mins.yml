@@ -1,0 +1,16 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: phase-folding-bench-mins
+description: "Phase folding optimization pass for compiler benchmarking/testing with minimum block length and Rz weight thresholds."
+
+config:
+  nvqir-simulation-backend: qpp
+  # Phase folding pass (zero minimum block length and Rz weight thresholds)
+  jit-mid-level-pipeline: "phase-folding-pipeline{min-length=0 min-rz-weight=0}"
+  library-mode: false

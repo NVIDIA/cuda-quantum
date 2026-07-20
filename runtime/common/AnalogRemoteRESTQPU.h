@@ -1,0 +1,70 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "common/BaseRemoteRESTQPU.h"
+#include "cudaq/platform/qpu_utils.h"
+#include <optional>
+
+namespace cudaq {
+
+/// @brief Base QPU class for analog platforms like `quera` and `pasqal`.
+/// Provides common functionality and implementation.
+class AnalogRemoteRESTQPU : public BaseRemoteRESTQPU {
+public:
+  /// @brief Check if this is a remote target
+  virtual bool isRemote() override { return true; }
+
+  /// @brief Check if this is an emulated target
+  virtual bool isEmulated() override { return false; }
+
+  /// @brief Launch a kernel with the given arguments
+  /// Only analog Hamiltonian kernels are supported
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
+                                            KernelArgs args) override {
+    if (!std::holds_alternative<SourceModule>(module))
+      throw std::runtime_error(
+          "AnalogRemoteRESTQPU does not support pre-compiled module launch.");
+
+    const auto &src = std::get<SourceModule>(module);
+    const auto &kernelName = src.getName();
+    auto executionContext = cudaq::getExecutionContext();
+
+    if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))
+      throw std::runtime_error(
+          "Arbitrary kernel execution is not supported on this target.");
+
+    if (emulate)
+      throw std::runtime_error(
+          "Local emulation is not yet supported on this target.");
+
+    CUDAQ_INFO("Launching remote kernel ({})", kernelName);
+    std::vector<cudaq::KernelExecution> codes;
+    std::string name = kernelName;
+    const auto packed = args.getPacked();
+    std::string strArgs = packed ? (char *)packed->data.data() : "";
+    codes.push_back(KernelExecution{.name = name, .code = strArgs});
+
+    if (executionContext) {
+      executor->setShots(executionContext->shots);
+      cudaq::detail::future future;
+      future = executor->execute(codes);
+      // Keep this asynchronous if requested
+      if (executionContext->asyncExec) {
+        executionContext->asyncResult = async_sample_result(std::move(future));
+        return {};
+      }
+      // Otherwise make this synchronous
+      executionContext->result = future.get();
+    }
+    return {};
+  }
+};
+
+} // namespace cudaq

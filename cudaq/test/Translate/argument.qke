@@ -1,0 +1,410 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -kernel-execution -canonicalize %s | \
+// RUN: cudaq-translate --convert-to=qir | FileCheck %s
+
+// NB: the mangled name map is required for the kernel-execution pass.
+module
+  attributes{ quake.mangled_name_map = {
+    __nvqpp__mlirgen__test_0 = "test_0", __nvqpp__mlirgen__test_1 = "test_1",
+    __nvqpp__mlirgen__test_2 = "test_2", __nvqpp__mlirgen__test_3 = "test_3"}}
+{
+
+func.func private @anchor(!cc.ptr<none>, i64)
+
+func.func @__nvqpp__mlirgen__test_0(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) {
+  %0 = cc.stdvec_data %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+  %1 = cc.stdvec_size %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> i64
+  %2 = cc.cast %0 : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<none>
+  call @anchor(%2, %1) : (!cc.ptr<none>, i64) -> ()
+  return
+}
+
+func.func @test_0(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i32, f64}>>, !cc.ptr<!cc.struct<{i32, f64}>>, !cc.ptr<!cc.struct<{i32, f64}>>}>>) {
+  return
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__test_0({ ptr, i64 }
+// CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
+// CHECK:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
+// CHECK:         tail call void @anchor(ptr %[[VAL_1]], i64 %[[VAL_2]])
+// CHECK:         ret void
+// CHECK:       }
+
+// CHECK-LABEL: define void @test_0(ptr readnone captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr {{.*}}%[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 8
+// CHECK:         %[[VAL_3:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_1]], align 8
+// CHECK:         %[[VAL_5:.*]] = ptrtoint ptr %[[VAL_3]] to i64
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = sub i64 %[[VAL_5]], %[[VAL_6]]
+// CHECK:         %[[VAL_8:.*]] = add i64 %[[VAL_7]], 8
+// CHECK:         %[[VAL_9:.*]] = alloca i8, i64 %{{.*}}, align 8
+// CHECK:         %[[VAL_10:.*]] = getelementptr i8, ptr %[[VAL_9]], i64 8
+// CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_9]], align 8
+// CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_10]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
+// CHECK:         %[[VAL_11:.*]] = alloca { ptr, ptr, ptr }, align 8
+// CHECK:         %[[VAL_12:.*]] = alloca [1 x ptr], align 8
+// CHECK:         store ptr %[[VAL_12]], ptr %[[VAL_11]], align 8
+// CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_12]] to i64
+// CHECK:         %[[VAL_14:.*]] = add i64 %[[VAL_13]], 8
+// CHECK:         %[[VAL_15:.*]] = inttoptr i64 %[[VAL_14]] to ptr
+// CHECK:         %[[VAL_16:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_11]], i64 8
+// CHECK:         store ptr %[[VAL_15]], ptr %[[VAL_16]], align 8
+// CHECK:         %[[VAL_17:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_11]], i64 16
+// CHECK:         store ptr %[[VAL_15]], ptr %[[VAL_17]], align 8
+// CHECK:         store ptr %[[VAL_1]], ptr %[[VAL_12]], align 8
+// CHECK:         %[[VAL_18:.*]] = call { ptr, i64 } @hybridLaunchKernel(ptr nonnull @test_0.kernelName, ptr nonnull @test_0.thunk, ptr nonnull %[[VAL_9]], i64 %[[VAL_8]], i64 2147483647, ptr nonnull %[[VAL_11]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @__nvqpp__mlirgen__test_1(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) {
+  %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<i16>
+  %1 = cc.stdvec_data %0 : (!cc.stdvec<i16>) -> !cc.ptr<!cc.array<i16 x ?>>
+  %2 = cc.stdvec_size %0 : (!cc.stdvec<i16>) -> i64
+  %3 = cc.cast %1 : (!cc.ptr<!cc.array<i16 x ?>>) -> !cc.ptr<none>
+  call @anchor(%3, %2) : (!cc.ptr<none>, i64) -> ()
+  %4 = cc.extract_value %arg0[1] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<f32>
+  %5 = cc.stdvec_data %4 : (!cc.stdvec<f32>) -> !cc.ptr<!cc.array<f32 x ?>>
+  %6 = cc.stdvec_size %4 : (!cc.stdvec<f32>) -> i64
+  %7 = cc.cast %5 : (!cc.ptr<!cc.array<f32 x ?>>) -> !cc.ptr<none>
+  call @anchor(%7, %6) : (!cc.ptr<none>, i64) -> ()
+  return
+}
+
+func.func @test_1(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i16>, !cc.ptr<i16>, !cc.ptr<i16>}>, !cc.struct<{!cc.ptr<f32>, !cc.ptr<f32>, !cc.ptr<f32>}>}>>) {
+  return
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__test_1({ { ptr, i64 }, { ptr, i64 } }
+// CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = extractvalue { { ptr, i64 }, { ptr, i64 } } %[[VAL_0]], 0
+// CHECK:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_1]], 0
+// CHECK:         %[[VAL_3:.*]] = extractvalue { ptr, i64 } %[[VAL_1]], 1
+// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_3]])
+// CHECK:         %[[VAL_5:.*]] = extractvalue { { ptr, i64 }, { ptr, i64 } } %[[VAL_0]], 1
+// CHECK:         %[[VAL_6:.*]] = extractvalue { ptr, i64 } %[[VAL_5]], 0
+// CHECK:         %[[VAL_7:.*]] = extractvalue { ptr, i64 } %[[VAL_5]], 1
+// CHECK:         tail call void @anchor(ptr %[[VAL_6]], i64 %[[VAL_7]])
+// CHECK:         ret void
+// CHECK:       }
+
+// CHECK-LABEL: define void @test_1(ptr readnone captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr {{.*}}%[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 8
+// CHECK:         %[[VAL_3:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_1]], align 8
+// CHECK:         %[[VAL_5:.*]] = ptrtoint ptr %[[VAL_3]] to i64
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = sub i64 %[[VAL_5]], %[[VAL_6]]
+// CHECK:         %[[VAL_8:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 32
+// CHECK:         %[[VAL_9:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 24
+// CHECK:         %[[VAL_10:.*]] = load ptr, ptr %[[VAL_8]], align 8
+// CHECK:         %[[VAL_11:.*]] = load ptr, ptr %[[VAL_9]], align 8
+// CHECK:         %[[VAL_12:.*]] = ptrtoint ptr %[[VAL_10]] to i64
+// CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_11]] to i64
+// CHECK:         %[[VAL_14:.*]] = sub i64 %[[VAL_12]], %[[VAL_13]]
+// CHECK:         %[[VAL_15:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_16:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_17:.*]] = alloca i8, i64 %{{.*}}, align 8
+// CHECK:         %[[VAL_18:.*]] = getelementptr i8, ptr %[[VAL_17]], i64 16
+// CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_17]], align 8
+// CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_18]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
+// CHECK:         %[[VAL_19:.*]] = getelementptr i8, ptr %[[VAL_18]], i64 %[[VAL_7]]
+// CHECK:         %[[VAL_20:.*]] = getelementptr i8, ptr %[[VAL_17]], i64 8
+// CHECK:         store i64 %[[VAL_14]], ptr %[[VAL_20]], align 8
+// CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_19]], ptr align 1 %[[VAL_11]], i64 %[[VAL_14]], i1 false)
+// CHECK:         %[[VAL_21:.*]] = alloca { ptr, ptr, ptr }, align 8
+// CHECK:         %[[VAL_22:.*]] = alloca [1 x ptr], align 8
+// CHECK:         store ptr %[[VAL_22]], ptr %[[VAL_21]], align 8
+// CHECK:         %[[VAL_23:.*]] = ptrtoint ptr %[[VAL_22]] to i64
+// CHECK:         %[[VAL_24:.*]] = add i64 %[[VAL_23]], 8
+// CHECK:         %[[VAL_25:.*]] = inttoptr i64 %[[VAL_24]] to ptr
+// CHECK:         %[[VAL_26:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_21]], i64 8
+// CHECK:         store ptr %[[VAL_25]], ptr %[[VAL_26]], align 8
+// CHECK:         %[[VAL_27:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_21]], i64 16
+// CHECK:         store ptr %[[VAL_25]], ptr %[[VAL_27]], align 8
+// CHECK:         store ptr %[[VAL_1]], ptr %[[VAL_22]], align 8
+// CHECK:         %[[VAL_28:.*]] = call { ptr, i64 } @hybridLaunchKernel(ptr nonnull @test_1.kernelName, ptr nonnull @test_1.thunk, ptr nonnull %[[VAL_17]], i64 %[[VAL_16]], i64 2147483647, ptr nonnull %[[VAL_21]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @__nvqpp__mlirgen__test_2(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) {
+  %0 = cc.stdvec_data %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+  %1 = cc.stdvec_size %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> i64
+  %2 = cc.cast %0 : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<none>
+  call @anchor(%2, %1) : (!cc.ptr<none>, i64) -> ()
+  return
+}
+
+func.func @test_2(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i32, f64}>>, !cc.ptr<!cc.struct<{i32, f64}>>, !cc.ptr<!cc.struct<{i32, f64}>>}>>) {
+  return
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__test_2({ ptr, i64 }
+// CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
+// CHECK:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
+// CHECK:         tail call void @anchor(ptr %[[VAL_1]], i64 %[[VAL_2]])
+// CHECK:         ret void
+// CHECK:       }
+
+// CHECK-LABEL: define void @test_2(ptr readnone captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr {{.*}}%[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 8
+// CHECK:         %[[VAL_3:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_1]], align 8
+// CHECK:         %[[VAL_5:.*]] = ptrtoint ptr %[[VAL_3]] to i64
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = sub i64 %[[VAL_5]], %[[VAL_6]]
+// CHECK:         %[[VAL_8:.*]] = add i64 %[[VAL_7]], 8
+// CHECK:         %[[VAL_9:.*]] = alloca i8, i64 %{{.*}}, align 8
+// CHECK:         %[[VAL_10:.*]] = getelementptr i8, ptr %[[VAL_9]], i64 8
+// CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_9]], align 8
+// CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_10]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
+// CHECK:         %[[VAL_11:.*]] = alloca { ptr, ptr, ptr }, align 8
+// CHECK:         %[[VAL_12:.*]] = alloca [1 x ptr], align 8
+// CHECK:         store ptr %[[VAL_12]], ptr %[[VAL_11]], align 8
+// CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_12]] to i64
+// CHECK:         %[[VAL_14:.*]] = add i64 %[[VAL_13]], 8
+// CHECK:         %[[VAL_15:.*]] = inttoptr i64 %[[VAL_14]] to ptr
+// CHECK:         %[[VAL_16:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_11]], i64 8
+// CHECK:         store ptr %[[VAL_15]], ptr %[[VAL_16]], align 8
+// CHECK:         %[[VAL_17:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_11]], i64 16
+// CHECK:         store ptr %[[VAL_15]], ptr %[[VAL_17]], align 8
+// CHECK:         store ptr %[[VAL_1]], ptr %[[VAL_12]], align 8
+// CHECK:         %[[VAL_18:.*]] = call { ptr, i64 } @hybridLaunchKernel(ptr nonnull @test_2.kernelName, ptr nonnull @test_2.thunk, ptr nonnull %[[VAL_9]], i64 %[[VAL_8]], i64 2147483647, ptr nonnull %[[VAL_11]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @__nvqpp__mlirgen__test_3(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) {
+  %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<i16>
+  %1 = cc.stdvec_data %0 : (!cc.stdvec<i16>) -> !cc.ptr<i16>
+  %2 = cc.stdvec_size %0 : (!cc.stdvec<i16>) -> i64
+  %3 = cc.cast %1 : (!cc.ptr<i16>) -> !cc.ptr<none>
+  call @anchor(%3, %2) : (!cc.ptr<none>, i64) -> ()
+  %5 = cc.extract_value %arg0[1] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<f32>
+  %6 = cc.stdvec_data %5 : (!cc.stdvec<f32>) -> !cc.ptr<f32>
+  %7 = cc.stdvec_size %5 : (!cc.stdvec<f32>) -> i64
+  %8 = cc.cast %6 : (!cc.ptr<f32>) -> !cc.ptr<none>
+  call @anchor(%8, %7) : (!cc.ptr<none>, i64) -> ()
+  return
+}
+
+func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i16>, !cc.ptr<i16>, !cc.ptr<i16>}>, !cc.struct<{!cc.ptr<f32>, !cc.ptr<f32>, !cc.ptr<f32>}>}>>) {
+  return
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__test_3({ { ptr, i64 }, { ptr, i64 } }
+// CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = extractvalue { { ptr, i64 }, { ptr, i64 } } %[[VAL_0]], 0
+// CHECK:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_1]], 0
+// CHECK:         %[[VAL_3:.*]] = extractvalue { ptr, i64 } %[[VAL_1]], 1
+// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_3]])
+// CHECK:         %[[VAL_5:.*]] = extractvalue { { ptr, i64 }, { ptr, i64 } } %[[VAL_0]], 1
+// CHECK:         %[[VAL_6:.*]] = extractvalue { ptr, i64 } %[[VAL_5]], 0
+// CHECK:         %[[VAL_7:.*]] = extractvalue { ptr, i64 } %[[VAL_5]], 1
+// CHECK:         tail call void @anchor(ptr %[[VAL_6]], i64 %[[VAL_7]])
+// CHECK:         ret void
+// CHECK:       }
+
+// CHECK-LABEL: define void @test_3(ptr readnone captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr {{.*}}%[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 8
+// CHECK:         %[[VAL_3:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_1]], align 8
+// CHECK:         %[[VAL_5:.*]] = ptrtoint ptr %[[VAL_3]] to i64
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = sub i64 %[[VAL_5]], %[[VAL_6]]
+// CHECK:         %[[VAL_8:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 32
+// CHECK:         %[[VAL_9:.*]] = getelementptr i8, ptr %[[VAL_1]], i64 24
+// CHECK:         %[[VAL_10:.*]] = load ptr, ptr %[[VAL_8]], align 8
+// CHECK:         %[[VAL_11:.*]] = load ptr, ptr %[[VAL_9]], align 8
+// CHECK:         %[[VAL_12:.*]] = ptrtoint ptr %[[VAL_10]] to i64
+// CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_11]] to i64
+// CHECK:         %[[VAL_14:.*]] = sub i64 %[[VAL_12]], %[[VAL_13]]
+// CHECK:         %[[VAL_15:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_16:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_17:.*]] = alloca i8, i64 %{{.*}}, align 8
+// CHECK:         %[[VAL_18:.*]] = getelementptr i8, ptr %[[VAL_17]], i64 16
+// CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_17]], align 8
+// CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_18]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
+// CHECK:         %[[VAL_19:.*]] = getelementptr i8, ptr %[[VAL_18]], i64 %[[VAL_7]]
+// CHECK:         %[[VAL_20:.*]] = getelementptr i8, ptr %[[VAL_17]], i64 8
+// CHECK:         store i64 %[[VAL_14]], ptr %[[VAL_20]], align 8
+// CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_19]], ptr align 1 %[[VAL_11]], i64 %[[VAL_14]], i1 false)
+// CHECK:         %[[VAL_21:.*]] = alloca { ptr, ptr, ptr }, align 8
+// CHECK:         %[[VAL_22:.*]] = alloca [1 x ptr], align 8
+// CHECK:         store ptr %[[VAL_22]], ptr %[[VAL_21]], align 8
+// CHECK:         %[[VAL_23:.*]] = ptrtoint ptr %[[VAL_22]] to i64
+// CHECK:         %[[VAL_24:.*]] = add i64 %[[VAL_23]], 8
+// CHECK:         %[[VAL_25:.*]] = inttoptr i64 %[[VAL_24]] to ptr
+// CHECK:         %[[VAL_26:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_21]], i64 8
+// CHECK:         store ptr %[[VAL_25]], ptr %[[VAL_26]], align 8
+// CHECK:         %[[VAL_27:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_21]], i64 16
+// CHECK:         store ptr %[[VAL_25]], ptr %[[VAL_27]], align 8
+// CHECK:         store ptr %[[VAL_1]], ptr %[[VAL_22]], align 8
+// CHECK:         %[[VAL_28:.*]] = call { ptr, i64 } @hybridLaunchKernel(ptr nonnull @test_3.kernelName, ptr nonnull @test_3.thunk, ptr nonnull %[[VAL_17]], i64 %[[VAL_16]], i64 2147483647, ptr nonnull %[[VAL_21]])
+// CHECK:         ret void
+// CHECK:       }
+
+}
+
+// CHECK-LABEL: define { ptr, i64 } @test_0.thunk(ptr
+// CHECK-SAME:      %[[VAL_0:.*]], i1 %[[VAL_1:.*]]) {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
+// CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
+// CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 16
+// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
+// CHECK:         ret { ptr, i64 } zeroinitializer
+// CHECK:       }
+
+// CHECK-LABEL: define noundef i64 @test_0.argsCreator(ptr readonly captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr writeonly captures(none) initializes((0, 8)) %[[VAL_1:.*]]) {{.*}} {
+// CHECK:         %[[VAL_2:.*]] = load ptr, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_3:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_3]], align 8
+// CHECK:         %[[VAL_5:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = ptrtoint ptr %[[VAL_5]] to i64
+// CHECK:         %[[VAL_8:.*]] = sub i64 %[[VAL_6]], %[[VAL_7]]
+// CHECK:         %[[VAL_9:.*]] = add i64 %[[VAL_8]], 8
+// CHECK:         %[[VAL_10:.*]] = tail call ptr @malloc(i64 %[[VAL_9]])
+// CHECK:         %[[VAL_11:.*]] = getelementptr i8, ptr %[[VAL_10]], i64 8
+// CHECK:         store i64 %[[VAL_8]], ptr %[[VAL_10]], align 4
+// CHECK:         tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_11]], ptr align 1 %[[VAL_5]], i64 %[[VAL_8]], i1 false)
+// CHECK:         store ptr %[[VAL_10]], ptr %[[VAL_1]], align 8
+// CHECK:         ret i64 %[[VAL_9]]
+// CHECK:       }
+
+// CHECK-LABEL: define { ptr, i64 } @test_1.thunk(ptr
+// CHECK-SAME:      %[[VAL_0:.*]], i1 %[[VAL_1:.*]]) {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 16
+// CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
+// CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 2
+// CHECK:         %[[VAL_5:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 %[[VAL_3]]
+// CHECK:         %[[VAL_6:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
+// CHECK:         %[[VAL_7:.*]] = load i64, ptr %[[VAL_6]], align 4
+// CHECK:         %[[VAL_8:.*]] = sdiv i64 %[[VAL_7]], 4
+// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
+// CHECK:         tail call void @anchor(ptr %[[VAL_5]], i64 %[[VAL_8]])
+// CHECK:         ret { ptr, i64 } zeroinitializer
+// CHECK:       }
+
+// CHECK-LABEL: define noundef i64 @test_1.argsCreator(ptr readonly captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr writeonly captures(none) initializes((0, 8)) %[[VAL_1:.*]]) {{.*}} {
+// CHECK:         %[[VAL_2:.*]] = load ptr, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_3:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_3]], align 8
+// CHECK:         %[[VAL_5:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = ptrtoint ptr %[[VAL_5]] to i64
+// CHECK:         %[[VAL_8:.*]] = sub i64 %[[VAL_6]], %[[VAL_7]]
+// CHECK:         %[[VAL_9:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 32
+// CHECK:         %[[VAL_10:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 24
+// CHECK:         %[[VAL_11:.*]] = load ptr, ptr %[[VAL_9]], align 8
+// CHECK:         %[[VAL_12:.*]] = load ptr, ptr %[[VAL_10]], align 8
+// CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_11]] to i64
+// CHECK:         %[[VAL_14:.*]] = ptrtoint ptr %[[VAL_12]] to i64
+// CHECK:         %[[VAL_15:.*]] = add i64 %[[VAL_8]], 32
+// CHECK:         %[[VAL_16:.*]] = add i64 %[[VAL_15]], %[[VAL_13]]
+// CHECK:         %[[VAL_17:.*]] = sub i64 %[[VAL_16]], %[[VAL_14]]
+// CHECK:         %[[VAL_18:.*]] = tail call ptr @malloc(i64 %[[VAL_17]])
+// CHECK:         %[[VAL_19:.*]] = getelementptr i8, ptr %[[VAL_18]], i64 16
+// CHECK:         store i64 %[[VAL_8]], ptr %[[VAL_18]], align 4
+// CHECK:         tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_19]], ptr align 1 %[[VAL_5]], i64 %[[VAL_8]], i1 false)
+// CHECK:         %[[VAL_20:.*]] = getelementptr i8, ptr %[[VAL_19]], i64 %[[VAL_8]]
+// CHECK:         %[[VAL_21:.*]] = getelementptr i8, ptr %[[VAL_18]], i64 8
+// CHECK:         %[[VAL_22:.*]] = sub i64 %[[VAL_13]], %[[VAL_14]]
+// CHECK:         store i64 %[[VAL_22]], ptr %[[VAL_21]], align 4
+// CHECK:         tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_20]], ptr align 1 %[[VAL_12]], i64 %[[VAL_22]], i1 false)
+// CHECK:         store ptr %[[VAL_18]], ptr %[[VAL_1]], align 8
+// CHECK:         ret i64 %[[VAL_17]]
+// CHECK:       }
+
+// CHECK-LABEL: define { ptr, i64 } @test_2.thunk(ptr
+// CHECK-SAME:      %[[VAL_0:.*]], i1 %[[VAL_1:.*]]) {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
+// CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
+// CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 16
+// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
+// CHECK:         ret { ptr, i64 } zeroinitializer
+// CHECK:       }
+
+// CHECK-LABEL: define noundef i64 @test_2.argsCreator(ptr readonly captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr writeonly captures(none) initializes((0, 8)) %[[VAL_1:.*]]) {{.*}} {
+// CHECK:         %[[VAL_2:.*]] = load ptr, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_3:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_3]], align 8
+// CHECK:         %[[VAL_5:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = ptrtoint ptr %[[VAL_5]] to i64
+// CHECK:         %[[VAL_8:.*]] = sub i64 %[[VAL_6]], %[[VAL_7]]
+// CHECK:         %[[VAL_9:.*]] = add i64 %[[VAL_8]], 8
+// CHECK:         %[[VAL_10:.*]] = tail call ptr @malloc(i64 %[[VAL_9]])
+// CHECK:         %[[VAL_11:.*]] = getelementptr i8, ptr %[[VAL_10]], i64 8
+// CHECK:         store i64 %[[VAL_8]], ptr %[[VAL_10]], align 4
+// CHECK:         tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_11]], ptr align 1 %[[VAL_5]], i64 %[[VAL_8]], i1 false)
+// CHECK:         store ptr %[[VAL_10]], ptr %[[VAL_1]], align 8
+// CHECK:         ret i64 %[[VAL_9]]
+// CHECK:       }
+
+// CHECK-LABEL: define { ptr, i64 } @test_3.thunk(ptr
+// CHECK-SAME:      %[[VAL_0:.*]], i1 %[[VAL_1:.*]]) {
+// CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 16
+// CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
+// CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 2
+// CHECK:         %[[VAL_5:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 %[[VAL_3]]
+// CHECK:         %[[VAL_6:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
+// CHECK:         %[[VAL_7:.*]] = load i64, ptr %[[VAL_6]], align 4
+// CHECK:         %[[VAL_8:.*]] = sdiv i64 %[[VAL_7]], 4
+// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
+// CHECK:         tail call void @anchor(ptr %[[VAL_5]], i64 %[[VAL_8]])
+// CHECK:         ret { ptr, i64 } zeroinitializer
+// CHECK:       }
+
+// CHECK-LABEL: define noundef i64 @test_3.argsCreator(ptr readonly captures(none)
+// CHECK-SAME:    %[[VAL_0:.*]], ptr writeonly captures(none) initializes((0, 8)) %[[VAL_1:.*]]) {{.*}} {
+// CHECK:         %[[VAL_2:.*]] = load ptr, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_3:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 8
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_3]], align 8
+// CHECK:         %[[VAL_5:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
+// CHECK:         %[[VAL_7:.*]] = ptrtoint ptr %[[VAL_5]] to i64
+// CHECK:         %[[VAL_8:.*]] = sub i64 %[[VAL_6]], %[[VAL_7]]
+// CHECK:         %[[VAL_9:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 32
+// CHECK:         %[[VAL_10:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 24
+// CHECK:         %[[VAL_11:.*]] = load ptr, ptr %[[VAL_9]], align 8
+// CHECK:         %[[VAL_12:.*]] = load ptr, ptr %[[VAL_10]], align 8
+// CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_11]] to i64
+// CHECK:         %[[VAL_14:.*]] = ptrtoint ptr %[[VAL_12]] to i64
+// CHECK:         %[[VAL_15:.*]] = add i64 %[[VAL_8]], 32
+// CHECK:         %[[VAL_16:.*]] = add i64 %[[VAL_15]], %[[VAL_13]]
+// CHECK:         %[[VAL_17:.*]] = sub i64 %[[VAL_16]], %[[VAL_14]]
+// CHECK:         %[[VAL_18:.*]] = tail call ptr @malloc(i64 %[[VAL_17]])
+// CHECK:         %[[VAL_19:.*]] = getelementptr i8, ptr %[[VAL_18]], i64 16
+// CHECK:         store i64 %[[VAL_8]], ptr %[[VAL_18]], align 4
+// CHECK:         tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_19]], ptr align 1 %[[VAL_5]], i64 %[[VAL_8]], i1 false)
+// CHECK:         %[[VAL_20:.*]] = getelementptr i8, ptr %[[VAL_19]], i64 %[[VAL_8]]
+// CHECK:         %[[VAL_21:.*]] = getelementptr i8, ptr %[[VAL_18]], i64 8
+// CHECK:         %[[VAL_22:.*]] = sub i64 %[[VAL_13]], %[[VAL_14]]
+// CHECK:         store i64 %[[VAL_22]], ptr %[[VAL_21]], align 4
+// CHECK:         tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %[[VAL_20]], ptr align 1 %[[VAL_12]], i64 %[[VAL_22]], i1 false)
+// CHECK:         store ptr %[[VAL_18]], ptr %[[VAL_1]], align 8
+// CHECK:         ret i64 %[[VAL_17]]
+// CHECK:       }
+
+// CHECK-LABEL: define void @test_3.kernelRegFunc() {
+// CHECK:         tail call void @cudaqRegisterKernelName(ptr nonnull @test_3.kernelName)
+// CHECK:         tail call void @cudaqRegisterArgsCreator(ptr nonnull @test_3.kernelName, ptr nonnull @test_3.argsCreator)
+// CHECK:         ret void
+// CHECK:       }
+

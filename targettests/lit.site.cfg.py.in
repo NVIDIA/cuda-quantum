@@ -1,0 +1,121 @@
+@LIT_SITE_CFG_IN_HEADER@
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors.  #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+import sys
+
+# Helper function to convert cmake variable boolean definitions to True/False.
+def cmake_boolvar_to_bool(s):
+  return s == "1"
+
+config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
+config.llvm_shlib_dir = lit_config.substitute(path(r"@SHLIBDIR@"))
+config.llvm_plugin_ext = "@LLVM_PLUGIN_EXT@"
+config.llvm_install = config.llvm_tools_dir + "/.."
+config.lit_tools_dir = "@LLVM_LIT_TOOLS_DIR@"
+config.errc_messages = "@LLVM_LIT_ERRC_MESSAGES@"
+config.cudaq_obj_root = "@CUDAQ_BINARY_DIR@"
+config.cudaq_src_dir = "@CUDAQ_SOURCE_DIR@"
+config.cudaq_target_dir = "@CMAKE_BINARY_DIR@/targets"
+config.cudaq_tools_dir = lit_config.substitute("@CUDAQ_TOOLS_DIR@")
+config.cudaq_intrinsic_modules_dir = "@CUDAQ_INTRINSIC_MODULES_DIR@"
+config.cudaq_llvm_tools_dir = "@CMAKE_BINARY_DIR@/bin"
+config.cudaq_lib_dir = "@CMAKE_BINARY_DIR@/lib"
+config.cudaq_plugin_ext = "@LLVM_PLUGIN_EXT@"
+config.python_executable = "@PYTHON_EXECUTABLE@"
+config.cc = "@CMAKE_C_COMPILER@"
+config.targets_to_build = "@TARGETS_TO_BUILD@"
+config.excludes = ["@CUDAQ_EXTRA_CONFIG_EXCLUDES@"]
+config.pipefail = False
+
+# Is the nvcc compiler available?
+config.cuda_found = "@CUDA_FOUND@"
+if cmake_boolvar_to_bool(config.cuda_found):
+  config.available_features.add('nvcc')
+
+config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
+if cmake_boolvar_to_bool(config.test_remote_sim):
+  config.available_features.add('remote-sim')
+
+config.cudaq_backends_anyon = "@CUDAQ_ENABLE_ANYON_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_anyon):
+  config.available_features.add('anyon')
+  config.substitutions.append(('%anyon_avail', 'true'))
+else:
+  config.substitutions.append(('%anyon_avail', 'false'))
+
+config.cudaq_backends_ionq = "@CUDAQ_ENABLE_IONQ_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_ionq):
+  config.available_features.add('ionq')
+  config.substitutions.append(('%ionq_avail', 'true'))
+else:
+  config.substitutions.append(('%ionq_avail', 'false'))
+
+config.cudaq_backends_iqm = "@CUDAQ_ENABLE_IQM_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_iqm):
+  config.available_features.add('iqm')
+  config.substitutions.append(('%iqm_avail', 'true'))
+else:
+  config.substitutions.append(('%iqm_avail', 'false'))
+
+config.cudaq_backends_oqc = "@CUDAQ_ENABLE_OQC_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_oqc):
+  config.available_features.add('oqc')
+  config.substitutions.append(('%oqc_avail', 'true'))
+else:
+  config.substitutions.append(('%oqc_avail', 'false'))
+
+config.cudaq_backends_qbraid = "@CUDAQ_ENABLE_QBRAID_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_qbraid):
+  config.available_features.add('qbraid')
+  config.substitutions.append(('%qbraid_avail', 'true'))
+else:
+  config.substitutions.append(('%qbraid_avail', 'false'))
+
+config.cudaq_backends_braket = "@CUDAQ_ENABLE_BRAKET_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_braket):
+  config.available_features.add('braket')
+  config.substitutions.append(('%braket_avail', 'true'))
+else:
+  config.substitutions.append(('%braket_avail', 'false'))
+
+config.cudaq_backends_pasqal = "@CUDAQ_ENABLE_PASQAL_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_pasqal):
+  config.available_features.add('pasqal')
+  config.substitutions.append(('%pasqal_avail', 'true'))
+else:
+  config.substitutions.append(('%pasqal_avail', 'false'))
+
+config.cudaq_backends_qci = "@CUDAQ_ENABLE_QCI_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_qci):
+  config.available_features.add('qci')
+  config.substitutions.append(('%qci_avail', 'true'))
+else:
+  config.substitutions.append(('%qci_avail', 'false'))
+
+config.cudaq_backends_quantum_machines = "@CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
+  config.available_features.add('quantum_machines')
+  config.substitutions.append(('%quantum_machines_avail', 'true'))
+else:
+  config.substitutions.append(('%quantum_machines_avail', 'false'))
+
+config.cudaq_stim_backend_disabled = "@CUDAQ_ENABLE_ASSERTIONS@"
+if cmake_boolvar_to_bool(config.cudaq_stim_backend_disabled):
+  config.substitutions.append(('%stim_avail', 'false'))
+else:
+  config.available_features.add('stim')
+  config.substitutions.append(('%stim_avail', 'true'))
+
+import lit.llvm
+lit.llvm.initialize(lit_config, config)
+
+# Let the main config do the real work.
+lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/targettests/lit.cfg.py")
+

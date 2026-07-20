@@ -1,0 +1,487 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "runtime/common/py_AnalogHamiltonian.h"
+#include "runtime/common/py_CustomOpRegistry.h"
+#include "runtime/common/py_EvolveResult.h"
+#include "runtime/common/py_ExecutionContext.h"
+#include "runtime/common/py_NoiseModel.h"
+#include "runtime/common/py_ObserveResult.h"
+#include "runtime/common/py_Resources.h"
+#include "runtime/common/py_SampleResult.h"
+#include "runtime/cudaq/algorithms/py_draw.h"
+#include "runtime/cudaq/algorithms/py_evolve.h"
+#include "runtime/cudaq/algorithms/py_observe.h"
+#include "runtime/cudaq/algorithms/py_observe_async.h"
+#include "runtime/cudaq/algorithms/py_optimizer.h"
+#include "runtime/cudaq/algorithms/py_resource_count.h"
+#include "runtime/cudaq/algorithms/py_run.h"
+#include "runtime/cudaq/algorithms/py_sample.h"
+#include "runtime/cudaq/algorithms/py_sample_async.h"
+#include "runtime/cudaq/algorithms/py_sample_ptsbe.h"
+#include "runtime/cudaq/algorithms/py_state.h"
+#include "runtime/cudaq/algorithms/py_translate.h"
+#include "runtime/cudaq/algorithms/py_unitary.h"
+#include "runtime/cudaq/algorithms/py_utils.h"
+#include "runtime/cudaq/analysis/py_dem.h"
+#include "runtime/cudaq/operators/py_boson_op.h"
+#include "runtime/cudaq/operators/py_fermion_op.h"
+#include "runtime/cudaq/operators/py_handlers.h"
+#include "runtime/cudaq/operators/py_matrix.h"
+#include "runtime/cudaq/operators/py_matrix_op.h"
+#include "runtime/cudaq/operators/py_scalar_op.h"
+#include "runtime/cudaq/operators/py_spin_op.h"
+#include "runtime/cudaq/operators/py_super_op.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "runtime/cudaq/qis/py_execution_manager.h"
+#include "runtime/cudaq/qis/py_pauli_word.h"
+#include "runtime/cudaq/target/py_runtime_target.h"
+#include "runtime/cudaq/target/py_testing_utils.h"
+#include "runtime/cudaq/trace/py_trace.h"
+#include "runtime/interop/PythonCppInteropDecls.h"
+#include "runtime/mlir/py_register_dialects.h"
+#include "utils/LinkedLibraryHolder.h"
+#include "utils/OpaqueArguments.h"
+#include "cudaq/Support/Version.h"
+#include "cudaq/platform/orca/orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "mlir/CAPI/Pass.h"
+#include "mlir/Parser/Parser.h"
+#include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/vector.h>
+
+using namespace cudaq;
+
+static std::unique_ptr<LinkedLibraryHolder> holder;
+
+NB_MODULE(_quakeDialects, m) {
+  holder = std::make_unique<LinkedLibraryHolder>();
+
+  bindRegisterDialects(m);
+
+  auto cudaqRuntime = m.def_submodule("cudaq_runtime");
+  cudaqRuntime.def(
+      "registerLLVMDialectTranslation",
+      [](MlirContext ctx) {
+        mlir::registerLLVMDialectTranslation(*unwrap(ctx));
+      },
+      "Utility function for Python clients to register all LLVM Dialect "
+      "Translation passes with the provided MLIR Context. Primarily used by "
+      "kernel_builder and ast_bridge when created new MLIR Contexts.");
+  cudaqRuntime.def(
+      "initialize_cudaq",
+      [&](std::optional<std::string> option, std::optional<bool> emulate,
+          std::optional<std::string> target) {
+        CUDAQ_INFO("Calling initialize_cudaq.");
+
+        std::map<std::string, std::string> extraConfig;
+        if (emulate && *emulate) {
+          extraConfig.insert({"emulate", "true"});
+        }
+        if (option && !option->empty()) {
+          extraConfig.insert({"option", *option});
+        }
+        if (target && !target->empty()) {
+          CUDAQ_INFO("Processing Python Arg: target - {}", *target);
+          holder->setTarget(*target, extraConfig);
+        }
+      },
+      nanobind::arg("option") = nanobind::none(),
+      nanobind::arg("emulate") = nanobind::none(),
+      nanobind::arg("target") = nanobind::none(),
+      "Initialize the CUDA-Q environment.");
+
+  bindRuntimeTarget(cudaqRuntime, *holder.get());
+  bindMeasureCounts(cudaqRuntime);
+  bindResources(cudaqRuntime);
+  bindObserveResult(cudaqRuntime);
+  bindComplexMatrix(cudaqRuntime);
+  bindScalarWrapper(cudaqRuntime);
+  bindSpinWrapper(cudaqRuntime);
+  bindFermionWrapper(cudaqRuntime);
+  bindBosonWrapper(cudaqRuntime);
+  bindOperatorsWrapper(cudaqRuntime);
+  bindHandlersWrapper(cudaqRuntime);
+  bindSuperOperatorWrapper(cudaqRuntime);
+  bindPauliWord(cudaqRuntime);
+  bindOptimizerWrapper(cudaqRuntime);
+  bindNoise(cudaqRuntime);
+  bindExecutionContext(cudaqRuntime);
+  bindExecutionManager(cudaqRuntime);
+  bindPyState(cudaqRuntime, *holder.get());
+  bindPyDataClassRegistry(cudaqRuntime);
+  bindPyEvolve(cudaqRuntime);
+  bindEvolveResult(cudaqRuntime);
+  bindPyDraw(cudaqRuntime);
+  bindPyUnitary(cudaqRuntime);
+  bindPyRun(cudaqRuntime);
+  bindPyRunAsync(cudaqRuntime);
+  bindPyTranslate(cudaqRuntime);
+  bindCountResources(cudaqRuntime);
+  bindDemFromKernel(cudaqRuntime);
+  bindPySample(cudaqRuntime);
+  bindPyObserve(cudaqRuntime);
+  bindSampleAsync(cudaqRuntime);
+  bindSamplePTSBE(cudaqRuntime);
+  bindObserveAsync(cudaqRuntime);
+  bindAltLaunchKernel(cudaqRuntime, [holderPtr = holder.get()]() {
+    return python::getTransportLayer(holderPtr);
+  });
+  bindTestUtils(cudaqRuntime, *holder.get());
+  bindCustomOpRegistry(cudaqRuntime);
+  bindTrace(cudaqRuntime);
+
+  cudaqRuntime.def("set_random_seed", &set_random_seed,
+                   "Provide the seed for backend quantum kernel simulation.");
+  cudaqRuntime.def("num_available_gpus", &num_available_gpus,
+                   "The number of available GPUs detected on the system.");
+
+  std::stringstream ss;
+  ss << "CUDA-Q Version " << getVersion() << " (" << getFullRepositoryVersion()
+     << ")";
+  cudaqRuntime.attr("__version__") = ss.str();
+
+  auto mpiSubmodule = cudaqRuntime.def_submodule("mpi");
+  mpiSubmodule.def(
+      "initialize", []() { mpi::initialize(); },
+      "Initialize MPI if available.");
+  mpiSubmodule.def(
+      "rank", []() { return mpi::rank(); }, "Return the rank of this process.");
+  mpiSubmodule.def(
+      "num_ranks", []() { return mpi::num_ranks(); },
+      "Return the total number of ranks.");
+  mpiSubmodule.def(
+      "all_gather",
+      [](std::size_t globalVectorSize, std::vector<double> &local) {
+        std::vector<double> global(globalVectorSize);
+        mpi::all_gather(global, local);
+        return global;
+      },
+      "Gather and scatter the `local` list of floating-point numbers, "
+      "returning a concatenation of all "
+      "lists across all ranks. The total global list size must be provided.");
+  mpiSubmodule.def(
+      "all_gather",
+      [](std::size_t globalVectorSize, std::vector<int> &local) {
+        std::vector<int> global(globalVectorSize);
+        mpi::all_gather(global, local);
+        return global;
+      },
+      "Gather and scatter the `local` list of integers, returning a "
+      "concatenation of all "
+      "lists across all ranks. The total global list size must be provided.");
+  mpiSubmodule.def(
+      "broadcast",
+      [](std::vector<double> &data, std::size_t bcastSize, int rootRank) {
+        if (data.size() < bcastSize)
+          data.resize(bcastSize);
+        mpi::broadcast(data, rootRank);
+        return data;
+      },
+      "Broadcast an array from a process (rootRank) to all other processes. "
+      "The size of broadcast array must be provided.");
+  mpiSubmodule.def(
+      "is_initialized", []() { return mpi::is_initialized(); },
+      "Returns true if MPI has already been initialized.");
+  mpiSubmodule.def("finalize", []() { mpi::finalize(); }, "Finalize MPI.");
+  mpiSubmodule.def(
+      "comm_dup",
+      []() {
+        const auto [commPtr, commSize] = mpi::comm_dup();
+        return std::make_pair(reinterpret_cast<intptr_t>(commPtr), commSize);
+      },
+      "Duplicates the communicator. Return the new communicator address (as an "
+      "integer) and its size in bytes");
+  mpiSubmodule.def(
+      "split_communicator",
+      [](int color, std::optional<int> key) {
+        return reinterpret_cast<intptr_t>(mpi::split_communicator(color, key));
+      },
+      R"doc(Splits the current communicator into sub-communicators based on the
+input color and key.
+
+Ranks that pass the same color are placed in the same new communicator. The key
+controls the rank ordering within that new communicator.
+
+Args:
+  color (int): Split color. Ranks with the same color join the same
+    communicator.
+  key (Optional[int]): Rank-ordering key within the new communicator. Defaults
+    to ``None``, which uses the current rank in the original communicator as the
+    split key.
+
+Returns:
+  int: Integer representation of the new communicator pointer (``comm_ptr``).
+
+Example:
+
+.. code-block:: python
+
+  import cudaq
+
+  cudaq.mpi.initialize()
+  cudaq.set_target("tensornet")
+
+  world_rank = cudaq.mpi.rank()
+  world_size = cudaq.mpi.num_ranks()
+
+  # Split the world communicator into QPU groups of two ranks each.
+  # With four ranks, ranks 0 and 1 use color 0, while ranks 2 and 3 use color 1.
+  ranks_per_qpu = 2
+  if world_size % ranks_per_qpu != 0:
+      raise RuntimeError("World size must be a multiple of ranks_per_qpu.")
+
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = cudaq.mpi.split_communicator(color=qpu_id)
+
+  cudaq.mpi.set_communicator(qpu_comm))doc",
+      nanobind::arg("color"), nanobind::arg("key") = std::nullopt);
+
+  mpiSubmodule.def(
+      "set_communicator",
+      [](intptr_t commPtr) {
+        mpi::set_communicator(reinterpret_cast<void *>(commPtr));
+      },
+      R"doc(Sets the communicator of the backend simulator based on the input
+communicator address (as an integer). MPI must be initialized. If the selected
+target does not support MPI-based distributed simulation, CUDA-Q emits a warning
+and ignores this call.
+
+Args:
+  commPtr (int): Integer representation of the communicator pointer
+    (``comm_ptr``) for the backend simulator to use. This can be returned by
+    ``cudaq.mpi.split_communicator`` or by taking the address of a live
+    ``mpi4py`` communicator with ``MPI._addressof(comm)``.
+
+Examples:
+
+Using ``cudaq.mpi.split_communicator``:
+
+.. code-block:: python
+
+  import cudaq
+
+  cudaq.mpi.initialize()
+  cudaq.set_target("tensornet")
+
+  world_rank = cudaq.mpi.rank()
+  ranks_per_qpu = 2
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = cudaq.mpi.split_communicator(qpu_id)
+
+  cudaq.mpi.set_communicator(qpu_comm)
+
+Using ``mpi4py``:
+
+.. code-block:: python
+
+  import cudaq
+  from mpi4py import MPI
+
+  cudaq.set_target("tensornet")
+
+  world_comm = MPI.COMM_WORLD
+  world_rank = world_comm.Get_rank()
+  ranks_per_qpu = 2
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = world_comm.Split(color=qpu_id, key=world_rank)
+
+  cudaq.mpi.set_communicator(MPI._addressof(qpu_comm))
+
+When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)doc",
+      nanobind::arg("commPtr"));
+
+  auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
+  orcaSubmodule.def(
+      "sample",
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              std::vector<double> &, int, std::size_t>(
+          &orca::sample),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("ps_angles"),
+      nanobind::arg("n_samples") = 10000, nanobind::arg("qpu_id") = 0);
+  orcaSubmodule.def(
+      "sample",
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              int, std::size_t>(&orca::sample),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("n_samples") = 10000,
+      nanobind::arg("qpu_id") = 0);
+  orcaSubmodule.def(
+      "sample_async",
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              std::vector<double> &, int, std::size_t>(
+          &orca::sample_async),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("ps_angles"),
+      nanobind::arg("n_samples") = 10000, nanobind::arg("qpu_id") = 0);
+  orcaSubmodule.def(
+      "sample_async",
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              int, std::size_t>(&orca::sample_async),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("n_samples") = 10000,
+      nanobind::arg("qpu_id") = 0);
+
+  auto photonicsSubmodule = cudaqRuntime.def_submodule("photonics");
+  photonicsSubmodule.def(
+      "allocate_qudit",
+      [](std::size_t &level) {
+        return getExecutionManager()->allocateQudit(level);
+      },
+      "Allocate a qudit of given level.", nanobind::arg("level"));
+  photonicsSubmodule.def(
+      "apply_operation",
+      [](const std::string &name, std::vector<double> &params,
+         std::vector<std::vector<std::size_t>> &targets) {
+        std::vector<QuditInfo> targetInfo;
+        for (auto &t : targets) {
+          if (t.size() != 2)
+            throw std::runtime_error("Invalid qudit target");
+          targetInfo.emplace_back(t[0], t[1]);
+        }
+        getExecutionManager()->apply(name, params, {}, targetInfo, false,
+                                     spin_op::identity());
+      },
+      "Apply the input photonics operation on the target qudits.",
+      nanobind::arg("name"), nanobind::arg("params"), nanobind::arg("targets"));
+  photonicsSubmodule.def(
+      "measure",
+      [](std::size_t level, std::size_t id, const std::string &regName) {
+        return getExecutionManager()->measure(QuditInfo(level, id), regName);
+      },
+      "Measure the input qudit(s).", nanobind::arg("level"),
+      nanobind::arg("qudit"), nanobind::arg("register_name") = "");
+  photonicsSubmodule.def(
+      "release_qudit",
+      [](std::size_t level, std::size_t id) {
+        getExecutionManager()->returnQudit(QuditInfo(level, id));
+      },
+      "Release a qudit of given id.", nanobind::arg("level"),
+      nanobind::arg("id"));
+  cudaqRuntime.def("cloneModule",
+                   [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
+  cudaqRuntime.def(
+      "runPassManager",
+      [](MlirPassManager pm, MlirModule mod) {
+        if (mlir::failed(cudaq_internal::compiler::runPassManager(
+                *unwrap(pm), unwrap(mod).getOperation())))
+          throw std::runtime_error("pass pipeline failed");
+      },
+      "Run an MLIR PassManager on a Module via the runtime helper that "
+      "installs TracePassInstrumentation and releases the GIL. Used by "
+      "cudaq.mlir.passmanager.PassManager.run() so every Python-side pass "
+      "run is traced through the same chokepoint as the JIT path.");
+  cudaqRuntime.def(
+      "blockHasTerminator",
+      [](MlirBlock block) {
+        return !mlirOperationIsNull(mlirBlockGetTerminator(block));
+      },
+      "Return `true` if the block ends with an operation carrying the "
+      "`IsTerminator` trait.",
+      nanobind::arg("block"));
+
+  auto ahsSubmodule = cudaqRuntime.def_submodule("ahs");
+  bindAnalogHamiltonian(ahsSubmodule);
+
+  cudaqRuntime.def(
+      "isRegisteredDeviceModule",
+      [](const std::string &name) {
+        return python::isRegisteredDeviceModule(name);
+      },
+      "Return true if the input name (mod1.mod2...) is a registered C++ device "
+      "module.");
+
+  cudaqRuntime.def(
+      "checkRegisteredCppDeviceKernel",
+      [](MlirModule mod, const std::string &moduleName)
+          -> std::optional<std::tuple<std::string, std::string>> {
+        std::tuple<std::string, std::string> ret;
+        try {
+          return python::getDeviceKernel(moduleName);
+        } catch (...) {
+          return std::nullopt;
+        }
+      },
+      "Given a python module name like `mod1.mod2.func`, see if there is a "
+      "registered C++ quantum kernel. If so, add the kernel to the Module and "
+      "return its name.");
+
+  cudaqRuntime.def(
+      "appendKernelArgument",
+      [](MlirOperation op, MlirType type) -> MlirValue {
+        auto func = cast<mlir::func::FuncOp>(unwrap(op));
+        auto ty = unwrap(type);
+        auto funcTy = func.getFunctionType();
+        mlir::SmallVector<mlir::Type> inpTy{funcTy.getInputs().begin(),
+                                            funcTy.getInputs().end()};
+        auto resTy = funcTy.getResults();
+        inpTy.push_back(ty);
+        auto *ctx = ty.getContext();
+        func.setFunctionType(mlir::FunctionType::get(ctx, inpTy, resTy));
+        auto &blk = func.getBody().front();
+        auto pos = blk.getNumArguments();
+        auto result = blk.addArgument(ty, mlir::UnknownLoc::get(ctx));
+        // Add an attribute so we know PyBridge added them. This is convoluted
+        // because of a bug in MLIR that doesn't let one add an attribute to a
+        // new argument if one of the arguments already has an attribute.
+        mlir::SmallVector<mlir::DictionaryAttr> allArgAttrs;
+        for (unsigned i = 0; i < pos; ++i)
+          allArgAttrs.push_back(func.getArgAttrDict(i));
+        mlir::SmallVector<mlir::NamedAttribute> aa;
+        aa.emplace_back(mlir::StringAttr::get(ctx, "quake.pylifted"),
+                        mlir::UnitAttr::get(ctx));
+        allArgAttrs.push_back(mlir::DictionaryAttr::get(ctx, aa));
+        mlir::function_interface_impl::setAllArgAttrDicts(func, allArgAttrs);
+        return wrap(result);
+      },
+      "Adds missing standard functionality to add arguments to a FuncOp.");
+
+  cudaqRuntime.def(
+      "isdeclaration",
+      [](MlirOperation func) -> bool {
+        mlir::Operation *op = unwrap(func);
+        if (auto fn = mlir::dyn_cast_or_null<mlir::func::FuncOp>(op))
+          return fn.empty();
+        return false;
+      },
+      "Is the FuncOp `func` a declaration?");
+
+  cudaqRuntime.def(
+      "updateModule",
+      [](const std::string &name, MlirModule to, MlirModule from) {
+        auto toMod = unwrap(to);
+        // Erase the specified symbol op, if it exists.
+        if (!name.empty())
+          if (auto *sop = toMod.lookupSymbol(name))
+            sop->erase();
+        opt::factory::mergeModules(toMod, unwrap(from));
+      },
+      "Merge the `from` module into the `to` module, overwriting `name`.");
+}

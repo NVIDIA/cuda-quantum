@@ -1,0 +1,417 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "py_register_dialects.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#ifdef __APPLE__
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#endif
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "mlir/InitAllDialects.h"
+#include <fmt/core.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
+
+using namespace mlir;
+
+static bool registered = false;
+
+static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
+  using namespace mlir::python::nanobind_adaptors;
+  auto quakeMod = m.def_submodule("quake");
+
+  quakeMod.def(
+      "register_dialect",
+      [](bool load, MlirContext context) {
+        MlirDialectHandle handle = mlirGetDialectHandle__quake__();
+        mlirDialectHandleRegisterDialect(handle, context);
+        if (load)
+          mlirDialectHandleLoadDialect(handle, context);
+
+        if (!registered) {
+#ifdef __APPLE__
+          cudaq_internal::compiler::initializeMLIR();
+#else
+          cudaq::registerAllPasses();
+#endif
+          registered = true;
+        }
+      },
+      nanobind::arg("load") = true,
+      nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(quakeMod, "RefType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::quake::RefType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirContext context) {
+            return wrap(cudaq::quake::RefType::get(unwrap(context)));
+          },
+          nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(quakeMod, "MeasureType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::quake::MeasureType>(
+                           unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirContext context) {
+            return wrap(cudaq::quake::MeasureType::get(unwrap(context)));
+          },
+          nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
+
+  mlir::python::nanobind_adaptors::mlir_type_subclass(
+      quakeMod, "VeqType",
+      [](MlirType type) {
+        return mlir::isa<cudaq::quake::VeqType>(unwrap(type));
+      })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, std::size_t size, MlirContext context) {
+            return wrap(cudaq::quake::VeqType::get(unwrap(context), size));
+          },
+          nanobind::arg("cls"),
+          nanobind::arg("size") = std::numeric_limits<std::size_t>::max(),
+          nanobind::arg("context") = nanobind::none())
+      .def_staticmethod(
+          "hasSpecifiedSize",
+          [](MlirType type) {
+            auto veqTy = dyn_cast<cudaq::quake::VeqType>(unwrap(type));
+            if (!veqTy)
+              throw std::runtime_error(
+                  "Invalid type passed to VeqType.getSize()");
+
+            return veqTy.hasSpecifiedSize();
+          },
+          nanobind::arg("veqTypeInstance"))
+      .def_staticmethod(
+          "getSize",
+          [](MlirType type) {
+            auto veqTy = dyn_cast<cudaq::quake::VeqType>(unwrap(type));
+            if (!veqTy)
+              throw std::runtime_error(
+                  "Invalid type passed to VeqType.getSize()");
+
+            return veqTy.getSize();
+          },
+          nanobind::arg("veqTypeInstance"));
+
+  quakeMod.def(
+      "isConstantQuantumRefType",
+      [](MlirType type) {
+        return cudaq::quake::isConstantQuantumRefType(unwrap(type));
+      },
+      nanobind::arg("type"));
+
+  quakeMod.def(
+      "getAllocationSize",
+      [](MlirType type) {
+        return cudaq::quake::getAllocationSize(unwrap(type));
+      },
+      nanobind::arg("type"));
+
+  mlir_type_subclass(quakeMod, "StruqType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::quake::StruqType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, nanobind::list aggregateTypes,
+             MlirContext context) {
+            SmallVector<Type> inTys;
+            for (nanobind::handle t : aggregateTypes)
+              inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
+
+            return wrap(cudaq::quake::StruqType::get(unwrap(context), inTys));
+          },
+          nanobind::arg("cls"), nanobind::arg("aggregateTypes"),
+          nanobind::arg("context") = nanobind::none())
+      .def_classmethod(
+          "getNamed",
+          [](nanobind::object cls, const std::string &name,
+             nanobind::list aggregateTypes, MlirContext context) {
+            SmallVector<Type> inTys;
+            for (nanobind::handle t : aggregateTypes)
+              inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
+
+            return wrap(
+                cudaq::quake::StruqType::get(unwrap(context), name, inTys));
+          },
+          nanobind::arg("cls"), nanobind::arg("name"),
+          nanobind::arg("aggregateTypes"),
+          nanobind::arg("context") = nanobind::none())
+      .def_classmethod(
+          "getTypes",
+          [](nanobind::object cls, MlirType structTy) {
+            auto ty = dyn_cast<cudaq::quake::StruqType>(unwrap(structTy));
+            if (!ty)
+              throw std::runtime_error(
+                  "invalid type passed to StruqType.getTypes(), must be a "
+                  "quake.struq");
+            std::vector<MlirType> ret;
+            for (auto &t : ty.getMembers())
+              ret.push_back(wrap(t));
+            return ret;
+          })
+      .def_classmethod("getName", [](nanobind::object cls, MlirType structTy) {
+        auto ty = dyn_cast<cudaq::quake::StruqType>(unwrap(structTy));
+        if (!ty)
+          throw std::runtime_error(
+              "invalid type passed to StruqType.getName(), must be a "
+              "quake.struq");
+        return ty.getName().getValue().str();
+      });
+}
+
+static void registerCCDialectAndTypes(nanobind::module_ &m) {
+  using namespace mlir::python::nanobind_adaptors;
+  auto ccMod = m.def_submodule("cc");
+
+  ccMod.def(
+      "register_dialect",
+      [](bool load, MlirContext context) {
+        MlirDialectHandle ccHandle = mlirGetDialectHandle__cc__();
+        mlirDialectHandleRegisterDialect(ccHandle, context);
+        if (load) {
+          mlirDialectHandleLoadDialect(ccHandle, context);
+        }
+      },
+      nanobind::arg("load") = true,
+      nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(ccMod, "CharspanType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::CharspanType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirContext context) {
+            return wrap(cudaq::cc::CharspanType::get(unwrap(context)));
+          },
+          nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(ccMod, "MeasureHandleType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::MeasureHandleType>(
+                           unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirContext context) {
+            return wrap(cudaq::cc::MeasureHandleType::get(unwrap(context)));
+          },
+          nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(ccMod, "StateType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::quake::StateType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirContext context) {
+            return wrap(cudaq::quake::StateType::get(unwrap(context)));
+          },
+          nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(ccMod, "PointerType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::PointerType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "getElementType",
+          [](nanobind::object cls, MlirType type) {
+            auto ty = unwrap(type);
+            auto casted = dyn_cast<cudaq::cc::PointerType>(ty);
+            if (!casted)
+              throw std::runtime_error(
+                  "invalid type passed to PointerType.getElementType(), must "
+                  "be cc.ptr type.");
+            return wrap(casted.getElementType());
+          })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirType elementType, MlirContext context) {
+            return wrap(cudaq::cc::PointerType::get(unwrap(context),
+                                                    unwrap(elementType)));
+          },
+          nanobind::arg("cls"), nanobind::arg("elementType"),
+          nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(ccMod, "ArrayType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::ArrayType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "getElementType",
+          [](nanobind::object cls, MlirType type) {
+            auto ty = unwrap(type);
+            auto casted = dyn_cast<cudaq::cc::ArrayType>(ty);
+            if (!casted)
+              throw std::runtime_error(
+                  "invalid type passed to ArrayType.getElementType(), must "
+                  "be cc.array type.");
+            return wrap(casted.getElementType());
+          })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirType elementType, std::int64_t size,
+             MlirContext context) {
+            return wrap(cudaq::cc::ArrayType::get(unwrap(context),
+                                                  unwrap(elementType), size));
+          },
+          nanobind::arg("cls"), nanobind::arg("elementType"),
+          nanobind::arg("size") = std::numeric_limits<std::int64_t>::min(),
+          nanobind::arg("context") = nanobind::none());
+
+  mlir_type_subclass(ccMod, "StructType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::StructType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, nanobind::list aggregateTypes,
+             MlirContext context) {
+            SmallVector<Type> inTys;
+            for (nanobind::handle t : aggregateTypes)
+              inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
+
+            return wrap(cudaq::cc::StructType::get(unwrap(context), inTys));
+          },
+          nanobind::arg("cls"), nanobind::arg("aggregateTypes"),
+          nanobind::arg("context") = nanobind::none())
+      .def_classmethod(
+          "getNamed",
+          [](nanobind::object cls, const std::string &name,
+             nanobind::list aggregateTypes, MlirContext context) {
+            SmallVector<Type> inTys;
+            for (nanobind::handle t : aggregateTypes)
+              inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
+
+            return wrap(
+                cudaq::cc::StructType::get(unwrap(context), name, inTys));
+          },
+          nanobind::arg("cls"), nanobind::arg("name"),
+          nanobind::arg("aggregateTypes"),
+          nanobind::arg("context") = nanobind::none())
+      .def_classmethod(
+          "getTypes",
+          [](nanobind::object cls, MlirType structTy) {
+            auto ty = dyn_cast<cudaq::cc::StructType>(unwrap(structTy));
+            if (!ty)
+              throw std::runtime_error(
+                  "invalid type passed to StructType.getTypes(), must be a "
+                  "cc.struct");
+            std::vector<MlirType> ret;
+            for (auto &t : ty.getMembers())
+              ret.push_back(wrap(t));
+            return ret;
+          })
+      .def_classmethod("getName", [](nanobind::object cls, MlirType structTy) {
+        auto ty = dyn_cast<cudaq::cc::StructType>(unwrap(structTy));
+        if (!ty)
+          throw std::runtime_error(
+              "invalid type passed to StructType.getName(), must be a "
+              "cc.struct");
+        return ty.getName().getValue().str();
+      });
+
+  mlir_type_subclass(ccMod, "CallableType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::CallableType>(unwrap(type));
+                     })
+      .def_classmethod("get",
+                       [](nanobind::object cls, MlirContext context,
+                          nanobind::list inTypes, nanobind::list resTypes) {
+                         // Nanobind builder: make the builder for this type
+                         // look like that of a FunctionType.
+                         SmallVector<Type> inTys;
+                         for (nanobind::handle t : inTypes)
+                           inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
+                         SmallVector<Type> resTys;
+                         for (nanobind::handle t : resTypes)
+                           resTys.push_back(
+                               unwrap(nanobind::cast<MlirType>(t)));
+
+                         auto *ctx = unwrap(context);
+                         return wrap(cudaq::cc::CallableType::get(
+                             ctx, FunctionType::get(ctx, inTys, resTys)));
+                       })
+      .def_classmethod(
+          "getFunctionType", [](nanobind::object cls, MlirType type) {
+            auto callTy = dyn_cast<cudaq::cc::CallableType>(unwrap(type));
+            if (!callTy)
+              throw std::runtime_error("must be a cc.callable type!");
+            return wrap(callTy.getSignature());
+          });
+
+  mlir_type_subclass(ccMod, "StdvecType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::StdvecType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "getElementType",
+          [](nanobind::object cls, MlirType type) {
+            auto ty = unwrap(type);
+            auto casted = dyn_cast<cudaq::cc::StdvecType>(ty);
+            if (!casted)
+              throw std::runtime_error(
+                  "invalid type passed to StdvecType.getElementType(), must "
+                  "be cc.array type.");
+            return wrap(casted.getElementType());
+          })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirType elementType, MlirContext context) {
+            return wrap(cudaq::cc::StdvecType::get(unwrap(context),
+                                                   unwrap(elementType)));
+          },
+          nanobind::arg("cls"), nanobind::arg("elementType"),
+          nanobind::arg("context") = nanobind::none());
+}
+
+void cudaq::bindRegisterDialects(nanobind::module_ &mod) {
+  registerQuakeDialectAndTypes(mod);
+  registerCCDialectAndTypes(mod);
+
+  mod.def("load_intrinsic", [](MlirModule module, std::string name) {
+    auto unwrapped = unwrap(module);
+    cudaq::IRBuilder builder = IRBuilder::atBlockEnd(unwrapped.getBody());
+    if (failed(builder.loadIntrinsic(unwrapped, name)))
+      unwrapped.emitError("failed to load intrinsic " + name);
+  });
+
+  mod.def("register_all_dialects", [](MlirContext context) {
+    ::cudaqLoadAllDialects(context);
+    auto *mlirContext = unwrap(context);
+    mlirContext->getOrLoadDialect<cudaq::codegen::CodeGenDialect>();
+  });
+
+  mod.def("gen_vector_of_complex_constant",
+          [](MlirLocation loc, MlirModule module, std::string name,
+             const std::vector<std::complex<double>> &values) {
+            ModuleOp modOp = unwrap(module);
+            cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
+            SmallVector<std::complex<double>> newValues{values.begin(),
+                                                        values.end()};
+            builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
+          });
+}

@@ -1,0 +1,68 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+
+// Test specialization of a user-defined kernel (@test) for both
+// adjoint and control forms.
+
+  func.func @test(%arg : !quake.ref) {
+    quake.t %arg : (!quake.ref) -> ()
+    quake.h %arg : (!quake.ref) -> ()
+    %1 = arith.constant 1.0 : f32
+    quake.rx (%1) %arg : (f32, !quake.ref) -> ()
+    quake.x %arg : (!quake.ref) -> ()
+    return
+  }
+  
+  func.func @do_apply(%arg : !quake.ref, %brg : !quake.ref) {
+    quake.apply <adj> @test [%brg] %arg : (!quake.ref,!quake.ref) -> ()
+    return
+  }
+
+// CHECK-LABEL: func.func private @test.adj.ctrl(
+// CHECK-SAME:     %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
+// CHECK:         %[[VAL_2:.*]] = arith.constant -1.0{{.*}} : f32
+// CHECK-DAG:     quake.x [%[[VAL_0]]] %[[VAL_1]] :
+// CHECK:         quake.rx (%[[VAL_2]]) [%[[VAL_0]]] %[[VAL_1]] :
+// CHECK:         quake.h [%[[VAL_0]]] %[[VAL_1]] :
+// CHECK:         quake.t<adj> [%[[VAL_0]]] %[[VAL_1]] : (!quake.veq<?>,
+// CHECK:         return
+// CHECK:       }
+
+// Note: the .ctrl variant is created as a side-effect of the implementation, so
+// testing it is not strictly required here.
+
+// CHECK-LABEL:   func.func private @test.ctrl(
+// CHECK-SAME:       %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e+00 : f32
+// CHECK:           quake.t [%[[VAL_0]]] %[[VAL_1]]
+// CHECK:           quake.h [%[[VAL_0]]] %[[VAL_1]]
+// CHECK:           quake.rx (%[[VAL_2]]) [%[[VAL_0]]] %[[VAL_1]]
+// CHECK:           quake.x [%[[VAL_0]]] %[[VAL_1]]
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @test(
+// CHECK-SAME:                    %[[VAL_0:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f32
+// CHECK:           quake.t %[[VAL_0]] :
+// CHECK:           quake.h %[[VAL_0]] :
+// CHECK:           quake.rx (%[[VAL_1]]) %[[VAL_0]] :
+// CHECK:           quake.x %[[VAL_0]] :
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL: func.func @do_apply(
+// CHECK-SAME:     %[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: !quake.ref) {
+// CHECK:         %[[VAL_2:.*]] = quake.concat %[[VAL_1]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:         call @test.adj.ctrl(%[[VAL_2]], %[[VAL_0]]) : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK:         return
+// CHECK:       }
+
+// CHECK-QIR-LABEL: @do_apply

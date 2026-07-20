@@ -1,0 +1,8 @@
+*.sh        text    eol=lf
+*.config    text    eol=lf
+*.in        text    eol=lf
+
+# Configure what will be included in source releases
+.devcontainer export-ignore
+.github export-ignore
+.licenserc.yaml export-ignore

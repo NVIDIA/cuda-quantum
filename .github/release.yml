@@ -1,0 +1,24 @@
+changelog:
+  exclude:
+    labels:
+      - "duplicate"
+      - "needs triage"
+      - "no release notes"
+    authors:
+      - cuda-quantum-bot
+  categories:
+    - title: Features and Enhancements 🎉
+      labels:
+        - "enhancement"
+    - title: Bug Fixes 🐛
+      labels:
+        - "bug fix"
+    - title: Breaking Changes 🛠
+      labels:
+        - "breaking change"
+    - title: Documentation Updates ✏️
+      labels:
+        - "documentation"
+    - title: Other Changes
+      labels:
+        - "release notes"

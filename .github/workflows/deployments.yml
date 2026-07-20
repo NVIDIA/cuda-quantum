@@ -1,0 +1,923 @@
+on:
+  # We update the build caches during the pull_request_target event, 
+  # and deploy the images via workflow dispatch on branches with deployment permissions.
+  # A dispatch event is automatically triggered when the pull_request_target event
+  # triggers the workflow.
+  workflow_dispatch:
+    inputs:
+      update_registry_cache:
+        type: boolean
+        description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
+        required: false
+        default: false
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
+      platforms:
+        type: string
+        description: The platforms to build the Docker images for. A semicolon separated list creates a separate list for each platform, whereas a comma separate list creates a multi-platform build.
+        required: false
+        default: default
+      devcontainer_only:
+        type: boolean
+        description: Build and push only the dev container image.
+        required: false
+        default: false
+      create_release:
+        type: string
+        description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
+        required: false
+        default: ''
+      include_macos:
+        type: boolean
+        description: Build and include macOS wheels and installer.
+        required: false
+        default: true
+      run_publishing_after:
+        type: boolean
+        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
+        required: false
+        default: false
+  workflow_run:
+    workflows:
+      - PR merged
+    types:
+      - completed
+    # PR merged workflow runs after merge into certain branches an on pull_request_target;
+    # there should hence be no need for additional branch filtering here.
+  schedule:
+    - cron: "0 14 * * *"
+  push:
+    branches:
+      - 'releases/*'
+      - 'staging/*'
+      - 'experimental/*'
+      - 'features/*'
+
+name: Deployments # do not change name without updating workflow_run triggers
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    name: Prepare build
+    if: github.event_name != 'push' || github.event.created
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    outputs:
+      pull_request_number: ${{ steps.pr_info.outputs.pr_number }}
+      pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
+      pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
+      llvm_commit: ${{ steps.build_config.outputs.llvm_commit }}
+      nanobind_commit: ${{ steps.build_config.outputs.nanobind_commit }}
+      cache_base: ${{ steps.build_info.outputs.cache_base }}
+      cache_target: ${{ steps.build_info.outputs.cache_target }}
+      multi_platform: ${{ steps.build_info.outputs.multi_platform }}
+      platforms: ${{ steps.build_info.outputs.platforms }}
+      build_dependencies: ${{ steps.build_config.outputs.build_dependencies }}
+      create_packages: ${{ steps.build_config.outputs.create_packages }}
+      environment: ${{ steps.build_info.outputs.environment }}
+
+    steps:
+      - name: Retrieve PR info
+        if: github.event_name == 'workflow_run'
+        id: pr_info
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          artifacts_url=${{ github.event.workflow_run.artifacts_url }}
+          artifacts=$(retry gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            if [ "$name" == "metadata_pr" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              retry gh api $url > metadata.zip
+              unzip -d metadata metadata.zip
+              for file in `find metadata/ -type f`; do
+                cat "$file" >> metadata.txt
+              done
+              pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
+              pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
+              merge_commit=`cat metadata.txt | grep -o 'source-sha: \S*' | cut -d ' ' -f 2`
+              rm -rf metadata.zip metadata.txt metadata
+              echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+              echo "pr_base=$pr_base" >> $GITHUB_OUTPUT
+              echo "merge_commit=$merge_commit" >> $GITHUB_OUTPUT
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Determine build info
+        id: build_info
+        run: |
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            defaults="${{ ((inputs.update_registry_cache || github.event_name == 'schedule') && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
+            requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
+          else
+            requested_platforms="linux/arm64 linux/amd64"
+          fi
+
+          if [ -n "$(echo "$requested_platforms" | egrep ',')" ]; then
+            multi_platform="{\"ids\":[]}"
+            platform_flag=`echo "$requested_platforms" | tr -d ' '`
+            multi_platform=`echo $multi_platform | jq ".ids |= . + [\"multiplat\"]"`
+            platform={\"multiplat\":{\"docker_flag\":\"$platform_flag\"}}
+            multi_platform=`echo $multi_platform | jq ". |= . + $platform"`
+          fi
+
+          platforms="{\"ids\":[]}"
+          for input in `echo "$requested_platforms" | tr , ' ' | tr ';' ' '`; do
+            platform_id=`echo $input | sed 's/linux\///g' | tr -d ' '`
+            minimal_base_image=`([ "$platform_id" == "amd64" ] && echo amd64/almalinux:8) || ([ "$platform_id" == "arm64" ] && echo arm64v8/almalinux:8) || echo`
+            platforms=`echo $platforms | jq ".ids |= . + [\"$platform_id\"]"`
+            platform={\"$platform_id\":{\"docker_flag\":\"$input\",\"minimal_base_image\":\"$minimal_base_image\"}}
+            platforms=`echo $platforms | jq ". |= . + $platform"`
+          done
+
+          cache_base=${{ (github.event_name == 'push' && 'main') || inputs.cache_base || steps.pr_info.outputs.pr_base }}
+          cache_target=${{ (github.event_name != 'workflow_dispatch' && (steps.pr_info.outputs.pr_base || github.ref_name)) || (inputs.update_registry_cache && github.ref_name) || '' }}
+          environment=${{ (github.event_name != 'workflow_run' && 'ghcr-deployment') || '' }}
+
+          # Store deployment info
+          release_title="${{ inputs.create_release }}"
+          release_version=`echo "$release_title" | (egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)`
+
+          echo "source-sha: ${{ github.sha }}" >> deployment_info.txt
+          echo "release-title: $release_title" >> deployment_info.txt
+          echo "release-version: $release_version" >> deployment_info.txt
+
+          echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
+          echo "cache_target=$cache_target" >> $GITHUB_OUTPUT
+          echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
+          echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
+          echo "environment=$environment" >> $GITHUB_OUTPUT
+
+      - name: Upload deployment info
+        uses: actions/upload-artifact@v7
+        with:
+          name: deployment_info # changing the artifact name requires updating other workflows
+          path: deployment_info.txt
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload publishing flag
+        if: github.event_name == 'workflow_dispatch'
+        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
+      - name: Upload publishing_requested artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: publishing_requested
+          path: publishing_requested.txt
+          retention-days: 1
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ steps.pr_info.outputs.merge_commit }}"
+
+      - name: Configure build
+        id: build_config
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
+
+          if ${{ github.event_name != 'workflow_run' || steps.pr_info.outputs.pr_number != '' }}; then
+            echo "build_dependencies=true" >> $GITHUB_OUTPUT
+          fi
+          if ${{ github.event_name == 'workflow_dispatch' && ! inputs.update_registry_cache }}; then
+            echo "create_packages=true" >> $GITHUB_OUTPUT
+          fi
+
+  devdeps:
+    name: Build dev dependencies
+    needs: metadata
+    if: needs.metadata.outputs.build_dependencies == 'true'
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        toolchain: [llvm, gcc12]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/devdeps.Dockerfile
+      build_config_id: ${{ matrix.toolchain }}
+      build_args: |
+        toolchain=${{ matrix.toolchain }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      checkout_submodules: true
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
+
+  wheeldeps:
+    name: Build wheel dependencies
+    needs: metadata
+    if: needs.metadata.outputs.build_dependencies == 'true'
+    strategy:
+      matrix:
+        # There are currently no multi-platform manylinux images available.
+        # See https://github.com/pypa/manylinux/issues/1306.
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      build_args: |
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=gcc12
+        distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
+
+  source_build:
+    name: Build cross-platform dependencies
+    needs: metadata
+    if: needs.metadata.outputs.build_dependencies == 'true'
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/assets.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
+      build_target: prereqs
+      build_args: |
+        base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=llvm
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      checkout_submodules: true
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
+
+  openmpi:
+    name: Build Open MPI
+    needs: metadata
+    if: needs.metadata.outputs.build_dependencies == 'true'
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/devdeps.ompi.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}
+      build_args: |
+        cuda_version=${{ matrix.cuda_version }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ompi
+
+  dispatch:
+    name: Dispatch deployments
+    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          # We want this dispatch to trigger additional workflows.
+          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          script: |
+            // The createWorkflowDispatch call has been observed to hit transient
+            // GitHub API 5xx errors; retry up to 3 times with exponential backoff.
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deployments.yml',
+              ref: '${{ needs.metadata.outputs.pull_request_base || github.ref_name }}',
+              inputs: {
+                platforms: 'linux/arm64 linux/amd64',
+                cache_base: '${{ needs.metadata.outputs.cache_base }}',
+                devcontainer_only: ${{ github.event_name == 'schedule' }}
+              },
+            };
+            for (let n = 1; n <= 3; n++) {
+              try {
+                await github.rest.actions.createWorkflowDispatch(params);
+                if (n > 1) core.notice(`createWorkflowDispatch succeeded on attempt ${n}`);
+                return;
+              } catch (err) {
+                if (n === 3) throw err;
+                core.warning(`createWorkflowDispatch attempt ${n}/3 failed: ${err.message}; retrying...`);
+                await sleep(15000 * n * n);
+              }
+            }
+
+  # This job is needed only when using the matrix-outputs action to read
+  # the output of a matrix job. This is a workaround due to current GitHub
+  # limitations that may not be needed if the work started here concludes:
+  # https://github.com/actions/runner/pull/2477
+  config:
+    name: Configure build
+    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
+    if: needs.metadata.outputs.create_packages == 'true'
+    runs-on: ubuntu-latest
+
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+
+    steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
+
+      - name: Print config.outputs.json
+        run: |
+          echo '${{ steps.read_json.outputs.result }}'
+
+  extdevdeps:
+    name: Create dev environment
+    needs: [metadata, config, openmpi]
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/devcontainer.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      build_args: |
+        cuda_version=${{ matrix.cuda_version }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
+        ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ext
+
+  # This job is needed only when using the matrix-outputs action to read
+  # the output of a matrix job. This is a workaround due to current GitHub
+  # limitations that may not be needed if the work started here concludes:
+  # https://github.com/actions/runner/pull/2477
+  ext_config:
+    name: Configure build
+    needs: extdevdeps
+    runs-on: ubuntu-latest
+
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+
+    steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
+
+      - name: Print ext_config.outputs.json
+        run: |
+          echo '${{ steps.read_json.outputs.result }}'
+
+  stitch_devdeps:
+    name: Stitch devdeps (CUDA ${{ matrix.cuda }}) images
+    needs: ext_config
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cuda: ["12.6", "13.0"]
+
+    environment: ghcr-deployment
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up environment
+        run: |
+          docker context create builder_context || echo "Context exists"
+          docker context use builder_context
+
+      - name: Setup buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          endpoint: builder_context
+
+      - name: Login to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: metadata for jobs
+        id: metadata
+        run: |
+          set -euo pipefail
+          EXT_JSON='${{ needs.ext_config.outputs.json }}'
+          echo "ext_json<<EOF" | tee -a "$GITHUB_OUTPUT"
+          echo "$EXT_JSON" | tee -a "$GITHUB_OUTPUT"
+          echo "EOF" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Stitch devdeps image
+        run: |
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+          EXT_JSON='${{ steps.metadata.outputs.ext_json }}'
+
+          refs=""
+          for arch in arm64 amd64; do
+            key="${arch}-cu${cuda}-ext"
+            image=$(echo "$EXT_JSON" | jq -r ".image_hash[\"$key\"]")
+            refs="$refs $image"
+          done
+
+          registry=$(echo "$image" | cut -d'@' -f1)
+
+          # Retrieve image tag from EXT_JSON, just look at amd64 and filter it out
+          key="amd64-cu${cuda}-ext"
+          image_tag=$(echo "$EXT_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
+
+          # Remove 'amd64-' from the whole string
+          stitched_tag="${image_tag/amd64-/}"
+
+          echo "Stitching devdeps image with tag: $stitched_tag"
+          echo "References: $refs"
+
+          docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "devdeps-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
+          echo "$stitched_output" | tee stitched_digests.json
+
+      - name: Read stitched_digests.json
+        id: stitched_json
+        run: |
+          echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
+
+      - name: Write matrix outputs
+        uses: ./.github/actions/matrix-outputs-write
+        with:
+          matrix-step-name: stitched_devdeps_images
+          matrix-key: cu${{ matrix.cuda }}
+          outputs: |
+            json: ${{ steps.stitched_json.outputs.json }}
+
+  docker_images:
+    name: Create Docker images
+    needs: [metadata, config, ext_config]
+    if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/docker_images.yml
+    secrets:
+      NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      cuda_version: ${{ matrix.cuda_version }}
+      ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
+      devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
+      cudaq_enable_projects: 'cudaq;runtime;python;realtime'
+      build_docs: ${{ matrix.cuda_version == '12.6' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
+      environment: ghcr-deployment
+
+  digest_config:
+    name: Aggregate digests
+    needs: docker_images
+    runs-on: ubuntu-latest
+
+    outputs:
+      json: "${{ steps.read.outputs.result }}"
+
+    steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - name: Read matrix outputs
+        id: read
+        uses: ./.github/actions/matrix-outputs-read
+        with:
+          matrix-step-name: docker_images
+
+      - name: Print full digest config JSON
+        run: |
+          echo "Received matrix outputs:"
+          echo '${{ steps.read.outputs.result }}' | jq .
+
+  stitch:
+    name: Stitch CUDA-Q (CUDA ${{ matrix.cuda }}) images
+    needs: digest_config
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cuda: ["12.6", "13.0"]
+
+    environment: ghcr-deployment
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up environment
+        run: |
+          docker context create builder_context || echo "Context exists"
+          docker context use builder_context
+
+      - name: Setup buildx
+        uses: docker/setup-buildx-action@v4
+        with:
+          endpoint: builder_context
+
+      - name: Login to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Log in to NGC
+        uses: docker/login-action@v4
+        with:
+          registry: nvcr.io
+          username: '$oauthtoken'
+          password: ${{ secrets.NGC_CREDENTIALS }}
+
+      - name: metadata for jobs
+        id: metadata
+        run: |
+          set -euo pipefail
+          DIGESTS_JSON='${{ needs.digest_config.outputs.json }}'
+          echo "digests_json<<EOF" | tee -a "$GITHUB_OUTPUT"
+          echo "$DIGESTS_JSON" | tee -a "$GITHUB_OUTPUT"
+          echo "EOF" | tee -a "$GITHUB_OUTPUT"
+
+      - name: Stitch debug image
+        run: |
+          set -euo pipefail
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
+
+          # Retry registry-hitting commands; nvcr.io/ghcr.io occasionally
+          # return transient 5xx from their auth/proxy endpoints.
+          retry() {
+            for n in 1 2 3 4 5; do
+              "$@" && return 0
+              [ "$n" -eq 5 ] && return 1
+              echo "Command '$*' failed (attempt $n/5); retrying in $((10*n))s..." >&2
+              sleep $((10*n))
+            done
+          }
+
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+
+          refs=""
+          for arch in amd64 arm64; do
+            key="${arch}-cu${cuda}-dev-image"
+            digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
+            arch_reference=$(echo "$DIGESTS_JSON" | jq -r ".image_tag[\"$key\"]")
+            registry=$(echo "$arch_reference" | cut -d':' -f1)
+            refs="$refs $registry@$digest"
+          done
+
+          # Retrieve image tag from DIGEST_JSON, just look at amd64 and filter it out
+          key="amd64-cu${cuda}-dev-image"
+          dev_image=$(echo "$DIGESTS_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
+
+          # Remove 'amd64-' from the whole string
+          stitched_tag="${dev_image/amd64-/}"
+
+          echo "Stitching debug image with tag: $stitched_tag"
+          echo "References: $refs"
+
+          retry docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "dev-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
+          echo "$stitched_output" | tee stitched_digests.json
+
+      - name: Stitch release image
+        run: |
+          set -euo pipefail
+          DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
+
+          # Retry registry-hitting commands; nvcr.io/ghcr.io occasionally
+          # return transient 5xx from their auth/proxy endpoints.
+          retry() {
+            for n in 1 2 3 4 5; do
+              "$@" && return 0
+              [ "$n" -eq 5 ] && return 1
+              echo "Command '$*' failed (attempt $n/5); retrying in $((10*n))s..." >&2
+              sleep $((10*n))
+            done
+          }
+
+          cuda="${{ matrix.cuda }}"
+          cuda_major="${cuda%%.*}"
+          image="image"
+
+          refs=""
+          for arch in amd64 arm64; do
+            key="${arch}-cu${cuda}-${image}"
+            digest=$(echo "$DIGESTS_JSON" | jq -r ".digest[\"$key\"]")
+            arch_reference=$(echo "$DIGESTS_JSON" | jq -r ".image_tag[\"$key\"]")
+            registry=$(echo "$arch_reference" | cut -d':' -f1)
+            refs="$refs $registry@$digest"
+          done
+
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
+          push_to_ngc=`($is_versioned || $has_continuous_deployment) && echo true || echo`
+
+          echo "push to NGC? $push_to_ngc"
+
+          if [[ "$push_to_ngc" == "true" ]]; then
+            registry=${registry/ghcr.io\/nvidia/nvcr.io\/nvidia\/nightly}
+          fi
+
+          image_tag="cu${cuda_major}-"
+          pr_number="${{ github.event.pull_request.number }}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+          if [ -n "$pr_number" ]; then
+            image_tag+=pr-${pr_number}
+          elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
+            image_tag+="latest"
+          elif [[ "$is_versioned" == "true" ]]; then
+            image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
+          fi
+
+          suffix="-base"
+          image_tag="${image_tag}${suffix}"
+
+          stitched_tag="${registry}:${image_tag}"
+
+          echo "Stitching release image with tag: $stitched_tag"
+          echo "References: $refs"
+
+          retry docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
+          echo "$stitched_output" | tee stitched_digests.json
+
+      - name: Read stitched_digests.json
+        id: stitched_json
+        run: |
+          echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
+
+      - name: Write matrix outputs
+        uses: ./.github/actions/matrix-outputs-write
+        with:
+          matrix-step-name: stitched_cudaq_images
+          matrix-key: cu${{ matrix.cuda }}
+          outputs: |
+            json: ${{ steps.stitched_json.outputs.json }}
+
+  aggregate_stitched_images:
+    name: Aggregate Stitched Images
+    needs: [stitch, stitch_devdeps]
+    runs-on: ubuntu-latest
+
+    outputs:
+      devdeps_json: "${{ steps.read_devdeps.outputs.result }}"
+      cudaq_json: "${{ steps.read_cudaq.outputs.result }}"
+
+    steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - name: Read matrix outputs (devdeps)
+        id: read_devdeps
+        uses: ./.github/actions/matrix-outputs-read
+        with:
+          matrix-step-name: stitched_devdeps_images
+
+      - name: Read matrix outputs (CUDA-Q)
+        id: read_cudaq
+        uses: ./.github/actions/matrix-outputs-read
+        with:
+          matrix-step-name: stitched_cudaq_images
+
+      - name: Print full digest config JSON
+        run: |
+          echo "Received matrix outputs (devdeps):"
+          echo '${{ steps.read_devdeps.outputs.result }}' | jq .
+          echo "Received matrix outputs (CUDA-Q):"
+          echo '${{ steps.read_cudaq.outputs.result }}' | jq .
+
+  summary:
+    name: Write deployment summary
+    needs: [metadata, aggregate_stitched_images]
+    strategy:
+      matrix:
+        cuda: ["12.6", "13.0"]
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Create image summary
+        id: summary
+        run: |
+          STITCHED_DEVDEPS_JSON='${{ needs.aggregate_stitched_images.outputs.devdeps_json }}'
+          echo "$STITCHED_DEVDEPS_JSON" | jq .
+          STITCHED_CUDAQ_JSON='${{ needs.aggregate_stitched_images.outputs.cudaq_json }}'
+          echo "$STITCHED_CUDAQ_JSON" | jq .
+
+          cuda=${{ matrix.cuda }}
+          cuda_major="${cuda%%.*}"
+          artifact_name="image_cu${cuda_major}_publishing"            
+          info_file="$artifact_name.txt"
+
+          key="base-cu${cuda_major}"
+          cudaq_reference=$(echo "$STITCHED_CUDAQ_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
+
+          key="dev-cu${cuda_major}"
+          dev_reference=$(echo "$STITCHED_CUDAQ_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
+
+          key="devdeps-cu${cuda_major}"
+          devdeps_reference=$(echo "$STITCHED_DEVDEPS_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
+
+          # Parse JSON and join docker_flag values (e.g., "linux/amd64,linux/arm64")
+          platforms=$(echo '${{ needs.metadata.outputs.platforms }}' \
+            | jq -r '[.ids[] as $id | .[$id].docker_flag] | join(",")')
+
+          {
+            echo "source-sha: ${{ github.sha }}"
+            echo "cuda-quantum-image: ${cudaq_reference}"
+            echo "cuda-quantum-dev-image: ${dev_reference}"
+            echo "cuda-quantum-devdeps-image: ${devdeps_reference}"
+            echo "platforms: ${platforms}"
+            echo "cuda-version: ${cuda}"
+            cat .github/workflows/config/gitlab_commits.txt
+          } | tee "$info_file"
+          echo "Created $info_file"
+
+          echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT          
+          echo "info_file=$info_file" >> $GITHUB_OUTPUT          
+
+      - name: Upload ${{ steps.summary.outputs.artifact_name }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.summary.outputs.artifact_name }}
+          path: ${{ steps.summary.outputs.info_file }}
+          retention-days: 30
+          if-no-files-found: error
+
+  python_wheels:
+    name: Create Python wheels
+    needs: [metadata, config]
+    if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        python_version: ['3.11', '3.12', '3.13', '3.14']
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      python_version: ${{ matrix.python_version }}
+      cuda_version: ${{ matrix.cuda_version }}
+      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
+
+  binaries:
+    name: Create CUDA Quantum installer
+    needs: [metadata, config]
+    if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/prebuilt_binaries.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
+      cuda_version: ${{ matrix.cuda_version }}
+      build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
+      environment: ghcr-deployment
+
+  macos_ci:
+    name: macOS CI
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && (github.event_name != 'workflow_dispatch' || inputs.include_macos != false)
+    uses: ./.github/workflows/ci_macos.yml
+    with:
+      cache_base: ${{ needs.metadata.outputs.cache_base }}
+      cudaq_version: ${{ inputs.create_release }}
+
+  trigger_publishing:
+    name: Trigger Publishing
+    needs: [summary, python_wheels, binaries]
+    if: inputs.run_publishing_after
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger Publishing workflow
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          script: |
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publishing.yml',
+              ref: context.ref.replace('refs/heads/', ''),
+              inputs: {
+                deployment_id: context.runId.toString(),
+              },
+            };
+            for (let n = 1; n <= 3; n++) {
+              try {
+                await github.rest.actions.createWorkflowDispatch(params);
+                if (n > 1) core.notice(`createWorkflowDispatch succeeded on attempt ${n}`);
+                return;
+              } catch (err) {
+                if (n === 3) throw err;
+                core.warning(`createWorkflowDispatch attempt ${n}/3 failed: ${err.message}; retrying...`);
+                await sleep(15000 * n * n);
+              }
+            }
