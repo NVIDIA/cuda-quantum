@@ -29,7 +29,7 @@ metadata:
 Guide users through CUDA-Q installation, basic kernels, GPU simulation targets,
 QPU access, built-in applications, multi-GPU execution, and Python
 `@cudaq.kernel` authoring. For Qiskit-to-CUDA-Q ports, route to the
-`qiskit-to-cudaq` skill instead.
+`cudaq-importing` skill instead.
 
 ## Prerequisites
 
@@ -48,7 +48,7 @@ QPU access, built-in applications, multi-GPU execution, and Python
 - Read local CUDA-Q documentation files when the answer depends on a specific
   CUDA-Q version or backend behavior.
 - Do not answer Qiskit porting questions from this skill; use
-  `qiskit-to-cudaq`.
+  `cudaq-importing`.
 
 ## Routing by Argument
 
