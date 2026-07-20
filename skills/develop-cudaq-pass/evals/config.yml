@@ -2,8 +2,13 @@ schema_version: 1
 
 harbor:
   task_source: evals_json
-  custom_dockerfile_mode: preserve
-  base_image_mode: disabled
+  # Rebase the custom CUDA-Q development Dockerfile onto the SkillEvaluator
+  # base image so the evaluator can provision its agent harness. With
+  # preserve/disabled (left over from the removed native-harbor task) no agent
+  # was eligible and Tier 3 execution was skipped, which blocks the NVSkills
+  # merge gate.
+  custom_dockerfile_mode: rebase
+  base_image_mode: reuse
   n_attempts: 2
   pass_threshold: 0.60
   stop_on_pass: true

@@ -1,6 +1,24 @@
 ---
 name: develop-cudaq-pass
+title: "Develop a CUDA-Q Compiler Pass"
 description: "Use when planning, adding, modifying, debugging, hardening, or integrating a CUDA-Q compiler pass, whether built into CUDA-Q or supplied as an external plugin. Covers transformations, analyses, conversions, code generation, and pipeline placement. Do not use for merely invoking existing passes, runtime optimization, or general MLIR guidance unrelated to CUDA-Q."
+version: "1.0.0"
+author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
+tags: [cuda-quantum, quantum-computing, compiler, mlir, quake, passes, plugins, nvidia]
+license: "Apache-2.0"
+compatibility: "C++ 20, MLIR/LLVM (CUDA-Q toolchain)"
+metadata:
+    author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
+    tags:
+        - cuda-quantum
+        - quantum-computing
+        - compiler
+        - mlir
+        - passes
+        - nvidia
+    languages:
+        - c++
+    domain: "quantum"
 ---
 
 # Develop a CUDA-Q Compiler Pass
