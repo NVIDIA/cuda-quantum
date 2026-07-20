@@ -28,10 +28,11 @@ the [source map](references/source-map.md) to find it.
    CMake entry, pipeline use, and tests. Load a named primary source when the
    requested algorithm depends on one.
 
-## Choose the Change Shape
+## Select the Compiler Extension Point
 
-Before choosing the change shape, capture representative valid input IR at the
-intended pipeline boundary and state the output required by the next consumer.
+Before selecting the extension point, capture representative valid input IR at
+the intended pipeline boundary and state the output required by the next
+consumer.
 
 Select the smallest extension point that owns the behavior:
 
@@ -57,8 +58,8 @@ for new independent ones.
 
 After tracing current behavior, present a proportional brief containing:
 
-- built-in or external ownership, selected change shape, and the rejected
-  nearest alternative
+- built-in or external ownership, selected compiler extension point, and the
+  rejected nearest alternative
 - approach, pass anchor, accepted input IR, produced output IR, and behavior
   for valid but unsupported input
 - computation or observable behavior preserved by the transformation
