@@ -38,16 +38,17 @@ Select the smallest extension point that owns the behavior:
 
 - Use folding or operation canonicalization for a cheap, local, monotonic form
   that is valid whenever the operation appears.
-- Use an analysis for read-only facts with defined invalidation. Keep a one-use
-  calculation private until it represents a stable reusable compiler concept.
+- Use an analysis for read-only results reused across transformations, with
+  explicit invalidation. Keep calculations used by only one pass local to that
+  pass.
 - Reuse an MLIR interface first. Add an interface or trait only for intrinsic
   behavior needed by multiple operations or consumers.
 - Add IR only when current operations, types, attributes, or interfaces cannot
-  state or verify a required semantic distinction. Treat this as a prerequisite
-  review unit.
-- Extend an existing pass only when the work is part of the same named
-  transformation and retains its purpose, anchor, input and output IR,
-  placement, enablement, convergence model, and performance budget.
+  state or verify a required semantic distinction. Submit the IR change and
+  the dependent pass change as separate, sequential review units.
+- Extend an existing pass only when the new behavior serves the same purpose,
+  operates at the same IR boundary, and does not change how the pass is placed
+  or enabled in the pipeline.
 - Otherwise add a focused pass. Keep pass-dependent patterns and helpers local;
   share a helper only when it has more than one real caller.
 
@@ -56,12 +57,13 @@ for new independent ones.
 
 ## Prepare the Implementation Brief
 
-After tracing current behavior, present a proportional brief containing:
+Summarize the following at a level of detail appropriate to the change:
 
 - built-in or external ownership, selected compiler extension point, and the
   rejected nearest alternative
-- approach, pass anchor, accepted input IR, produced output IR, and behavior
-  for valid but unsupported input
+- proposed implementation, the MLIR operation the pass runs on, supported input
+  and expected output IR, and how the pass handles valid input outside its
+  supported scope
 - computation or observable behavior preserved by the transformation
 - ordered proposed review units and dependencies
 - minimum sufficient test evidence
@@ -69,9 +71,9 @@ After tracing current behavior, present a proportional brief containing:
   risks
 - likely files and the repository that owns each change
 
-Separate prerequisite shared APIs, analyses, utilities, traits, interfaces, or
-IR semantics from pass-local implementation and pipeline activation. A local
-implementation does not establish that required owner review occurred.
+Plan shared compiler support, pass implementation, and pipeline activation as
+separate review units when they have different owners or risks. Route each unit
+through the repository's normal review process.
 
 For an external plugin, keep its implementation, packaging, and tests in the
 plugin repository and follow that repository's contribution process. Put a
@@ -91,7 +93,8 @@ diagnostics, comments, and documentation:
   evidence and rationale needed to act.
 - Use established CUDA-Q, MLIR, compiler, and quantum computing terms. Define
   necessary specialized terms and write for an entry-level quantum compiler
-  developer without assuming local history or an unstated pipeline.
+  developer. Explain any repository-specific context or pipeline assumptions
+  needed to follow the plan.
 - Prefer exact names, paths, commands, results, and measurements. Distinguish
   verified facts, recommendations, assumptions, and unresolved decisions.
 - Preserve relevant preconditions, correctness risks, and tradeoffs without
@@ -108,12 +111,13 @@ For every quantum transformation, state and justify one applicable relation:
 - bounded approximation with a named error measure and tolerance
 - preserved non-unitary observable behavior
 
-Verifier-valid IR and an improved gate count, depth, or other optimization
-metric are not evidence of semantics preservation. Use `CircuitCheck` only for
+Passing the IR verifier establishes structural validity. Improvements in gate
+count, depth, or another optimization metric measure optimization quality.
+Validate the claimed quantum behavior separately. Use `CircuitCheck` only for
 small unitary IR within its supported scope and select its global-phase or
 mapping modes only when the pass claims that relation. For measurement, reset,
-control flow, noise, or other non-unitary behavior, test the observable behavior
-that the pass claims to preserve.
+control flow, noise, or other non-unitary behavior, test the observable
+behavior that the pass claims to preserve.
 
 For Quake dependency-sensitive transformations, prefer value form when precise
 wire or cable use-def chains are required. Preserve linear value threading
