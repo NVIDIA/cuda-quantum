@@ -55,7 +55,8 @@ function(add_cudaq_doc tablegen_file output_path command)
 endfunction()
 
 function(add_cudaq_dialect_doc dialect dialect_namespace)
-  add_cudaq_doc(${dialect} Dialects/${dialect} -gen-dialect-doc -dialect ${dialect_namespace})
+  add_cudaq_doc(${dialect}Ops Dialects/${dialect}
+                -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
 function(add_cudaq_library name)

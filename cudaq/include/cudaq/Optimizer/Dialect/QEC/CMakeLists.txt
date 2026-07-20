@@ -7,4 +7,4 @@
 # ============================================================================ #
 
 add_cudaq_dialect(QEC qec)
-add_cudaq_doc(QECOps Dialects/QEC -gen-dialect-doc -dialect qec)
+add_cudaq_dialect_doc(QEC qec)

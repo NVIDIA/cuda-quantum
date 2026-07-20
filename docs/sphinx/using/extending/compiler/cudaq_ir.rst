@@ -79,7 +79,7 @@ being converted to lower-level target forms, including QIR and the LLVM
 dialect. ``CodeGen`` is not frontend IR or a general-purpose optimization
 dialect. A pass should produce ``CodeGen`` operations only when they are
 required by that code generation path.
-See the :doc:`generated CodeGen dialect documentation
+See the generated ``CodeGen`` :doc:`dialect documentation
 </_mdgen/Dialects/CodeGen>` for operation details.
 
 Upstream MLIR dialects

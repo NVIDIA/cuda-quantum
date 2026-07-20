@@ -14,6 +14,6 @@ in compiler IR, see :doc:`cudaq_ir`.
    Quake dialect </_mdgen/Dialects/Quake.md>
    CC dialect </_mdgen/Dialects/CC.md>
    QEC dialect </_mdgen/Dialects/QEC.md>
-   CodeGen dialect </_mdgen/Dialects/CodeGen.md>
+   Code generation dialect </_mdgen/Dialects/CodeGen.md>
 
 .. :spellcheck-enable:

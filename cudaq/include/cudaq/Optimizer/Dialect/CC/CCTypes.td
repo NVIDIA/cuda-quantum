@@ -36,7 +36,7 @@ def cc_PointerType : CCType<"Pointer", "ptr"> {
 
     CC retains the element type while it represents high-level C++ memory
     semantics. LLVM dialect pointers are opaque and do not retain an element
-    type. Ultimately, `!cc.ptr` types become LLVM dialect pointers.
+    type. Ultimately, `!cc.ptr` types become LLVM-IR dialect pointers.
   }];
 
   let parameters = (ins "mlir::Type":$elementType);
@@ -226,11 +226,12 @@ def cc_IndirectCallableType : CCType<"IndirectCallable", "indirect_callable"> {
 
 def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
     "cudaq::cc::SpanLikeType"> {
-  let summary = "Proxy for a std::vector<T> in cc";
+  let summary = "Abstract span-like sequence type in CC";
   let description = [{
-    This captures a C++ std::vector<T> template type as an abstract CC
-    type. The intention is to allow us to reason about `std::vector` values at
-    the CC level before decomposing these into more refined data structures.
+    This type represents a dynamically sized sequence of values. The C++ front
+    end uses it for `std::vector<T>` values, but it does not provide
+    `std::vector` on the device. Lowering replaces it with the lower-level
+    representation required by the target.
 
     ```c++
     void foo(std::vector<int> vec) ...
@@ -261,11 +262,11 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
 
 def cc_CharSpanType
     : CCType<"Charspan", "charspan", [], "cudaq::cc::SpanLikeType"> {
-  let summary = "Proxy for a span over a std::string in cc";
+  let summary = "Proxy for a span over std::basic_string<char> in CC";
   let description = [{
-    This captures a C++ `std::string` as an abstract CC type. The intention is
-    to allow us to reason about `std::string` at the CC level before
-    decomposing these into more refined data structures.
+    This captures C++ `std::basic_string<char>` (`std::string`) as an abstract
+    CC type. The intention is to allow us to reason about `std::string` at the
+    CC level before decomposing these into more refined data structures.
 
     ```c++
     void foo(std::string aString)...

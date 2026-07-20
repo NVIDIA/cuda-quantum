@@ -26,8 +26,8 @@ def CCDialect : Dialect {
   let summary = "Classical compute dialect for the CUDA-Q programming model.";
   let description = [{
     CC is a high-level, portable MLIR dialect for the classical computing side
-    of the CUDA-Q programming model. It represents the subset of C++ supported
-    in CUDA-Q kernels.
+    of the CUDA-Q programming model. CUDA-Q front ends use CC to represent
+    supported classical constructs in quantum kernels.
   }];
 
   let cppNamespace = "cudaq::cc";

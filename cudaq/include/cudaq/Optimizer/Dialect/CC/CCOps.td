@@ -552,9 +552,9 @@ def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
         ParentOneOf<["mlir::func::FuncOp", "CreateLambdaOp"]>]> {
   let summary = "Return from a function or callable.";
   let description = [{
-    A ReturnOp terminates a `func.func` or `cc.create_lambda` body and returns
-    its operands to the caller. In a lambda, it terminates the current callable
-    invocation.
+    A ReturnOp returns control from the current `func.func` or
+    `cc.create_lambda` activation to its caller. Its operands are the returned
+    values.
 
     ```mlir
       %lambda = cc.create_lambda {
