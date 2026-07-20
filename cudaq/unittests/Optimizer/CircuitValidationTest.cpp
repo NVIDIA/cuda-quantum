@@ -16,6 +16,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include <cmath>
 
 using namespace mlir;
 
@@ -184,6 +185,37 @@ TEST_F(CircuitValidationTest, CompareCancellingGatesAreEqual) {
   auto result = compareUnitaries(base, cand);
   EXPECT_TRUE(result.computed);
   EXPECT_TRUE(result.strictEqual);
+}
+
+// Two circuits that differ only by a global phase (x·z·x·z = -I vs identity)
+// are rejected by the strict oracle but accepted up to a global phase. This is
+// exactly the distinction between the two exact-tier oracles, so the phase
+// delta (here pi) must be reported.
+TEST_F(CircuitValidationTest, CompareGlobalPhaseDifference) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  // base = x·x = I
+  auto base = createKernel("base", {refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, base.getArgument(0));
+  cudaq::quake::XOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  // cand = x·z·x·z = -I (identity times a global phase of e^{i*pi})
+  auto cand = createKernel("cand", {refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::ZOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::ZOp::create(builder, loc, cand.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareUnitaries(base, cand);
+  EXPECT_TRUE(result.computed);
+  EXPECT_FALSE(result.strictEqual);
+  EXPECT_TRUE(result.equalUpToGlobalPhase);
+  EXPECT_FALSE(result.phaseIsZero);
+  EXPECT_NEAR(std::abs(result.phase), M_PI, 1e-6);
 }
 
 // Genuinely different circuits are not equivalent, but the comparison still
