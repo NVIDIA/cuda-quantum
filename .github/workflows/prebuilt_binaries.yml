@@ -199,6 +199,7 @@ jobs:
         uses: ./.github/actions/ccache-extract
         with:
           dockerfile: ./docker/build/assets.Dockerfile
+          export-target: ccache-export-full
           build-args: |
             release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ inputs.platform_base_image }}

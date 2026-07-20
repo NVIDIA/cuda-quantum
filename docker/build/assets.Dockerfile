@@ -268,7 +268,8 @@ RUN cd /cuda-quantum && \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang" \
     python3 -m build --wheel && \
-    echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
+    echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
     ## [<CUDAQuantumPythonBuild]
 
 # The '[a-z]*linux_[^\.]*' is meant to catch things like:
@@ -402,6 +403,28 @@ COPY --from=ccache-tar-prereqs /ccache.tar /
 
 FROM scratch AS ccache-export-prereqs-stats
 COPY --from=prereqs /root/.ccache/_build_stats.txt /
+
+# Merge python_build's cache (otherwise never exported) into cpp_build's;
+# stats are summed so the extract/push gates see the combined miss rate.
+FROM python_build AS ccache-tar-full
+COPY --from=cpp_build /root/.ccache /tmp/ccache-cpp
+COPY .github/actions/ccache-push/parse_stats.sh /tmp/parse_stats.sh
+RUN cpp_stats=$(bash /tmp/parse_stats.sh < /tmp/ccache-cpp/_build_stats.txt || true) && \
+    py_stats=$(bash /tmp/parse_stats.sh < /root/.ccache/_build_stats.txt || true) && \
+    cp -an /tmp/ccache-cpp/. /root/.ccache/ && \
+    if [ -n "$cpp_stats" ] && [ -n "$py_stats" ]; then \
+        calls=$(( ${cpp_stats% *} + ${py_stats% *} )) && \
+        misses=$(( ${cpp_stats#* } + ${py_stats#* } )) && \
+        printf 'direct_cache_hit\t%s\npreprocessed_cache_hit\t0\ncache_miss\t%s\n' \
+            "$(( calls - misses ))" "$misses" > /root/.ccache/_build_stats.txt; \
+    fi && \
+    tar cf /ccache.tar -C /root/.ccache .
+
+FROM scratch AS ccache-export-full
+COPY --from=ccache-tar-full /ccache.tar /
+
+FROM scratch AS ccache-export-full-stats
+COPY --from=ccache-tar-full /root/.ccache/_build_stats.txt /
 
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
