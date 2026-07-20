@@ -199,30 +199,54 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
         appendValue(data, nanobind::cast<double>(value), offset);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
-        // Nested vectors aren't supported in the synthesis (argument
-        // substitution) path.
-        if constexpr (style == cudaq::PackingStyle::synthesis)
-          if (isa<cudaq::cc::StdvecType>(ty.getElementType()))
-            throw std::runtime_error(
-                "Type not supported for custom struct in kernel.");
+        auto appendVectorValue = []<typename T>(nanobind::object value,
+                                                void *data, std::size_t offset,
+                                                T) {
+          auto asList = nanobind::cast<nanobind::list>(value);
+          // Use the correct element type T (not always double).
+          auto *values = new std::vector<T>(asList.size());
+          for (std::size_t i = 0; auto v : asList)
+            (*values)[i++] = nanobind::cast<T>(v);
 
-        // Build the std::vector<T> (with the correct element type, including
-        // nested vectors) via the shared element handler, then copy its header
-        // into the struct.
-        auto asList = nanobind::cast<nanobind::list>(value);
-        void *values = handleVectorElements<style>(ty.getElementType(), asList);
-        // synthesis reads only a {ptr, size} span prefix (element-type
-        // independent); argsCreator copies the full host std::vector header,
-        // and std::vector<bool> is bit-packed and larger than
-        // std::vector<char>, so bool is sized separately.
-        std::size_t copySize;
-        if constexpr (style == cudaq::PackingStyle::synthesis)
-          copySize = sizeof(std::pair<char *, std::size_t>);
-        else
-          copySize = ty.getElementType().isInteger(1)
-                         ? sizeof(std::vector<bool>)
-                         : sizeof(std::vector<char>);
-        std::memcpy(((char *)data) + offset, values, copySize);
+          // synthesis path: span {ptr, size_t}
+          // argsCreator path: std::vector<T> {ptr, ptr, ptr}
+          constexpr std::size_t copySize =
+              sizeof(std::conditional_t<style == cudaq::PackingStyle::synthesis,
+                                        std::pair<char *, std::size_t>,
+                                        std::vector<T>>);
+          std::memcpy(((char *)data) + offset, values, copySize);
+        };
+
+        mlir::TypeSwitch<mlir::Type, void>(ty.getElementType())
+            .Case([&](mlir::IntegerType type) {
+              if (type.isInteger(1)) {
+                appendVectorValue(value, data, offset, BoolVecElem<style>{});
+                return;
+              }
+              appendVectorValue(value, data, offset, std::size_t());
+            })
+            .Case([&](mlir::FloatType type) {
+              if (type.isF32()) {
+                appendVectorValue(value, data, offset, float());
+                return;
+              }
+              appendVectorValue(value, data, offset, double());
+            })
+            .Case([&](cudaq::cc::StdvecType innerVecType) {
+              if constexpr (style == cudaq::PackingStyle::synthesis) {
+                throw std::runtime_error(
+                    "Type not supported for custom struct in kernel.");
+              } else {
+                // Nested vector (e.g., list[list[int]]): delegate to
+                // handleVectorElements which handles the recursive case.
+                auto asList = nanobind::cast<nanobind::list>(value);
+                auto *values =
+                    handleVectorElements<cudaq::PackingStyle::argsCreator>(
+                        innerVecType, asList);
+                std::memcpy(((char *)data) + offset, values,
+                            sizeof(std::vector<std::vector<std::size_t>>));
+              }
+            });
       })
       .Default([&](mlir::Type ty) {
         ty.dump();
