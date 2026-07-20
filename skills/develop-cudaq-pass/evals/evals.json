@@ -1,21 +1,5 @@
 [
   {
-    "id": "pass-trigger-built-in-plan",
-    "question": "Read the develop-cudaq-pass skill and give me a plan only for adding a built-in CUDA-Q compiler pass that removes adjacent self-inverse gates in Quake value-form IR. Do not edit files.",
-    "expected_skill": "develop-cudaq-pass",
-    "expected_script": null,
-    "should_trigger": true,
-    "ground_truth": "The agent activates develop-cudaq-pass, reads its SKILL.md, classifies the work as a built-in CUDA-Q pass, and stops after a proportional implementation brief because the user requested a plan only. The brief identifies the pass anchor, accepted value-form Quake input IR, produced output IR, preserved quantum behavior, selected compiler extension point, rejected nearest alternative, review units, and focused tests.",
-    "expected_behavior": [
-      "The agent reads skills/develop-cudaq-pass/SKILL.md before answering.",
-      "The agent classifies the work as a built-in CUDA-Q compiler pass rather than an external plugin or runtime optimization.",
-      "The agent produces an implementation brief and stops without editing files or requesting an extra confirmation.",
-      "The brief states accepted input IR, produced output IR, and the pass anchor.",
-      "The brief states the quantum semantics-preserving relation and names suitable validation evidence instead of relying only on valid IR or lower gate count.",
-      "The brief selects a compiler extension point and rejects the nearest plausible alternative, including why quake-simplify is not the default home for a new independent transformation."
-    ]
-  },
-  {
     "id": "pass-trigger-external-plugin",
     "question": "Use the CUDA-Q pass-development skill to plan an external pass plugin that experiments with a new qubit-layout analysis before we propose any upstream CUDA-Q API changes.",
     "expected_skill": "develop-cudaq-pass",
@@ -86,35 +70,22 @@
   },
   {
     "id": "pass-workflow-small-quake-transform",
-    "question": "Plan a small CUDA-Q Quake transformation that removes adjacent X/X pairs on the same wire after value-form conversion. I want the smallest reviewable implementation plan, including tests.",
+    "question": "Plan a small built-in CUDA-Q Quake transformation that cancels X/X pairs on the same wire even when independent gates on other wires occur between them. It must remain safe around measurement, reset, calls, and control flow. I want the smallest reviewable implementation plan, including tests.",
     "expected_skill": "develop-cudaq-pass",
     "expected_script": null,
     "should_trigger": true,
-    "ground_truth": "The agent activates develop-cudaq-pass and creates a compact implementation brief for a Quake value-form transformation. The brief captures before-and-after IR at the pipeline boundary, states exact unitary equivalence, selects the smallest appropriate compiler extension point, rejects quake-simplify as the default home unless the traced existing pass owns the exact transformation, and chooses FileCheck plus CircuitCheck for small supported unitary cases with unchanged tests for unsupported input.",
+    "ground_truth": "The agent activates develop-cudaq-pass, classifies the work as built-in, and creates a compact implementation brief for a dependency-sensitive Quake value-form transformation. The brief follows wire or cable use-def chains rather than textual operation order, allows independent work on other wires, and treats measurement, reset, calls, nested regions, and control-flow joins conservatively. It captures before-and-after IR, states exact unitary equivalence, selects the smallest appropriate compiler extension point, and chooses FileCheck plus CircuitCheck for supported unitary cases with unchanged tests for unsupported input.",
     "expected_behavior": [
       "The agent reads the skill and the Quake/compiler pass documentation required by the task.",
+      "The agent classifies the transformation as built into CUDA-Q rather than an external plugin.",
+      "The agent produces an implementation brief and stops without editing files or requesting another confirmation.",
       "The brief captures representative value-form input IR and required output IR before selecting the compiler extension point.",
+      "The plan follows wire or cable use-def chains rather than textual operation order, so independent gates on other wires do not prevent a supported cancellation.",
+      "The plan treats measurement, reset, calls, nested regions, and control-flow joins as barriers unless a pass-specific analysis proves the transformation safe.",
       "The brief chooses operation canonicalization only if the rule is cheap, local, and valid whenever the operation appears; otherwise it plans a focused pass or justified existing-pass extension.",
       "The brief does not default to quake-simplify merely because it is broad.",
       "The brief claims exact unitary equivalence and pairs FileCheck of the rewrite with CircuitCheck for small supported IR.",
       "The brief includes unchanged or diagnostic behavior for verifier-valid unsupported IR."
-    ]
-  },
-  {
-    "id": "pass-workflow-commutation-aware-quake",
-    "question": "Plan a commutation-aware CUDA-Q Quake pass that cancels inverse rotations even when independent gates on other wires occur between them. It must be safe around measurement, reset, calls, and control flow. Include boundary IR, compiler mechanism, prerequisites, and validation.",
-    "expected_skill": "develop-cudaq-pass",
-    "expected_script": null,
-    "should_trigger": true,
-    "ground_truth": "The agent activates develop-cudaq-pass and produces a boundary-first plan for a dependency-sensitive Quake transformation. It prefers value-form wire or cable use-def chains, treats measurement, reset, calls, nested regions, and control flow conservatively, and separates any missing effect model, interface, trait, or IR semantics into prerequisite review units. It states the semantic relation separately from IR validity and optimization quality, and chooses focused direct-pass and pipeline-composition tests without a Cartesian matrix.",
-    "expected_behavior": [
-      "The agent reads the skill, compiler IR guide, pass guide, and Quake semantic specification.",
-      "The plan starts from representative valid input IR at the intended pipeline boundary and states the output IR required by the next consumer.",
-      "The plan uses value-form wire or cable dependency chains rather than textual operation order as the correctness basis.",
-      "The plan treats measurement, reset, calls, nested regions, and control-flow joins as barriers unless a pass-specific analysis or effect model proves otherwise.",
-      "The plan identifies prerequisite shared interface, trait, analysis, or IR semantic changes separately from the pass-local algorithm.",
-      "The plan rejects quake-simplify as the default home for this independent transformation unless current source tracing proves it owns the same transformation and boundary.",
-      "The plan states the semantic-preservation relation and chooses validation suited to that claim, not just valid IR or gate-count reduction."
     ]
   },
   {
