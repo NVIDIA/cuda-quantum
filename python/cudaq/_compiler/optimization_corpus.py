@@ -49,7 +49,7 @@ def generate_module_text(seed: int,
             lines.append(f"  quake.x [{refs[control]}] {refs[target]} : "
                          f"(!quake.ref, !quake.ref) -> ()")
 
-    # Injected motifs: a self-inverse pair and a pair of mergeable rotations.
+    # Injected motifs: a self-inverse pair and a pair of `mergeable` rotations.
     motif_target = rng.randrange(n)
     involution = rng.choice(_INVOLUTIONS)
     lines.append(f"  quake.{involution} {refs[motif_target]} : "

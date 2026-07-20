@@ -34,7 +34,7 @@ CAPABILITY_SCHEMA_VERSION = 2
 #                   the 2^n dense-matrix cost (see DEFAULT_EXACT_QUBIT_BOUND).
 #   scalable-exact  Exact equivalence that scales past the dense bound by
 #                   exploiting circuit structure, specifically Clifford
-#                   circuits via a tableau/stim simulator. Same strength as exact
+#                   circuits via a tableau/`stim` simulator. Same strength as exact
 #                   on its (narrower) domain, but usable at many more qubits.
 #   mixed-state     Density-matrix equivalence for small circuits. Handles
 #                   measurement/reset/noise that the pure-unitary oracles reject,
@@ -78,7 +78,7 @@ _PRESETS = ("smoke", "quick", "ci", "full", "single-reproducer")
 
 @dataclass(frozen=True)
 class OracleDescriptor:
-    """One equivalence oracle in the roadmap, executable or deferred.
+    """One equivalence oracle in the `roadmap`, executable or deferred.
 
     This is the authoritative, machine-readable description of how an oracle
     decides equivalence and how far it scales, so a caller (or the agent-facing
@@ -95,7 +95,7 @@ class OracleDescriptor:
     note: str
 
 
-# The oracle roadmap.
+# The oracle `roadmap`.
 ORACLE_ROADMAP = (
     OracleDescriptor(
         kind="strict-unitary",
@@ -232,9 +232,9 @@ class ValidationCapabilities:
     metrics: tuple[str, ...]
     predicates: tuple[str, ...]
     presets: tuple[str, ...]
-    #: Assurance tiers this validator can accept at.
+    #: Assurance tiers this `validator` can accept at.
     assurance_tiers: tuple[str, ...]
-    #: Full oracle roadmap (supported + deferred), tier and method for each.
+    #: Full oracle `roadmap` (supported + deferred), tier and method for each.
     oracle_roadmap: tuple[OracleDescriptor, ...]
     result_schema_version: int
     capability_schema_version: int
@@ -512,7 +512,7 @@ def _aggregate_metrics(cases) -> dict:
 
 
 def capabilities() -> ValidationCapabilities:
-    """Return the machine-readable capabilities of this validator.
+    """Return the machine-readable capabilities of this `validator`.
 
     This is the authoritative source for which oracles, metrics, and presets
     have executable support.

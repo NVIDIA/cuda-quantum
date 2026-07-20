@@ -23,7 +23,7 @@ namespace cudaq::opt {
 /// The Optimization Validation Core accepts a rewrite only when the baseline
 /// and candidate are straight-line, bounded-unitary Quake circuits whose
 /// unitaries can be built and compared exactly. Any construct outside that
-/// domain is rejected here so the validator fails closed rather than silently
+/// domain is rejected here so the `validator` fails closed rather than silently
 /// validating something it cannot reason about.
 enum class DomainRejectionKind {
   /// A measurement operation (`quake.mz`/`mx`/`my`, etc.) is present.
@@ -35,7 +35,8 @@ enum class DomainRejectionKind {
   /// Classical control flow (`cc.if`/`cc.loop`) is present. Only straight-line
   /// circuits are supported for now.
   DynamicControlFlow,
-  /// An un-inlined call is present. The callee's body is not visible for exact
+  /// An `un-inlined` call is present. The `callee's` body is not visible for
+  /// exact
   /// unitary construction. Inline before validating.
   UnsupportedCall,
   /// A dynamically-sized `!quake.veq` is present. The qubit count is not
@@ -46,8 +47,8 @@ enum class DomainRejectionKind {
 };
 
 /// Return a stable, machine-consumable slug for \p kind (e.g. "measurement").
-/// These strings are part of the validator's diagnostic contract and must stay
-/// stable across releases.
+/// These strings are part of the `validator's` diagnostic contract and must
+/// stay stable across releases.
 llvm::StringRef toString(DomainRejectionKind kind);
 
 /// A reason a kernel was rejected, with enough context to diagnose it.
@@ -61,7 +62,7 @@ struct DomainRejection {
   mlir::Location loc;
 };
 
-/// Result of a bounded-unitary domain preflight over a whole module.
+/// Result of a bounded-unitary domain `preflight` over a whole module.
 struct BoundedUnitaryDomainStatus {
   /// True iff every kernel with a body is in the supported domain.
   bool supported = true;

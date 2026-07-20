@@ -10,20 +10,20 @@
 Agents and CI invoke this from a standalone CUDA-Q checkout.
 (Taken this example from Thomas's plan)
 
-    python3 -m cudaq._compiler.optimization_cli \\
-      --input cudaq/test/Transforms/commutation_cancellation.qke \\
-      --prepare 'builtin.module(func.func(memtoreg))' \\
-      --candidate 'builtin.module(func.func(quake-commutation-cancellation))' \\
-      --oracle strict-unitary \\
-      --metric operation-count:nonincreasing \\
-      --metric two-qubit-count:nonincreasing \\
-      --fixed-point-runs 1 \\
-      --preset quick \\
-      --seed 184467 \\
-      --result /tmp/commutation-cancellation/result.json \\
-      --artifacts /tmp/commutation-cancellation
+    `python3 -m cudaq._compiler.optimization_cli \\`
+      `--input cudaq/test/Transforms/commutation_cancellation.qke \\`
+      `--prepare 'builtin.module(func.func(memtoreg))' \\`
+      `--candidate 'builtin.module(func.func(quake-commutation-cancellation))' \\`
+      `--oracle strict-unitary \\`
+      `--metric operation-count:nonincreasing \\`
+      `--metric two-qubit-count:nonincreasing \\`
+      `--fixed-point-runs 1 \\`
+      `--preset quick \\`
+      `--seed 184467 \\`
+      `--result /tmp/commutation-cancellation/result.json \\`
+      `--artifacts /tmp/commutation-cancellation`
 
-The JSON result is always emitted (to ``--result`` if given, else stdout). 
+The JSON result is always emitted (to ``--result`` if given, else `stdout`). 
 The shell exit status is a category 
     0 success
     1 invariant failure 
@@ -62,7 +62,7 @@ EXIT_STATUS = {
 
 def _parse_metric(raw: str) -> MetricSpec:
     """Parse a ``name[:predicate]`` metric flag. Predicate defaults to
-    nonincreasing.
+    `nonincreasing`.
 
     Metric names may themselves contain a colon (``gate:rz``), so the predicate
     is only split off when the final ``:``-separated token is a known predicate.
