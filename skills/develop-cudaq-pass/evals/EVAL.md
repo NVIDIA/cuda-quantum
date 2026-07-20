@@ -33,11 +33,5 @@ Developer guidance for maintaining and refining `evals.json`.
 
 ## Notes
 
-- Most cases are read-only; `pass-source-edit-external-hxh` edits and tests an
-  out-of-tree plugin.
-- `expected_script` is `null` because cases are graded from agent behavior.
-- Source-editing staging must provide the required CUDA-Q source and tools while
-  keeping `evals.json`, evaluator-owned tests and expected results, secrets, and
-  result directories outside the agent-visible workspace.
-- Expected answers describe behavior rather than exact prose so Claude Code and
-  Codex can produce natural implementation plans and reports.
+- Keep evaluator-owned inputs, expected results, secrets, and result directories
+  outside the agent-visible workspace.
