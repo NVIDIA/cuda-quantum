@@ -5,8 +5,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Request/result contracts and the ``validate()`` entry point for the
-Optimization Validation Core."""
 
 from __future__ import annotations
 
@@ -23,9 +21,33 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
 
 # Schema versions are part of the machine-readable contract.
 RESULT_SCHEMA_VERSION = 1
-CAPABILITY_SCHEMA_VERSION = 1
+# Capabilities now carry the machine-readable `oracle_roadmap`
+CAPABILITY_SCHEMA_VERSION = 2
 
+# Assurance tiers, from strongest guarantee to weakest. The tier records what
+# kind of equivalence evidence an oracle produces, independent of the circuit it
+# ran on.
+#
+#   exact           Full-operator equivalence built directly from the IR (dense
+#                   unitary, up to global phase). Basis-independent: checks the
+#                   whole operator, not one input state. Safest, but bounded by
+#                   the 2^n dense-matrix cost (see DEFAULT_EXACT_QUBIT_BOUND).
+#   scalable-exact  Exact equivalence that scales past the dense bound by
+#                   exploiting circuit structure, specifically Clifford
+#                   circuits via a tableau/stim simulator. Same strength as exact
+#                   on its (narrower) domain, but usable at many more qubits.
+#   mixed-state     Density-matrix equivalence for small circuits. Handles
+#                   measurement/reset/noise that the pure-unitary oracles reject,
+#                   at the same ~small-qubit cost ceiling.
+#   advisory        Sampled or expectation-value evidence (e.g. a statevector
+#                   compared on a fixed input state). Weaker: it can witness a
+#                   difference but cannot certify equivalence, so per the oracle
+#                   hardening rules it may only turn passed -> failed, never
+#                   failed -> passed.
 ASSURANCE_TIER_EXACT = "exact"
+ASSURANCE_TIER_SCALABLE_EXACT = "scalable-exact"
+ASSURANCE_TIER_MIXED_STATE = "mixed-state"
+ASSURANCE_TIER_ADVISORY = "advisory"
 
 DEFAULT_EXACT_QUBIT_BOUND = 14
 
@@ -52,6 +74,68 @@ _SEVERITY = {
 _ORACLE_KINDS = ("strict-unitary", "up-to-global-phase")
 PREDICATES = ("nonincreasing", "decreasing", "unchanged", "any")
 _PRESETS = ("smoke", "quick", "ci", "full", "single-reproducer")
+
+
+@dataclass(frozen=True)
+class OracleDescriptor:
+    """One equivalence oracle in the roadmap, executable or deferred.
+
+    This is the authoritative, machine-readable description of how an oracle
+    decides equivalence and how far it scales, so a caller (or the agent-facing
+    skill) never has to infer an oracle's strength or domain from prose.
+    """
+
+    kind: str
+    tier: str
+    #: "supported" if executable in this build, else "deferred".
+    status: str
+    #: The simulation/analysis method backing the decision.
+    method: str
+    #: domain + scaling note.
+    note: str
+
+
+# The oracle roadmap.
+ORACLE_ROADMAP = (
+    OracleDescriptor(
+        kind="strict-unitary",
+        tier=ASSURANCE_TIER_EXACT,
+        status="supported",
+        method="dense-unitary-from-ir",
+        note="Element-wise unitary equality. Bounded by the dense 2^n cost.",
+    ),
+    OracleDescriptor(
+        kind="up-to-global-phase",
+        tier=ASSURANCE_TIER_EXACT,
+        status="supported",
+        method="dense-unitary-from-ir",
+        note="Unitary equality after dividing out a global phase. Bounded by "
+        "the dense 2^n cost.",
+    ),
+    OracleDescriptor(
+        kind="clifford-tableau",
+        tier=ASSURANCE_TIER_SCALABLE_EXACT,
+        status="deferred",
+        method="tableau-stim",
+        note="Exact equivalence for Clifford-only circuits, scalable well past "
+        "the dense bound. Requires a Clifford-domain preflight.",
+    ),
+    OracleDescriptor(
+        kind="density-matrix",
+        tier=ASSURANCE_TIER_MIXED_STATE,
+        status="deferred",
+        method="density-matrix-sim",
+        note="Small-circuit equivalence that also covers measurement/reset/"
+        "noise. Same small-qubit ceiling as the dense oracle.",
+    ),
+    OracleDescriptor(
+        kind="statevector-expectation",
+        tier=ASSURANCE_TIER_ADVISORY,
+        status="deferred",
+        method="statevector-sim",
+        note="Expectation-value evidence on fixed input states.",
+    ),
+)
 
 
 # Request contracts
@@ -143,11 +227,15 @@ class ValidationResult:
 
 @dataclass(frozen=True)
 class ValidationCapabilities:
+    #: Oracle kinds executable in this build.
     oracles: tuple[str, ...]
     metrics: tuple[str, ...]
     predicates: tuple[str, ...]
     presets: tuple[str, ...]
+    #: Assurance tiers this validator can accept at.
     assurance_tiers: tuple[str, ...]
+    #: Full oracle roadmap (supported + deferred), tier and method for each.
+    oracle_roadmap: tuple[OracleDescriptor, ...]
     result_schema_version: int
     capability_schema_version: int
 
@@ -436,6 +524,7 @@ def capabilities() -> ValidationCapabilities:
         predicates=PREDICATES,
         presets=_PRESETS,
         assurance_tiers=(ASSURANCE_TIER_EXACT,),
+        oracle_roadmap=ORACLE_ROADMAP,
         result_schema_version=RESULT_SCHEMA_VERSION,
         capability_schema_version=CAPABILITY_SCHEMA_VERSION,
     )
