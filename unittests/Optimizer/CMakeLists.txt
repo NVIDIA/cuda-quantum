@@ -67,6 +67,34 @@ add_custom_target(check-analysis-passes
 
 set_target_properties(check-analysis-passes PROPERTIES FOLDER "Tests")
 
+
+add_executable(DeviceUnitTests
+  DeviceTest.cpp
+)
+
+target_link_libraries(DeviceUnitTests
+  PRIVATE
+    MLIRIR
+    gtest_main
+)
+
+target_compile_options(DeviceUnitTests
+    PRIVATE
+      -fno-rtti
+)
+
+gtest_discover_tests(DeviceUnitTests
+  PROPERTIES LABELS "device-unit-tests"
+  DISCOVERY_TIMEOUT 120)
+
+add_custom_target(check-device-unit-tests
+  COMMAND ${CMAKE_CTEST_COMMAND} -L device-unit-tests
+  DEPENDS DeviceUnitTests
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+set_target_properties(check-device-unit-tests PROPERTIES FOLDER "Tests")
+
+
 add_executable(test_quake_synth QuakeSynthTester.cpp)
 target_link_libraries(test_quake_synth
   PRIVATE 
