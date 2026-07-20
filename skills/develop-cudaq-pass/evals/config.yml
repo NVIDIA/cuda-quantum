@@ -1,20 +1,25 @@
 schema_version: 1
 
 harbor:
-  task_source: native_harbor
+  task_source: evals_json
   custom_dockerfile_mode: preserve
   base_image_mode: disabled
-  n_attempts: 1
+  n_attempts: 2
   pass_threshold: 0.60
-  stop_on_pass: false
+  stop_on_pass: true
   n_concurrent: 2
   max_agents: 2
-  timeout_multiplier: 1.0
-  agent_workdir: /workspace
+  # Generated tasks default to 300 seconds. Preserve a 900-second ceiling for
+  # the compile-heavy source-editing case.
+  timeout_multiplier: 3.0
+  resources:
+    cpus: 8
+    memory_mb: 16384
+    storage_mb: 20480
 
 skill_workspace:
   mode: isolated
   include: []
 
 grading:
-  mode: custom_only
+  mode: default
