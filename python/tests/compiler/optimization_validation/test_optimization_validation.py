@@ -26,6 +26,7 @@ from cudaq._compiler.optimization_validation import (
     ASSURANCE_TIER_EXACT,
     ASSURANCE_TIER_MIXED_STATE,
     ASSURANCE_TIER_SCALABLE_EXACT,
+    INVARIANT_KINDS,
     ORACLE_ROADMAP,
     MetricSpec,
     OracleSpec,
@@ -79,8 +80,10 @@ def test_semantics_preserving_candidate_passes(tmp_path):
     assert case.status == ValidationStatus.PASSED
     assert case.assurance_tier == ASSURANCE_TIER_EXACT
     assert case.equal_up_to_global_phase
-    assert case.deterministic
-    assert case.fixed_point
+    # Invariants are present and satisfied on the happy path.
+    by_name = {inv.name: inv for inv in case.invariants}
+    assert set(by_name) == set(INVARIANT_KINDS)
+    assert all(inv.satisfied for inv in case.invariants)
     assert case.metrics
     assert all(m.satisfied for m in case.metrics)
 
@@ -208,7 +211,12 @@ def test_aggregate_status_is_worst_case(tmp_path):
 def test_capabilities_accepts_only_exact_tier():
     caps = capabilities()
     assert caps.assurance_tiers == (ASSURANCE_TIER_EXACT,)
-    assert caps.capability_schema_version == 2
+    assert caps.capability_schema_version == 3
+
+
+def test_capabilities_advertise_first_class_invariants():
+    caps = capabilities()
+    assert set(caps.invariants) == set(INVARIANT_KINDS)
 
 
 def test_oracle_roadmap_is_machine_readable_and_complete():

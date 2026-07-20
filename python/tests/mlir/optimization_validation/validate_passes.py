@@ -19,7 +19,8 @@
 
 # CHECK-DAG: "assurance_tier": "exact"
 # CHECK-DAG: "equal_up_to_global_phase": true
-# CHECK-DAG: "deterministic": true
-# CHECK-DAG: "fixed_point": true
+# CHECK-DAG: "name": "equivalence"
+# CHECK-DAG: "name": "determinism"
+# CHECK-DAG: "name": "fixed-point"
 # CHECK-DAG: "satisfied": true
 # CHECK: "status": "passed"
