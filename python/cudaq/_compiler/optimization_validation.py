@@ -19,10 +19,12 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
                                                   register_all_dialects, quake,
                                                   cc)
 
-# Schema versions are part of the machine-readable contract.
-RESULT_SCHEMA_VERSION = 1
-# Capabilities now carry the machine-readable `oracle_roadmap`
-CAPABILITY_SCHEMA_VERSION = 2
+# Schema versions are part of the contract.
+# Each case now carries a structured `invariants` list
+# (equivalence / determinism / fixed-point) in place of the loose booleans.
+RESULT_SCHEMA_VERSION = 2
+# Capabilities now advertise the first-class `invariants` names.
+CAPABILITY_SCHEMA_VERSION = 3
 
 # Assurance tiers, from strongest guarantee to weakest. The tier records what
 # kind of equivalence evidence an oracle produces, independent of the circuit it
@@ -75,6 +77,15 @@ _ORACLE_KINDS = ("strict-unitary", "up-to-global-phase")
 PREDICATES = ("nonincreasing", "decreasing", "unchanged", "any")
 _PRESETS = ("smoke", "quick", "ci", "full", "single-reproducer")
 
+# The first-class boolean invariants checked on every in-domain case, reported as
+# structured `InvariantResult`s. These are the semantic guarantees the validator
+# enforces beyond the declared resource metrics.
+INVARIANT_EQUIVALENCE = "equivalence"
+INVARIANT_DETERMINISM = "determinism"
+INVARIANT_FIXED_POINT = "fixed-point"
+INVARIANT_KINDS = (INVARIANT_EQUIVALENCE, INVARIANT_DETERMINISM,
+                   INVARIANT_FIXED_POINT)
+
 
 @dataclass(frozen=True)
 class OracleDescriptor:
@@ -87,11 +98,11 @@ class OracleDescriptor:
 
     kind: str
     tier: str
-    #: "supported" if executable in this build, else "deferred".
+    # "supported" if executable in this build, else "deferred".
     status: str
-    #: The simulation/analysis method backing the decision.
+    # The simulation/analysis method backing the decision.
     method: str
-    #: domain + scaling note.
+    # domain + scaling note.
     note: str
 
 
@@ -200,6 +211,19 @@ class MetricDelta:
 
 
 @dataclass(frozen=True)
+class InvariantResult:
+    """A named boolean invariant checked on the candidate, with its outcome.
+
+    ``name`` is one of :data:`INVARIANT_KINDS`. ``detail`` carries context (the
+    deciding oracle, the fixed-point bound, or a failure reason).
+    """
+
+    name: str
+    satisfied: bool
+    detail: str = ""
+
+
+@dataclass(frozen=True)
 class CaseResult:
     input: str
     status: str
@@ -208,8 +232,8 @@ class CaseResult:
     equal_up_to_global_phase: bool
     phase: float
     phase_is_zero: bool
-    deterministic: bool
-    fixed_point: bool
+    # Semantic invariants (equivalence, determinism, fixed-point).
+    invariants: tuple[InvariantResult, ...]
     metrics: tuple[MetricDelta, ...]
     messages: tuple[str, ...]
 
@@ -227,14 +251,16 @@ class ValidationResult:
 
 @dataclass(frozen=True)
 class ValidationCapabilities:
-    #: Oracle kinds executable in this build.
+    # Oracle kinds executable in this build.
     oracles: tuple[str, ...]
     metrics: tuple[str, ...]
     predicates: tuple[str, ...]
     presets: tuple[str, ...]
-    #: Assurance tiers this `validator` can accept at.
+    # Invariants checked on every in-domain case.
+    invariants: tuple[str, ...]
+    # Assurance tiers this `validator` can accept at.
     assurance_tiers: tuple[str, ...]
-    #: Full oracle `roadmap` (supported + deferred), tier and method for each.
+    # Full oracle `roadmap`, tier and method for each.
     oracle_roadmap: tuple[OracleDescriptor, ...]
     result_schema_version: int
     capability_schema_version: int
@@ -382,7 +408,7 @@ def _equivalent(oracle_kind: str, comparison: dict) -> bool:
 
 
 def _failed_case(path: Path, status: str, messages) -> CaseResult:
-    """A case that never reached comparison: all equivalence fields are false."""
+    """A case that never reached comparison: no invariants were established."""
     return CaseResult(
         input=str(path),
         status=status,
@@ -391,8 +417,7 @@ def _failed_case(path: Path, status: str, messages) -> CaseResult:
         equal_up_to_global_phase=False,
         phase=0.0,
         phase_is_zero=False,
-        deterministic=False,
-        fixed_point=False,
+        invariants=(),
         metrics=(),
         messages=tuple(messages),
     )
@@ -469,12 +494,18 @@ def _evaluate_input(path: Path, request: ValidationRequest,
                                                  request.kernel_name,
                                                  oracle.rtol, oracle.atol)
     status = ValidationStatus.PASSED
-    if not comparison["computed"]:
+    computed = bool(comparison["computed"])
+    equivalent = computed and _equivalent(oracle.kind, comparison)
+    if not computed:
         status = ValidationStatus.INVARIANT_FAILURE
-        messages.append(f"comparison failed: {comparison['error']}")
-    elif not _equivalent(oracle.kind, comparison):
+        equivalence_detail = f"comparison failed: {comparison['error']}"
+        messages.append(equivalence_detail)
+    elif not equivalent:
         status = ValidationStatus.INVARIANT_FAILURE
-        messages.append(f"not equivalent under oracle '{oracle.kind}'")
+        equivalence_detail = f"not equivalent under oracle '{oracle.kind}'"
+        messages.append(equivalence_detail)
+    else:
+        equivalence_detail = f"equivalent under oracle '{oracle.kind}'"
 
     base_counts = cudaq_runtime.count_resources_checkpoint(baseline_obs)
     cand_counts = cudaq_runtime.count_resources_checkpoint(candidate_obs)
@@ -517,6 +548,16 @@ def _evaluate_input(path: Path, request: ValidationRequest,
         status = _worst(status, ValidationStatus.INVARIANT_FAILURE)
         messages.append("candidate is not at a fixed point")
 
+    invariants = (
+        InvariantResult(name=INVARIANT_EQUIVALENCE,
+                        satisfied=equivalent,
+                        detail=equivalence_detail),
+        InvariantResult(name=INVARIANT_DETERMINISM, satisfied=deterministic),
+        InvariantResult(name=INVARIANT_FIXED_POINT,
+                        satisfied=fixed_point,
+                        detail=f"{request.fixed_point_runs} run(s)"),
+    )
+
     return CaseResult(
         input=str(path),
         status=status,
@@ -526,8 +567,7 @@ def _evaluate_input(path: Path, request: ValidationRequest,
             comparison.get("equal_up_to_global_phase", False)),
         phase=float(comparison.get("phase", 0.0)),
         phase_is_zero=bool(comparison.get("phase_is_zero", False)),
-        deterministic=deterministic,
-        fixed_point=fixed_point,
+        invariants=invariants,
         metrics=tuple(metrics),
         messages=tuple(messages),
     )
@@ -566,19 +606,8 @@ def validate(request: ValidationRequest) -> ValidationResult:
             raise
         except Exception as exc:
             cases.append(
-                CaseResult(
-                    input=str(path),
-                    status=ValidationStatus.INFRASTRUCTURE_FAILURE,
-                    assurance_tier=ASSURANCE_TIER_EXACT,
-                    strict_equal=False,
-                    equal_up_to_global_phase=False,
-                    phase=0.0,
-                    phase_is_zero=False,
-                    deterministic=False,
-                    fixed_point=False,
-                    metrics=(),
-                    messages=(f"infrastructure error: {exc}",),
-                ))
+                _failed_case(path, ValidationStatus.INFRASTRUCTURE_FAILURE,
+                             [f"infrastructure error: {exc}"]))
 
     status = ValidationStatus.PASSED
     for case in cases:
@@ -616,6 +645,7 @@ def capabilities() -> ValidationCapabilities:
                  "depth", "t-count", "gate:<name>"),
         predicates=PREDICATES,
         presets=_PRESETS,
+        invariants=INVARIANT_KINDS,
         assurance_tiers=(ASSURANCE_TIER_EXACT,),
         oracle_roadmap=ORACLE_ROADMAP,
         result_schema_version=RESULT_SCHEMA_VERSION,

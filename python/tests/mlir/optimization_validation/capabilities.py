@@ -11,7 +11,7 @@
 
 # RUN: PYTHONPATH=%cudaq_python_root python3 -m cudaq._compiler.optimization_cli --capabilities | FileCheck %s
 
-# CHECK-DAG: "capability_schema_version": 2
+# CHECK-DAG: "capability_schema_version": 3
 # CHECK-DAG: "assurance_tiers": [
 # CHECK-DAG: "exact"
 
