@@ -125,8 +125,8 @@ def test_baseline_is_isolated_from_candidate(tmp_path):
 def test_violated_metric_predicate_is_invariant_failure(tmp_path):
     good = _good_input(tmp_path)
     result = validate(
-        _request([good],
-                 metrics=(MetricSpec("operation-count", "decreasing"),)))
+        _request([good], metrics=(MetricSpec("operation-count",
+                                             "decreasing"),)))
     case = result.cases[0]
     (metric,) = case.metrics
     if metric.baseline == metric.candidate:
@@ -199,9 +199,8 @@ def test_oracle_roadmap_is_machine_readable_and_complete():
     caps = capabilities()
     roadmap = {o.kind: o for o in caps.oracle_roadmap}
     supported = {o.kind for o in caps.oracle_roadmap if o.status == "supported"}
-    assert supported == set(caps.oracles) == {
-        "strict-unitary", "up-to-global-phase"
-    }
+    assert supported == set(
+        caps.oracles) == {"strict-unitary", "up-to-global-phase"}
     for kind in supported:
         assert roadmap[kind].tier == ASSURANCE_TIER_EXACT
 
@@ -220,5 +219,4 @@ def test_oracle_roadmap_serializes():
     back = json.loads(text)
     assert len(back["oracle_roadmap"]) == len(ORACLE_ROADMAP)
     for entry in back["oracle_roadmap"]:
-        assert {"kind", "tier", "status", "method",
-                "note"} <= set(entry.keys())
+        assert {"kind", "tier", "status", "method", "note"} <= set(entry.keys())
