@@ -5,14 +5,14 @@
     "expected_skill": "develop-cudaq-pass",
     "expected_script": null,
     "should_trigger": true,
-    "ground_truth": "The agent activates develop-cudaq-pass, reads its SKILL.md, classifies the work as a built-in CUDA-Q pass, and stops after a proportional implementation brief because the user requested a plan only. The brief identifies the pass anchor, accepted value-form Quake input IR, produced output IR, preserved quantum behavior, selected change shape, rejected nearest alternative, review units, and focused tests.",
+    "ground_truth": "The agent activates develop-cudaq-pass, reads its SKILL.md, classifies the work as a built-in CUDA-Q pass, and stops after a proportional implementation brief because the user requested a plan only. The brief identifies the pass anchor, accepted value-form Quake input IR, produced output IR, preserved quantum behavior, selected compiler extension point, rejected nearest alternative, review units, and focused tests.",
     "expected_behavior": [
       "The agent reads skills/develop-cudaq-pass/SKILL.md before answering.",
       "The agent classifies the work as a built-in CUDA-Q compiler pass rather than an external plugin or runtime optimization.",
       "The agent produces an implementation brief and stops without editing files or requesting an extra confirmation.",
       "The brief states accepted input IR, produced output IR, and the pass anchor.",
       "The brief states the quantum semantics-preserving relation and names suitable validation evidence instead of relying only on valid IR or lower gate count.",
-      "The brief selects a change shape and rejects the nearest plausible alternative, including why quake-simplify is not the default home for a new independent transformation."
+      "The brief selects a compiler extension point and rejects the nearest plausible alternative, including why quake-simplify is not the default home for a new independent transformation."
     ]
   },
   {
@@ -90,10 +90,10 @@
     "expected_skill": "develop-cudaq-pass",
     "expected_script": null,
     "should_trigger": true,
-    "ground_truth": "The agent activates develop-cudaq-pass and creates a compact implementation brief for a Quake value-form transformation. The brief captures before-and-after IR at the pipeline boundary, states exact unitary equivalence, selects the smallest owning change shape, rejects quake-simplify as the default home unless the traced existing pass owns the exact transformation, and chooses FileCheck plus CircuitCheck for small supported unitary cases with unchanged tests for unsupported input.",
+    "ground_truth": "The agent activates develop-cudaq-pass and creates a compact implementation brief for a Quake value-form transformation. The brief captures before-and-after IR at the pipeline boundary, states exact unitary equivalence, selects the smallest appropriate compiler extension point, rejects quake-simplify as the default home unless the traced existing pass owns the exact transformation, and chooses FileCheck plus CircuitCheck for small supported unitary cases with unchanged tests for unsupported input.",
     "expected_behavior": [
       "The agent reads the skill and the Quake/compiler pass documentation required by the task.",
-      "The brief captures representative value-form input IR and required output IR before choosing the change shape.",
+      "The brief captures representative value-form input IR and required output IR before selecting the compiler extension point.",
       "The brief chooses operation canonicalization only if the rule is cheap, local, and valid whenever the operation appears; otherwise it plans a focused pass or justified existing-pass extension.",
       "The brief does not default to quake-simplify merely because it is broad.",
       "The brief claims exact unitary equivalence and pairs FileCheck of the rewrite with CircuitCheck for small supported IR.",
@@ -102,7 +102,7 @@
   },
   {
     "id": "pass-workflow-commutation-aware-quake",
-    "question": "Plan a commutation-aware CUDA-Q Quake pass that cancels inverse rotations even when independent gates on other wires occur between them. It must be safe around measurement, reset, calls, and control flow. Include boundary IR, change-shape choice, prerequisites, and validation.",
+    "question": "Plan a commutation-aware CUDA-Q Quake pass that cancels inverse rotations even when independent gates on other wires occur between them. It must be safe around measurement, reset, calls, and control flow. Include boundary IR, compiler mechanism, prerequisites, and validation.",
     "expected_skill": "develop-cudaq-pass",
     "expected_script": null,
     "should_trigger": true,
@@ -126,7 +126,7 @@
     "ground_truth": "The agent activates develop-cudaq-pass, classifies the work as CodeGen pass hardening, traces CodeGen Passes.td, implementation, pipelines, and tests, and plans either an existing-pass fix or a separate pass only after checking ownership. The brief states accepted input, unsupported valid input behavior, deterministic diagnostics or unchanged behavior, affected analyses or dialect dependencies, and focused lit/FileCheck or diagnostic tests.",
     "expected_behavior": [
       "The agent reads the skill and CodeGen-relevant source map entries.",
-      "The agent traces CodeGen pass declarations, implementation, pipeline use, and tests before selecting a change shape.",
+      "The agent traces CodeGen pass declarations, implementation, pipeline use, and tests before selecting a compiler extension point.",
       "The agent extends an existing pass only if the hardening belongs to the same named transformation and IR boundary.",
       "The brief states accepted input IR and behavior for valid unsupported or partially lowered IR.",
       "The brief requires deterministic diagnostics or unchanged behavior rather than crashes or invalid IR left for later passes.",

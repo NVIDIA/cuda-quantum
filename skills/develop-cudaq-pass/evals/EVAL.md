@@ -17,7 +17,7 @@ Developer guidance for maintaining and refining `evals.json`.
 - The agent activates `develop-cudaq-pass` for CUDA-Q pass development and not
   for unrelated or operational compiler requests.
 - The agent inspects the current CUDA-Q pass boundary and selects the smallest
-  owning change shape before implementation.
+  appropriate compiler extension point before implementation.
 - The agent states the supported input and output IR and separates prerequisite
   review units from pass-local work.
 - The agent validates quantum semantics separately from textual IR validity and
