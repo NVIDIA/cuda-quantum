@@ -1,0 +1,6 @@
+[dataset]
+name = "nvidia/develop-cudaq-pass"
+description = "CUDA-Q pass development integration evaluation"
+
+[[tasks]]
+name = "nvidia/pass-source-edit-external-hxh"

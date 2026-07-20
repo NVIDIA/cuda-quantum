@@ -1,0 +1,31 @@
+// CHECK-LABEL: func.func @hxh_wire()
+// CHECK:         %[[WIRE:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[RESULT:.*]] = quake.z %[[WIRE]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    quake.sink %[[RESULT]] : !quake.wire
+// CHECK-NEXT:    return
+func.func @hxh_wire() {
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+  quake.sink %3 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @near_miss_wire()
+// CHECK:         %[[NEAR_WIRE:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[H0:.*]] = quake.h %[[NEAR_WIRE]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[X:.*]] = quake.x %[[H0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[S:.*]] = quake.s %[[X]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[H1:.*]] = quake.h %[[S]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    quake.sink %[[H1]] : !quake.wire
+// CHECK-NEXT:    return
+func.func @near_miss_wire() {
+  %0 = quake.null_wire
+  %1 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.s %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+  quake.sink %4 : !quake.wire
+  return
+}

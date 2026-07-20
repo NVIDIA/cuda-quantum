@@ -1,20 +1,20 @@
 schema_version: 1
 
 harbor:
-  # Drive evaluation tasks from evals/evals.json.
-  task_source: evals_json
-  custom_dockerfile_mode: rebase
-  base_image_mode: reuse
-  n_attempts: 2
+  task_source: native_harbor
+  custom_dockerfile_mode: preserve
+  base_image_mode: disabled
+  n_attempts: 1
   pass_threshold: 0.60
-  stop_on_pass: true
-  n_concurrent: 4
+  stop_on_pass: false
+  n_concurrent: 2
   max_agents: 2
-  timeout_multiplier: 2.0
+  timeout_multiplier: 1.0
+  agent_workdir: /workspace
 
 skill_workspace:
   mode: isolated
   include: []
 
 grading:
-  mode: default
+  mode: custom_only
