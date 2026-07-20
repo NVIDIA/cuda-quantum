@@ -35,17 +35,14 @@ workflow when planning or implementing a pass.
 
 ## Grading
 
-SkillEvaluator stages every `evals.json` case with and without the skill and
-uses its standard trajectory and answer grader for both conditions. The grader
-assesses security, skill execution, tool-call efficiency, answer accuracy, goal
-completion, and expected behavior. It reports skill lift by comparing the two
-conditions.
+SkillEvaluator runs each case with and without the skill. Its standard grader
+evaluates the agent's work and final answer, then compares the results to
+measure whether the skill improves performance.
 
-The evaluation environment provides a CUDA-Q source checkout and warm build.
-For the H-X-H case, the agent builds the plugin and runs focused checks in that
-environment. SkillEvaluator grades the resulting tool trajectory and final
-solution. It does not independently rebuild the submitted plugin after the
-agent finishes.
+The evaluation environment includes CUDA-Q source and a warm build. In the
+H-X-H case, the agent builds the plugin and runs focused tests. The grader uses
+the recorded commands, results, and final answer. It does not rebuild the
+plugin independently.
 
 ## Notes
 
