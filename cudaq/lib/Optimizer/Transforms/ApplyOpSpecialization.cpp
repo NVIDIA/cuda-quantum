@@ -590,7 +590,7 @@ public:
         auto app = cudaq::quake::ApplyOp::create(
             builder, call->getLoc(), call->getResultTypes(),
             call.getCallableForCallee(), ValueRange{newCond},
-            call->getOperands());
+            call.getArgOperands());
         LLVM_DEBUG(llvm::dbgs() << "replacing call: " << call
                                 << " with an apply: " << app << '\n');
         newApplyOps.push_back(app);
@@ -879,7 +879,7 @@ public:
         for (auto res : inv->getResults())
           if (!cudaq::quake::isLinearType(res.getType()))
             for (auto *usr : res.getUsers())
-              if (std::find(begin, invertedOps.end(), usr))
+              if (std::find(begin, invertedOps.end(), usr) != invertedOps.end())
                 return usr->emitOpError("control-flow def-use not reversible.");
         ++begin;
       }
@@ -953,10 +953,11 @@ public:
         auto app = cudaq::quake::ApplyOp::create(
             builder, call->getLoc(), call->getResultTypes(),
             call.getCallableForCallee(),
-            /*is_adj=*/true, call->getOperands());
+            /*is_adj=*/true, call.getArgOperands());
         LLVM_DEBUG(llvm::dbgs() << "replacing call: " << call
                                 << " with an apply " << app << '\n');
         newApplyOps.push_back(app);
+        call->replaceAllUsesWith(app->getResults());
         call->erase();
         continue;
       }
