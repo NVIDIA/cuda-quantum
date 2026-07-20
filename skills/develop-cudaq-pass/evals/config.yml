@@ -11,7 +11,9 @@ harbor:
   base_image_mode: reuse
   n_attempts: 2
   pass_threshold: 0.60
-  stop_on_pass: true
+  # NVSkills validates canonical Tier 3 coverage with a single-attempt
+  # override, which is incompatible with early stopping.
+  stop_on_pass: false
   n_concurrent: 2
   max_agents: 2
   # Generated tasks default to 300 seconds. Preserve a 900-second ceiling for
