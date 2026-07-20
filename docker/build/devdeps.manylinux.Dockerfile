@@ -1,0 +1,133 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# This file builds the development environment that contains the necessary development 
+# dependencies for building a CUDA-Q Python wheel.
+#
+# Usage:
+# Must be built from the repo root with:
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:manylinux -f docker/build/devdeps.manylinux.Dockerfile .
+#
+# The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
+# The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
+# CUDA-Q. This image sets the CC and CXX environment variables to use that toolchain. 
+# Currently, gcc12 and gcc13 are supported.
+
+# There are currently no multi-platform manylinux images available.
+# See https://github.com/pypa/manylinux/issues/1306.
+ARG base_image=quay.io/pypa/manylinux_2_28_x86_64:latest
+FROM ${base_image}
+
+ARG distro=rhel8
+ARG llvm_commit
+ARG toolchain=gcc12
+
+# When a dialogue box would be needed during install, assume default configurations.
+# Set here to avoid setting it for all install commands. 
+# Given as arg to make sure that this value is only set during build but not in the launched container.
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Clone the LLVM source code.
+# Preserve access to the history to be able to cherry pick specific commits.
+RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
+    && cd /llvm-project && git checkout $llvm_commit
+
+# Install the C/C++ compiler toolchain to build the LLVM dependencies.
+# CUDA-Q needs to be built with that same toolchain, and the
+# toolchain needs to be one of the supported CUDA host compilers. We use
+# a wrapper script so that the path that we set CC and CXX to is independent 
+# on the installed toolchain. Unfortunately, a symbolic link won't work.
+# Using update-alternatives for c++ and cc could maybe be a better option.
+ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
+RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
+        gcc_version=`echo $toolchain | grep -o '[0-9]*'` && \
+        if [ -z "$(which gcc 2> /dev/null | grep $gcc_version)" ]; then \
+            # Using releasever=8.9: boost packages missing from 8.10 mirrors for aarch64
+            dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9 gcc-toolset-$gcc_version && \
+            enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"; \
+        fi && \
+        CC="$(which gcc)" && CXX="$(which g++)"; \
+    else echo "Toolchain not supported." && exit 1; \
+    fi && dnf clean all \
+    && mkdir -p "$LLVM_INSTALL_PREFIX/bootstrap" \
+    && echo -e '#!/bin/bash\n"'$CC'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
+    && echo -e '#!/bin/bash\n"'$CXX'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cxx" \
+    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
+    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cxx"
+ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
+ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
+
+# Installing python3-devel, and ccache required by the LLVM build.
+# Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
+RUN dnf install -y --nobest --setopt=install_weak_deps=False python3-devel ccache unzip
+
+# Install CMake >= 4.0 and Ninja >= 1.10
+ARG CMAKE_VERSION=4.0.7
+RUN curl -L https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).sh -o cmake-install.sh \
+    && bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local \
+    && rm cmake-install.sh
+
+ARG NINJA_VERSION=1.12.1
+RUN case "$(uname -m)" in \
+    x86_64) ninja_zip=ninja-linux.zip ;; \
+    aarch64) ninja_zip=ninja-linux-aarch64.zip ;; \
+    *) echo "Unsupported architecture: $(uname -m)" && exit 1 ;; \
+    esac \
+    && curl -L "https://github.com/ninja-build/ninja/releases/download/v${NINJA_VERSION}/${ninja_zip}" -o ninja.zip \
+    && unzip -o ninja.zip -d /usr/local/bin && rm ninja.zip \
+    && chmod +x /usr/local/bin/ninja
+
+# Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
+ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+ADD ./scripts/build_mlir_python_bindings.sh /scripts/build_mlir_python_bindings.sh
+ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
+ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
+RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
+    LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
+    LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
+    bash /scripts/build_llvm.sh -c Release -v
+    # The build directory at /llvm-project/build is intentionally retained:
+    # build_mlir_python_bindings.sh reuses it in the wheel container to add
+    # the python-binding targets per Python version without recompiling
+    # the rest of the LLVM/MLIR/clang/lld tree.
+
+# Install CUDA
+
+ARG cuda_version=12.6
+ENV CUDA_VERSION=${cuda_version}
+
+RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
+    && dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-$distro.repo \
+    && dnf clean expire-cache \
+    # Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
+    && dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9 wget \
+        cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
+        cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcusparse-devel-$(echo ${CUDA_VERSION} | tr . -)
+
+ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-$CUDA_VERSION
+ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
+ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
+ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
+ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
+ENV LD_LIBRARY_PATH="${CUDA_INSTALL_PREFIX}/lib64:${LD_LIBRARY_PATH}"
+
+# Install additional dependencies required to build the CUDA-Q wheel.
+ADD ./scripts/install_prerequisites.sh /scripts/install_prerequisites.sh
+ADD ./scripts/configure_build.sh /scripts/configure_build.sh
+ENV BLAS_INSTALL_PREFIX=/usr/local/blas
+ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
+ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
+ENV CURL_INSTALL_PREFIX=/usr/local/curl
+ENV AWS_INSTALL_PREFIX=/usr/local/aws
+ENV QRMI_INSTALL_PREFIX=/usr/local/qrmi
+ENV CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
+ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
+RUN bash /scripts/install_prerequisites.sh

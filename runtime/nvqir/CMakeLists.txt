@@ -1,0 +1,59 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+set(LIBRARY_NAME nvqir)
+
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+
+set(NVQIR_RUNTIME_SRC
+  AnalysisScope.cpp
+  QIRTypes.cpp
+  NVQIR.cpp
+  dem/DemScope.cpp
+  resourcecounter/ResourceCounter.cpp
+  ../cudaq/qis/state.cpp
+)
+
+add_library(${LIBRARY_NAME} SHARED ${NVQIR_RUNTIME_SRC})
+target_include_directories(${LIBRARY_NAME}
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime> 
+         $<INSTALL_INTERFACE:include> 
+  PRIVATE .)
+
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
+
+# Private link to nvqir-qpp, it will always be here, 
+# and by keeping it private, others can specify the
+# backend library later on
+target_link_libraries(${LIBRARY_NAME}
+  PUBLIC cudaq-common cudaq-operator dl fmt::fmt-header-only
+  PRIVATE cudaq-logger
+)
+
+install(TARGETS ${LIBRARY_NAME} 
+        EXPORT nvqir-targets 
+        LIBRARY DESTINATION lib
+        INCLUDES DESTINATION include/nvqir)
+
+add_subdirectory(qpp)
+add_subdirectory(stim)
+
+if (cuStateVec_FOUND)
+  add_subdirectory(custatevec)
+endif()
+if (cuTensorNet_FOUND)
+  add_subdirectory(cutensornet)
+endif()
+if (cuDensityMat_FOUND)
+  add_subdirectory(cudensitymat)
+endif()
+
+install(EXPORT nvqir-targets
+        FILE NVQIRTargets.cmake
+        NAMESPACE nvqir::
+        DESTINATION lib/cmake/nvqir)

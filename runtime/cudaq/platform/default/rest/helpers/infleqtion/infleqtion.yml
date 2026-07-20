@@ -1,0 +1,37 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: "infleqtion"
+description: "CUDA-Q target for Infleqtion."
+
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  # Define the JIT lowering pipeline
+  jit-high-level-pipeline: "expand-measurements"
+  jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(memtoreg{quantum=0})"
+  # Tell the rest-qpu that we are generating OpenQASM 2.0.
+  codegen-emission: qasm2
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: "Specify the Infleqtion backend to run on."
+  - key: method
+    required: false
+    type: string
+    platform-arg: method
+    help-string: "Specify the circuit execution type, either: dry-run (ideal simulation) or noise-sim (noisy-simulation)."

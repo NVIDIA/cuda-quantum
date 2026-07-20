@@ -244,6 +244,19 @@ Push to GitHub:
     - mkdir -p artifacts && cd artifacts
     - echo "$build_info" > "$info_file" && (echo -n "data-commit:" && echo " $CI_COMMIT_SHA") >> "$info_file"
     - (echo -n "gitlab-pipeline:" && echo " $CI_PIPELINE_URL") >> "$info_file"
+    # Fail rather than ship an installer missing the closed-source simulator.
+    - |
+      if [ "$staged" = "cuda-quantum-assets" ]; then
+        case "$(echo "$build_info" | grep -o 'platform:[^,]*')" in
+          *amd64) arch=x86_64 ;;
+          *arm64) arch=aarch64 ;;
+          *) arch="" ;;
+        esac
+        if [ -n "$arch" ] && [ -z "$(find "$arch" -name 'libnvqir-*.so' -print -quit 2>/dev/null)" ]; then
+          echo "ERROR: no libnvqir-*.so simulator libraries built for $arch" >&2
+          exit 1
+        fi
+      fi
     - if [ -d x86_64 ]; then mkdir -p x86_64/cudaq && cat "$info_file" > x86_64/cudaq/build_info.txt && zip -r sims_amd64.zip x86_64 && upload+="sims_amd64.zip "; fi
     - if [ -d aarch64 ]; then mkdir -p aarch64/cudaq && cat "$info_file" > aarch64/cudaq/build_info.txt && zip -r sims_aarch64.zip aarch64 && upload+="sims_aarch64.zip "; fi
     - if [ -d wheels_x86_64 ]; then zip -r wheels_x86_64.zip wheels_x86_64 && upload+="wheels_x86_64.zip "; fi

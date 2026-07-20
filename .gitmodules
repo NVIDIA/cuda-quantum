@@ -1,0 +1,43 @@
+[submodule "tpls/fmt"]
+	path = tpls/fmt
+	url = https://github.com/fmtlib/fmt
+[submodule "tpls/googletest-src"]
+	path = tpls/googletest-src
+	url = https://github.com/google/googletest
+[submodule "tpls/llvm"]
+	path = tpls/llvm
+	url = https://github.com/llvm/llvm-project.git
+	shallow = true
+	ignore = dirty
+[submodule "tpls/eigen"]
+	path = tpls/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "tpls/armadillo"]
+	path = tpls/armadillo
+	url = https://gitlab.com/conradsnicta/armadillo-code.git
+[submodule "tpls/ensmallen"]
+	path = tpls/ensmallen
+	url = https://github.com/mlpack/ensmallen
+[submodule "tpls/spdlog"]
+	path = tpls/spdlog
+	url = https://github.com/gabime/spdlog
+[submodule "tpls/xtl"]
+	path = tpls/xtl
+	url = https://github.com/xtensor-stack/xtl
+[submodule "tpls/xtensor"]
+	path = tpls/xtensor
+	url = https://github.com/xtensor-stack/xtensor
+[submodule "tpls/qpp"]
+	path = tpls/qpp
+	url = https://github.com/softwareQinc/qpp.git
+	shallow = true
+[submodule "tpls/cpr"]
+	path = tpls/cpr
+	url = https://github.com/libcpr/cpr.git
+[submodule "tpls/Stim"]
+	path = tpls/Stim
+	url = https://github.com/quantumlib/Stim
+[submodule "tpls/nanobind"]
+	path = tpls/nanobind
+	url = https://github.com/wjakob/nanobind.git
+	ignore = dirty

@@ -1,0 +1,336 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api %s | FileCheck --implicit-check-not="qec." %s
+// RUN: cudaq-opt --convert-to-qir-api --convert-to-cfg --cc-to-llvm %s \
+// RUN:   | FileCheck --check-prefix=LLVM --implicit-check-not="qec." %s
+
+// -----
+// Single scalar handle, end-to-end
+
+func.func @detector_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q = quake.alloca !quake.ref
+  %m = quake.mz %q name "h" : (!quake.ref) -> !cc.measure_handle
+  qec.detector %m : !cc.measure_handle
+  return
+}
+
+// CHECK-LABEL:   func.func @detector_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_0:.*]] = call @__quantum__rt__qubit_allocate() : () -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           %[[ADDRESS_OF_0:.*]] = cc.address_of @cstr.6800 : !cc.ptr<!llvm.array<2 x i8>>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ADDRESS_OF_0]] : (!cc.ptr<!llvm.array<2 x i8>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_1:.*]] = call @__quantum__qis__mz_handle__to__register(%[[VAL_0]], %[[CAST_0]]) {registerName = "h"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<i8>) -> i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[VAL_1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_1]], %[[CAST_3]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[CAST_4:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__detector(%[[CAST_4]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Multi-handle variadic: alloca Result*[N] with static count, store each.
+
+func.func @detector_multi(%h0: !cc.measure_handle,
+                          %h1: !cc.measure_handle,
+                          %h2: !cc.measure_handle) attributes {"cudaq-kernel"} {
+  qec.detector %h0, %h1, %h2 : !cc.measure_handle, !cc.measure_handle, !cc.measure_handle
+  return
+}
+
+// CHECK-LABEL:   func.func @detector_multi(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 3 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 3>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ARG0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 3>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_0]], %[[CAST_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[ARG1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[ALLOCA_0]][1] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 3>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_2]], %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[ARG2]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[ALLOCA_0]][2] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 3>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_3]], %[[COMPUTE_PTR_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[CAST_4:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 3>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__detector(%[[CAST_4]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Single stdvec: pass-through via `cc.stdvec_data` + `cc.stdvec_size`.
+
+func.func @detector_stdvec(%v: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
+  qec.detector %v : !cc.stdvec<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @detector_stdvec(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[STDVEC_DATA_0]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__detector(%[[CAST_0]], %[[STDVEC_SIZE_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Mixed scalar + stdvec: dynamic total size, scalar stored at running
+// offset, stdvec contents copied via an invariant `cc.loop`.
+
+func.func @detector_mixed(%h: !cc.measure_handle,
+                          %v: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
+  qec.detector %h, %v : !cc.measure_handle, !cc.stdvec<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @detector_mixed(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[STDVEC_SIZE_0]], %[[CONSTANT_1]] : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<!llvm.struct<"Result", opaque>>{{\[}}%[[ADDI_0]] : i64]
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ARG0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_0]], %[[CAST_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG1]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_1:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[STDVEC_SIZE_1]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[STDVEC_DATA_0]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+// CHECK:             %[[LOAD_0:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<i64>
+// CHECK:             %[[CAST_2:.*]] = cc.cast %[[LOAD_0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_1]] : i64
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[ALLOCA_0]]{{\[}}%[[ADDI_1]]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.store %[[CAST_2]], %[[COMPUTE_PTR_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_2]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__detector(%[[CAST_3]], %[[ADDI_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Two stdvecs (no scalars): general path also fires here because the
+// fast path requires exactly one operand. Each stdvec is copied via
+// its own `cc.loop`; the size is the runtime sum.
+
+func.func @detector_two_stdvec(%a: !cc.stdvec<!cc.measure_handle>,
+                               %b: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
+  qec.detector %a, %b : !cc.stdvec<!cc.measure_handle>, !cc.stdvec<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @detector_two_stdvec(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[STDVEC_SIZE_1:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[STDVEC_SIZE_0]], %[[STDVEC_SIZE_1]] : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<!llvm.struct<"Result", opaque>>{{\[}}%[[ADDI_0]] : i64]
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_2:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[STDVEC_SIZE_2]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[STDVEC_DATA_0]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+// CHECK:             %[[LOAD_0:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<i64>
+// CHECK:             %[[CAST_0:.*]] = cc.cast %[[LOAD_0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[ALLOCA_0]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.store %[[CAST_0]], %[[COMPUTE_PTR_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_1]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[STDVEC_DATA_1:.*]] = cc.stdvec_data %[[ARG1]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_3:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[LOOP_1:.*]] = cc.loop while ((%[[VAL_3:.*]] = %[[CONSTANT_0]]) -> (i64)) {
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_3]], %[[STDVEC_SIZE_3]] : i64
+// CHECK:             cc.condition %[[CMPI_1]](%[[VAL_3]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_4:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_2:.*]] = cc.compute_ptr %[[STDVEC_DATA_1]]{{\[}}%[[VAL_4]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+// CHECK:             %[[LOAD_1:.*]] = cc.load %[[COMPUTE_PTR_2]] : !cc.ptr<i64>
+// CHECK:             %[[CAST_1:.*]] = cc.cast %[[LOAD_1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[STDVEC_SIZE_2]], %[[VAL_4]] : i64
+// CHECK:             %[[COMPUTE_PTR_3:.*]] = cc.compute_ptr %[[ALLOCA_0]]{{\[}}%[[ADDI_2]]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.store %[[CAST_1]], %[[COMPUTE_PTR_3]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.continue %[[VAL_4]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_5:.*]]: i64):
+// CHECK:             %[[ADDI_3:.*]] = arith.addi %[[VAL_5]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_3]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__detector(%[[CAST_2]], %[[ADDI_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Observable, scalar handle, default `index 0`.
+
+func.func @observable_scalar_default(%h: !cc.measure_handle) attributes {"cudaq-kernel"} {
+  qec.observable %h : !cc.measure_handle
+  return
+}
+
+// CHECK-LABEL:   func.func @observable_scalar_default(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ARG0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_0]], %[[CAST_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__logical_observable(%[[CAST_2]], %[[CONSTANT_1]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Observable, multi-handle, explicit `index 1`.
+
+func.func @observable_multi_indexed(%h0: !cc.measure_handle,
+                                    %h1: !cc.measure_handle) attributes {"cudaq-kernel"} {
+  qec.observable %h0, %h1 index 1 : !cc.measure_handle, !cc.measure_handle
+  return
+}
+
+// CHECK-LABEL:   func.func @observable_multi_indexed(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 2 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 2>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ARG0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 2>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_0]], %[[CAST_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[ARG1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[ALLOCA_0]][1] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 2>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_2]], %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 2>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__logical_observable(%[[CAST_3]], %[[CONSTANT_1]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Observable, single stdvec, explicit `index 2`.
+
+func.func @observable_stdvec_indexed(%v: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
+  qec.observable %v index 2 : !cc.stdvec<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @observable_stdvec_indexed(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 2 : i64
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[STDVEC_DATA_0]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__logical_observable(%[[CAST_0]], %[[STDVEC_SIZE_0]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Observable with mixed scalar + stdvec operand and explicit index:
+// general path produces a single buffer + size, then the call appends
+// the observable index.
+
+func.func @observable_mixed_indexed(%h: !cc.measure_handle,
+                                    %v: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
+  qec.observable %h, %v index 3 : !cc.measure_handle, !cc.stdvec<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @observable_mixed_indexed(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 3 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 1 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[STDVEC_SIZE_0]], %[[CONSTANT_2]] : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<!llvm.struct<"Result", opaque>>{{\[}}%[[ADDI_0]] : i64]
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ARG0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_0]], %[[CAST_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG1]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_1:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_1]]) -> (i64)) {
+// CHECK:             %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[STDVEC_SIZE_1]] : i64
+// CHECK:             cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_1:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[STDVEC_DATA_0]]{{\[}}%[[VAL_1]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+// CHECK:             %[[LOAD_0:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<i64>
+// CHECK:             %[[CAST_2:.*]] = cc.cast %[[LOAD_0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_1]], %[[CONSTANT_2]] : i64
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[ALLOCA_0]]{{\[}}%[[ADDI_1]]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.store %[[CAST_2]], %[[COMPUTE_PTR_1]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:             cc.continue %[[VAL_1]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_2]] : i64
+// CHECK:             cc.continue %[[ADDI_2]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__logical_observable(%[[CAST_3]], %[[ADDI_0]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// `pair_detectors`: two stdvecs as `(data, size)` pairs.
+
+func.func @pair_detectors(%prev: !cc.stdvec<!cc.measure_handle>,
+                          %curr: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
+  qec.pair_detectors %prev, %curr
+    : !cc.stdvec<!cc.measure_handle>, !cc.stdvec<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @pair_detectors(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[STDVEC_DATA_0]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           %[[STDVEC_DATA_1:.*]] = cc.stdvec_data %[[ARG1]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_1:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[STDVEC_DATA_1]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__pair_detectors(%[[CAST_0]], %[[STDVEC_SIZE_0]], %[[CAST_1]], %[[STDVEC_SIZE_1]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-DAG: func.func private @__quantum__qis__detector(!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64)
+// CHECK-DAG: func.func private @__quantum__qis__logical_observable(!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, i64)
+// CHECK-DAG: func.func private @__quantum__qis__pair_detectors(!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64)
+
+// LLVM-DAG: llvm.func @__quantum__qis__detector(!llvm.ptr, i64) attributes {sym_visibility = "private"}
+// LLVM-DAG: llvm.func @__quantum__qis__logical_observable(!llvm.ptr, i64, i64) attributes {sym_visibility = "private"}
+// LLVM-DAG: llvm.func @__quantum__qis__pair_detectors(!llvm.ptr, i64, !llvm.ptr, i64) attributes {sym_visibility = "private"}
+// LLVM-DAG: llvm.call @__quantum__qis__detector({{.*}}) : (!llvm.ptr, i64) -> ()
+// LLVM-DAG: llvm.call @__quantum__qis__logical_observable({{.*}}) : (!llvm.ptr, i64, i64) -> ()
+// LLVM-DAG: llvm.call @__quantum__qis__pair_detectors({{.*}}) : (!llvm.ptr, i64, !llvm.ptr, i64) -> ()

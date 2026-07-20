@@ -1,0 +1,96 @@
+diff --git a/llvm/include/llvm/Support/CommandLine.h b/llvm/include/llvm/Support/CommandLine.h
+index 43c769c1fd0a..9005c86a7026 100644
+--- a/llvm/include/llvm/Support/CommandLine.h
++++ b/llvm/include/llvm/Support/CommandLine.h
+@@ -861,7 +861,11 @@ public:
+   ///
+   template <class DT>
+   void addLiteralOption(StringRef Name, const DT &V, StringRef HelpStr) {
+-    assert(findOption(Name) == Values.size() && "Option already exists!");
++    // Allow idempotent registration - if an option with this name already
++    // exists, skip registration. This supports scenarios where multiple
++    // shared libraries may each have their own copy of LLVM globals.
++    if (findOption(Name) != Values.size())
++      return;
+     OptionInfo X(Name, static_cast<DataType>(V), HelpStr);
+     Values.push_back(X);
+     AddLiteralOption(Owner, Name);
+diff --git a/llvm/lib/Support/CommandLine.cpp b/llvm/lib/Support/CommandLine.cpp
+index 66632504d6fb..1a7b10ca3b75 100644
+--- a/llvm/lib/Support/CommandLine.cpp
++++ b/llvm/lib/Support/CommandLine.cpp
+@@ -178,10 +178,11 @@ public:
+   void addLiteralOption(Option &Opt, SubCommand *SC, StringRef Name) {
+     if (Opt.hasArgStr())
+       return;
++    // Allow idempotent registration - if an option with this name already
++    // exists, skip registration. This supports scenarios where multiple
++    // shared libraries may each have their own copy of LLVM globals.
+     if (!SC->OptionsMap.insert(std::make_pair(Name, &Opt)).second) {
+-      errs() << ProgramName << ": CommandLine Error: Option '" << Name
+-             << "' registered more than once!\n";
+-      report_fatal_error("inconsistency in registered CommandLine options");
++      return;
+     }
+ 
+     // If we're adding this to all sub-commands, add it to the ones that have
+@@ -207,17 +208,14 @@ public:
+   void addOption(Option *O, SubCommand *SC) {
+     bool HadErrors = false;
+     if (O->hasArgStr()) {
+-      // If it's a DefaultOption, check to make sure it isn't already there.
+-      if (O->isDefaultOption() &&
+-          SC->OptionsMap.find(O->ArgStr) != SC->OptionsMap.end())
++      // Allow idempotent registration - if an option with this name already
++      // exists, skip registration. This supports scenarios where multiple
++      // shared libraries may each have their own copy of LLVM globals.
++      if (SC->OptionsMap.find(O->ArgStr) != SC->OptionsMap.end())
+         return;
+ 
+-      // Add argument to the argument map!
+-      if (!SC->OptionsMap.insert(std::make_pair(O->ArgStr, O)).second) {
+-        errs() << ProgramName << ": CommandLine Error: Option '" << O->ArgStr
+-               << "' registered more than once!\n";
+-        HadErrors = true;
+-      }
++      // Add argument to the argument map
++      SC->OptionsMap.insert(std::make_pair(O->ArgStr, O));
+     }
+ 
+     // Remember information about positional options.
+@@ -329,10 +327,10 @@ public:
+ 
+   void updateArgStr(Option *O, StringRef NewName, SubCommand *SC) {
+     SubCommand &Sub = *SC;
++    // Allow idempotent registration - if an option with this name already
++    // exists, skip the update silently.
+     if (!Sub.OptionsMap.insert(std::make_pair(NewName, O)).second) {
+-      errs() << ProgramName << ": CommandLine Error: Option '" << O->ArgStr
+-             << "' registered more than once!\n";
+-      report_fatal_error("inconsistency in registered CommandLine options");
++      return;
+     }
+     Sub.OptionsMap.erase(O->ArgStr);
+   }
+@@ -354,13 +352,14 @@ public:
+   void printOptionValues();
+ 
+   void registerCategory(OptionCategory *cat) {
+-    assert(count_if(RegisteredOptionCategories,
+-                    [cat](const OptionCategory *Category) {
+-             return cat->getName() == Category->getName();
+-           }) == 0 &&
+-           "Duplicate option categories");
+-
+-    RegisteredOptionCategories.insert(cat);
++    // Allow idempotent registration - if a category with this name already
++    // exists, skip registration. This supports scenarios where multiple
++    // shared libraries may each have their own copy of LLVM globals.
++    if (count_if(RegisteredOptionCategories,
++                 [cat](const OptionCategory *Category) {
++           return cat->getName() == Category->getName();
++         }) == 0)
++      RegisteredOptionCategories.insert(cat);
+   }
+ 
+   void registerSubCommand(SubCommand *sub) {

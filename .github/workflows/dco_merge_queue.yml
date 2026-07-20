@@ -1,0 +1,17 @@
+on:
+  # Do not add any triggers here!
+  merge_group:
+    types: 
+      - checks_requested
+
+name: DCO (merge queue)
+
+permissions: {} # no permissions needed. 
+
+jobs:
+  DCO:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 
+          echo "Enable merge_queue check to pass."
+          echo "No checks were performed; these checks were already performed during PR workflows."

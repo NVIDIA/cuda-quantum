@@ -1,0 +1,116 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "PassDetails.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
+
+using namespace mlir;
+
+static void addAnyonPPipeline(OpPassManager &pm) {
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "z(1)",
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addAnyonCPipeline(OpPassManager &pm) {
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addOQCPipeline(OpPassManager &pm) {
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      // TODO: make this our native gate set
+      "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addQCIPipeline(OpPassManager &pm) {
+  // Note: QCI's basis gate set is "sx", "rz", "cz", but QCI currently has
+  // a transpiler converting all other gates to that basis.
+  // We use the gate set below so we can translate all gates to QIR.
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addQuantinuumPipeline(OpPassManager &pm) {
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addIQMPipeline(OpPassManager &pm) {
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      "phased_rx",
+      "z(1)",
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addIonQPipeline(OpPassManager &pm) {
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      "h",  "s", "t", "rx", "ry",
+      "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addFermioniqPipeline(OpPassManager &pm) {
+  cudaq::opt::BasisConversionOptions options;
+  options.basis = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  pm.addPass(createBasisConversion(options));
+}
+
+void cudaq::opt::registerTargetPipelines() {
+  PassPipelineRegistration<>("anyon-cgate-set-mapping",
+                             "Convert kernels to Anyon gate set.",
+                             addAnyonCPipeline);
+  PassPipelineRegistration<>("anyon-pgate-set-mapping",
+                             "Convert kernels to Anyon gate set.",
+                             addAnyonPPipeline);
+  PassPipelineRegistration<>("oqc-gate-set-mapping",
+                             "Convert kernels to OQC gate set.",
+                             addOQCPipeline);
+  PassPipelineRegistration<>("iqm-gate-set-mapping",
+                             "Convert kernels to IQM gate set.",
+                             addIQMPipeline);
+  PassPipelineRegistration<>("qci-gate-set-mapping",
+                             "Convert kernels to QCI gate set.",
+                             addQCIPipeline);
+  PassPipelineRegistration<>("quantinuum-gate-set-mapping",
+                             "Convert kernels to Quantinuum gate set.",
+                             addQuantinuumPipeline);
+  PassPipelineRegistration<>("ionq-gate-set-mapping",
+                             "Convert kernels to IonQ gate set.",
+                             addIonQPipeline);
+  PassPipelineRegistration<>("fermioniq-gate-set-mapping",
+                             "Convert kernels to Fermioniq gate set.",
+                             addFermioniqPipeline);
+}
+
+void cudaq::opt::registerCodeGenDialect(DialectRegistry &registry) {
+  registry.insert<cudaq::codegen::CodeGenDialect>();
+}

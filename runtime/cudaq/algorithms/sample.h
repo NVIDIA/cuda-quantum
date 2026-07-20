@@ -1,0 +1,684 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "common/ExecutionContext.h"
+#include "common/SampleResult.h"
+#include "cudaq/algorithms/broadcast.h"
+#include "cudaq/algorithms/launch.h"
+#include "cudaq/algorithms/sample/options.h"
+#include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/concepts.h"
+#include "cudaq/host_config.h"
+#include "cudaq/platform.h"
+
+namespace cudaq {
+bool kernelHasConditionalFeedback(const std::string &);
+namespace detail {
+bool isKernelGenerated(const std::string &);
+
+/// @brief Check whether a kernel uses conditional feedback (measurement-
+/// dependent branching). Checks MLIR metadata first, then optionally checks
+/// the ExecutionContext's registerNames (populated during library-mode
+/// tracing).
+///
+/// @param kernelName Name of the kernel (for MLIR registry lookup)
+/// @param ctx Optional pointer to an ExecutionContext populated after tracing
+/// @return true if conditional feedback is detected
+inline bool hasConditionalFeedback(const std::string &kernelName,
+                                   const ExecutionContext *ctx = nullptr) {
+  if (cudaq::kernelHasConditionalFeedback(kernelName))
+    return true;
+  if (ctx && !ctx->registerNames.empty())
+    return true;
+  return false;
+}
+} // namespace detail
+
+/// @brief Define a combined sample function validation concept.
+/// These concepts provide much better error messages than old-school SFINAE
+template <typename QuantumKernel, typename... Args>
+concept SampleCallValid =
+    ValidArgumentsPassed<QuantumKernel, Args...> &&
+    HasVoidReturnType<std::invoke_result_t<QuantumKernel, Args...>>;
+
+namespace detail {
+
+/// @brief Validate sampling arguments, populate the given execution context
+/// and sample policy, and (in library mode) trace the kernel to detect any
+/// mid-circuit conditional feedback.
+/// @param ctx The execution context to populate (must already be constructed
+/// with name "sample").
+/// @param policy The sample policy to populate.
+template <typename KernelFunctor>
+void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
+                    KernelFunctor &&wrappedKernel, quantum_platform &platform,
+                    const std::string &kernelName, int shots,
+                    bool explicitMeasurements, std::size_t qpu_id,
+                    std::size_t batchIteration = 0,
+                    std::size_t totalBatchIters = 0) {
+  if (cudaq::detail::hasConditionalFeedback(kernelName))
+    throw std::runtime_error(
+        "`cudaq::sample` and `cudaq::sample_async` no longer support kernels "
+        "that branch on measurement results. Kernel '" +
+        kernelName +
+        "' uses conditional feedback. Use `cudaq::run` or `cudaq::run_async` "
+        "instead. See CUDA-Q documentation for migration guide.");
+
+  if (explicitMeasurements && !platform.supports_explicit_measurements())
+    throw std::runtime_error("The sampling option `explicit_measurements` is "
+                             "not supported on this target.");
+
+  ctx.kernelName = kernelName;
+  ctx.batchIteration = batchIteration;
+  ctx.totalIterations = totalBatchIters;
+  ctx.explicitMeasurements = explicitMeasurements;
+
+  policy.kernelName = kernelName;
+  policy.options.shots = shots;
+  policy.options.explicit_measurements = explicitMeasurements;
+  policy.noiseModel = platform.get_noise(qpu_id);
+
+  // For now the noise model has to be duplicated on the policy unfortunately.
+  // get_noise() still expects it on the execution context.
+  // TODO: Store the noise on the platform or QPU instead.
+  ctx.noiseModel = policy.noiseModel;
+
+#ifdef CUDAQ_LIBRARY_MODE
+  // If we have a kernel that has its quake code registered, we
+  // won't check for if statements with the tracer.
+  auto isRegistered = detail::isKernelGenerated(kernelName);
+
+  // One extra check to see if we have mid-circuit
+  // measures in library mode
+  if (!isRegistered && !ctx.hasConditionalsOnMeasureResults) {
+    // Trace the kernel function
+    ExecutionContext context("tracer");
+    context.qpuId = qpu_id;
+    auto &platform = get_platform();
+    platform.with_execution_context(context,
+                                    std::forward<KernelFunctor>(wrappedKernel));
+    // In trace mode, if we have a measure result
+    // that is passed to an if statement, then
+    // we'll have collected registernames
+    if (!context.registerNames.empty()) {
+      // append new register names to the main sample context
+      for (std::size_t i = 0; i < context.registerNames.size(); ++i)
+        ctx.registerNames.emplace_back("auto_register_" + std::to_string(i));
+
+      ctx.hasConditionalsOnMeasureResults = true;
+    }
+  }
+#endif
+}
+
+template <typename KernelFunctor>
+auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
+                      const std::string &kernelName, int shots,
+                      bool explicitMeasurements = false, std::size_t qpu_id = 0,
+                      std::optional<noise_model> noise = std::nullopt);
+
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the sampling process.
+template <typename KernelFunctor>
+sample_result
+runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
+            const std::string &kernelName, int shots, bool explicitMeasurements,
+            std::size_t qpu_id = 0, std::size_t batchIteration = 0,
+            std::size_t totalBatchIters = 0) {
+
+  if (platform.is_remote(qpu_id)) {
+    auto noise = platform.get_noise(qpu_id);
+    std::optional<noise_model> noise_opt =
+        noise ? std::make_optional(*noise) : std::nullopt;
+    auto result = runSamplingAsync(wrappedKernel, platform, kernelName, shots,
+                                   explicitMeasurements, qpu_id, noise_opt);
+    return result.get();
+  }
+
+  // Create the execution context.
+  ExecutionContext ctx("sample", shots, qpu_id);
+  sample_policy policy;
+  samplePreamble(ctx, policy, std::forward<KernelFunctor>(wrappedKernel),
+                 platform, kernelName, shots, explicitMeasurements, qpu_id,
+                 batchIteration, totalBatchIters);
+
+  auto isQuantumDevice = platform.is_emulated(qpu_id);
+
+  // Loop until all shots are returned.
+  cudaq::sample_result counts;
+
+  while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
+    auto result = detail::launch(policy, qpu_id, ctx, platform,
+                                 std::forward<KernelFunctor>(wrappedKernel));
+
+    // If target is hardware backend, need to launch only once, hence exit
+    // early
+    if (isQuantumDevice)
+      return result;
+
+    if (counts.get_total_shots() == 0)
+      counts = std::move(result); // optimize for first iteration
+    else
+      counts += result;
+
+    if (counts.get_total_shots() == 0) {
+      if (explicitMeasurements)
+        throw std::runtime_error(
+            "The sampling option `explicit_measurements` is not supported on "
+            "a kernel without any measurement operation.");
+      printf("WARNING: this kernel invocation produced 0 shots worth "
+             "of results when executed. Exiting shot loop to avoid "
+             "infinite loop.");
+      break;
+    }
+  }
+  return counts;
+}
+
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the sampling process
+/// asynchronously. Return an `async_sample_result`, clients can retrieve the
+/// results at a later time via the `get()` call.
+///
+/// @param wrappedKernel The kernel functor to execute.
+/// @param platform The quantum platform to use.
+/// @param kernelName The name of the kernel.
+/// @param shots The number of shots to run.
+/// @param explicitMeasurements Whether to use explicit measurements.
+/// @param qpu_id The QPU ID to use.
+/// @param noise The optional noise model to apply during execution. The noise
+///              model is copied into the asynchronous task to ensure proper
+///              lifetime.
+template <typename KernelFunctor>
+auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
+                      const std::string &kernelName, int shots,
+                      bool explicitMeasurements, std::size_t qpu_id,
+                      std::optional<noise_model> noise) {
+  if (qpu_id >= platform.num_qpus()) {
+    throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
+                                " is invalid (must be < " +
+                                std::to_string(platform.num_qpus()) +
+                                " i.e. platform.num_qpus())");
+  }
+
+#ifndef CUDAQ_LIBRARY_MODE
+  // Treat an empty noise model as "no noise".
+  const bool hasNoise = noise.has_value() && !noise->empty();
+  // If we are remote, then create the sampling executor with `cudaq::future`
+  // provided. Note: noise model is not supported on remote platforms.
+  if (platform.is_remote(qpu_id)) {
+    if (hasNoise)
+      throw std::runtime_error(
+          "Noise model is not supported on remote platforms.");
+
+    // Create the execution context.
+    ExecutionContext ctx("sample", shots, qpu_id);
+    async_sample_policy async_policy;
+    samplePreamble(ctx, async_policy.inner,
+                   std::forward<KernelFunctor>(wrappedKernel), platform,
+                   kernelName, shots, explicitMeasurements, qpu_id);
+    return detail::launch(async_policy, qpu_id, ctx, platform,
+                          std::forward<KernelFunctor>(wrappedKernel));
+  }
+#endif
+
+  KernelExecutionTask task(
+      [qpu_id, explicitMeasurements, shots, kernelName, &platform,
+       noise = std::move(noise),
+       kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
+        const bool hasNoise = noise.has_value() && !noise->empty();
+
+        // Set noise model before execution if provided.
+        if (hasNoise)
+          platform.set_noise(&noise.value(), qpu_id);
+
+        sample_result result;
+        try {
+          result = detail::runSampling(kernel, platform, kernelName, shots,
+                                       explicitMeasurements, qpu_id);
+        } catch (...) {
+          // Ensure noise model is reset even on exception.
+          if (hasNoise)
+            platform.reset_noise(qpu_id);
+          throw;
+        }
+
+        // Reset noise model after execution.
+        if (hasNoise)
+          platform.reset_noise(qpu_id);
+
+        return result;
+      });
+
+  return async_sample_result(
+      detail::future(platform.enqueueAsyncTask(qpu_id, task)));
+}
+} // namespace detail
+
+/// @overload
+/// @brief Sample the given quantum kernel expression and return the
+/// mapping of observed bit strings to corresponding number of
+/// times observed.
+///
+/// @param kernel the kernel expression, must contain final measurements
+/// @param args the variadic concrete arguments for evaluation of the kernel.
+/// @returns counts, The counts dictionary.
+///
+/// @details Given a quantum kernel with void return type, sample
+///          the corresponding quantum circuit generated by the kernel
+///          expression, returning the mapping of bits observed to number
+///          of times it was observed.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+sample_result sample(QuantumKernel &&kernel, Args &&...args) {
+  // Need the code to be lowered to llvm and the kernel to be registered
+  // so that we can check for conditional feedback / mid circ measurement
+  if constexpr (has_name<QuantumKernel>::value) {
+    static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
+  }
+
+  // Run this SHOTS times
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+  return detail::runSampling(
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+      /*explicitMeasurements=*/false);
+}
+
+/// @overload
+/// @brief Sample the given quantum kernel expression and return the
+/// mapping of observed bit strings to corresponding number of
+/// times observed. Specify the number of shots.
+///
+/// @param shots The number of samples to collect.
+/// @param kernel The kernel expression, must contain final measurements.
+/// @param args The variadic concrete arguments for evaluation of the kernel.
+/// @returns The counts dictionary.
+///
+/// @details Given a quantum kernel with void return type, sample
+///          the corresponding quantum circuit generated by the kernel
+///          expression, returning the mapping of bits observed to number
+///          of times it was observed.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
+  // Need the code to be lowered to llvm and the kernel to be registered
+  // so that we can check for conditional feedback / mid circ measurement
+  if constexpr (has_name<QuantumKernel>::value) {
+    static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
+  }
+
+  // Run this SHOTS times
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+  return detail::runSampling(
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, shots, /*explicitMeasurements=*/false);
+}
+
+/// @brief Sample the given quantum kernel expression and return the
+/// mapping of observed bit strings to corresponding number of
+/// times observed.
+///
+/// @param options Sample options.
+/// @param kernel The kernel expression, must contain final measurements.
+/// @param args The variadic concrete arguments for evaluation of the kernel.
+/// @returns The counts dictionary.
+///
+/// @details Given a quantum kernel with void return type, sample
+///          the corresponding quantum circuit generated by the kernel
+///          expression, returning the mapping of bits observed to number
+///          of times it was observed.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+sample_result sample(const sample_options &options, QuantumKernel &&kernel,
+                     Args &&...args) {
+
+  // Need the code to be lowered to llvm and the kernel to be registered
+  // so that we can check for conditional feedback / mid circ measurement
+  if constexpr (has_name<QuantumKernel>::value) {
+    static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
+  }
+
+  auto &platform = cudaq::get_platform();
+  auto shots = options.shots;
+  auto kernelName = cudaq::getKernelName(kernel);
+  if (!options.noise.empty()) {
+    platform.set_noise(&options.noise);
+    CUDAQ_INFO("Setting noise model onto the platform");
+  }
+  auto ret = detail::runSampling(
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, shots, options.explicit_measurements);
+  if (!options.noise.empty()) {
+    CUDAQ_INFO("Resetting noise model from the platform");
+  }
+  platform.reset_noise();
+  return ret;
+}
+
+/// @brief Sample the given kernel expression asynchronously and return
+/// the mapping of observed bit strings to corresponding number of
+/// times observed.
+///
+/// @param qpu_id The id of the QPU to run asynchronously on.
+/// @param kernel The kernel expression, must contain final measurements.
+/// @param args The variadic concrete arguments for evaluation of the kernel.
+/// @returns A `std::future` containing the resultant counts
+/// dictionary.
+///
+/// @details Given a kernel with void return type, asynchronously sample
+///          the corresponding quantum circuit generated by the kernel
+///          expression, returning the mapping of bits observed to number
+///          of times it was observed.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+async_sample_result sample_async(const std::size_t qpu_id,
+                                 QuantumKernel &&kernel, Args &&...args) {
+  // Need the code to be lowered to llvm and the kernel to be registered
+  // so that we can check for conditional feedback / mid circ measurement
+  if constexpr (has_name<QuantumKernel>::value) {
+    static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
+  }
+
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+
+  return detail::runSamplingAsync(
+      [&kernel, ... args = std::forward<Args>(args)]() mutable {
+        kernel(std::forward<Args>(args)...);
+      },
+      platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+      /*explicitMeasurements=*/false, qpu_id);
+}
+
+/// @brief Sample the given kernel expression asynchronously and return
+/// the mapping of observed bit strings to corresponding number of
+/// times observed.
+///
+/// @param shots The number of samples to collect.
+/// @param qpu_id The id of the QPU to run asynchronously on.
+/// @param kernel The kernel expression, must contain final measurements.
+/// @param args The variadic concrete arguments for evaluation of the kernel.
+/// @returns A `std::future` containing the resultant counts
+/// dictionary.
+///
+/// @details Given a kernel with void return type, asynchronously sample
+///          the corresponding quantum circuit generated by the kernel
+///          expression, returning the mapping of bits observed to number
+///          of times it was observed.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
+                                 QuantumKernel &&kernel, Args &&...args) {
+  // Need the code to be lowered to llvm and the kernel to be registered
+  // so that we can check for conditional feedback / mid circ measurement
+  if constexpr (has_name<QuantumKernel>::value) {
+    static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
+  }
+
+  // Run this SHOTS times
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+
+  return detail::runSamplingAsync(
+      [&kernel, ... args = std::forward<Args>(args)]() mutable {
+        kernel(std::forward<Args>(args)...);
+      },
+      platform, kernelName, shots, /*explicitMeasurements=*/false, qpu_id);
+}
+
+/// @brief Sample the given kernel expression asynchronously and return
+/// the mapping of observed bit strings to corresponding number of
+/// times observed.
+///
+/// @param options Sample options.
+/// @param qpu_id The id of the QPU to run asynchronously on.
+/// @param kernel The kernel expression, must contain final measurements.
+/// @param args The variadic concrete arguments for evaluation of the kernel.
+/// @returns A `std::future` containing the resultant counts
+/// dictionary.
+///
+/// @details Given a kernel with void return type, asynchronously sample
+///          the corresponding quantum circuit generated by the kernel
+///          expression, returning the mapping of bits observed to number
+///          of times it was observed.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+async_sample_result sample_async(const sample_options &options,
+                                 std::size_t qpu_id, QuantumKernel &&kernel,
+                                 Args &&...args) {
+  // Need the code to be lowered to llvm and the kernel to be registered
+  // so that we can check for conditional feedback / mid circ measurement
+  if constexpr (has_name<QuantumKernel>::value) {
+    static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
+  }
+  auto &platform = cudaq::get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
+
+  // Pass the noise model (copied by value) to runSamplingAsync, which will
+  // set/reset it within the asynchronous task to avoid dangling pointers and
+  // state pollution.
+  return detail::runSamplingAsync(
+      [&kernel, ... args = std::forward<Args>(args)]() mutable {
+        kernel(std::forward<Args>(args)...);
+      },
+      platform, kernelName, options.shots, options.explicit_measurements,
+      qpu_id, options.noise);
+}
+
+/// @brief Sample the given kernel expression asynchronously and return
+/// the mapping of observed bit strings to corresponding number of
+/// times observed. Defaults to QPU id 0.
+///
+/// @param kernel The kernel expression, must contain final measurements.
+/// @param args The variadic concrete arguments for evaluation of the kernel.
+/// @returns A `std::future` containing the resultant counts
+/// dictionary.
+///
+/// @details Given a kernel with void return type, asynchronously sample
+///          the corresponding quantum circuit generated by the kernel
+///          expression, returning the mapping of bits observed to number
+///          of times it was observed.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+auto sample_async(QuantumKernel &&kernel, Args &&...args) {
+  return sample_async(0, std::forward<QuantumKernel>(kernel),
+                      std::forward<Args>(args)...);
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and element `i` of each vector is used in
+/// execution `i` of the standard sample function. Results are collected
+/// from the execution of every argument set and returned.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+std::vector<sample_result> sample(QuantumKernel &&kernel,
+                                  ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  detail::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret = detail::runSampling(
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+        /*explicitMeasurements=*/false, qpuId, counter, N);
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return detail::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the element `i` of each vector is used in
+/// execution `i` of the standard sample function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the number of circuit executions (shots) to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
+                                  ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of QPUs
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  detail::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret = detail::runSampling(
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, shots, /*explicitMeasurements=*/false, qpuId,
+        counter, N);
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return detail::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the element `i` of each vector is used in
+/// execution `i` of the standard sample function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the `sample_options` to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+std::vector<sample_result> sample(const sample_options &options,
+                                  QuantumKernel &&kernel,
+                                  ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+  auto shots = options.shots;
+
+  if (!options.noise.empty())
+    platform.set_noise(&options.noise);
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  detail::BroadcastFunctorType<sample_result, Args...> functor =
+      [&, explicit_mz = options.explicit_measurements](
+          std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret = detail::runSampling(
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, shots, explicit_mz, qpuId, counter, N);
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  auto ret = detail::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
+
+  platform.reset_noise();
+  return ret;
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the element `i` of each vector is used in
+/// execution `i` of the standard sample function. Results are collected
+/// from the execution of every argument set and returned.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+[[deprecated("Use sample() overload instead")]] std::vector<sample_result>
+sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  detail::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret = detail::runSampling(
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+        /*explicitMeasurements=*/false, qpuId, counter, N);
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return detail::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
+}
+
+/// @brief Run the standard sample functionality over a set of N
+/// argument packs. For a kernel with signature `void(Args...)`, this
+/// function takes as input a set of `vector<Arg>...`, a vector for
+/// each argument type in the kernel signature. The vectors must be of
+/// equal length, and the element `i` of each vector is used in
+/// execution `i` of the standard sample function. Results are collected
+/// from the execution of every argument set and returned. This overload
+/// allows the number of circuit executions (shots) to be specified.
+template <typename QuantumKernel, typename... Args>
+  requires SampleCallValid<QuantumKernel, Args...>
+[[deprecated("Use sample() overload instead")]] std::vector<sample_result>
+sample_n(std::size_t shots, QuantumKernel &&kernel,
+         ArgumentSet<Args...> &&params) {
+  // Get the platform and query the number of qpus
+  auto &platform = cudaq::get_platform();
+  auto numQpus = platform.num_qpus();
+
+  // Create the functor that will broadcast the sampling tasks across
+  // all requested argument sets provided.
+  detail::BroadcastFunctorType<sample_result, Args...> functor =
+      [&](std::size_t qpuId, std::size_t counter, std::size_t N,
+          Args &...singleIterParameters) -> sample_result {
+    auto kernelName = cudaq::getKernelName(kernel);
+    auto ret = detail::runSampling(
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, shots, /*explicitMeasurements=*/false, qpuId,
+        counter, N);
+    return ret;
+  };
+
+  // Broadcast the executions and return the results.
+  return detail::broadcastFunctionOverArguments<sample_result, Args...>(
+      numQpus, platform, functor, params);
+}
+} // namespace cudaq

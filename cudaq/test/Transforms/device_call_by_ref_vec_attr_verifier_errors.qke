@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s -split-input-file -verify-diagnostics
+
+func.func private @scalarArg(i32)
+
+func.func @badScalarIndex(%arg0: i32) {
+  // expected-error @+1 {{'cc.device_call' op by_ref_vec_arg_indices references non-stdvec argument index 0}}
+  cc.device_call @scalarArg(%arg0) : (i32) -> () {by_ref_vec_arg_indices = array<i64: 0>}
+  return
+}
+
+// -----
+
+func.func private @vectorArg(!cc.stdvec<i32>)
+
+func.func @badDuplicateIndex(%arg0: !cc.stdvec<i32>) {
+  // expected-error @+1 {{'cc.device_call' op by_ref_vec_arg_indices contains duplicate argument index 0}}
+  cc.device_call @vectorArg(%arg0) : (!cc.stdvec<i32>) -> () {by_ref_vec_arg_indices = array<i64: 0, 0>}
+  return
+}
+
+// -----
+
+func.func private @oneVectorArg(!cc.stdvec<i32>)
+
+func.func @badOutOfRangeIndex(%arg0: !cc.stdvec<i32>) {
+  // expected-error @+1 {{'cc.device_call' op by_ref_vec_arg_indices contains out-of-range argument index 1}}
+  cc.device_call @oneVectorArg(%arg0) : (!cc.stdvec<i32>) -> () {by_ref_vec_arg_indices = array<i64: 1>}
+  return
+}
