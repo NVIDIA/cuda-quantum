@@ -97,6 +97,7 @@ def test_strict_oracle_is_recorded_on_the_case(tmp_path):
 @pytest.mark.parametrize("fixture,reason", [
     ("measurement.qke", "measurement"),
     ("reset.qke", "reset"),
+    ("dynamic_control_flow.qke", "dynamic-control-flow"),
 ])
 def test_out_of_domain_input_fails_closed(fixture, reason):
     result = validate(_request([_INPUTS / fixture]))

@@ -68,7 +68,7 @@ struct BoundedUnitaryDomainStatus {
   bool supported = true;
   /// The largest statically-known qubit count observed across kernels.
   std::size_t maxQubits = 0;
-  /// All rejections found, in discovery order. Empty iff \c supported.
+  /// All rejections found, in discovery order. Empty iff supported.
   llvm::SmallVector<DomainRejection> rejections;
 };
 
@@ -92,18 +92,18 @@ checkBoundedUnitaryDomain(mlir::ModuleOp module,
 /// Result of an exact unitary comparison of two straight-line kernels.
 struct UnitaryComparisonResult {
   /// True iff both unitaries were built and have matching dimensions. When
-  /// false, no comparison was performed and \c error explains why.
+  /// false, no comparison was performed and error explains why.
   bool computed = false;
   /// Element-wise equality within tolerance.
   bool strictEqual = false;
   /// Equality after dividing a global phase out of each unitary.
   bool equalUpToGlobalPhase = false;
-  /// Relative global phase (radians, in (-pi, pi]) of \c candidate with respect
-  /// to \c baseline. Only meaningful when \c equalUpToGlobalPhase is true.
+  /// Relative global phase (radians, in (-pi, pi]) of candidate with respect
+  /// to baseline. Only meaningful when equalUpToGlobalPhase is true.
   double phase = 0.0;
-  /// True iff \c phase is within tolerance of zero.
+  /// True iff phase is within tolerance of zero.
   bool phaseIsZero = false;
-  /// Populated only when \c computed is false.
+  /// Populated only when computed is false.
   std::string error;
 };
 
@@ -112,12 +112,12 @@ struct UnitaryComparisonResult {
 /// Each dense unitary is built directly from the IR (no simulator, no target
 /// pipeline), then compared element-wise and up to a global phase. Current
 /// CUDA-Q circuit results are not global-phase observable for a complete
-/// kernel, so \c equalUpToGlobalPhase is the acceptance signal while \c phase /
-/// \c phaseIsZero record the delta for callers that need it.
+/// kernel, so equalUpToGlobalPhase is the acceptance signal while phase
+/// phaseIsZero record the delta for callers that need it.
 ///
 /// Callers should confirm both kernels are in the supported domain (see
-/// \c checkBoundedUnitaryDomain) first. On a build failure or dimension
-/// mismatch the result reports \c computed == false rather than a false
+/// checkBoundedUnitaryDomain) first. On a build failure or dimension
+/// mismatch the result reports computed == false rather than a false
 /// equivalence.
 UnitaryComparisonResult compareUnitaries(mlir::func::FuncOp baseline,
                                          mlir::func::FuncOp candidate,

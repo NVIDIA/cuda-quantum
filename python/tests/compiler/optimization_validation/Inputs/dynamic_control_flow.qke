@@ -1,0 +1,21 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A kernel with classical control flow (cc.if). Only straight-line circuits are
+// in the bounded-unitary domain, so the validator must fail closed with an
+// `unsupported-domain` status.
+
+func.func @kernel() {
+  %true = arith.constant true
+  %q = quake.alloca !quake.veq<1>
+  %r = quake.extract_ref %q[0] : (!quake.veq<1>) -> !quake.ref
+  cc.if (%true) {
+    quake.x %r : (!quake.ref) -> ()
+  }
+  cc.return
+}
