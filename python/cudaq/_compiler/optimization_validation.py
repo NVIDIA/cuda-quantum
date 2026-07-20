@@ -244,6 +244,19 @@ class InvalidRequest(Exception):
     """Raised when a request is malformed. Maps to INVALID_REQUEST."""
 
 
+class _StageFailure(Exception):
+    """Internal: a pipeline stage (or the input) failed to parse, run, or verify.
+
+    Carries the outcome ``status`` to attribute to the case and a message. Caught
+    inside :func:`_evaluate_input` and turned into a failed case. It never escapes.
+    """
+
+    def __init__(self, status: str, message: str):
+        super().__init__(message)
+        self.status = status
+        self.message = message
+
+
 # MLIR plumbing
 def _make_context() -> Context:
     """Create an MLIR context with the CUDA-Q dialects and passes registered.
@@ -270,6 +283,40 @@ def _run_pipeline(pipeline: str, module: Module, ctx: Context) -> Module:
 
 def _clone(module: Module) -> Module:
     return cudaq_runtime.cloneModule(module)
+
+
+def _module_is_valid(module: Module) -> bool:
+    """True iff ``module`` passes MLIR verification.
+
+    ``operation.verify()`` raises ``MLIRError`` on failure rather than returning
+    ``False``. It normalize both to a bool so callers can branch on it.
+    """
+    try:
+        return bool(module.operation.verify())
+    except Exception:
+        return False
+
+
+def _run_stage(pipeline: str, module: Module, ctx: Context, *, stage: str,
+               failure_status: str) -> Module:
+    """Run one stage and verify its output IR, failing closed on either error.
+
+    Implements the ``verify`` gate of the per-input flow at a stage boundary:
+    running the pipeline and confirming the result is structurally valid IR. A
+    run error or an invalid result raises :class:`_StageFailure` tagged with
+    ``failure_status`` so the case is attributed to the right category (a bad
+    candidate is an invariant failure; a bad prepare/observe is infrastructure).
+    Covers no-op (empty) stages too, which never reach the pass manager's own
+    verifier.
+    """
+    try:
+        out = _run_pipeline(pipeline, module, ctx)
+    except Exception as exc:
+        raise _StageFailure(failure_status, f"{stage} stage failed: {exc}")
+    if not _module_is_valid(out):
+        raise _StageFailure(failure_status,
+                            f"{stage} stage produced invalid IR")
+    return out
 
 
 # Metrics
@@ -334,20 +381,78 @@ def _equivalent(oracle_kind: str, comparison: dict) -> bool:
     return bool(comparison["equal_up_to_global_phase"])
 
 
+def _failed_case(path: Path, status: str, messages) -> CaseResult:
+    """A case that never reached comparison: all equivalence fields are false."""
+    return CaseResult(
+        input=str(path),
+        status=status,
+        assurance_tier=ASSURANCE_TIER_EXACT,
+        strict_equal=False,
+        equal_up_to_global_phase=False,
+        phase=0.0,
+        phase_is_zero=False,
+        deterministic=False,
+        fixed_point=False,
+        metrics=(),
+        messages=tuple(messages),
+    )
+
+
+def _parse_input(path: Path, ctx: Context) -> Module:
+    """Parse and verify an input module. A malformed input is a bad request.
+
+    ``Module.parse`` runs the verifier, so this is the ``verify`` gate for the
+    input: invalid IR fails here rather than being mistaken for an internal
+    infrastructure error later.
+    """
+    try:
+        module = Module.parse(Path(path).read_text(), ctx)
+    except Exception as exc:
+        raise _StageFailure(ValidationStatus.INVALID_REQUEST,
+                            f"input IR failed to parse or verify: {exc}")
+    if not _module_is_valid(module):
+        raise _StageFailure(ValidationStatus.INVALID_REQUEST,
+                            "input IR failed verification")
+    return module
+
+
 def _evaluate_input(path: Path, request: ValidationRequest,
                     ctx: Context) -> CaseResult:
     messages: list[str] = []
     pipeline = request.pipeline
     oracle = request.oracle
 
-    module = Module.parse(Path(path).read_text(), ctx)
-
-    prepared = _run_pipeline(pipeline.prepare, module, ctx)
-
-    candidate_raw = _run_pipeline(pipeline.candidate, _clone(prepared), ctx)
-
-    baseline_obs = _run_pipeline(pipeline.observe, _clone(prepared), ctx)
-    candidate_obs = _run_pipeline(pipeline.observe, _clone(candidate_raw), ctx)
+    # Verify -> prepare -> candidate -> observe, verifying IR at each boundary. A
+    # bad candidate fails closed as an invariant failure; a bad prepare/observe
+    # is infrastructure.
+    try:
+        module = _parse_input(path, ctx)
+        prepared = _run_stage(
+            pipeline.prepare,
+            module,
+            ctx,
+            stage="prepare",
+            failure_status=ValidationStatus.INFRASTRUCTURE_FAILURE)
+        candidate_raw = _run_stage(
+            pipeline.candidate,
+            _clone(prepared),
+            ctx,
+            stage="candidate",
+            failure_status=ValidationStatus.INVARIANT_FAILURE)
+        baseline_obs = _run_stage(
+            pipeline.observe,
+            _clone(prepared),
+            ctx,
+            stage="observe (baseline)",
+            failure_status=ValidationStatus.INFRASTRUCTURE_FAILURE)
+        candidate_obs = _run_stage(
+            pipeline.observe,
+            _clone(candidate_raw),
+            ctx,
+            stage="observe (candidate)",
+            failure_status=ValidationStatus.INFRASTRUCTURE_FAILURE)
+    except _StageFailure as failure:
+        return _failed_case(path, failure.status, [failure.message])
 
     base_pf = cudaq_runtime.preflight_bounded_unitary(baseline_obs,
                                                       request.exact_qubit_bound)
@@ -358,19 +463,7 @@ def _evaluate_input(path: Path, request: ValidationRequest,
             for rej in pf["rejections"]:
                 messages.append(f"{side} unsupported: {rej['kind']} "
                                 f"in {rej['kernel']} ({rej['detail']})")
-        return CaseResult(
-            input=str(path),
-            status=ValidationStatus.UNSUPPORTED_DOMAIN,
-            assurance_tier=ASSURANCE_TIER_EXACT,
-            strict_equal=False,
-            equal_up_to_global_phase=False,
-            phase=0.0,
-            phase_is_zero=False,
-            deterministic=False,
-            fixed_point=False,
-            metrics=(),
-            messages=tuple(messages),
-        )
+        return _failed_case(path, ValidationStatus.UNSUPPORTED_DOMAIN, messages)
 
     comparison = cudaq_runtime.compare_unitaries(baseline_obs, candidate_obs,
                                                  request.kernel_name,

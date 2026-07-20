@@ -171,6 +171,17 @@ def test_empty_inputs_is_invalid_request():
     assert result.status == ValidationStatus.INVALID_REQUEST
 
 
+def test_malformed_input_ir_is_invalid_request():
+    result = validate(_request([_INPUTS / "invalid_ir.qke"]))
+    assert result.status == ValidationStatus.INVALID_REQUEST
+    case = result.cases[0]
+    assert case.status == ValidationStatus.INVALID_REQUEST
+    assert any("failed to parse or verify" in m or "failed verification" in m
+               for m in case.messages)
+    assert not case.strict_equal
+    assert not case.equal_up_to_global_phase
+
+
 # JSON serialization round-trip
 def test_result_json_round_trips(tmp_path):
     result = validate(_request([_good_input(tmp_path)]))
