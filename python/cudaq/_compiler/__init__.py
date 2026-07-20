@@ -8,7 +8,7 @@
 """Internal compiler-facing tooling for CUDA-Q.
 
 This package is the Python control plane for the Optimization Validation Core:
-an independent validator that decides whether a candidate compiler pass/pipeline
+an independent `validator` that decides whether a candidate compiler pass/pipeline
 preserves circuit semantics and how it moves declared metrics. It is a
 verification tool only. It never orchestrates optimization campaigns, spawns
 agents, edits sources, or selects a winning revision.
