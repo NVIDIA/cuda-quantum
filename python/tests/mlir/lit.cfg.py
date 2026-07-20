@@ -31,6 +31,8 @@ config.substitutions.append(('%PATH%', config.environment['PATH']))
 config.substitutions.append(('%llvmshlibdir', config.llvm_shlib_dir))
 config.substitutions.append(('%pluginext', config.llvm_plugin_ext))
 config.substitutions.append(('%llvmInclude', config.llvm_install + "/include"))
+config.substitutions.append(
+    ('%cudaq_python_root', os.path.join(config.cudaq_obj_root, 'python')))
 
 llvm_config.use_default_substitutions()
 

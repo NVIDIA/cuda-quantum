@@ -114,11 +114,15 @@ def test_baseline_is_isolated_from_candidate(tmp_path):
     good = _good_input(tmp_path)
     result = validate(
         _request([good],
+                 pipeline=PipelineSpec(
+                     prepare="builtin.module(func.func(memtoreg))",
+                     candidate="builtin.module(func.func(canonicalize))"),
                  metrics=(MetricSpec("operation-count", "nonincreasing"),)))
     case = result.cases[0]
+    assert case.status == ValidationStatus.PASSED
     (metric,) = [m for m in case.metrics if m.name == "operation-count"]
-    assert metric.delta == metric.candidate - metric.baseline
-    assert metric.candidate <= metric.baseline
+    assert metric.candidate < metric.baseline
+    assert metric.baseline > metric.candidate
 
 
 # Metric predicate enforcement
