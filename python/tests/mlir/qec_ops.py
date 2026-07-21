@@ -156,8 +156,33 @@ def test_observable_indexed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_observable_explicit_idx
+# CHECK:           %[[C2:.*]] = arith.constant 2 : i64
 # CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.observable %[[VS]] index 2 : !cc.stdvec<!cc.measure_handle>
+# CHECK:           qec.observable %[[VS]] index %[[C2]] : !cc.stdvec<!cc.measure_handle>
+# CHECK:           return
+# CHECK:         }
+
+# ---------------------------------------------------------------------------
+# `cudaq.logical_observable(vec, observable_index=obs)` — runtime index,
+# one observable per loop iteration.
+# ---------------------------------------------------------------------------
+
+
+def test_observable_runtime_index():
+
+    @cudaq.kernel
+    def kernel_observable_runtime_idx(nobs: int):
+        qs = cudaq.qvector(4)
+        handles = mz(qs)
+        for obs in range(nobs):
+            cudaq.logical_observable(handles, observable_index=obs)
+
+    print(kernel_observable_runtime_idx)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_observable_runtime_idx
+# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<4>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           qec.observable %[[VS]] index %{{.*}} : !cc.stdvec<!cc.measure_handle>
 # CHECK:           return
 # CHECK:         }
 
@@ -412,8 +437,9 @@ def test_b_observable_indexed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK:           %[[C2:.*]] = arith.constant 2 : i64
 # CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.observable %[[HS]] index 2 : !cc.stdvec<!cc.measure_handle>
+# CHECK:           qec.observable %[[HS]] index %[[C2]] : !cc.stdvec<!cc.measure_handle>
 # CHECK:           return
 
 

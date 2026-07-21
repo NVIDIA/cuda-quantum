@@ -383,7 +383,8 @@ backends that do not consume them they are erased before execution.
     Declare one logical observable as the parity of the referenced
     measurements. The variadic form uses observable index ``0``; codes with
     ``k`` logical qubits use the ``(vector, observable_index)`` overload to
-    declare observables ``0..k-1``.
+    declare observables ``0..k-1``. The index may be any runtime value
+    (e.g. a loop induction variable).
 
 Platform
 =========

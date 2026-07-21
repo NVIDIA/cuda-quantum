@@ -21,7 +21,9 @@ cudaq::dem_result launchDemPolicy(const cudaq::dem_policy &policy,
   if (cudaq::kernelHasConditionalFeedback(policy.kernelName))
     throw std::runtime_error(
         "`cudaq::dem_from_kernel`: kernel '" + policy.kernelName +
-        "' branches on a measurement result. DEM analysis not supported.");
+        "' uses a measurement result in classical control flow or as a "
+        "runtime operand (e.g. an observable index). DEM analysis not "
+        "supported.");
 
   // RAII: claim the thread-local analysis-simulator slot backed by the
   // @p plugin_name plugin. The scope starts from a clean simulator and

@@ -215,7 +215,8 @@ func.func @observable_scalar_default(%h: !cc.measure_handle) attributes {"cudaq-
 
 func.func @observable_multi_indexed(%h0: !cc.measure_handle,
                                     %h1: !cc.measure_handle) attributes {"cudaq-kernel"} {
-  qec.observable %h0, %h1 index 1 : !cc.measure_handle, !cc.measure_handle
+  %c1 = arith.constant 1 : i64
+  qec.observable %h0, %h1 index %c1 : !cc.measure_handle, !cc.measure_handle
   return
 }
 
@@ -240,7 +241,8 @@ func.func @observable_multi_indexed(%h0: !cc.measure_handle,
 // Observable, single stdvec, explicit `index 2`.
 
 func.func @observable_stdvec_indexed(%v: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
-  qec.observable %v index 2 : !cc.stdvec<!cc.measure_handle>
+  %c2 = arith.constant 2 : i64
+  qec.observable %v index %c2 : !cc.stdvec<!cc.measure_handle>
   return
 }
 
@@ -261,7 +263,8 @@ func.func @observable_stdvec_indexed(%v: !cc.stdvec<!cc.measure_handle>) attribu
 
 func.func @observable_mixed_indexed(%h: !cc.measure_handle,
                                     %v: !cc.stdvec<!cc.measure_handle>) attributes {"cudaq-kernel"} {
-  qec.observable %h, %v index 3 : !cc.measure_handle, !cc.stdvec<!cc.measure_handle>
+  %c3 = arith.constant 3 : i64
+  qec.observable %h, %v index %c3 : !cc.measure_handle, !cc.stdvec<!cc.measure_handle>
   return
 }
 
@@ -298,6 +301,27 @@ func.func @observable_mixed_indexed(%h: !cc.measure_handle,
 // CHECK:           } {invariant}
 // CHECK:           %[[CAST_3:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
 // CHECK:           call @__quantum__qis__logical_observable(%[[CAST_3]], %[[ADDI_0]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// -----
+// Observable, single stdvec, runtime index (e.g. a loop induction
+// variable or kernel argument): the index operand is passed through to
+// the QIR call unchanged.
+
+func.func @observable_stdvec_dynamic_index(%v: !cc.stdvec<!cc.measure_handle>,
+                                           %idx: i64) attributes {"cudaq-kernel"} {
+  qec.observable %v index %idx : !cc.stdvec<!cc.measure_handle>
+  return
+}
+
+// CHECK-LABEL:   func.func @observable_stdvec_dynamic_index(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i64>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64) attributes {"cudaq-kernel", "qir-api"} {
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i64>) -> i64
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[STDVEC_DATA_0]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           call @__quantum__qis__logical_observable(%[[CAST_0]], %[[STDVEC_SIZE_0]], %[[ARG1]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64, i64) -> ()
 // CHECK:           return
 // CHECK:         }
 

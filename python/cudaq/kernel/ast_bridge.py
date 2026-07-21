@@ -1703,7 +1703,7 @@ class PyASTBridge(ast.NodeVisitor):
                 f"cudaq.{name} requires at least one "
                 f"cudaq.measure_handle argument", node)
 
-        obsIndex = 0
+        obsIndexValue = None
         if name == "logical_observable":
             for kw in node.keywords:
                 if kw.arg != "observable_index":
@@ -1712,15 +1712,33 @@ class PyASTBridge(ast.NodeVisitor):
                     val = ast.literal_eval(kw.value)
                 except (ValueError, SyntaxError):
                     val = None
-                if not isinstance(val, int) or isinstance(val, bool):
+                if val is not None and (not isinstance(val, int) or
+                                        isinstance(val, bool)):
                     self.emitFatalError(
                         "cudaq.logical_observable requires "
-                        "observable_index to be an integer literal", node)
-                if val < 0 or val > (1 << 63) - 1:
-                    self.emitFatalError(
-                        "cudaq.logical_observable observable_index must "
-                        "be in the range [0, 2^63 - 1]", node)
-                obsIndex = val
+                        "observable_index to be an integer", node)
+                if isinstance(val, int):
+                    # Literal index: validate the range up front and emit a
+                    # constant. Skip the operand at the default 0 so the
+                    # printed IR omits the optional `index` clause at the
+                    # spec shape.
+                    if val < 0 or val > (1 << 63) - 1:
+                        self.emitFatalError(
+                            "cudaq.logical_observable observable_index must "
+                            "be in the range [0, 2^63 - 1]", node)
+                    if val != 0:
+                        obsIndexValue = self.getConstantInt(val)
+                else:
+                    # Runtime index: lower the expression to an `i64` value.
+                    # The range is checked when the kernel executes.
+                    self.visit(kw.value)
+                    idx = self.popValue()
+                    if not IntegerType.isinstance(idx.type):
+                        self.emitFatalError(
+                            "cudaq.logical_observable requires "
+                            "observable_index to be an integer", node)
+                    obsIndexValue = self.changeOperandToType(
+                        self.getIntegerType(64), idx)
 
         n = len(node.args)
         if n == 1:
@@ -1732,10 +1750,7 @@ class PyASTBridge(ast.NodeVisitor):
             prev, curr = values
             qec.DetectorsOp(prev, curr)
         elif name == "logical_observable":
-            # Skip the attribute at the default 0 so the printed IR omits
-            # the optional `index N` literal at the spec shape.
-            idxAttr = None if obsIndex == 0 else obsIndex
-            qec.ObservableOp(values, observableIndex=idxAttr)
+            qec.ObservableOp(values, observableIndex=obsIndexValue)
         else:
             qec.DetectorOp(values)
 
