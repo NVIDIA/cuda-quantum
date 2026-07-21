@@ -35,12 +35,14 @@ target_link_libraries(${LIBRARY_NAME}
     pthread cudaq-operator cudaq-common cudaq-logger
   PRIVATE
     cudaq nvqir CUDAQTargetConfigYaml cudaq-qpu-default
+    # On Linux, we link in the default execution manager and rely on nvq++
+    # to shadow it with the active target's execution manager.
+    $<$<PLATFORM_ID:Linux>:cudaq-em-default>
   INTERFACE
     cudaq-em-default)
 
-# The execution manager is linked in by nvq++ for the active target using
-# the cudaq::getRegisteredExecutionManager() symbol. Keep it undefined to
-# resolve dynamically.
+# On MacOS, we keep the cudaq::getRegisteredExecutionManager() symbol undefined,
+# to be resolved dynamically by nvq++ at runtime.
 target_link_options(${LIBRARY_NAME} PRIVATE
   "$<$<PLATFORM_ID:Darwin>:LINKER:-U,__ZN5cudaq29getRegisteredExecutionManagerEv>")
 
