@@ -76,6 +76,8 @@ public:
 
     /// Whether to run the add-measurements pass.
     bool addMeasurements = false;
+
+    bool operator==(const PipelineConfig &other) const = default;
   };
 
   /// Pipeline configuration, populated by the constructor.
@@ -128,6 +130,23 @@ public:
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
+  /// Runtime endpoint (aka QPU) to use for execution.
+  struct RuntimeEndpoint {
+    /// QPU name.
+    std::string name;
+    /// Options to pass when instantiating the runtime endpoint.
+    std::map<std::string, std::string> options;
+
+    RuntimeEndpoint() = default;
+    RuntimeEndpoint(const std::string &name,
+                    const std::map<std::string, std::string> &options = {});
+    bool operator==(const RuntimeEndpoint &other) const = default;
+  };
+  /// Runtime endpoint to use for execution.
+  ///
+  /// Currently only used in Python.
+  RuntimeEndpoint runtimeEndpoint;
+
   /// When set, emit one lowered module per non-identity Pauli term of this
   /// observable. The resulting `CompiledModule` will contain a compilation
   /// artifact for each term.
@@ -143,6 +162,8 @@ public:
   CompileTarget &operator=(const CompileTarget &) = default;
   CompileTarget &operator=(CompileTarget &&) = default;
   virtual ~CompileTarget() = default;
+
+  bool operator==(const CompileTarget &other) const = default;
 };
 
 } // namespace cudaq
@@ -150,4 +171,14 @@ public:
 template <>
 struct std::hash<cudaq::CompileTarget> {
   std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
+};
+template <>
+struct std::hash<cudaq::CompileTarget::PipelineConfig> {
+  std::size_t
+  operator()(const cudaq::CompileTarget::PipelineConfig &pc) const noexcept;
+};
+template <>
+struct std::hash<cudaq::CompileTarget::RuntimeEndpoint> {
+  std::size_t
+  operator()(const cudaq::CompileTarget::RuntimeEndpoint &re) const noexcept;
 };

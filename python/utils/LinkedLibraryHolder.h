@@ -9,10 +9,12 @@
 #pragma once
 
 #include "common/RuntimeTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -103,8 +105,11 @@ public:
   bool hasTarget(const std::string &name);
 
   /// @brief Set the current target.
-  void setTarget(const std::string &targetName,
-                 std::map<std::string, std::string> extraConfig = {});
+  void setTarget(cudaq::CompileTarget target);
+  void
+  setTarget(const std::string &targetName,
+            const std::map<std::string, std::string> &extraConfig = {},
+            std::optional<cudaq::CompileTarget> compileTarget = std::nullopt);
 
   /// @brief Reset the target back to the default.
   void resetTarget();

@@ -211,6 +211,14 @@ public:
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
   getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
     validateQpuId(qpu_id);
+    if (compileTarget.has_value()) {
+      if (qpu_id > 0) {
+        throw std::runtime_error(
+            "Compile targets can currently on be set for single QPU platforms");
+      }
+      return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
+    }
+    // Fallback to old behaviour: query the QPU for its compile target.
     auto &qpu = platformQPUs[qpu_id];
     return qpu->getCompileTarget(policy);
   }
@@ -218,8 +226,16 @@ public:
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
   getCompileTarget(const cudaq::other_policies &policy,
                    std::size_t qpu_id = 0) {
-    auto *ctx = getExecutionContext();
     validateQpuId(qpu_id);
+    if (compileTarget.has_value()) {
+      if (qpu_id > 0) {
+        throw std::runtime_error(
+            "Compile targets can currently on be set for single QPU platforms");
+      }
+      return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
+    }
+    // Fallback to old behaviour: query the QPU for its compile target.
+    auto *ctx = getExecutionContext();
     auto &qpu = platformQPUs[qpu_id];
     return qpu->getCompileTarget(policy, ctx);
   }
@@ -245,6 +261,11 @@ protected:
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
 
+  /// @brief Set the compile target for the platform.
+  virtual void setCompileTarget(CompileTarget target) {
+    compileTarget = target;
+  }
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
@@ -253,6 +274,11 @@ protected:
 
   /// The Platform QPUs, populated by concrete subtypes
   std::vector<std::unique_ptr<QPU>> platformQPUs;
+
+  /// The compile target for the platform.
+  ///
+  /// If not set, defaults to querying the compile target from the QPUs.
+  std::optional<CompileTarget> compileTarget;
 
   /// Name of the platform.
   std::string platformName;

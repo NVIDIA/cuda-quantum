@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,16 +8,10 @@
 
 #pragma once
 
-#include <map>
 #include <nanobind/nanobind.h>
 
 namespace cudaq {
 
-class LinkedLibraryHolder;
-
-void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder);
-
-std::map<std::string, std::string>
-parseTargetKwArgs(const nanobind::dict &extraConfig);
+void bindCompileTarget(nanobind::module_ &mod);
 
 } // namespace cudaq

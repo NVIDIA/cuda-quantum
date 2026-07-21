@@ -14,6 +14,7 @@
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
@@ -56,6 +57,7 @@
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <optional>
 
 using namespace mlir;
 
@@ -1254,6 +1256,19 @@ static std::size_t get_launch_args_required(MlirModule module,
   return result;
 }
 
+/// Clone the module into a new Python-owned context.
+static MlirModule getPythonOwnedModule(mlir::ModuleOp mod) {
+  std::string ir;
+  llvm::raw_string_ostream os(ir);
+  mod.print(os);
+  auto context = cudaq_internal::compiler::getOwningMLIRContext();
+  auto copy = mlir::parseSourceString<mlir::ModuleOp>(ir, context.get());
+  assert(copy && "failed to clone module");
+  MlirModule wrapped = wrap(copy.release());
+  context.release();
+  return wrapped;
+}
+
 void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                                 std::function<std::string()> &&getTL) {
   getTransportLayer = std::move(getTL);
@@ -1271,7 +1286,22 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                    "default-constructed (uninstalled) module.")
       .def_prop_ro("is_fully_specialized",
                    &cudaq::CompiledModule::isFullySpecialized,
-                   "Whether all arguments have been specialized.");
+                   "Whether all arguments have been specialized.")
+      .def_prop_ro(
+          "mlir_module",
+          [](const cudaq::CompiledModule &cm) -> std::optional<MlirModule> {
+            auto mlirArt = cm.getMlir();
+            if (!mlirArt)
+              return std::nullopt;
+            auto moduleOp =
+                cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+                    *mlirArt);
+            return getPythonOwnedModule(moduleOp);
+          },
+          "The MLIR module for this compiled kernel.")
+      .def("__repr__", [](const cudaq::CompiledModule &cm) {
+        return "CompiledModule(name=\"" + cm.getName() + "\")";
+      });
 
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");

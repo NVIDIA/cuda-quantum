@@ -421,9 +421,15 @@ bool LinkedLibraryHolder::hasTarget(const std::string &name) {
   return true;
 }
 
+void LinkedLibraryHolder::setTarget(cudaq::CompileTarget target) {
+  auto runtimeEndpoint = target.runtimeEndpoint;
+  setTarget(runtimeEndpoint.name, runtimeEndpoint.options, std::move(target));
+}
+
 void LinkedLibraryHolder::setTarget(
     const std::string &targetName,
-    std::map<std::string, std::string> extraConfig) {
+    const std::map<std::string, std::string> &extraConfig,
+    std::optional<cudaq::CompileTarget> compileTarget) {
   // Do not set the default target if the disallow
   // flag has been set.
   if (!cudaq::detail::canModifyTarget())
@@ -492,6 +498,9 @@ void LinkedLibraryHolder::setTarget(
     backendConfigStr += fmt::format(";{};{}", key, value);
 
   platform->setTargetBackend(backendConfigStr);
+  if (compileTarget) {
+    platform->setCompileTarget(*std::move(compileTarget));
+  }
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
 
@@ -507,7 +516,7 @@ void LinkedLibraryHolder::setTarget(
 
   // If the config (kwargs) contains comm_handle, set it.
   if (extraConfig.contains("comm_handle")) {
-    intptr_t commPtr = std::stoll(extraConfig["comm_handle"]);
+    intptr_t commPtr = std::stoll(extraConfig.at("comm_handle"));
     CUDAQ_INFO("Setting communicator for target {} with pointer value {}",
                targetName, commPtr);
     cudaq::mpi::set_communicator(reinterpret_cast<void *>(commPtr));
