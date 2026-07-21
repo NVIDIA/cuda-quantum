@@ -517,7 +517,7 @@ func.func private @rapper(i64)
 
 func.func private @rapper(!cc.callable<(f64) -> i1>)
 
-// expected-error @+1 {{result type must match closure type}}
+// expected-error @+1 {{result type (!cc.callable<(f64) -> i1>) must match closure type}}
 %0 = cc.instantiate_callable @rapper() : () -> !cc.callable<(i64) -> i1>
 
 // -----

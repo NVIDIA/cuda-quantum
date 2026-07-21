@@ -169,12 +169,44 @@ private:
           // duplicates by appending the position and constant value into the
           // new cloned function's name.
           func::FuncOp newFunc = genericFunc.clone(mapper);
-          calleeName += std::string{"."} + std::to_string(counter++);
-          newFunc.setName(calleeName);
+          auto specializedName =
+              calleeName + std::string{"."} + std::to_string(counter++);
+          newFunc.setName(specializedName);
           auto *ctx = apply->getContext();
+          for (std::size_t i = 0, N = preservedArgs.size(); i != N; ++i) {
+            auto callTy = dyn_cast<cudaq::cc::CallableType>(inputTys[i]);
+            if (!callTy)
+              continue;
+            auto instan =
+                preservedArgs[i]
+                    .getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+            if (!instan)
+              continue;
+            if (instan.getCallee().getRootReference().str() != calleeName)
+              continue;
+            // Sync the instantiate_callable with the new apply.
+            SmallVector<Type> callInTys{inputTys.begin(), inputTys.begin() + i};
+            callInTys.append(inputTys.begin() + i + 1, inputTys.end());
+            OpBuilder builder(ctx);
+            builder.setInsertionPoint(instan);
+            auto newFuncTy =
+                FunctionType::get(ctx, callInTys, newFunc.getResultTypes());
+            auto sigTy = cudaq::cc::CallableType::get(newFuncTy);
+            auto newInstan = cudaq::cc::InstantiateCallableOp::create(
+                builder, instan.getLoc(), sigTy,
+                SymbolRefAttr::get(ctx, specializedName),
+                instan.getClosureData());
+            instan.replaceAllUsesWith(newInstan.getResult());
+            preservedArgs[i] = newInstan.getResult();
+            inputTys[i] = newInstan.getResult().getType();
+            instan.erase();
+	    updateSignature = true;
+            break;
+          }
           if (updateSignature) {
-            newFunc.setFunctionType(
-                FunctionType::get(ctx, inputTys, newFunc.getResultTypes()));
+            auto newFuncTy =
+                FunctionType::get(ctx, inputTys, newFunc.getResultTypes());
+            newFunc.setFunctionType(newFuncTy);
             for (auto [arg, ty] :
                  llvm::zip(newFunc.front().getArguments(), inputTys))
               arg.setType(ty);
@@ -198,7 +230,7 @@ private:
           OpBuilder builder(apply);
           auto newApply = cudaq::quake::ApplyOp::create(
               builder, apply.getLoc(), apply.getResultTypes(),
-              SymbolRefAttr::get(ctx, calleeName), apply.getIsAdj(),
+              SymbolRefAttr::get(ctx, specializedName), apply.getIsAdj(),
               apply.getControls(), preservedArgs);
           apply->replaceAllUsesWith(newApply.getResults());
           apply->dropAllReferences();
@@ -355,9 +387,17 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
       } else if (isa<cudaq::cc::CallableType>(toTy) && arg.getType() == toTy) {
         if (auto instan =
                 arg.getDefiningOp<cudaq::cc::InstantiateCallableOp>()) {
+          cudaq::cc::CallableType sigTy = instan.getSignature().getType();
+          if (addControls) {
+            FunctionType ssTy = sigTy.getSignature();
+            SmallVector<Type> inTys = {unsizedVeqTy};
+            inTys.append(ssTy.getInputs().begin(), ssTy.getInputs().end());
+            auto funTy = FunctionType::get(ctx, inTys, ssTy.getResults());
+            sigTy = cudaq::cc::CallableType::get(funTy);
+          }
           arg = cudaq::cc::InstantiateCallableOp::create(
-              rewriter, instan.getLoc(), instan.getSignature().getType(),
-              calleeAttr, instan.getClosureData());
+              rewriter, instan.getLoc(), sigTy, calleeAttr,
+              instan.getClosureData());
         }
       }
       newArgs.emplace_back(arg);
@@ -535,13 +575,36 @@ public:
     auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto loc = func.getLoc();
     SmallVector<Type> inTys = {veqTy};
-    inTys.append(funcTy.getInputs().begin(), funcTy.getInputs().end());
+    if (auto callTy = dyn_cast<cudaq::cc::CallableType>(funcTy.getInput(0))) {
+      bool ok = true;
+      for (auto [aTy, bTy] : llvm::zip(callTy.getSignature().getInputs(),
+                                       funcTy.getInputs().drop_front()))
+        if (aTy != bTy) {
+          ok = false;
+          break;
+        }
+      if (ok) {
+        auto *ctx = func.getContext();
+        SmallVector<Type> newInTys = {veqTy};
+        newInTys.append(funcTy.getInputs().begin() + 1,
+                        funcTy.getInputs().end());
+        auto newFnTy = FunctionType::get(ctx, newInTys,
+                                         callTy.getSignature().getResults());
+        inTys.push_back(cudaq::cc::CallableType::get(newFnTy));
+        inTys.append(funcTy.getInputs().begin() + 1, funcTy.getInputs().end());
+      } else {
+        inTys.append(funcTy.getInputs().begin(), funcTy.getInputs().end());
+      }
+    } else {
+      inTys.append(funcTy.getInputs().begin(), funcTy.getInputs().end());
+    }
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), inTys, module);
     newFunc.setPrivate();
     IRMapping mapping;
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
+    newFunc.getBody().front().getArgument(0).setType(inTys[1]);
     auto newCond = newFunc.getBody().front().insertArgument(0u, veqTy, loc);
 
     newFunc.walk([&](Operation *op) {

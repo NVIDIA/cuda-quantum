@@ -1,0 +1,126 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__foo2..0x7b71b9363890(%arg0: !cc.stdvec<i1>, %arg1: i1, %arg2: !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c2_i64 = arith.constant 2 : i64
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0() : () -> !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()>
+  %1 = quake.alloca !quake.veq<2>
+  %2 = quake.relax_size %1 : (!quake.veq<2>) -> !quake.veq<?>
+  %3 = cc.stdvec_size %arg0 : (!cc.stdvec<i1>) -> i64
+  %4 = quake.alloca !quake.veq<?>[%3 : i64]
+  cc.if(%arg1) {
+    %5 = cc.loop while ((%arg3 = %c0_i64) -> (i64)) {
+      %6 = arith.cmpi slt, %arg3, %c2_i64 : i64
+      cc.condition %6(%arg3 : i64)
+    } do {
+    ^bb0(%arg3: i64):
+      %6 = quake.extract_ref %1[%arg3] : (!quake.veq<2>, i64) -> !quake.ref
+      quake.x %6 : (!quake.ref) -> ()
+      cc.continue %arg3 : i64
+    } step {
+    ^bb0(%arg3: i64):
+      %6 = arith.addi %arg3, %c1_i64 : i64
+      cc.continue %6 : i64
+    } {invariant}
+  } else {
+  }
+  quake.apply %0 [%2] %4, %cst, %arg0 : (!quake.veq<?>, !quake.veq<?>, f64, !cc.stdvec<i1>) -> ()
+  quake.dealloc %4 : !quake.veq<?>
+  quake.dealloc %1 : !quake.veq<2>
+  return
+}
+func.func private @__nvqpp__callable.thunk.lambda.0(%arg0: !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()>, %arg1: !quake.veq<?>, %arg2: f64, %arg3: !cc.stdvec<i1>) attributes {"cudaq-kernel"} {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i8 = arith.constant 0 : i8
+  %0 = cc.undef i1
+  %1 = cc.undef i64
+  %2 = cc.stdvec_size %arg3 : (!cc.stdvec<i1>) -> i64
+  %3:3 = cc.loop while ((%arg4 = %c0_i64, %arg5 = %1, %arg6 = %0) -> (i64, i64, i1)) {
+    %4 = arith.cmpi slt, %arg4, %2 : i64
+    cc.condition %4(%arg4, %arg5, %arg6 : i64, i64, i1)
+  } do {
+  ^bb0(%arg4: i64, %arg5: i64, %arg6: i1):
+    %4 = cc.stdvec_data %arg3 : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+    %5 = cc.compute_ptr %4[%arg4] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+    %6 = cc.load %5 : !cc.ptr<i8>
+    %7 = arith.cmpi ne, %6, %c0_i8 : i8
+    cc.if(%7) {
+      %8 = arith.negf %arg2 : f64
+      %9 = quake.extract_ref %arg1[%arg4] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.ry (%8) %9 : (f64, !quake.ref) -> ()
+    } else {
+      %8 = quake.extract_ref %arg1[%arg4] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.ry (%arg2) %8 : (f64, !quake.ref) -> ()
+    }
+    cc.continue %arg4, %arg4, %7 : i64, i64, i1
+  } step {
+  ^bb0(%arg4: i64, %arg5: i64, %arg6: i1):
+    %4 = arith.addi %arg4, %c1_i64 : i64
+    cc.continue %4, %arg5, %arg6 : i64, i64, i1
+  }
+  return
+}
+
+// CHECK-LABEL: func.func private @__nvqpp__callable.thunk.lambda.0.0.ctrl(
+// CHECK-SAME: %[[CTRLS:.*]]: !quake.veq<?>,
+// CHECK-SAME: %[[CLOSURE:.*]]: !cc.callable<(!quake.veq<?>, !quake.veq<?>, !cc.stdvec<i1>) -> ()>,
+// CHECK-SAME: %[[TARGS:.*]]: !quake.veq<?>,
+// CHECK-SAME: %[[SPAN:.*]]: !cc.stdvec<i1>) {
+
+func.func @__nvqpp__mlirgen__foo3..0x730a16883b30(%arg0: !cc.stdvec<i1>, %arg1: i1, %arg2: !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.1() : () -> !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()>
+  %1 = cc.stdvec_size %arg0 : (!cc.stdvec<i1>) -> i64
+  %2 = quake.alloca !quake.veq<?>[%1 : i64]
+  quake.apply<adj> %0 %2, %cst, %arg0 : (!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()
+  cc.if(%arg1) {
+    func.call @__nvqpp__callable.thunk.lambda.1(%0, %2, %cst, %arg0) : (!cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()>, !quake.veq<?>, f64, !cc.stdvec<i1>) -> ()
+  } else {
+  }
+  quake.dealloc %2 : !quake.veq<?>
+  return
+}
+func.func private @__nvqpp__callable.thunk.lambda.1(%arg0: !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()>, %arg1: !quake.veq<?>, %arg2: f64, %arg3: !cc.stdvec<i1>) attributes {"cudaq-kernel"} {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i8 = arith.constant 0 : i8
+  %0 = cc.undef i1
+  %1 = cc.undef i64
+  %2 = cc.stdvec_size %arg3 : (!cc.stdvec<i1>) -> i64
+  %3:3 = cc.loop while ((%arg4 = %c0_i64, %arg5 = %1, %arg6 = %0) -> (i64, i64, i1)) {
+    %4 = arith.cmpi slt, %arg4, %2 : i64
+    cc.condition %4(%arg4, %arg5, %arg6 : i64, i64, i1)
+  } do {
+  ^bb0(%arg4: i64, %arg5: i64, %arg6: i1):
+    %4 = cc.stdvec_data %arg3 : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+    %5 = cc.compute_ptr %4[%arg4] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+    %6 = cc.load %5 : !cc.ptr<i8>
+    %7 = arith.cmpi ne, %6, %c0_i8 : i8
+    cc.if(%7) {
+      %8 = arith.negf %arg2 : f64
+      %9 = quake.extract_ref %arg1[%arg4] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.ry (%8) %9 : (f64, !quake.ref) -> ()
+    } else {
+      %8 = quake.extract_ref %arg1[%arg4] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.ry (%arg2) %8 : (f64, !quake.ref) -> ()
+    }
+    cc.continue %arg4, %arg4, %7 : i64, i64, i1
+  } step {
+  ^bb0(%arg4: i64, %arg5: i64, %arg6: i1):
+    %4 = arith.addi %arg4, %c1_i64 : i64
+    cc.continue %4, %arg5, %arg6 : i64, i64, i1
+  }
+  return
+}
+

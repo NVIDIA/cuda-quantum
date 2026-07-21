@@ -4050,8 +4050,8 @@ class PyASTBridge(ast.NodeVisitor):
                                     f'{otherFuncName} that returns a value',
                                     node)
                             invert_controls()
-                            quake.ApplyOp([], indirectCallee, controls, args,
-                                          **kwargs)
+                            from ..mlir.dialects._ods_common import get_op_results_or_values
+                            quake.ApplyOp([], controls, args, indirect_callee=get_op_results_or_values(indirectCallee)[0], **kwargs)
                             invert_controls()
                         return
 
