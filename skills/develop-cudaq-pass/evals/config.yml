@@ -19,11 +19,6 @@ harbor:
   # Generated tasks default to 300 seconds. Preserve a 900-second ceiling for
   # the compile-heavy source-editing case.
   timeout_multiplier: 3.0
-  resources:
-    cpus: 8
-    memory_mb: 16384
-    storage_mb: 20480
-
 skill_workspace:
   mode: isolated
   include: []
