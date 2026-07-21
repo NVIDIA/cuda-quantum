@@ -77,6 +77,26 @@ cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
       [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
 }
 
+cudaq::msm_dimensions
+cudaq::DefaultQPU::launchKernel(const cudaq::msm_size_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
+cudaq::msm_result
+cudaq::DefaultQPU::launchKernel(const cudaq::msm_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
 cudaq::async_observe_result
 cudaq::DefaultQPU::launchKernel(const async_observe_policy &policy,
                                 const cudaq::CompiledModule &module,
@@ -87,6 +107,16 @@ cudaq::DefaultQPU::launchKernel(const async_observe_policy &policy,
 
 cudaq::dem_result
 cudaq::DefaultQPU::launchKernel(const cudaq::dem_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
+cudaq::ptsbe::sample_policy::result_type
+cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);

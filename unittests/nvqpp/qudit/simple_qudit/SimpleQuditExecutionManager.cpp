@@ -88,6 +88,14 @@ protected:
     throw std::runtime_error("observe is not implemented for SimpleQudit.");
   }
 
+  msm_dimensions finalizeExecutionContext(const msm_size_policy &) override {
+    throw std::runtime_error("msm_size is not implemented for SimpleQudit.");
+  }
+
+  msm_result finalizeExecutionContext(const msm_policy &) override {
+    throw std::runtime_error("msm is not implemented for SimpleQudit.");
+  }
+
   void endExecution() override {
     sampleQudits.clear();
     BasicExecutionManager::endExecution();

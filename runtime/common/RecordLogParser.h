@@ -171,6 +171,12 @@ public:
     chargeDynamicAllocation(elements);
   }
 
+  void chargeResultStorage(std::size_t elements) {
+    // Conservatively charge one byte per logical result before allocating an
+    // owning vector<bool>.
+    chargeDynamicAllocation(elements);
+  }
+
   void resizeBuffer(std::size_t more) {
     if (more > std::numeric_limits<std::size_t>::max() - buffer.size())
       throw std::runtime_error("Result buffer size overflow");
@@ -429,6 +435,11 @@ public:
   /// length may be queried and returned as a result.
   void parse(const std::string &outputLog);
 
+  /// Parse sampled QIR result records into owning C++ objects. Unlike the
+  /// generic host-return buffer, this representation does not depend on the
+  /// object layout of std::vector<bool>.
+  std::vector<std::vector<bool>> parseResults(const std::string &outputLog);
+
   /// Get a pointer to the data buffer. Note that the data buffer will be
   /// deallocated as soon as the RecordLogParser object is deconstructed.
   void *getBufferPtr() const { return bufferHandler.getBufferPtr(); }
@@ -452,9 +463,14 @@ private:
   void handleHeader(const std::vector<std::string> &,
                     std::optional<RecordSchemaType> &);
   void handleMetadata(const std::vector<std::string> &);
+  /// Parse records into either the generic return buffer or an optional
+  /// sampled-result output.
+  void parseImpl(const std::string &,
+                 std::vector<std::vector<bool>> *parsedResults);
   /// Central dispatcher that handles different output types including scalar
   /// values, arrays, and tuples.
-  void handleOutput(const std::vector<std::string> &);
+  void handleOutput(const std::vector<std::string> &,
+                    std::vector<std::vector<bool>> *parsedResults);
   /// Allocate storage for the current array result.
   void preallocateArray();
   /// Allocate contiguous storage for the current tuple result.

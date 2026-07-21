@@ -69,39 +69,30 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 
 /// @brief Finalize a PTSBE execution for the given policy
 ///
-/// @param policy Policy carrying the PTSBatch to execute
+/// @param policy Policy for the PTSBE execution
 /// @return Aggregated sample result
-/// @throws std::runtime_error if the policy has no batch attached
+/// @throws std::runtime_error if the policy has no batch and the active
+///         context is not trace-capturing
 ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy);
 
-/// @brief Allocate the batch qubits on the circuit simulator
-void allocateBatchQubits(std::size_t nQubits);
-
-/// @brief Release the batch qubits from the circuit simulator
-void releaseBatchQubits(std::size_t nQubits);
-
-/// @brief Execute the policy's batch through the standard policy machinery
+/// @brief Execute a batch through the standard policy machinery
 ///
-/// @param policy Policy carrying the PTSBatch (batch must be non-null)
-/// @return Aggregated sample result. Per-trajectory results are stored on
-///         the policy
-inline ptsbe::sample_result
-executeBatch(const cudaq::ptsbe::sample_policy &policy) {
-  const auto nQubits = numQubits(policy.batch->trace);
-
+/// @param policy Sampling inputs (kernel name, options, noise model)
+/// @param batch The pre-built batch to replay (trace + trajectories + measure
+///        qubits)
+/// @return Per-trajectory sample results
+inline std::vector<cudaq::sample_result>
+executeBatch(const cudaq::ptsbe::sample_policy &policy, const PTSBatch &batch) {
   cudaq::ExecutionContext ctx(cudaq::ptsbe::sample_policy::name,
-                              policy.batch->totalShots());
+                              batch.totalShots());
   ctx.kernelName = policy.kernelName;
 
-  try {
-    return cudaq::detail::with_policy_and_ctx(policy, ctx, [&] {
-      return cudaq::ExecutionManager::with_default_em(
-          policy, [&] { allocateBatchQubits(nQubits); });
-    });
-  } catch (...) {
-    releaseBatchQubits(nQubits);
-    throw;
-  }
+  std::vector<cudaq::sample_result> perTrajectoryResults;
+  cudaq::detail::with_policy_and_ctx(policy, ctx, [&] {
+    cudaq::ExecutionManager::with_default_em(
+        policy, [&] { perTrajectoryResults = samplePTSBE(batch); });
+  });
+  return perTrajectoryResults;
 }
 
 /// @brief Execute PTSBE with full life-cycle management (registry-based)
@@ -115,10 +106,8 @@ executeBatch(const cudaq::ptsbe::sample_policy &policy) {
 inline std::vector<cudaq::sample_result>
 samplePTSBEWithLifecycle(const PTSBatch &batch) {
   cudaq::ptsbe::sample_policy policy;
-  policy.batch = &batch;
   policy.shots = batch.totalShots();
-  executeBatch(policy);
-  return std::move(policy.perTrajectoryResults);
+  return executeBatch(policy, batch);
 }
 
 } // namespace cudaq::ptsbe::detail
