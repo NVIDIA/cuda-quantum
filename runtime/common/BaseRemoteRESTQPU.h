@@ -354,6 +354,9 @@ public:
       context.noiseModel = executionContext->noiseModel;
       context.qpuId = executionContext->qpuId;
       assert(codes.size() == 1 && codes[0].jit);
+      context.dem_opts = executionContext->dem_opts;
+      context.hasConditionalsOnMeasureResults =
+          executionContext->hasConditionalsOnMeasureResults;
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->dem_text = std::move(context.dem_text);
