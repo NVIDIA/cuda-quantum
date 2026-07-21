@@ -20,7 +20,7 @@ def QuakeDialect : Dialect {
   let summary = "Quantum IR dialect for CUDA-Q.";
   let description = [{
     Quake is CUDA-Q's quantum IR dialect. It represents qudits as typed values
-    with explicit dataflow constraints. Its operations model allocation, quantum
+    with explicit dataflow constraints. Its instructions model allocation, quantum
     operations, measurement, and calls between quantum kernels. Quake can
     represent quantum data using reference semantics or value semantics and is
     used across compilation stages, including circuits transformed for a
