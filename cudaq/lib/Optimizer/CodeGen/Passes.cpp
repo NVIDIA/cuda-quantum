@@ -14,6 +14,25 @@
 
 using namespace mlir;
 
+namespace {
+struct QDMIPipelineOptions : public PassPipelineOptions<QDMIPipelineOptions> {
+  PassOptions::ListOption<std::string> basis{
+      *this, "basis", llvm::cl::desc("Set of basis operations")};
+};
+
+void addQDMIPipeline(OpPassManager &pm,
+                     const QDMIPipelineOptions &pipelineOptions) {
+  if (pipelineOptions.basis.size() == 1 &&
+      pipelineOptions.basis.front() == "bypass")
+    return;
+
+  cudaq::opt::BasisConversionOptions options;
+  for (const auto &gate : pipelineOptions.basis)
+    options.basis.push_back(gate);
+  pm.addPass(createBasisConversion(options));
+}
+} // namespace
+
 static void addAnyonPPipeline(OpPassManager &pm) {
   cudaq::opt::BasisConversionOptions options;
   options.basis = {
@@ -109,6 +128,9 @@ void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("fermioniq-gate-set-mapping",
                              "Convert kernels to Fermioniq gate set.",
                              addFermioniqPipeline);
+  PassPipelineRegistration<QDMIPipelineOptions>(
+      "qdmi-gate-set-mapping", "Convert kernels to the QDMI gate set.",
+      addQDMIPipeline);
 }
 
 void cudaq::opt::registerCodeGenDialect(DialectRegistry &registry) {

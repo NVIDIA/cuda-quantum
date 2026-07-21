@@ -175,6 +175,17 @@ if (NOT DEFINED CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
   set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Machines target.")
 endif()
 
+# The QDMI target requires an external MQT Core installation. Keep it opt-in
+# unless all backends are explicitly requested.
+if (NOT DEFINED CUDAQ_ENABLE_QDMI_BACKEND)
+  if (DEFINED CUDAQ_ENABLE_ALL_BACKEND)
+    set(_cudaq_qdmi_backend_default ${CUDAQ_ENABLE_ALL_BACKEND})
+  else()
+    set(_cudaq_qdmi_backend_default OFF)
+  endif()
+  set(CUDAQ_ENABLE_QDMI_BACKEND ${_cudaq_qdmi_backend_default} CACHE BOOL "Enable building the QDMI target (requires MQT Core).")
+endif()
+
 # Enable Scaleway target by default.
 if (NOT DEFINED CUDAQ_ENABLE_SCALEWAY_BACKEND)
   set(CUDAQ_ENABLE_SCALEWAY_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Scaleway target.")

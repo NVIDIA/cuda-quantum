@@ -106,6 +106,15 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
 
+config.cudaq_backends_qdmi = "@CUDAQ_QDMI_DDSIM_AVAILABLE@"
+config.substitutions.append(('%qdmi_ddsim_library', lit_config.substitute(path(r"@CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY@"))))
+config.substitutions.append(('%qdmi_ddsim_prefix', 'MQT_DDSIM'))
+if cmake_boolvar_to_bool(config.cudaq_backends_qdmi):
+  config.available_features.add('qdmi')
+  config.substitutions.append(('%qdmi_avail', 'true'))
+else:
+  config.substitutions.append(('%qdmi_avail', 'false'))
+
 config.cudaq_stim_backend_disabled = "@CUDAQ_ENABLE_ASSERTIONS@"
 if cmake_boolvar_to_bool(config.cudaq_stim_backend_disabled):
   config.substitutions.append(('%stim_avail', 'false'))
@@ -118,4 +127,3 @@ lit.llvm.initialize(lit_config, config)
 
 # Let the main config do the real work.
 lit_config.load_config(config, "@CUDAQ_SOURCE_DIR@/targettests/lit.cfg.py")
-

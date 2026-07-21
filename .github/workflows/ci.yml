@@ -44,10 +44,25 @@ jobs:
       nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
+      qdmi_changes: ${{ steps.qdmi_changes.outputs.matched }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Check for QDMI changes
+        id: qdmi_changes
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            runtime/cudaq/platform/qdmi/
+            targettests/CMakeLists.txt
+            targettests/lit.site.cfg.py.in
+            docker/build/cudaq.qdmi.Dockerfile
+            docs/sphinx/using/backends/qdmi.rst
+            CMakeLists.txt
+            runtime/cudaq/platform/CMakeLists.txt
+            .github/workflows/ci.yml
 
       - id: config
         run: |
@@ -263,6 +278,26 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
+  # Build and test the optional QDMI platform only when related files change.
+  qdmi_build_and_test:
+    name: QDMI build and DDSIM tests
+    needs: [metadata, config_devdeps]
+    if: needs.metadata.outputs.qdmi_changes == 'true'
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/amd64
+      dockerfile: build/cudaq.qdmi.Dockerfile
+      build_target: test
+      build_args: |
+        base_image=${{ fromJson(needs.config_devdeps.outputs.json).image_hash['amd64-llvm'] }}
+      build_config_id: qdmi-llvm
+      registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
+      checkout_submodules: true
+      environment: ghcr-ci
+
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
@@ -376,6 +411,7 @@ jobs:
       - config_wheeldeps
       - config_source_build
       - build_and_test
+      - qdmi_build_and_test
       - gen_code_coverage
       - docker_image
       - python_wheels
