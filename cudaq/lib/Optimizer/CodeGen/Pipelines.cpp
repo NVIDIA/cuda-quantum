@@ -61,7 +61,7 @@ void createCommonTargetCodegenPipeline(
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   } else {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
     cudaq::opt::addAggressiveInlining(pm);
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
