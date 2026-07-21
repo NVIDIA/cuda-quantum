@@ -98,6 +98,7 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
       {"0.9.0", "0.8.1", Compatibility::Error, "was built for CUDA-Q 0.9.0"},
       {"0.9.2", "0.9.1", Compatibility::Error, "was built for CUDA-Q 0.9.2"},
       {"0.10.0", "0.9.9", Compatibility::Error, "was built for CUDA-Q 0.10.0"},
+      {"0.0.0", "0.0.0", Compatibility::Compatible, ""},
       {"0.9.0", "0.9.0", Compatibility::Compatible, ""},
       {"0.9.0", "0.9.3", Compatibility::Compatible, ""},
       {"0.9.0", "0.10.0", Compatibility::Warning,
