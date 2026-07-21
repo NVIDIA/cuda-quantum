@@ -221,30 +221,6 @@ public:
                                         serverHelper, executor);
   }
 
-  class BaseRemoteRESTQPUCompileTarget : public CompileTarget {
-  public:
-    BaseRemoteRESTQPUCompileTarget(
-        cudaq::ServerHelper *serverHelper,
-        cudaq::config::TargetConfig targetConfig,
-        std::map<std::string, std::string> runtimeConfig, bool emulate)
-        : CompileTarget(targetConfig, runtimeConfig, emulate),
-          serverHelper(serverHelper) {
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    }
-
-    void updatePassPipeline(std::string &passPipeline) const override {
-      serverHelper->updatePassPipeline(platformPath, passPipeline);
-    }
-
-    /// Disable compiled-module caching for the remote REST target.
-    std::size_t hash() const override { return 0; }
-
-  private:
-    cudaq::ServerHelper *serverHelper;
-    std::filesystem::path platformPath;
-  };
-
   using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &, ExecutionContext *ctx) override {
@@ -253,8 +229,9 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
     if (ctx && ctx->name == "resource-count")
@@ -265,8 +242,9 @@ public:
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const sample_policy &policy) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
@@ -277,8 +255,9 @@ public:
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const observe_policy &policy) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->overrideAOTCompilation = true;
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
@@ -288,8 +267,10 @@ public:
   /// Build a local JIT artifact for DEM analysis. No provider target code is
   /// emitted or submitted while this policy is active.
   std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    // Skip pipeline substitutions: this path never builds the lowering pipeline
+    // and should not trigger server-helper side effects (e.g. IQM arch fetch).
+    auto target =
+        std::make_unique<CompileTarget>(targetConfig, backendConfig, emulate);
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
     target->emitJit = true;

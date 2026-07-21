@@ -16,20 +16,7 @@
 namespace cudaq {
 
 /// Target properties used to define the compilation pipeline.
-class CompileTarget {
-public:
-  /// Hook to update the pass pipeline before compilation.
-  virtual void updatePassPipeline(std::string &passPipeline) const {}
-
-  /// Return a hash of this target's configuration, used as a cache key to
-  /// decide whether a previously compiled module can be reused.
-  ///
-  /// A hash of 0 disables caching.
-  ///
-  /// TODO: CompileTarget should be made non-virtual. Once it is, this method
-  /// becomes unnecessary and callers can use std::hash<CompileTarget> directly.
-  virtual std::size_t hash() const;
-
+struct CompileTarget {
   /// Whether to recompile the kernel in the presence of an AOT-compiled module.
   ///
   /// If this is `false` and an AOT-compiled kernel (in the form of a function
@@ -135,14 +122,10 @@ public:
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   CompileTarget(config::TargetConfig targetConfig,
-                std::map<std::string, std::string> runtimeConfig, bool emulate);
+                std::map<std::string, std::string> runtimeConfig, bool emulate,
+                std::map<std::string, std::string> pipelineSubstitutions = {});
 
   CompileTarget() = default;
-  CompileTarget(const CompileTarget &) = default;
-  CompileTarget(CompileTarget &&) = default;
-  CompileTarget &operator=(const CompileTarget &) = default;
-  CompileTarget &operator=(CompileTarget &&) = default;
-  virtual ~CompileTarget() = default;
 };
 
 } // namespace cudaq
