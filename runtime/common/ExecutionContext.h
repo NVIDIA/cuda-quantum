@@ -112,11 +112,6 @@ public:
   /// @brief The ID of the QPU that this execution context is running on.
   std::size_t qpuId = 0;
 
-  /// @brief A buffer containing the return value of a kernel invocation.
-  /// Note: this is only needed for invocation not able to return a
-  /// `sample_result`.
-  std::vector<char> invocationResultBuffer;
-
   /// @brief The number of trajectories to be used for an expectation
   /// calculation on simulation backends that support trajectory simulation.
   std::optional<std::size_t> numberTrajectories = std::nullopt;

@@ -81,6 +81,7 @@ decltype(auto) withPolicy(std::string_view name, Func &&func) {
   static const Entry registry[] = {
       {"sample", [](FuncRef f) -> Ret { return f(sample_policy{}); }},
       {"observe", [](FuncRef f) -> Ret { return f(observe_policy{}); }},
+      {"run", [](FuncRef f) -> Ret { return f(run_policy{}); }},
       {"dem", [](FuncRef f) -> Ret { return f(dem_policy{}); }},
       {"msm_size", [](FuncRef f) -> Ret { return f(msm_size_policy{}); }},
       {"msm", [](FuncRef f) -> Ret { return f(msm_policy{}); }},

@@ -174,6 +174,11 @@ protected:
     return simulator()->finalizeExecutionContext(policy);
   }
 
+  run_result finalizeExecutionContext(const run_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
   msm_dimensions
   finalizeExecutionContext(const msm_size_policy &policy) override {
     finalizeExecutionContextImpl();
