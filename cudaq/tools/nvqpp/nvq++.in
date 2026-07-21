@@ -83,6 +83,12 @@ function f_option_handling {
 	-fkernel-execution)
 		ENABLE_KERNEL_EXECUTION=true
 		;;
+	-fno-add-dealloc)
+		ENABLE_ADD_DEALLOC=false
+		;;
+	-fadd-dealloc)
+		ENABLE_ADD_DEALLOC=true
+		;;
 	-fno-aggressive-inline)
 		ENABLE_AGGRESSIVE_INLINE=false
 		;;
@@ -250,6 +256,9 @@ function show_help {
 
 -f[no-]kernel-execution
 	Enable/disable kernel execution pass.
+
+-f[no-]add-dealloc
+	Enable/disable insertion of quantum deallocation operations.
 
 -f[no-]aggressive-inline
 	Enable/disable inlining pass.
@@ -447,6 +456,7 @@ ENABLE_REALTIME_LOWERING=false
 ENABLE_KERNEL_EXECUTION=true
 KERNEL_EXECUTION_KIND=
 AUTO_GENERATE_RUN_OPTION=
+ENABLE_ADD_DEALLOC=true
 ENABLE_AGGRESSIVE_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
@@ -869,6 +879,10 @@ if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering)")
 fi
+if ${ENABLE_ADD_DEALLOC}; then
+	RUN_OPT=true
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(add-dealloc)")
+fi
 if ${ENABLE_LAMBDA_LIFTING}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,lambda-lifting")
@@ -898,7 +912,6 @@ if ${ENABLE_AGGRESSIVE_INLINE}; then
 	else
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline")
 	fi
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(add-dealloc)")
 fi
 if ${ENABLE_ARRAY_CONVERSION}; then
 	RUN_OPT=true

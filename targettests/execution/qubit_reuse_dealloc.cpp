@@ -20,6 +20,7 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t
+// RUN: nvq++ -fno-aggressive-inline %s -o %t.noinline && %t.noinline
 // clang-format on
 
 #include <cassert>
