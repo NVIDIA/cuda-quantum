@@ -90,7 +90,7 @@ struct OneQubitOpZYZ {
   bool valid = true;
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                            OpBuilder &rewriter, std::string funcName) const {
+                            OpBuilder &rewriter, std::string &&funcName) const {
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     Location loc = customOp->getLoc();
     auto targets = customOp.getTargets();
@@ -334,7 +334,7 @@ struct TwoQubitOpKAK {
   bool valid = true;
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                            OpBuilder &rewriter, std::string funcName) const {
+                            OpBuilder &rewriter, std::string &&funcName) const {
     auto a0 = OneQubitOpZYZ(components.a0);
     a0.emitDecomposedFuncOp(customOp, rewriter, funcName + "a0");
     auto a1 = OneQubitOpZYZ(components.a1);
@@ -676,7 +676,7 @@ struct NQubitOpQSD {
                FloatType floatTy) const;
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                            OpBuilder &rewriter, std::string funcName) const;
+                            OpBuilder &rewriter, std::string &&funcName) const;
 
   explicit NQubitOpQSD(const Eigen::MatrixXcd &vec);
 };
@@ -710,7 +710,7 @@ struct AnyDecomposer {
   }
 
   void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
-                            OpBuilder &rewriter, std::string funcName) const {
+                            OpBuilder &rewriter, std::string &&funcName) const {
     std::visit(
         [&](const auto &d) {
           d.emitDecomposedFuncOp(customOp, rewriter, std::move(funcName));
@@ -787,7 +787,7 @@ void NQubitOpQSD::emitMux(const std::vector<double> &angles,
 
 void NQubitOpQSD::emitDecomposedFuncOp(
     cudaq::quake::CustomUnitaryConstantOp customOp, OpBuilder &rewriter,
-    std::string funcName) const {
+    std::string &&funcName) const {
   /// Emit using the children built (and validated) in the constructor.
   childWr->emitDecomposedFuncOp(customOp, rewriter, funcName + "wr");
   childVr->emitDecomposedFuncOp(customOp, rewriter, funcName + "vr");
@@ -989,7 +989,7 @@ public:
         continue; // a previous invocation of this generator already built it
       const DecompInfo &info = getOrBuildDecompInfo(op, cache);
       if (info.status == DecompInfo::Convertible)
-        info.decomposer->emitDecomposedFuncOp(op, builder, funcName);
+        info.decomposer->emitDecomposedFuncOp(op, builder, std::move(funcName));
     }
 
     /// Use the dialect-conversion framework to replace each synthesizable
