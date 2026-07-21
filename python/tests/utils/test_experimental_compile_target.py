@@ -149,6 +149,31 @@ def test_pipeline_config_controls_compiled_ir():
     assert dict(decomposed_counts.items()) == dict(default_counts.items())
 
 
+def test_support_conditionals_on_measure_results():
+    ct = CompileTarget(runtime_endpoint="qpp-cpu")
+    ct.support_conditionals_on_measure_results = True
+    cudaq.set_target(ct)
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        b = mz(q[0])
+        if b:
+            x(q[1])
+        return b == mz(q[1])
+
+    # it runs fine
+    assert kernel()
+
+    ct.support_conditionals_on_measure_results = False
+    cudaq.set_target(ct)
+
+    # now it throws a runtime error
+    with pytest.raises(RuntimeError):
+        kernel()
+
+
 # ---------------------------------------------------------------------------- #
 # Equality / hashing / repr
 # ---------------------------------------------------------------------------- #

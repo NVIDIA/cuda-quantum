@@ -1,3 +1,11 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
 #include "py_compile_target.h"
 #include "py_runtime_target.h"
 #include "cudaq/Target/CompileTarget.h"
@@ -111,6 +119,7 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
             target->fullySpecialize = false;
             target->isLocalSimulator = true;
             target->argumentSynthChangeSemantics = false;
+            target->emitJit = true;
             if (target->pipelineConfig.codegenTranslation.empty()) {
               target->pipelineConfig.codegenTranslation = "qir:";
             }
@@ -119,6 +128,11 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
           "runtime_endpoint"_a = nanobind::none())
       .def_rw("pipeline_config", &CompileTarget::pipelineConfig)
       .def_rw("runtime_endpoint", &CompileTarget::runtimeEndpoint)
+      .def_rw("support_conditionals_on_measure_results",
+              &CompileTarget::supportConditionalsOnMeasureResults)
+      .def_rw("support_device_calls", &CompileTarget::supportDeviceCalls)
+      .def_rw("fully_specialize", &CompileTarget::fullySpecialize)
+      .def_rw("is_local_simulator", &CompileTarget::isLocalSimulator)
       .def(nanobind::self == nanobind::self)
       .def("__hash__", std::hash<CompileTarget>())
       .def("__repr__", compileTargetRepr);

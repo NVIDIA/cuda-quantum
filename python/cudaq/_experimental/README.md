@@ -11,7 +11,8 @@ compiled kernels should run or be simulated).
 
 ### Compile targets
 
-Custom compile targets can be defined using the `cudaq._experimental.target.CompileTarget` class.
+Custom compile targets can be defined using the
+`cudaq._experimental.target.CompileTarget` class.
 
 The target can be set for all successive launches using `cudaq.set_target(compile_target)`.`
 

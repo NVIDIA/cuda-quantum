@@ -423,6 +423,8 @@ bool LinkedLibraryHolder::hasTarget(const std::string &name) {
 
 void LinkedLibraryHolder::setTarget(cudaq::CompileTarget target) {
   auto runtimeEndpoint = target.runtimeEndpoint;
+  if (runtimeEndpoint.name.empty())
+    runtimeEndpoint.name = defaultTarget;
   setTarget(runtimeEndpoint.name, runtimeEndpoint.options, std::move(target));
 }
 
