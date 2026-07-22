@@ -45,9 +45,23 @@ static void substitutePipelinePlaceholders(
   }
 }
 
+/// Replace literal placeholder keys in a pipeline stage string.
+static void applyPipelineSubstitutions(
+    std::string &pipeline,
+    const std::map<std::string, std::string> &pipelineSubstitutions) {
+  for (const auto &[key, value] : pipelineSubstitutions) {
+    std::string::size_type pos = 0;
+    while ((pos = pipeline.find(key, pos)) != std::string::npos) {
+      pipeline.replace(pos, key.size(), value);
+      pos += value.size();
+    }
+  }
+}
+
 cudaq::CompileTarget::CompileTarget(
     config::TargetConfig targetConfig,
-    std::map<std::string, std::string> runtimeConfig, bool emulate_)
+    std::map<std::string, std::string> runtimeConfig, bool emulate_,
+    std::map<std::string, std::string> pipelineSubstitutions)
     : emulate(emulate_) {
   if (!targetConfig.BackendConfig.has_value()) {
     pipelineConfig.skipTargetLoweringPipeline = true;
@@ -64,6 +78,7 @@ cudaq::CompileTarget::CompileTarget(
     std::string pipeline = stage;
     if (!pipeline.empty()) {
       substitutePipelinePlaceholders(pipeline, runtimeConfig);
+      applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
       CUDAQ_INFO("{:<27} {}", stageName + ":", pipeline);
     }
     return pipeline;
@@ -131,8 +146,4 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
     hash_combine(seed, t.pauliTermSplitObservable->to_string());
 
   return seed;
-}
-
-std::size_t cudaq::CompileTarget::hash() const {
-  return std::hash<cudaq::CompileTarget>{}(*this);
 }
