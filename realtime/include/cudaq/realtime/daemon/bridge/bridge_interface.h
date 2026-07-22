@@ -123,8 +123,8 @@ typedef struct {
 } cudaq_cpu_dataplane_t;
 
 /// @brief Create and initialize a transport bridge from an explicit provider
-/// library.  `library` is any string `dlopen` accepts: a bare soname resolved
-/// via the usual load paths (e.g. "libcudaq-realtime-bridge-udp.so") or an
+/// library.  `library` is any string `dlopen` accepts: a bare `soname` resolved
+/// via the usual load paths (e.g. `libcudaq-realtime-bridge-udp.so`) or an
 /// absolute/relative path.  Provider libraries are cached per process keyed
 /// by this string, so any number of DISTINCT provider libraries may coexist
 /// in one process, each serving any number of bridge instances.  This is the
@@ -173,8 +173,8 @@ cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
                                cudaq_cpu_dataplane_t *out_dataplane);
 
 /// @brief Write a one-line, space-separated `key=value` description of the
-/// provider's live endpoint (e.g. "transport=udp port=45678" or
-/// "transport=cpu_roce port=9000 roce_ip=10.0.0.2 qp=0x1a rkey=1234") into
+/// provider's live endpoint (e.g. `transport=udp port=45678` or
+/// `transport=cpu_roce port=9000 roce_ip=10.0.0.2 qp=0x1a rkey=1234`) into
 /// `buf`.  Valid as soon as create() returns, so a server can publish its
 /// rendezvous endpoint BEFORE connect() blocks waiting for the peer.  Returns
 /// CUDAQ_ERR_UNSUPPORTED when the provider predates interface version 2 or
