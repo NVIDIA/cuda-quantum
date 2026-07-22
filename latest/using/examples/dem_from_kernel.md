@@ -207,6 +207,9 @@ latest
                 Data](ptsbe.html#inspecting-execution-data){.reference
                 .internal}
     -   [Detector Error Models](#){.current .reference .internal}
+        -   [DEM Options](#dem-options){.reference .internal}
+        -   [Measurement Matrices](#measurement-matrices){.reference
+            .internal}
         -   [Limitations](#limitations){.reference .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
@@ -340,17 +343,6 @@ latest
                 Integrators](dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../applications.html){.reference .internal}
-    -   [Max-Cut with
-        QAOA](../../applications/python/qaoa.html){.reference .internal}
-    -   [Molecular docking via
-        DC-QAOA](../../applications/python/digitized_counterdiabatic_qaoa.html){.reference
-        .internal}
-        -   [Setting up the Molecular Docking
-            Problem](../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
-            .internal}
-        -   [CUDA-Q
-            Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
-            .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../../applications/python/krylov.html){.reference
@@ -383,60 +375,6 @@ latest
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
-    -   [Bernstein-Vazirani
-        Algorithm](../../applications/python/bernstein_vazirani.html){.reference
-        .internal}
-        -   [Classical
-            case](../../applications/python/bernstein_vazirani.html#Classical-case){.reference
-            .internal}
-        -   [Quantum
-            case](../../applications/python/bernstein_vazirani.html#Quantum-case){.reference
-            .internal}
-        -   [Implementing in
-            CUDA-Q](../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
-            .internal}
-    -   [Cost
-        Minimization](../../applications/python/cost_minimization.html){.reference
-        .internal}
-    -   [Deutsch's
-        Algorithm](../../applications/python/deutsch_algorithm.html){.reference
-        .internal}
-        -   [XOR [\\(\\oplus\\)]{.math .notranslate
-            .nohighlight}](../../applications/python/deutsch_algorithm.html#XOR-\oplus){.reference
-            .internal}
-        -   [Quantum
-            oracles](../../applications/python/deutsch_algorithm.html#Quantum-oracles){.reference
-            .internal}
-        -   [Phase
-            oracle](../../applications/python/deutsch_algorithm.html#Phase-oracle){.reference
-            .internal}
-        -   [Quantum
-            parallelism](../../applications/python/deutsch_algorithm.html#Quantum-parallelism){.reference
-            .internal}
-        -   [Deutsch's
-            Algorithm:](../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
-            .internal}
-    -   [Divisive Clustering With Coresets Using
-        CUDA-Q](../../applications/python/divisive_clustering_coresets.html){.reference
-        .internal}
-        -   [Data
-            preprocessing](../../applications/python/divisive_clustering_coresets.html#Data-preprocessing){.reference
-            .internal}
-        -   [Quantum
-            functions](../../applications/python/divisive_clustering_coresets.html#Quantum-functions){.reference
-            .internal}
-        -   [Divisive Clustering
-            Function](../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
-            .internal}
-        -   [QAOA
-            Implementation](../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation){.reference
-            .internal}
-        -   [Scaling simulations with
-            CUDA-Q](../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
-            .internal}
-    -   [Hybrid Quantum Neural
-        Networks](../../applications/python/hybrid_quantum_neural_networks.html){.reference
-        .internal}
     -   [Using the Hadamard Test to Determine Quantum Krylov Subspace
         Decomposition Matrix
         Elements](../../applications/python/hadamard_test.html){.reference
@@ -510,18 +448,6 @@ latest
         -   [Relevant
             references](../../applications/python/hamiltonian_simulation.html#Relevant-references){.reference
             .internal}
-    -   [Quantum Fourier
-        Transform](../../applications/python/quantum_fourier_transform.html){.reference
-        .internal}
-        -   [Quantum Fourier Transform
-            revisited](../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
-            .internal}
-    -   [Quantum
-        Teleporation](../../applications/python/quantum_teleportation.html){.reference
-        .internal}
-        -   [Teleportation
-            explained](../../applications/python/quantum_teleportation.html#Teleportation-explained){.reference
-            .internal}
     -   [Quantum
         Volume](../../applications/python/quantum_volume.html){.reference
         .internal}
@@ -536,66 +462,6 @@ latest
             .internal}
         -   [Inverse of full confusion
             matrix](../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
-            .internal}
-    -   [Compiling Unitaries Using Diffusion
-        Models](../../applications/python/unitary_compilation_diffusion_models.html){.reference
-        .internal}
-        -   [Diffusion model
-            pipeline](../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
-            .internal}
-        -   [Setup and load
-            models](../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
-            .internal}
-            -   [Load discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
-                .internal}
-            -   [Load continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
-                .internal}
-            -   [Create helper
-                functions](../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
-                .internal}
-        -   [Unitary
-            compilation](../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
-            .internal}
-            -   [Random
-                unitary](../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary){.reference
-                .internal}
-            -   [Discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model){.reference
-                .internal}
-            -   [Continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model){.reference
-                .internal}
-            -   [Quantum Fourier
-                transform](../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
-                .internal}
-            -   [XXZ-Hamiltonian
-                evolution](../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
-                .internal}
-        -   [Choosing the circuit you
-            need](../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
-            .internal}
-    -   [VQE with gradients, active spaces, and gate
-        fusion](../../applications/python/vqe_advanced.html){.reference
-        .internal}
-        -   [The Basics of
-            VQE](../../applications/python/vqe_advanced.html#The-Basics-of-VQE){.reference
-            .internal}
-        -   [Installing/Loading Relevant
-            Packages](../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
-            .internal}
-        -   [Implementing VQE in
-            CUDA-Q](../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
-            .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
-            .internal}
-        -   [Using an Active
-            Space](../../applications/python/vqe_advanced.html#Using-an-Active-Space){.reference
-            .internal}
-        -   [Gate Fusion for Larger
-            Circuits](../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](../../applications/python/afqmc.html){.reference
@@ -618,78 +484,6 @@ latest
         -   [Setup of the AFQMC
             parameters](../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters){.reference
             .internal}
-    -   [ADAPT-QAOA
-        algorithm](../../applications/python/adapt_qaoa.html){.reference
-        .internal}
-        -   [Simulation
-            input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
-            .internal}
-        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
-            .nohighlight} of the max-cut
-            graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
-            .internal}
-        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
-            .internal}
-        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
-            .internal}
-        -   [Beginning of ADAPT-QAOA
-            iteration:](../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
-            .internal}
-    -   [ADAPT-VQE
-        algorithm](../../applications/python/adapt_vqe.html){.reference
-        .internal}
-        -   [Classical
-            pre-processing](../../applications/python/adapt_vqe.html#Classical-pre-processing){.reference
-            .internal}
-        -   [Jordan
-            Wigner:](../../applications/python/adapt_vqe.html#Jordan-Wigner:){.reference
-            .internal}
-        -   [UCCSD operator
-            pool](../../applications/python/adapt_vqe.html#UCCSD-operator-pool){.reference
-            .internal}
-            -   [Single
-                excitation](../../applications/python/adapt_vqe.html#Single-excitation){.reference
-                .internal}
-            -   [Double
-                excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
-                .internal}
-        -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A_i\\)]{.math .notranslate
-            .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
-            .internal}
-        -   [Reference
-            State:](../../applications/python/adapt_vqe.html#Reference-State:){.reference
-            .internal}
-        -   [Quantum
-            kernels:](../../applications/python/adapt_vqe.html#Quantum-kernels:){.reference
-            .internal}
-        -   [Beginning of
-            ADAPT-VQE:](../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
-            .internal}
-    -   [Quantum edge
-        detection](../../applications/python/edge_detection.html){.reference
-        .internal}
-        -   [Image](../../applications/python/edge_detection.html#Image){.reference
-            .internal}
-        -   [Quantum Probability Image Encoding
-            (QPIE):](../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
-            .internal}
-            -   [Below we show how to encode an image using QPIE in
-                cudaq.](../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
-                .internal}
-        -   [Flexible Representation of Quantum Images
-            (FRQI):](../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
-            .internal}
-            -   [Building the FRQI
-                State:](../../applications/python/edge_detection.html#Building-the-FRQI-State:){.reference
-                .internal}
-        -   [Quantum Hadamard Edge Detection
-            (QHED)](../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
-            .internal}
-            -   [Post-processing](../../applications/python/edge_detection.html#Post-processing){.reference
-                .internal}
     -   [Factoring Integers With Shor's
         Algorithm](../../applications/python/shors.html){.reference
         .internal}
@@ -743,43 +537,6 @@ latest
             -   [(e) Generate electronic Hamiltonian using
                 UHF](../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
-    -   [Grover's
-        Algorithm](../../applications/python/grovers.html){.reference
-        .internal}
-        -   [Overview](../../applications/python/grovers.html#Overview){.reference
-            .internal}
-        -   [Problem](../../applications/python/grovers.html#Problem){.reference
-            .internal}
-        -   [Structure of Grover's
-            Algorithm](../../applications/python/grovers.html#Structure-of-Grover's-Algorithm){.reference
-            .internal}
-            -   [Step 1:
-                Preparation](../../applications/python/grovers.html#Step-1:-Preparation){.reference
-                .internal}
-            -   [Good and Bad
-                States](../../applications/python/grovers.html#Good-and-Bad-States){.reference
-                .internal}
-            -   [Step 2: Oracle
-                application](../../applications/python/grovers.html#Step-2:-Oracle-application){.reference
-                .internal}
-            -   [Step 3: Amplitude
-                amplification](../../applications/python/grovers.html#Step-3:-Amplitude-amplification){.reference
-                .internal}
-            -   [Steps 4 and 5: Iteration and
-                measurement](../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
-                .internal}
-    -   [Quantum
-        PageRank](../../applications/python/quantum_pagerank.html){.reference
-        .internal}
-        -   [Problem
-            Definition](../../applications/python/quantum_pagerank.html#Problem-Definition){.reference
-            .internal}
-        -   [Simulating Quantum PageRank by CUDA-Q
-            dynamics](../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
-            .internal}
-        -   [Breakdown of
-            Terms](../../applications/python/quantum_pagerank.html#Breakdown-of-Terms){.reference
-            .internal}
     -   [The UCCSD Wavefunction
         ansatz](../../applications/python/uccsd_wf_ansatz.html){.reference
         .internal}
@@ -801,41 +558,6 @@ latest
         -   [Ran's
             approach](../../applications/python/mps_encoding.html#Ran's-approach){.reference
             .internal}
-    -   [QM/MM simulation: VQE within a Polarizable Embedded
-        Framework.](../../applications/python/qm_mm_pe.html){.reference
-        .internal}
-        -   [Key
-            concepts:](../../applications/python/qm_mm_pe.html#Key-concepts:){.reference
-            .internal}
-        -   [PE-VQE-SCF Algorithm
-            Steps](../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
-            .internal}
-            -   [Step 1: Initialize (Classical
-                pre-processing)](../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
-                .internal}
-            -   [Step 2: Build the
-                Hamiltonian](../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
-                .internal}
-            -   [Step 3: Run
-                VQE](../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE){.reference
-                .internal}
-            -   [Step 4: Update
-                Environment](../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment){.reference
-                .internal}
-            -   [Step 5: Self-Consistency
-                Loop](../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
-                .internal}
-            -   [Requirments:](../../applications/python/qm_mm_pe.html#Requirments:){.reference
-                .internal}
-            -   [Example 1: LiH with 2 water
-                molecules.](../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
-                .internal}
-            -   [VQE, update environment, and scf
-                loop.](../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
-                .internal}
-            -   [Example 2: NH3 with 46 water molecule using active
-                space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
-                .internal}
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](../../applications/python/skqd.html){.reference
         .internal}
@@ -1115,6 +837,9 @@ latest
         .internal}
         -   [Prerequisites](../realtime/installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](../realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](../realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
@@ -1307,6 +1032,46 @@ latest
                 .internal}
             -   [Decoding
                 Rounds](../realtime/protocol.html#decoding-rounds){.reference
+                .internal}
+    -   [CPU RoCE Transport](../realtime/cpu_transport.html){.reference
+        .internal}
+        -   [C ABI](../realtime/cpu_transport.html#c-abi){.reference
+            .internal}
+        -   [Two-phase bring-up ([`setup`{.docutils .literal
+            .notranslate}]{.pre} / [`connect`{.docutils .literal
+            .notranslate}]{.pre})](../realtime/cpu_transport.html#two-phase-bring-up-setup-connect){.reference
+            .internal}
+        -   [TX
+            modes](../realtime/cpu_transport.html#tx-modes){.reference
+            .internal}
+        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
+            .notranslate}]{.pre})](../realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+            .internal}
+    -   [Device Call Channels](../realtime/device_call.html){.reference
+        .internal}
+        -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
+            model](../realtime/device_call.html#the-device-call-model){.reference
+            .internal}
+        -   [Selecting a
+            channel](../realtime/device_call.html#selecting-a-channel){.reference
+            .internal}
+        -   [Extending an in-process
+            service](../realtime/device_call.html#extending-an-in-process-service){.reference
+            .internal}
+        -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
+            channel](../realtime/device_call.html#the-cpu-roce-channel){.reference
+            .internal}
+            -   [Wire pattern
+                (FPGA-compatible)](../realtime/device_call.html#wire-pattern-fpga-compatible){.reference
+                .internal}
+            -   [Connection
+                setup](../realtime/device_call.html#connection-setup){.reference
+                .internal}
+            -   [Running
+                it](../realtime/device_call.html#running-it){.reference
+                .internal}
+            -   [Test
+                harness](../realtime/device_call.html#test-harness){.reference
                 .internal}
 -   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
@@ -1713,6 +1478,12 @@ latest
                 .internal}
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq-contrib){.reference
+            .internal}
+            -   [Quantum
+                Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -2193,7 +1964,7 @@ Python
     # text with `stim.DetectorErrorModel(dem)` to drive a decoder.
     noise = cudaq.NoiseModel()
     dem = cudaq.dem_from_kernel(memory_experiment, 2, noise_model=noise)
-    print(dem)
+    print(f"Memory experiment DEM:\n{dem}")
 :::
 :::
 :::
@@ -2210,7 +1981,7 @@ C++
       cudaq::noise_model noise;
       std::string dem =
           cudaq::dem_from_kernel(memory_experiment, &noise, /*rounds=*/2);
-      std::printf("%s\n", dem.c_str());
+      std::printf("Memory experiment DEM:\n%s\n", dem.c_str());
 :::
 :::
 :::
@@ -2246,6 +2017,414 @@ the logical observable [`L0`{.docutils .literal .notranslate}]{.pre}:
 :::
 :::
 
+::: {#dem-options .section}
+## DEM Options[¶](#dem-options "Permalink to this heading"){.headerlink}
+
+[`dem_from_kernel`{.docutils .literal .notranslate}]{.pre} accepts
+optional parameters that are forwarded to the Stim error analyzer (C++:
+[`cudaq::dem_options`{.docutils .literal .notranslate}]{.pre} struct;
+Python: keyword arguments). All options default to [`False`{.docutils
+.literal .notranslate}]{.pre} / [`0`{.docutils .literal
+.notranslate}]{.pre}.
+
++------------------------------+---------------------------------------+
+| Option                       | Description                           |
++==============================+=======================================+
+| [                            | Decompose hyper-edge error mechanisms |
+| `decompose_errors`{.docutils | into pairs of two-detector edges.     |
+| .literal                     | Required when feeding the DEM to      |
+| .notranslate}]{.pre}         | minimum-weight perfect matching       |
+|                              | decoders.                             |
++------------------------------+---------------------------------------+
+| [`fold_loops`{.docutils      | Fold loop bodies in the circuit for a |
+| .literal                     | more compact DEM. CUDA-Q kernels are  |
+| .notranslate}]{.pre}         | compiled to a flat (loop-free) Stim   |
+|                              | circuit, so this option has no effect |
+|                              | in practice.                          |
++------------------------------+---------------------------------------+
+| [`allo                       | Allow detectors whose parity is not   |
+| w_gauge_detectors`{.docutils | determined by the circuit.            |
+| .literal                     |                                       |
+| .notranslate}]{.pre}         |                                       |
++------------------------------+---------------------------------------+
+| [`approximate_disjoint       | Threshold in \[0, 1\] for             |
+| _errors_threshold`{.docutils | approximating disjoint-error          |
+| .literal                     | products. Set to [`0.0`{.docutils     |
+| .notranslate}]{.pre}         | .literal .notranslate}]{.pre} (the    |
+|                              | default) to disable approximation.    |
++------------------------------+---------------------------------------+
+| [`ignore_decom               | When decomposition fails for an error |
+| position_failures`{.docutils | mechanism, insert it into the DEM     |
+| .literal                     | undecomposed (as a hyper-edge)        |
+| .notranslate}]{.pre}         | instead of raising an exception. Only |
+|                              | relevant when                         |
+|                              | [`decompose_errors`{.docutils         |
+|                              | .literal .notranslate}]{.pre} is      |
+|                              | [`True`{.docutils .literal            |
+|                              | .notranslate}]{.pre}.                 |
++------------------------------+---------------------------------------+
+| [`block                      | Prevent the decomposer from           |
+| _decomposition_from_introduc | introducing remnant edges that would  |
+| ing_remnant_edges`{.docutils | otherwise be needed to satisfy the    |
+| .literal                     | decomposition.                        |
+| .notranslate}]{.pre}         |                                       |
++------------------------------+---------------------------------------+
+
+Hyper-edges appear when a single fault trips both an [`X`{.docutils
+.literal .notranslate}]{.pre}-type and a [`Z`{.docutils .literal
+.notranslate}]{.pre}-type parity check. The circuit below prepares a
+Bell pair (the [`+1`{.docutils .literal .notranslate}]{.pre} eigenstate
+of both [`XX`{.docutils .literal .notranslate}]{.pre} and
+[`ZZ`{.docutils .literal .notranslate}]{.pre}) and measures each
+stabilizer with its own ancilla. A [`Y`{.docutils .literal
+.notranslate}]{.pre} error on a data qubit anti-commutes with both
+checks and flips the data readout, so one mechanism flips three
+detectors at once. The accompanying single-qubit [`X`{.docutils .literal
+.notranslate}]{.pre} and [`Z`{.docutils .literal .notranslate}]{.pre}
+errors seed the graph-like edges that the hyper-edge decomposes into
+(since [`Y`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`=`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`X`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`·`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`Z`{.docutils .literal .notranslate}]{.pre}):
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    # A hyper-edge arises naturally when one fault trips both an
+    # X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+>,
+    # the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its
+    # own ancilla. A Y error anti-commutes with both checks and flips the data
+    # readout, lighting up three detectors at once. Because Y = X * Z, that
+    # hyper-edge decomposes into the separate X and Z edges seeded by the
+    # accompanying single-qubit errors.
+    @cudaq.kernel
+    def correlated_checks():
+        data = cudaq.qvector(2)
+        z_anc = cudaq.qubit()
+        x_anc = cudaq.qubit()
+
+        # Prepare |00> + |11>
+        h(data[0])
+        x.ctrl(data[0], data[1])
+
+        cudaq.apply_noise(cudaq.XError, 0.01, data[0])
+        cudaq.apply_noise(cudaq.ZError, 0.01, data[0])
+        cudaq.apply_noise(cudaq.YError, 0.02, data[0])
+
+        # ZZ parity check: the data qubits control the ancilla.
+        x.ctrl(data[0], z_anc)
+        x.ctrl(data[1], z_anc)
+        z_syndrome = mz(z_anc)
+
+        # XX parity check: the ancilla controls the data, read out in the X basis.
+        h(x_anc)
+        x.ctrl(x_anc, data[0])
+        x.ctrl(x_anc, data[1])
+        h(x_anc)
+        x_syndrome = mz(x_anc)
+
+        final = mz(data)
+        cudaq.detector(z_syndrome)
+        cudaq.detector(x_syndrome)
+        cudaq.detector(final[0], final[1])
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // A hyperedge arises naturally when one fault trips both an
+    // X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+>,
+    // the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its
+    // own ancilla. A Y error anticommutes with both checks and flips the data
+    // readout, lighting up three detectors at once. Because Y = X * Z, that
+    // hyperedge decomposes into the separate X and Z edges seeded by the
+    // accompanying single-qubit errors.
+    __qpu__ void correlated_checks() {
+      cudaq::qvector data(2);
+      cudaq::qubit z_anc;
+      cudaq::qubit x_anc;
+
+      // Prepare |00> + |11>
+      h(data[0]);
+      x<cudaq::ctrl>(data[0], data[1]);
+
+      cudaq::apply_noise<cudaq::x_error>(0.01, data[0]);
+      cudaq::apply_noise<cudaq::z_error>(0.01, data[0]);
+      cudaq::apply_noise<cudaq::y_error>(0.02, data[0]);
+
+      // ZZ parity check: the data qubits control the ancilla.
+      x<cudaq::ctrl>(data[0], z_anc);
+      x<cudaq::ctrl>(data[1], z_anc);
+      auto z_syndrome = mz(z_anc);
+
+      // XX parity check: the ancilla controls the data, read out in the X basis.
+      h(x_anc);
+      x<cudaq::ctrl>(x_anc, data[0]);
+      x<cudaq::ctrl>(x_anc, data[1]);
+      h(x_anc);
+      auto x_syndrome = mz(x_anc);
+
+      auto final = mz(data);
+      cudaq::detector(z_syndrome);
+      cudaq::detector(x_syndrome);
+      cudaq::detector(final[0], final[1]);
+    }
+:::
+:::
+:::
+:::
+
+Generate the DEM with and without [`decompose_errors`{.docutils .literal
+.notranslate}]{.pre}:
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+Pass any option as a keyword argument after the kernel arguments:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    # Pass DEM options as keyword arguments to control the Stim error analyzer.
+    # decompose_errors=True splits hyper-edge mechanisms (three or more detectors)
+    # into pairs of graph-like edges, which is required by most MWPM decoders.
+    dem_raw = cudaq.dem_from_kernel(correlated_checks, noise_model=noise)
+    dem_decomposed = cudaq.dem_from_kernel(
+        correlated_checks,
+        noise_model=noise,
+        decompose_errors=True,
+    )
+    print(f"Raw DEM:\n{dem_raw}")
+    print(f"Decomposed DEM:\n{dem_decomposed}")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+Construct a [`cudaq::dem_options`{.docutils .literal
+.notranslate}]{.pre} value and pass it as the third argument (after the
+noise model):
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      // Pass a cudaq::dem_options struct to control the Stim error analyzer.
+      // decompose_errors=true splits hyperedge mechanisms (three or more detectors)
+      // into pairs of graphlike edges, which is required by most MWPM decoders.
+      std::string dem_raw = cudaq::dem_from_kernel(correlated_checks, &noise);
+      cudaq::dem_options opts;
+      opts.decompose_errors = true;
+      std::string dem_decomposed =
+          cudaq::dem_from_kernel(correlated_checks, &noise, opts);
+      std::printf("Raw DEM:\n%s\n", dem_raw.c_str());
+      std::printf("Decomposed DEM:\n%s\n", dem_decomposed.c_str());
+:::
+:::
+:::
+:::
+
+Without decomposition the [`Y`{.docutils .literal .notranslate}]{.pre}
+error is a single three-detector hyper-edge ([`D0`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`D1`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`D2`{.docutils .literal .notranslate}]{.pre}), printed
+alongside the graph-like [`X`{.docutils .literal .notranslate}]{.pre}
+edge ([`D0`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`D2`{.docutils .literal .notranslate}]{.pre}) and
+[`Z`{.docutils .literal .notranslate}]{.pre} edge ([`D1`{.docutils
+.literal .notranslate}]{.pre}):
+
+::: {.highlight-text .notranslate}
+::: highlight
+    error(0.02000000000000000042) D0 D1 D2
+    error(0.01000000000000000021) D0 D2
+    error(0.01000000000000000021) D1
+:::
+:::
+
+With [`decompose_errors=True`{.docutils .literal .notranslate}]{.pre}
+the hyper-edge is written as the product of two graph-like components,
+separated by [`^`{.docutils .literal .notranslate}]{.pre}:
+
+::: {.highlight-text .notranslate}
+::: highlight
+    error(0.01000000000000000021) D0 D2
+    error(0.02000000000000000042) D0 D2 ^ D1
+    error(0.01000000000000000021) D1
+:::
+:::
+:::
+
+::: {#measurement-matrices .section}
+## Measurement Matrices[¶](#measurement-matrices "Permalink to this heading"){.headerlink}
+
+The DEM describes how error mechanisms flip detectors, but decoders
+often also need to know how the raw measurement record maps onto the
+detectors and logical observables. [`dem_from_kernel`{.docutils .literal
+.notranslate}]{.pre} can return that mapping alongside the DEM text as
+two sparse binary *measurement matrices*, [`m2d`{.docutils .literal
+.notranslate}]{.pre} and [`m2o`{.docutils .literal .notranslate}]{.pre}:
+
+-   [`m2d`{.docutils .literal .notranslate}]{.pre} has shape
+    [`(num_detectors,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements)`{.docutils .literal
+    .notranslate}]{.pre}. Entry [`m2d[d,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`m]`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`==`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
+    measurement [`m`{.docutils .literal .notranslate}]{.pre} contributes
+    to detector [`d`{.docutils .literal .notranslate}]{.pre}.
+
+-   [`m2o`{.docutils .literal .notranslate}]{.pre} has shape
+    [`(num_observables,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements)`{.docutils .literal
+    .notranslate}]{.pre}. Entry [`m2o[k,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`m]`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`==`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
+    measurement [`m`{.docutils .literal .notranslate}]{.pre} contributes
+    to observable [`k`{.docutils .literal .notranslate}]{.pre}.
+
+In both matrices the columns are indexed by measurement in chronological
+order.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+Pass [`return_measurement_matrices=True`{.docutils .literal
+.notranslate}]{.pre}. The function then returns a 3-tuple
+[`(dem_text,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`m2d,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`m2o)`{.docutils .literal .notranslate}]{.pre} instead of
+a plain string, where [`m2d`{.docutils .literal .notranslate}]{.pre} and
+[`m2o`{.docutils .literal .notranslate}]{.pre} are
+[`scipy.sparse.csr_matrix`{.docutils .literal .notranslate}]{.pre}
+objects with binary entries:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    # Set return_measurement_matrices=True to also obtain the sparse
+    # measurements-to-detectors (m2d) and measurements-to-observables (m2o)
+    # matrices. The function then returns a 3-tuple instead of a plain string.
+    # Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their
+    # columns are indexed by measurement in chronological order.
+    dem_text, m2d, m2o = cudaq.dem_from_kernel(
+        memory_experiment,
+        2,
+        noise_model=noise,
+        return_measurement_matrices=True,
+    )
+    # m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means
+    # measurement m contributes to detector d. m2o has shape
+    # `(num_observables, num_measurements)` with the same convention for observables.
+    print(f"m2d shape: {m2d.shape}")
+    print(f"m2o shape: {m2o.shape}")
+    print(f"m2d:\n{m2d.toarray()}")
+    print(f"m2o:\n{m2o.toarray()}")
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+Use the overloads that accept [`cudaq::M2DSparseMatrix`{.docutils
+.literal .notranslate}]{.pre} and [`cudaq::M2OSparseMatrix`{.docutils
+.literal .notranslate}]{.pre} output references. Each
+[`rows[i]`{.docutils .literal .notranslate}]{.pre} lists the
+chronological measurement indices contributing to that detector or
+observable, and [`num_measurements`{.docutils .literal
+.notranslate}]{.pre} gives the column count:
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      // Overloads taking cudaq::M2DSparseMatrix and cudaq::M2OSparseMatrix output
+      // references also populate the measurements-to-detectors (m2d) and
+      // measurements-to-observables (m2o) matrices. Both are filled in the same
+      // circuit pass that produces the DEM text. Each row lists the chronological
+      // measurement indices contributing to that detector / observable.
+      cudaq::M2DSparseMatrix m2d;
+      cudaq::M2OSparseMatrix m2o;
+      std::string dem_mm =
+          cudaq::dem_from_kernel(memory_experiment, &noise, m2d, m2o, /*rounds=*/2);
+      std::printf("m2d: %zu detectors x %zu measurements\n", m2d.rows.size(),
+                  m2d.num_measurements);
+      std::printf("m2o: %zu observables x %zu measurements\n", m2o.rows.size(),
+                  m2o.num_measurements);
+
+      // The measurement matrices can be combined with any DEM options by passing a
+      // cudaq::dem_options struct (as above) before the m2d/m2o output references.
+      cudaq::dem_options mm_opts;
+      mm_opts.decompose_errors = true;
+      cudaq::M2DSparseMatrix m2d_dec;
+      cudaq::M2OSparseMatrix m2o_dec;
+      std::string dem_mm_decomposed = cudaq::dem_from_kernel(
+          memory_experiment, &noise, mm_opts, m2d_dec, m2o_dec,
+          /*rounds=*/2);
+:::
+:::
+:::
+:::
+
+Both matrices are computed in the same pass as the DEM, so requesting
+them adds no additional circuit execution. They can be combined with any
+of the DEM options above (for example [`decompose_errors=True`{.docutils
+.literal .notranslate}]{.pre}).
+
+For the [`memory_experiment`{.docutils .literal .notranslate}]{.pre}
+kernel above (with [`rounds=2`{.docutils .literal .notranslate}]{.pre})
+there are nine measurements and six detectors, so [`m2d`{.docutils
+.literal .notranslate}]{.pre} is a [`6`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`x`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`9`{.docutils .literal .notranslate}]{.pre} matrix and
+[`m2o`{.docutils .literal .notranslate}]{.pre} is a [`1`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`x`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`9`{.docutils .literal .notranslate}]{.pre}
+matrix. Each detector pairs a qubit's measurement in one round with its
+value in the previous round, which shows up as the two ones per row of
+[`m2d`{.docutils .literal .notranslate}]{.pre}; the single logical
+observable reads the three final-round measurements, giving the three
+ones in [`m2o`{.docutils .literal .notranslate}]{.pre}:
+
+::: {.highlight-text .notranslate}
+::: highlight
+    m2d shape: (6, 9)
+    m2o shape: (1, 9)
+    m2d:
+    [[1 0 0 1 0 0 0 0 0]
+     [0 1 0 0 1 0 0 0 0]
+     [0 0 1 0 0 1 0 0 0]
+     [0 0 0 1 0 0 1 0 0]
+     [0 0 0 0 1 0 0 1 0]
+     [0 0 0 0 0 1 0 0 1]]
+    m2o:
+    [[0 0 0 0 0 0 1 1 1]]
+:::
+:::
+:::
+
 ::: {#limitations .section}
 ## Limitations[¶](#limitations "Permalink to this heading"){.headerlink}
 
@@ -2259,7 +2438,7 @@ the logical observable [`L0`{.docutils .literal .notranslate}]{.pre}:
     breaks the detector matrix model; such kernels are rejected.
 
 -   **Independent Pauli noise.** Each error mechanism is assumed
-    independent..
+    independent.
 
 -   **Pre-decomposition.** The DEM reflects the abstract kernel circuit,
     not the hardware-decomposed circuit.

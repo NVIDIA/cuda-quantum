@@ -27,7 +27,6 @@
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
         <script src="../../_static/filter.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -219,6 +218,8 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dem-options">DEM Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -293,12 +294,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
@@ -314,30 +309,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q">Implementing in CUDA-Q</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html">Deutsch’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Phase-oracle">Phase oracle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation">QAOA Implementation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hybrid_quantum_neural_networks.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
@@ -371,47 +342,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_teleportation.html">Quantum Teleporation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -421,44 +356,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_vqe.html">ADAPT-VQE algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Single-excitation">Single excitation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Double-excitation">Double excitation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Reference-State:">Reference State:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge_detection.html">Quantum edge detection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Image">Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Post-processing">Post-processing</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
@@ -485,25 +382,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/grovers.html">Grover’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Problem">Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
@@ -513,22 +391,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qm_mm_pe.html">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Key-concepts:">Key concepts:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps">PE-VQE-SCF Algorithm Steps</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)">Step 1: Initialize (Classical pre-processing)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian">Step 2: Build the Hamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE">Step 3: Run VQE</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment">Step 4: Update Environment</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop">Step 5: Self-Consistency Loop</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Requirments:">Requirments:</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
@@ -699,6 +561,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../realtime.html">   Realtime</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../realtime/installation.html">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../realtime/installation.html#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../realtime/installation.html#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -791,6 +654,26 @@
 <li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#qec-terminology">QEC Terminology</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#qec-decoder-handler">QEC Decoder Handler</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#decoding-rounds">Decoding Rounds</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../realtime/cpu_transport.html">CPU RoCE Transport</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/cpu_transport.html#c-abi">C ABI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/cpu_transport.html#two-phase-bring-up-setup-connect">Two-phase bring-up (<code class="docutils literal notranslate"><span class="pre">setup</span></code> / <code class="docutils literal notranslate"><span class="pre">connect</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/cpu_transport.html#tx-modes">TX modes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/cpu_transport.html#testing-hsb-bridge-cpu">Testing (<code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../realtime/device_call.html">Device Call Channels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/device_call.html#the-device-call-model">The <code class="docutils literal notranslate"><span class="pre">device_call</span></code> model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/device_call.html#selecting-a-channel">Selecting a channel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/device_call.html#extending-an-in-process-service">Extending an in-process service</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/device_call.html#the-cpu-roce-channel">The <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/device_call.html#wire-pattern-fpga-compatible">Wire pattern (FPGA-compatible)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/device_call.html#connection-setup">Connection setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/device_call.html#running-it">Running it</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/device_call.html#test-harness">Test harness</a></li>
 </ul>
 </li>
 </ul>
@@ -1006,6 +889,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1265,7 +1152,7 @@ and the other predefined noise channels.</p>
 <span class="c1"># text with `stim.DetectorErrorModel(dem)` to drive a decoder.</span>
 <span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
 <span class="n">dem</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">dem</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1277,7 +1164,7 @@ and the other predefined noise channels.</p>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">noise_model</span><span class="w"> </span><span class="n">noise</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem</span><span class="w"> </span><span class="o">=</span>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
-<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Memory experiment DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
 </pre></div>
 </div>
 </div>
@@ -1298,6 +1185,287 @@ error(0.01000000000000000021) D4 L0
 error(0.01000000000000000021) D5 L0
 </pre></div>
 </div>
+<section id="dem-options">
+<h2>DEM Options<a class="headerlink" href="#dem-options" title="Permalink to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> accepts optional parameters that are forwarded to the Stim
+error analyzer (C++: <code class="docutils literal notranslate"><span class="pre">cudaq::dem_options</span></code> struct; Python: keyword arguments).
+All options default to <code class="docutils literal notranslate"><span class="pre">False</span></code> / <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 44%" />
+<col style="width: 56%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code></p></td>
+<td><p>Decompose hyper-edge error mechanisms into pairs of two-detector edges.
+Required when feeding the DEM to minimum-weight perfect matching decoders.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">fold_loops</span></code></p></td>
+<td><p>Fold loop bodies in the circuit for a more compact DEM. CUDA-Q kernels
+are compiled to a flat (loop-free) Stim circuit, so this option has no
+effect in practice.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">allow_gauge_detectors</span></code></p></td>
+<td><p>Allow detectors whose parity is not determined by the circuit.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">approximate_disjoint_errors_threshold</span></code></p></td>
+<td><p>Threshold in [0, 1] for approximating disjoint-error products.
+Set to <code class="docutils literal notranslate"><span class="pre">0.0</span></code> (the default) to disable approximation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ignore_decomposition_failures</span></code></p></td>
+<td><p>When decomposition fails for an error mechanism, insert it into the DEM
+undecomposed (as a hyper-edge) instead of raising an exception. Only
+relevant when <code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">block_decomposition_from_introducing_remnant_edges</span></code></p></td>
+<td><p>Prevent the decomposer from introducing remnant edges that would
+otherwise be needed to satisfy the decomposition.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Hyper-edges appear when a single fault trips both an <code class="docutils literal notranslate"><span class="pre">X</span></code>-type and a <code class="docutils literal notranslate"><span class="pre">Z</span></code>-type parity
+check. The circuit below prepares a Bell pair (the <code class="docutils literal notranslate"><span class="pre">+1</span></code> eigenstate of both
+<code class="docutils literal notranslate"><span class="pre">XX</span></code> and <code class="docutils literal notranslate"><span class="pre">ZZ</span></code>) and measures each stabilizer with its own ancilla. A <code class="docutils literal notranslate"><span class="pre">Y</span></code>
+error on a data qubit anti-commutes with both checks and flips the data
+readout, so one mechanism flips three detectors at once. The accompanying
+single-qubit <code class="docutils literal notranslate"><span class="pre">X</span></code> and <code class="docutils literal notranslate"><span class="pre">Z</span></code> errors seed the graph-like edges that the
+hyper-edge decomposes into (since <code class="docutils literal notranslate"><span class="pre">Y</span> <span class="pre">=</span> <span class="pre">X</span> <span class="pre">·</span> <span class="pre">Z</span></code>):</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># A hyper-edge arises naturally when one fault trips both an</span>
+<span class="c1"># X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+&gt;,</span>
+<span class="c1"># the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its</span>
+<span class="c1"># own ancilla. A Y error anti-commutes with both checks and flips the data</span>
+<span class="c1"># readout, lighting up three detectors at once. Because Y = X * Z, that</span>
+<span class="c1"># hyper-edge decomposes into the separate X and Z edges seeded by the</span>
+<span class="c1"># accompanying single-qubit errors.</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">correlated_checks</span><span class="p">():</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">z_anc</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+    <span class="n">x_anc</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+
+    <span class="c1"># Prepare |00&gt; + |11&gt;</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">XError</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">ZError</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">apply_noise</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">YError</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># ZZ parity check: the data qubits control the ancilla.</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">z_anc</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">z_anc</span><span class="p">)</span>
+    <span class="n">z_syndrome</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">z_anc</span><span class="p">)</span>
+
+    <span class="c1"># XX parity check: the ancilla controls the data, read out in the X basis.</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">)</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">)</span>
+    <span class="n">x_syndrome</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">x_anc</span><span class="p">)</span>
+
+    <span class="n">final</span> <span class="o">=</span> <span class="n">mz</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">z_syndrome</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">x_syndrome</span><span class="p">)</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">final</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">final</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// A hyperedge arises naturally when one fault trips both an</span>
+<span class="c1">// X-type and a Z-type parity check. This circuit prepares a Bell pair |Phi+&gt;,</span>
+<span class="c1">// the +1 eigenstate of both XX and ZZ, and measures each stabilizer with its</span>
+<span class="c1">// own ancilla. A Y error anticommutes with both checks and flips the data</span>
+<span class="c1">// readout, lighting up three detectors at once. Because Y = X * Z, that</span>
+<span class="c1">// hyperedge decomposes into the separate X and Z edges seeded by the</span>
+<span class="c1">// accompanying single-qubit errors.</span>
+<span class="n">__qpu__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">correlated_checks</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">z_anc</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">x_anc</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// Prepare |00&gt; + |11&gt;</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">apply_noise</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">x_error</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">apply_noise</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">z_error</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">apply_noise</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">y_error</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+
+<span class="w">  </span><span class="c1">// ZZ parity check: the data qubits control the ancilla.</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">z_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="w"> </span><span class="n">z_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">z_syndrome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">z_anc</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// XX parity check: the ancilla controls the data, read out in the X basis.</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x_anc</span><span class="p">,</span><span class="w"> </span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">  </span><span class="n">h</span><span class="p">(</span><span class="n">x_anc</span><span class="p">);</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">x_syndrome</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">x_anc</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">final</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">data</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">detector</span><span class="p">(</span><span class="n">z_syndrome</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">detector</span><span class="p">(</span><span class="n">x_syndrome</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">detector</span><span class="p">(</span><span class="k">final</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="k">final</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Generate the DEM with and without <code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code>:</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<p>Pass any option as a keyword argument after the kernel arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pass DEM options as keyword arguments to control the Stim error analyzer.</span>
+<span class="c1"># decompose_errors=True splits hyper-edge mechanisms (three or more detectors)</span>
+<span class="c1"># into pairs of graph-like edges, which is required by most MWPM decoders.</span>
+<span class="n">dem_raw</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">dem_decomposed</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span>
+    <span class="n">correlated_checks</span><span class="p">,</span>
+    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
+    <span class="n">decompose_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Raw DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_raw</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="si">{</span><span class="n">dem_decomposed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<p>Construct a <code class="docutils literal notranslate"><span class="pre">cudaq::dem_options</span></code> value and pass it as the third
+argument (after the noise model):</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Pass a cudaq::dem_options struct to control the Stim error analyzer.</span>
+<span class="w">  </span><span class="c1">// decompose_errors=true splits hyperedge mechanisms (three or more detectors)</span>
+<span class="w">  </span><span class="c1">// into pairs of graphlike edges, which is required by most MWPM decoders.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_raw</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">);</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_options</span><span class="w"> </span><span class="n">opts</span><span class="p">;</span>
+<span class="w">  </span><span class="n">opts</span><span class="p">.</span><span class="n">decompose_errors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">correlated_checks</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">opts</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Raw DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_raw</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Decomposed DEM:</span><span class="se">\n</span><span class="s">%s</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">dem_decomposed</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Without decomposition the <code class="docutils literal notranslate"><span class="pre">Y</span></code> error is a single three-detector hyper-edge
+(<code class="docutils literal notranslate"><span class="pre">D0</span> <span class="pre">D1</span> <span class="pre">D2</span></code>), printed alongside the graph-like <code class="docutils literal notranslate"><span class="pre">X</span></code> edge (<code class="docutils literal notranslate"><span class="pre">D0</span> <span class="pre">D2</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">Z</span></code> edge (<code class="docutils literal notranslate"><span class="pre">D1</span></code>):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>error(0.02000000000000000042) D0 D1 D2
+error(0.01000000000000000021) D0 D2
+error(0.01000000000000000021) D1
+</pre></div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">decompose_errors=True</span></code> the hyper-edge is written as the product of
+two graph-like components, separated by <code class="docutils literal notranslate"><span class="pre">^</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>error(0.01000000000000000021) D0 D2
+error(0.02000000000000000042) D0 D2 ^ D1
+error(0.01000000000000000021) D1
+</pre></div>
+</div>
+</section>
+<section id="measurement-matrices">
+<h2>Measurement Matrices<a class="headerlink" href="#measurement-matrices" title="Permalink to this heading">¶</a></h2>
+<p>The DEM describes how error mechanisms flip detectors, but decoders often also
+need to know how the raw measurement record maps onto the detectors and logical
+observables. <code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code> can return that mapping alongside the DEM text
+as two sparse binary <em>measurement matrices</em>, <code class="docutils literal notranslate"><span class="pre">m2d</span></code> and <code class="docutils literal notranslate"><span class="pre">m2o</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">m2d</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_detectors,</span> <span class="pre">num_measurements)</span></code>. Entry
+<code class="docutils literal notranslate"><span class="pre">m2d[d,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to detector <code class="docutils literal notranslate"><span class="pre">d</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">m2o</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_observables,</span> <span class="pre">num_measurements)</span></code>. Entry
+<code class="docutils literal notranslate"><span class="pre">m2o[k,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to observable <code class="docutils literal notranslate"><span class="pre">k</span></code>.</p></li>
+</ul>
+<p>In both matrices the columns are indexed by measurement in chronological order.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
+<p>Pass <code class="docutils literal notranslate"><span class="pre">return_measurement_matrices=True</span></code>. The function then returns a
+3-tuple <code class="docutils literal notranslate"><span class="pre">(dem_text,</span> <span class="pre">m2d,</span> <span class="pre">m2o)</span></code> instead of a plain string, where <code class="docutils literal notranslate"><span class="pre">m2d</span></code>
+and <code class="docutils literal notranslate"><span class="pre">m2o</span></code> are <code class="docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix</span></code> objects with binary entries:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set return_measurement_matrices=True to also obtain the sparse</span>
+<span class="c1"># measurements-to-detectors (m2d) and measurements-to-observables (m2o)</span>
+<span class="c1"># matrices. The function then returns a 3-tuple instead of a plain string.</span>
+<span class="c1"># Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their</span>
+<span class="c1"># columns are indexed by measurement in chronological order.</span>
+<span class="n">dem_text</span><span class="p">,</span> <span class="n">m2d</span><span class="p">,</span> <span class="n">m2o</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">dem_from_kernel</span><span class="p">(</span>
+    <span class="n">memory_experiment</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">,</span>
+    <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">,</span>
+    <span class="n">return_measurement_matrices</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means</span>
+<span class="c1"># measurement m contributes to detector d. m2o has shape</span>
+<span class="c1"># `(num_observables, num_measurements)` with the same convention for observables.</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d shape: </span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o shape: </span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2d:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2d</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;m2o:</span><span class="se">\n</span><span class="si">{</span><span class="n">m2o</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
+<p>Use the overloads that accept <code class="docutils literal notranslate"><span class="pre">cudaq::M2DSparseMatrix</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cudaq::M2OSparseMatrix</span></code> output references. Each <code class="docutils literal notranslate"><span class="pre">rows[i]</span></code> lists the
+chronological measurement indices contributing to that detector or
+observable, and <code class="docutils literal notranslate"><span class="pre">num_measurements</span></code> gives the column count:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1">// Overloads taking cudaq::M2DSparseMatrix and cudaq::M2OSparseMatrix output</span>
+<span class="w">  </span><span class="c1">// references also populate the measurements-to-detectors (m2d) and</span>
+<span class="w">  </span><span class="c1">// measurements-to-observables (m2o) matrices. Both are filled in the same</span>
+<span class="w">  </span><span class="c1">// circuit pass that produces the DEM text. Each row lists the chronological</span>
+<span class="w">  </span><span class="c1">// measurement indices contributing to that detector / observable.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2DSparseMatrix</span><span class="w"> </span><span class="n">m2d</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2OSparseMatrix</span><span class="w"> </span><span class="n">m2o</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_mm</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">,</span><span class="w"> </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2d: %zu detectors x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2d</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">              </span><span class="n">m2d</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;m2o: %zu observables x %zu measurements</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">m2o</span><span class="p">.</span><span class="n">rows</span><span class="p">.</span><span class="n">size</span><span class="p">(),</span>
+<span class="w">              </span><span class="n">m2o</span><span class="p">.</span><span class="n">num_measurements</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// The measurement matrices can be combined with any DEM options by passing a</span>
+<span class="w">  </span><span class="c1">// cudaq::dem_options struct (as above) before the m2d/m2o output references.</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_options</span><span class="w"> </span><span class="n">mm_opts</span><span class="p">;</span>
+<span class="w">  </span><span class="n">mm_opts</span><span class="p">.</span><span class="n">decompose_errors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2DSparseMatrix</span><span class="w"> </span><span class="n">m2d_dec</span><span class="p">;</span>
+<span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">M2OSparseMatrix</span><span class="w"> </span><span class="n">m2o_dec</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">dem_mm_decomposed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">dem_from_kernel</span><span class="p">(</span>
+<span class="w">      </span><span class="n">memory_experiment</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">noise</span><span class="p">,</span><span class="w"> </span><span class="n">mm_opts</span><span class="p">,</span><span class="w"> </span><span class="n">m2d_dec</span><span class="p">,</span><span class="w"> </span><span class="n">m2o_dec</span><span class="p">,</span>
+<span class="w">      </span><span class="cm">/*rounds=*/</span><span class="mi">2</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>Both matrices are computed in the same pass as the DEM, so requesting them adds
+no additional circuit execution. They can be combined with any of the DEM
+options above (for example <code class="docutils literal notranslate"><span class="pre">decompose_errors=True</span></code>).</p>
+<p>For the <code class="docutils literal notranslate"><span class="pre">memory_experiment</span></code> kernel above (with <code class="docutils literal notranslate"><span class="pre">rounds=2</span></code>) there are nine
+measurements and six detectors, so <code class="docutils literal notranslate"><span class="pre">m2d</span></code> is a <code class="docutils literal notranslate"><span class="pre">6</span> <span class="pre">x</span> <span class="pre">9</span></code> matrix and <code class="docutils literal notranslate"><span class="pre">m2o</span></code> is
+a <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">x</span> <span class="pre">9</span></code> matrix. Each detector pairs a qubit’s measurement in one round with
+its value in the previous round, which shows up as the two ones per row of
+<code class="docutils literal notranslate"><span class="pre">m2d</span></code>; the single logical observable reads the three final-round
+measurements, giving the three ones in <code class="docutils literal notranslate"><span class="pre">m2o</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>m2d shape: (6, 9)
+m2o shape: (1, 9)
+m2d:
+[[1 0 0 1 0 0 0 0 0]
+ [0 1 0 0 1 0 0 0 0]
+ [0 0 1 0 0 1 0 0 0]
+ [0 0 0 1 0 0 1 0 0]
+ [0 0 0 0 1 0 0 1 0]
+ [0 0 0 0 0 1 0 0 1]]
+m2o:
+[[0 0 0 0 0 0 1 1 1]]
+</pre></div>
+</div>
+</section>
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
@@ -1307,7 +1475,7 @@ Clifford circuits; a non-Clifford gate raises a diagnostic.</p></li>
 <li><p><strong>No measurement-conditional control flow.</strong> Branching on a measurement result
 changes the measurement count shot-to-shot and breaks the detector matrix
 model; such kernels are rejected.</p></li>
-<li><p><strong>Independent Pauli noise.</strong> Each error mechanism is assumed independent..</p></li>
+<li><p><strong>Independent Pauli noise.</strong> Each error mechanism is assumed independent.</p></li>
 <li><p><strong>Pre-decomposition.</strong> The DEM reflects the abstract kernel circuit, not the
 hardware-decomposed circuit.</p></li>
 </ul>

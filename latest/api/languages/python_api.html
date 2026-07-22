@@ -27,7 +27,8 @@
         <script src="../../_static/clipboard.min.js"></script>
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script src="../../_static/filter.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -219,6 +220,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#dem-options">DEM Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#measurement-matrices">Measurement Matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -293,12 +296,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/applications.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
@@ -314,30 +311,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q">Implementing in CUDA-Q</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html">Deutsch’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Phase-oracle">Phase oracle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation">QAOA Implementation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hybrid_quantum_neural_networks.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
@@ -371,47 +344,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_teleportation.html">Quantum Teleporation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -421,44 +358,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_vqe.html">ADAPT-VQE algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Single-excitation">Single excitation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Double-excitation">Double excitation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Reference-State:">Reference State:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge_detection.html">Quantum edge detection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Image">Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Post-processing">Post-processing</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
@@ -485,25 +384,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/grovers.html">Grover’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Problem">Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
@@ -513,22 +393,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qm_mm_pe.html">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Key-concepts:">Key concepts:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps">PE-VQE-SCF Algorithm Steps</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)">Step 1: Initialize (Classical pre-processing)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian">Step 2: Build the Hamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE">Step 3: Run VQE</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment">Step 4: Update Environment</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop">Step 5: Self-Consistency Loop</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Requirments:">Requirments:</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
@@ -699,6 +563,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../using/realtime.html">   Realtime</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/realtime/installation.html">Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file">HSB FPGA IP core and RFSoC bit-file</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/installation.html#latency-measurement">Latency Measurement</a></li>
 </ul>
@@ -791,6 +656,26 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#qec-terminology">QEC Terminology</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#qec-decoder-handler">QEC Decoder Handler</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/protocol.html#decoding-rounds">Decoding Rounds</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/cpu_transport.html">CPU RoCE Transport</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/cpu_transport.html#c-abi">C ABI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/cpu_transport.html#two-phase-bring-up-setup-connect">Two-phase bring-up (<code class="docutils literal notranslate"><span class="pre">setup</span></code> / <code class="docutils literal notranslate"><span class="pre">connect</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/cpu_transport.html#tx-modes">TX modes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu">Testing (<code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/realtime/device_call.html">Device Call Channels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#the-device-call-model">The <code class="docutils literal notranslate"><span class="pre">device_call</span></code> model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#selecting-a-channel">Selecting a channel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#extending-an-in-process-service">Extending an in-process service</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/device_call.html#the-cpu-roce-channel">The <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/device_call.html#wire-pattern-fpga-compatible">Wire pattern (FPGA-compatible)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/device_call.html#connection-setup">Connection setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/device_call.html#running-it">Running it</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/device_call.html#test-harness">Test harness</a></li>
 </ul>
 </li>
 </ul>
@@ -1006,6 +891,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#quantum-embeddings">Quantum Embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1313,7 +1202,8 @@ one on first access.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.from_json">
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">jStr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overrideDict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.from_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert a JSON string into a new PyKernelDecorator object.</p>
+<dd><p>Convert a JSON string (as produced by <code class="code docutils literal notranslate"><span class="pre">to_json</span></code>) into a new
+PyKernelDecorator object.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1791,13 +1681,12 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.dem_from_kernel">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">dem_from_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.dem_from_kernel" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">dem_from_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">dem_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.dem_from_kernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a detector error model (DEM) from a CUDA-Q kernel.</p>
-<p>Runs <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> under the internal <code class="code docutils literal notranslate"><span class="pre">&quot;dem&quot;</span></code> execution context, captures
-the recorded circuit from the backend, and returns Stim’s standard
-<code class="code docutils literal notranslate"><span class="pre">.dem</span></code> text via <code class="code docutils literal notranslate"><span class="pre">stim::DetectorErrorModel::str()</span></code>. The active CUDA-Q
-target is unaffected; the analysis simulator is an internal,
-thread-local override.</p>
+<p>Runs <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> under <code class="code docutils literal notranslate"><span class="pre">dem_policy</span></code> with a thread-local Stim analysis
+scope, then returns Stim’s standard <code class="code docutils literal notranslate"><span class="pre">.dem</span></code> text via
+<code class="code docutils literal notranslate"><span class="pre">stim::DetectorErrorModel::str()</span></code>. The active CUDA-Q target is
+unaffected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1805,16 +1694,162 @@ thread-local override.</p>
 <li><p><strong>*arguments</strong> – Concrete argument values forwarded to the kernel invocation.</p></li>
 <li><p><strong>noise_model</strong> (<a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a>, optional) – Noise model layered on
 top of any <code class="code docutils literal notranslate"><span class="pre">apply_noise</span></code> ops already present in the kernel.</p></li>
+<li><p><strong>decompose_errors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Decompose hyper-edge error
+mechanisms into pairs of two-detector edges. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>fold_loops</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Fold loop bodies in the circuit for a
+more compact DEM. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>allow_gauge_detectors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Allow detectors whose parity
+is not determined by the circuit. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>approximate_disjoint_errors_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Threshold
+for approximating disjoint-error products; set to <code class="docutils literal notranslate"><span class="pre">0</span></code> to
+disable. Default <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p></li>
+<li><p><strong>ignore_decomposition_failures</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – When decomposition
+fails for an error mechanism, insert it into the DEM undecomposed
+(as a hyper-edge) instead of raising an exception. Only relevant
+when <code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>block_decomposition_from_introducing_remnant_edges</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Prevent the decomposer from introducing remnant edges.
+Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>return_measurement_matrices</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – When True, also return
+the sparse measurements-to-detectors (m2d) and
+measurements-to-observables (m2o) matrices alongside the DEM text.
+Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>UTF-8 string in Stim’s standard <code class="code docutils literal notranslate"><span class="pre">.dem</span></code> file format. Consumers
-that need a structured DEM can parse it with
-<code class="code docutils literal notranslate"><span class="pre">stim.DetectorErrorModel(text)</span></code>.</p>
+<dd class="field-even"><p><p>a UTF-8 string in
+Stim’s standard <code class="code docutils literal notranslate"><span class="pre">.dem</span></code> file format. Consumers that need a structured DEM
+can parse it with <code class="code docutils literal notranslate"><span class="pre">stim.DetectorErrorModel(text)</span></code>.</p>
+<p>If <code class="code docutils literal notranslate"><span class="pre">return_measurement_matrices</span></code> is True: a tuple
+<code class="docutils literal notranslate"><span class="pre">(dem_text,</span> <span class="pre">m2d,</span> <span class="pre">m2o)</span></code> where both matrices are
+<code class="docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix</span></code> with binary entries.
+<code class="docutils literal notranslate"><span class="pre">m2d</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_detectors,</span> <span class="pre">num_measurements)</span></code>: entry
+<code class="docutils literal notranslate"><span class="pre">m2d[d,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to detector <code class="docutils literal notranslate"><span class="pre">d</span></code>.
+<code class="docutils literal notranslate"><span class="pre">m2o</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_observables,</span> <span class="pre">num_measurements)</span></code>: entry
+<code class="docutils literal notranslate"><span class="pre">m2o[k,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to observable <code class="docutils literal notranslate"><span class="pre">k</span></code>.
+Measurement indices are chronological.</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If <code class="code docutils literal notranslate"><span class="pre">return_measurement_matrices</span></code> is False (default)</p>
 </dd>
 </dl>
 </dd></dl>
 
+</section>
+<section id="cudaq-contrib">
+<h2><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code><a class="headerlink" href="#cudaq-contrib" title="Permalink to this heading">¶</a></h2>
+<section id="quantum-embeddings">
+<h3>Quantum Embeddings<a class="headerlink" href="#quantum-embeddings" title="Permalink to this heading">¶</a></h3>
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.contrib.amplitude_encode">
+<span class="sig-prename descclassname"><span class="pre">cudaq.contrib.</span></span><span class="sig-name descname"><span class="pre">amplitude_encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">numpy.ndarray</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.State" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"><span class="pre">State</span></a></span></span><a class="headerlink" href="#cudaq.contrib.amplitude_encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map classical features to a normalized quantum state by amplitude encoding.</p>
+<p>Amplitude encoding represents a classical feature vector as the amplitudes
+of a pure state in the computational basis. Given a length-<span class="math notranslate nohighlight">\(d\)</span> vector
+<span class="math notranslate nohighlight">\(\mathbf{x} = (x_0, \ldots, x_{d-1})\)</span> (real or complex), the
+procedure is:</p>
+<ol class="arabic simple">
+<li><p><strong>Pad</strong> to length <span class="math notranslate nohighlight">\(N = 2^n\)</span> for the smallest <span class="math notranslate nohighlight">\(n\)</span> with
+<span class="math notranslate nohighlight">\(N \ge d\)</span>.
+The padded vector <span class="math notranslate nohighlight">\(\mathbf{x}'\)</span> satisfies <span class="math notranslate nohighlight">\(x'_i = x_i\)</span> for
+<span class="math notranslate nohighlight">\(i &lt; d\)</span> and <span class="math notranslate nohighlight">\(x'_i = \texttt{pad}\)</span> for <span class="math notranslate nohighlight">\(d \le i &lt; N\)</span>.</p></li>
+<li><p><strong>Normalize</strong> with the Euclidean (L2) norm (must be non-zero).
+Coefficients are <span class="math notranslate nohighlight">\(α_i = x'_i / \|\mathbf{x}'\|_2\)</span>.</p></li>
+<li><p><strong>Form the state</strong> in the <span class="math notranslate nohighlight">\(n\)</span>-qubit computational basis:
+<span class="math notranslate nohighlight">\(|\psi⟩ = \sum_{i=0}^{N-1} α_i |i⟩\)</span>, where
+<span class="math notranslate nohighlight">\(|i⟩\)</span> is the basis <code class="docutils literal notranslate"><span class="pre">ket</span></code> with index <span class="math notranslate nohighlight">\(i\)</span> in binary.</p></li>
+</ol>
+<p>The returned <code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code> stores <span class="math notranslate nohighlight">\(α_i\)</span> in little-endian index
+order (consistent with <code class="docutils literal notranslate"><span class="pre">cudaq.State</span></code> / <code class="docutils literal notranslate"><span class="pre">qvector(state)</span></code>). Real inputs are
+promoted to complex amplitudes with zero imaginary part before padding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> – Classical features as a list, NumPy/CuPy array, or existing
+<code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code> (re-normalized after any padding).</p></li>
+<li><p><strong>pad</strong> – Value used to pad when <code class="docutils literal notranslate"><span class="pre">len(data)</span></code> is not a power of two (default
+<code class="docutils literal notranslate"><span class="pre">0</span></code> for zero-padding to the nearest <code class="docutils literal notranslate"><span class="pre">2^n</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Normalized state vector suitable for simulation and</dt><dd><p><code class="docutils literal notranslate"><span class="pre">cudaq.State.from_data</span></code> workflows.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">data</span></code> is empty, has zero norm after padding, or is not
+    a 1D vector.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">data</span></code> has an unsupported type.</p></li>
+</ul>
+</dd>
+</dl>
+<p>See <code class="docutils literal notranslate"><span class="pre">cudaq.contrib.examples</span></code> for complete examples.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.contrib.angular_encode">
+<span class="sig-prename descclassname"><span class="pre">cudaq.contrib.</span></span><span class="sig-name descname"><span class="pre">angular_encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel_or_q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_or_angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Y'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.contrib.angular_encode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode classical features as single-qubit rotation gates inside a kernel.</p>
+<p>Angular (rotation) encoding maps a classical angle vector
+(<span class="math notranslate nohighlight">\(θ_0\)</span>, <span class="math notranslate nohighlight">\(\ldots\)</span>, <span class="math notranslate nohighlight">\(θ_{n-1}\)</span>) to an
+<span class="math notranslate nohighlight">\(n\)</span>-qubit product state by applying one parameterized rotation per
+qubit. Starting from the <span class="math notranslate nohighlight">\(n\)</span>-fold product of <span class="math notranslate nohighlight">\(|0⟩\)</span>, the
+encoded state is</p>
+<div class="math notranslate nohighlight">
+\[|ψ⟩
+= \prod_{i=0}^{n-1} R_{\mathrm{axis}}(θ_i)\,|0⟩_i,\]</div>
+<p>where the product applies <span class="math notranslate nohighlight">\(R_{\mathrm{axis}}(θ_i)\)</span> on qubit
+<span class="math notranslate nohighlight">\(i\)</span> and leaves other qubits unchanged. CUDA-Q uses the standard Pauli
+rotation convention</p>
+<div class="math notranslate nohighlight">
+\[R_P(θ) = e^{-i θ P / 2}, \quad P \in \{X, Y, Z\},\]</div>
+<p>implemented as <code class="docutils literal notranslate"><span class="pre">rx(θ)</span></code>, <code class="docutils literal notranslate"><span class="pre">ry(θ)</span></code>, or <code class="docutils literal notranslate"><span class="pre">rz(θ)</span></code> when
+<code class="docutils literal notranslate"><span class="pre">rotation</span></code> is <code class="docutils literal notranslate"><span class="pre">'X'</span></code>, <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'Z'</span></code> respectively (default <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>).</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">rotation='Y'</span></code> on qubit <span class="math notranslate nohighlight">\(i\)</span> gives
+<span class="math notranslate nohighlight">\(R_Y(θ_i)|0⟩ = \cos(θ_i/2)|0⟩ +
+\sin(θ_i/2)|1⟩\)</span>.</p>
+<p>The number of angles must match the number of qubits in <code class="docutils literal notranslate"><span class="pre">q</span></code> when the
+register size is known at compile time.</p>
+<p>Two call patterns are supported:</p>
+<ul class="simple">
+<li><p><strong>Kernel language</strong> (inside <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code>): intercepted by the
+compiler; host calls with <code class="docutils literal notranslate"><span class="pre">(q,</span> <span class="pre">angles)</span></code> raise <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code>.</p></li>
+<li><p><strong>Builder</strong> (<code class="docutils literal notranslate"><span class="pre">cudaq.make_kernel()</span></code>): call
+<code class="docutils literal notranslate"><span class="pre">angular_encode(kernel,</span> <span class="pre">qubits,</span> <span class="pre">angles,</span> <span class="pre">rotation='Y')</span></code> to append
+<code class="docutils literal notranslate"><span class="pre">rx</span></code>/<code class="docutils literal notranslate"><span class="pre">ry</span></code>/<code class="docutils literal notranslate"><span class="pre">rz</span></code> gates to the circuit under construction.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel_or_q</strong> – In builder mode, the <code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code> from
+<code class="docutils literal notranslate"><span class="pre">cudaq.make_kernel()</span></code>. In kernel language, the <code class="docutils literal notranslate"><span class="pre">q</span></code> register
+(handled by the compiler, not this Python function).</p></li>
+<li><p><strong>q_or_angles</strong> – In builder mode, the <code class="docutils literal notranslate"><span class="pre">qalloc</span></code> register. In kernel language,
+the <code class="docutils literal notranslate"><span class="pre">angles</span></code> list.</p></li>
+<li><p><strong>angles</strong> – Builder mode only — <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> or a kernel <code class="docutils literal notranslate"><span class="pre">list[float]</span></code>
+argument (<code class="xref py py-class docutils literal notranslate"><span class="pre">QuakeValue</span></code>).</p></li>
+<li><p><strong>rotation</strong> – Rotation axis: <code class="docutils literal notranslate"><span class="pre">'X'</span></code>, <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'Z'</span></code> (default <code class="docutils literal notranslate"><span class="pre">'Y'</span></code>;
+case-insensitive in builder mode).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><strong>RuntimeError</strong></a> – Kernel-language host misuse with <code class="docutils literal notranslate"><span class="pre">(q,</span> <span class="pre">angles)</span></code>.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – Invalid <code class="docutils literal notranslate"><span class="pre">rotation</span></code> or angle/qubit count mismatch (builder).</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#TypeError" title="(in Python v3.14)"><strong>TypeError</strong></a> – Invalid builder arguments.</p></li>
+</ul>
+</dd>
+</dl>
+<p>See <code class="docutils literal notranslate"><span class="pre">cudaq.contrib.examples</span></code> for complete examples.</p>
+</dd></dl>
+
+</section>
 </section>
 <section id="quantum-error-correction">
 <h2>Quantum Error Correction<a class="headerlink" href="#quantum-error-correction" title="Permalink to this heading">¶</a></h2>
@@ -2075,7 +2110,7 @@ information about the data computed during evolution.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.Schedule">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Schedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.4)"><span class="pre">numpy.complexfloating</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Schedule" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Schedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">get_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.14)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.5)"><span class="pre">numpy.complexfloating</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Schedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Represents an iterator that produces all values needed for evaluating
 an operator expression at different time steps.</p>
 </dd></dl>
@@ -2130,7 +2165,7 @@ an operator expression at different time steps.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.operators.</span></span><span class="sig-name descname"><span class="pre">ScalarOperator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.ScalarOperator" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="cudaq.operators.ScalarOperator.const">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">const</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constant_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.4)"><span class="pre">numpy.complexfloating</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.ScalarOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"><span class="pre">ScalarOperator</span></a></span></span><a class="headerlink" href="#cudaq.operators.ScalarOperator.const" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">const</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constant_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.5)"><span class="pre">numpy.complexfloating</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.ScalarOperator" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"><span class="pre">ScalarOperator</span></a></span></span><a class="headerlink" href="#cudaq.operators.ScalarOperator.const" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a scalar operator that has a constant value.</p>
 </dd></dl>
 
@@ -2154,7 +2189,7 @@ an operator expression at different time steps.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.operators.ScalarOperator.to_matrix">
-<span class="sig-name descname"><span class="pre">to_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.4)"><span class="pre">numpy.complexfloating</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.4)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.4)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cudaq.operators.ScalarOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">to_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.14)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.5)"><span class="pre">numpy.complexfloating</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.14)"><span class="pre">complex</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.5)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.5)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#cudaq.operators.ScalarOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class method for consistency with other operator classes.
 Invokes the generator with the given keyword arguments.</p>
 <dl class="field-list simple">
@@ -2233,7 +2268,7 @@ between 0.0 and 1.0</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.operators.define">
-<span class="sig-prename descclassname"><span class="pre">operators.</span></span><span class="sig-name descname"><span class="pre">define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expected_dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.4)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.4)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.operators.define" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">operators.</span></span><span class="sig-name descname"><span class="pre">define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expected_dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.5)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.5)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.operators.define" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a matrix operator element with the given id.
 After definition, an the defined elementary operator can be instantiated by
 providing the operator id as well as the degree(s) of freedom that it acts on.
@@ -2310,7 +2345,12 @@ on multiple degrees of freedom.</p></li>
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.degrees">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">degrees</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.degrees" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a vector that lists all degrees of freedom that the operator targets. The order of degrees is from smallest to largest and reflects the ordering of the matrix returned by <code class="code docutils literal notranslate"><span class="pre">to_matrix</span></code>. Specifically, the indices of a statevector with two qubits are {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates that a state where the qubit with index 0 equals 1 with probability 1 is given by the vector {0., 1., 0., 0.}.</p>
+<dd><p>qubit 0 contributes 2^0 to the statevector index, qubit 1 contributes 2^1, and so on. For two qubits, statevector index 1 corresponds to the basis state <a href="#id2"><span class="problematic" id="id3">|</span></a>q_0 q_1&gt; = <a href="#id4"><span class="problematic" id="id5">|</span></a>10&gt; (qubit 0 in <a href="#id6"><span class="problematic" id="id7">|</span></a>1&gt;, qubit 1 in <a href="#id8"><span class="problematic" id="id9">|</span></a>0&gt;), so a state where qubit 0 equals 1 with probability 1 is the vector {0., 1., 0., 0.}. This convention matches <code class="code docutils literal notranslate"><span class="pre">cudaq.get_state</span></code>, <code class="code docutils literal notranslate"><span class="pre">SampleResult</span></code> bitstring keys, and the Pauli word produced by <code class="code docutils literal notranslate"><span class="pre">get_pauli_word()</span></code>, all of which place qubit 0 as the left-most character. Note that writing the statevector index as a binary number (e.g. index 1 as <code class="code docutils literal notranslate"><span class="pre">01</span></code>) places qubit 0 on the right, since it is the least-significant bit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns a vector that lists all degrees of freedom (qubit indices) that the operator targets, from smallest to largest. This ordering reflects the basis ordering of the matrix returned by <code class="code docutils literal notranslate"><span class="pre">to_matrix</span></code></p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2331,23 +2371,6 @@ on multiple degrees of freedom.</p></li>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.empty_op">
-<span class="sig-name descname"><span class="pre">empty_op</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.empty_op" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.for_each_pauli">
-<span class="sig-name descname"><span class="pre">for_each_pauli</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.for_each_pauli" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - iterator over sum and then iterator over term instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.for_each_term">
-<span class="sig-name descname"><span class="pre">for_each_term</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.for_each_term" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use standard iteration instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.from_json">
 <span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.from_json" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -2358,44 +2381,14 @@ on multiple degrees of freedom.</p></li>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_coefficient">
-<span class="sig-name descname"><span class="pre">get_coefficient</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_coefficient" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">evaluate_coefficient</span></code> on each term (product operator) instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_qubit_count">
-<span class="sig-name descname"><span class="pre">get_qubit_count</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_qubit_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_raw_data">
-<span class="sig-name descname"><span class="pre">get_raw_data</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.get_term_count">
-<span class="sig-name descname"><span class="pre">get_term_count</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.get_term_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">term_count</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.identity">
 <span class="sig-name descname"><span class="pre">identity</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.identity" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.is_identity">
-<span class="sig-name descname"><span class="pre">is_identity</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.is_identity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - is_identity will only be supported on each term (product operator) in future releases.</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.max_degree">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_degree</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.max_degree" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the smallest index of the degrees of freedom that the operator targets.</p>
+<dd><p>Returns the largest index of the degrees of freedom that the operator targets.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -2469,12 +2462,6 @@ on multiple degrees of freedom.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.to_string">
-<span class="sig-name descname"><span class="pre">to_string</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.to_string" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use the standard <code class="code docutils literal notranslate"><span class="pre">str</span></code> conversion or <code class="code docutils literal notranslate"><span class="pre">get_pauli_word</span></code> on each term instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.trim">
 <span class="sig-name descname"><span class="pre">trim</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.trim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Removes all terms from the sum for which the absolute value of the coefficient is below the given tolerance.</p>
@@ -2518,12 +2505,6 @@ on multiple degrees of freedom.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.distribute_terms">
-<span class="sig-name descname"><span class="pre">distribute_terms</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.distribute_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - instantiate a <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> from this <code class="code docutils literal notranslate"><span class="pre">SpinOperatorTerm</span></code> and call distribute_terms on that.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.dump">
 <span class="sig-name descname"><span class="pre">dump</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.dump" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prints the string representation of the operator to the standard output.</p>
@@ -2533,12 +2514,6 @@ on multiple degrees of freedom.</p></li>
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.evaluate_coefficient">
 <span class="sig-name descname"><span class="pre">evaluate_coefficient</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.evaluate_coefficient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the evaluated coefficient of the product operator. The parameters is a map of parameter names to their concrete, complex values.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.for_each_pauli">
-<span class="sig-name descname"><span class="pre">for_each_pauli</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.for_each_pauli" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use standard iteration instead.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2553,27 +2528,9 @@ on multiple degrees of freedom.</p></li>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_coefficient">
-<span class="sig-name descname"><span class="pre">get_coefficient</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_coefficient" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">evaluate_coefficient</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_pauli_word">
 <span class="sig-name descname"><span class="pre">get_pauli_word</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_pauli_word" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the Pauli word representation of this product operator.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_qubit_count">
-<span class="sig-name descname"><span class="pre">get_qubit_count</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use <code class="code docutils literal notranslate"><span class="pre">qubit_count</span></code> instead.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.get_raw_data">
-<span class="sig-name descname"><span class="pre">get_raw_data</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.get_raw_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2668,12 +2625,6 @@ on multiple degrees of freedom.</p></li>
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix">
 <span class="sig-name descname"><span class="pre">to_sparse_matrix</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the sparse matrix representation of the operator. This representation is a <code class="code docutils literal notranslate"><span class="pre">Tuple[list[complex],</span> <span class="pre">list[int],</span> <span class="pre">list[int]]</span></code>, encoding the non-zero values, rows, and columns of the matrix. This format is supported by <code class="code docutils literal notranslate"><span class="pre">scipy.sparse.csr_array</span></code>.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.to_string">
-<span class="sig-name descname"><span class="pre">to_string</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.to_string" title="Permalink to this definition">¶</a></dt>
-<dd><p>Deprecated - use the standard <code class="code docutils literal notranslate"><span class="pre">str</span></code> conversion or use <code class="code docutils literal notranslate"><span class="pre">get_pauli_word</span></code> instead.</p>
 </dd></dl>
 
 </dd></dl>
@@ -3463,7 +3414,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.operators.</span></span><span class="sig-name descname"><span class="pre">MatrixOperatorElement</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.MatrixOperatorElement" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py method">
 <dt class="sig sig-object py" id="cudaq.operators.MatrixOperatorElement.define">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.4)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.4)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.operators.MatrixOperatorElement.define" title="Permalink to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.5)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.5)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.operators.MatrixOperatorElement.define" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates the definition of an elementary operator with the given id.</p>
 </dd></dl>
 
@@ -3507,7 +3458,7 @@ on multiple degrees of freedom.</p></li>
 
 <span class="target" id="module-cudaq.operators.custom"></span><dl class="py function">
 <dt class="sig sig-object py" id="cudaq.operators.custom.define">
-<span class="sig-prename descclassname"><span class="pre">cudaq.operators.custom.</span></span><span class="sig-name descname"><span class="pre">define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.4)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.4)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.operators.custom.define" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.operators.custom.</span></span><span class="sig-name descname"><span class="pre">define</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_dimensions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><span class="pre">ndarray</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype" title="(in NumPy v2.5)"><span class="pre">dtype</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating" title="(in NumPy v2.5)"><span class="pre">complexfloating</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">override</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.operators.custom.define" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a matrix operator element with the given id.
 After definition, an the defined elementary operator can be instantiated by
 providing the operator id as well as the degree(s) of freedom that it acts on.

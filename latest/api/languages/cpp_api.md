@@ -229,6 +229,12 @@ latest
     -   [Detector Error
         Models](../../using/examples/dem_from_kernel.html){.reference
         .internal}
+        -   [DEM
+            Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
+            .internal}
+        -   [Measurement
+            Matrices](../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -373,17 +379,6 @@ latest
                 Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
-    -   [Max-Cut with
-        QAOA](../../applications/python/qaoa.html){.reference .internal}
-    -   [Molecular docking via
-        DC-QAOA](../../applications/python/digitized_counterdiabatic_qaoa.html){.reference
-        .internal}
-        -   [Setting up the Molecular Docking
-            Problem](../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
-            .internal}
-        -   [CUDA-Q
-            Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
-            .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../../applications/python/krylov.html){.reference
@@ -416,60 +411,6 @@ latest
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
-    -   [Bernstein-Vazirani
-        Algorithm](../../applications/python/bernstein_vazirani.html){.reference
-        .internal}
-        -   [Classical
-            case](../../applications/python/bernstein_vazirani.html#Classical-case){.reference
-            .internal}
-        -   [Quantum
-            case](../../applications/python/bernstein_vazirani.html#Quantum-case){.reference
-            .internal}
-        -   [Implementing in
-            CUDA-Q](../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
-            .internal}
-    -   [Cost
-        Minimization](../../applications/python/cost_minimization.html){.reference
-        .internal}
-    -   [Deutsch's
-        Algorithm](../../applications/python/deutsch_algorithm.html){.reference
-        .internal}
-        -   [XOR [\\(\\oplus\\)]{.math .notranslate
-            .nohighlight}](../../applications/python/deutsch_algorithm.html#XOR-\oplus){.reference
-            .internal}
-        -   [Quantum
-            oracles](../../applications/python/deutsch_algorithm.html#Quantum-oracles){.reference
-            .internal}
-        -   [Phase
-            oracle](../../applications/python/deutsch_algorithm.html#Phase-oracle){.reference
-            .internal}
-        -   [Quantum
-            parallelism](../../applications/python/deutsch_algorithm.html#Quantum-parallelism){.reference
-            .internal}
-        -   [Deutsch's
-            Algorithm:](../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
-            .internal}
-    -   [Divisive Clustering With Coresets Using
-        CUDA-Q](../../applications/python/divisive_clustering_coresets.html){.reference
-        .internal}
-        -   [Data
-            preprocessing](../../applications/python/divisive_clustering_coresets.html#Data-preprocessing){.reference
-            .internal}
-        -   [Quantum
-            functions](../../applications/python/divisive_clustering_coresets.html#Quantum-functions){.reference
-            .internal}
-        -   [Divisive Clustering
-            Function](../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
-            .internal}
-        -   [QAOA
-            Implementation](../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation){.reference
-            .internal}
-        -   [Scaling simulations with
-            CUDA-Q](../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
-            .internal}
-    -   [Hybrid Quantum Neural
-        Networks](../../applications/python/hybrid_quantum_neural_networks.html){.reference
-        .internal}
     -   [Using the Hadamard Test to Determine Quantum Krylov Subspace
         Decomposition Matrix
         Elements](../../applications/python/hadamard_test.html){.reference
@@ -543,18 +484,6 @@ latest
         -   [Relevant
             references](../../applications/python/hamiltonian_simulation.html#Relevant-references){.reference
             .internal}
-    -   [Quantum Fourier
-        Transform](../../applications/python/quantum_fourier_transform.html){.reference
-        .internal}
-        -   [Quantum Fourier Transform
-            revisited](../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
-            .internal}
-    -   [Quantum
-        Teleporation](../../applications/python/quantum_teleportation.html){.reference
-        .internal}
-        -   [Teleportation
-            explained](../../applications/python/quantum_teleportation.html#Teleportation-explained){.reference
-            .internal}
     -   [Quantum
         Volume](../../applications/python/quantum_volume.html){.reference
         .internal}
@@ -569,66 +498,6 @@ latest
             .internal}
         -   [Inverse of full confusion
             matrix](../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
-            .internal}
-    -   [Compiling Unitaries Using Diffusion
-        Models](../../applications/python/unitary_compilation_diffusion_models.html){.reference
-        .internal}
-        -   [Diffusion model
-            pipeline](../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
-            .internal}
-        -   [Setup and load
-            models](../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
-            .internal}
-            -   [Load discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
-                .internal}
-            -   [Load continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
-                .internal}
-            -   [Create helper
-                functions](../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
-                .internal}
-        -   [Unitary
-            compilation](../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
-            .internal}
-            -   [Random
-                unitary](../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary){.reference
-                .internal}
-            -   [Discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model){.reference
-                .internal}
-            -   [Continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model){.reference
-                .internal}
-            -   [Quantum Fourier
-                transform](../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
-                .internal}
-            -   [XXZ-Hamiltonian
-                evolution](../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
-                .internal}
-        -   [Choosing the circuit you
-            need](../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
-            .internal}
-    -   [VQE with gradients, active spaces, and gate
-        fusion](../../applications/python/vqe_advanced.html){.reference
-        .internal}
-        -   [The Basics of
-            VQE](../../applications/python/vqe_advanced.html#The-Basics-of-VQE){.reference
-            .internal}
-        -   [Installing/Loading Relevant
-            Packages](../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
-            .internal}
-        -   [Implementing VQE in
-            CUDA-Q](../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
-            .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
-            .internal}
-        -   [Using an Active
-            Space](../../applications/python/vqe_advanced.html#Using-an-Active-Space){.reference
-            .internal}
-        -   [Gate Fusion for Larger
-            Circuits](../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](../../applications/python/afqmc.html){.reference
@@ -651,78 +520,6 @@ latest
         -   [Setup of the AFQMC
             parameters](../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters){.reference
             .internal}
-    -   [ADAPT-QAOA
-        algorithm](../../applications/python/adapt_qaoa.html){.reference
-        .internal}
-        -   [Simulation
-            input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
-            .internal}
-        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
-            .nohighlight} of the max-cut
-            graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
-            .internal}
-        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
-            .internal}
-        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
-            .internal}
-        -   [Beginning of ADAPT-QAOA
-            iteration:](../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
-            .internal}
-    -   [ADAPT-VQE
-        algorithm](../../applications/python/adapt_vqe.html){.reference
-        .internal}
-        -   [Classical
-            pre-processing](../../applications/python/adapt_vqe.html#Classical-pre-processing){.reference
-            .internal}
-        -   [Jordan
-            Wigner:](../../applications/python/adapt_vqe.html#Jordan-Wigner:){.reference
-            .internal}
-        -   [UCCSD operator
-            pool](../../applications/python/adapt_vqe.html#UCCSD-operator-pool){.reference
-            .internal}
-            -   [Single
-                excitation](../../applications/python/adapt_vqe.html#Single-excitation){.reference
-                .internal}
-            -   [Double
-                excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
-                .internal}
-        -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A_i\\)]{.math .notranslate
-            .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
-            .internal}
-        -   [Reference
-            State:](../../applications/python/adapt_vqe.html#Reference-State:){.reference
-            .internal}
-        -   [Quantum
-            kernels:](../../applications/python/adapt_vqe.html#Quantum-kernels:){.reference
-            .internal}
-        -   [Beginning of
-            ADAPT-VQE:](../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
-            .internal}
-    -   [Quantum edge
-        detection](../../applications/python/edge_detection.html){.reference
-        .internal}
-        -   [Image](../../applications/python/edge_detection.html#Image){.reference
-            .internal}
-        -   [Quantum Probability Image Encoding
-            (QPIE):](../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
-            .internal}
-            -   [Below we show how to encode an image using QPIE in
-                cudaq.](../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
-                .internal}
-        -   [Flexible Representation of Quantum Images
-            (FRQI):](../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
-            .internal}
-            -   [Building the FRQI
-                State:](../../applications/python/edge_detection.html#Building-the-FRQI-State:){.reference
-                .internal}
-        -   [Quantum Hadamard Edge Detection
-            (QHED)](../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
-            .internal}
-            -   [Post-processing](../../applications/python/edge_detection.html#Post-processing){.reference
-                .internal}
     -   [Factoring Integers With Shor's
         Algorithm](../../applications/python/shors.html){.reference
         .internal}
@@ -776,43 +573,6 @@ latest
             -   [(e) Generate electronic Hamiltonian using
                 UHF](../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
-    -   [Grover's
-        Algorithm](../../applications/python/grovers.html){.reference
-        .internal}
-        -   [Overview](../../applications/python/grovers.html#Overview){.reference
-            .internal}
-        -   [Problem](../../applications/python/grovers.html#Problem){.reference
-            .internal}
-        -   [Structure of Grover's
-            Algorithm](../../applications/python/grovers.html#Structure-of-Grover's-Algorithm){.reference
-            .internal}
-            -   [Step 1:
-                Preparation](../../applications/python/grovers.html#Step-1:-Preparation){.reference
-                .internal}
-            -   [Good and Bad
-                States](../../applications/python/grovers.html#Good-and-Bad-States){.reference
-                .internal}
-            -   [Step 2: Oracle
-                application](../../applications/python/grovers.html#Step-2:-Oracle-application){.reference
-                .internal}
-            -   [Step 3: Amplitude
-                amplification](../../applications/python/grovers.html#Step-3:-Amplitude-amplification){.reference
-                .internal}
-            -   [Steps 4 and 5: Iteration and
-                measurement](../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
-                .internal}
-    -   [Quantum
-        PageRank](../../applications/python/quantum_pagerank.html){.reference
-        .internal}
-        -   [Problem
-            Definition](../../applications/python/quantum_pagerank.html#Problem-Definition){.reference
-            .internal}
-        -   [Simulating Quantum PageRank by CUDA-Q
-            dynamics](../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
-            .internal}
-        -   [Breakdown of
-            Terms](../../applications/python/quantum_pagerank.html#Breakdown-of-Terms){.reference
-            .internal}
     -   [The UCCSD Wavefunction
         ansatz](../../applications/python/uccsd_wf_ansatz.html){.reference
         .internal}
@@ -834,41 +594,6 @@ latest
         -   [Ran's
             approach](../../applications/python/mps_encoding.html#Ran's-approach){.reference
             .internal}
-    -   [QM/MM simulation: VQE within a Polarizable Embedded
-        Framework.](../../applications/python/qm_mm_pe.html){.reference
-        .internal}
-        -   [Key
-            concepts:](../../applications/python/qm_mm_pe.html#Key-concepts:){.reference
-            .internal}
-        -   [PE-VQE-SCF Algorithm
-            Steps](../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
-            .internal}
-            -   [Step 1: Initialize (Classical
-                pre-processing)](../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
-                .internal}
-            -   [Step 2: Build the
-                Hamiltonian](../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
-                .internal}
-            -   [Step 3: Run
-                VQE](../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE){.reference
-                .internal}
-            -   [Step 4: Update
-                Environment](../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment){.reference
-                .internal}
-            -   [Step 5: Self-Consistency
-                Loop](../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
-                .internal}
-            -   [Requirments:](../../applications/python/qm_mm_pe.html#Requirments:){.reference
-                .internal}
-            -   [Example 1: LiH with 2 water
-                molecules.](../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
-                .internal}
-            -   [VQE, update environment, and scf
-                loop.](../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
-                .internal}
-            -   [Example 2: NH3 with 46 water molecule using active
-                space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
-                .internal}
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](../../applications/python/skqd.html){.reference
         .internal}
@@ -1154,6 +879,9 @@ latest
         .internal}
         -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](../../using/realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
@@ -1349,6 +1077,49 @@ latest
                 .internal}
             -   [Decoding
                 Rounds](../../using/realtime/protocol.html#decoding-rounds){.reference
+                .internal}
+    -   [CPU RoCE
+        Transport](../../using/realtime/cpu_transport.html){.reference
+        .internal}
+        -   [C
+            ABI](../../using/realtime/cpu_transport.html#c-abi){.reference
+            .internal}
+        -   [Two-phase bring-up ([`setup`{.docutils .literal
+            .notranslate}]{.pre} / [`connect`{.docutils .literal
+            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#two-phase-bring-up-setup-connect){.reference
+            .internal}
+        -   [TX
+            modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
+            .internal}
+        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
+            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+            .internal}
+    -   [Device Call
+        Channels](../../using/realtime/device_call.html){.reference
+        .internal}
+        -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
+            model](../../using/realtime/device_call.html#the-device-call-model){.reference
+            .internal}
+        -   [Selecting a
+            channel](../../using/realtime/device_call.html#selecting-a-channel){.reference
+            .internal}
+        -   [Extending an in-process
+            service](../../using/realtime/device_call.html#extending-an-in-process-service){.reference
+            .internal}
+        -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
+            channel](../../using/realtime/device_call.html#the-cpu-roce-channel){.reference
+            .internal}
+            -   [Wire pattern
+                (FPGA-compatible)](../../using/realtime/device_call.html#wire-pattern-fpga-compatible){.reference
+                .internal}
+            -   [Connection
+                setup](../../using/realtime/device_call.html#connection-setup){.reference
+                .internal}
+            -   [Running
+                it](../../using/realtime/device_call.html#running-it){.reference
+                .internal}
+            -   [Test
+                harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
 -   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
@@ -1742,6 +1513,12 @@ latest
                 .internal}
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](python_api.html#cudaq-contrib){.reference
+            .internal}
+            -   [Quantum
+                Embeddings](python_api.html#quantum-embeddings){.reference
                 .internal}
         -   [Quantum Error
             Correction](python_api.html#quantum-error-correction){.reference
@@ -8904,15 +8681,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1a48a76b343e31be61ee708b10e5a9ffa9 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[warnedNamedMeasurements]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext23warnedNamedMeasurementsE "Permalink to this definition"){.headerlink}\
-
-    :   Flag to indicate that a warning about named measurement
-        registers in sampling context has already been emitted.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1ExecutionContext_1ae3f00ca492659c5715faa185edecff1e .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_probabilities]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE "Permalink to this definition"){.headerlink}\
 
     :   Probability of occurrence of each error mechanism (column) in
@@ -8940,6 +8708,39 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         Note: Measurement Syndrome Matrix is defined in
         [https://arxiv.org/pdf/2407.13826](https://arxiv.org/pdf/2407.13826){.reference
         .external}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a7268afa9e6d2db245355782f45658fe7 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[exception_ptr]{.pre}]{.n}[ ]{.w}[[[deferredKernelException]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext23deferredKernelExceptionE "Permalink to this definition"){.headerlink}\
+
+    :   Captures an exception raised by the kernel while it runs on a
+        backend that cannot unwind C++ exceptions through JIT-compiled
+        kernel frames (notably macOS arm64, where the ORC-JIT'd kernel
+        frame carries no unwind info the system unwinder can use, so a
+        throw escaping into it calls [`std::terminate`{.docutils
+        .literal .notranslate}]{.pre}). The simulator stores the error
+        here instead of throwing across the JIT boundary, and the
+        launcher re-throws it from a C++ frame above that boundary once
+        the kernel returns. Callers therefore observe the same exception
+        they would on platforms where direct unwinding works.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a7be42e76958d7d38341d8d4af172ffe7 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[inKernelLaunch]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext14inKernelLaunchE "Permalink to this definition"){.headerlink}\
+
+    :   True while a JIT/AOT-compiled kernel frame is executing on this
+        thread (set by the launcher around the kernel invocation; see
+        QPU::InKernelLaunchScope). The simulator only defers exceptions
+        into [`deferredKernelException`{.docutils .literal
+        .notranslate}]{.pre} while this is set. Outside the kernel frame
+        (for example, gate application during sample/observe
+        finalization) there is no JIT frame for an exception to unwind
+        through, so it is thrown directly, preserving the behavior
+        callers see on all platforms.
     :::
 
 ```{=html}
@@ -12748,8 +12549,137 @@ discriminate a vector of handles.
 <!-- -->
 ```
 
+[]{#structcudaq_1_1dem__options .target}[[struct]{.pre}]{.k}[ ]{.w}[[[dem_options]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq11dem_optionsE "Permalink to this definition"){.headerlink}\
+
+:   Options forwarded to
+    [`stim::ErrorAnalyzer::circuit_to_detector_error_model`{.docutils
+    .literal .notranslate}]{.pre} when generating a Detector Error Model
+    (DEM) from a kernel.
+
+    ::: {.breathe-sectiondef .docutils .container}
+    Public Members
+
+    []{#structcudaq_1_1dem__options_1aba7e4e4b6d270880aa471962334271d1 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[decompose_errors]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options16decompose_errorsE "Permalink to this definition"){.headerlink}\
+
+    :   Decompose hyper-edge error mechanisms into pairs of two-detector
+        edges.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a4ddd6ec1bbfbd2f17402ed4cecfc12bd .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[fold_loops]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options10fold_loopsE "Permalink to this definition"){.headerlink}\
+
+    :   Fold loop bodies in the circuit for a more compact DEM.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a2051675feb7c9c9ca74405c944f7c051 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[allow_gauge_detectors]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options21allow_gauge_detectorsE "Permalink to this definition"){.headerlink}\
+
+    :   Allow detectors whose parity is not determined by the circuit.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1abbac197648f702c3a8dc264a72475eac .target}[[double]{.pre}]{.kt}[ ]{.w}[[[approximate_disjoint_errors_threshold]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[¶](#_CPPv4N5cudaq11dem_options37approximate_disjoint_errors_thresholdE "Permalink to this definition"){.headerlink}\
+
+    :   Threshold (in \[0,1\]) for approximating disjoint-error
+        products. Set to 0 to disable approximation.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a00b985d8bad25d910f177f344ec0a012 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[ignore_decomposition_failures]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options29ignore_decomposition_failuresE "Permalink to this definition"){.headerlink}\
+
+    :   When decomposition fails for an error mechanism, insert it into
+        the DEM undecomposed (as a hyper-edge) instead of raising an
+        exception. Only relevant when decompose_errors is true.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a77c3570e3971dfffad04c1109112f242 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[block_decomposition_from_introducing_remnant_edges]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options50block_decomposition_from_introducing_remnant_edgesE "Permalink to this definition"){.headerlink}\
+
+    :   Prevent the decomposer from introducing remnant edges that would
+        otherwise be needed to satisfy the decomposition.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1dem__options_1a00307bf104a7b5ddd47746d1b2aebf98 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[return_measurement_matrices]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq11dem_options27return_measurement_matricesE "Permalink to this definition"){.headerlink}\
+
+    :   When true, also compute the measurement-to-detector and
+        measurement-to-observable matrices.
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1M2DSparseMatrix .target}[[struct]{.pre}]{.k}[ ]{.w}[[[M2DSparseMatrix]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15M2DSparseMatrixE "Permalink to this definition"){.headerlink}\
+
+:   Sparse binary matrix mapping detectors (rows) to measurements
+    (columns). Returned alongside [[[`M2OSparseMatrix`{.docutils
+    .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#structcudaq_1_1M2OSparseMatrix){.reference .internal}
+    when [`return_measurement_matrices=True`{.docutils .literal
+    .notranslate}]{.pre} is passed to [`dem_from_kernel`{.docutils
+    .literal .notranslate}]{.pre} (Python), or via the
+    [`m2d_out`{.docutils .literal .notranslate}]{.pre} /
+    [`m2o_out`{.docutils .literal .notranslate}]{.pre} reference
+    overloads (C++).
+
+    [`rows[d]`{.docutils .literal .notranslate}]{.pre} lists the
+    chronological measurement indices that contribute to detector
+    [`d`{.docutils .literal .notranslate}]{.pre} (i.e. are XOR-ed
+    together to form its syndrome bit). [`num_measurements`{.docutils
+    .literal .notranslate}]{.pre} gives the total column count (shape is
+    [`rows.size()`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+    .literal .notranslate}[`×`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements`{.docutils .literal
+    .notranslate}]{.pre}).
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1M2OSparseMatrix .target}[[struct]{.pre}]{.k}[ ]{.w}[[[M2OSparseMatrix]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15M2OSparseMatrixE "Permalink to this definition"){.headerlink}\
+
+:   Sparse binary matrix mapping observables (rows) to measurements
+    (columns). Returned alongside [[[`M2DSparseMatrix`{.docutils
+    .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#structcudaq_1_1M2DSparseMatrix){.reference .internal}
+    when [`return_measurement_matrices=True`{.docutils .literal
+    .notranslate}]{.pre} is passed to [`dem_from_kernel`{.docutils
+    .literal .notranslate}]{.pre} (Python), or via the
+    [`m2d_out`{.docutils .literal .notranslate}]{.pre} /
+    [`m2o_out`{.docutils .literal .notranslate}]{.pre} reference
+    overloads (C++).
+
+    [`rows[k]`{.docutils .literal .notranslate}]{.pre} lists the
+    chronological measurement indices that contribute to observable
+    [`k`{.docutils .literal .notranslate}]{.pre}.
+    [`num_measurements`{.docutils .literal .notranslate}]{.pre} gives
+    the total column count (shape is [`rows.size()`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`×`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`num_measurements`{.docutils .literal
+    .notranslate}]{.pre}).
+
+```{=html}
+<!-- -->
+```
+
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#dem_8h_1aecd215fa18f2b3228c4ce099d426ed37 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "Permalink to this definition"){.headerlink}\
+[]{#dem_8h_1aa6d642af4c2fd345877890f5a7ea64f1 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[dem_options]{.pre}]{.n}](#_CPPv4N5cudaq11dem_optionsE "cudaq::dem_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsEDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and
     return the resulting model as a UTF-8 string in Stim's standard
@@ -12776,7 +12706,23 @@ discriminate a vector of handles.
             .std-ref}](#classcudaq_1_1noise__model){.reference
             .internal} semantics.
 
+        -   **options** -- Options forwarded to the Stim error analyzer
+            (see [[[`cudaq::dem_options`{.docutils .literal
+            .notranslate}]{.pre}]{.std
+            .std-ref}](#structcudaq_1_1dem__options){.reference
+            .internal}).
+
         -   **args** -- Arguments forwarded to the kernel invocation.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1aecd215fa18f2b3228c4ce099d426ed37 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Convenience overload: noise model with default options, forwarding
+    [`args`{.docutils .literal .notranslate}]{.pre} to the kernel.
 
 ```{=html}
 <!-- -->
@@ -12786,6 +12732,45 @@ discriminate a vector of handles.
 []{#dem_8h_1a1794cf82cce56758fd0c2381a63bbbe1 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Convenience overload for the no-noise case.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1a82a98b95470c7ac8cdecc2eeb9a85896 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[dem_options]{.pre}]{.n}](#_CPPv4N5cudaq11dem_optionsE "cudaq::dem_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2DSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2DSparseMatrixE "cudaq::M2DSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2d_out]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2OSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2OSparseMatrixE "cudaq::M2OSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2o_out]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERKN5cudaq11dem_optionsERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Overload that also returns the m2d and m2o sparse matrices, with
+    full control over analyzer options.
+
+    Parameters[:]{.colon}
+
+    :   -   **m2d_out** -- Populated with the measurements-to-detectors
+            matrix.
+
+        -   **m2o_out** -- Populated with the
+            measurements-to-observables matrix. Both are filled in a
+            single circuit pass.
+
+        -   **options** -- Options forwarded to the Stim error analyzer.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1a6a736ac424d1355cc56d4b84c5950543 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2DSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2DSparseMatrixE "cudaq::M2DSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2d_out]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2OSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2OSparseMatrixE "cudaq::M2OSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2o_out]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelERN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Convenience overload: m2d/m2o outputs with noise, default options.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1afb15e9b5a9b0e1d90377d73630bd542b .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelRN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2DSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2DSparseMatrixE "cudaq::M2DSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2d_out]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[M2OSparseMatrix]{.pre}]{.n}](#_CPPv4N5cudaq15M2OSparseMatrixE "cudaq::M2OSparseMatrix"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[m2o_out]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelRN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelRN5cudaq15M2DSparseMatrixERN5cudaq15M2OSparseMatrixEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Convenience overload: m2d/m2o outputs, no noise, default options.
 :::
 
 ::: {#quantum-error-correction .section}
@@ -13050,10 +13035,13 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1a8d6f7545a2657dff9dd71576c282c404 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[CompileTarget]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetER13sample_policy "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1QPU_1aab2349600fade270b8ef0d51f07e1318 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[CompileTarget]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
 
     :   Get the compile target of the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
+        given policy.
+
+        By default, fall back to other_policies compile target.
 
     ```{=html}
     <!-- -->
@@ -13619,6 +13607,518 @@ them they are erased before execution.
     :   The full system unitary as a [[complex_matrix]{.std
         .std-ref}](#classcudaq_1_1complex__matrix){.reference
         .internal}.
+
+```{=html}
+<!-- -->
+```
+
+[]{#encoding_8h_1acb5a7f742451d0bcfa25f3df23759c52 .target}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[amplitude_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[span]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[data]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[pad]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKdEENSt7complexIdEE "Permalink to this definition"){.headerlink}\
+
+:   Map classical features to a normalized quantum state by amplitude
+    encoding.
+
+    Amplitude encoding represents a classical feature vector as the
+    amplitudes of a pure state in the computational basis. Given a
+    length- [\\(d\\)]{.math .notranslate .nohighlight} vector
+    [\\(\\mathbf{x} = (x_0, \\ldots, x\_{d-1})\\)]{.math .notranslate
+    .nohighlight} (real or complex), the procedure is:
+
+    1.  **Pad** to length [\\(N = 2\^n\\)]{.math .notranslate
+        .nohighlight} for the smallest [\\(n\\)]{.math .notranslate
+        .nohighlight} with [\\(2\^n \\ge d\\)]{.math .notranslate
+        .nohighlight}. The padded vector [\\(\\mathbf{x}\'\\)]{.math
+        .notranslate .nohighlight} satisfies [\\(x\'\_i = x_i\\)]{.math
+        .notranslate .nohighlight} for [\\(i \< d\\)]{.math .notranslate
+        .nohighlight} and [\\(x\'\_i = \\texttt{pad}\\)]{.math
+        .notranslate .nohighlight} for [\\(d \\le i \< N\\)]{.math
+        .notranslate .nohighlight}.
+
+    2.  **Normalize** with the Euclidean (L2) norm (must be non-zero).
+        Coefficients are [\\(α_i = x\'\_i /
+        \\\|\\mathbf{x}\'\\\|\_2\\)]{.math .notranslate .nohighlight}.
+
+    3.  **Form the state** in the [\\(n\\)]{.math .notranslate
+        .nohighlight}-qubit computational basis: [\\(\|\\psi\\rangle =
+        \\sum\_{i=0}\^{N-1} α_i \|i\\rangle\\)]{.math .notranslate
+        .nohighlight}, where [\\(\|i\\rangle\\)]{.math .notranslate
+        .nohighlight} is the basis [`ket`{.docutils .literal
+        .notranslate}]{.pre} with index [\\(i\\)]{.math .notranslate
+        .nohighlight} in binary.
+
+    The returned [[[`cudaq::state`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1state){.reference .internal} stores
+    [\\(α_i\\)]{.math .notranslate .nohighlight} in little-endian index
+    order (consistent with [`qvector(state)`{.docutils .literal
+    .notranslate}]{.pre}). Real inputs are promoted to complex
+    amplitudes with zero imaginary part before padding.
+
+    Parameters[:]{.colon}
+
+    :   -   **data** -- Classical features as a 1D real or complex
+            vector.
+
+        -   **pad** -- Value used when padding to the nearest
+            [`2^n`{.docutils .literal .notranslate}]{.pre} (default
+            [`0`{.docutils .literal .notranslate}]{.pre}).
+
+    Throws[:]{.colon}
+
+    :   [[std]{.n}[::]{.p}[invalid_argument]{.n}]{.cpp-expr .sig
+        .sig-inline .cpp} -- if [`data`{.docutils .literal
+        .notranslate}]{.pre} is empty or has zero norm after padding.
+
+```{=html}
+<!-- -->
+```
+
+[]{#encoding_8h_1a594aad88a6938b14a45281ed37c7db71 .target}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[amplitude_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[span]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[data]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[pad]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKfEENSt7complexIdEE "Permalink to this definition"){.headerlink}\
+
+:   Map classical features to a normalized quantum state by amplitude
+    encoding.
+
+    Amplitude encoding represents a classical feature vector as the
+    amplitudes of a pure state in the computational basis. Given a
+    length- [\\(d\\)]{.math .notranslate .nohighlight} vector
+    [\\(\\mathbf{x} = (x_0, \\ldots, x\_{d-1})\\)]{.math .notranslate
+    .nohighlight} (real or complex), the procedure is:
+
+    1.  **Pad** to length [\\(N = 2\^n\\)]{.math .notranslate
+        .nohighlight} for the smallest [\\(n\\)]{.math .notranslate
+        .nohighlight} with [\\(2\^n \\ge d\\)]{.math .notranslate
+        .nohighlight}. The padded vector [\\(\\mathbf{x}\'\\)]{.math
+        .notranslate .nohighlight} satisfies [\\(x\'\_i = x_i\\)]{.math
+        .notranslate .nohighlight} for [\\(i \< d\\)]{.math .notranslate
+        .nohighlight} and [\\(x\'\_i = \\texttt{pad}\\)]{.math
+        .notranslate .nohighlight} for [\\(d \\le i \< N\\)]{.math
+        .notranslate .nohighlight}.
+
+    2.  **Normalize** with the Euclidean (L2) norm (must be non-zero).
+        Coefficients are [\\(α_i = x\'\_i /
+        \\\|\\mathbf{x}\'\\\|\_2\\)]{.math .notranslate .nohighlight}.
+
+    3.  **Form the state** in the [\\(n\\)]{.math .notranslate
+        .nohighlight}-qubit computational basis: [\\(\|\\psi\\rangle =
+        \\sum\_{i=0}\^{N-1} α_i \|i\\rangle\\)]{.math .notranslate
+        .nohighlight}, where [\\(\|i\\rangle\\)]{.math .notranslate
+        .nohighlight} is the basis [`ket`{.docutils .literal
+        .notranslate}]{.pre} with index [\\(i\\)]{.math .notranslate
+        .nohighlight} in binary.
+
+    The returned [[[`cudaq::state`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1state){.reference .internal} stores
+    [\\(α_i\\)]{.math .notranslate .nohighlight} in little-endian index
+    order (consistent with [`qvector(state)`{.docutils .literal
+    .notranslate}]{.pre}). Real inputs are promoted to complex
+    amplitudes with zero imaginary part before padding.
+
+    Parameters[:]{.colon}
+
+    :   -   **data** -- Classical features as a 1D real or complex
+            vector.
+
+        -   **pad** -- Value used when padding to the nearest
+            [`2^n`{.docutils .literal .notranslate}]{.pre} (default
+            [`0`{.docutils .literal .notranslate}]{.pre}).
+
+    Throws[:]{.colon}
+
+    :   [[std]{.n}[::]{.p}[invalid_argument]{.n}]{.cpp-expr .sig
+        .sig-inline .cpp} -- if [`data`{.docutils .literal
+        .notranslate}]{.pre} is empty or has zero norm after padding.
+
+```{=html}
+<!-- -->
+```
+
+[]{#encoding_8h_1ae8d18bd79fdf8087d0ef700929c22589 .target}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[amplitude_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[span]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[data]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[pad]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIdEEEENSt7complexIdEE "Permalink to this definition"){.headerlink}\
+
+:   Map classical features to a normalized quantum state by amplitude
+    encoding.
+
+    Amplitude encoding represents a classical feature vector as the
+    amplitudes of a pure state in the computational basis. Given a
+    length- [\\(d\\)]{.math .notranslate .nohighlight} vector
+    [\\(\\mathbf{x} = (x_0, \\ldots, x\_{d-1})\\)]{.math .notranslate
+    .nohighlight} (real or complex), the procedure is:
+
+    1.  **Pad** to length [\\(N = 2\^n\\)]{.math .notranslate
+        .nohighlight} for the smallest [\\(n\\)]{.math .notranslate
+        .nohighlight} with [\\(2\^n \\ge d\\)]{.math .notranslate
+        .nohighlight}. The padded vector [\\(\\mathbf{x}\'\\)]{.math
+        .notranslate .nohighlight} satisfies [\\(x\'\_i = x_i\\)]{.math
+        .notranslate .nohighlight} for [\\(i \< d\\)]{.math .notranslate
+        .nohighlight} and [\\(x\'\_i = \\texttt{pad}\\)]{.math
+        .notranslate .nohighlight} for [\\(d \\le i \< N\\)]{.math
+        .notranslate .nohighlight}.
+
+    2.  **Normalize** with the Euclidean (L2) norm (must be non-zero).
+        Coefficients are [\\(α_i = x\'\_i /
+        \\\|\\mathbf{x}\'\\\|\_2\\)]{.math .notranslate .nohighlight}.
+
+    3.  **Form the state** in the [\\(n\\)]{.math .notranslate
+        .nohighlight}-qubit computational basis: [\\(\|\\psi\\rangle =
+        \\sum\_{i=0}\^{N-1} α_i \|i\\rangle\\)]{.math .notranslate
+        .nohighlight}, where [\\(\|i\\rangle\\)]{.math .notranslate
+        .nohighlight} is the basis [`ket`{.docutils .literal
+        .notranslate}]{.pre} with index [\\(i\\)]{.math .notranslate
+        .nohighlight} in binary.
+
+    The returned [[[`cudaq::state`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1state){.reference .internal} stores
+    [\\(α_i\\)]{.math .notranslate .nohighlight} in little-endian index
+    order (consistent with [`qvector(state)`{.docutils .literal
+    .notranslate}]{.pre}). Real inputs are promoted to complex
+    amplitudes with zero imaginary part before padding.
+
+    Parameters[:]{.colon}
+
+    :   -   **data** -- Classical features as a 1D real or complex
+            vector.
+
+        -   **pad** -- Value used when padding to the nearest
+            [`2^n`{.docutils .literal .notranslate}]{.pre} (default
+            [`0`{.docutils .literal .notranslate}]{.pre}).
+
+    Throws[:]{.colon}
+
+    :   [[std]{.n}[::]{.p}[invalid_argument]{.n}]{.cpp-expr .sig
+        .sig-inline .cpp} -- if [`data`{.docutils .literal
+        .notranslate}]{.pre} is empty or has zero norm after padding.
+
+```{=html}
+<!-- -->
+```
+
+[]{#encoding_8h_1abcc7c654e4c874ed04a07edcda98ddac .target}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[amplitude_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[span]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[data]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[pad]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7contrib16amplitude_encodeENSt4spanIKNSt7complexIfEEEENSt7complexIdEE "Permalink to this definition"){.headerlink}\
+
+:   Map classical features to a normalized quantum state by amplitude
+    encoding.
+
+    Amplitude encoding represents a classical feature vector as the
+    amplitudes of a pure state in the computational basis. Given a
+    length- [\\(d\\)]{.math .notranslate .nohighlight} vector
+    [\\(\\mathbf{x} = (x_0, \\ldots, x\_{d-1})\\)]{.math .notranslate
+    .nohighlight} (real or complex), the procedure is:
+
+    1.  **Pad** to length [\\(N = 2\^n\\)]{.math .notranslate
+        .nohighlight} for the smallest [\\(n\\)]{.math .notranslate
+        .nohighlight} with [\\(2\^n \\ge d\\)]{.math .notranslate
+        .nohighlight}. The padded vector [\\(\\mathbf{x}\'\\)]{.math
+        .notranslate .nohighlight} satisfies [\\(x\'\_i = x_i\\)]{.math
+        .notranslate .nohighlight} for [\\(i \< d\\)]{.math .notranslate
+        .nohighlight} and [\\(x\'\_i = \\texttt{pad}\\)]{.math
+        .notranslate .nohighlight} for [\\(d \\le i \< N\\)]{.math
+        .notranslate .nohighlight}.
+
+    2.  **Normalize** with the Euclidean (L2) norm (must be non-zero).
+        Coefficients are [\\(α_i = x\'\_i /
+        \\\|\\mathbf{x}\'\\\|\_2\\)]{.math .notranslate .nohighlight}.
+
+    3.  **Form the state** in the [\\(n\\)]{.math .notranslate
+        .nohighlight}-qubit computational basis: [\\(\|\\psi\\rangle =
+        \\sum\_{i=0}\^{N-1} α_i \|i\\rangle\\)]{.math .notranslate
+        .nohighlight}, where [\\(\|i\\rangle\\)]{.math .notranslate
+        .nohighlight} is the basis [`ket`{.docutils .literal
+        .notranslate}]{.pre} with index [\\(i\\)]{.math .notranslate
+        .nohighlight} in binary.
+
+    The returned [[[`cudaq::state`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1state){.reference .internal} stores
+    [\\(α_i\\)]{.math .notranslate .nohighlight} in little-endian index
+    order (consistent with [`qvector(state)`{.docutils .literal
+    .notranslate}]{.pre}). Real inputs are promoted to complex
+    amplitudes with zero imaginary part before padding.
+
+    Parameters[:]{.colon}
+
+    :   -   **data** -- Classical features as a 1D real or complex
+            vector.
+
+        -   **pad** -- Value used when padding to the nearest
+            [`2^n`{.docutils .literal .notranslate}]{.pre} (default
+            [`0`{.docutils .literal .notranslate}]{.pre}).
+
+    Throws[:]{.colon}
+
+    :   [[std]{.n}[::]{.p}[invalid_argument]{.n}]{.cpp-expr .sig
+        .sig-inline .cpp} -- if [`data`{.docutils .literal
+        .notranslate}]{.pre} is empty or has zero norm after padding.
+
+```{=html}
+<!-- -->
+```
+
+[]{#encoding_8h_1a27a3b8872b53c3400e0dfb6977fd3072 .target}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[amplitude_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[pad]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0.0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7contrib16amplitude_encodeERK5stateNSt7complexIdEE "Permalink to this definition"){.headerlink}\
+
+:   Map classical features to a normalized quantum state by amplitude
+    encoding.
+
+    Amplitude encoding represents a classical feature vector as the
+    amplitudes of a pure state in the computational basis. Given a
+    length- [\\(d\\)]{.math .notranslate .nohighlight} vector
+    [\\(\\mathbf{x} = (x_0, \\ldots, x\_{d-1})\\)]{.math .notranslate
+    .nohighlight} (real or complex), the procedure is:
+
+    1.  **Pad** to length [\\(N = 2\^n\\)]{.math .notranslate
+        .nohighlight} for the smallest [\\(n\\)]{.math .notranslate
+        .nohighlight} with [\\(2\^n \\ge d\\)]{.math .notranslate
+        .nohighlight}. The padded vector [\\(\\mathbf{x}\'\\)]{.math
+        .notranslate .nohighlight} satisfies [\\(x\'\_i = x_i\\)]{.math
+        .notranslate .nohighlight} for [\\(i \< d\\)]{.math .notranslate
+        .nohighlight} and [\\(x\'\_i = \\texttt{pad}\\)]{.math
+        .notranslate .nohighlight} for [\\(d \\le i \< N\\)]{.math
+        .notranslate .nohighlight}.
+
+    2.  **Normalize** with the Euclidean (L2) norm (must be non-zero).
+        Coefficients are [\\(α_i = x\'\_i /
+        \\\|\\mathbf{x}\'\\\|\_2\\)]{.math .notranslate .nohighlight}.
+
+    3.  **Form the state** in the [\\(n\\)]{.math .notranslate
+        .nohighlight}-qubit computational basis: [\\(\|\\psi\\rangle =
+        \\sum\_{i=0}\^{N-1} α_i \|i\\rangle\\)]{.math .notranslate
+        .nohighlight}, where [\\(\|i\\rangle\\)]{.math .notranslate
+        .nohighlight} is the basis [`ket`{.docutils .literal
+        .notranslate}]{.pre} with index [\\(i\\)]{.math .notranslate
+        .nohighlight} in binary.
+
+    The returned [[[`cudaq::state`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1state){.reference .internal} stores
+    [\\(α_i\\)]{.math .notranslate .nohighlight} in little-endian index
+    order (consistent with [`qvector(state)`{.docutils .literal
+    .notranslate}]{.pre}). Real inputs are promoted to complex
+    amplitudes with zero imaginary part before padding.
+
+    Parameters[:]{.colon}
+
+    :   -   **data** -- Classical features as a 1D real or complex
+            vector.
+
+        -   **pad** -- Value used when padding to the nearest
+            [`2^n`{.docutils .literal .notranslate}]{.pre} (default
+            [`0`{.docutils .literal .notranslate}]{.pre}).
+
+    Throws[:]{.colon}
+
+    :   [[std]{.n}[::]{.p}[invalid_argument]{.n}]{.cpp-expr .sig
+        .sig-inline .cpp} -- if [`data`{.docutils .literal
+        .notranslate}]{.pre} is empty or has zero norm after padding.
+
+```{=html}
+<!-- -->
+```
+
+[]{#kernels_8h_1aa50ed783011ed428ff650199b06a597b .target}[[enum]{.pre}]{.k}[ ]{.w}[[class]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[RotationAxis]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7contrib12RotationAxisE "Permalink to this definition"){.headerlink}\
+
+:   Pauli axis for [`cudaq::contrib::angular_encode`{.docutils .literal
+    .notranslate}]{.pre} rotations [\\(R_P(\\theta) = e\^{-i \\theta P /
+    2}\\)]{.math .notranslate .nohighlight}.
+
+    *Values:*
+
+    []{#kernels_8h_1aa50ed783011ed428ff650199b06a597ba02129bb861061d1a052c592e2dc6b383 .target}[[enumerator]{.pre}]{.k}[ ]{.w}[[[X]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7contrib12RotationAxis1XE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    []{#kernels_8h_1aa50ed783011ed428ff650199b06a597ba57cec4137b614c87cb4e24a3d003a3e0 .target}[[enumerator]{.pre}]{.k}[ ]{.w}[[[Y]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7contrib12RotationAxis1YE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+    []{#kernels_8h_1aa50ed783011ed428ff650199b06a597ba21c2e59531c8710156d34a3c30ac81d5 .target}[[enumerator]{.pre}]{.k}[ ]{.w}[[[Z]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7contrib12RotationAxis1ZE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[Kernel]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#kernels_8h_1a15b7e9d2e26c3b4e0b3a695bec557daa .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[angular_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[Kernel]{.pre}]{.n}](#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueR10QuakeValue12RotationAxis "cudaq::contrib::angular_encode::Kernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[q]{.pre}]{.n .sig-param}, [[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[angles]{.pre}]{.n .sig-param}, [[[RotationAxis]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxisE "cudaq::contrib::RotationAxis"){.reference .internal}[ ]{.w}[[rotation]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[RotationAxis]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxisE "cudaq::contrib::RotationAxis"){.reference .internal}[[::]{.pre}]{.p}[[[Y]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxis1YE "cudaq::contrib::RotationAxis::Y"){.reference .internal}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueR10QuakeValue12RotationAxis "Permalink to this definition"){.headerlink}\
+
+:   Encode classical features as single-qubit rotation gates.
+
+    Angular (rotation) encoding maps a classical angle vector
+    [\\(\\boldsymbol{\\theta} = (\\theta_0, \\ldots,
+    \\theta\_{n-1})\\)]{.math .notranslate .nohighlight} to an
+    [\\(n\\)]{.math .notranslate .nohighlight}-qubit product state by
+    applying one parameterized rotation per qubit. Starting from
+    [\\(\|0\\rangle\^{\\otimes n}\\)]{.math .notranslate .nohighlight},
+    the encoded state is
+
+    ::: {.math .notranslate .nohighlight}
+    \\\[ \|\\psi\\rangle = \\bigotimes\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(\\theta_i)\\,\|0\\rangle = \\prod\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(\\theta_i)\\,\|0\\rangle_i, \\\]
+    :::
+
+    where the product applies
+    [\\(R\_{\\mathrm{axis}}(\\theta_i)\\)]{.math .notranslate
+    .nohighlight} on qubit [\\(i\\)]{.math .notranslate .nohighlight}
+    and leaves other qubits unchanged. CUDA-Q uses [\\(R_P(\\theta) =
+    e\^{-i \\theta P / 2}\\)]{.math .notranslate .nohighlight} for [\\(P
+    \\in \\{X, Y, Z\\}\\)]{.math .notranslate .nohighlight}, implemented
+    as [`rx`{.docutils .literal .notranslate}]{.pre}, [`ry`{.docutils
+    .literal .notranslate}]{.pre}, or [`rz`{.docutils .literal
+    .notranslate}]{.pre} for [`RotationAxis::X`{.docutils .literal
+    .notranslate}]{.pre}, [`Y`{.docutils .literal .notranslate}]{.pre},
+    or [`Z`{.docutils .literal .notranslate}]{.pre} respectively. For
+    example, [`RotationAxis::Y`{.docutils .literal .notranslate}]{.pre}
+    gives [\\(R_Y(\\theta_i)\|0\\rangle =
+    \\cos(\\theta_i/2)\|0\\rangle +
+    \\sin(\\theta_i/2)\|1\\rangle\\)]{.math .notranslate .nohighlight}
+    on qubit [\\(i\\)]{.math .notranslate .nohighlight}.
+
+    For use with [[[`cudaq::kernel_builder`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1kernel__builder){.reference .internal}
+    only (not [`__qpu__`{.docutils .literal .notranslate}]{.pre}
+    kernels).
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** -- The kernel builder recording the circuit.
+
+        -   **q** -- A [`qvector`{.docutils .literal
+            .notranslate}]{.pre} register to encode into.
+
+        -   **angles** -- Rotation angles [\\(\\theta_i\\)]{.math
+            .notranslate .nohighlight} as a
+            [`std::vector<double>`{.docutils .literal
+            .notranslate}]{.pre} kernel argument.
+
+        -   **rotation** -- Rotation axis (default
+            [`RotationAxis::Y`{.docutils .literal .notranslate}]{.pre}).
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[Kernel]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#kernels_8h_1ac4401520e24bf845af56294f93edadee .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[angular_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[Kernel]{.pre}]{.n}](#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueNSt4spanIKdEE12RotationAxis "cudaq::contrib::angular_encode::Kernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[q]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[span]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[angles]{.pre}]{.n .sig-param}, [[[RotationAxis]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxisE "cudaq::contrib::RotationAxis"){.reference .internal}[ ]{.w}[[rotation]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[RotationAxis]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxisE "cudaq::contrib::RotationAxis"){.reference .internal}[[::]{.pre}]{.p}[[[Y]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxis1YE "cudaq::contrib::RotationAxis::Y"){.reference .internal}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueNSt4spanIKdEE12RotationAxis "Permalink to this definition"){.headerlink}\
+
+:   Encode classical features as single-qubit rotation gates.
+
+    Angular (rotation) encoding maps a classical angle vector
+    [\\(\\boldsymbol{\\theta} = (\\theta_0, \\ldots,
+    \\theta\_{n-1})\\)]{.math .notranslate .nohighlight} to an
+    [\\(n\\)]{.math .notranslate .nohighlight}-qubit product state by
+    applying one parameterized rotation per qubit. Starting from
+    [\\(\|0\\rangle\^{\\otimes n}\\)]{.math .notranslate .nohighlight},
+    the encoded state is
+
+    ::: {.math .notranslate .nohighlight}
+    \\\[ \|\\psi\\rangle = \\bigotimes\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(\\theta_i)\\,\|0\\rangle = \\prod\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(\\theta_i)\\,\|0\\rangle_i, \\\]
+    :::
+
+    where the product applies
+    [\\(R\_{\\mathrm{axis}}(\\theta_i)\\)]{.math .notranslate
+    .nohighlight} on qubit [\\(i\\)]{.math .notranslate .nohighlight}
+    and leaves other qubits unchanged. CUDA-Q uses [\\(R_P(\\theta) =
+    e\^{-i \\theta P / 2}\\)]{.math .notranslate .nohighlight} for [\\(P
+    \\in \\{X, Y, Z\\}\\)]{.math .notranslate .nohighlight}, implemented
+    as [`rx`{.docutils .literal .notranslate}]{.pre}, [`ry`{.docutils
+    .literal .notranslate}]{.pre}, or [`rz`{.docutils .literal
+    .notranslate}]{.pre} for [`RotationAxis::X`{.docutils .literal
+    .notranslate}]{.pre}, [`Y`{.docutils .literal .notranslate}]{.pre},
+    or [`Z`{.docutils .literal .notranslate}]{.pre} respectively. For
+    example, [`RotationAxis::Y`{.docutils .literal .notranslate}]{.pre}
+    gives [\\(R_Y(\\theta_i)\|0\\rangle =
+    \\cos(\\theta_i/2)\|0\\rangle +
+    \\sin(\\theta_i/2)\|1\\rangle\\)]{.math .notranslate .nohighlight}
+    on qubit [\\(i\\)]{.math .notranslate .nohighlight}.
+
+    For use with [[[`cudaq::kernel_builder`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1kernel__builder){.reference .internal}
+    only (not [`__qpu__`{.docutils .literal .notranslate}]{.pre}
+    kernels).
+
+    Overload for a fixed list of angles known at kernel-build time. When
+    [`q`{.docutils .literal .notranslate}]{.pre} has a compile-time
+    size, the length of [`angles`{.docutils .literal
+    .notranslate}]{.pre} must match the number of qubits.
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** -- The kernel builder recording the circuit.
+
+        -   **q** -- A [`qvector`{.docutils .literal
+            .notranslate}]{.pre} register to encode into.
+
+        -   **angles** -- Rotation angles [\\(\\theta_i\\)]{.math
+            .notranslate .nohighlight} as a
+            [`std::vector<double>`{.docutils .literal
+            .notranslate}]{.pre} kernel argument.
+
+        -   **rotation** -- Rotation axis (default
+            [`RotationAxis::Y`{.docutils .literal .notranslate}]{.pre}).
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[Kernel]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#kernels_8h_1a0d96ac8b22eda6f35e7b17da14492acc .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[angular_encode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[Kernel]{.pre}]{.n}](#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueRKNSt6vectorIdEE12RotationAxis "cudaq::contrib::angular_encode::Kernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[q]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[angles]{.pre}]{.n .sig-param}, [[[RotationAxis]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxisE "cudaq::contrib::RotationAxis"){.reference .internal}[ ]{.w}[[rotation]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[RotationAxis]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxisE "cudaq::contrib::RotationAxis"){.reference .internal}[[::]{.pre}]{.p}[[[Y]{.pre}]{.n}](#_CPPv4N5cudaq7contrib12RotationAxis1YE "cudaq::contrib::RotationAxis::Y"){.reference .internal}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq7contrib14angular_encodeEvRR6KernelR10QuakeValueRKNSt6vectorIdEE12RotationAxis "Permalink to this definition"){.headerlink}\
+
+:   Encode classical features as single-qubit rotation gates.
+
+    Angular (rotation) encoding maps a classical angle vector
+    [\\(\\boldsymbol{\\theta} = (\\theta_0, \\ldots,
+    \\theta\_{n-1})\\)]{.math .notranslate .nohighlight} to an
+    [\\(n\\)]{.math .notranslate .nohighlight}-qubit product state by
+    applying one parameterized rotation per qubit. Starting from
+    [\\(\|0\\rangle\^{\\otimes n}\\)]{.math .notranslate .nohighlight},
+    the encoded state is
+
+    ::: {.math .notranslate .nohighlight}
+    \\\[ \|\\psi\\rangle = \\bigotimes\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(\\theta_i)\\,\|0\\rangle = \\prod\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(\\theta_i)\\,\|0\\rangle_i, \\\]
+    :::
+
+    where the product applies
+    [\\(R\_{\\mathrm{axis}}(\\theta_i)\\)]{.math .notranslate
+    .nohighlight} on qubit [\\(i\\)]{.math .notranslate .nohighlight}
+    and leaves other qubits unchanged. CUDA-Q uses [\\(R_P(\\theta) =
+    e\^{-i \\theta P / 2}\\)]{.math .notranslate .nohighlight} for [\\(P
+    \\in \\{X, Y, Z\\}\\)]{.math .notranslate .nohighlight}, implemented
+    as [`rx`{.docutils .literal .notranslate}]{.pre}, [`ry`{.docutils
+    .literal .notranslate}]{.pre}, or [`rz`{.docutils .literal
+    .notranslate}]{.pre} for [`RotationAxis::X`{.docutils .literal
+    .notranslate}]{.pre}, [`Y`{.docutils .literal .notranslate}]{.pre},
+    or [`Z`{.docutils .literal .notranslate}]{.pre} respectively. For
+    example, [`RotationAxis::Y`{.docutils .literal .notranslate}]{.pre}
+    gives [\\(R_Y(\\theta_i)\|0\\rangle =
+    \\cos(\\theta_i/2)\|0\\rangle +
+    \\sin(\\theta_i/2)\|1\\rangle\\)]{.math .notranslate .nohighlight}
+    on qubit [\\(i\\)]{.math .notranslate .nohighlight}.
+
+    For use with [[[`cudaq::kernel_builder`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1kernel__builder){.reference .internal}
+    only (not [`__qpu__`{.docutils .literal .notranslate}]{.pre}
+    kernels).
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** -- The kernel builder recording the circuit.
+
+        -   **q** -- A [`qvector`{.docutils .literal
+            .notranslate}]{.pre} register to encode into.
+
+        -   **angles** -- Rotation angles [\\(\\theta_i\\)]{.math
+            .notranslate .nohighlight} as a
+            [`std::vector<double>`{.docutils .literal
+            .notranslate}]{.pre} kernel argument.
+
+        -   **rotation** -- Rotation axis (default
+            [`RotationAxis::Y`{.docutils .literal .notranslate}]{.pre}).
 :::
 
 ::: {#namespaces .section}

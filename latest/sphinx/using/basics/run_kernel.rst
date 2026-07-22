@@ -269,9 +269,10 @@ The expectation value can be printed using the `expectation` method.
         :start-after: [Begin Observe2]
         :end-before: [End Observe2]
 
-Unlike `sample`, the default `shots_count` for `observe` is 1. This result is deterministic and equivalent to the
-expectation value in the limit of infinite shots.  To produce an approximate expectation value from sampling, `shots_count` can
-be specified to any integer.
+Unlike `sample`, `observe` does not perform shots-based sampling by default (`shots_count` defaults to `-1`).
+In this mode the returned expectation value is computed analytically from the quantum state and is
+deterministic, equivalent to the expectation value in the limit of infinite shots.  To produce an
+approximate expectation value from sampling instead, pass a positive integer as `shots_count`.
 
 .. tab:: Python
 

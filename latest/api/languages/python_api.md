@@ -229,6 +229,12 @@ latest
     -   [Detector Error
         Models](../../using/examples/dem_from_kernel.html){.reference
         .internal}
+        -   [DEM
+            Options](../../using/examples/dem_from_kernel.html#dem-options){.reference
+            .internal}
+        -   [Measurement
+            Matrices](../../using/examples/dem_from_kernel.html#measurement-matrices){.reference
+            .internal}
         -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
             .internal}
     -   [Constructing
@@ -373,17 +379,6 @@ latest
                 Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
-    -   [Max-Cut with
-        QAOA](../../applications/python/qaoa.html){.reference .internal}
-    -   [Molecular docking via
-        DC-QAOA](../../applications/python/digitized_counterdiabatic_qaoa.html){.reference
-        .internal}
-        -   [Setting up the Molecular Docking
-            Problem](../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
-            .internal}
-        -   [CUDA-Q
-            Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
-            .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../../applications/python/krylov.html){.reference
@@ -416,60 +411,6 @@ latest
             .internal}
         -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
-    -   [Bernstein-Vazirani
-        Algorithm](../../applications/python/bernstein_vazirani.html){.reference
-        .internal}
-        -   [Classical
-            case](../../applications/python/bernstein_vazirani.html#Classical-case){.reference
-            .internal}
-        -   [Quantum
-            case](../../applications/python/bernstein_vazirani.html#Quantum-case){.reference
-            .internal}
-        -   [Implementing in
-            CUDA-Q](../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
-            .internal}
-    -   [Cost
-        Minimization](../../applications/python/cost_minimization.html){.reference
-        .internal}
-    -   [Deutsch's
-        Algorithm](../../applications/python/deutsch_algorithm.html){.reference
-        .internal}
-        -   [XOR [\\(\\oplus\\)]{.math .notranslate
-            .nohighlight}](../../applications/python/deutsch_algorithm.html#XOR-\oplus){.reference
-            .internal}
-        -   [Quantum
-            oracles](../../applications/python/deutsch_algorithm.html#Quantum-oracles){.reference
-            .internal}
-        -   [Phase
-            oracle](../../applications/python/deutsch_algorithm.html#Phase-oracle){.reference
-            .internal}
-        -   [Quantum
-            parallelism](../../applications/python/deutsch_algorithm.html#Quantum-parallelism){.reference
-            .internal}
-        -   [Deutsch's
-            Algorithm:](../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
-            .internal}
-    -   [Divisive Clustering With Coresets Using
-        CUDA-Q](../../applications/python/divisive_clustering_coresets.html){.reference
-        .internal}
-        -   [Data
-            preprocessing](../../applications/python/divisive_clustering_coresets.html#Data-preprocessing){.reference
-            .internal}
-        -   [Quantum
-            functions](../../applications/python/divisive_clustering_coresets.html#Quantum-functions){.reference
-            .internal}
-        -   [Divisive Clustering
-            Function](../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
-            .internal}
-        -   [QAOA
-            Implementation](../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation){.reference
-            .internal}
-        -   [Scaling simulations with
-            CUDA-Q](../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
-            .internal}
-    -   [Hybrid Quantum Neural
-        Networks](../../applications/python/hybrid_quantum_neural_networks.html){.reference
-        .internal}
     -   [Using the Hadamard Test to Determine Quantum Krylov Subspace
         Decomposition Matrix
         Elements](../../applications/python/hadamard_test.html){.reference
@@ -543,18 +484,6 @@ latest
         -   [Relevant
             references](../../applications/python/hamiltonian_simulation.html#Relevant-references){.reference
             .internal}
-    -   [Quantum Fourier
-        Transform](../../applications/python/quantum_fourier_transform.html){.reference
-        .internal}
-        -   [Quantum Fourier Transform
-            revisited](../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
-            .internal}
-    -   [Quantum
-        Teleporation](../../applications/python/quantum_teleportation.html){.reference
-        .internal}
-        -   [Teleportation
-            explained](../../applications/python/quantum_teleportation.html#Teleportation-explained){.reference
-            .internal}
     -   [Quantum
         Volume](../../applications/python/quantum_volume.html){.reference
         .internal}
@@ -569,66 +498,6 @@ latest
             .internal}
         -   [Inverse of full confusion
             matrix](../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
-            .internal}
-    -   [Compiling Unitaries Using Diffusion
-        Models](../../applications/python/unitary_compilation_diffusion_models.html){.reference
-        .internal}
-        -   [Diffusion model
-            pipeline](../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
-            .internal}
-        -   [Setup and load
-            models](../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
-            .internal}
-            -   [Load discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
-                .internal}
-            -   [Load continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
-                .internal}
-            -   [Create helper
-                functions](../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
-                .internal}
-        -   [Unitary
-            compilation](../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
-            .internal}
-            -   [Random
-                unitary](../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary){.reference
-                .internal}
-            -   [Discrete
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model){.reference
-                .internal}
-            -   [Continuous
-                model](../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model){.reference
-                .internal}
-            -   [Quantum Fourier
-                transform](../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
-                .internal}
-            -   [XXZ-Hamiltonian
-                evolution](../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
-                .internal}
-        -   [Choosing the circuit you
-            need](../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
-            .internal}
-    -   [VQE with gradients, active spaces, and gate
-        fusion](../../applications/python/vqe_advanced.html){.reference
-        .internal}
-        -   [The Basics of
-            VQE](../../applications/python/vqe_advanced.html#The-Basics-of-VQE){.reference
-            .internal}
-        -   [Installing/Loading Relevant
-            Packages](../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
-            .internal}
-        -   [Implementing VQE in
-            CUDA-Q](../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
-            .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
-            .internal}
-        -   [Using an Active
-            Space](../../applications/python/vqe_advanced.html#Using-an-Active-Space){.reference
-            .internal}
-        -   [Gate Fusion for Larger
-            Circuits](../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](../../applications/python/afqmc.html){.reference
@@ -651,78 +520,6 @@ latest
         -   [Setup of the AFQMC
             parameters](../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters){.reference
             .internal}
-    -   [ADAPT-QAOA
-        algorithm](../../applications/python/adapt_qaoa.html){.reference
-        .internal}
-        -   [Simulation
-            input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
-            .internal}
-        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
-            .nohighlight} of the max-cut
-            graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
-            .internal}
-        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
-            .internal}
-        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
-            .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
-            .internal}
-        -   [Beginning of ADAPT-QAOA
-            iteration:](../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
-            .internal}
-    -   [ADAPT-VQE
-        algorithm](../../applications/python/adapt_vqe.html){.reference
-        .internal}
-        -   [Classical
-            pre-processing](../../applications/python/adapt_vqe.html#Classical-pre-processing){.reference
-            .internal}
-        -   [Jordan
-            Wigner:](../../applications/python/adapt_vqe.html#Jordan-Wigner:){.reference
-            .internal}
-        -   [UCCSD operator
-            pool](../../applications/python/adapt_vqe.html#UCCSD-operator-pool){.reference
-            .internal}
-            -   [Single
-                excitation](../../applications/python/adapt_vqe.html#Single-excitation){.reference
-                .internal}
-            -   [Double
-                excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
-                .internal}
-        -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A_i\\)]{.math .notranslate
-            .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
-            .internal}
-        -   [Reference
-            State:](../../applications/python/adapt_vqe.html#Reference-State:){.reference
-            .internal}
-        -   [Quantum
-            kernels:](../../applications/python/adapt_vqe.html#Quantum-kernels:){.reference
-            .internal}
-        -   [Beginning of
-            ADAPT-VQE:](../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
-            .internal}
-    -   [Quantum edge
-        detection](../../applications/python/edge_detection.html){.reference
-        .internal}
-        -   [Image](../../applications/python/edge_detection.html#Image){.reference
-            .internal}
-        -   [Quantum Probability Image Encoding
-            (QPIE):](../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
-            .internal}
-            -   [Below we show how to encode an image using QPIE in
-                cudaq.](../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
-                .internal}
-        -   [Flexible Representation of Quantum Images
-            (FRQI):](../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
-            .internal}
-            -   [Building the FRQI
-                State:](../../applications/python/edge_detection.html#Building-the-FRQI-State:){.reference
-                .internal}
-        -   [Quantum Hadamard Edge Detection
-            (QHED)](../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
-            .internal}
-            -   [Post-processing](../../applications/python/edge_detection.html#Post-processing){.reference
-                .internal}
     -   [Factoring Integers With Shor's
         Algorithm](../../applications/python/shors.html){.reference
         .internal}
@@ -776,43 +573,6 @@ latest
             -   [(e) Generate electronic Hamiltonian using
                 UHF](../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
-    -   [Grover's
-        Algorithm](../../applications/python/grovers.html){.reference
-        .internal}
-        -   [Overview](../../applications/python/grovers.html#Overview){.reference
-            .internal}
-        -   [Problem](../../applications/python/grovers.html#Problem){.reference
-            .internal}
-        -   [Structure of Grover's
-            Algorithm](../../applications/python/grovers.html#Structure-of-Grover's-Algorithm){.reference
-            .internal}
-            -   [Step 1:
-                Preparation](../../applications/python/grovers.html#Step-1:-Preparation){.reference
-                .internal}
-            -   [Good and Bad
-                States](../../applications/python/grovers.html#Good-and-Bad-States){.reference
-                .internal}
-            -   [Step 2: Oracle
-                application](../../applications/python/grovers.html#Step-2:-Oracle-application){.reference
-                .internal}
-            -   [Step 3: Amplitude
-                amplification](../../applications/python/grovers.html#Step-3:-Amplitude-amplification){.reference
-                .internal}
-            -   [Steps 4 and 5: Iteration and
-                measurement](../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
-                .internal}
-    -   [Quantum
-        PageRank](../../applications/python/quantum_pagerank.html){.reference
-        .internal}
-        -   [Problem
-            Definition](../../applications/python/quantum_pagerank.html#Problem-Definition){.reference
-            .internal}
-        -   [Simulating Quantum PageRank by CUDA-Q
-            dynamics](../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
-            .internal}
-        -   [Breakdown of
-            Terms](../../applications/python/quantum_pagerank.html#Breakdown-of-Terms){.reference
-            .internal}
     -   [The UCCSD Wavefunction
         ansatz](../../applications/python/uccsd_wf_ansatz.html){.reference
         .internal}
@@ -834,41 +594,6 @@ latest
         -   [Ran's
             approach](../../applications/python/mps_encoding.html#Ran's-approach){.reference
             .internal}
-    -   [QM/MM simulation: VQE within a Polarizable Embedded
-        Framework.](../../applications/python/qm_mm_pe.html){.reference
-        .internal}
-        -   [Key
-            concepts:](../../applications/python/qm_mm_pe.html#Key-concepts:){.reference
-            .internal}
-        -   [PE-VQE-SCF Algorithm
-            Steps](../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
-            .internal}
-            -   [Step 1: Initialize (Classical
-                pre-processing)](../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
-                .internal}
-            -   [Step 2: Build the
-                Hamiltonian](../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
-                .internal}
-            -   [Step 3: Run
-                VQE](../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE){.reference
-                .internal}
-            -   [Step 4: Update
-                Environment](../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment){.reference
-                .internal}
-            -   [Step 5: Self-Consistency
-                Loop](../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
-                .internal}
-            -   [Requirments:](../../applications/python/qm_mm_pe.html#Requirments:){.reference
-                .internal}
-            -   [Example 1: LiH with 2 water
-                molecules.](../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
-                .internal}
-            -   [VQE, update environment, and scf
-                loop.](../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
-                .internal}
-            -   [Example 2: NH3 with 46 water molecule using active
-                space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
-                .internal}
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](../../applications/python/skqd.html){.reference
         .internal}
@@ -1154,6 +879,9 @@ latest
         .internal}
         -   [Prerequisites](../../using/realtime/installation.html#prerequisites){.reference
             .internal}
+        -   [HSB FPGA IP core and RFSoC
+            bit-file](../../using/realtime/installation.html#hsb-fpga-ip-core-and-rfsoc-bit-file){.reference
+            .internal}
         -   [Setup](../../using/realtime/installation.html#setup){.reference
             .internal}
         -   [Latency
@@ -1349,6 +1077,49 @@ latest
                 .internal}
             -   [Decoding
                 Rounds](../../using/realtime/protocol.html#decoding-rounds){.reference
+                .internal}
+    -   [CPU RoCE
+        Transport](../../using/realtime/cpu_transport.html){.reference
+        .internal}
+        -   [C
+            ABI](../../using/realtime/cpu_transport.html#c-abi){.reference
+            .internal}
+        -   [Two-phase bring-up ([`setup`{.docutils .literal
+            .notranslate}]{.pre} / [`connect`{.docutils .literal
+            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#two-phase-bring-up-setup-connect){.reference
+            .internal}
+        -   [TX
+            modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
+            .internal}
+        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
+            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+            .internal}
+    -   [Device Call
+        Channels](../../using/realtime/device_call.html){.reference
+        .internal}
+        -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
+            model](../../using/realtime/device_call.html#the-device-call-model){.reference
+            .internal}
+        -   [Selecting a
+            channel](../../using/realtime/device_call.html#selecting-a-channel){.reference
+            .internal}
+        -   [Extending an in-process
+            service](../../using/realtime/device_call.html#extending-an-in-process-service){.reference
+            .internal}
+        -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
+            channel](../../using/realtime/device_call.html#the-cpu-roce-channel){.reference
+            .internal}
+            -   [Wire pattern
+                (FPGA-compatible)](../../using/realtime/device_call.html#wire-pattern-fpga-compatible){.reference
+                .internal}
+            -   [Connection
+                setup](../../using/realtime/device_call.html#connection-setup){.reference
+                .internal}
+            -   [Running
+                it](../../using/realtime/device_call.html#running-it){.reference
+                .internal}
+            -   [Test
+                harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
 -   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
@@ -1742,6 +1513,10 @@ latest
                 .internal}
             -   [[`dem_from_kernel()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [[`cudaq.contrib`{.docutils .literal
+            .notranslate}]{.pre}](#cudaq-contrib){.reference .internal}
+            -   [Quantum Embeddings](#quantum-embeddings){.reference
                 .internal}
         -   [Quantum Error
             Correction](#quantum-error-correction){.reference .internal}
@@ -2226,7 +2001,9 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[jStr]{.pre}]{.n}*, *[[overrideDict]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.from_json "Permalink to this definition"){.headerlink}
 
-    :   Convert a JSON string into a new PyKernelDecorator object.
+    :   Convert a JSON string (as produced by [`to_json`{.code .docutils
+        .literal .notranslate}]{.pre}) into a new PyKernelDecorator
+        object.
 
     [[is_compiled]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.is_compiled "Permalink to this definition"){.headerlink}
 
@@ -2980,18 +2757,16 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[dem_from_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.dem_from_kernel "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[dem_from_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[dem_kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.dem_from_kernel "Permalink to this definition"){.headerlink}
 
 :   Generate a detector error model (DEM) from a CUDA-Q kernel.
 
     Runs [`kernel`{.code .docutils .literal .notranslate}]{.pre} under
-    the internal [`"dem"`{.code .docutils .literal .notranslate}]{.pre}
-    execution context, captures the recorded circuit from the backend,
-    and returns Stim's standard [`.dem`{.code .docutils .literal
-    .notranslate}]{.pre} text via
+    [`dem_policy`{.code .docutils .literal .notranslate}]{.pre} with a
+    thread-local Stim analysis scope, then returns Stim's standard
+    [`.dem`{.code .docutils .literal .notranslate}]{.pre} text via
     [`stim::DetectorErrorModel::str()`{.code .docutils .literal
-    .notranslate}]{.pre}. The active CUDA-Q target is unaffected; the
-    analysis simulator is an internal, thread-local override.
+    .notranslate}]{.pre}. The active CUDA-Q target is unaffected.
 
     Parameters[:]{.colon}
 
@@ -3013,13 +2788,308 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             [`apply_noise`{.code .docutils .literal .notranslate}]{.pre}
             ops already present in the kernel.
 
+        -   **decompose_errors**
+            ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
+            .external}*,* *optional*) -- Decompose hyper-edge error
+            mechanisms into pairs of two-detector edges. Default
+            [`False`{.docutils .literal .notranslate}]{.pre}.
+
+        -   **fold_loops**
+            ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
+            .external}*,* *optional*) -- Fold loop bodies in the circuit
+            for a more compact DEM. Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
+
+        -   **allow_gauge_detectors**
+            ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
+            .external}*,* *optional*) -- Allow detectors whose parity is
+            not determined by the circuit. Default [`False`{.docutils
+            .literal .notranslate}]{.pre}.
+
+        -   **approximate_disjoint_errors_threshold**
+            ([*float*](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
+            .external}*,* *optional*) -- Threshold for approximating
+            disjoint-error products; set to [`0`{.docutils .literal
+            .notranslate}]{.pre} to disable. Default [`0.0`{.docutils
+            .literal .notranslate}]{.pre}.
+
+        -   **ignore_decomposition_failures**
+            ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
+            .external}*,* *optional*) -- When decomposition fails for an
+            error mechanism, insert it into the DEM undecomposed (as a
+            hyper-edge) instead of raising an exception. Only relevant
+            when [`decompose_errors`{.docutils .literal
+            .notranslate}]{.pre} is [`True`{.docutils .literal
+            .notranslate}]{.pre}. Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
+
+        -   **block_decomposition_from_introducing_remnant_edges**
+            ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
+            .external}*,* *optional*) -- Prevent the decomposer from
+            introducing remnant edges. Default [`False`{.docutils
+            .literal .notranslate}]{.pre}.
+
+        -   **return_measurement_matrices**
+            ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
+            .external}*,* *optional*) -- When True, also return the
+            sparse measurements-to-detectors (m2d) and
+            measurements-to-observables (m2o) matrices alongside the DEM
+            text. Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
+
     Returns[:]{.colon}
 
-    :   UTF-8 string in Stim's standard [`.dem`{.code .docutils .literal
-        .notranslate}]{.pre} file format. Consumers that need a
+    :   a UTF-8 string in Stim's standard [`.dem`{.code .docutils
+        .literal .notranslate}]{.pre} file format. Consumers that need a
         structured DEM can parse it with
         [`stim.DetectorErrorModel(text)`{.code .docutils .literal
         .notranslate}]{.pre}.
+
+        If [`return_measurement_matrices`{.code .docutils .literal
+        .notranslate}]{.pre} is True: a tuple [`(dem_text,`{.docutils
+        .literal .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`m2d,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`m2o)`{.docutils .literal .notranslate}]{.pre}
+        where both matrices are [`scipy.sparse.csr_matrix`{.docutils
+        .literal .notranslate}]{.pre} with binary entries.
+        [`m2d`{.docutils .literal .notranslate}]{.pre} has shape
+        [`(num_detectors,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`num_measurements)`{.docutils .literal
+        .notranslate}]{.pre}: entry [`m2d[d,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`m]`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`==`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
+        measurement [`m`{.docutils .literal .notranslate}]{.pre}
+        contributes to detector [`d`{.docutils .literal
+        .notranslate}]{.pre}. [`m2o`{.docutils .literal
+        .notranslate}]{.pre} has shape [`(num_observables,`{.docutils
+        .literal .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`num_measurements)`{.docutils .literal
+        .notranslate}]{.pre}: entry [`m2o[k,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`m]`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`==`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
+        measurement [`m`{.docutils .literal .notranslate}]{.pre}
+        contributes to observable [`k`{.docutils .literal
+        .notranslate}]{.pre}. Measurement indices are chronological.
+
+    Return type[:]{.colon}
+
+    :   If [`return_measurement_matrices`{.code .docutils .literal
+        .notranslate}]{.pre} is False (default)
+:::
+
+::: {#cudaq-contrib .section}
+## [`cudaq.contrib`{.docutils .literal .notranslate}]{.pre}[¶](#cudaq-contrib "Permalink to this heading"){.headerlink}
+
+::: {#quantum-embeddings .section}
+### Quantum Embeddings[¶](#quantum-embeddings "Permalink to this heading"){.headerlink}
+
+[[cudaq.contrib.]{.pre}]{.sig-prename .descclassname}[[amplitude_encode]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[data]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.n}*, *[[\*]{.pre}]{.o}*, *[[pad]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.contrib.amplitude_encode "Permalink to this definition"){.headerlink}
+
+:   Map classical features to a normalized quantum state by amplitude
+    encoding.
+
+    Amplitude encoding represents a classical feature vector as the
+    amplitudes of a pure state in the computational basis. Given a
+    length-[\\(d\\)]{.math .notranslate .nohighlight} vector
+    [\\(\\mathbf{x} = (x_0, \\ldots, x\_{d-1})\\)]{.math .notranslate
+    .nohighlight} (real or complex), the procedure is:
+
+    1.  **Pad** to length [\\(N = 2\^n\\)]{.math .notranslate
+        .nohighlight} for the smallest [\\(n\\)]{.math .notranslate
+        .nohighlight} with [\\(N \\ge d\\)]{.math .notranslate
+        .nohighlight}. The padded vector [\\(\\mathbf{x}\'\\)]{.math
+        .notranslate .nohighlight} satisfies [\\(x\'\_i = x_i\\)]{.math
+        .notranslate .nohighlight} for [\\(i \< d\\)]{.math .notranslate
+        .nohighlight} and [\\(x\'\_i = \\texttt{pad}\\)]{.math
+        .notranslate .nohighlight} for [\\(d \\le i \< N\\)]{.math
+        .notranslate .nohighlight}.
+
+    2.  **Normalize** with the Euclidean (L2) norm (must be non-zero).
+        Coefficients are [\\(α_i = x\'\_i /
+        \\\|\\mathbf{x}\'\\\|\_2\\)]{.math .notranslate .nohighlight}.
+
+    3.  **Form the state** in the [\\(n\\)]{.math .notranslate
+        .nohighlight}-qubit computational basis: [\\(\|\\psi⟩ =
+        \\sum\_{i=0}\^{N-1} α_i \|i⟩\\)]{.math .notranslate
+        .nohighlight}, where [\\(\|i⟩\\)]{.math .notranslate
+        .nohighlight} is the basis [`ket`{.docutils .literal
+        .notranslate}]{.pre} with index [\\(i\\)]{.math .notranslate
+        .nohighlight} in binary.
+
+    The returned [`State`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre} stores [\\(α_i\\)]{.math .notranslate
+    .nohighlight} in little-endian index order (consistent with
+    [`cudaq.State`{.docutils .literal .notranslate}]{.pre} /
+    [`qvector(state)`{.docutils .literal .notranslate}]{.pre}). Real
+    inputs are promoted to complex amplitudes with zero imaginary part
+    before padding.
+
+    Parameters[:]{.colon}
+
+    :   -   **data** -- Classical features as a list, NumPy/CuPy array,
+            or existing [`State`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre} (re-normalized after any padding).
+
+        -   **pad** -- Value used to pad when [`len(data)`{.docutils
+            .literal .notranslate}]{.pre} is not a power of two (default
+            [`0`{.docutils .literal .notranslate}]{.pre} for
+            zero-padding to the nearest [`2^n`{.docutils .literal
+            .notranslate}]{.pre}).
+
+    Returns[:]{.colon}
+
+    :   
+
+        Normalized state vector suitable for simulation and
+
+        :   [`cudaq.State.from_data`{.docutils .literal
+            .notranslate}]{.pre} workflows.
+
+    Return type[:]{.colon}
+
+    :   [`State`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}
+
+    Raises[:]{.colon}
+
+    :   -   [**ValueError**](https://docs.python.org/3/library/exceptions.html#ValueError "(in Python v3.14)"){.reference
+            .external} -- If [`data`{.docutils .literal
+            .notranslate}]{.pre} is empty, has zero norm after padding,
+            or is not a 1D vector.
+
+        -   [**TypeError**](https://docs.python.org/3/library/exceptions.html#TypeError "(in Python v3.14)"){.reference
+            .external} -- If [`data`{.docutils .literal
+            .notranslate}]{.pre} has an unsupported type.
+
+    See [`cudaq.contrib.examples`{.docutils .literal
+    .notranslate}]{.pre} for complete examples.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.contrib.]{.pre}]{.sig-prename .descclassname}[[angular_encode]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel_or_q]{.pre}]{.n}*, *[[q_or_angles]{.pre}]{.n}*, *[[angles]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*]{.pre}]{.o}*, *[[rotation]{.pre}]{.n}[[=]{.pre}]{.o}[[\'Y\']{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.contrib.angular_encode "Permalink to this definition"){.headerlink}
+
+:   Encode classical features as single-qubit rotation gates inside a
+    kernel.
+
+    Angular (rotation) encoding maps a classical angle vector
+    ([\\(θ_0\\)]{.math .notranslate .nohighlight}, [\\(\\ldots\\)]{.math
+    .notranslate .nohighlight}, [\\(θ\_{n-1}\\)]{.math .notranslate
+    .nohighlight}) to an [\\(n\\)]{.math .notranslate
+    .nohighlight}-qubit product state by applying one parameterized
+    rotation per qubit. Starting from the [\\(n\\)]{.math .notranslate
+    .nohighlight}-fold product of [\\(\|0⟩\\)]{.math .notranslate
+    .nohighlight}, the encoded state is
+
+    ::: {.math .notranslate .nohighlight}
+    \\\[\|ψ⟩ = \\prod\_{i=0}\^{n-1}
+    R\_{\\mathrm{axis}}(θ_i)\\,\|0⟩\_i,\\\]
+    :::
+
+    where the product applies [\\(R\_{\\mathrm{axis}}(θ_i)\\)]{.math
+    .notranslate .nohighlight} on qubit [\\(i\\)]{.math .notranslate
+    .nohighlight} and leaves other qubits unchanged. CUDA-Q uses the
+    standard Pauli rotation convention
+
+    ::: {.math .notranslate .nohighlight}
+    \\\[R_P(θ) = e\^{-i θ P / 2}, \\quad P \\in \\{X, Y, Z\\},\\\]
+    :::
+
+    implemented as [`rx(θ)`{.docutils .literal .notranslate}]{.pre},
+    [`ry(θ)`{.docutils .literal .notranslate}]{.pre}, or
+    [`rz(θ)`{.docutils .literal .notranslate}]{.pre} when
+    [`rotation`{.docutils .literal .notranslate}]{.pre} is
+    [`'X'`{.docutils .literal .notranslate}]{.pre}, [`'Y'`{.docutils
+    .literal .notranslate}]{.pre}, or [`'Z'`{.docutils .literal
+    .notranslate}]{.pre} respectively (default [`'Y'`{.docutils .literal
+    .notranslate}]{.pre}).
+
+    For example, [`rotation='Y'`{.docutils .literal .notranslate}]{.pre}
+    on qubit [\\(i\\)]{.math .notranslate .nohighlight} gives
+    [\\(R_Y(θ_i)\|0⟩ = \\cos(θ_i/2)\|0⟩ + \\sin(θ_i/2)\|1⟩\\)]{.math
+    .notranslate .nohighlight}.
+
+    The number of angles must match the number of qubits in
+    [`q`{.docutils .literal .notranslate}]{.pre} when the register size
+    is known at compile time.
+
+    Two call patterns are supported:
+
+    -   **Kernel language** (inside [`@cudaq.kernel`{.docutils .literal
+        .notranslate}]{.pre}): intercepted by the compiler; host calls
+        with [`(q,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+        .literal .notranslate}[`angles)`{.docutils .literal
+        .notranslate}]{.pre} raise [`RuntimeError`{.docutils .literal
+        .notranslate}]{.pre}.
+
+    -   **Builder** ([`cudaq.make_kernel()`{.docutils .literal
+        .notranslate}]{.pre}): call [`angular_encode(kernel,`{.docutils
+        .literal .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`qubits,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`angles,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`rotation='Y')`{.docutils .literal
+        .notranslate}]{.pre} to append [`rx`{.docutils .literal
+        .notranslate}]{.pre}/[`ry`{.docutils .literal
+        .notranslate}]{.pre}/[`rz`{.docutils .literal
+        .notranslate}]{.pre} gates to the circuit under construction.
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel_or_q** -- In builder mode, the [`Kernel`{.xref .py
+            .py-class .docutils .literal .notranslate}]{.pre} from
+            [`cudaq.make_kernel()`{.docutils .literal
+            .notranslate}]{.pre}. In kernel language, the [`q`{.docutils
+            .literal .notranslate}]{.pre} register (handled by the
+            compiler, not this Python function).
+
+        -   **q_or_angles** -- In builder mode, the [`qalloc`{.docutils
+            .literal .notranslate}]{.pre} register. In kernel language,
+            the [`angles`{.docutils .literal .notranslate}]{.pre} list.
+
+        -   **angles** -- Builder mode only --- [`list[float]`{.docutils
+            .literal .notranslate}]{.pre} or a kernel
+            [`list[float]`{.docutils .literal .notranslate}]{.pre}
+            argument ([`QuakeValue`{.xref .py .py-class .docutils
+            .literal .notranslate}]{.pre}).
+
+        -   **rotation** -- Rotation axis: [`'X'`{.docutils .literal
+            .notranslate}]{.pre}, [`'Y'`{.docutils .literal
+            .notranslate}]{.pre}, or [`'Z'`{.docutils .literal
+            .notranslate}]{.pre} (default [`'Y'`{.docutils .literal
+            .notranslate}]{.pre}; case-insensitive in builder mode).
+
+    Raises[:]{.colon}
+
+    :   -   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- Kernel-language host misuse with
+            [`(q,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+            .literal .notranslate}[`angles)`{.docutils .literal
+            .notranslate}]{.pre}.
+
+        -   [**ValueError**](https://docs.python.org/3/library/exceptions.html#ValueError "(in Python v3.14)"){.reference
+            .external} -- Invalid [`rotation`{.docutils .literal
+            .notranslate}]{.pre} or angle/qubit count mismatch
+            (builder).
+
+        -   [**TypeError**](https://docs.python.org/3/library/exceptions.html#TypeError "(in Python v3.14)"){.reference
+            .external} -- Invalid builder arguments.
+
+    See [`cudaq.contrib.examples`{.docutils .literal
+    .notranslate}]{.pre} for complete examples.
+:::
 :::
 
 ::: {#quantum-error-correction .section}
@@ -3411,7 +3481,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Schedule]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[get_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.4)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.Schedule "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Schedule]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[get_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.Schedule "Permalink to this definition"){.headerlink}
 
 :   Represents an iterator that produces all values needed for
     evaluating an operator expression at different time steps.
@@ -3520,7 +3590,7 @@ discriminated bits into an integer.)
 
 :   
 
-    *[classmethod]{.pre}[ ]{.w}*[[const]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[constant_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.4)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.const "Permalink to this definition"){.headerlink}
+    *[classmethod]{.pre}[ ]{.w}*[[const]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[constant_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.const "Permalink to this definition"){.headerlink}
 
     :   Creates a scalar operator that has a constant value.
 
@@ -3537,7 +3607,7 @@ discriminated bits into an integer.)
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.4)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.4)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Class method for consistency with other operator classes.
         Invokes the generator with the given keyword arguments.
@@ -3625,7 +3695,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[operators.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.4)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.define "Permalink to this definition"){.headerlink}
+[[operators.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.define "Permalink to this definition"){.headerlink}
 
 :   Defines a matrix operator element with the given id. After
     definition, an the defined elementary operator can be instantiated
@@ -3731,14 +3801,31 @@ discriminated bits into an integer.)
 
     *[property]{.pre}[ ]{.w}*[[degrees]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.degrees "Permalink to this definition"){.headerlink}
 
-    :   Returns a vector that lists all degrees of freedom that the
-        operator targets. The order of degrees is from smallest to
-        largest and reflects the ordering of the matrix returned by
-        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
-        Specifically, the indices of a statevector with two qubits are
-        {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
-        that a state where the qubit with index 0 equals 1 with
-        probability 1 is given by the vector {0., 1., 0., 0.}.
+    :   qubit 0 contributes 2\^0 to the statevector index, qubit 1
+        contributes 2\^1, and so on. For two qubits, statevector index 1
+        corresponds to the basis state [[\|]{#id3
+        .problematic}](#id2)q_0 q_1\> = [[\|]{#id5
+        .problematic}](#id4)10\> (qubit 0 in [[\|]{#id7
+        .problematic}](#id6)1\>, qubit 1 in [[\|]{#id9
+        .problematic}](#id8)0\>), so a state where qubit 0 equals 1 with
+        probability 1 is the vector {0., 1., 0., 0.}. This convention
+        matches [`cudaq.get_state`{.code .docutils .literal
+        .notranslate}]{.pre}, [`SampleResult`{.code .docutils .literal
+        .notranslate}]{.pre} bitstring keys, and the Pauli word produced
+        by [`get_pauli_word()`{.code .docutils .literal
+        .notranslate}]{.pre}, all of which place qubit 0 as the
+        left-most character. Note that writing the statevector index as
+        a binary number (e.g. index 1 as [`01`{.code .docutils .literal
+        .notranslate}]{.pre}) places qubit 0 on the right, since it is
+        the least-significant bit.
+
+        Type[:]{.colon}
+
+        :   Returns a vector that lists all degrees of freedom (qubit
+            indices) that the operator targets, from smallest to
+            largest. This ordering reflects the basis ordering of the
+            matrix returned by [`to_matrix`{.code .docutils .literal
+            .notranslate}]{.pre}
 
     [[distribute_terms]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.distribute_terms "Permalink to this definition"){.headerlink}
 
@@ -3754,19 +3841,6 @@ discriminated bits into an integer.)
 
     :   
 
-    [[empty_op]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperator.empty_op "Permalink to this definition"){.headerlink}
-
-    :   
-
-    [[for_each_pauli]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.for_each_pauli "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - iterator over sum and then iterator over term
-        instead.
-
-    [[for_each_term]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.for_each_term "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use standard iteration instead.
-
     [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperator.from_json "Permalink to this definition"){.headerlink}
 
     :   
@@ -3775,38 +3849,13 @@ discriminated bits into an integer.)
 
     :   
 
-    [[get_coefficient]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_coefficient "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`evaluate_coefficient`{.code .docutils
-        .literal .notranslate}]{.pre} on each term (product operator)
-        instead.
-
-    [[get_qubit_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_qubit_count "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`qubit_count`{.code .docutils .literal
-        .notranslate}]{.pre} instead.
-
-    [[get_raw_data]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_raw_data "Permalink to this definition"){.headerlink}
-
-    :   Deprecated.
-
-    [[get_term_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.get_term_count "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`term_count`{.code .docutils .literal
-        .notranslate}]{.pre} instead.
-
     [[identity]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperator.identity "Permalink to this definition"){.headerlink}
 
     :   
 
-    [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.is_identity "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - is_identity will only be supported on each term
-        (product operator) in future releases.
-
     *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.max_degree "Permalink to this definition"){.headerlink}
 
-    :   Returns the smallest index of the degrees of freedom that the
+    :   Returns the largest index of the degrees of freedom that the
         operator targets.
 
     *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.min_degree "Permalink to this definition"){.headerlink}
@@ -3960,12 +4009,6 @@ discriminated bits into an integer.)
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
 
-    [[to_string]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.to_string "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use the standard [`str`{.code .docutils .literal
-        .notranslate}]{.pre} conversion or [`get_pauli_word`{.code
-        .docutils .literal .notranslate}]{.pre} on each term instead.
-
     [[trim]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.trim "Permalink to this definition"){.headerlink}
 
     :   Removes all terms from the sum for which the absolute value of
@@ -4032,13 +4075,6 @@ discriminated bits into an integer.)
         that a state where the qubit with index 0 equals 1 with
         probability 1 is given by the vector {0., 1., 0., 0.}.
 
-    [[distribute_terms]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.distribute_terms "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - instantiate a [`SpinOperator`{.code .docutils
-        .literal .notranslate}]{.pre} from this
-        [`SpinOperatorTerm`{.code .docutils .literal
-        .notranslate}]{.pre} and call distribute_terms on that.
-
     [[dump]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.dump "Permalink to this definition"){.headerlink}
 
     :   Prints the string representation of the operator to the standard
@@ -4050,10 +4086,6 @@ discriminated bits into an integer.)
         parameters is a map of parameter names to their concrete,
         complex values.
 
-    [[for_each_pauli]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.for_each_pauli "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use standard iteration instead.
-
     [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.operators.spin.SpinOperatorTerm.from_json "Permalink to this definition"){.headerlink}
 
     :   
@@ -4062,23 +4094,9 @@ discriminated bits into an integer.)
 
     :   Gets the binary symplectic representation of this operator.
 
-    [[get_coefficient]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_coefficient "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`evaluate_coefficient`{.code .docutils
-        .literal .notranslate}]{.pre} instead.
-
     [[get_pauli_word]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_pauli_word "Permalink to this definition"){.headerlink}
 
     :   Gets the Pauli word representation of this product operator.
-
-    [[get_qubit_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use [`qubit_count`{.code .docutils .literal
-        .notranslate}]{.pre} instead.
-
-    [[get_raw_data]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_raw_data "Permalink to this definition"){.headerlink}
-
-    :   Deprecated.
 
     [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
@@ -4251,12 +4269,6 @@ discriminated bits into an integer.)
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
-
-    [[to_string]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_string "Permalink to this definition"){.headerlink}
-
-    :   Deprecated - use the standard [`str`{.code .docutils .literal
-        .notranslate}]{.pre} conversion or use [`get_pauli_word`{.code
-        .docutils .literal .notranslate}]{.pre} instead.
 
 ```{=html}
 <!-- -->
@@ -5633,7 +5645,7 @@ discriminated bits into an integer.)
 
 :   
 
-    *[classmethod]{.pre}[ ]{.w}*[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.4)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.MatrixOperatorElement.define "Permalink to this definition"){.headerlink}
+    *[classmethod]{.pre}[ ]{.w}*[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.MatrixOperatorElement.define "Permalink to this definition"){.headerlink}
 
     :   Creates the definition of an elementary operator with the given
         id.
@@ -5669,7 +5681,7 @@ discriminated bits into an integer.)
 
 []{#module-cudaq.operators.custom .target}
 
-[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.4)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.4)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.define "Permalink to this definition"){.headerlink}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.define "Permalink to this definition"){.headerlink}
 
 :   Defines a matrix operator element with the given id. After
     definition, an the defined elementary operator can be instantiated
