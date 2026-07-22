@@ -38,8 +38,14 @@ def test_different_seeds_differ():
 
 def test_write_corpus_is_reproducible(tmp_path):
     seeds = (1, 2, 3)
-    first = {p.name: p.read_text() for p in corpus.write_corpus(tmp_path / "a", seeds)}
-    second = {p.name: p.read_text() for p in corpus.write_corpus(tmp_path / "b", seeds)}
+    first = {
+        p.name: p.read_text()
+        for p in corpus.write_corpus(tmp_path / "a", seeds)
+    }
+    second = {
+        p.name: p.read_text()
+        for p in corpus.write_corpus(tmp_path / "b", seeds)
+    }
     assert first == second
 
 
@@ -64,10 +70,9 @@ def test_seed_sets_are_pinned_and_sized():
         "full": 64,
     }
     # Depth ordering holds.
-    assert (len(corpus.CORPUS_SEED_SETS["smoke"])
-            < len(corpus.CORPUS_SEED_SETS["quick"])
-            < len(corpus.CORPUS_SEED_SETS["ci"])
-            < len(corpus.CORPUS_SEED_SETS["full"]))
+    assert (len(corpus.CORPUS_SEED_SETS["smoke"]) < len(
+        corpus.CORPUS_SEED_SETS["quick"]) < len(corpus.CORPUS_SEED_SETS["ci"]) <
+            len(corpus.CORPUS_SEED_SETS["full"]))
 
 
 def test_seeds_for_preset_matches_table():

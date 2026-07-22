@@ -8,9 +8,9 @@
 
 #include "py_optimization_validation.h"
 #include "common/Resources.h"
+#include "cudaq_internal/compiler/ResourceCount.h"
 #include "cudaq/Optimizer/Analysis/CircuitValidation.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
