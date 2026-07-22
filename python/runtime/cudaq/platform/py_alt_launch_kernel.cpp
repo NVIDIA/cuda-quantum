@@ -339,6 +339,52 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
       });
 }
 
+/// Delete a `std::vector<T>*` previously produced by `handleVectorElements`.
+template <cudaq::PackingStyle style>
+static void deleteVectorElements(mlir::Type eleTy, void *ptr) {
+  auto deleteAs = [ptr]<typename T>() {
+    delete static_cast<std::vector<T> *>(ptr);
+  };
+  llvm::TypeSwitch<mlir::Type, void>(eleTy)
+      .Case([&](mlir::IntegerType ty) {
+        switch (ty.getIntOrFloatBitWidth()) {
+        case 1:
+          return deleteAs.template operator()<cudaq::BoolVecElem<style>>();
+        case 8:
+          return deleteAs.template operator()<std::int8_t>();
+        case 16:
+          return deleteAs.template operator()<std::int16_t>();
+        case 32:
+          return deleteAs.template operator()<std::int32_t>();
+        default:
+          return deleteAs.template operator()<std::int64_t>();
+        }
+      })
+      .Case(
+          [&](mlir::Float32Type ty) { deleteAs.template operator()<float>(); })
+      .Case(
+          [&](mlir::Float64Type ty) { deleteAs.template operator()<double>(); })
+      .Case([&](cudaq::cc::CharspanType ty) {
+        deleteAs.template operator()<std::string>();
+      })
+      .Case([&](mlir::ComplexType ty) {
+        if (mlir::isa<mlir::Float64Type>(ty.getElementType()))
+          deleteAs.template operator()<std::complex<double>>();
+        else
+          deleteAs.template operator()<std::complex<float>>();
+      })
+      .Case([&](cudaq::cc::StdvecType ty) {
+        // Nested vectors: `handleVectorElements` collapses the inner element
+        // type to `std::size_t` (or `BoolVecElem` for bools), so mirror that
+        // here to match the actual allocation.
+        if (ty.getElementType().isInteger(1))
+          deleteAs
+              .template operator()<std::vector<cudaq::BoolVecElem<style>>>();
+        else
+          deleteAs.template operator()<std::vector<std::size_t>>();
+      });
+}
+
 std::string cudaq::mlirTypeToString(mlir::Type ty) {
   std::string msg;
   {
@@ -471,25 +517,13 @@ void cudaq::packArgs(
           argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
         })
         .Case([&](cc::StdvecType ty) {
-          auto appendVectorValue = [&argData]<typename T>(Type eleTy,
-                                                          nanobind::list list) {
-            auto allocatedArg = handleVectorElements<style>(eleTy, list);
-            argData.emplace_back(allocatedArg, [](void *ptr) {
-              delete static_cast<std::vector<T> *>(ptr);
-            });
-          };
-
           checkArgumentType<nanobind::list>(arg, i);
           auto list = nanobind::cast<nanobind::list>(arg);
           auto eleTy = ty.getElementType();
-          if (eleTy.isInteger(1)) {
-            // Special case for a `std::vector<bool>`.
-            appendVectorValue.template operator()<BoolVecElem<style>>(eleTy,
-                                                                      list);
-            return;
-          }
-          // All other `std::vector<T>` types, including nested vectors.
-          appendVectorValue.template operator()<std::int64_t>(eleTy, list);
+          auto allocatedArg = handleVectorElements<style>(eleTy, list);
+          argData.emplace_back(allocatedArg, [eleTy](void *ptr) {
+            deleteVectorElements<style>(eleTy, ptr);
+          });
         })
         .Case([&](cc::CallableType ty) {
           // arg must be a DecoratorCapture object.
@@ -693,7 +727,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
                cudaq::CompiledModule *cachedModule,
                const std::vector<void *> &rawArgs) {
   auto target = getCompileTargetImpl();
-  auto targetHash = target->hash();
+  auto targetHash = std::hash<cudaq::CompileTarget>{}(*target);
 
   // We don't cache kernels that inline all arguments, as any change to the
   // runtime arguments would invalidate the cache. Currently, synthesis is
