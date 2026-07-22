@@ -265,8 +265,9 @@ public:
   }
 
   std::unique_ptr<CompileTarget> getCompileTarget(const run_policy &) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
     return target;
