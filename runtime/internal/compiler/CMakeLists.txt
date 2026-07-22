@@ -26,6 +26,7 @@ add_library(cudaq-mlir-runtime
     CompiledModuleHelper.cpp
     JITTargetPipeline.cpp
     JIT.cpp
+    ResourceCount.cpp
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
     LayoutInfo.cpp

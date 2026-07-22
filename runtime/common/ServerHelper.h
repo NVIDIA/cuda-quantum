@@ -19,6 +19,7 @@
 #include "common/RecordLogParser.h"
 #include "cudaq_json.h"
 #include <filesystem>
+#include <map>
 
 namespace cudaq {
 
@@ -133,9 +134,12 @@ public:
   virtual cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                               std::string &jobId) = 0;
 
-  /// @brief Adjust the compiler pass pipeline (if desired)
-  virtual void updatePassPipeline(const std::filesystem::path &platformPath,
-                                  std::string &passPipeline) {}
+  /// @brief Return placeholder substitutions for config-derived pipeline
+  /// stages.
+  virtual std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) {
+    return {};
+  }
 
   /// @brief Set the runtime target information
   void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
