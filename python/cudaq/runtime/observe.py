@@ -27,7 +27,7 @@ def isValidObserveKernel(kernel):
                                                    decorator.qkeModule)
 
 
-def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
+def __broadcastObserve(kernel, spin_operator, *args, shots_count=-1, qpu_id=0):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
@@ -50,7 +50,7 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
 def observe(kernel,
             spin_operator,
             *args,
-            shots_count=0,
+            shots_count=-1,
             noise_model=None,
             num_trajectories=None,
             execution=None,
