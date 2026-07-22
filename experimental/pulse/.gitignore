@@ -1,0 +1,44 @@
+# Build artifacts
+build/
+_build/
+_skbuild/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# C++ build
+*.o
+*.so
+*.dylib
+*.a
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated tablegen outputs
+*.inc
+*.h.inc
+
+# Docs build
+docs/_build/
+
+# Benchmarks results
+benchmarks/results/
+
+# Test caches
+.hypothesis/
+.pytest_cache/
