@@ -1,3 +1,5 @@
+:orphan:
+
 CUDA-Q dialect documentation
 ****************************
 

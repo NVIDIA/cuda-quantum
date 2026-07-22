@@ -62,6 +62,7 @@ Homebrew
 IB
 INIT
 IQM
+IRs
 InfiniBand
 Infleqtion
 IonQ

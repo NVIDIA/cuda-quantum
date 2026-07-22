@@ -128,7 +128,13 @@ compiler_developer_docs = (
 
 if compiler_developer_docs:
     tags.add('compiler_developer_docs')
+    rst_epilog = '''
+.. |CUDA-Q dialect documentation| replace:: :doc:`CUDA-Q dialect documentation </using/extending/compiler/dialect_reference>`
+'''
 else:
+    rst_epilog = '''
+.. |CUDA-Q dialect documentation| replace:: CUDA-Q dialect documentation
+'''
     exclude_patterns.extend([
         'using/extending/compiler/mlir_pass.rst',
         'using/extending/compiler/available_passes.md',
