@@ -158,6 +158,7 @@ runs:
         oras push "$image:$tag" ccache-data.tar.gz
         rm -f ccache-data.tar.gz
         echo "Pushed ccache to $image:$tag"
+        echo "ccache: pushed $tag" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
         echo "pushed=true" >> $GITHUB_OUTPUT
 
     - name: Generate unique artifact name

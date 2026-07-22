@@ -133,8 +133,11 @@ runs:
           fi
         done
 
-        if ! $restored; then
+        if $restored; then
+          echo "ccache: restored $tag" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+        else
           echo "No ccache found; starting fresh."
+          echo "ccache: no cache found (cold build)" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
         fi
         echo "restored=$restored" >> $GITHUB_OUTPUT
 
