@@ -23,6 +23,25 @@
 ARG base_image=quay.io/pypa/manylinux_2_28_x86_64:latest
 # ccache cache injected by CI via --build-context ccache-data (empty by default).
 FROM scratch AS ccache-data
+
+# Copies the injected ccache into a BuildKit cache mount so the LLVM build
+# layer below does not key on the per-run cache content (a bind mount would
+# force an LLVM rebuild whenever the restored cache changes, even with
+# unchanged sources). cache_bust defeats stale layer-cache hits for this
+# stage: the copy must run on every build that reaches it, since cache mounts
+# start empty on fresh runners.
+FROM ${base_image} AS ccache-seed
+ARG cache_bust=
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    --mount=type=cache,target=/ccache,id=cudaq-manylinux-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        find /ccache -mindepth 1 -delete && cp -a /tmp/ccache-import/. /ccache/; \
+    fi && \
+    find /ccache -name stats -type f -delete && \
+    printf 'direct_cache_hit\t0\npreprocessed_cache_hit\t0\ncache_miss\t0\n' > /ccache/_build_stats.txt && \
+    mkdir -p /stamp && echo seeded > /stamp/.ccache-seeded
+
 FROM ${base_image} AS devdeps
 
 ARG distro=rhel8
@@ -89,22 +108,18 @@ ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ADD ./scripts/build_mlir_python_bindings.sh /scripts/build_mlir_python_bindings.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
-# Seed CCACHE_DIR from the injected cache so a layer-cache miss reuses objects
-# from a previous run. Needs the build_llvm.sh ccache launcher (PR #4484).
+# CCACHE_DIR points at a cache mount seeded by the ccache-seed stage, so this
+# layer keys only on sources: unchanged sources hit the layer cache exactly as
+# without ccache, and a rebuild (e.g. LLVM bump) reuses objects from the seed.
+# The stamp mount has constant content; it only orders ccache-seed before this
+# stage. Needs the build_llvm.sh ccache launcher (PR #4484).
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/llvm-project
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
 ENV CCACHE_COMPILERCHECK=content
 ENV CCACHE_MAXSIZE=10G
-RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
-    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
-        echo "Importing ccache data..." && \
-        mkdir -p "$CCACHE_DIR" && cp -a /tmp/ccache-import/. "$CCACHE_DIR/" && \
-        ccache -z 2>/dev/null || true; \
-    else \
-        echo "No ccache data injected; starting from an empty cache." && \
-        mkdir -p "$CCACHE_DIR"; \
-    fi && \
+RUN --mount=from=ccache-seed,source=/stamp,target=/tmp/.ccache-seeded \
+    --mount=type=cache,target=/root/.ccache,id=cudaq-manylinux-ccache,sharing=locked \
     LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
@@ -153,16 +168,29 @@ ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 RUN bash /scripts/install_prerequisites.sh
 
 # ccache export for CI: build --target ccache-export --output type=local,dest=<dir>.
-# Tarred to avoid slow per-file BuildKit export of thousands of entries.
-FROM devdeps AS ccache-tar
-RUN tar cf /ccache.tar -C "$CCACHE_DIR" .
+# Reads the cache mount directly (never rebuilds the LLVM stage); cache_bust
+# forces a fresh tar instead of a stale layer-cache hit. Tarred to avoid slow
+# per-file BuildKit export of thousands of entries.
+FROM ${base_image} AS ccache-tar
+ARG cache_bust=
+RUN --mount=type=cache,target=/root/.ccache,id=cudaq-manylinux-ccache,sharing=locked \
+    : "bust=${cache_bust}" && tar cf /ccache.tar -C /root/.ccache .
 
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
-# Stats-only export for the CI extraction gate (ccache-extract action).
+# Stats-only export for the CI extraction gate (ccache-extract action). Stats
+# live in the cache mount: zeroed by the seed, overwritten by the LLVM build
+# when it actually compiles. A cached LLVM stage reads as 0 cacheable calls.
+FROM ${base_image} AS ccache-stats
+ARG cache_bust=
+RUN --mount=type=cache,target=/root/.ccache,id=cudaq-manylinux-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    cp /root/.ccache/_build_stats.txt /_build_stats.txt 2>/dev/null || \
+    printf 'direct_cache_hit\t0\npreprocessed_cache_hit\t0\ncache_miss\t0\n' > /_build_stats.txt
+
 FROM scratch AS ccache-export-stats
-COPY --from=devdeps /root/.ccache/_build_stats.txt /
+COPY --from=ccache-stats /_build_stats.txt /
 
 # Default target stays the devdeps image; callers pass no --target.
 FROM devdeps

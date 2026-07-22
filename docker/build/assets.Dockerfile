@@ -21,6 +21,24 @@ ARG base_image=amd64/almalinux:8
 # --build-context ccache-data=<path> to inject a pre-populated cache.
 FROM scratch AS ccache-data
 
+# Copies the injected ccache into a BuildKit cache mount so the prereqs layer
+# below does not key on the per-run cache content (a bind mount would force an
+# LLVM toolchain rebuild whenever the restored cache changes, even with
+# unchanged sources). cache_bust defeats stale layer-cache hits for this
+# stage: the copy must run on every build that reaches it, since cache mounts
+# start empty on fresh runners.
+FROM ${base_image} AS ccache-seed
+ARG cache_bust=
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    --mount=type=cache,target=/ccache,id=cudaq-assets-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        find /ccache -mindepth 1 -delete && cp -a /tmp/ccache-import/. /ccache/; \
+    fi && \
+    find /ccache -name stats -type f -delete && \
+    printf 'direct_cache_hit\t0\npreprocessed_cache_hit\t0\ncache_miss\t0\n' > /ccache/_build_stats.txt && \
+    mkdir -p /stamp && echo seeded > /stamp/.ccache-seeded
+
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
 ARG cuda_version=12.6
@@ -71,17 +89,18 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-# Seed CCACHE_DIR from the injected cache so a layer-cache miss reuses objects
-# from a previous run instead of rebuilding the whole LLVM toolchain.
+# CCACHE_DIR points at a cache mount seeded by the ccache-seed stage, so this
+# layer keys only on sources: unchanged sources hit the layer cache exactly as
+# without ccache, and a rebuild (e.g. LLVM bump) reuses objects from the seed.
+# The stamp mount has constant content; it only orders ccache-seed before this
+# stage.
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
 ENV CCACHE_COMPILERCHECK=content
 ENV CCACHE_MAXSIZE=25G
-RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
-    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
-        mkdir -p "$CCACHE_DIR" && cp -a /tmp/ccache-import/. "$CCACHE_DIR/" && (ccache -z 2>/dev/null || true); \
-    else mkdir -p "$CCACHE_DIR"; fi && \
+RUN --mount=from=ccache-seed,source=/stamp,target=/tmp/.ccache-seeded \
+    --mount=type=cache,target=/root/.ccache,id=cudaq-assets-ccache,sharing=locked \
     cd /cuda-quantum && source scripts/configure_build.sh && \
     # Pin stage-1 to a fixed path: a per-run mktemp path lands in every stage-2
     # compile (clang resource headers), so stage-2 ccache could never hit.
@@ -383,38 +402,94 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 # Tar inside the container to export a single file instead of thousands of
 # small ccache entries (avoids slow per-file gRPC export in BuildKit).
 # Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
-FROM cpp_build AS ccache-tar
-RUN tar cf /ccache.tar -C /root/.ccache .
+# The prereqs cache lives in a cache mount, so it is merged in here and its
+# stats are summed: an LLVM-bump run's new objects and misses must reach the
+# pushed cache and the extract/push gates.
+FROM ${base_image} AS ccache-tar
+ARG cache_bust=
+COPY --from=cpp_build /root/.ccache /tmp/ccache-cpp
+COPY .github/actions/ccache-push/parse_stats.sh /tmp/parse_stats.sh
+RUN --mount=type=cache,target=/ccache-prereqs,id=cudaq-assets-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    cpp_stats=$(bash /tmp/parse_stats.sh < /tmp/ccache-cpp/_build_stats.txt || true) && \
+    pre_stats=$(bash /tmp/parse_stats.sh < /ccache-prereqs/_build_stats.txt 2>/dev/null || true) && \
+    mkdir -p /root/.ccache && cp -a /tmp/ccache-cpp/. /root/.ccache/ && \
+    (cp -an /ccache-prereqs/. /root/.ccache/ 2>/dev/null || true) && \
+    if [ -n "$cpp_stats" ] || [ -n "$pre_stats" ]; then \
+        cpp_calls=${cpp_stats% *}; cpp_misses=${cpp_stats#* }; \
+        pre_calls=${pre_stats% *}; pre_misses=${pre_stats#* }; \
+        calls=$(( ${cpp_calls:-0} + ${pre_calls:-0} )) && \
+        misses=$(( ${cpp_misses:-0} + ${pre_misses:-0} )) && \
+        printf 'direct_cache_hit\t%s\npreprocessed_cache_hit\t0\ncache_miss\t%s\n' \
+            "$(( calls - misses ))" "$misses" > /root/.ccache/_build_stats.txt; \
+    fi && \
+    tar cf /ccache.tar -C /root/.ccache .
 
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
 # Stats-only export for the CI extraction gate (ccache-extract action).
+# Sums cpp_build's stats with the prereqs cache-mount stats without copying
+# the multi-GB cache itself.
+FROM ${base_image} AS ccache-stats
+ARG cache_bust=
+COPY --from=cpp_build /root/.ccache/_build_stats.txt /tmp/cpp_stats.txt
+COPY .github/actions/ccache-push/parse_stats.sh /tmp/parse_stats.sh
+RUN --mount=type=cache,target=/ccache-prereqs,id=cudaq-assets-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    cpp_stats=$(bash /tmp/parse_stats.sh < /tmp/cpp_stats.txt || true) && \
+    pre_stats=$(bash /tmp/parse_stats.sh < /ccache-prereqs/_build_stats.txt 2>/dev/null || true) && \
+    cpp_calls=${cpp_stats% *}; cpp_misses=${cpp_stats#* }; \
+    pre_calls=${pre_stats% *}; pre_misses=${pre_stats#* }; \
+    calls=$(( ${cpp_calls:-0} + ${pre_calls:-0} )) && \
+    misses=$(( ${cpp_misses:-0} + ${pre_misses:-0} )) && \
+    printf 'direct_cache_hit\t%s\npreprocessed_cache_hit\t0\ncache_miss\t%s\n' \
+        "$(( calls - misses ))" "$misses" > /_build_stats.txt
+
 FROM scratch AS ccache-export-stats
-COPY --from=cpp_build /root/.ccache/_build_stats.txt /
+COPY --from=ccache-stats /_build_stats.txt /
 
 # Same export but rooted at prereqs, for build_target=prereqs jobs that only
 # build the LLVM toolchain (CI source_build). Build with --target ccache-export-prereqs.
-FROM prereqs AS ccache-tar-prereqs
-RUN tar cf /ccache.tar -C /root/.ccache .
+# Reads the cache mount directly (never rebuilds prereqs); stats were zeroed
+# by the seed and overwritten by prereqs only if it actually compiled.
+FROM ${base_image} AS ccache-tar-prereqs
+ARG cache_bust=
+RUN --mount=type=cache,target=/root/.ccache,id=cudaq-assets-ccache,sharing=locked \
+    : "bust=${cache_bust}" && tar cf /ccache.tar -C /root/.ccache .
 
 FROM scratch AS ccache-export-prereqs
 COPY --from=ccache-tar-prereqs /ccache.tar /
 
+FROM ${base_image} AS ccache-stats-prereqs
+ARG cache_bust=
+RUN --mount=type=cache,target=/root/.ccache,id=cudaq-assets-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    cp /root/.ccache/_build_stats.txt /_build_stats.txt 2>/dev/null || \
+    printf 'direct_cache_hit\t0\npreprocessed_cache_hit\t0\ncache_miss\t0\n' > /_build_stats.txt
+
 FROM scratch AS ccache-export-prereqs-stats
-COPY --from=prereqs /root/.ccache/_build_stats.txt /
+COPY --from=ccache-stats-prereqs /_build_stats.txt /
 
 # Merge python_build's cache (otherwise never exported) into cpp_build's;
 # stats are summed so the extract/push gates see the combined miss rate.
+# The prereqs cache mount is merged too: an LLVM-bump run's new objects and
+# misses must reach the pushed cache and the gates.
 FROM python_build AS ccache-tar-full
+ARG cache_bust=
 COPY --from=cpp_build /root/.ccache /tmp/ccache-cpp
 COPY .github/actions/ccache-push/parse_stats.sh /tmp/parse_stats.sh
-RUN cpp_stats=$(bash /tmp/parse_stats.sh < /tmp/ccache-cpp/_build_stats.txt || true) && \
+RUN --mount=type=cache,target=/ccache-prereqs,id=cudaq-assets-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    cpp_stats=$(bash /tmp/parse_stats.sh < /tmp/ccache-cpp/_build_stats.txt || true) && \
     py_stats=$(bash /tmp/parse_stats.sh < /root/.ccache/_build_stats.txt || true) && \
+    pre_stats=$(bash /tmp/parse_stats.sh < /ccache-prereqs/_build_stats.txt 2>/dev/null || true) && \
     cp -an /tmp/ccache-cpp/. /root/.ccache/ && \
+    (cp -an /ccache-prereqs/. /root/.ccache/ 2>/dev/null || true) && \
     if [ -n "$cpp_stats" ] && [ -n "$py_stats" ]; then \
-        calls=$(( ${cpp_stats% *} + ${py_stats% *} )) && \
-        misses=$(( ${cpp_stats#* } + ${py_stats#* } )) && \
+        pre_calls=${pre_stats% *}; pre_misses=${pre_stats#* }; \
+        calls=$(( ${cpp_stats% *} + ${py_stats% *} + ${pre_calls:-0} )) && \
+        misses=$(( ${cpp_stats#* } + ${py_stats#* } + ${pre_misses:-0} )) && \
         printf 'direct_cache_hit\t%s\npreprocessed_cache_hit\t0\ncache_miss\t%s\n' \
             "$(( calls - misses ))" "$misses" > /root/.ccache/_build_stats.txt; \
     fi && \

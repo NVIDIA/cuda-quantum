@@ -43,6 +43,9 @@ runs:
         args=()
         [ -n "${{ inputs.platform }}" ] && args+=(--platform "${{ inputs.platform }}")
         while IFS= read -r a; do [ -n "$a" ] && args+=(--build-arg "$a"); done <<< "${{ inputs.build-args }}"
+        # The export/stats stages read a BuildKit cache mount; cache_bust
+        # forces them to re-run instead of returning a stale layer-cache hit.
+        args+=(--build-arg "cache_bust=${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-0}-$RANDOM")
         build() {
           docker buildx build -f "${{ inputs.dockerfile }}" . \
             --build-context ccache-data="${{ inputs.ccache-context }}" \
@@ -67,11 +70,19 @@ runs:
           build "${{ inputs.export-target }}-stats" /tmp/ccache-stats || true
           if [ -f /tmp/ccache-stats/_build_stats.txt ]; then
             read -r calls misses <<< "$(bash "${{ github.action_path }}/../ccache-push/parse_stats.sh" < /tmp/ccache-stats/_build_stats.txt)"
+            if [[ "$calls" =~ ^[0-9]+$ ]] && [ "$calls" -eq 0 ]; then
+              # The compile stage was served from the layer cache, so no
+              # compilation ran and there is nothing new to persist.
+              echo "No cacheable compiler calls in this build; skipping cache extraction."
+              echo "ccache: extraction and push skipped (no compiles ran)" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+              exit 0
+            fi
             if [[ "$calls" =~ ^[0-9]+$ ]] && [[ "$misses" =~ ^[0-9]+$ ]] && [ "$calls" -gt 0 ]; then
               miss_pct=$((misses * 100 / calls))
               echo "Cache miss rate: ${miss_pct}% (${misses} misses / ${calls} cacheable calls)"
               if [ "$miss_pct" -lt "$threshold" ]; then
                 echo "Below push threshold ${threshold}%; skipping cache extraction."
+                echo "ccache: extraction and push skipped (miss rate ${miss_pct}% below threshold)" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
                 exit 0
               fi
             fi

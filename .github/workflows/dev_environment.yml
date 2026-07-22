@@ -414,6 +414,7 @@ jobs:
           target: ${{ inputs.build_target }}
           build-args: |
             ${{ inputs.build_args }}
+            cache_bust=${{ github.run_id }}-${{ github.run_attempt }}
           build-contexts: ${{ inputs.ccache_key != '' && 'ccache-data=/tmp/ccache-data' || '' }}
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
