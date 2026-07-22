@@ -118,7 +118,7 @@ class Color:
 
 # Name of module attribute to recover the name of the entry-point for the python
 # kernel decorator.  The associated StringAttr is *without* the `nvqppPrefix`.
-cudaq__unique_attr_name = "cc.python_uniqued"
+cudaq__unique_attr_name = "quake.python_uniqued"
 
 
 def recover_func_op(module, name):
