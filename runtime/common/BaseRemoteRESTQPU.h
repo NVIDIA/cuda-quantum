@@ -430,7 +430,6 @@ public:
 
     executor->setShots(localShots);
 
-    auto executionContext = cudaq::getExecutionContext();
     // Execute the codes produced in quake lowering
     // Allow developer to disable remote sending (useful for debugging IR)
     assert(!emulate);
@@ -440,8 +439,7 @@ public:
     const cudaq::detail::ExecutionContextType execType =
         cudaq::detail::ExecutionContextType::sample;
 
-    auto future = executor->execute(codes, execType,
-                                    &executionContext->invocationResultBuffer);
+    auto future = executor->execute(codes, execType);
     return async_sample_result(std::move(future));
   }
 
@@ -508,14 +506,12 @@ public:
 
     executor->setShots(localShots);
 
-    auto executionContext = cudaq::getExecutionContext();
     assert(!emulate);
     if (getEnvBool("DISABLE_REMOTE_SEND", false))
       return {};
 
     auto future =
-        executor->execute(codes, cudaq::detail::ExecutionContextType::observe,
-                          &executionContext->invocationResultBuffer);
+        executor->execute(codes, cudaq::detail::ExecutionContextType::observe);
     return async_observe_result(std::move(future), &policy.inner.spin);
   }
 

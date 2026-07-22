@@ -16,6 +16,10 @@
 // RUN: nvq++ -c %s -o %t/default_md.o -MD -MT %t/default_md.o -MF %t/default_md.d -I%S/Inputs 
 // RUN: [ -e %t/default_md.o ] && [ -e %t/default_md.d ] 
 // RUN: cat %t/default_md.d | FileCheck %s --check-prefix=DEFAULT-MD
+// Guard against the non-canonical spellings clang::tooling would otherwise emit
+// (a bare relative main-file name and "/../"-prefixed system headers), which
+// stat as missing under Ninja and cause every object to rebuild forever.
+// RUN: not grep -F '/../' %t/default_md.d
 
 // Default target (cudaq-quake path): -MMD with a single -MT/-MF.
 // RUN: nvq++ -c %s -o %t/default_mmd.o -MMD -MT %t/default_mmd.o -MF %t/default_mmd.d -I%S/Inputs 
@@ -49,10 +53,13 @@
 
 int plain_old_function() { return cudaq_test_dep_value(); }
 
+// The main-file and project-header prerequisites must be recorded as absolute
+// paths (not the bare virtual name clang::tooling maps the in-memory source to,
+// nor a non-canonical spelling), so Ninja can stat them.
 // DEFAULT-MD: default_md.o:
-// DEFAULT-MD-DAG: depfile.cpp
+// DEFAULT-MD-DAG: {{ /[^ ]*depfile\.cpp }}
 // DEFAULT-MD-DAG: __stddef
-// DEFAULT-MD-DAG: Inputs/dep_header.h
+// DEFAULT-MD-DAG: {{ /[^ ]*Inputs/dep_header\.h}}
 
 // DEFAULT-MMD: default_mmd.o:
 // DEFAULT-MMD-DAG: depfile.cpp
