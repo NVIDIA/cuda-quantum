@@ -92,7 +92,7 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <img src="../_static/app_title_images/qsci_preview.png" alt="QSCI Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="chemistry,noiseless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
         <a href="../applications/python/skqd.html" class="notebook-title">Sample-Based Krylov Quantum Diagonalization (SKQD)</a>
         <div class="notebook-content">
             Learn how to implement the Sample-Based Krylov Quantum Diagonalization (SKQD) algorithm to predict the ground state energy of molecules.
@@ -171,10 +171,10 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="gpu, dynamics, noiseless">
-        <a href="../applications/python/entanglement_acc_hamiltonian_simulation" class="notebook-title">Entanglement Accelerates Quantum Simulation</a>
+    <div class="notebook-entry" data-tags="gpu,dynamics,noiseless">
+        <a href="../applications/python/entanglement_acc_hamiltonian_simulation.html" class="notebook-title">Entanglement Accelerates Quantum Simulation</a>
         <div class="notebook-content">
-            Learn how entanglement growth can *reduce* the Trotter error of the first-order product formula (PF1), recovering the result from the [paper](https://www.nature.com/articles/s41567-025-02945-2) using NVIDIA CUDA-Q.
+            Learn how entanglement growth can <em>reduce</em> the Trotter error of the first-order product formula (PF1), recovering the result from the <a href="https://www.nature.com/articles/s41567-025-02945-2">paper</a> using NVIDIA CUDA-Q.
         </div>
         <img src="../_static/app_title_images/entanglement_acc_hamiltonian_simulation_preview.png" alt="PF1 error decreases as entanglement spreads" class="notebook-image">
     </div>
