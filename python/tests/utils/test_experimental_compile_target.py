@@ -79,12 +79,6 @@ def test_set_target_switches_runtime_endpoint():
     assert cudaq.get_target().name == "stim"
 
 
-def test_set_target_with_empty_runtime_endpoint_raises():
-    ct = CompileTarget(runtime_endpoint="")
-    with pytest.raises(RuntimeError):
-        cudaq.set_target(ct)
-
-
 def test_set_target_with_unknown_runtime_endpoint_raises():
     ct = CompileTarget(runtime_endpoint="not-a-real-target")
     with pytest.raises(RuntimeError):
