@@ -11,6 +11,8 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -19,6 +21,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include <cmath>
 #include <unordered_set>
 
 using namespace mlir;
@@ -1032,6 +1035,31 @@ static LogicalResult getParameterAsDouble(Value parameter, double &result) {
 void cudaq::quake::HOp::getOperatorMatrix(Matrix &matrix) {
   using namespace llvm::numbers;
   matrix.assign({inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2});
+}
+
+LogicalResult cudaq::quake::PhaseOp::verify() {
+  if (!isa<RefType, WireType>(getTarget().getType()))
+    return emitOpError("requires a scalar !quake.ref or !quake.wire anchor");
+  if (auto negated = getNegatedQubitControls();
+      negated && negated->size() != getControls().size())
+    return emitOpError("requires one negated-control flag per control operand");
+  return verifyWireResultsAreLinear(getOperation());
+}
+
+void cudaq::quake::PhaseOp::getOperatorMatrix(Matrix &matrix) {
+  using namespace std::complex_literals;
+  double phi;
+  if (failed(getParameterAsDouble(getParameter(), phi)))
+    return;
+  if (getIsAdj())
+    phi *= -1;
+  auto phase = std::exp(phi * 1i);
+  matrix.assign({phase, 0, 0, phase});
+}
+
+void cudaq::quake::PhaseOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<EraseZeroPhasePattern, MergeAdjacentPhasePattern>(context);
 }
 
 void cudaq::quake::PhasedRxOp::getOperatorMatrix(Matrix &matrix) {

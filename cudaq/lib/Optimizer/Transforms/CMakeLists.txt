@@ -49,12 +49,14 @@ add_cudaq_library(OptTransforms
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
+  LowerPhase.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
+  NormalizePhasePlacement.cpp
   ObserveAnsatz.cpp
   PhaseFolding.cpp
   Pipelines.cpp

@@ -1545,6 +1545,21 @@ def HOp : OneTargetOp<"h", [Hermitian]> {
   }];
 }
 
+def PhaseOp : OneTargetParamOp<"phase", [Rotation]> {
+  let summary = "phase correction attached to quantum dataflow";
+  let description = [{
+    Represents a scalar phase correction. With no controls, it denotes
+    `exp(i phi) I`, a global phase. With controls, it applies that phase only
+    to the branch satisfying the ordered control predicate. The scalar target
+    is solely an ordering and wire-flow anchor and does not affect the
+    represented unitary. Producers must choose an anchor outside the control
+    predicate so that an exact anchored lowering remains available for
+    non-scalar controls.
+  }];
+
+  let hasCanonicalizer = 1;
+}
+
 def PhasedRxOp : QuakeOperator<"phased_rx",
                    [NumParameters<2>, NumTargets<1>, Rotation]> {
   let summary = "an arbitrary rotation θ around the cos(φ)x + sin(φ)y axis";
