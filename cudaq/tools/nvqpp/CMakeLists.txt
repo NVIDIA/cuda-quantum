@@ -19,7 +19,6 @@ endif()
 add_custom_target(nvq++)
 add_dependencies(nvq++
   cudaq-builder
-  cudaqMLIR
   nvqir-qpp
   cudaq-quake
   cudaq-opt

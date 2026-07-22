@@ -8,17 +8,29 @@
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 
-add_llvm_executable(cudaq-opt
-  cudaq-opt.cpp
-  ${CMAKE_SOURCE_DIR}/cudaq/lib/Support/Plugin.cpp)
+add_llvm_executable(cudaq-opt cudaq-opt.cpp)
 
 llvm_update_compile_flags(cudaq-opt)
+# No need to use libcudaqMLIR.so for this standalone tool, so we link in
+# MLIR statically for performance.
 target_link_libraries(cudaq-opt
   PUBLIC
-  cudaqMLIR
+  MLIRLLVMDialect
+  MLIROptLib
+  MLIRIR
+  MLIRFuncDialect
+  MLIRFuncInlinerExtension
+  MLIRArithDialect
+
+  CCDialect
+  QECDialect
+  QuakeDialect
+  OptCodeGen
+  OptTransforms
+  CUDAQSupport
 )
 
-target_link_options(cudaq-opt BEFORE PRIVATE "$<TARGET_FILE:cudaqMLIR>")
 export_executable_symbols_for_plugins(cudaq-opt)
+mlir_check_all_link_libraries(cudaq-opt)
 
 install(TARGETS cudaq-opt DESTINATION bin)
