@@ -289,10 +289,12 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto findLookupValue = [&](Value v) -> Value {
-      if (auto id = analysis.idFromValue(v))
-        return allocas[*id];
+      // Check whether `v` is a quake.unwrap first, to avoid address clashes in
+      // `analysis`
       if (auto u = v.template getDefiningOp<cudaq::quake::UnwrapOp>())
         return u.getRefValue();
+      if (auto id = analysis.idFromValue(v))
+        return allocas[*id];
       return v;
     };
     auto collect = [&](auto values) {
