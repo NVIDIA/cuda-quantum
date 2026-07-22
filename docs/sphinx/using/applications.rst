@@ -39,11 +39,8 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <div class="tag-filters">
             <h3>Filter by Domain:</h3>
             <button class="tag-button active" data-group="domain" data-tag="all">All</button>
-            <button class="tag-button" data-group="domain" data-tag="optimization">Optimization</button>
             <button class="tag-button" data-group="domain" data-tag="chemistry">Chemistry</button>
             <button class="tag-button" data-group="domain" data-tag="fundamental">Fundamental Algorithms</button>
-            <button class="tag-button" data-group="domain" data-tag="aiforq">AI for Quantum</button>
-            <button class="tag-button" data-group="domain" data-tag="qforai">Quantum for AI</button>
             <button class="tag-button" data-group="domain" data-tag="dynamics">Dynamics</button>
             <button class="tag-button" data-group="domain" data-tag="collab">Community</button>
         </div>
@@ -56,7 +53,6 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <div class="backend-options">
             <button class="tag-button sub-option" data-tag="cpu">CPU</button>
             <button class="tag-button sub-option" data-tag="gpu">Single GPU</button>
-            <button class="tag-button sub-option" data-tag="mgpu">Multi-GPU</button>
             <button class="tag-button sub-option" data-tag="mqpu">Multi-QPU</button>
         </div>
     </div>
@@ -64,12 +60,6 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <button class="tag-button backend-toggle" data-tag="noisy">Noisy Simulator</button>
         <div class="backend-options">
             <button class="tag-button sub-option" data-tag="density">Density Matrix</button>
-        </div>
-    </div>
-    <div class="backend-group">
-        <button class="tag-button backend-toggle" data-tag="qpu">QPUs</button>
-        <div class="backend-options">
-            <button class="tag-button sub-option" data-tag="neutral">Neutral Atom</button>
         </div>
     </div>
    </div>
