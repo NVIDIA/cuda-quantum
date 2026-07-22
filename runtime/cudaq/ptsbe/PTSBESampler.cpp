@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "PTSBESample.h"
 #include "PTSBESamplerImpl.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
@@ -13,6 +14,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include <numeric>
+#include <optional>
 #include <span>
 #include <stdexcept>
 
@@ -270,6 +272,8 @@ std::vector<cudaq::sample_result> dispatchPTSBE(SimulatorType &sim,
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
   auto *baseSim = nvqir::getCircuitSimulatorInternal();
 
+  baseSim->allocateQubits(numQubits(batch.trace));
+
   if (baseSim->isSinglePrecision()) {
     auto *sim = dynamic_cast<nvqir::CircuitSimulatorBase<float> *>(baseSim);
     if (!sim)
@@ -286,36 +290,13 @@ std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch) {
 }
 
 ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy) {
-  if (!policy.batch)
-    throw std::runtime_error(
-        "ptsbe::sample_policy has no PTSBatch attached. PTSBE cannot be "
-        "finalized by name-only dispatch.");
-
-  auto results = samplePTSBE(*policy.batch);
-  auto aggregated = aggregateResults(results);
-  policy.perTrajectoryResults = std::move(results);
-  return ptsbe::sample_result(std::move(aggregated));
-}
-
-void allocateBatchQubits(std::size_t nQubits) {
-  nvqir::getCircuitSimulatorInternal()->allocateQubits(nQubits);
-}
-
-void releaseBatchQubits(std::size_t nQubits) {
-  std::vector<std::size_t> qubitIds(nQubits);
-  std::iota(qubitIds.begin(), qubitIds.end(), 0);
   auto *ctx = cudaq::getExecutionContext();
-  if (ctx)
-    cudaq::detail::resetExecutionContext();
-  try {
-    nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubitIds);
-  } catch (...) {
-    if (ctx)
-      cudaq::detail::setExecutionContext(ctx);
-    throw;
-  }
-  if (ctx)
-    cudaq::detail::setExecutionContext(ctx);
+  if (!ctx ||
+      (ctx->name != "tracer" && ctx->name != cudaq::ptsbe::sample_policy::name))
+    throw std::runtime_error(
+        "PTSBE finalize invoked without an active PTSBE or tracer execution "
+        "context. PTSBE cannot be finalized by name-only dispatch.");
+  return ptsbe::sample_result{};
 }
 
 } // namespace cudaq::ptsbe::detail

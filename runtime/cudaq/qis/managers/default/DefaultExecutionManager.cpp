@@ -174,6 +174,22 @@ protected:
     return simulator()->finalizeExecutionContext(policy);
   }
 
+  msm_dimensions
+  finalizeExecutionContext(const msm_size_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  msm_result finalizeExecutionContext(const msm_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  dem_result finalizeExecutionContext(const dem_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
   ptsbe::sample_policy::result_type
   finalizeExecutionContext(const ptsbe::sample_policy &policy) override {
     finalizeExecutionContextImpl();

@@ -81,6 +81,13 @@ protected:
   cudaq::config::TargetConfig targetConfig;
 
 public:
+  // This class overrides `launchKernel(dem_policy)` (local DEM generation,
+  // shared by all remote QPUs) but not the `sample`/`observe` overloads (those
+  // are overridden in the leaf QPUs). Re-import QPU's `launchKernel` overloads
+  // so this partial override does not trip nvcc "overloaded virtual function
+  // only partially overridden" error.
+  using QPU::launchKernel;
+
   /// @brief The constructor
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
@@ -131,10 +138,9 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count" &&
-        context.name != "dem")
-      throw std::runtime_error("Illegal use of an analysis simulator (resource "
-                               "counter / DEM) on a remote QPU.");
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
+      throw std::runtime_error(
+          "Illegal use of a resource counter on a remote QPU.");
 
     CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
                context.name);
@@ -215,30 +221,6 @@ public:
                                         serverHelper, executor);
   }
 
-  class BaseRemoteRESTQPUCompileTarget : public CompileTarget {
-  public:
-    BaseRemoteRESTQPUCompileTarget(
-        cudaq::ServerHelper *serverHelper,
-        cudaq::config::TargetConfig targetConfig,
-        std::map<std::string, std::string> runtimeConfig, bool emulate)
-        : CompileTarget(targetConfig, runtimeConfig, emulate),
-          serverHelper(serverHelper) {
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    }
-
-    void updatePassPipeline(std::string &passPipeline) const override {
-      serverHelper->updatePassPipeline(platformPath, passPipeline);
-    }
-
-    /// Disable compiled-module caching for the remote REST target.
-    std::size_t hash() const override { return 0; }
-
-  private:
-    cudaq::ServerHelper *serverHelper;
-    std::filesystem::path platformPath;
-  };
-
   using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &, ExecutionContext *ctx) override {
@@ -247,24 +229,22 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
-    if (ctx && ctx->name == "resource-count") {
+    if (ctx && ctx->name == "resource-count")
       target->emitResourceCounts = true;
-    } else if (ctx && ctx->name == "dem") {
-      target->emitJit = true;
-      target->emitTargetCode = false;
-      target->pipelineConfig.skipTargetLoweringPipeline = true;
-    }
+
     return target;
   }
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const sample_policy &policy) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
@@ -275,12 +255,43 @@ public:
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const observe_policy &policy) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->overrideAOTCompilation = true;
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
     return target;
+  }
+
+  /// Build a local JIT artifact for DEM analysis. No provider target code is
+  /// emitted or submitted while this policy is active.
+  std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
+    // Skip pipeline substitutions: this path never builds the lowering pipeline
+    // and should not trigger server-helper side effects (e.g. IQM arch fetch).
+    auto target =
+        std::make_unique<CompileTarget>(targetConfig, backendConfig, emulate);
+    target->pipelineConfig.replaceStateWithKernel = true;
+    target->overrideAOTCompilation = true;
+    target->emitJit = true;
+    target->emitTargetCode = false;
+    target->pipelineConfig.skipTargetLoweringPipeline = true;
+    return target;
+  }
+
+  /// Generate the DEM locally while preserving the selected remote target.
+  dem_result launchKernel(const dem_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override {
+    CUDAQ_INFO("BaseRemoteRESTQPU::launchKernel {} locally", policy.name);
+    if (!module.getJit())
+      throw std::runtime_error(
+          "Remote QPU could not produce the local JIT artifact required for "
+          "detector error model generation.");
+
+    return cudaq::ExecutionManager::with_default_em(policy, [&] {
+      [[maybe_unused]] auto kernelResult = runJITCompiledModule(module, args);
+    });
   }
 
   void completeLaunchKernel(const std::string &kernelName,
@@ -311,23 +322,6 @@ public:
           std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
-      return;
-    }
-
-    if (executionContext->name == "dem") {
-      assert(codes.size() == 1 && codes[0].jit);
-      cudaq::ExecutionContext context("dem");
-      context.executionManager = cudaq::getDefaultExecutionManager();
-      context.noiseModel = executionContext->noiseModel;
-      context.qpuId = executionContext->qpuId;
-      context.dem_opts = executionContext->dem_opts;
-      context.hasConditionalsOnMeasureResults =
-          codes[0].hasConditionalsOnMeasureResults;
-      cudaq::platform::with_execution_context(
-          context, [&]() { codes[0].jit->run(kernelName); });
-      executionContext->dem_text = std::move(context.dem_text);
-      executionContext->measurement_matrices =
-          std::move(context.measurement_matrices);
       return;
     }
 
@@ -416,7 +410,6 @@ public:
 
     executor->setShots(localShots);
 
-    auto executionContext = cudaq::getExecutionContext();
     // Execute the codes produced in quake lowering
     // Allow developer to disable remote sending (useful for debugging IR)
     assert(!emulate);
@@ -426,8 +419,7 @@ public:
     const cudaq::detail::ExecutionContextType execType =
         cudaq::detail::ExecutionContextType::sample;
 
-    auto future = executor->execute(codes, execType,
-                                    &executionContext->invocationResultBuffer);
+    auto future = executor->execute(codes, execType);
     return async_sample_result(std::move(future));
   }
 
@@ -494,14 +486,12 @@ public:
 
     executor->setShots(localShots);
 
-    auto executionContext = cudaq::getExecutionContext();
     assert(!emulate);
     if (getEnvBool("DISABLE_REMOTE_SEND", false))
       return {};
 
     auto future =
-        executor->execute(codes, cudaq::detail::ExecutionContextType::observe,
-                          &executionContext->invocationResultBuffer);
+        executor->execute(codes, cudaq::detail::ExecutionContextType::observe);
     return async_observe_result(std::move(future), &policy.inner.spin);
   }
 

@@ -295,8 +295,7 @@ def test_rep_code_d3():
 # CHECK:             quake.x {{\[}}%[[EXTRACT_REF_0]]] %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
 # CHECK:             quake.x {{\[}}%[[EXTRACT_REF_1]]] %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> ()
-# CHECK:             %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
-# CHECK:             quake.x {{\[}}%[[EXTRACT_REF_2]]] %[[ALLOCA_2]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:             quake.x {{\[}}%[[EXTRACT_REF_1]]] %[[ALLOCA_2]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             %[[EXTRACT_REF_3:.*]] = quake.extract_ref %[[ALLOCA_0]][2] : (!quake.veq<3>) -> !quake.ref
 # CHECK:             quake.x {{\[}}%[[EXTRACT_REF_3]]] %[[ALLOCA_2]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             %[[MZ_0:.*]] = quake.mz %[[ALLOCA_1]] name "s0" : (!quake.ref) -> !cc.measure_handle

@@ -50,6 +50,22 @@ protected:
 
   /// @brief The cuStateVec handle
   custatevecHandle_t handle = nullptr;
+  /// @brief CUDA device the handle was created on (reuse guard)
+  int handleDevice = -1;
+
+  /// @brief Create the cuStateVec handle once per device and reuse
+  /// it across kernel executions; the handle is a device context,
+  /// not tied to a particular state vector.
+  void ensureHandle() {
+    int dev;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
+    if (handle && handleDevice == dev)
+      return;
+    if (handle)
+      HANDLE_ERROR(custatevecDestroy(handle));
+    HANDLE_ERROR(custatevecCreate(&handle));
+    handleDevice = dev;
+  }
 
   /// @brief Pointer to potentially needed extra memory
   void *extraWorkspace = nullptr;
@@ -179,7 +195,7 @@ protected:
       // Create the memory and the handle
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
                                    stateDimension * sizeof(CudaDataType)));
-      HANDLE_ERROR(custatevecCreate(&handle));
+      ensureHandle();
       ownsDeviceVector = true;
       // If no state provided, initialize to the zero state
       if (state == nullptr) {
@@ -269,7 +285,7 @@ protected:
       HANDLE_CUDA_ERROR(cudaMalloc((void **)&deviceStateVector,
                                    stateDimension * sizeof(CudaDataType)));
       ownsDeviceVector = true;
-      HANDLE_ERROR(custatevecCreate(&handle));
+      ensureHandle();
       ScopedTraceWithContext(
           "CuStateVecCircuitSimulator::addQubitsToState cudaMemcpy");
       // First allocation, so just copy the user provided data (device mem) here
@@ -317,7 +333,7 @@ protected:
           (stateDimension + threads_per_block - 1) / threads_per_block;
       nvqir::initializeDeviceStateVector<CudaDataType>(
           n_blocks, threads_per_block, deviceStateVector, stateDimension);
-      HANDLE_ERROR(custatevecCreate(&handle));
+      ensureHandle();
     } else {
       // Allocate new state..
       void *newDeviceStateVector;
@@ -336,8 +352,6 @@ protected:
 
   /// @brief Reset the qubit state.
   void deallocateStateImpl() override {
-    if (deviceStateVector)
-      HANDLE_ERROR(custatevecDestroy(handle));
     if (deviceStateVector && ownsDeviceVector) {
       HANDLE_CUDA_ERROR(cudaFree(deviceStateVector));
     }
@@ -416,7 +430,10 @@ public:
   }
 
   /// The destructor
-  virtual ~CuStateVecCircuitSimulator() = default;
+  virtual ~CuStateVecCircuitSimulator() {
+    if (handle)
+      custatevecDestroy(handle);
+  }
 
   void setRandomSeed(std::size_t randomSeed) override {
     randomEngine = std::mt19937(randomSeed);

@@ -19,6 +19,7 @@
 #include "common/RecordLogParser.h"
 #include "cudaq_json.h"
 #include <filesystem>
+#include <map>
 
 namespace cudaq {
 
@@ -133,9 +134,12 @@ public:
   virtual cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                               std::string &jobId) = 0;
 
-  /// @brief Adjust the compiler pass pipeline (if desired)
-  virtual void updatePassPipeline(const std::filesystem::path &platformPath,
-                                  std::string &passPipeline) {}
+  /// @brief Return placeholder substitutions for config-derived pipeline
+  /// stages.
+  virtual std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) {
+    return {};
+  }
 
   /// @brief Set the runtime target information
   void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
@@ -159,17 +163,7 @@ public:
   createSampleResultFromQirOutput(const std::string &qirOutputLog) {
     // Parse the QIR output log
     cudaq::RecordLogParser parser;
-    parser.parse(qirOutputLog);
-
-    // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *origBuffer = parser.getBufferPtr();
-    std::size_t bufferSize = parser.getBufferSize();
-    char *buffer = static_cast<char *>(malloc(bufferSize));
-    std::memcpy(buffer, origBuffer, bufferSize);
-
-    std::vector<std::vector<bool>> results = {
-        reinterpret_cast<std::vector<bool> *>(buffer),
-        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
+    auto results = parser.parseResults(qirOutputLog);
     const auto numShots = results.size();
     // Create the counts dictionary
     cudaq::CountsDictionary globalCounts;
