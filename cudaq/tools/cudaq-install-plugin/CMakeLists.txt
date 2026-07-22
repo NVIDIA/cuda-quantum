@@ -6,14 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# LLVM-dependent library: YAML serialization and runtime argument processing.
-add_llvm_library(CUDAQTargetConfigYaml
-  TargetConfigYaml.cpp
+add_custom_target(cudaq-install-plugin)
+configure_file("cudaq-install-plugin.in"
+               "${CUDAQ_BINARY_DIR}/bin/cudaq-install-plugin"
+               FILE_PERMISSIONS
+                 OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                 GROUP_READ GROUP_EXECUTE
+                 WORLD_READ WORLD_EXECUTE
+               @ONLY)
 
-  DISABLE_LLVM_LINK_LLVM_DYLIB
-
-  LINK_COMPONENTS
-  Support
-)
-target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig)
-target_compile_options(CUDAQTargetConfigYaml PRIVATE "-fexceptions" "-frtti")
+install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/cudaq-install-plugin
+        DESTINATION bin)

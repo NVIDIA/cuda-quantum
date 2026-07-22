@@ -6,14 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# LLVM-dependent library: YAML serialization and runtime argument processing.
-add_llvm_library(CUDAQTargetConfigYaml
-  TargetConfigYaml.cpp
+configure_file(test_external_plugin_target.sh.in
+               test_external_plugin_target.sh @ONLY)
+configure_file(test_install_plugin.sh.in
+               test_install_plugin.sh @ONLY)
 
-  DISABLE_LLVM_LINK_LLVM_DYLIB
+add_test(NAME external-plugin-target
+  COMMAND bash test_external_plugin_target.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-  LINK_COMPONENTS
-  Support
-)
-target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig)
-target_compile_options(CUDAQTargetConfigYaml PRIVATE "-fexceptions" "-frtti")
+add_test(NAME install-plugin
+  COMMAND bash test_install_plugin.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

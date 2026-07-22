@@ -6,14 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# LLVM-dependent library: YAML serialization and runtime argument processing.
-add_llvm_library(CUDAQTargetConfigYaml
-  TargetConfigYaml.cpp
+PACKAGE_NAME = "@plugin_python_package@"
+PLUGIN_NAME = "@plugin_python_install_name@"
 
-  DISABLE_LLVM_LINK_LLVM_DYLIB
 
-  LINK_COMPONENTS
-  Support
-)
-target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig)
-target_compile_options(CUDAQTargetConfigYaml PRIVATE "-fexceptions" "-frtti")
+def main() -> int:
+    from cudaq.plugins import install_plugin_for_nvqpp_main
+    return install_plugin_for_nvqpp_main(PACKAGE_NAME, PLUGIN_NAME)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
