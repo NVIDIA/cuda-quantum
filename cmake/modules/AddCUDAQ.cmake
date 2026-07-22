@@ -77,7 +77,7 @@ function(add_cudaq_capi_shared_library name)
   set(_objects)
   foreach(_capi_lib IN LISTS ARGN)
     if(NOT TARGET obj.${_capi_lib})
-      message(FATAL_ERROR "Ensure ${_capi_lib} was registerd with ENABLE_AGGREGATION")
+      message(FATAL_ERROR "Ensure ${_capi_lib} was registered with ENABLE_AGGREGATION")
     endif()
     list(APPEND _objects "$<TARGET_OBJECTS:obj.${_capi_lib}>")
 

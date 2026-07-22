@@ -19,4 +19,4 @@ add_subdirectory(CAPI)
 add_subdirectory(Analysis)
 
 # Define the shared core library libcudaqMLIR.so
-include(cudaqmlir-shlib.cmake)
+include(cudaqMLIR-shlib.cmake)
