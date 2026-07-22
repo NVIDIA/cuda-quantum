@@ -298,6 +298,10 @@ function show_help {
 -c
 	Compile only. Do not link.
 
+-E
+	Preprocess only; do not compile, assemble, or link. Writes preprocessed
+	output to stdout, or to the file given by -o.
+
 -Wl<opt>
 	Linker options to be passed to the linker.
 
@@ -447,6 +451,7 @@ DEP_OUTPUT_FILE=
 DEP_TARGETS=
 MAPPING_FILE=
 DO_LINK=true
+PREPROCESS_ONLY=false
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true
 ENABLE_VARIABLE_COALESCE=true
@@ -729,6 +734,14 @@ while [ $# -ne 0 ]; do
 	-c)
 		DO_LINK=false
 		;;
+	-E)
+		# Preprocess only. ccache probes the compiler this way to build its
+		# manifest / hash the preprocessed TU. Handle it explicitly so it does
+		# not fall through to the catch-all (which would run the full
+		# quake+compile+link pipeline). Actual delegation happens below.
+		PREPROCESS_ONLY=true
+		DO_LINK=false
+		;;
 	-L* | -Wl* |-shared|-static)
 		LINKER_FLAGS="${LINKER_FLAGS} $1"
 		;;
@@ -994,6 +1007,17 @@ if ${DEP_GEN} && [ -n "${DEP_OUTPUT_FILE}" ]; then
 	if ${DEP_SYSTEM_HEADERS}; then
 		CUDAQ_QUAKE_DEP_ARGS="${CUDAQ_QUAKE_DEP_ARGS} --dependency-system-headers"
 	fi
+fi
+
+# Preprocess-only mode (-E). Delegate to the host preprocessor with the same
+# defines/includes/args the real compile uses (mirrors the library-mode compile
+# at the top of the loop, minus -c/-o, plus -E). This makes ccache's
+# preprocessor probe succeed so it can cache nvq++ object output. All source
+# files are passed in one invocation to match clang's -E semantics (stdout when
+# no -o; clang itself errors on -o with multiple sources).
+if ${PREPROCESS_ONLY}; then
+	run ${CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -E ${OUTPUTOPTS} ${SRCS}
+	exit 0
 fi
 
 for i in ${SRCS}; do
