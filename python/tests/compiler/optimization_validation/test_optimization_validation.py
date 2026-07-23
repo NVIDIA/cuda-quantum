@@ -103,6 +103,14 @@ def test_strict_oracle_is_recorded_on_the_case(tmp_path):
     assert isinstance(case.phase_is_zero, bool)
 
 
+def test_canonical_corpus_input_validates(tmp_path):
+    text = corpus.canonical_module_text("bell_pair")
+    path = _write(tmp_path, "bell_pair.qke", text)
+    result = validate(_request([path]))
+    assert result.status == ValidationStatus.PASSED
+    assert result.cases[0].assurance_tier == ASSURANCE_TIER_EXACT_UNITARY
+
+
 # Target-shaped input: a baseline PipelineTarget + a candidate substitution.
 def test_target_with_pipeline_injects_the_candidate_substitution():
     target = PipelineTarget(prepare=_PREPARE, observe="")
