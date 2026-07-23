@@ -37,4 +37,4 @@ else()
       cudaq-chemistry cudaq-operator cudaq cudaq-platform-default)
 endif()
 
-install(TARGETS cudaq-pyscf DESTINATION lib/plugins)
+install(TARGETS cudaq-pyscf DESTINATION lib/plugins COMPONENT CUDAQuantumPythonModules)

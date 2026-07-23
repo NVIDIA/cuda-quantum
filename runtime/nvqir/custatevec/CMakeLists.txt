@@ -16,7 +16,7 @@ if(_cusv_loc)
 endif()
 
 add_library(nvqir-custatevec-kernels SHARED CuStateVecCircuitSimulator.cu)
-install(TARGETS nvqir-custatevec-kernels DESTINATION lib)
+install(TARGETS nvqir-custatevec-kernels DESTINATION lib COMPONENT Runtime)
 
 macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILENAME})
@@ -46,9 +46,11 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
                           cuStateVec::cuStateVec
                           CUDA::cudart_static
                           CUDA::cublas)
-  install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+  install(TARGETS ${LIBRARY_NAME} DESTINATION lib COMPONENT Runtime)
 endmacro()
 
 nvqir_create_cusv_plugin(nvqir-custatevec-fp64 CuStateVecCircuitSimulator.cpp)
 nvqir_create_cusv_plugin(nvqir-custatevec-fp32 CuStateVecCircuitSimulatorF32.cpp)
-install(FILES CuStateVecCircuitSimulator.h DESTINATION include/nvqir)
+install(FILES CuStateVecCircuitSimulator.h
+        DESTINATION include/nvqir
+        COMPONENT Development)

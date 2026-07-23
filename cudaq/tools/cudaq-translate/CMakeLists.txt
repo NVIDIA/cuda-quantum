@@ -42,4 +42,4 @@ target_link_libraries(${TOOL_NAME}
 )
 mlir_check_all_link_libraries(${TOOL_NAME})
 
-install(TARGETS ${TOOL_NAME} DESTINATION bin)
+install(TARGETS ${TOOL_NAME} DESTINATION bin COMPONENT Nvqpp)

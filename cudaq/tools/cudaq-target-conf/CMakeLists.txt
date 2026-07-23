@@ -13,4 +13,4 @@ add_llvm_executable(${EXE_NAME} cudaq-target-conf.cpp)
 target_compile_definitions(${EXE_NAME}
   PRIVATE "CUDAQ_VERSION_STRING=\"${CUDA_QUANTUM_VERSION}\"")
 target_link_libraries(${EXE_NAME} PUBLIC CUDAQTargetConfigYaml)
-install(TARGETS ${EXE_NAME} DESTINATION bin)
+install(TARGETS ${EXE_NAME} DESTINATION bin COMPONENT Nvqpp)

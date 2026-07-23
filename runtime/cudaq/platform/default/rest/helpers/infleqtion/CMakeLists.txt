@@ -14,4 +14,5 @@ target_link_libraries(cudaq-serverhelper-infleqtion
     cudaq-common
     cudaq-logger
 )
-install(TARGETS cudaq-serverhelper-infleqtion DESTINATION lib)
+install(TARGETS cudaq-serverhelper-infleqtion DESTINATION lib
+        COMPONENT Runtime)

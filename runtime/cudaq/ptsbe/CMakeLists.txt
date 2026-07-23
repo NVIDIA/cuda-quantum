@@ -40,7 +40,7 @@ install(FILES
     PTSSamplingStrategy.h
     NoiseExtractor.h
     DESTINATION include/cudaq/ptsbe
-)
+    COMPONENT Development)
 
 # Install strategy headers to strategies subdirectory
 install(FILES
@@ -49,4 +49,4 @@ install(FILES
     strategies/OrderedSamplingStrategy.h
     strategies/ConditionalSamplingStrategy.h
     DESTINATION include/cudaq/ptsbe/strategies
-)
+    COMPONENT Development)
