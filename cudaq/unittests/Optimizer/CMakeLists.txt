@@ -47,6 +47,25 @@ add_cudaq_unittest("AnalysisPassUnitTests" "analysis-passes"
 
 create_cudaq_unittest_check_target("AnalysisPassUnitTests" "analysis-passes")
 
+add_cudaq_unittest("OutlinePartitionsTests" "outline-partitions"
+    SOURCES
+        OutlinePartitionsTest.cpp
+    INCLUDES
+    LINKED_LIBS
+        MLIRArithDialect
+        MLIRFuncDialect
+        MLIRParser
+        MLIRPass
+        MLIRIR
+        QuakeDialect
+        CCDialect
+        OptTransforms
+    COMPILE_OPTS
+      -fno-rtti
+)
+
+create_cudaq_unittest_check_target("OutlinePartitionsTests" "outline-partitions")
+
 add_cudaq_unittest("DeviceUnitTests" "device-unit-tests"
     SOURCES
         DeviceTest.cpp

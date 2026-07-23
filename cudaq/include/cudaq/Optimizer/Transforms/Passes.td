@@ -1114,6 +1114,17 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def OutlinePartitions : Pass<"outline-partitions", "mlir::func::FuncOp"> {
+  let summary = "Outline wire-semantics partitions into cc.create_lambda closures.";
+  let description = [{
+    Runs `OutlinePartitionsAnalysis` to identify partitions of operations in
+    wire (value) semantics, then outlines each partition into a
+    `cc.create_lambda` / `cc.call_callable` pair using `outlinePartition`.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
+}
+
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
   let summary = "Perform phase based rotation merging.";
 
