@@ -48,6 +48,8 @@ public:
                         "supported in a kernel.");
       return failure();
     }
+    if (!c.induction.has_value())
+      return failure();
 
     if (c.hasAlwaysFalseCondition()) {
       rewriter.startOpModification(loop);
@@ -65,7 +67,7 @@ public:
       return arith::ConstantIntOp::create(rewriter, loc, ty, val);
     };
     auto zero = createConstantOp(0);
-    loop->setOperand(c.induction, zero);
+    loop->setOperand(*c.induction, zero);
 
     // 2) Compute the number of iterations as an invariant. `iterations = max(0,
     // (upper - lower + step) / step)`.
@@ -143,7 +145,7 @@ public:
     if (!loop.getBodyRegion().empty()) {
       Block *entry = &loop.getBodyRegion().front();
       rewriter.setInsertionPointToStart(entry);
-      Value induct = entry->getArgument(c.induction);
+      Value induct = entry->getArgument(*c.induction);
       auto mul = arith::MulIOp::create(rewriter, loc, induct, c.stepValue);
       auto newInd = [&]() -> Value {
         if (c.stepIsAnAddOp())
@@ -158,8 +160,8 @@ public:
     }
 
     // 5) Back-convert the loop's induction-position result for external uses
-    if (c.induction < loop.getNumResults()) {
-      Value loopResult = loop.getResult(c.induction);
+    if (*c.induction < loop.getNumResults()) {
+      Value loopResult = loop.getResult(*c.induction);
       if (!loopResult.use_empty()) {
         rewriter.setInsertionPointAfter(loop);
         auto mulRes =

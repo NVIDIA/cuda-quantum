@@ -34,7 +34,7 @@ static Operation *createOperator(Location loc, StringRef name,
        static_cast<std::int32_t>(controls.size()),
        static_cast<std::int32_t>(targets.size())});
   auto op = builder.create(loc, nameAttr, operands);
-  op->setAttr("operand_segment_sizes", segmentSizes);
+  op->setAttr("operandSegmentSizes", segmentSizes);
   return op;
 }
 

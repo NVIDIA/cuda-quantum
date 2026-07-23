@@ -43,8 +43,7 @@ static bool exceedsThresholdValue(cudaq::cc::LoopOp loop, std::size_t threshold,
 }
 
 static bool loopCanBeUnrolled(cudaq::cc::LoopOp loop, bool allowBreak,
-                              std::size_t threshold,
-                              bool emitWarning = true) {
+                              std::size_t threshold, bool emitWarning = true) {
   if (!allowBreak && !cudaq::opt::isaCountedLoop(loop))
     return false;
   if (allowBreak && !cudaq::opt::isaIndefiniteCountedLoop(loop))
@@ -111,8 +110,8 @@ static bool loopBlocksWireConversion(cudaq::cc::LoopOp loop) {
   return found;
 }
 
-static bool loopHasParentDependentWireBlockingNestedLoop(
-    cudaq::cc::LoopOp loop) {
+static bool
+loopHasParentDependentWireBlockingNestedLoop(cudaq::cc::LoopOp loop) {
   bool found = false;
   Region &body = loop.getBodyRegion();
   loop->walk<mlir::WalkOrder::PreOrder>([&](Operation *op) -> WalkResult {
@@ -200,8 +199,10 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // TODO: Allow the threading of other block arguments to the result.
     auto components = cudaq::opt::getLoopComponents(loop);
     assert(components && "counted loop must have components");
+    if (!components->induction.has_value())
+      return failure();
     auto unrollBy = unrollLoopByValue(loop, *components);
-    Type inductionTy = loop.getOperands()[components->induction].getType();
+    Type inductionTy = loop.getOperands()[*components->induction].getType();
     LLVM_DEBUG(llvm::dbgs()
                << "unrolling loop by " << unrollBy << " iterations\n");
     auto loc = loop.getLoc();
@@ -287,7 +288,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
       rewriter.setInsertionPointToEnd(insBlock);
       // Propagate the previous iteration number into the new block. This makes
       // any unneeded computation dead. DCE will clean that up as well.
-      iterationOpers[components->induction] = iterCount;
+      iterationOpers[*components->induction] = iterCount;
       cf::BranchOp::create(rewriter, loc, cloneRange.first, iterationOpers);
       // Bookkeeping for the next iteration, which uses the new continue block,
       // `conBlock`, and its arguments.
@@ -299,7 +300,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // Finish up the last block.
     rewriter.setInsertionPointToEnd(insBlock);
     if (contBlock) {
-      iterationOpers[components->induction] = nextIterCount;
+      iterationOpers[*components->induction] = nextIterCount;
       setIterationOpers(contBlock->getArguments());
     }
     [[maybe_unused]] auto lastBranch =

@@ -230,7 +230,7 @@ LogicalResult cudaq::quake::ApplyOp::verify() {
       return emitOpError("callee must be declared");
     asSig = fn.getFunctionType();
   } else {
-    Value callable = getIndirectCallee().front();
+    Value callable = getIndirectCallee();
     asSig = cast<cudaq::cc::CallableType>(callable.getType()).getSignature();
   }
 
@@ -288,9 +288,8 @@ void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(ArrayRef<Type>{operandTys}.drop_front(isDirect ? 0 : 1),
                         (*this)->getResultTypes());
-  p.printOptionalAttrDict(
-      (*this)->getAttrs(),
-      {"operand_segment_sizes", "is_adj", getCalleeAttrNameStr()});
+  p.printOptionalAttrDict((*this)->getAttrs(), {"operandSegmentSizes", "is_adj",
+                                                getCalleeAttrNameStr()});
 }
 
 ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
@@ -330,7 +329,7 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute("operandSegmentSizes",
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(calleeOperand.size()),
                            static_cast<int32_t>(controlOperands.size()),
@@ -375,7 +374,7 @@ void cudaq::quake::ApplyNoiseOp::print(OpAsmPrinter &p) {
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(operandTys, (*this)->getResultTypes());
   p.printOptionalAttrDict((*this)->getAttrs(),
-                          {"operand_segment_sizes", getNoiseFuncAttrName()});
+                          {"operandSegmentSizes", getNoiseFuncAttrName()});
 }
 
 ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
@@ -409,7 +408,7 @@ ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute("operandSegmentSizes",
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(keyOperand.size()),
                            static_cast<int32_t>(parameterOperands.size()),

@@ -92,7 +92,12 @@ def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
     Option<"computeActionOptimization", "compute-action", "bool",
       /*default=*/"true", "Enable the compute-action control optimization.">,
     Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
-      "Enable specialization and constant propagation from apply call sites.">
+      "Enable specialization and constant propagation from apply call sites.">,
+    Option<"legacyClassical", "legacy-classical", "bool", /*default=*/"false",
+      "Enable legacy auto-generation of classical code in kernels. "
+      "Classical code is run as it appears in the kernel modulo expressions "
+      "derived from loop control variables as loops are reversed. Legacy mode "
+      "may produce unexpected results.">
   ];
 }
 
@@ -473,11 +478,11 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
 def EraseQEC : Pass<"erase-qec"> {
   let summary = "Erase QEC detector and observable operations.";
   let description = [{
-    Removes `qec.detector`, `qec.observable`, and `qec.pair_detectors` operations
-    from the IR. These are side-effecting declaration ops: they record a
-    parity-check or logical-observable relationship over prior measurement
-    results so a detector error model can be built from the kernel. This pass
-    strips them.
+    Removes `qec.detector`, `qec.observable`, and `qec.pair_detectors`
+    operations from the IR. These are side-effecting declaration ops: they
+    record a parity-check or logical-observable relationship over prior
+    measurement results so a detector error model can be built from the kernel.
+    This pass strips them.
   }];
 }
 
@@ -541,7 +546,8 @@ def FactorQuantumAllocations :
     If the function contains deallocations of quantum vectors (`veq`), these
     will be replaced with a series of deallocations.
   }];
-  let dependentDialects = ["cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
+  let dependentDialects = ["cudaq::quake::QuakeDialect",
+    "cudaq::cc::CCDialect"];
 
   let options = [
     Option<"enableFailures", "enable-failures", "bool", /*default=*/"false",
@@ -732,7 +738,7 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = ["mlir::cf::ControlFlowDialect",
-                           "mlir::func::FuncDialect"];
+    "mlir::func::FuncDialect", "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",

@@ -1746,6 +1746,8 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
     }]> 
   ];
 
+  let hasVerifier = 1;
+
   let assemblyFormat = [{
     $callee `(` $closure_data `)` ( `nocapture` $no_capture^ )?
       `:` functional-type(operands, results) attr-dict
