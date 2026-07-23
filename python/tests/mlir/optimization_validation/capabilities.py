@@ -9,7 +9,7 @@
 # The CLI reports machine-readable capabilities, including the oracle roadmap
 # with each oracle's assurance tier. Only the exact-unitary tier is supported.
 
-# RUN: PYTHONPATH=%cudaq_python_root python3 -m cudaq._compiler.optimization_cli --capabilities | FileCheck %s
+# RUN: PYTHONPATH=%cudaq_python_root python3 -m cudaq._compiler --capabilities | FileCheck %s
 
 # CHECK-DAG: "capability_schema_version": 4
 # CHECK-DAG: "assurance_tiers": [
