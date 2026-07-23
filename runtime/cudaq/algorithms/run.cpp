@@ -16,7 +16,6 @@
 cudaq::detail::RunResultSpan cudaq::detail::convertToRunResultSpan(
     const std::string &outputLog,
     const cudaq_internal::compiler::LayoutInfoType &layoutInfo) {
-  ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
 
   // 1. Pass the outputLog to the parser (target-specific?)
   cudaq::RecordLogParser parser(layoutInfo);

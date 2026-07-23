@@ -1154,8 +1154,8 @@ protected:
   finalizeExecutionContext(const cudaq::run_policy &policy) override {
     finalizeExecutionContextImpl();
     // Capture the output log for this run. Do not clear it here: the log is
-    // reset at the start of each run in configureExecutionContext(run_policy),
-    // The getAndClearOutputLog helper used by the mock QPUs) read the
+    // reset at the start of each run in configureExecutionContext(run_policy).
+    // The getAndClearOutputLog helper used by the mock QPUs reads the
     // simulator's output log *after* finalization.
     return cudaq::run_result{this->outputLog};
   }
