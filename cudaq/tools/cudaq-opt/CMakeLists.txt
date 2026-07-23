@@ -11,26 +11,35 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 add_llvm_executable(cudaq-opt cudaq-opt.cpp)
 
 llvm_update_compile_flags(cudaq-opt)
-# No need to use libcudaqMLIR.so for this standalone tool, so we link in
-# MLIR statically for performance.
-target_link_libraries(cudaq-opt
-  PUBLIC
-  MLIRLLVMDialect
-  MLIROptLib
-  MLIRIR
-  MLIRFuncDialect
-  MLIRFuncInlinerExtension
-  MLIRArithDialect
+if(APPLE)
+  # Link libcudaqMLIR dynamically to avoid duplicate symbols on macOS.
+  target_link_libraries(cudaq-opt
+    PUBLIC
+    CUDAQSupport
+    cudaqMLIR
+  )
+  target_link_options(cudaq-opt BEFORE PRIVATE "$<TARGET_FILE:cudaqMLIR>")
+else()
+  # Link MLIR statically for performance; the linker unifies duplicate symbols.
+  target_link_libraries(cudaq-opt
+    PUBLIC
+    MLIRLLVMDialect
+    MLIROptLib
+    MLIRIR
+    MLIRFuncDialect
+    MLIRFuncInlinerExtension
+    MLIRArithDialect
 
-  CCDialect
-  QECDialect
-  QuakeDialect
-  OptCodeGen
-  OptTransforms
-  CUDAQSupport
-)
+    CCDialect
+    QECDialect
+    QuakeDialect
+    OptCodeGen
+    OptTransforms
+    CUDAQSupport
+  )
+  mlir_check_all_link_libraries(cudaq-opt)
+endif()
 
 export_executable_symbols_for_plugins(cudaq-opt)
-mlir_check_all_link_libraries(cudaq-opt)
 
 install(TARGETS cudaq-opt DESTINATION bin)
