@@ -1,0 +1,60 @@
+# Manually build cudaq-devel wheels and upload them as workflow artifacts. For now this needs
+# to be triggered manually whenever we want to build a new devel wheel.
+
+name: Python devel wheels
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_devel_wheel:
+    name: Build cudaq-devel wheel
+    runs-on: linux-amd64-cpu8
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git -c submodule.tpls/llvm.update=none submodule update --init --recursive
+
+      - name: Compute CUDA-Q version
+        id: version
+        uses: ./.github/actions/compute-cudaq-version
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build cudaq-devel wheel
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.cudaq_version }}
+          BASE_IMAGE: ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu13.6-gcc12-main
+        run: |
+          mkdir -p dist
+          DOCKER_BUILDKIT=1 docker build \
+            -f docker/release/cudaq.wheel.Dockerfile \
+            --build-arg base_image="${BASE_IMAGE}" \
+            --build-arg release_version="${RELEASE_VERSION}" \
+            --build-arg build_devel=1 \
+            --output dist .
+
+      - name: Validate devel wheel contents
+        run: bash scripts/validate_devel_wheel.sh -i dist -v "${{ steps.version.outputs.release_version }}" -q
+
+      - name: Upload devel wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cudaq-devel-cu13
+          path: dist/cudaq_devel*.whl
+          if-no-files-found: error
