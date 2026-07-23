@@ -10,8 +10,8 @@
 
 func.func @covered_wagon() {
   %cst = arith.constant 3.300000e+00 : f64
-  %0 = cc.const_array [["XY", "ZI"], ["IZ", "YX"]] : !cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>
-  %1 = cc.reify_span %0 : (!cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>) -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
+  %0 = cc.const_array [["X", "Z"], ["I", "Y"]] : !cc.array<!cc.array<!cc.array<i8 x 2> x 2> x 2>
+  %1 = cc.reify_span %0 : (!cc.array<!cc.array<!cc.array<i8 x 2> x 2> x 2>) -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
   %2 = cc.stdvec_data %1 : (!cc.stdvec<!cc.stdvec<!cc.charspan>>) -> !cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>
   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>) -> !cc.ptr<!cc.stdvec<!cc.charspan>>
   %4 = cc.load %3 : !cc.ptr<!cc.stdvec<!cc.charspan>>
@@ -26,4 +26,4 @@ func.func @covered_wagon() {
 // CHECK-LABEL: func.func @covered_wagon
 // CHECK: %[[VAL_0:.*]] = arith.constant 3.300000e+00 : f64
 // CHECK: %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CHECK: quake.exp_pauli (%[[VAL_0]]) %[[VAL_1]] to "IZ" : (f64, !quake.ref) -> ()
+// CHECK: quake.exp_pauli (%[[VAL_0]]) %[[VAL_1]] to "I" : (f64, !quake.ref) -> ()
