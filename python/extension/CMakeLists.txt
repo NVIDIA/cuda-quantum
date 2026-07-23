@@ -62,7 +62,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.SiteInitialize
   SOURCES
     SiteInitialize.cpp
   EMBED_CAPI_LINK_LIBS
-    CUDAQuantumMLIRCAPI
+    cudaqDialectsCAPI
 )
 
 if(APPLE)
@@ -83,6 +83,7 @@ else()
     ../../runtime/internal/compiler/RuntimeMLIR.cpp
     ../../runtime/internal/compiler/JIT.cpp
     ../../runtime/internal/compiler/Compiler.cpp
+    ../../runtime/internal/compiler/ResourceCount.cpp
     ../../runtime/internal/compiler/JITTargetPipeline.cpp
     ../../runtime/internal/compiler/TracePassInstrumentation.cpp
   )
@@ -161,7 +162,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/internal/compiler/RuntimePyMLIR.cpp
 
   EMBED_CAPI_LINK_LIBS
-   CUDAQuantumMLIRCAPI
+   cudaqDialectsCAPI
    MLIRCAPIExecutionEngine
   PRIVATE_LINK_LIBS
    ${_quakeDialects_pipeline_carrying_link_libs}

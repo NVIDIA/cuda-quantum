@@ -82,12 +82,12 @@ cmake --build build \
 
 > **_NOTE:_**  In order to compile Holoscan Sensor Bridge from source,
 we need to install all of its dependencies.
-Please refer to `HSB` [documentation](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
+Please refer to `HSB` [documentation](https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/host-setup)
 for more details.
 
 <!--- -->
 
-> **_NOTE:_** One can also use the Holoscan Sensor Bridge Docker [container](https://docs.nvidia.com/holoscan/sensor-bridge/latest/build.html)
+> **_NOTE:_** One can also use the Holoscan Sensor Bridge Docker [container](https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/build)
 to build CUDA-Q Realtime.
 
 ### Build CUDA-Q Realtime with `HSB`

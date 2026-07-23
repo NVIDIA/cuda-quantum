@@ -11,6 +11,8 @@ add_mlir_dialect_library(OptimBuilder
   Intrinsics.cpp
   Marshal.cpp
 
+  ENABLE_AGGREGATION
+
   DEPENDS
     CCDialect
     QuakeDialect
@@ -21,3 +23,5 @@ add_mlir_dialect_library(OptimBuilder
     CCDialect
     QuakeDialect
 )
+
+register_cudaq_mlir_lib(OptimBuilder)

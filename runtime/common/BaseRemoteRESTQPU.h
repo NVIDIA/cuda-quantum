@@ -207,12 +207,13 @@ public:
     /// Once we know the backend, we should search for the configuration file
     /// from there we can get the URL/PORT and the required MLIR pass pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
-    auto configFilePath = platformPath / fileName;
+    auto configFilePath =
+        detail::getTargetConfigPath(backend, platformPath / fileName);
+    backendConfig.erase("__yml_path");
     CUDAQ_INFO("Config file path = {}", configFilePath.string());
-    std::ifstream configFile(configFilePath.string());
-    std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
-                                  std::istreambuf_iterator<char>());
-    detail::parseTargetConfigYml(configYmlContents, targetConfig);
+    targetConfig = cudaq::config::loadTargetConfig(configFilePath);
+    detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
+                                      targetConfig);
 
     // Set the qpu name
     qpuName = mutableBackend;
@@ -220,30 +221,6 @@ public:
     detail::initServerHelperAndExecutor(qpuName, backendConfig, targetConfig,
                                         serverHelper, executor);
   }
-
-  class BaseRemoteRESTQPUCompileTarget : public CompileTarget {
-  public:
-    BaseRemoteRESTQPUCompileTarget(
-        cudaq::ServerHelper *serverHelper,
-        cudaq::config::TargetConfig targetConfig,
-        std::map<std::string, std::string> runtimeConfig, bool emulate)
-        : CompileTarget(targetConfig, runtimeConfig, emulate),
-          serverHelper(serverHelper) {
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    }
-
-    void updatePassPipeline(std::string &passPipeline) const override {
-      serverHelper->updatePassPipeline(platformPath, passPipeline);
-    }
-
-    /// Disable compiled-module caching for the remote REST target.
-    std::size_t hash() const override { return 0; }
-
-  private:
-    cudaq::ServerHelper *serverHelper;
-    std::filesystem::path platformPath;
-  };
 
   using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
@@ -253,8 +230,9 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
     if (ctx && ctx->name == "resource-count")
@@ -265,8 +243,9 @@ public:
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const sample_policy &policy) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
@@ -277,8 +256,9 @@ public:
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const observe_policy &policy) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
     target->overrideAOTCompilation = true;
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
@@ -288,8 +268,10 @@ public:
   /// Build a local JIT artifact for DEM analysis. No provider target code is
   /// emitted or submitted while this policy is active.
   std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
-    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
-        serverHelper.get(), targetConfig, backendConfig, emulate);
+    // Skip pipeline substitutions: this path never builds the lowering pipeline
+    // and should not trigger server-helper side effects (e.g. IQM arch fetch).
+    auto target =
+        std::make_unique<CompileTarget>(targetConfig, backendConfig, emulate);
     target->pipelineConfig.replaceStateWithKernel = true;
     target->overrideAOTCompilation = true;
     target->emitJit = true;
@@ -429,7 +411,6 @@ public:
 
     executor->setShots(localShots);
 
-    auto executionContext = cudaq::getExecutionContext();
     // Execute the codes produced in quake lowering
     // Allow developer to disable remote sending (useful for debugging IR)
     assert(!emulate);
@@ -439,8 +420,7 @@ public:
     const cudaq::detail::ExecutionContextType execType =
         cudaq::detail::ExecutionContextType::sample;
 
-    auto future = executor->execute(codes, execType,
-                                    &executionContext->invocationResultBuffer);
+    auto future = executor->execute(codes, execType);
     return async_sample_result(std::move(future));
   }
 
@@ -507,14 +487,12 @@ public:
 
     executor->setShots(localShots);
 
-    auto executionContext = cudaq::getExecutionContext();
     assert(!emulate);
     if (getEnvBool("DISABLE_REMOTE_SEND", false))
       return {};
 
     auto future =
-        executor->execute(codes, cudaq::detail::ExecutionContextType::observe,
-                          &executionContext->invocationResultBuffer);
+        executor->execute(codes, cudaq::detail::ExecutionContextType::observe);
     return async_observe_result(std::move(future), &policy.inner.spin);
   }
 

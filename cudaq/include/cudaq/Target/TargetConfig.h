@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace cudaq::config {
@@ -118,6 +120,8 @@ struct BackendEndConfigEntry {
   std::vector<std::string> CompilerFlags;
   /// Extra libraries to be linked in if any
   std::vector<std::string> LinkLibs;
+  /// List of plugin shared libraries to dlopen at runtime
+  std::vector<std::string> PluginLibraries;
   /// Extra linker flags for this target if any
   std::vector<std::string> LinkerFlags;
   /// Name of the NVQIR simulator backend(s)
@@ -150,6 +154,13 @@ struct BackendFeatureMap {
 /// Schema of the target configuration file.
 class TargetConfig {
 public:
+  /// CUDA-Q version against which an external plugin target was built and
+  /// tested. This is optional for in-tree targets and required when selecting
+  /// an external plugin target.
+  std::string CudaqVersion;
+  /// All plugin libraries for this target (flattened from BackendConfig if
+  /// present)
+  std::vector<std::string> PluginLibraries;
   /// Target name
   std::string Name;
   /// Target description
@@ -172,9 +183,38 @@ public:
   getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
 };
 
+/// Result of checking an external target's CUDA-Q compatibility metadata.
+enum class TargetVersionCompatibility { Compatible, Warning, Error };
+
+struct TargetVersionCompatibilityResult {
+  TargetVersionCompatibility Status = TargetVersionCompatibility::Compatible;
+  std::string Diagnostic;
+};
+
+/// Validate an external plugin target against the current CUDA-Q version.
+/// Numeric MAJOR.MINOR.PATCH prefixes are compared; any suffix is ignored.
+TargetVersionCompatibilityResult
+checkExternalTargetVersion(const TargetConfig &config,
+                           std::string_view currentVersion,
+                           const std::filesystem::path &configPath = {});
+
 /// Process the target configuration into a `nvq++` compatible script according
 /// to the provided compile time (C++)/runtime (Python) target arguments.
 std::string processRuntimeArgs(const TargetConfig &config,
                                const std::map<std::string, std::string> &args);
+
+/// Replace all `%PLUGIN_ROOT%` tokens in target YAML text with the absolute
+/// plugin root path that owns that YAML.
+std::string substitutePluginRoot(std::string yamlContent,
+                                 const std::filesystem::path &pluginRoot);
+
+/// Parse target YAML text after applying `%PLUGIN_ROOT%` substitution.
+TargetConfig parseTargetConfig(std::string yamlContent,
+                               const std::filesystem::path &pluginRoot = {});
+
+/// Read and parse a target YAML file. If @p pluginRoot is empty, infer it from
+/// the standard `<root>/targets/<name>.yml` layout.
+TargetConfig loadTargetConfig(const std::filesystem::path &configPath,
+                              const std::filesystem::path &pluginRoot = {});
 
 } // namespace cudaq::config

@@ -324,6 +324,12 @@ public:
   virtual ~DefaultExecutionManager() = default;
 
   void resetQudit(const cudaq::QuditInfo &q) override {
+    if (isInTracerMode()) {
+      auto *ctx = cudaq::getExecutionContext();
+      if (ctx)
+        ctx->kernelTrace.appendMeasurement("reset", {q});
+      return;
+    }
     flushRequestedAllocations();
     simulator()->resetQubit(q.id);
   }

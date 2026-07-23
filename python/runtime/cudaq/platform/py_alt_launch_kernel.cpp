@@ -729,7 +729,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
                cudaq::CompiledModule *cachedModule,
                const std::vector<void *> &rawArgs) {
   auto target = getCompileTargetImpl();
-  auto targetHash = target->hash();
+  auto targetHash = std::hash<cudaq::CompileTarget>{}(*target);
 
   // We don't cache kernels that inline all arguments, as any change to the
   // runtime arguments would invalidate the cache. Currently, synthesis is
