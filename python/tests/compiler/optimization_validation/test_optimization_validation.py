@@ -33,6 +33,7 @@ from cudaq._compiler.optimization_validation import (
     OracleDecision,
     OracleSpec,
     PipelineSpec,
+    PipelineTarget,
     ValidationRequest,
     ValidationStatus,
     _make_context,
@@ -100,6 +101,29 @@ def test_strict_oracle_is_recorded_on_the_case(tmp_path):
     assert isinstance(case.strict_equal, bool)
     assert isinstance(case.phase, float)
     assert isinstance(case.phase_is_zero, bool)
+
+
+# Target-shaped input: a baseline PipelineTarget + a candidate substitution.
+def test_target_with_pipeline_injects_the_candidate_substitution():
+    target = PipelineTarget(prepare=_PREPARE, observe="")
+    spec = target.with_pipeline(_PHASE_FOLDING)
+    assert spec == PipelineSpec(prepare=_PREPARE,
+                                candidate=_PHASE_FOLDING,
+                                observe="")
+
+
+def test_target_derived_pipeline_matches_raw_pipeline_spec(tmp_path):
+    inputs = [_good_input(tmp_path)]
+    target = PipelineTarget(prepare=_PREPARE)
+    via_target = validate(
+        _request(inputs, pipeline=target.with_pipeline(_PHASE_FOLDING)))
+    via_spec = validate(
+        _request(inputs,
+                 pipeline=PipelineSpec(prepare=_PREPARE,
+                                       candidate=_PHASE_FOLDING)))
+    assert via_target.status == via_spec.status == ValidationStatus.PASSED
+    assert result_to_dict(via_target)["cases"] == result_to_dict(
+        via_spec)["cases"]
 
 
 # Oracle extension point: a user-supplied Oracle plugs in via the same contract

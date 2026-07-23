@@ -168,6 +168,25 @@ class PipelineSpec:
 
 
 @dataclass(frozen=True)
+class PipelineTarget:
+    """The fixed baseline compilation target a candidate is validated against."""
+
+    prepare: str = ""
+    observe: str = ""
+
+    def with_pipeline(self, candidate: str) -> PipelineSpec:
+        """Derive the concrete runner pipeline by substituting ``candidate``.
+
+        Returns the :class:`PipelineSpec` the runner consumes: this target's
+        fixed ``prepare``/``observe`` stages with ``candidate`` injected between
+        them. The baseline is this target with no candidate substitution.
+        """
+        return PipelineSpec(prepare=self.prepare,
+                            candidate=candidate,
+                            observe=self.observe)
+
+
+@dataclass(frozen=True)
 class OracleSpec:
     """Declarative selection of a built-in oracle, and its tolerances.
 
