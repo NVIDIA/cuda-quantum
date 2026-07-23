@@ -64,6 +64,15 @@ on:
         required: false
         type: string
         description: The name of the GitHub environment within which to execute the workflow. A protected non-default environment should be specified when the workflow pushes images to the registry.
+      ccache_key:
+        required: false
+        type: string
+        description: If set, restore/persist a ccache under this key. Requires the Dockerfile to expose a ccache-data build context and a ccache-export stage.
+      ccache_export_target:
+        required: false
+        type: string
+        default: ccache-export
+        description: Dockerfile stage to build when extracting the ccache (use a build_target-specific export stage, e.g. ccache-export-prereqs).
     outputs:
       image_hash:
         description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
@@ -222,11 +231,38 @@ jobs:
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
-      - name: Initialize submodules (with retry)
-        if: ${{ inputs.checkout_submodules }}
+      # The llvm-project clone is large and gets rate limited (HTTP 429),
+      # so cache its git dir keyed on the pinned commit and clone on miss.
+      - name: Look up llvm submodule commit
+        if: inputs.checkout_submodules
+        id: llvm_submodule
+        run: echo "sha=$(git rev-parse HEAD:tpls/llvm)" >> $GITHUB_OUTPUT
+
+      - name: Restore llvm submodule from cache
+        if: inputs.checkout_submodules
+        id: llvm_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .git/modules/tpls/llvm
+          key: llvm-submodule-${{ steps.llvm_submodule.outputs.sha }}
+
+      - name: Checkout submodules
+        if: inputs.checkout_submodules
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive
+          auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+          git submodule sync
+          retry git -c protocol.version=2 -c http.https://github.com/.extraheader="$auth_header" \
+            submodule update --init --force --depth=1
+
+      - name: Save llvm submodule to cache
+        if: inputs.checkout_submodules && steps.llvm_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .git/modules/tpls/llvm
+          key: llvm-submodule-${{ steps.llvm_submodule.outputs.sha }}
 
       - name: Set up context for buildx
         run: |
@@ -354,6 +390,19 @@ jobs:
           restore-keys: |
             ${{ steps.cache.outputs.local_buildcache_key }}
 
+      - name: Set up ccache
+        if: inputs.ccache_key != ''
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        if: inputs.ccache_key != ''
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ inputs.ccache_key }}
+          pr-number: ${{ needs.metadata.outputs.pr_number }}
+          output-path: /tmp/ccache-data
+          registry-token: ${{ github.token }}
+
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v7
@@ -365,6 +414,8 @@ jobs:
           target: ${{ inputs.build_target }}
           build-args: |
             ${{ inputs.build_args }}
+            cache_bust=${{ github.run_id }}-${{ github.run_attempt }}
+          build-contexts: ${{ inputs.ccache_key != '' && 'ccache-data=/tmp/ccache-data' || '' }}
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
           platforms: ${{ inputs.platforms }}
@@ -375,6 +426,26 @@ jobs:
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
+
+      - name: Extract and persist ccache
+        if: inputs.ccache_key != ''
+        timeout-minutes: 30
+        continue-on-error: true
+        uses: ./.github/actions/ccache-extract
+        with:
+          dockerfile: ./docker/${{ needs.metadata.outputs.dockerfile }}
+          build-args: ${{ inputs.build_args }}
+          export-target: ${{ inputs.ccache_export_target }}
+
+      - name: Push ccache to GHCR
+        if: inputs.ccache_key != ''
+        continue-on-error: true
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ inputs.ccache_key }}
+          pr-number: ${{ needs.metadata.outputs.pr_number }}
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: steps.cache.outputs.push_to_registry == 'true'

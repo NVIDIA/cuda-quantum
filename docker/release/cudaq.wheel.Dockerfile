@@ -79,5 +79,9 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
+# Stats-only export for the CI extraction gate (ccache-extract action).
+FROM scratch AS ccache-export-stats
+COPY --from=wheelbuild /root/.ccache/_build_stats.txt /
+
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 

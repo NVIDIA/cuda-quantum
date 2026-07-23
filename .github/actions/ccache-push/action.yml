@@ -68,14 +68,21 @@ runs:
         # Use ccache's miss rate to decide whether the cache is worth saving.
         # File-count growth is a poor proxy: a small percentage change can still
         # represent hundreds of missed compile results in a large cache.
-        cacheable_calls=$(echo "$stats_output" | awk '/^Cacheable calls:/ {print $3; exit}')
-        cache_misses=$(echo "$stats_output" | awk '/^  Misses:/ {print $2; exit}')
+        # parse_stats.sh handles all three stats formats; ccache-extract
+        # uses the same script for its extraction gate.
+        read -r cacheable_calls cache_misses <<< "$(echo "$stats_output" | bash "${{ github.action_path }}/parse_stats.sh")"
         miss_pct=""
         if [[ "$cacheable_calls" =~ ^[0-9]+$ ]] && \
            [[ "$cache_misses" =~ ^[0-9]+$ ]] && \
            [ "$cacheable_calls" -gt 0 ]; then
           miss_pct=$((cache_misses * 100 / cacheable_calls))
           echo "Cache miss rate: ${miss_pct}% (${cache_misses} misses / ${cacheable_calls} cacheable calls)"
+        fi
+
+        # Restored cache + high miss rate suggests unstable compile hashes.
+        # Warn only: legitimate big changes also miss.
+        if [ "${CCACHE_RESTORED:-false}" = "true" ] && [ -n "$miss_pct" ] && [ "$miss_pct" -ge 50 ]; then
+          echo "::warning title=ccache miss rate ${miss_pct}% despite restored cache::Restored ${CCACHE_RESTORED_TAG:-a cache} but ${cache_misses} of ${cacheable_calls} cacheable calls missed. If sources barely changed, compile hashes are unstable (per-run paths or compiler binary churn)."
         fi
 
         # Always push on the default branch to keep the baseline fresh.
@@ -108,6 +115,10 @@ runs:
           mv "$cache_path/ccache.log" "${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
         fi
         rm -f "$stats_file" "$cache_path/_restore_file_count.txt"
+
+        # Drop entries unused for two weeks so dead generations do not
+        # accumulate in the pushed artifact (hits refresh entry mtimes).
+        CCACHE_DIR="$cache_path" ccache --evict-older-than 14d 2>/dev/null || true
 
         # Determine tag
         repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
@@ -147,6 +158,7 @@ runs:
         oras push "$image:$tag" ccache-data.tar.gz
         rm -f ccache-data.tar.gz
         echo "Pushed ccache to $image:$tag"
+        echo "ccache: pushed $tag" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
         echo "pushed=true" >> $GITHUB_OUTPUT
 
     - name: Generate unique artifact name

@@ -21,6 +21,27 @@
 # [Operating System]
 ARG base_image=ubuntu:24.04
 
+# ccache cache injected by CI via --build-context ccache-data (empty by default).
+FROM scratch AS ccache-data
+
+# Copies the injected ccache into a BuildKit cache mount so the prereqs layer
+# below does not key on the per-run cache content (a bind mount would force a
+# prereqs rebuild whenever the restored cache changes, even with unchanged
+# sources). cache_bust defeats stale layer-cache hits for this stage: the copy
+# must run on every build that reaches it, since cache mounts start empty on
+# fresh runners.
+FROM ${base_image} AS ccache-seed
+ARG cache_bust=
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    --mount=type=cache,target=/ccache,id=cudaq-devdeps-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        find /ccache -mindepth 1 -delete && cp -a /tmp/ccache-import/. /ccache/; \
+    fi && \
+    find /ccache -name stats -type f -delete && \
+    printf 'direct_cache_hit\t0\npreprocessed_cache_hit\t0\ncache_miss\t0\n' > /ccache/_build_stats.txt && \
+    mkdir -p /stamp && echo seeded > /stamp/.ccache-seeded
+
 # [CUDA-Q Dependencies]
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
@@ -102,7 +123,19 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
 ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
-RUN if [ "$toolchain" = "llvm" ]; then \
+# CCACHE_DIR points at a cache mount seeded by the ccache-seed stage, so this
+# layer keys only on sources: unchanged sources hit the layer cache exactly as
+# without ccache, and a rebuild (e.g. LLVM bump) reuses objects from the seed.
+# The stamp mount has constant content; it only orders ccache-seed before this
+# stage. Needs the build_llvm.sh ccache launcher (PR #4484).
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_MAXSIZE=10G
+RUN --mount=from=ccache-seed,source=/stamp,target=/tmp/.ccache-seeded \
+    --mount=type=cache,target=/root/.ccache,id=cudaq-devdeps-ccache,sharing=locked \
+    if [ "$toolchain" = "llvm" ]; then \
     export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
     apt-get update && apt-get install -y --no-install-recommends clang lld && \
     CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
@@ -111,10 +144,12 @@ RUN if [ "$toolchain" = "llvm" ]; then \
     export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
     bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
     fi && \
+    (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > "$CCACHE_DIR/_build_stats.txt" && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # [CUDA-Q Dev Environment]
-FROM ${base_image}
+FROM ${base_image} AS devdeps
 SHELL ["/bin/bash", "-c"]
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -193,3 +228,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
     sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
     nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.3.2 \
     ipywidgets==8.1.5 sphinx-tags==0.4
+
+# ccache export for CI: build --target ccache-export --output type=local,dest=<dir>.
+# Reads the cache mount directly (never rebuilds prereqs); cache_bust forces a
+# fresh tar instead of a stale layer-cache hit. Tarred to avoid slow per-file
+# BuildKit export.
+FROM ${base_image} AS ccache-tar
+ARG cache_bust=
+RUN --mount=type=cache,target=/root/.ccache,id=cudaq-devdeps-ccache,sharing=locked \
+    : "bust=${cache_bust}" && tar cf /ccache.tar -C /root/.ccache .
+
+FROM scratch AS ccache-export
+COPY --from=ccache-tar /ccache.tar /
+
+# Stats-only export for the CI extraction gate (ccache-extract action). Stats
+# live in the cache mount: zeroed by the seed, overwritten by prereqs when it
+# actually compiles. A cached prereqs therefore reads as 0 cacheable calls.
+FROM ${base_image} AS ccache-stats
+ARG cache_bust=
+RUN --mount=type=cache,target=/root/.ccache,id=cudaq-devdeps-ccache,sharing=locked \
+    : "bust=${cache_bust}" && \
+    cp /root/.ccache/_build_stats.txt /_build_stats.txt 2>/dev/null || \
+    printf 'direct_cache_hit\t0\npreprocessed_cache_hit\t0\ncache_miss\t0\n' > /_build_stats.txt
+
+FROM scratch AS ccache-export-stats
+COPY --from=ccache-stats /_build_stats.txt /
+
+# Default target stays the devdeps image; callers pass no --target.
+FROM devdeps

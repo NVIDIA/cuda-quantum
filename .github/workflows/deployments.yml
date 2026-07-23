@@ -222,6 +222,7 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
+      ccache_key: devdeps-${{ matrix.platform }}-${{ matrix.toolchain }}
       # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
@@ -256,6 +257,7 @@ jobs:
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
+      ccache_key: manylinux-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-gcc12
       # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
@@ -287,6 +289,8 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
+      ccache_key: assets-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-llvm
+      ccache_export_target: ccache-export-prereqs
       # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
