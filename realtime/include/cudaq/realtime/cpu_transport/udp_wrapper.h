@@ -54,6 +54,15 @@ typedef void *cpu_udp_transceiver_t;
 cpu_udp_transceiver_t cpu_udp_create_transceiver(size_t page_size,
                                                  unsigned num_pages);
 
+/// External-rings variant of cpu_udp_create_transceiver: the caller supplies
+/// (and owns; freed by the caller AFTER destroy) the four zero-initialized
+/// ring buffers -- e.g. CUDA pinned+mapped memory so a GPU consumer can poll
+/// the rings while this transport moves the datagrams.  Buffer sizes:
+/// flags = num_pages * 8 bytes; data = num_pages * page_size bytes.
+cpu_udp_transceiver_t cpu_udp_create_transceiver_ext(
+    size_t page_size, unsigned num_pages, volatile uint64_t *rx_flags,
+    volatile uint64_t *tx_flags, uint8_t *rx_data, uint8_t *tx_data);
+
 /// Destroy the transceiver. Idempotent. Implicitly calls cpu_udp_close if the
 /// transceiver is still running.
 void cpu_udp_destroy_transceiver(cpu_udp_transceiver_t handle);
