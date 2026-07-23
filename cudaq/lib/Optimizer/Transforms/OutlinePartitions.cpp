@@ -24,6 +24,11 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
+namespace cudaq::opt {
+FailureOr<cc::CreateLambdaOp> outlinePartition(ArrayRef<Operation *>);
+LogicalResult outlinePartitions(ArrayRef<SmallVector<Operation *>>);
+} // namespace cudaq::opt
+
 namespace {
 static bool isWire(Value v) { return isa<cudaq::quake::WireType>(v.getType()); }
 } // namespace
