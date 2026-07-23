@@ -65,8 +65,8 @@ Please refer to this [section](#using-docker) for instructions.
     for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
     and the pre-built RFSoC bit-file.
 
-    > **_NOTE:_** Please make sure to set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
-    and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration)
+    > **_NOTE:_** Please make sure to set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/host-setup)
+    and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/applications/architecture#datachannel-enumeration-and-ip-address-configuration)
     (if not already done so).
 
 3. Run the validation script
