@@ -34,6 +34,7 @@ from .optimization_validation import (
     capabilities,
     result_to_dict,
     validate,
+    validate_artifacts,
 )
 
 __all__ = [
@@ -52,4 +53,5 @@ __all__ = [
     "capabilities",
     "result_to_dict",
     "validate",
+    "validate_artifacts",
 ]

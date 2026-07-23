@@ -35,10 +35,14 @@ from cudaq._compiler.optimization_validation import (
     PipelineSpec,
     ValidationRequest,
     ValidationStatus,
+    _make_context,
+    _run_pipeline,
     capabilities,
     result_to_dict,
     validate,
+    validate_artifacts,
 )
+from cudaq.mlir.ir import Module
 
 _INPUTS = Path(__file__).parent / "Inputs"
 
@@ -134,6 +138,53 @@ def test_user_oracle_negative_verdict_is_invariant_failure(tmp_path):
     result = validate(
         _request([_good_input(tmp_path)], oracle=oracle, metrics=()))
     assert result.status == ValidationStatus.INVARIANT_FAILURE
+
+
+# Artifact-in: validate already-compiled modules with no pass execution
+def _observed(text) -> tuple:
+    ctx = _make_context()
+    module = Module.parse(text, ctx)
+    _run_pipeline("builtin.module(func.func(memtoreg))", module, ctx)
+    return module, ctx
+
+
+def test_validate_artifacts_equivalent_pair_passes():
+    observed, _ctx = _observed(
+        corpus.generate_module_text(184467, num_qubits=2, length=6))
+    text = str(observed)
+    result = validate_artifacts([(text, text)],
+                                oracle=OracleSpec(kind="up-to-global-phase"),
+                                metrics=(MetricSpec("operation-count",
+                                                    "nonincreasing"),))
+    assert result.status == ValidationStatus.PASSED
+    case = result.cases[0]
+    assert [inv.name for inv in case.invariants] == ["equivalence"]
+    assert case.invariants[0].satisfied
+    assert case.assurance_tier == ASSURANCE_TIER_EXACT_UNITARY
+    assert case.metrics and case.metrics[0].satisfied
+
+
+def test_validate_artifacts_accepts_module_objects():
+    observed, _ctx = _observed(
+        corpus.generate_module_text(184467, num_qubits=2, length=6))
+    result = validate_artifacts([(observed, observed)])
+    assert result.status == ValidationStatus.PASSED
+    assert len(result.cases[0].invariants) == 1
+
+
+def test_validate_artifacts_reports_unsupported_domain():
+    observed, _ctx = _observed((_INPUTS / "measurement.qke").read_text())
+    text = str(observed)
+    result = validate_artifacts([(text, text)])
+    assert result.status == ValidationStatus.UNSUPPORTED_DOMAIN
+    case = result.cases[0]
+    assert any("measurement" in msg for msg in case.messages)
+    assert not case.invariants
+
+
+def test_validate_artifacts_bad_input_is_invalid_request():
+    result = validate_artifacts([("not valid IR (((", "also bad")])
+    assert result.status == ValidationStatus.INVALID_REQUEST
 
 
 # Fail-closed on out-of-domain inputs

@@ -504,6 +504,52 @@ def _predicate_ok(predicate: str, baseline: int, candidate: int) -> bool:
     raise InvalidRequest(f"unknown predicate '{predicate}'")
 
 
+def _compute_metrics(baseline_obs: Module, candidate_obs: Module,
+                     metric_specs) -> tuple[list, str, list]:
+    """Count declared metrics on two observed modules and check predicates.
+
+    Returns ``(metrics, status_delta, messages)``. ``status_delta`` is the worst
+    status this contributes (a violated predicate is an invariant failure, failed
+    counting is infrastructure). Counting runs only when metrics are requested,
+    since the resource counter mutates the modules it is handed.
+    """
+    metrics: list[MetricDelta] = []
+    messages: list[str] = []
+    status = ValidationStatus.PASSED
+    if not metric_specs:
+        return metrics, status, messages
+    base_counts = cudaq_runtime.count_resources_checkpoint(baseline_obs)
+    cand_counts = cudaq_runtime.count_resources_checkpoint(candidate_obs)
+    if base_counts["computed"] and cand_counts["computed"]:
+        for spec in metric_specs:
+            base_val = _metric_value(base_counts, spec.name)
+            cand_val = _metric_value(cand_counts, spec.name)
+            ok = _predicate_ok(spec.predicate, base_val, cand_val)
+            metrics.append(
+                MetricDelta(name=spec.name,
+                            predicate=spec.predicate,
+                            baseline=base_val,
+                            candidate=cand_val,
+                            delta=cand_val - base_val,
+                            satisfied=ok))
+            if not ok:
+                status = _worst(status, ValidationStatus.INVARIANT_FAILURE)
+                messages.append(f"metric '{spec.name}' violates "
+                                f"'{spec.predicate}': {base_val} -> {cand_val}")
+    else:
+        status = _worst(status, ValidationStatus.INFRASTRUCTURE_FAILURE)
+        messages.append("resource counting failed; metrics unavailable")
+    return metrics, status, messages
+
+
+def _format_rejections(decision: OracleDecision) -> list:
+    """An oracle's domain rejections."""
+    return [
+        f"{rej['side']} unsupported: {rej['kind']} "
+        f"in {rej['kernel']} ({rej['detail']})" for rej in decision.rejections
+    ]
+
+
 # Request validation
 def _validate_request(request: ValidationRequest, ctx: Context) -> None:
     if not request.inputs:
@@ -545,7 +591,7 @@ def _failed_case(path: Path,
                  status: str,
                  messages,
                  tier: str = ASSURANCE_TIER_EXACT_UNITARY) -> CaseResult:
-    """A case that never reached comparison: no invariants were established."""
+    """No invariants were established."""
     return CaseResult(
         input=str(path),
         status=status,
@@ -578,11 +624,39 @@ def _parse_input(path: Path, ctx: Context) -> Module:
     return module
 
 
+def _coerce_module(obj, ctx: Context) -> Module:
+    """Coerce a caller-supplied artifact to a verified :class:`Module`.
+
+    Accepts an already-parsed ``Module``, a filesystem ``Path``, or
+    a string of IR text. Malformed IR is attributed to ``invalid-request``.
+    """
+    if isinstance(obj, Module):
+        if not _module_is_valid(obj):
+            raise _StageFailure(ValidationStatus.INVALID_REQUEST,
+                                "provided module failed verification")
+        return obj
+    if isinstance(obj, Path):
+        return _parse_input(obj, ctx)
+    if isinstance(obj, str):
+        try:
+            module = Module.parse(obj, ctx)
+        except Exception as exc:
+            raise _StageFailure(
+                ValidationStatus.INVALID_REQUEST,
+                f"artifact IR failed to parse or verify: {exc}")
+        if not _module_is_valid(module):
+            raise _StageFailure(ValidationStatus.INVALID_REQUEST,
+                                "artifact IR failed verification")
+        return module
+    raise _StageFailure(ValidationStatus.INVALID_REQUEST,
+                        f"unsupported artifact type: {type(obj).__name__}")
+
+
 def _resolve_oracle(oracle: Union[OracleSpec, Oracle],
                     qubit_bound: int) -> Oracle:
     """Resolve the request's oracle field to an executable :class:`Oracle`.
 
-    An :class:`Oracle` instance is used as-is (user-supplied, the common case); a
+    An :class:`Oracle` instance is used as-is (user-supplied, the common case). A
     declarative :class:`OracleSpec` is bound to the built-in
     :class:`DenseUnitaryOracle` using the request's qubit bound.
     """
@@ -594,9 +668,57 @@ def _resolve_oracle(oracle: Union[OracleSpec, Oracle],
                               qubit_bound=qubit_bound)
 
 
+def _evaluate_observed(baseline_obs: Module, candidate_obs: Module,
+                       oracle: Oracle, metric_specs, kernel_name: Optional[str],
+                       *, input_label: str) -> CaseResult:
+    """Trusted core over two observed modules: oracle equivalence + metrics.
+
+    Runs no passes, so it cannot be crashed by a candidate pipeline. Reports the
+    equivalence invariant and the declared metrics only. Determinism and
+    fixed-point are pipeline invariants and are added by :func:`_evaluate_input`.
+    An unsupported domain returns a failed case with no established invariants
+    (empty ``invariants``), which is how the pipeline path detects it.
+    """
+    # The oracle owns the equivalence invariant and its own domain preflight.
+    decision = oracle.decide(baseline_obs, candidate_obs, kernel_name)
+    if not decision.supported:
+        return _failed_case(input_label,
+                            ValidationStatus.UNSUPPORTED_DOMAIN,
+                            _format_rejections(decision),
+                            tier=decision.tier)
+
+    messages: list[str] = []
+    equivalent = decision.equivalent
+    status = ValidationStatus.PASSED
+    if not decision.computed or not equivalent:
+        status = ValidationStatus.INVARIANT_FAILURE
+        messages.append(decision.detail)
+
+    metrics, metric_status, metric_messages = _compute_metrics(
+        baseline_obs, candidate_obs, metric_specs)
+    status = _worst(status, metric_status)
+    messages.extend(metric_messages)
+
+    invariants = (InvariantResult(name=INVARIANT_EQUIVALENCE,
+                                  satisfied=equivalent,
+                                  detail=decision.detail),)
+
+    return CaseResult(
+        input=str(input_label),
+        status=status,
+        assurance_tier=decision.tier,
+        strict_equal=decision.strict_equal,
+        equal_up_to_global_phase=decision.equal_up_to_global_phase,
+        phase=decision.phase,
+        phase_is_zero=decision.phase_is_zero,
+        invariants=invariants,
+        metrics=tuple(metrics),
+        messages=tuple(messages),
+    )
+
+
 def _evaluate_input(path: Path, request: ValidationRequest,
                     ctx: Context) -> CaseResult:
-    messages: list[str] = []
     pipeline = request.pipeline
     oracle = _resolve_oracle(request.oracle, request.exact_qubit_bound)
 
@@ -632,46 +754,21 @@ def _evaluate_input(path: Path, request: ValidationRequest,
     except _StageFailure as failure:
         return _failed_case(path, failure.status, [failure.message])
 
-    # The oracle owns the equivalence invariant and its own domain preflight.
-    decision = oracle.decide(baseline_obs, candidate_obs, request.kernel_name)
-    if not decision.supported:
-        for rej in decision.rejections:
-            messages.append(f"{rej['side']} unsupported: {rej['kind']} "
-                            f"in {rej['kernel']} ({rej['detail']})")
-        return _failed_case(path,
-                            ValidationStatus.UNSUPPORTED_DOMAIN,
-                            messages,
-                            tier=decision.tier)
+    # Equivalence + metrics on the observed modules (shared with the artifact-in
+    # path). An unsupported domain establishes no invariants, so return as-is.
+    core = _evaluate_observed(baseline_obs,
+                              candidate_obs,
+                              oracle,
+                              request.metrics,
+                              request.kernel_name,
+                              input_label=str(path))
+    if not core.invariants:
+        return core
 
-    status = ValidationStatus.PASSED
-    equivalent = decision.equivalent
-    equivalence_detail = decision.detail
-    if not decision.computed or not equivalent:
-        status = ValidationStatus.INVARIANT_FAILURE
-        messages.append(decision.detail)
-
-    base_counts = cudaq_runtime.count_resources_checkpoint(baseline_obs)
-    cand_counts = cudaq_runtime.count_resources_checkpoint(candidate_obs)
-    metrics: list[MetricDelta] = []
-    if base_counts["computed"] and cand_counts["computed"]:
-        for spec in request.metrics:
-            base_val = _metric_value(base_counts, spec.name)
-            cand_val = _metric_value(cand_counts, spec.name)
-            ok = _predicate_ok(spec.predicate, base_val, cand_val)
-            metrics.append(
-                MetricDelta(name=spec.name,
-                            predicate=spec.predicate,
-                            baseline=base_val,
-                            candidate=cand_val,
-                            delta=cand_val - base_val,
-                            satisfied=ok))
-            if not ok:
-                status = _worst(status, ValidationStatus.INVARIANT_FAILURE)
-                messages.append(f"metric '{spec.name}' violates "
-                                f"'{spec.predicate}': {base_val} -> {cand_val}")
-    elif request.metrics:
-        status = _worst(status, ValidationStatus.INFRASTRUCTURE_FAILURE)
-        messages.append("resource counting failed; metrics unavailable")
+    # Pipeline-only invariants: determinism and fixed-point require re-running
+    # the candidate pipeline, so they belong to this path, not the trusted core.
+    status = core.status
+    messages = list(core.messages)
 
     rerun = _run_pipeline(pipeline.candidate, _clone(prepared), ctx)
     deterministic = str(rerun) == str(candidate_raw)
@@ -691,28 +788,17 @@ def _evaluate_input(path: Path, request: ValidationRequest,
         status = _worst(status, ValidationStatus.INVARIANT_FAILURE)
         messages.append("candidate is not at a fixed point")
 
-    invariants = (
-        InvariantResult(name=INVARIANT_EQUIVALENCE,
-                        satisfied=equivalent,
-                        detail=equivalence_detail),
+    invariants = core.invariants + (
         InvariantResult(name=INVARIANT_DETERMINISM, satisfied=deterministic),
         InvariantResult(name=INVARIANT_FIXED_POINT,
                         satisfied=fixed_point,
                         detail=f"{request.fixed_point_runs} run(s)"),
     )
 
-    return CaseResult(
-        input=str(path),
-        status=status,
-        assurance_tier=decision.tier,
-        strict_equal=decision.strict_equal,
-        equal_up_to_global_phase=decision.equal_up_to_global_phase,
-        phase=decision.phase,
-        phase_is_zero=decision.phase_is_zero,
-        invariants=invariants,
-        metrics=tuple(metrics),
-        messages=tuple(messages),
-    )
+    return dataclasses.replace(core,
+                               status=status,
+                               invariants=invariants,
+                               messages=tuple(messages))
 
 
 def _worst(a: str, b: str) -> str:
@@ -761,6 +847,84 @@ def validate(request: ValidationRequest) -> ValidationResult:
         aggregate_metrics=_aggregate_metrics(cases),
         seed=request.seed,
         preset=request.preset,
+    )
+
+
+def validate_artifacts(pairs,
+                       *,
+                       oracle: Optional[Union[OracleSpec, Oracle]] = None,
+                       metrics: tuple = (),
+                       exact_qubit_bound: int = DEFAULT_EXACT_QUBIT_BOUND,
+                       kernel_name: Optional[str] = None,
+                       seed: int = 0,
+                       preset: str = "quick") -> ValidationResult:
+    """Validate already-compiled ``(baseline, candidate)`` Quake artifacts.
+
+    The trusted, crash-isolated primitive: it runs no passes. The caller is
+    responsible for compiling the (untrusted) candidate out-of-process (e.g. in
+    a subprocess it owns) and hands the two observed modules here. This entry
+    point only preflights, compares under the oracle, and counts metrics. Because
+    no candidate pipeline runs in-process, a crashing candidate compile cannot
+    take down the validator.
+
+    ``pairs`` is an iterable of ``(baseline, candidate)``. Each side may be a
+    parsed ``Module``, a filesystem ``Path``, or a string of IR text. Determinism
+    and fixed-point are pipeline invariants and are therefore not reported here.
+    """
+    ctx = _make_context()
+    if oracle is None:
+        oracle = DenseUnitaryOracle(qubit_bound=exact_qubit_bound)
+    try:
+        resolved = _resolve_oracle(oracle, exact_qubit_bound)
+    except InvalidRequest as exc:
+        return ValidationResult(
+            status=ValidationStatus.INVALID_REQUEST,
+            cases=(),
+            aggregate_metrics={},
+            seed=seed,
+            preset=preset,
+            messages=(str(exc),),
+        )
+
+    cases: list[CaseResult] = []
+    for index, pair in enumerate(pairs):
+        label = f"artifact[{index}]"
+        try:
+            baseline, candidate = pair
+        except (TypeError, ValueError):
+            cases.append(
+                _failed_case(label, ValidationStatus.INVALID_REQUEST,
+                             ["expected a (baseline, candidate) pair"]))
+            continue
+        try:
+            baseline_obs = _coerce_module(baseline, ctx)
+            candidate_obs = _coerce_module(candidate, ctx)
+        except _StageFailure as failure:
+            cases.append(_failed_case(label, failure.status, [failure.message]))
+            continue
+        try:
+            cases.append(
+                _evaluate_observed(baseline_obs,
+                                   candidate_obs,
+                                   resolved,
+                                   metrics,
+                                   kernel_name,
+                                   input_label=label))
+        except Exception as exc:
+            cases.append(
+                _failed_case(label, ValidationStatus.INFRASTRUCTURE_FAILURE,
+                             [f"infrastructure error: {exc}"]))
+
+    status = ValidationStatus.PASSED
+    for case in cases:
+        status = _worst(status, case.status)
+
+    return ValidationResult(
+        status=status,
+        cases=tuple(cases),
+        aggregate_metrics=_aggregate_metrics(cases),
+        seed=seed,
+        preset=preset,
     )
 
 
