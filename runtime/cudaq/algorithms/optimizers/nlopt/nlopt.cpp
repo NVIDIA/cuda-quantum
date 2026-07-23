@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "nlopt.h"
-#include "nlopt.hpp"
+#include "nlopt-src/nlopt.h"
 #include <cxxabi.h>
 #include <optional>
 #include <string>

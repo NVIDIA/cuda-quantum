@@ -33,7 +33,7 @@ typedef void *cpu_roce_transceiver_t;
 
 /// Which RDMA wire verb this transceiver's TX path uses.  Names the verb the
 /// transmitter issues, not a peer role; whoever sets the mode is the source.
-/// Mirrors CpuRoceTxMode in roce_transceiver.hpp.
+/// Mirrors CpuRoceTxMode in roce_transceiver.h.
 typedef enum {
   /// TX issues IBV_WR_SEND.  Use when the peer consumes Sends via pre-posted
   /// recv WQEs (e.g. an FPGA's HSB IP, which can only receive Sends; or a
@@ -102,7 +102,7 @@ void cpu_roce_blocking_monitor(cpu_roce_transceiver_t handle);
 
 /// Per-slot dispatch callback for unified mode.  Returns number of bytes
 /// written to tx_slot (0 = drop without sending).  See
-/// CpuRoceTransceiver::UnifiedDispatchFn in roce_transceiver.hpp.
+/// CpuRoceTransceiver::UnifiedDispatchFn in roce_transceiver.h.
 typedef size_t (*cpu_roce_unified_dispatch_fn_t)(void *context,
                                                  const void *rx_slot,
                                                  void *tx_slot,
