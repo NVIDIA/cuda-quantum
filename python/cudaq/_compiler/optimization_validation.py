@@ -8,10 +8,11 @@
 
 from __future__ import annotations
 
+import abc
 import dataclasses
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Union
 
 from cudaq.mlir.ir import Context, Module
 from cudaq.mlir.passmanager import PassManager
@@ -168,11 +169,137 @@ class PipelineSpec:
 
 @dataclass(frozen=True)
 class OracleSpec:
-    """Which exact oracle decides semantic equivalence, and its tolerances."""
+    """Declarative selection of a built-in oracle, and its tolerances.
+
+    This is the config-level way to ask for the built-in
+    :class:`DenseUnitaryOracle`. It is bound to an :class:`Oracle` instance by
+    the runner. To supply your own oracle, pass an :class:`Oracle` instance as
+    the request's ``oracle`` instead.
+    """
 
     kind: str = "strict-unitary"
     rtol: float = 1e-5
     atol: float = 1e-8
+
+
+@dataclass(frozen=True)
+class OracleDecision:
+    """One oracle's verdict on the equivalence invariant for a single case.
+
+    An oracle answers exactly one question 
+        are these two observed modules semantically equivalent?
+    and reports the assurance tier of the evidence it produced. 
+        ``supported`` is the oracle's own domain preflight
+        ``computed`` is whether the comparison actually ran
+        ``equivalent`` is the verdict. 
+    The unitary-specific evidence fields are populated by dense-unitary oracles and
+    left at their defaults by others.
+    """
+
+    supported: bool
+    computed: bool
+    equivalent: bool
+    tier: str
+    detail: str
+    rejections: tuple[dict, ...] = ()
+    strict_equal: bool = False
+    equal_up_to_global_phase: bool = False
+    phase: float = 0.0
+    phase_is_zero: bool = False
+
+
+class Oracle(abc.ABC):
+    """The equivalence-oracle extension point.
+
+    An oracle owns exactly one invariant semantic equivalence between the observed 
+    baseline and candidate modules together with its own domain preflight and the
+    assurance tier of the evidence it produces. Resource metrics, determinism, and 
+    fixed-point are runner-owned invariants and are deliberately NOT an oracle's concern.
+
+    Users implement this for the fast optimization loop (a user's own fast test
+    oracle is the common case). The built-in :class:`DenseUnitaryOracle` backs
+    the trusted validation gate. Subclasses set :attr:`kind` and :attr:`tier` and
+    implement :meth:`decide`.
+    """
+
+    kind: str = ""
+    tier: str = ""
+
+    @abc.abstractmethod
+    def decide(self, baseline: Module, candidate: Module,
+               kernel_name: Optional[str]) -> OracleDecision:
+        """Decide equivalence of the two observed modules.
+
+        Must not raise for an ordinary negative verdict or an unsupported domain;
+        report those through the returned :class:`OracleDecision`.
+        """
+
+
+class DenseUnitaryOracle(Oracle):
+    """Built-in exact-unitary oracle (the V1 default).
+
+    Builds the dense operator directly from the IR (no simulator, no target)
+    and compares operators either strictly or up to a global phase. Basis and
+    input-independent, bounded by the dense 2^n cost. Wraps the reused
+    ``preflight_bounded_unitary`` and ``compare_unitaries`` bindings.
+    """
+
+    tier = ASSURANCE_TIER_EXACT_UNITARY
+
+    def __init__(self,
+                 kind: str = "strict-unitary",
+                 rtol: float = 1e-5,
+                 atol: float = 1e-8,
+                 qubit_bound: int = DEFAULT_EXACT_QUBIT_BOUND):
+        if kind not in _ORACLE_KINDS:
+            raise InvalidRequest(f"unknown oracle '{kind}'")
+        self.kind = kind
+        self.rtol = rtol
+        self.atol = atol
+        self.qubit_bound = qubit_bound
+
+    def decide(self, baseline: Module, candidate: Module,
+               kernel_name: Optional[str]) -> OracleDecision:
+        base_pf = cudaq_runtime.preflight_bounded_unitary(
+            baseline, self.qubit_bound)
+        cand_pf = cudaq_runtime.preflight_bounded_unitary(
+            candidate, self.qubit_bound)
+        if not base_pf["supported"] or not cand_pf["supported"]:
+            rejections = tuple({
+                **rej, "side": side
+            }
+                               for side, pf in (("baseline", base_pf),
+                                                ("candidate", cand_pf))
+                               for rej in pf["rejections"])
+            return OracleDecision(supported=False,
+                                  computed=False,
+                                  equivalent=False,
+                                  tier=self.tier,
+                                  detail="unsupported domain",
+                                  rejections=rejections)
+
+        comparison = cudaq_runtime.compare_unitaries(baseline, candidate,
+                                                     kernel_name, self.rtol,
+                                                     self.atol)
+        computed = bool(comparison["computed"])
+        equivalent = computed and _equivalent(self.kind, comparison)
+        if not computed:
+            detail = f"comparison failed: {comparison['error']}"
+        elif not equivalent:
+            detail = f"not equivalent under oracle '{self.kind}'"
+        else:
+            detail = f"equivalent under oracle '{self.kind}'"
+        return OracleDecision(
+            supported=True,
+            computed=computed,
+            equivalent=equivalent,
+            tier=self.tier,
+            detail=detail,
+            strict_equal=bool(comparison.get("strict_equal", False)),
+            equal_up_to_global_phase=bool(
+                comparison.get("equal_up_to_global_phase", False)),
+            phase=float(comparison.get("phase", 0.0)),
+            phase_is_zero=bool(comparison.get("phase_is_zero", False)))
 
 
 @dataclass(frozen=True)
@@ -193,7 +320,7 @@ class MetricSpec:
 class ValidationRequest:
     inputs: tuple[Path, ...]
     pipeline: PipelineSpec
-    oracle: OracleSpec = field(default_factory=OracleSpec)
+    oracle: Union[OracleSpec, Oracle] = field(default_factory=OracleSpec)
     metrics: tuple[MetricSpec, ...] = ()
     seed: int = 0
     fixed_point_runs: int = 1
@@ -384,8 +511,12 @@ def _validate_request(request: ValidationRequest, ctx: Context) -> None:
     for path in request.inputs:
         if not Path(path).is_file():
             raise InvalidRequest(f"input not found: {path}")
-    if request.oracle.kind not in _ORACLE_KINDS:
-        raise InvalidRequest(f"unknown oracle '{request.oracle.kind}'")
+    if isinstance(request.oracle, OracleSpec):
+        if request.oracle.kind not in _ORACLE_KINDS:
+            raise InvalidRequest(f"unknown oracle '{request.oracle.kind}'")
+    elif not isinstance(request.oracle, Oracle):
+        raise InvalidRequest(
+            "oracle must be an OracleSpec or an Oracle instance")
     if request.preset not in _PRESETS:
         raise InvalidRequest(f"unknown preset '{request.preset}'")
     if request.fixed_point_runs < 0:
@@ -410,12 +541,15 @@ def _equivalent(oracle_kind: str, comparison: dict) -> bool:
     return bool(comparison["equal_up_to_global_phase"])
 
 
-def _failed_case(path: Path, status: str, messages) -> CaseResult:
+def _failed_case(path: Path,
+                 status: str,
+                 messages,
+                 tier: str = ASSURANCE_TIER_EXACT_UNITARY) -> CaseResult:
     """A case that never reached comparison: no invariants were established."""
     return CaseResult(
         input=str(path),
         status=status,
-        assurance_tier=ASSURANCE_TIER_EXACT_UNITARY,
+        assurance_tier=tier,
         strict_equal=False,
         equal_up_to_global_phase=False,
         phase=0.0,
@@ -444,11 +578,27 @@ def _parse_input(path: Path, ctx: Context) -> Module:
     return module
 
 
+def _resolve_oracle(oracle: Union[OracleSpec, Oracle],
+                    qubit_bound: int) -> Oracle:
+    """Resolve the request's oracle field to an executable :class:`Oracle`.
+
+    An :class:`Oracle` instance is used as-is (user-supplied, the common case); a
+    declarative :class:`OracleSpec` is bound to the built-in
+    :class:`DenseUnitaryOracle` using the request's qubit bound.
+    """
+    if isinstance(oracle, Oracle):
+        return oracle
+    return DenseUnitaryOracle(kind=oracle.kind,
+                              rtol=oracle.rtol,
+                              atol=oracle.atol,
+                              qubit_bound=qubit_bound)
+
+
 def _evaluate_input(path: Path, request: ValidationRequest,
                     ctx: Context) -> CaseResult:
     messages: list[str] = []
     pipeline = request.pipeline
-    oracle = request.oracle
+    oracle = _resolve_oracle(request.oracle, request.exact_qubit_bound)
 
     # Verify -> prepare -> candidate -> observe, verifying IR at each boundary. A
     # bad candidate fails closed as an invariant failure; a bad prepare/observe
@@ -482,33 +632,23 @@ def _evaluate_input(path: Path, request: ValidationRequest,
     except _StageFailure as failure:
         return _failed_case(path, failure.status, [failure.message])
 
-    base_pf = cudaq_runtime.preflight_bounded_unitary(baseline_obs,
-                                                      request.exact_qubit_bound)
-    cand_pf = cudaq_runtime.preflight_bounded_unitary(candidate_obs,
-                                                      request.exact_qubit_bound)
-    if not base_pf["supported"] or not cand_pf["supported"]:
-        for side, pf in (("baseline", base_pf), ("candidate", cand_pf)):
-            for rej in pf["rejections"]:
-                messages.append(f"{side} unsupported: {rej['kind']} "
-                                f"in {rej['kernel']} ({rej['detail']})")
-        return _failed_case(path, ValidationStatus.UNSUPPORTED_DOMAIN, messages)
+    # The oracle owns the equivalence invariant and its own domain preflight.
+    decision = oracle.decide(baseline_obs, candidate_obs, request.kernel_name)
+    if not decision.supported:
+        for rej in decision.rejections:
+            messages.append(f"{rej['side']} unsupported: {rej['kind']} "
+                            f"in {rej['kernel']} ({rej['detail']})")
+        return _failed_case(path,
+                            ValidationStatus.UNSUPPORTED_DOMAIN,
+                            messages,
+                            tier=decision.tier)
 
-    comparison = cudaq_runtime.compare_unitaries(baseline_obs, candidate_obs,
-                                                 request.kernel_name,
-                                                 oracle.rtol, oracle.atol)
     status = ValidationStatus.PASSED
-    computed = bool(comparison["computed"])
-    equivalent = computed and _equivalent(oracle.kind, comparison)
-    if not computed:
+    equivalent = decision.equivalent
+    equivalence_detail = decision.detail
+    if not decision.computed or not equivalent:
         status = ValidationStatus.INVARIANT_FAILURE
-        equivalence_detail = f"comparison failed: {comparison['error']}"
-        messages.append(equivalence_detail)
-    elif not equivalent:
-        status = ValidationStatus.INVARIANT_FAILURE
-        equivalence_detail = f"not equivalent under oracle '{oracle.kind}'"
-        messages.append(equivalence_detail)
-    else:
-        equivalence_detail = f"equivalent under oracle '{oracle.kind}'"
+        messages.append(decision.detail)
 
     base_counts = cudaq_runtime.count_resources_checkpoint(baseline_obs)
     cand_counts = cudaq_runtime.count_resources_checkpoint(candidate_obs)
@@ -564,12 +704,11 @@ def _evaluate_input(path: Path, request: ValidationRequest,
     return CaseResult(
         input=str(path),
         status=status,
-        assurance_tier=ASSURANCE_TIER_EXACT_UNITARY,
-        strict_equal=bool(comparison.get("strict_equal", False)),
-        equal_up_to_global_phase=bool(
-            comparison.get("equal_up_to_global_phase", False)),
-        phase=float(comparison.get("phase", 0.0)),
-        phase_is_zero=bool(comparison.get("phase_is_zero", False)),
+        assurance_tier=decision.tier,
+        strict_equal=decision.strict_equal,
+        equal_up_to_global_phase=decision.equal_up_to_global_phase,
+        phase=decision.phase,
+        phase_is_zero=decision.phase_is_zero,
         invariants=invariants,
         metrics=tuple(metrics),
         messages=tuple(messages),
