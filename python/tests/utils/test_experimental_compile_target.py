@@ -153,6 +153,7 @@ def test_compile_target_does_not_leak_after_switch():
     """
 
     def make_swap_kernel():
+
         @cudaq.kernel
         def swap_kernel():
             q = cudaq.qvector(2)
