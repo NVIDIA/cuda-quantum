@@ -10,7 +10,7 @@
 # passes at the exact assurance tier, up to a global phase, with a nonincreasing
 # operation count. Exit status 0.
 
-# RUN: PYTHONPATH=%cudaq_python_root python3 -m cudaq._compiler.optimization_cli \
+# RUN: PYTHONPATH=%cudaq_python_root python3 -m cudaq._compiler \
 # RUN:   --input %S/Inputs/good.qke \
 # RUN:   --prepare 'builtin.module(func.func(memtoreg))' \
 # RUN:   --candidate 'builtin.module(func.func(phase-folding))' \

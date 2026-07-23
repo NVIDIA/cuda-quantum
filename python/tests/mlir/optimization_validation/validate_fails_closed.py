@@ -11,7 +11,7 @@
 # offending op, and a nonzero exit code. `not` asserts the nonzero exit while
 # still piping stdout to FileCheck.
 
-# RUN: PYTHONPATH=%cudaq_python_root not python3 -m cudaq._compiler.optimization_cli \
+# RUN: PYTHONPATH=%cudaq_python_root not python3 -m cudaq._compiler \
 # RUN:   --input %S/Inputs/measurement.qke \
 # RUN:   --candidate 'builtin.module(func.func(phase-folding))' | FileCheck %s
 

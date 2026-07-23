@@ -5,12 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Command-line interface for the Optimization Validation Core.
+"""Thin command-line wrapper over the Optimization Validation Core API.
 
-Agents and CI invoke this from a standalone CUDA-Q checkout.
-(Taken this example from Thomas's plan)
+The public API (:func:`cudaq._compiler.validate` / :func:`~cudaq._compiler.capabilities`)
+is the product. Every flag maps 1:1 onto a :class:`ValidationRequest` field.
+The CLI holds no validation logic of its own.
 
-    `python3 -m cudaq._compiler.optimization_cli \\`
+    `python3 -m cudaq._compiler \\`
       `--input cudaq/test/Transforms/commutation_cancellation.qke \\`
       `--prepare 'builtin.module(func.func(memtoreg))' \\`
       `--candidate 'builtin.module(func.func(quake-commutation-cancellation))' \\`
@@ -20,13 +21,12 @@ Agents and CI invoke this from a standalone CUDA-Q checkout.
       `--fixed-point-runs 1 \\`
       `--preset quick \\`
       `--seed 184467 \\`
-      `--result /tmp/commutation-cancellation/result.json \\`
-      `--artifacts /tmp/commutation-cancellation`
+      `--result /tmp/commutation-cancellation/result.json`
 
-The JSON result is always emitted (to ``--result`` if given, else `stdout`). 
-The shell exit status is a category 
+The JSON result is always emitted (to ``--result`` if given, else `stdout`).
+The shell exit status is a category
     0 success
-    1 invariant failure 
+    1 invariant failure
     2 unsupported domain
     3 invalid request
     4 infrastructure failure
@@ -75,7 +75,7 @@ def _parse_metric(raw: str) -> MetricSpec:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python3 -m cudaq._compiler.optimization_cli",
+        prog="python3 -m cudaq._compiler",
         description="Validate a candidate CUDA-Q pass/pipeline against a "
         "baseline over one or more Quake inputs.")
     parser.add_argument("--input",
@@ -116,10 +116,6 @@ def build_parser() -> argparse.ArgumentParser:
                         default=None,
                         metavar="FILE",
                         help="Write the JSON result here (default: stdout).")
-    parser.add_argument("--artifacts",
-                        default=None,
-                        metavar="DIR",
-                        help="Directory for failure artifacts.")
     parser.add_argument("--capabilities",
                         action="store_true",
                         help="Print machine-readable capabilities and exit.")
@@ -143,9 +139,6 @@ def main(argv=None) -> int:
         import dataclasses
         _emit(dataclasses.asdict(capabilities()), args.result)
         return EXIT_STATUS[ValidationStatus.PASSED]
-
-    if args.artifacts:
-        Path(args.artifacts).mkdir(parents=True, exist_ok=True)
 
     target = PipelineTarget(prepare=args.prepare, observe=args.observe)
     request = ValidationRequest(

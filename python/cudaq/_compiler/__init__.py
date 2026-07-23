@@ -15,7 +15,7 @@ agents, edits sources, or selects a winning revision.
 
 The leading underscore marks this package as internal: its request/result
 contracts are not yet a supported public API. Invoke the CLI from a standalone
-CUDA-Q checkout with ``python3 -m cudaq._compiler.optimization_cli``.
+CUDA-Q checkout with ``python3 -m cudaq._compiler``.
 """
 
 from .optimization_validation import (
