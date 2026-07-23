@@ -102,3 +102,47 @@ def test_generated_modules_are_valid_and_in_domain():
         assert module.operation.verify()
         pf = cudaq_runtime.preflight_bounded_unitary(module, 14)
         assert pf["supported"], pf["rejections"]
+
+
+# Canonical corpus: a fixed, named, in-repo set of reference circuits.
+def test_canonical_names_are_stable_and_unique():
+    names = corpus.canonical_names()
+    assert names == ("bell_pair", "ghz_3", "inverse_pair_h", "mergeable_rz",
+                     "t_ladder", "clifford_mix")
+    assert len(names) == len(set(names))
+
+
+def test_canonical_modules_are_valid_and_in_domain():
+    ctx = _context()
+    for name in corpus.canonical_names():
+        text = corpus.canonical_module_text(name)
+        module = Module.parse(text, ctx)
+        assert module.operation.verify(), name
+        pf = cudaq_runtime.preflight_bounded_unitary(module, 14)
+        assert pf["supported"], (name, pf["rejections"])
+
+
+def test_canonical_module_text_is_reproducible():
+    for name in corpus.canonical_names():
+        assert corpus.canonical_module_text(
+            name) == corpus.canonical_module_text(name)
+
+
+def test_canonical_provenance_records_name_and_version():
+    text = corpus.canonical_module_text("bell_pair")
+    head = text.splitlines()[0]
+    assert "bell_pair" in head
+    assert f"v{corpus.CORPUS_GENERATOR_VERSION}" in head
+
+
+def test_canonical_module_text_rejects_unknown():
+    with pytest.raises(ValueError):
+        corpus.canonical_module_text("no_such_circuit")
+
+
+def test_write_canonical_corpus_writes_one_file_per_circuit(tmp_path):
+    paths = corpus.write_canonical_corpus(tmp_path)
+    assert [p.name for p in paths
+           ] == [f"{n}.qke" for n in corpus.canonical_names()]
+    for name, path in zip(corpus.canonical_names(), paths):
+        assert path.read_text() == corpus.canonical_module_text(name)

@@ -16,6 +16,7 @@ generation logic alters its output.
 """
 
 import random
+from dataclasses import dataclass
 from pathlib import Path
 
 # Bump on any change to generation that alters the emitted IR. Stamped into every
@@ -63,6 +64,46 @@ def _provenance_header(seed: int, num_qubits: int, length: int) -> list:
     ]
 
 
+def _emit_op(op, refs) -> str:
+    """Render one operation to its Quake line, reusing the ``refs`` names.
+
+    An op is ``(gate, *qubit_indices)``: ``cx`` takes ``(control, target)``,
+    ``rz`` takes one index and uses the shared ``%cst`` rotation constant, and
+    any other single-qubit gate takes one index. Shared by the seeded generator
+    and the canonical corpus so both emit byte-identical, proven syntax.
+    """
+    gate = op[0]
+    if gate == "cx":
+        _, control, target = op
+        return (f"  quake.x [{refs[control]}] {refs[target]} : "
+                f"(!quake.ref, !quake.ref) -> ()")
+    if gate == "rz":
+        _, target = op
+        return (f"  quake.rz (%cst) {refs[target]} : "
+                f"(f64, !quake.ref) -> ()")
+    _, target = op
+    return f"  quake.{gate} {refs[target]} : (!quake.ref) -> ()"
+
+
+def _open_kernel(lines: list, kernel_name: str, n: int) -> list:
+    """Append the kernel prologue to ``lines``; return the per-qubit ref names."""
+    lines.append(f"func.func @{kernel_name}() {{")
+    lines.append("  %cst = arith.constant 1.000000e+00 : f64")
+    lines.append(f"  %q = quake.alloca !quake.veq<{n}>")
+    refs = []
+    for i in range(n):
+        lines.append(f"  %r{i} = quake.extract_ref %q[{i}] : "
+                     f"(!quake.veq<{n}>) -> !quake.ref")
+        refs.append(f"%r{i}")
+    return refs
+
+
+def _close_kernel(lines: list) -> None:
+    """Append the kernel epilogue to ``lines``."""
+    lines.append("  cc.return")
+    lines.append("}")
+
+
 def generate_module_text(seed: int,
                          num_qubits: int = 2,
                          length: int = 6,
@@ -77,45 +118,31 @@ def generate_module_text(seed: int,
     n = max(1, num_qubits)
 
     lines = _provenance_header(seed, num_qubits, length)
-    lines.append(f"func.func @{kernel_name}() {{")
-    lines.append("  %cst = arith.constant 1.000000e+00 : f64")
-    lines.append(f"  %q = quake.alloca !quake.veq<{n}>")
-    refs = []
-    for i in range(n):
-        lines.append(f"  %r{i} = quake.extract_ref %q[{i}] : "
-                     f"(!quake.veq<{n}>) -> !quake.ref")
-        refs.append(f"%r{i}")
+    refs = _open_kernel(lines, kernel_name, n)
 
     for _ in range(length):
         choice = rng.random()
         target = rng.randrange(n)
         if choice < 0.6:
-            gate = rng.choice(_SINGLE)
-            lines.append(f"  quake.{gate} {refs[target]} : (!quake.ref) -> ()")
+            op = (rng.choice(_SINGLE), target)
         elif choice < 0.8 or n < 2:
-            lines.append(f"  quake.rz (%cst) {refs[target]} : "
-                         f"(f64, !quake.ref) -> ()")
+            op = ("rz", target)
         else:
             control = rng.randrange(n)
             while control == target:
                 control = rng.randrange(n)
-            lines.append(f"  quake.x [{refs[control]}] {refs[target]} : "
-                         f"(!quake.ref, !quake.ref) -> ()")
+            op = ("cx", control, target)
+        lines.append(_emit_op(op, refs))
 
     # Injected motifs: a self-inverse pair and a pair of `mergeable` rotations.
     motif_target = rng.randrange(n)
     involution = rng.choice(_INVOLUTIONS)
-    lines.append(f"  quake.{involution} {refs[motif_target]} : "
-                 f"(!quake.ref) -> ()")
-    lines.append(f"  quake.{involution} {refs[motif_target]} : "
-                 f"(!quake.ref) -> ()")
-    lines.append(f"  quake.rz (%cst) {refs[motif_target]} : "
-                 f"(f64, !quake.ref) -> ()")
-    lines.append(f"  quake.rz (%cst) {refs[motif_target]} : "
-                 f"(f64, !quake.ref) -> ()")
+    lines.append(_emit_op((involution, motif_target), refs))
+    lines.append(_emit_op((involution, motif_target), refs))
+    lines.append(_emit_op(("rz", motif_target), refs))
+    lines.append(_emit_op(("rz", motif_target), refs))
 
-    lines.append("  cc.return")
-    lines.append("}")
+    _close_kernel(lines)
     return "\n".join(lines) + "\n"
 
 
@@ -150,3 +177,107 @@ def corpus_for_preset(directory,
     version and parameters.
     """
     return write_corpus(directory, seeds_for_preset(preset), num_qubits, length)
+
+
+# Canonical corpus: A small, curated set of named straight-line bounded-unitary
+# circuits, ported from well-known OpenQASM programs (measurements dropped to
+# stay in the bounded-unitary domain).
+@dataclass(frozen=True)
+class CanonicalCircuit:
+    """One named canonical circuit: a fixed op list over ``num_qubits`` qubits.
+
+    ``ops`` uses the same ``(gate, *qubit_indices)`` form as :func:`_emit_op`.
+    """
+
+    name: str
+    num_qubits: int
+    description: str
+    ops: tuple
+
+
+CANONICAL_CIRCUITS = (
+    CanonicalCircuit(
+        name="bell_pair",
+        num_qubits=2,
+        description="Bell state preparation (h; cx), from bell.qasm.",
+        ops=(("h", 0), ("cx", 0, 1)),
+    ),
+    CanonicalCircuit(
+        name="ghz_3",
+        num_qubits=3,
+        description="3-qubit GHZ preparation (h; cx; cx), from ghz.qasm.",
+        ops=(("h", 0), ("cx", 0, 1), ("cx", 1, 2)),
+    ),
+    CanonicalCircuit(
+        name="inverse_pair_h",
+        num_qubits=1,
+        description="Adjacent inverse pair (h; h) -- reduces to the identity.",
+        ops=(("h", 0), ("h", 0)),
+    ),
+    CanonicalCircuit(
+        name="mergeable_rz",
+        num_qubits=1,
+        description="Two mergeable z-rotations (rz; rz) on one qubit.",
+        ops=(("rz", 0), ("rz", 0)),
+    ),
+    CanonicalCircuit(
+        name="t_ladder",
+        num_qubits=1,
+        description="Four T gates on one qubit; exercises the t-count metric.",
+        ops=(("t", 0), ("t", 0), ("t", 0), ("t", 0)),
+    ),
+    CanonicalCircuit(
+        name="clifford_mix",
+        num_qubits=2,
+        description="A small mixed Clifford circuit (h; s; cx; x; z).",
+        ops=(("h", 0), ("s", 1), ("cx", 0, 1), ("x", 1), ("z", 0)),
+    ),
+)
+
+_CANONICAL_BY_NAME = {c.name: c for c in CANONICAL_CIRCUITS}
+
+
+def canonical_names() -> tuple:
+    """The stable, ordered names of the canonical circuits."""
+    return tuple(c.name for c in CANONICAL_CIRCUITS)
+
+
+def canonical_module_text(name: str) -> str:
+    """Return the Quake IR text for the canonical circuit ``name``.
+
+    Byte-reproducible and self-identifying (a provenance header records the
+    circuit name and generator version). Raises ``ValueError`` for an unknown
+    name so a typo can never silently yield an empty corpus.
+    """
+    try:
+        circuit = _CANONICAL_BY_NAME[name]
+    except KeyError:
+        raise ValueError(f"unknown canonical circuit '{name}'; "
+                         f"known: {list(canonical_names())}")
+    lines = [
+        f"// Canonical circuit '{circuit.name}' from "
+        f"cudaq._compiler.optimization_corpus v{CORPUS_GENERATOR_VERSION}",
+        f"// {circuit.description}",
+    ]
+    refs = _open_kernel(lines, circuit.name, circuit.num_qubits)
+    for op in circuit.ops:
+        lines.append(_emit_op(op, refs))
+    _close_kernel(lines)
+    return "\n".join(lines) + "\n"
+
+
+def write_canonical_corpus(directory) -> list:
+    """Write one ``<name>.qke`` per canonical circuit into ``directory``.
+
+    Returns the list of written paths, ordered as :data:`CANONICAL_CIRCUITS`.
+    Reproducible: the same generator version always produces byte-identical
+    files.
+    """
+    out = Path(directory)
+    out.mkdir(parents=True, exist_ok=True)
+    paths = []
+    for name in canonical_names():
+        path = out / f"{name}.qke"
+        path.write_text(canonical_module_text(name))
+        paths.append(path)
+    return paths
