@@ -5,21 +5,15 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+"""Thin ``python3 -m cudaq._compiler`` entry point.
 
-add_cudaq_library(OptAnalysis
-  CircuitValidation.cpp
-  UnitaryBuilder.cpp
-  UnitaryOpGrouping.cpp
+The command line is a convenience wrapper over the public API. The
+API is the product. All the logic lives in :mod:`optimization_cli`.
+"""
 
-  DEPENDS
-    CCDialect
-    QuakeDialect
-)
+import sys
 
-# UnitaryBuilder builds dense unitaries with Eigen (via runtime/common/EigenDense.h).
-target_include_directories(OptAnalysis
-  PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
-  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
-)
+from .optimization_cli import main
 
-register_cudaq_mlir_lib(OptAnalysis)
+if __name__ == "__main__":
+    sys.exit(main())

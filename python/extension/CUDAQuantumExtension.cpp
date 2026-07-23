@@ -46,6 +46,7 @@
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/cudaq/trace/py_trace.h"
 #include "runtime/interop/PythonCppInteropDecls.h"
+#include "runtime/mlir/py_optimization_validation.h"
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
@@ -132,6 +133,7 @@ NB_MODULE(_quakeDialects, m) {
   bindPyRunAsync(cudaqRuntime);
   bindPyTranslate(cudaqRuntime);
   bindCountResources(cudaqRuntime);
+  bindOptimizationValidation(cudaqRuntime);
   bindDemFromKernel(cudaqRuntime);
   bindPySample(cudaqRuntime);
   bindPyObserve(cudaqRuntime);

@@ -1,0 +1,24 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# The CLI reports machine-readable capabilities, including the oracle roadmap
+# with each oracle's assurance tier. Only the exact-unitary tier is supported.
+
+# RUN: PYTHONPATH=%cudaq_python_root python3 -m cudaq._compiler --capabilities | FileCheck %s
+
+# CHECK-DAG: "capability_schema_version": 4
+# CHECK-DAG: "assurance_tiers": [
+# CHECK-DAG: "exact-unitary"
+
+# CHECK-DAG: "kind": "up-to-global-phase"
+# CHECK-DAG: "kind": "clifford-tableau"
+# CHECK-DAG: "tier": "exact-clifford-sim"
+# CHECK-DAG: "kind": "density-matrix"
+# CHECK-DAG: "tier": "exact-density-sim"
+# CHECK-DAG: "kind": "statevector-expectation"
+# CHECK-DAG: "tier": "advisory"

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "UnitaryBuilder.h"
+#include "cudaq/Optimizer/Analysis/UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include <algorithm>
 #include <numeric>
