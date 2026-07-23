@@ -16,19 +16,3 @@ add_mlir_public_c_api_library(cudaqDialectsCAPI
   LINK_LIBS PRIVATE
   cudaqMLIR
 )
-
-add_cudaq_capi_shared_library(cudaqMLIRCAPI
-  cudaqDialectsCAPI
-  MLIRCAPIDebug
-  MLIRCAPIExecutionEngine
-  MLIRCAPIFunc
-  MLIRCAPIIR
-  MLIRCAPIInterfaces
-  MLIRCAPILLVM
-  MLIRCAPITarget
-  MLIRCAPITransforms)
-
-install(TARGETS cudaqMLIRCAPI
-  EXPORT cudaq-targets
-  COMPONENT CUDAQuantumPythonModules
-  DESTINATION lib)

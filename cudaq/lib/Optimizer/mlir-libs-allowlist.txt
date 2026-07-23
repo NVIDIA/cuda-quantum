@@ -16,6 +16,7 @@ MLIRSupport
 # Textual parsing and printing
 MLIRParser
 MLIRAsmParser
+MLIRBytecodeWriter
 
 # Pass + analysis infrastructure
 MLIRPass
@@ -40,6 +41,7 @@ MLIRSideEffectInterfaces
 
 # Foundational building-block dialects most custom dialects/lowerings reuse
 MLIRFuncDialect
+MLIRFuncTransforms
 MLIRFuncInlinerExtension
 MLIRArithDialect
 MLIRControlFlowDialect
@@ -58,8 +60,10 @@ MLIRTranslateLib
 # LLVM IR code-generation (lowering + export)
 MLIRTargetLLVMIRExport
 MLIRLLVMCommonConversion
+MLIRToLLVMIRTranslationRegistration
 MLIRLLVMToLLVMIRTranslation
 MLIRBuiltinToLLVMIRTranslation
+MLIRLLVMIRToLLVMTranslation
 MLIROpenMPToLLVMIRTranslation
 MLIRLLVMIRTransforms
 
