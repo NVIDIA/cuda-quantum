@@ -13,9 +13,8 @@ add_mlir_library(CUDAQSupport
   ${MLIR_MAIN_INCLUDE_DIR}/mlir/Pass
 
   DEPENDS
-  mlir-generic-headers
+  mlir-generic-headers)
 
-  LINK_LIBS PUBLIC
-  cudaqMLIR
-  )
-
+# Link MLIR dynamically (default) or statically (if CUDAQ_MLIR_STATIC is set).
+target_link_libraries(CUDAQSupport PUBLIC
+  "$<IF:$<BOOL:$<TARGET_PROPERTY:CUDAQ_MLIR_STATIC>>,cudaq-mlir-static,cudaqMLIR>")

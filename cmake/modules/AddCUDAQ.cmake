@@ -151,3 +151,9 @@ function(add_target_mapping_arch providerName name)
   install(FILES ${name} DESTINATION targets/mapping/${providerName})
   configure_file(${name} ${CMAKE_BINARY_DIR}/targets/mapping/${providerName}/${name} COPYONLY)
 endfunction()
+
+# Make `target` resolve its transitive CUDA-Q MLIR deps against static
+# MLIR component libraries instead of libcudaqMLIR.so.
+function(cudaq_use_static_mlir target)
+  set_target_properties(${target} PROPERTIES CUDAQ_MLIR_STATIC ON)
+endfunction()

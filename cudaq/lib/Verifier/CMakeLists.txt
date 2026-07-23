@@ -13,8 +13,8 @@ add_mlir_library(cudaq-qir-verifier
 
   DEPENDS
     CCDialect
-    QuakeDialect
+    QuakeDialect)
 
-  LINK_LIBS PRIVATE
-    cudaqMLIR
-)
+# Link MLIR dynamically (default) or statically (if CUDAQ_MLIR_STATIC is set).
+target_link_libraries(cudaq-qir-verifier PUBLIC
+  "$<IF:$<BOOL:$<TARGET_PROPERTY:CUDAQ_MLIR_STATIC>>,cudaq-mlir-static,cudaqMLIR>")
