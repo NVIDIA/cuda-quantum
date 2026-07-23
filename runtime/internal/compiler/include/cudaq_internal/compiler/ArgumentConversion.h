@@ -136,4 +136,14 @@ bool mergeAllCallableClosures(mlir::ModuleOp intoModule,
                               std::span<void *const> rawArgs,
                               std::optional<unsigned> betaRedux = {});
 
+/// Replace every non-callable argument pointer with null so that only callable
+/// closures participate in argument synthesis. Used both to disable
+/// specialization and to derive a compiled-module cache key from just the
+/// callable dependencies. \p rawArgs is re-pointed at \p closureArgs, which
+/// must outlive the call. Returns `true` when every argument is callable, i.e.
+/// the kernel is fully specialized.
+bool retainCallableArguments(std::span<void *const> &rawArgs,
+                             std::vector<void *> &closureArgs,
+                             mlir::func::FuncOp funcOp);
+
 } // namespace cudaq_internal::compiler
