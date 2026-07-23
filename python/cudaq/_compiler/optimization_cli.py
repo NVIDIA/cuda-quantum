@@ -42,7 +42,7 @@ from .optimization_validation import (
     PREDICATES,
     MetricSpec,
     OracleSpec,
-    PipelineSpec,
+    PipelineTarget,
     ValidationRequest,
     ValidationStatus,
     capabilities,
@@ -147,11 +147,10 @@ def main(argv=None) -> int:
     if args.artifacts:
         Path(args.artifacts).mkdir(parents=True, exist_ok=True)
 
+    target = PipelineTarget(prepare=args.prepare, observe=args.observe)
     request = ValidationRequest(
         inputs=tuple(Path(p) for p in args.input),
-        pipeline=PipelineSpec(prepare=args.prepare,
-                              candidate=args.candidate,
-                              observe=args.observe),
+        pipeline=target.with_pipeline(args.candidate),
         oracle=OracleSpec(kind=args.oracle, rtol=args.rtol, atol=args.atol),
         metrics=tuple(_parse_metric(m) for m in args.metric),
         seed=args.seed,
