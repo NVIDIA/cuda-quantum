@@ -131,6 +131,10 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
+
+  EMBED_CAPI_LINK_LIBS
+    cudaqDialectsCAPI
+    MLIRCAPITransforms
 )
 
 # MLIR/LLVM is built without RTTI (LLVM_ENABLE_RTTI=OFF). This file subclasses
@@ -166,55 +170,33 @@ target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE
 # which results in a compilation error. 
 set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "cudaq")
 
-add_mlir_python_modules(CUDAQuantumPythonModules
+set(CUDAQ_PYTHON_DECLARED_SOURCES
+  CUDAQuantumPythonSources
+  MLIRPythonSources.Core
+  MLIRPythonSources.ExecutionEngine
+  MLIRPythonSources.Dialects.arith
+  MLIRPythonSources.Dialects.builtin
+  MLIRPythonSources.Dialects.complex
+  MLIRPythonSources.Dialects.func
+  MLIRPythonSources.Dialects.llvm
+  MLIRPythonSources.Dialects.math)
+
+# Build the common CAPI shared library.
+add_cudaq_python_common_capi_library(cudaqMLIRCAPI
+  DECLARED_SOURCES ${CUDAQ_PYTHON_DECLARED_SOURCES})
+
+install(TARGETS cudaqMLIRCAPI
+  EXPORT cudaq-targets
+  COMPONENT CUDAQuantumPythonModules
+  DESTINATION lib)
+
+add_cudaq_python_modules(CUDAQuantumPythonModules
   ROOT_PREFIX "${MLIR_BINARY_DIR}/python/cudaq/mlir"
   INSTALL_PREFIX "cudaq/mlir"
-  DECLARED_SOURCES
-    CUDAQuantumPythonSources
-    MLIRPythonSources.Core
-    MLIRPythonSources.ExecutionEngine
-    MLIRPythonSources.Dialects.arith
-    MLIRPythonSources.Dialects.builtin
-    MLIRPythonSources.Dialects.complex
-    MLIRPythonSources.Dialects.func
-    MLIRPythonSources.Dialects.llvm
-    MLIRPythonSources.Dialects.math
+  DECLARED_SOURCES ${CUDAQ_PYTHON_DECLARED_SOURCES}
   COMMON_CAPI_LINK_LIBS
     cudaqMLIRCAPI
 )
-
-## The Python bindings live in cudaq/mlir/_mlir_libs but depend on CUDA-Q
-## shared libraries installed under lib/ (including libcudaqMLIR). Upstream
-## MLIR's default RPATH is only $ORIGIN/@loader_path, so we must add a
-## relative path to lib/. macOS uses @loader_path instead of $ORIGIN.
-if(APPLE)
-  set(_origin_prefix "@loader_path")
-else()
-  set(_origin_prefix "$ORIGIN")
-endif()
-
-if (NOT SKBUILD)
-  set(_cudaq_python_install_rpaths
-    "${_origin_prefix}/../../../lib"
-    "${_origin_prefix}/../../../lib/plugins")
-else()
-  set(_cudaq_python_install_rpaths
-    "${_origin_prefix}/../../../lib"
-    "${_origin_prefix}/../../../cuda_quantum.libs")
-endif()
-
-# Capture every MLIR extension instantiated above. They all link MLIR and therefore
-# need an install RPATH and must link against cudaqMLIR BEFORE other dependencies.
-get_property(_cudaq_mlir_python_dsos DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
-list(FILTER _cudaq_mlir_python_dsos INCLUDE
-  REGEX "^CUDAQuantumPythonModules\\.extension\\.")
-foreach(_cudaq_mlir_dso IN LISTS _cudaq_mlir_python_dsos)
-  target_link_libraries(${_cudaq_mlir_dso} PRIVATE cudaqMLIR)
-  target_link_options(${_cudaq_mlir_dso}
-    BEFORE PRIVATE "$<TARGET_FILE:cudaqMLIR>")
-  set_property(TARGET ${_cudaq_mlir_dso} APPEND PROPERTY
-    INSTALL_RPATH ${_cudaq_python_install_rpaths})
-endforeach()
 
 # Suppress warnings-as-errors for upstream MLIR Python extension sources
 # that have minor GCC warnings (address-of-function, parentheses) in LLVM 22.
