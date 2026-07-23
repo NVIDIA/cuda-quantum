@@ -261,9 +261,9 @@ protected:
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
 
-  /// @brief Set the compile target for the platform.
-  virtual void setCompileTarget(CompileTarget target) {
-    compileTarget = target;
+  /// @brief Set (or clear) the compile target for the platform.
+  virtual void setCompileTarget(std::optional<CompileTarget> target) {
+    compileTarget = std::move(target);
   }
 
   /// The runtime target settings

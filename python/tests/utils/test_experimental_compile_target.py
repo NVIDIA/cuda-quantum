@@ -143,6 +143,62 @@ def test_pipeline_config_controls_compiled_ir():
     assert dict(decomposed_counts.items()) == dict(default_counts.items())
 
 
+def test_compile_target_does_not_leak_after_switch():
+    """A compile target must not persist onto a plain target.
+
+    Regression test: previously `set_target(CompileTarget(...))` installed the
+    compile target on the process-wide platform singleton and neither
+    `reset_target()` nor a subsequent plain `set_target(name)` cleared it, so
+    the custom pipeline leaked into unrelated kernels (e.g. `cudaq.draw`).
+    """
+
+    def make_swap_kernel():
+        @cudaq.kernel
+        def swap_kernel():
+            q = cudaq.qvector(2)
+            x(q[0])
+            swap(q[0], q[1])
+            mz(q)
+
+        return swap_kernel
+
+    def quake_op_names(kernel):
+        module = kernel.cachedCompiledModule().mlir_module
+        assert module is not None, "no compiled module was cached after launch"
+
+        names = []
+
+        def visit(op):
+            if op.name.startswith("quake."):
+                names.append(op.name)
+            return WalkResult.ADVANCE
+
+        module.operation.walk(visit)
+        return names
+
+    # Install a compile target that decomposes swaps into CNOTs.
+    ct = CompileTarget(runtime_endpoint="qpp-cpu")
+    ct.pipeline_config.override_pass_pipeline = (
+        "canonicalize,decomposition{enable-patterns=SwapToCX},canonicalize")
+    cudaq.set_target(ct)
+    decomposed_kernel = make_swap_kernel()
+    cudaq.sample(decomposed_kernel, shots_count=1)
+    assert "quake.swap" not in quake_op_names(decomposed_kernel)
+
+    # Switching to a plain target must restore default behaviour.
+    cudaq.set_target("qpp-cpu")
+    plain_kernel = make_swap_kernel()
+    cudaq.sample(plain_kernel, shots_count=1)
+    assert "quake.swap" in quake_op_names(plain_kernel)
+
+    # Same expectation after a reset.
+    cudaq.set_target(ct)
+    cudaq.reset_target()
+    reset_kernel = make_swap_kernel()
+    cudaq.sample(reset_kernel, shots_count=1)
+    assert "quake.swap" in quake_op_names(reset_kernel)
+
+
 def test_support_conditionals_on_measure_results():
     ct = CompileTarget(runtime_endpoint="qpp-cpu")
     ct.support_conditionals_on_measure_results = True

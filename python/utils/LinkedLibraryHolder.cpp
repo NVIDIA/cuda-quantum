@@ -500,9 +500,7 @@ void LinkedLibraryHolder::setTarget(
     backendConfigStr += fmt::format(";{};{}", key, value);
 
   platform->setTargetBackend(backendConfigStr);
-  if (compileTarget) {
-    platform->setCompileTarget(*std::move(compileTarget));
-  }
+  platform->setCompileTarget(std::move(compileTarget));
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
 
