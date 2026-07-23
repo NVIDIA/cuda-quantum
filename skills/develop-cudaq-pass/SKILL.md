@@ -1,0 +1,176 @@
+---
+name: develop-cudaq-pass
+title: "Develop a CUDA-Q Compiler Pass"
+description: "Use when planning, adding, modifying, debugging, hardening, or integrating a CUDA-Q compiler pass, whether built into CUDA-Q or supplied as an external plugin. Covers transformations, analyses, conversions, code generation, and pipeline placement. Do not use for merely invoking existing passes, runtime optimization, or general MLIR guidance unrelated to CUDA-Q."
+version: "1.0.0"
+author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
+tags: [cuda-quantum, quantum-computing, compiler, mlir, quake, passes, plugins, nvidia]
+license: "Apache-2.0"
+compatibility: "C++ 20, MLIR/LLVM (CUDA-Q toolchain)"
+metadata:
+    author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
+    tags:
+        - cuda-quantum
+        - quantum-computing
+        - compiler
+        - mlir
+        - passes
+        - nvidia
+    languages:
+        - c++
+    domain: "quantum"
+---
+
+# Develop a CUDA-Q Compiler Pass
+
+Use the current CUDA-Q source and compiler contributor documentation to plan or
+implement one pass-sized change. Keep human documentation authoritative and use
+the [source map](references/source-map.md) to find it.
+
+## Load Sources Progressively
+
+1. Classify the work as a built-in pass or an external plugin. Read the
+   compiler overview and pass guide. Read the plugin guide only for an external
+   pass.
+2. Review the generated available-pass catalog before deciding whether to
+   extend or add a pass. If its generated includes are absent, inspect both the
+   Transform and CodeGen `Passes.td` files.
+3. Read the compiler IR guide when the task depends on an IR boundary. Read
+   only the generated dialect references used by the task. When a generated
+   dialect page is absent, inspect its TableGen definitions and implementations
+   instead.
+4. For a Quake transformation, or a pipeline task that operates on Quake, read
+   the Quake semantic specification. Do not assume Quake has one global
+   canonical form.
+5. Trace the closest comparable declaration, implementation, registration,
+   CMake entry, pipeline use, and tests. Load a named primary source when the
+   requested algorithm depends on one.
+
+## Select the Compiler Extension Point
+
+Before selecting the extension point, capture representative valid input IR at
+the intended pipeline boundary and state the output required by the next
+consumer.
+
+Select the smallest extension point that owns the behavior:
+
+- Use folding or operation canonicalization for a cheap, local, monotonic form
+  that is valid whenever the operation appears.
+- Use an analysis for read-only results reused across transformations, with
+  explicit invalidation. Keep calculations used by only one pass local to that
+  pass.
+- Reuse an MLIR interface first. Add an interface or trait only for intrinsic
+  behavior needed by multiple operations or consumers.
+- Add IR only when current operations, types, attributes, or interfaces cannot
+  state or verify a required semantic distinction. Submit the IR change and
+  the dependent pass change as separate, sequential review units.
+- Extend an existing pass only when the new behavior serves the same purpose,
+  operates at the same IR boundary, and does not change how the pass is placed
+  or enabled in the pipeline.
+- Otherwise add a focused pass. Keep pass-dependent patterns and helpers local;
+  share a helper only when it has more than one real caller.
+
+`quake-simplify` contains existing transformations but is not the default home
+for new independent ones.
+
+## Prepare the Implementation Brief
+
+Summarize the following at a level of detail appropriate to the change:
+
+- built-in or external ownership, selected compiler extension point, and the
+  rejected nearest alternative
+- proposed implementation, the MLIR operation the pass runs on, supported input
+  and expected output IR, and how the pass handles valid input outside its
+  supported scope
+- computation or observable behavior preserved by the transformation
+- ordered proposed review units and dependencies
+- minimum sufficient test evidence
+- non-obvious correctness, compile-time, memory, convergence, or production
+  risks
+- likely files and the repository that owns each change
+
+Plan shared compiler support, pass implementation, and pipeline activation as
+separate review units when they have different owners or risks. Route each unit
+through the repository's normal review process.
+
+For an external plugin, keep its implementation, packaging, and tests in the
+plugin repository and follow that repository's contribution process. Put a
+required CUDA-Q shared API or IR change in a separate CUDA-Q review unit and
+follow CUDA-Q's contribution process for that unit.
+
+If the contributor requests a plan, design, proposal, or no edits, stop after
+the brief. Otherwise continue without another confirmation gate unless a
+stopping condition below applies.
+
+## Communicate the Work
+
+Apply these rules to briefs, progress reports, completion evidence,
+diagnostics, comments, and documentation:
+
+- Lead with the decision, result, action, or blocking question and provide the
+  evidence and rationale needed to act.
+- Use established CUDA-Q, MLIR, compiler, and quantum computing terms. Define
+  necessary specialized terms and write for an entry-level quantum compiler
+  developer. Explain any repository-specific context or pipeline assumptions
+  needed to follow the plan.
+- Prefer exact names, paths, commands, results, and measurements. Distinguish
+  verified facts, recommendations, assumptions, and unresolved decisions.
+- Preserve relevant preconditions, correctness risks, and tradeoffs without
+  inflated claims or unnecessary context.
+- Do not repeat the prompt, tool logs, repository policy, or source material.
+
+## Preserve Quantum Semantics
+
+For every quantum transformation, state and justify one applicable relation:
+
+- exact equivalence
+- equivalence up to global phase
+- equivalence under a known qubit mapping
+- bounded approximation with a named error measure and tolerance
+- preserved non-unitary observable behavior
+
+Passing the IR verifier establishes structural validity. Improvements in gate
+count, depth, or another optimization metric measure optimization quality.
+Validate the claimed quantum behavior separately. Use `CircuitCheck` only for
+small unitary IR within its supported scope and select its global-phase or
+mapping modes only when the pass claims that relation. For measurement, reset,
+control flow, noise, or other non-unitary behavior, test the observable
+behavior that the pass claims to preserve.
+
+For Quake dependency-sensitive transformations, prefer value form when precise
+wire or cable use-def chains are required. Preserve linear value threading
+through operations and control flow. Treat calls and unsupported regions
+conservatively unless a pass-specific analysis establishes otherwise.
+
+## Implement and Verify
+
+1. Add or reproduce the smallest failing test at the layer that owns the
+   behavior.
+2. Implement through the appropriate MLIR rewrite, conversion, analysis, or
+   ordered traversal mechanism. Match before mutation, use `PatternRewriter`
+   for pattern rewrites, avoid global mutable state, and keep output and
+   diagnostics deterministic.
+3. Build only affected targets first. Run focused lit, unit, plugin, pipeline,
+   target, or frontend checks justified by the changed contract.
+4. For a quantum rewrite, check both the intended IR change and the claimed
+   semantic relation. Test pipeline composition separately from direct pass
+   behavior.
+5. Format changed code, inspect the complete diff, and run justified repository
+   checks. Do not construct a Cartesian test matrix.
+
+Use lit and FileCheck for pass IR, options, diagnostics, and unsupported input.
+Use optimizer unit tests for reusable analyses, algorithms, and data
+structures. Add pipeline or target tests only when placement or integration
+changes observable behavior. Measure credible scaling risks with a
+reproducible fixture; do not create a persistent benchmark without an agreed
+home.
+
+## Stop and Report
+
+Pause when implementation needs a contributor decision about undefined
+semantics, a shared or core IR change, pipeline placement, or the home for a
+persistent performance test.
+
+When finished, group changes and evidence by review unit. Report tests run and
+omitted, remaining risks, and unresolved decisions. Follow the repository's
+current contribution process.

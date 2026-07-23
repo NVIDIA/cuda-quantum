@@ -1,0 +1,27 @@
+schema_version: 1
+
+harbor:
+  task_source: evals_json
+  # Rebase the custom CUDA-Q development Dockerfile onto the SkillEvaluator
+  # base image so the evaluator can provision its agent harness. With
+  # preserve/disabled (left over from the removed native-harbor task) no agent
+  # was eligible and Tier 3 execution was skipped, which blocks the NVSkills
+  # merge gate.
+  custom_dockerfile_mode: rebase
+  base_image_mode: reuse
+  n_attempts: 2
+  pass_threshold: 0.60
+  # NVSkills validates canonical Tier 3 coverage with a single-attempt
+  # override, which is incompatible with early stopping.
+  stop_on_pass: false
+  n_concurrent: 2
+  max_agents: 2
+  # Generated tasks default to 300 seconds. Preserve a 900-second ceiling for
+  # the compile-heavy source-editing case.
+  timeout_multiplier: 3.0
+skill_workspace:
+  mode: isolated
+  include: []
+
+grading:
+  mode: default
