@@ -750,7 +750,8 @@ cmake_policy(POP)
 include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
-  DESTINATION include/nlohmann)
+  DESTINATION include/nlohmann
+  COMPONENT Development)
 
 # Add spdlog
 set(SPDLOG_BUILD_SHARED OFF)

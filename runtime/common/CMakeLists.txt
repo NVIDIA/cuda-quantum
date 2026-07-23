@@ -92,14 +92,20 @@ if (CUDAQ_UPPERCASE_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 endif()
 
 # Install the target
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-common-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-common-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 install(EXPORT cudaq-common-targets
         FILE CUDAQCommonTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
 if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   # Copy to build directory so that developers can run from the build directory
   file(COPY "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION "${CMAKE_BINARY_DIR}")
   # Also include it as an install target
-  install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
+  install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem"
+          DESTINATION .
+          COMPONENT Runtime)
 endif()

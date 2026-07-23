@@ -56,8 +56,10 @@ target_link_libraries(${SERVERHELPER_LIBRARY_NAME}
     cudaq-logger
     pthread)
     
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)
+install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)
 
 add_target_config(pasqal)
 

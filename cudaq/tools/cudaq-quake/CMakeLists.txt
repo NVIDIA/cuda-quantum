@@ -37,4 +37,4 @@ target_link_libraries(cudaq-quake
 
 mlir_check_all_link_libraries(cudaq-quake)
 
-install(TARGETS cudaq-quake DESTINATION bin)
+install(TARGETS cudaq-quake DESTINATION bin COMPONENT Nvqpp)

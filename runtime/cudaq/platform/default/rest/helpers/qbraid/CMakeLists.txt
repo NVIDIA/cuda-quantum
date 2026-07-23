@@ -14,4 +14,5 @@ target_link_libraries(cudaq-serverhelper-qbraid
     cudaq-common
     cudaq-logger
 )
-install(TARGETS cudaq-serverhelper-qbraid DESTINATION lib)
+install(TARGETS cudaq-serverhelper-qbraid DESTINATION lib
+        COMPONENT Runtime)

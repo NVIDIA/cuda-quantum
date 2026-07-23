@@ -13,6 +13,7 @@ add_subdirectory(cudaq)
 
 install(DIRECTORY cudaq
         DESTINATION include
+        COMPONENT Development
         FILES_MATCHING
           PATTERN "*.h"
           PATTERN "*.td")

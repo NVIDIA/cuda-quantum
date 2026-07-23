@@ -30,5 +30,5 @@ add_cudaq_capi_shared_library(cudaqMLIRCAPI
 
 install(TARGETS cudaqMLIRCAPI
   EXPORT cudaq-targets
-  COMPONENT CUDAQuantumPythonModules
+  COMPONENT Python
   DESTINATION lib)

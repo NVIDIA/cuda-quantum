@@ -25,4 +25,4 @@ target_link_libraries(cudaq-builder
     cudaqMLIR
 )
 
-install(TARGETS cudaq-builder DESTINATION lib)
+install(TARGETS cudaq-builder DESTINATION lib COMPONENT Runtime)
