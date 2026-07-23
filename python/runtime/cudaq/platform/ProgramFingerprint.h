@@ -32,7 +32,7 @@ namespace cudaq::detail {
 /// implementation is not owned by the module — a declaration backed by the
 /// C++ registered-kernel registry, or a `cc.device_call` — because the module
 /// text cannot vouch for code that lives outside it. Callers must then treat
-/// the launch as non-cacheable (compile every call).
+/// the launch cannot be cached (compile every call).
 ///
 /// On return, \p resolvedModule holds the merged clone. On a cache miss the
 /// caller can compile it directly.
