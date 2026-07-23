@@ -9,6 +9,7 @@
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TypeName.h"
@@ -422,9 +423,6 @@ struct ExpPauliDecomposition
     auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
 
-    if (expPauliOp.isAdj())
-      theta = arith::NegFOp::create(rewriter, loc, theta);
-
     std::optional<std::string> optPauliWordStr;
     if (!pauliWord) {
       optPauliWordStr = expPauliOp.getPauliLiteral()->str();
@@ -517,21 +515,31 @@ struct ExpPauliDecomposition
     if (size > 0 && pauliWordStr[size - 1] == '\0')
       size--;
 
+    auto maybePaulis = cudaq::quake::symbolizePauliWord(
+        StringRef(pauliWordStr).take_front(size));
+    if (!maybePaulis)
+      return expPauliOp.emitOpError(
+          "Pauli word must contain only I, X, Y, or Z");
+    const auto &paulis = *maybePaulis;
+
+    if (expPauliOp.isAdj())
+      theta = arith::NegFOp::create(rewriter, loc, theta);
+
     SmallVector<Value> qubitSupport;
-    for (std::size_t i = 0; i < size; i++) {
+    for (auto [i, pauli] : llvm::enumerate(paulis)) {
       Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
       Value qubitI =
           cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
-      if (pauliWordStr[i] != 'I')
+      if (pauli != cudaq::quake::Pauli::I)
         qubitSupport.push_back(qubitI);
 
-      if (pauliWordStr[i] == 'Y') {
+      if (pauli == cudaq::quake::Pauli::Y) {
         APFloat d(M_PI_2);
         Value param = arith::ConstantFloatOp::create(rewriter, loc,
                                                      rewriter.getF64Type(), d);
         cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
                                    ValueRange{}, ValueRange{qubitI});
-      } else if (pauliWordStr[i] == 'X') {
+      } else if (pauli == cudaq::quake::Pauli::X) {
         cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitI});
       }
     }
@@ -562,19 +570,19 @@ struct ExpPauliDecomposition
     for (auto &[i, j] : toReverse)
       cudaq::quake::XOp::create(rewriter, loc, ValueRange{i}, ValueRange{j});
 
-    for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
-      std::size_t k = pauliWordStr.size() - 1 - i;
+    for (std::size_t i = 0; i < paulis.size(); i++) {
+      std::size_t k = paulis.size() - 1 - i;
       Value index = arith::ConstantIntOp::create(rewriter, loc, k, 64);
       Value qubitK =
           cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
 
-      if (pauliWordStr[k] == 'Y') {
+      if (paulis[k] == cudaq::quake::Pauli::Y) {
         APFloat d(-M_PI_2);
         Value param = arith::ConstantFloatOp::create(rewriter, loc,
                                                      rewriter.getF64Type(), d);
         cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
                                    ValueRange{}, ValueRange{qubitK});
-      } else if (pauliWordStr[k] == 'X') {
+      } else if (paulis[k] == cudaq::quake::Pauli::X) {
         cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitK});
       }
     }

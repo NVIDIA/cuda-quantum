@@ -9,9 +9,11 @@
 #pragma once
 
 #include "cudaq/Support/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
+#include <optional>
 
 //===----------------------------------------------------------------------===//
 // Generated logic
@@ -21,6 +23,15 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h.inc"
 
 namespace cudaq::quake {
+/// A single factor in a Pauli tensor product.
+enum class Pauli { I, X, Y, Z };
+
+/// An ordered Pauli tensor-product word.
+using PauliWord = llvm::SmallVector<Pauli>;
+
+/// Convert a word containing only `I`, `X`, `Y`, and `Z` to Pauli symbols.
+std::optional<PauliWord> symbolizePauliWord(llvm::StringRef value);
+
 /// \returns true if \p `ty` is a quantum value or reference.
 inline bool isQuantumType(mlir::Type ty) {
   // NB: this intentionally excludes MeasureType.

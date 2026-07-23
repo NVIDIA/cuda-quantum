@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=ExpPauliDecomposition})' %s -split-input-file -verify-diagnostics | FileCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_ZZ4mainENK3$_0clEd"}} {
 
@@ -101,4 +101,14 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__Z4mainE3$_0 = "_Z
 // CHECK:           quake.h %[[VAL_9]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+}
+
+// -----
+
+func.func @invalid_adjoint_dynamic_word(%theta : f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %qubits = quake.alloca !quake.veq<2>
+  %word = cc.string_literal "Xa" : !cc.ptr<!cc.array<i8 x 3>>
+  // expected-error@+1 {{Pauli word must contain only I, X, Y, or Z}}
+  quake.exp_pauli<adj> (%theta) %qubits to %word : (f64, !quake.veq<2>, !cc.ptr<!cc.array<i8 x 3>>) -> ()
+  return
 }
