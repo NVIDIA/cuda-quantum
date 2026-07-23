@@ -528,6 +528,37 @@ TEST_F(ExternalBackendTester, nativeTargetLoadsPluginLibraries) {
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 
+TEST_F(ExternalBackendTester, autoLoadsPlatformQpuLibrary) {
+  auto root = tmpRoot / "qpu-auto-load";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+
+  const auto pluginPath =
+      std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
+  // Convention: libcudaq-<platform-qpu>-qpu.<ext>
+  const auto qpuLibName =
+      std::string("libcudaq-mock_observe_qpu-qpu") +
+      std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME).extension().string();
+  std::filesystem::copy_file(pluginPath, libDir / qpuLibName,
+                             std::filesystem::copy_options::overwrite_existing);
+
+  const auto sentinelPath = tmpRoot / "qpu-auto-load.sentinel";
+  std::filesystem::remove(sentinelPath);
+  setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
+
+  cudaq::config::TargetConfig config;
+  cudaq::config::BackendEndConfigEntry backendConfig;
+  backendConfig.PlatformQpu = "mock_observe_qpu";
+  config.BackendConfig = backendConfig;
+  cudaq::detail::loadTargetPluginLibraries(
+      "mock_observe_qpu", targetsDir / "mock_observe_qpu.yml", config);
+
+  EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
+}
+
 #endif // CUDAQ_ENABLE_PYTHON
 
 TEST(TargetConfigTester, pluginRootTokenSubstitutionReplacesAllOccurrences) {

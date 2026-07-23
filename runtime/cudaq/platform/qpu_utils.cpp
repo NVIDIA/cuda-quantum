@@ -138,6 +138,22 @@ void detail::loadTargetPluginLibraries(
     loadTargetPluginLibrary(candidate, targetName);
     break;
   }
+
+  // External custom QPU plugins ship libcudaq-<platform-qpu>-qpu.so (same
+  // naming as in-tree Fermioniq). Load before registry::get<QPU>.
+  if (targetConfig.BackendConfig.has_value() &&
+      !targetConfig.BackendConfig->PlatformQpu.empty()) {
+    const auto qpuLibName = "libcudaq-" +
+                            targetConfig.BackendConfig->PlatformQpu + "-qpu" +
+                            PLATFORM_SHARED_LIBRARY_SUFFIX;
+    for (const auto &candidate :
+         {cudaqLibDir / qpuLibName, pluginLibDir / qpuLibName}) {
+      if (!std::filesystem::exists(candidate))
+        continue;
+      loadTargetPluginLibrary(candidate, targetName);
+      break;
+    }
+  }
 }
 
 bool detail::isAnalogHamiltonianKernel(const std::string &kernelName) {

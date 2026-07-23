@@ -151,6 +151,11 @@ public:
         throw std::runtime_error(
             "Returning an observe_result requires a spin_op.");
 
+      // Server-side observe backends return a single expectation on the
+      // global register (e.g. Fermioniq / external custom QPU plugins).
+      if (data.has_expectation())
+        return observe_result(data.expectation(), *spinOp, data);
+
       auto checkRegName = spinOp->to_string();
       if (data.has_expectation(checkRegName))
         return observe_result(data.expectation(checkRegName), *spinOp, data);
