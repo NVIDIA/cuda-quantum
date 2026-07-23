@@ -60,6 +60,7 @@ add_cudaq_library(OptTransforms
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
+  PruneNegligibleRotations.cpp
   PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
   QuakePropagateMetadata.cpp
