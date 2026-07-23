@@ -39,7 +39,6 @@ target_link_libraries(test_target_config
     cudaq
     cudaq-em-default
     nvqir
-    MLIRIR
 )
 target_compile_definitions(test_target_config
   PRIVATE

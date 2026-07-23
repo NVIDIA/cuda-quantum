@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <regex>
 #include <unordered_map>
 
 class ExternalBackendTester : public ::testing::Test {
@@ -410,9 +411,8 @@ TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {
   // validator falls back to string comparison and only warns, so no throw
   // occurs.
   const std::string testVersion(CUDAQ_TEST_VERSION);
-  if (testVersion.empty() ||
-      testVersion.find_first_of("0123456789") == std::string::npos ||
-      testVersion.find('.') == std::string::npos) {
+  if (!std::regex_search(testVersion,
+                         std::regex(R"(^[0-9]+\.[0-9]+\.[0-9]+)"))) {
     GTEST_SKIP() << "Skipping: current CUDA-Q version '" << testVersion
                  << "' is non-numeric; semver rejection is not tested in dev "
                     "builds";
