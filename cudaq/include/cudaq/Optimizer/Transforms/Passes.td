@@ -175,19 +175,26 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
 }
 
 def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
-  let summary = "Approximate constant-angle rotations as Clifford+T sequences.";
+  let summary = "Approximate constant-angle Rz rotations as Clifford+T sequences.";
   let description = [{
-    Rewrites `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations
-    with constant angles into sequences of `quake.h`, `quake.s`, `quake.t`,
-    and `quake.x` (Clifford+T) gates. The synthesis algorithm is gridsynth
-    (Ross & Selinger, arXiv:1403.2975) provided by the embedded
-    `cudaq::synth` library.
+    Rewrites `quake.rz` operations with constant angles into sequences of
+    `quake.h`, `quake.s`, `quake.t`, and `quake.x` (Clifford+T) gates. The
+    synthesis algorithm is gridsynth (Ross & Selinger, arXiv:1403.2975)
+    provided by the embedded `cudaq::synth` library.
+
+    Only `quake.rz` is handled. `quake.rx`, `quake.ry`, and `quake.r1` must be
+    reduced to Rz first via the `RxToRz`, `RyToRz`, and `R1ToRz` decomposition
+    patterns; the `cudaq-fault-tolerant-target` pipeline runs that reduction
+    ahead of this pass. Any other rotation left in the IR is passed through
+    untouched.
 
     Both memory semantics (`!quake.ref` targets, in-place) and value
     semantics (`!quake.wire` targets, threaded) are handled. The synthesized
     per-angle helper mirrors the form of the rotation it replaces.
 
     Preconditions (must be enforced by upstream passes):
+    - Rx/Ry/R1 rotations are reduced to Rz - run the `decomposition` pass with
+      the `RxToRz`, `RyToRz`, `R1ToRz` patterns enabled first.
     - Rotation angles are folded to constants - run `ArgumentSynthesis` and
       constant-propagation passes first.
     - Controls and adjoints are materialized - run `ApplyOpSpecialization`

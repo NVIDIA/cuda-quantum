@@ -33,3 +33,20 @@ func.func @kernel() {
 // CHECK-LABEL: func.func @kernel
 // CHECK:         quake.alloca
 // CHECK:         call @__cliffordt_rz_
+
+// Rx and Ry are reduced to Rz (+ Clifford) by the pipeline's decomposition
+// step before synthesis, so they too end up as Clifford+T with no surviving
+// rotation ops. The kernel is marked as an entry point so the decomposition
+// pass processes it (it only decomposes entry points or functions taking
+// qubit arguments).
+func.func @kernel_rx_ry() attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @kernel_rx_ry
+// CHECK:         quake.alloca
+// CHECK:         call @__cliffordt_rz_
