@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_alt_launch_kernel.h"
+#include "ProgramFingerprint.h"
 #include "common/AnalogHamiltonian.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
@@ -684,13 +685,12 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
   runtimeArgs.emplace_back(buf, [](void *ptr) { std::free(ptr); });
 }
 
-/// Compute a hash of the IR given by the `ModuleOp`.
-static std::size_t hashModuleOp(ModuleOp mod) {
-  llvm::hash_code h{0};
-  mod.walk([&h](Operation *op) {
-    h = llvm::hash_combine(h, OperationEquivalence::computeHash(op));
-  });
-  return static_cast<std::size_t>(h);
+/// Derive a word-sized value from the digest for human-readable logging.
+/// Never used for comparison — reuse validation compares full digests.
+static std::size_t digestLogValue(const std::array<uint8_t, 32> &digest) {
+  std::size_t value;
+  std::memcpy(&value, digest.data(), sizeof(value));
+  return value;
 }
 
 /// Obtain a fresh `CompileTarget` for the current execution context.
@@ -736,36 +736,55 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   bool cacheable = cachedModule && !target->fullySpecialize && targetHash != 0;
 
   // Normally, we assume that the module IR is constant given the uniqued name.
-  // However, kernels that capture other kernels inline captured kernels into
-  // the module, so we need to handle this case specially.
-  bool hasCaptures = [&]() {
+  // However, kernels with compile-time dependencies — captured kernels or
+  // direct callable arguments — resolve those dependencies at launch time, so
+  // the program presented to compilation can change between calls that reuse
+  // the same decorator slot.
+  bool hasCompileTimeDependencies = [&]() {
     auto func = cudaq::getKernelFuncOp(mod, name);
     for (unsigned i = 0; i < func.getNumArguments(); ++i)
-      if (func.getArgAttr(i, "quake.pylifted"))
+      if (func.getArgAttr(i, "quake.pylifted") ||
+          isa<cudaq::cc::CallableType>(func.getArgument(i).getType()))
         return true;
     return false;
   }();
-  // Hash detects changes to callables as they have been merged into `mod`.
-  std::size_t moduleHash = (cacheable && hasCaptures) ? hashModuleOp(mod) : 0;
 
-  // Cache hit: same kernel, same target configuration, same module content.
+  // The digest detects changes to the resolved program. Kernels without
+  // compile-time dependencies keep the all-zeros digest on both sides of the
+  // comparison. When no honest fingerprint can be computed (unowned
+  // dependencies), fall back to compiling every call.
+  std::array<uint8_t, 32> programDigest = {};
+  mlir::OwningOpRef<ModuleOp> resolvedModule;
+  if (cacheable && hasCompileTimeDependencies) {
+    if (auto digest = cudaq::detail::createProgramFingerprint(
+            name, mod, rawArgs, *target, resolvedModule))
+      programDigest = *digest;
+    else
+      cacheable = false;
+  }
+
+  // Cache hit: same kernel, same target configuration, same resolved program.
   if (cacheable && cachedModule->getName() == name &&
       cachedModule->getMetadata().targetHash == targetHash &&
-      cachedModule->getMetadata().moduleHash == moduleHash) {
+      cachedModule->getMetadata().programDigest == programDigest) {
     CUDAQ_INFO("Reusing cached module with name {} and hash ({}, {})", name,
-               targetHash, moduleHash);
+               targetHash, digestLogValue(programDigest));
     return cudaq::streamlinedLaunchModule(*cachedModule, rawArgs);
   }
 
   CUDAQ_INFO("Compiling module {}", name);
-  mlir::OwningOpRef<ModuleOp> clone = mod.clone();
-  auto compiled =
-      compileModuleImpl(name, clone.get(), rawArgs, true, std::move(target));
+  // Reuse the fingerprint's resolved clone when we have one. Otherwise clone
+  // here — launching modifies the module and `mod` must stay pristine for
+  // future calls.
+  if (!resolvedModule)
+    resolvedModule = mod.clone();
+  auto compiled = compileModuleImpl(name, resolvedModule.get(), rawArgs, true,
+                                    std::move(target));
   auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
   if (cacheable) {
     CUDAQ_INFO("Caching module {} with hash ({}, {})", name, targetHash,
-               moduleHash);
-    compiled.setCacheKey(targetHash, moduleHash);
+               digestLogValue(programDigest));
+    compiled.setCacheKey(targetHash, programDigest);
     *cachedModule = std::move(compiled);
   }
   return res;

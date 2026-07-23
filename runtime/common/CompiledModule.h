@@ -10,6 +10,7 @@
 #include "common/NamedVariantStore.h"
 #include "common/Resources.h"
 #include "common/ThunkInterface.h"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -193,9 +194,12 @@ public:
     bool hasConditionalsOnMeasureResults = false;
     /// Hash of the CompileTarget used to compile this module.
     std::size_t targetHash = 0;
-    /// Hash of the entire ModuleOp IR (only required when kernel includes
-    /// calls to captured kernels that may change and invalidate the cache).
-    std::size_t moduleHash = 0;
+    /// SHA-256 digest of the resolved program presented to compilation: the
+    /// module IR with all callable closures merged in, plus every argument
+    /// substitution generated for compile-time-bound (callable) arguments.
+    /// Only set for kernels with such compile-time dependencies; stays
+    /// all-zeros otherwise.
+    std::array<std::uint8_t, 32> programDigest = {};
   };
 
   // --- Queries ---
@@ -323,8 +327,9 @@ public:
   CompiledModule() : FatQuakeModule(std::string{}) {}
   explicit CompiledModule(SourceModule src) : FatQuakeModule(std::move(src)) {}
 
-  /// Stamp the cache key (targetHash + moduleHash) for the compiled module.
-  void setCacheKey(std::size_t targetHash, std::size_t moduleHash);
+  /// Stamp the cache key (targetHash + programDigest) for the compiled module.
+  void setCacheKey(std::size_t targetHash,
+                   const std::array<std::uint8_t, 32> &programDigest);
 };
 
 using AnyModule = std::variant<SourceModule, CompiledModule>;
