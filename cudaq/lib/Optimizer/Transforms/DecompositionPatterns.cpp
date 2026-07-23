@@ -1527,6 +1527,47 @@ struct RxToPhasedRx
 };
 REGISTER_DECOMPOSITION_PATTERN(RxToPhasedRx, {"rx", "phased_rx"});
 
+// quake.rx(θ) target
+// ───────────────────────────────
+// quake.h target
+// quake.rz(θ) target
+// quake.h target
+//
+// Exact identity Rx(θ) = H . Rz(θ) . H (since H X H = Z). Gives passes a way
+// to reach an Rz+Clifford basis. It is used ahead of clifford-t-synthesis so
+// that synthesis only has to handle Rz.
+struct RxToRzType; // forward declare the pattern type, defined in the macro
+                   // below
+struct RxToRz
+    : public cudaq::DecompositionPattern<RxToRzType, cudaq::quake::RxOp> {
+  using cudaq::DecompositionPattern<RxToRzType,
+                                    cudaq::quake::RxOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    if (op.isAdj())
+      angle = arith::NegFOp::create(rewriter, loc, angle);
+
+    SmallVector<Value> noControls;
+    SmallVector<Value> rzParams = {angle};
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, rzParams, noControls, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(RxToRz, {"rx", "h", "rz"});
+
 // quake.rx<adj> (θ) target
 // ─────────────────────────────────
 // quake.rx(-θ) target
@@ -1656,6 +1697,56 @@ struct RyToPhasedRx
   }
 };
 REGISTER_DECOMPOSITION_PATTERN(RyToPhasedRx, {"ry", "phased_rx"});
+
+// quake.ry(θ) target
+// ───────────────────────────────
+// quake.s target      (S.S.S = S^dagger)
+// quake.s target
+// quake.s target
+// quake.h target
+// quake.rz(θ) target
+// quake.h target
+// quake.s target
+//
+// Exact identity Ry(θ) = S . H . Rz(θ) . H . S^dagger. Emitted in circuit
+// order with S^dagger expanded as S.S.S (S^4 = I) so the output stays in the
+// Rz+Clifford alphabet {H, S, Rz} with no adjoint gates. It is used ahead of
+// clifford-t-synthesis so that synthesis only has to handle Rz.
+struct RyToRzType; // forward declare the pattern type, defined in the macro
+                   // below
+struct RyToRz
+    : public cudaq::DecompositionPattern<RyToRzType, cudaq::quake::RyOp> {
+  using cudaq::DecompositionPattern<RyToRzType,
+                                    cudaq::quake::RyOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    if (op.isAdj())
+      angle = arith::NegFOp::create(rewriter, loc, angle);
+
+    SmallVector<Value> noControls;
+    SmallVector<Value> rzParams = {angle};
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<cudaq::quake::SOp>(loc, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, rzParams, noControls, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(RyToRz, {"ry", "s", "h", "rz"});
 
 // quake.ry<adj> (θ) target
 // ─────────────────────────────────
