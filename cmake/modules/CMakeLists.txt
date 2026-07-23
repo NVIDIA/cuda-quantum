@@ -57,3 +57,6 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/NVQIRTargetConfigGen.cmake
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/AddCUDAQ.cmake
         DESTINATION lib/cmake/cudaq
         COMPONENT Development)
+
+# Optionally, bundle MLIR with the CUDA-Q installation.
+include(${CMAKE_CURRENT_SOURCE_DIR}/BundleMLIRDevel.cmake)

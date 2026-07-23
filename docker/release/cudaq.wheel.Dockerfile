@@ -33,6 +33,7 @@ ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
 ARG python_version=3.10
+ARG build_devel=
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR=/cuda-quantum
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
@@ -62,6 +63,7 @@ RUN cd /cuda-quantum && \
     PYTHON=python${python_version} \
     CUDA_VERSION=${CUDA_VERSION} \
     bash scripts/build_wheel.sh \
+        $([ -n "$build_devel" ] && echo "-d") \
         -c $(echo ${CUDA_VERSION} | cut -d . -f1) \
         -o wheelhouse \
         -a assets \
@@ -80,4 +82,4 @@ FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
 FROM scratch
-COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 
+COPY --from=wheelbuild /cuda-quantum/wheelhouse/*.whl .
