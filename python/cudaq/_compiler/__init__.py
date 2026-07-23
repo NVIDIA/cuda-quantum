@@ -20,8 +20,11 @@ CUDA-Q checkout with ``python3 -m cudaq._compiler.optimization_cli``.
 
 from .optimization_validation import (
     CaseResult,
+    DenseUnitaryOracle,
     MetricDelta,
     MetricSpec,
+    Oracle,
+    OracleDecision,
     OracleSpec,
     PipelineSpec,
     ValidationCapabilities,
@@ -35,8 +38,11 @@ from .optimization_validation import (
 
 __all__ = [
     "CaseResult",
+    "DenseUnitaryOracle",
     "MetricDelta",
     "MetricSpec",
+    "Oracle",
+    "OracleDecision",
     "OracleSpec",
     "PipelineSpec",
     "ValidationCapabilities",

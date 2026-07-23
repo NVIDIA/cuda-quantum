@@ -29,6 +29,8 @@ from cudaq._compiler.optimization_validation import (
     INVARIANT_KINDS,
     ORACLE_ROADMAP,
     MetricSpec,
+    Oracle,
+    OracleDecision,
     OracleSpec,
     PipelineSpec,
     ValidationRequest,
@@ -94,6 +96,44 @@ def test_strict_oracle_is_recorded_on_the_case(tmp_path):
     assert isinstance(case.strict_equal, bool)
     assert isinstance(case.phase, float)
     assert isinstance(case.phase_is_zero, bool)
+
+
+# Oracle extension point: a user-supplied Oracle plugs in via the same contract
+class _StubOracle(Oracle):
+    """A minimal user-supplied oracle: returns a fixed equivalence verdict."""
+
+    tier = ASSURANCE_TIER_EXACT_UNITARY
+
+    def __init__(self, kind, equivalent):
+        self.kind = kind
+        self._equivalent = equivalent
+        self.called = False
+
+    def decide(self, baseline, candidate, kernel_name):
+        self.called = True
+        detail = "stub: equivalent" if self._equivalent else "stub: not equivalent"
+        return OracleDecision(supported=True,
+                              computed=True,
+                              equivalent=self._equivalent,
+                              tier=self.tier,
+                              detail=detail)
+
+
+def test_user_supplied_oracle_is_used(tmp_path):
+    oracle = _StubOracle("always-equivalent", equivalent=True)
+    result = validate(
+        _request([_good_input(tmp_path)], oracle=oracle, metrics=()))
+    assert oracle.called
+    assert result.status == ValidationStatus.PASSED
+    eq = {inv.name: inv for inv in result.cases[0].invariants}["equivalence"]
+    assert eq.satisfied and eq.detail == "stub: equivalent"
+
+
+def test_user_oracle_negative_verdict_is_invariant_failure(tmp_path):
+    oracle = _StubOracle("never-equivalent", equivalent=False)
+    result = validate(
+        _request([_good_input(tmp_path)], oracle=oracle, metrics=()))
+    assert result.status == ValidationStatus.INVARIANT_FAILURE
 
 
 # Fail-closed on out-of-domain inputs
