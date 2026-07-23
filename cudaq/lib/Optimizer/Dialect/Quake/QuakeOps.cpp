@@ -60,6 +60,37 @@ static LogicalResult verifyWireResultsAreLinear(Operation *op) {
   return success();
 }
 
+// Verify invariants shared by Quake operators: control polarity metadata must
+// align with control operands, and value-form wire results must remain linear.
+static LogicalResult
+verifyOperator(cudaq::quake::OperatorInterface operatorInterface) {
+  auto controlPolarities = operatorInterface.getNegatedControls();
+  if (controlPolarities &&
+      controlPolarities->size() != operatorInterface.getControls().size())
+    return operatorInterface->emitOpError(
+        "control polarity count must match control operand count");
+  return verifyWireResultsAreLinear(operatorInterface.getOperation());
+}
+
+// Return the total number of target qubits when every target has a known size.
+// Target operand count is insufficient because one fixed-size veq operand may
+// represent multiple qubits. Dynamic veq sizes keep the count unknown.
+static std::optional<std::size_t>
+getStaticTargetQubitCount(ValueRange targets) {
+  std::size_t count = 0;
+  for (Value target : targets) {
+    if (isa<cudaq::quake::WireType, cudaq::quake::RefType>(target.getType())) {
+      ++count;
+      continue;
+    }
+    auto size = cudaq::quake::getVeqSize(target);
+    if (!size)
+      return std::nullopt;
+    count += *size;
+  }
+  return count;
+}
+
 /// When a quake operation is in value form, the number of wire arguments (wire
 /// arity) must be the same as the number of wires returned as results (wire
 /// coarity). This function verifies that this property is true.
@@ -555,13 +586,19 @@ LogicalResult cudaq::quake::ExpPauliOp::verify() {
   if (getPauliLiteralAttr()) {
     if (getPauli())
       return emitOpError("cannot have both a literal and a value Pauli word");
+    if (!symbolizePauliWord(*getPauliLiteral()))
+      return emitOpError("literal Pauli word must contain only I, X, Y, or Z");
+    auto targetQubitCount = getStaticTargetQubitCount(getTargets());
+    if (targetQubitCount && getPauliLiteral()->size() != *targetQubitCount)
+      return emitOpError(
+          "literal Pauli word length must match target qubit count");
   } else {
     if (!getPauli())
       return emitOpError("must have either a literal or a value Pauli word");
   }
   if (!(getParameters().empty() || getParameters().size() == 1))
     return emitOpError("can only have 0 or 1 parameter");
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -1207,7 +1244,7 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
   auto fn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this, gen);
   if (!fn)
     return emitOpError("symbol must be a func.func");
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
@@ -1296,7 +1333,7 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
           "Invalid matrix size, required 2^N * 2^N for N-qubit operation");
   }
 
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -1415,9 +1452,14 @@ QUANTUM_OPS(INSTANTIATE_CALLBACKS)
     return verifyWireResultsAreLinear(getOperation());                         \
   }
 
-#define VERIFY_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) WIRE_OPS(MACRO)
+#define INSTANTIATE_OPERATOR_VERIFY(Op)                                        \
+  LogicalResult cudaq::quake::Op::verify() {                                   \
+    return verifyOperator(                                                     \
+        cast<cudaq::quake::OperatorInterface>(getOperation()));                \
+  }
 
-VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
+BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_VERIFY)
+WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 
 //===----------------------------------------------------------------------===//
 // Generated logic
