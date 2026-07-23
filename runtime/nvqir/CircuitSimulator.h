@@ -1095,7 +1095,8 @@ public:
   }
 
   void deallocateQubits(const std::vector<std::size_t> &qubits) override {
-    if (cudaq::getExecutionContext() != nullptr) {
+    auto *ctx = cudaq::getExecutionContext();
+    if (ctx != nullptr && ctx->name != "run") {
       // Avoid deallocation as we may need to access the state after the
       // execution has completed.
       // TODO: reduce the cases where this is needed.
