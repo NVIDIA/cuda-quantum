@@ -15,14 +15,21 @@
 /// to the appropriate provider implementation based on the bridge handle.
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
+#include <cstdlib>
 #include <dlfcn.h>
 #include <iostream>
 #include <mutex>
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
 namespace {
-std::unordered_map<cudaq_realtime_transport_provider_t,
-                   cudaq_realtime_bridge_interface_t *>
+// Loaded provider libraries, keyed by the library name/path string the
+// caller passed.  Keying by string (rather than by an enum slot) lets any
+// number of distinct provider libraries coexist in one process.  Two
+// spellings that resolve to the same library (e.g. a soname and its
+// absolute path) simply cache two entries pointing at the same
+// dlopen-refcounted library -- harmless.
+std::unordered_map<std::string, cudaq_realtime_bridge_interface_t *>
     provider_interface_map;
 
 std::unordered_map<cudaq_realtime_bridge_handle_t,
@@ -33,47 +40,36 @@ std::unordered_map<cudaq_realtime_bridge_handle_t,
 // bridge_handle_interface_map) for thread safety.
 std::shared_mutex bridge_interface_mutex;
 
-/// @brief Path to the built-in Hololink bridge library.  This is used when the
-/// provider is CUDAQ_PROVIDER_HOLOLINK to load the Hololink implementation of
-/// the bridge interface.  The library must be present at the load path (e.g.,
-/// LD_LIBRARY_PATH) for the built-in provider to work.
+/// @brief Library name the CUDAQ_PROVIDER_HOLOLINK convenience enum resolves
+/// to.  The library must be present at the load path (e.g., LD_LIBRARY_PATH).
 const char *Hololink_Bridge_Lib = "libcudaq-realtime-bridge-hololink.so";
 } // namespace
 
-cudaq_status_t
-cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
-                    cudaq_realtime_transport_provider_t provider, int argc,
-                    char **argv) {
+cudaq_status_t cudaq_bridge_create_from_library(
+    cudaq_realtime_bridge_handle_t *out_bridge_handle, const char *library,
+    int argc, char **argv) {
+  if (!out_bridge_handle || !library || !*library)
+    return CUDAQ_ERR_INVALID_ARG;
+  const std::string lib_name = library;
+
   // For create, hold an unique lock.
   std::unique_lock<std::shared_mutex> lock(bridge_interface_mutex);
 
-  const auto it = provider_interface_map.find(provider);
+  const auto it = provider_interface_map.find(lib_name);
   if (it != provider_interface_map.end()) {
+    // Provider already loaded (e.g. a second bridge instance on the same
+    // transport -- multiple independent rings per process).  The new handle
+    // must be published in bridge_handle_interface_map exactly like the
+    // first-load path, or every subsequent cudaq_bridge_* call on it fails
+    // with an invalid-handle error.
     auto *bridge_interface = it->second;
-    return bridge_interface->create(out_bridge_handle, argc, argv);
+    const auto status = bridge_interface->create(out_bridge_handle, argc, argv);
+    if (status == CUDAQ_OK)
+      bridge_handle_interface_map[*out_bridge_handle] = bridge_interface;
+    return status;
   }
 
-  const std::string lib_name = [&]() {
-    if (provider == CUDAQ_PROVIDER_HOLOLINK) {
-      return Hololink_Bridge_Lib;
-    } else {
-      const char *bridgeLibPath = std::getenv("CUDAQ_REALTIME_BRIDGE_LIB");
-      if (!bridgeLibPath) {
-        std::cerr << "ERROR: CUDAQ_REALTIME_BRIDGE_LIB environment variable "
-                     "not set for EXTERNAL provider"
-                  << std::endl;
-        return "";
-      }
-      return bridgeLibPath;
-    }
-  }();
-
-  if (lib_name.empty())
-    return CUDAQ_ERR_INVALID_ARG;
   dlerror(); // reset errors
-
-  if (!out_bridge_handle)
-    return CUDAQ_ERR_INVALID_ARG;
 
   void *lib_handle = dlopen(lib_name.c_str(), RTLD_NOW);
 
@@ -86,8 +82,9 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
   GetInterfaceFunction fcn = (GetInterfaceFunction)(intptr_t)dlsym(
       lib_handle, "cudaq_realtime_get_bridge_interface");
   if (!fcn) {
-    std::cerr << "ERROR: Failed to interface getter from '" << lib_name
+    std::cerr << "ERROR: Failed to resolve interface getter from '" << lib_name
               << "': " << dlerror() << std::endl;
+    dlclose(lib_handle);
     return CUDAQ_ERR_INTERNAL;
   }
 
@@ -96,23 +93,53 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
   if (!bridge_interface) {
     std::cerr << "ERROR: Bridge interface getter returned null from '"
               << lib_name << "'" << std::endl;
+    dlclose(lib_handle);
     return CUDAQ_ERR_INTERNAL;
   }
-  provider_interface_map[provider] = bridge_interface;
 
-  // Check interface version compatibility
-  if (bridge_interface->version != CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION) {
+  // Check interface version compatibility BEFORE caching the interface:
+  // versions older than CURRENT are accepted (fields beyond `disconnect` are
+  // guarded by version checks at the call sites); newer versions are rejected
+  // since the provider's struct may reference callbacks this library does not
+  // know how to drive.
+  if (bridge_interface->version < 1 ||
+      bridge_interface->version > CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION) {
     std::cerr << "ERROR: Bridge interface version mismatch for '" << lib_name
-              << "': expected " << CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION
-              << ", got " << bridge_interface->version << std::endl;
+              << "': this library supports versions 1.."
+              << CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION << ", got "
+              << bridge_interface->version << std::endl;
+    dlclose(lib_handle);
     return CUDAQ_ERR_INTERNAL;
   }
+  provider_interface_map[lib_name] = bridge_interface;
   // Run the create callback to allow the bridge to perform any initial setup
   const auto status = bridge_interface->create(out_bridge_handle, argc, argv);
   if (status == CUDAQ_OK) {
     bridge_handle_interface_map[*out_bridge_handle] = bridge_interface;
   }
   return status;
+}
+
+cudaq_status_t
+cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
+                    cudaq_realtime_transport_provider_t provider, int argc,
+                    char **argv) {
+  // Convenience wrapper: resolve the enum to a library name and defer to the
+  // string-keyed path.
+  if (provider == CUDAQ_PROVIDER_HOLOLINK)
+    return cudaq_bridge_create_from_library(out_bridge_handle,
+                                            Hololink_Bridge_Lib, argc, argv);
+  if (provider != CUDAQ_PROVIDER_EXTERNAL)
+    return CUDAQ_ERR_INVALID_ARG;
+  const char *bridgeLibPath = std::getenv("CUDAQ_REALTIME_BRIDGE_LIB");
+  if (!bridgeLibPath) {
+    std::cerr << "ERROR: CUDAQ_REALTIME_BRIDGE_LIB environment variable "
+                 "not set for EXTERNAL provider"
+              << std::endl;
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+  return cudaq_bridge_create_from_library(out_bridge_handle, bridgeLibPath,
+                                          argc, argv);
 }
 
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge) {
@@ -133,58 +160,125 @@ cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge) {
 }
 
 // Retrieve the transport context information for the given bridge.
+namespace {
+// Resolve the interface for `bridge` under a shared lock, but return it so
+// the provider callback can be invoked AFTER the lock is dropped.  Provider
+// callbacks may block indefinitely (e.g. a rendezvous connect waiting in
+// accept() for the peer); holding the map lock across them would deadlock
+// every other bridge call in the process, including the destroy that could
+// cancel the stuck bridge.  Interface structs are statically allocated in
+// provider libraries that are never unloaded, so the pointer stays valid
+// after the lock is released.
+cudaq_realtime_bridge_interface_t *
+find_interface(cudaq_realtime_bridge_handle_t bridge, const char *what) {
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+  const auto it = bridge_handle_interface_map.find(bridge);
+  if (it == bridge_handle_interface_map.end()) {
+    std::cerr << "ERROR: Invalid bridge handle in " << what << std::endl;
+    return nullptr;
+  }
+  return it->second;
+}
+} // namespace
+
 cudaq_status_t cudaq_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t bridge,
     cudaq_realtime_transport_context_t context_type, void *out_context) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in get_transport_context"
-              << std::endl;
+  auto *bridge_interface = find_interface(bridge, "get_transport_context");
+  if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;
-  }
-  auto *bridge_interface = it->second;
   return bridge_interface->get_transport_context(bridge, context_type,
                                                  out_context);
 }
 
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in connect" << std::endl;
+  auto *bridge_interface = find_interface(bridge, "connect");
+  if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;
-  }
-  auto *bridge_interface = it->second;
   return bridge_interface->connect(bridge);
 }
 
 cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
-
-  const auto it = bridge_handle_interface_map.find(bridge);
-  if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in launch" << std::endl;
+  auto *bridge_interface = find_interface(bridge, "launch");
+  if (!bridge_interface)
     return CUDAQ_ERR_INVALID_ARG;
-  }
-  auto *bridge_interface = it->second;
   return bridge_interface->launch(bridge);
 }
 
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge) {
-  // Hold a shared lock since this is a read-only operation on the global maps.
-  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+  auto *bridge_interface = find_interface(bridge, "disconnect");
+  if (!bridge_interface)
+    return CUDAQ_ERR_INVALID_ARG;
+  return bridge_interface->disconnect(bridge);
+}
 
+//==============================================================================
+// Version-2 capability queries.  Fields beyond `disconnect` may only be read
+// from providers reporting version >= 2 (a v1 provider's struct may simply
+// end at `disconnect`); missing capability => CUDAQ_ERR_UNSUPPORTED.
+//==============================================================================
+
+namespace {
+// Look up the interface for `bridge` and return it only if it is a v2+
+// provider; sets `*status` and returns nullptr otherwise.
+cudaq_realtime_bridge_interface_t *
+find_v2_interface(cudaq_realtime_bridge_handle_t bridge, const char *what,
+                  cudaq_status_t *status) {
   const auto it = bridge_handle_interface_map.find(bridge);
   if (it == bridge_handle_interface_map.end()) {
-    std::cerr << "ERROR: Invalid bridge handle in disconnect" << std::endl;
-    return CUDAQ_ERR_INVALID_ARG;
+    std::cerr << "ERROR: Invalid bridge handle in " << what << std::endl;
+    *status = CUDAQ_ERR_INVALID_ARG;
+    return nullptr;
   }
-  auto *bridge_interface = it->second;
-  return bridge_interface->disconnect(bridge);
+  if (it->second->version < 2) {
+    *status = CUDAQ_ERR_UNSUPPORTED;
+    return nullptr;
+  }
+  *status = CUDAQ_OK;
+  return it->second;
+}
+} // namespace
+
+cudaq_status_t
+cudaq_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
+                               cudaq_cpu_dataplane_t *out_dataplane) {
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+  cudaq_status_t status;
+  auto *bridge_interface =
+      find_v2_interface(bridge, "get_cpu_dataplane", &status);
+  if (!bridge_interface)
+    return status;
+  if (!bridge_interface->get_cpu_dataplane)
+    return CUDAQ_ERR_UNSUPPORTED;
+  return bridge_interface->get_cpu_dataplane(bridge, out_dataplane);
+}
+
+cudaq_status_t
+cudaq_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t bridge, char *buf,
+                               size_t buf_len) {
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+  cudaq_status_t status;
+  auto *bridge_interface =
+      find_v2_interface(bridge, "get_endpoint_info", &status);
+  if (!bridge_interface)
+    return status;
+  if (!bridge_interface->get_endpoint_info)
+    return CUDAQ_ERR_UNSUPPORTED;
+  return bridge_interface->get_endpoint_info(bridge, buf, buf_len);
+}
+
+cudaq_status_t
+cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
+                               uint32_t *out_num_slots,
+                               uint32_t *out_slot_size) {
+  std::shared_lock<std::shared_mutex> lock(bridge_interface_mutex);
+  cudaq_status_t status;
+  auto *bridge_interface =
+      find_v2_interface(bridge, "get_ring_geometry", &status);
+  if (!bridge_interface)
+    return status;
+  if (!bridge_interface->get_ring_geometry)
+    return CUDAQ_ERR_UNSUPPORTED;
+  return bridge_interface->get_ring_geometry(bridge, out_num_slots,
+                                             out_slot_size);
 }
