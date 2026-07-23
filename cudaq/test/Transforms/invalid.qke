@@ -308,3 +308,31 @@ module {
   }
   cc.global constant private @int_mat (dense<[0, 1, 1, 0]> : tensor<4xi64>) : !cc.array<i64 x 4>
 }
+
+// -----
+
+func.func @invalid_exp_pauli_literal(%theta : f64) {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word must contain only I, X, Y, or Z}}
+  quake.exp_pauli (%theta) %qubits to "XA" : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_control_polarity_count() {
+  %control = quake.alloca !quake.ref
+  %target = quake.alloca !quake.ref
+  // expected-error@+1 {{control polarity count must match control operand count}}
+  quake.x [%control neg [true, false]] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_exp_pauli_literal_length(%theta : f64) {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  quake.exp_pauli (%theta) %qubits to "X" : (f64, !quake.veq<2>) -> ()
+  return
+}

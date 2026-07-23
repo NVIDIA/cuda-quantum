@@ -13,6 +13,7 @@
 #include "mlir/IR/DialectImplementation.h"
 
 using namespace mlir;
+using cudaq::quake::Pauli;
 
 //===----------------------------------------------------------------------===//
 // Generated logic
@@ -20,6 +21,34 @@ using namespace mlir;
 
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.cpp.inc"
+
+static std::optional<Pauli> symbolizePauli(char value) {
+  switch (value) {
+  case 'I':
+    return Pauli::I;
+  case 'X':
+    return Pauli::X;
+  case 'Y':
+    return Pauli::Y;
+  case 'Z':
+    return Pauli::Z;
+  default:
+    return std::nullopt;
+  }
+}
+
+std::optional<cudaq::quake::PauliWord>
+cudaq::quake::symbolizePauliWord(llvm::StringRef value) {
+  PauliWord result;
+  result.reserve(value.size());
+  for (char character : value) {
+    auto pauli = symbolizePauli(character);
+    if (!pauli)
+      return std::nullopt;
+    result.push_back(*pauli);
+  }
+  return result;
+}
 
 //===----------------------------------------------------------------------===//
 // Veq's custom parser and pretty printing.
