@@ -1,0 +1,66 @@
+# Manually build cudaq-devel wheels and upload them as workflow artifacts.
+# Not triggered on push/PR; distribute artifacts by hand until PyPI publishing is added.
+
+name: Python devel wheels
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_devel_wheel:
+    name: Build cudaq-devel wheel
+    runs-on: linux-amd64-cpu8
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute release version
+        id: version
+        run: |
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
+            cudaq_version=$(echo "${{ github.ref_name }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" || true)
+          else
+            latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || true)
+            cudaq_version=$(echo "${latest_tag}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" || true)
+          fi
+          cudaq_version=${cudaq_version:-0.0.0}
+          release_version="${cudaq_version}+${GITHUB_SHA:0:12}"
+          echo "cudaq_version=${cudaq_version}" >> "$GITHUB_OUTPUT"
+          echo "release_version=${release_version}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build cudaq-devel wheel
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
+          BASE_IMAGE: ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu13.6-gcc12-main
+        run: |
+          mkdir -p dist
+          DOCKER_BUILDKIT=1 docker build \
+            -f docker/release/cudaq.wheel.Dockerfile \
+            --build-arg base_image="${BASE_IMAGE}" \
+            --build-arg release_version="${RELEASE_VERSION}" \
+            --build-arg build_devel=1 \
+            --output dist .
+
+      - name: Validate devel wheel contents
+        run: bash scripts/validate_devel_wheel.sh -i dist -v "${{ steps.version.outputs.release_version }}" -q
+
+      - name: Upload devel wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cudaq-devel-cu13
+          path: dist/cudaq_devel*.whl
+          if-no-files-found: error
