@@ -20,10 +20,10 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Interfaces/ViewLikeInterface.td"
 include "mlir/IR/RegionKindInterface.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
-include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
+include "cudaq/Optimizer/Dialect/Traits.td"
 
 //===----------------------------------------------------------------------===//
 // Base operation definition.
