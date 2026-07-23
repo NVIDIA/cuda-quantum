@@ -36,11 +36,11 @@ CAPABILITY_SCHEMA_VERSION = 4
 #                       input-independent: checks the whole operator, not one
 #                       input state. Safest, but bounded by the 2^n dense-matrix
 #                       cost (see DEFAULT_EXACT_QUBIT_BOUND).
-#   exact-clifford-sim  Exact equivalence that scales past the dense bound by
+#   `exact-clifford-sim`  Exact equivalence that scales past the dense bound by
 #                       exploiting circuit structure, specifically Clifford
 #                       circuits via a tableau/`stim` simulator. Same strength as
 #                       exact-unitary on its (narrower) domain, but usable at many
-#                       more qubits -- a scaling axis, not a generality superset.
+#                       more qubits -- a scaling axis, not a generality `superset`.
 #   exact-density-sim   Density-matrix equivalence for small circuits. Handles
 #                       measurement/reset/noise that the pure-unitary oracles
 #                       reject, at the same ~small-qubit cost ceiling.
@@ -80,8 +80,8 @@ _ORACLE_KINDS = ("strict-unitary", "up-to-global-phase")
 PREDICATES = ("nonincreasing", "decreasing", "unchanged", "any")
 _PRESETS = ("smoke", "quick", "ci", "full", "single-reproducer")
 
-# The first-class boolean invariants checked on every in-domain case, reported as
-# structured `InvariantResult`s. These are the semantic guarantees the validator
+# The first-class boolean `invariants` checked on every in-domain case, reported as
+# structured `InvariantResult`s. These are the semantic guarantees the `validator`
 # enforces beyond the declared resource metrics.
 INVARIANT_EQUIVALENCE = "equivalence"
 INVARIANT_DETERMINISM = "determinism"
@@ -207,7 +207,7 @@ class OracleDecision:
     An oracle answers exactly one question 
         are these two observed modules semantically equivalent?
     and reports the assurance tier of the evidence it produced. 
-        ``supported`` is the oracle's own domain preflight
+        ``supported`` is the oracle's own domain `preflight`
         ``computed`` is whether the comparison actually ran
         ``equivalent`` is the verdict. 
     The unitary-specific evidence fields are populated by dense-unitary oracles and
@@ -229,10 +229,10 @@ class OracleDecision:
 class Oracle(abc.ABC):
     """The equivalence-oracle extension point.
 
-    An oracle owns exactly one invariant semantic equivalence between the observed 
-    baseline and candidate modules together with its own domain preflight and the
-    assurance tier of the evidence it produces. Resource metrics, determinism, and 
-    fixed-point are runner-owned invariants and are deliberately NOT an oracle's concern.
+    An oracle owns exactly one invariant semantic equivalence between the observed
+    baseline and candidate modules together with its own domain `preflight` and the
+    assurance tier of the evidence it produces. Resource metrics, determinism, and
+    fixed-point are runner-owned `invariants` and are deliberately NOT an oracle's concern.
 
     Users implement this for the fast optimization loop (a user's own fast test
     oracle is the common case). The built-in :class:`DenseUnitaryOracle` backs
@@ -334,7 +334,7 @@ class MetricSpec:
     an ``invariant-failure``. An informational metric (``gating=False``) has
     its predicate outcome computed and reported, but never changes the case
     status. This is the metric/objective boundary. The core reports the metric
-    tuple and each predicate outcome. The caller's (untrusted) objective owns the
+    tuple and each predicate outcome. The caller's (`untrusted`) objective owns the
     weighted scalar reward. The core never reduces metrics to a single reward,
     because that weighted reduction is exactly what an optimizer could game.
     """
@@ -393,7 +393,7 @@ class CaseResult:
     equal_up_to_global_phase: bool
     phase: float
     phase_is_zero: bool
-    # Semantic invariants (equivalence, determinism, fixed-point).
+    # Semantic `invariants` (equivalence, determinism, fixed-point).
     invariants: tuple[InvariantResult, ...]
     metrics: tuple[MetricDelta, ...]
     messages: tuple[str, ...]
@@ -626,7 +626,7 @@ def _failed_case(path: Path,
                  status: str,
                  messages,
                  tier: str = ASSURANCE_TIER_EXACT_UNITARY) -> CaseResult:
-    """No invariants were established."""
+    """No `invariants` were established."""
     return CaseResult(
         input=str(path),
         status=status,
@@ -662,7 +662,7 @@ def _parse_input(path: Path, ctx: Context) -> Module:
 def _coerce_module(obj, ctx: Context) -> Module:
     """Coerce a caller-supplied artifact to a verified :class:`Module`.
 
-    Accepts an already-parsed ``Module``, a filesystem ``Path``, or
+    Accepts an already-parsed ``Module``, a `filesystem` ``Path``, or
     a string of IR text. Malformed IR is attributed to ``invalid-request``.
     """
     if isinstance(obj, Module):
@@ -710,11 +710,11 @@ def _evaluate_observed(baseline_obs: Module, candidate_obs: Module,
 
     Runs no passes, so it cannot be crashed by a candidate pipeline. Reports the
     equivalence invariant and the declared metrics only. Determinism and
-    fixed-point are pipeline invariants and are added by :func:`_evaluate_input`.
-    An unsupported domain returns a failed case with no established invariants
+    fixed-point are pipeline `invariants` and are added by :func:`_evaluate_input`.
+    An unsupported domain returns a failed case with no established `invariants`
     (empty ``invariants``), which is how the pipeline path detects it.
     """
-    # The oracle owns the equivalence invariant and its own domain preflight.
+    # The oracle owns the equivalence invariant and its own domain `preflight`.
     decision = oracle.decide(baseline_obs, candidate_obs, kernel_name)
     if not decision.supported:
         return _failed_case(input_label,
@@ -790,7 +790,7 @@ def _evaluate_input(path: Path, request: ValidationRequest,
         return _failed_case(path, failure.status, [failure.message])
 
     # Equivalence + metrics on the observed modules (shared with the artifact-in
-    # path). An unsupported domain establishes no invariants, so return as-is.
+    # path). An unsupported domain establishes no `invariants`, so return as-is.
     core = _evaluate_observed(baseline_obs,
                               candidate_obs,
                               oracle,
@@ -800,7 +800,7 @@ def _evaluate_input(path: Path, request: ValidationRequest,
     if not core.invariants:
         return core
 
-    # Pipeline-only invariants: determinism and fixed-point require re-running
+    # Pipeline-only `invariants`: determinism and fixed-point require re-running
     # the candidate pipeline, so they belong to this path, not the trusted core.
     status = core.status
     messages = list(core.messages)
@@ -896,15 +896,15 @@ def validate_artifacts(pairs,
     """Validate already-compiled ``(baseline, candidate)`` Quake artifacts.
 
     The trusted, crash-isolated primitive: it runs no passes. The caller is
-    responsible for compiling the (untrusted) candidate out-of-process (e.g. in
-    a subprocess it owns) and hands the two observed modules here. This entry
-    point only preflights, compares under the oracle, and counts metrics. Because
+    responsible for compiling the (`untrusted`) candidate out-of-process (e.g. in
+    a `subprocess` it owns) and hands the two observed modules here. This entry
+    point only `preflights`, compares under the oracle, and counts metrics. Because
     no candidate pipeline runs in-process, a crashing candidate compile cannot
-    take down the validator.
+    take down the `validator`.
 
     ``pairs`` is an iterable of ``(baseline, candidate)``. Each side may be a
-    parsed ``Module``, a filesystem ``Path``, or a string of IR text. Determinism
-    and fixed-point are pipeline invariants and are therefore not reported here.
+    parsed ``Module``, a `filesystem` ``Path``, or a string of IR text. Determinism
+    and fixed-point are pipeline `invariants` and are therefore not reported here.
     """
     ctx = _make_context()
     if oracle is None:
