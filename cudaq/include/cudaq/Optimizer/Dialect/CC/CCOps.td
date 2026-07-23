@@ -11,11 +11,11 @@
 
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
-include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
+include "cudaq/Optimizer/Dialect/Traits.td"
 
 def AnyPointerType : Type<CPred<"isa<mlir::LLVM::LLVMPointerType,"
                           "cudaq::cc::PointerType>($_self)">,

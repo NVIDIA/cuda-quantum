@@ -12,12 +12,11 @@
 #include "common/RuntimeTarget.h"
 #include "helpers/MQPUUtils.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
-#include "llvm/Support/Base64.h"
 #include <filesystem>
-#include <fstream>
 
 // Note: LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType) is intentionally
 // NOT placed here. The canonical QPU registry instance lives in
@@ -71,18 +70,19 @@ private:
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string targetConfigFileName = targetName + std::string(".yml");
-    auto configFilePath = platformPath / targetConfigFileName;
+    const auto explicitConfigPath =
+        cudaq::detail::getBackendConfigOption(description, "__yml_path");
+    auto configFilePath = explicitConfigPath
+                              ? std::filesystem::path(*explicitConfigPath)
+                              : platformPath / targetConfigFileName;
     CUDAQ_INFO("Config file path for target {} = {}", targetName,
                configFilePath.string());
     // Don't try to load something that doesn't exist.
-    if (!std::filesystem::exists(configFilePath))
+    if (!explicitConfigPath && !std::filesystem::exists(configFilePath))
       return "";
-    std::ifstream configFile(configFilePath.string());
-    std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                               std::istreambuf_iterator<char>());
-    cudaq::config::TargetConfig config;
-    llvm::yaml::Input Input(configContents.c_str());
-    Input >> config;
+    auto config = cudaq::config::loadTargetConfig(configFilePath);
+    cudaq::detail::loadTargetPluginLibraries(targetName, configFilePath,
+                                             config);
 
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
@@ -97,28 +97,7 @@ private:
     // "<prefix>;<option>".
     // Note: This expects an exact match of the prefix and the option value is
     // the next one.
-    auto splitParts = cudaq::split(str, ';');
-    if (splitParts.empty())
-      return "";
-    for (std::size_t i = 0; i < splitParts.size() - 1; ++i) {
-      if (splitParts[i] == prefix) {
-        CUDAQ_DBG(
-            "Retrieved option '{}' for the key '{}' from input string '{}'",
-            splitParts[i + 1], prefix, str);
-        if (splitParts[i + 1].starts_with("base64_")) {
-          splitParts[i + 1].erase(0, 7); // erase "base64_"
-          std::vector<char> decoded_vec;
-          if (auto err = llvm::decodeBase64(splitParts[i + 1], decoded_vec))
-            throw std::runtime_error("DecodeBase64 error");
-          std::string decodedStr(decoded_vec.data(), decoded_vec.size());
-          CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", splitParts[i],
-                     splitParts[i + 1], decodedStr);
-          return decodedStr;
-        }
-        return splitParts[i + 1];
-      }
-    }
-    return "";
+    return cudaq::detail::getBackendConfigOption(str, prefix).value_or("");
   }
 
   static std::string formatUrl(const std::string &url) {
