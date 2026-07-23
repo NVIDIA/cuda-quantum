@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 add_cudaq_library(OptAnalysis
+  QubitIdentityAnalysis.cpp
   UnitaryOpGrouping.cpp
 
   DEPENDS
