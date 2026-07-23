@@ -7,7 +7,8 @@ and tests.
 
 | Plugin | Shape | What it demonstrates |
 |--------|-------|---------------------|
-| [`mock_rest/`](mock_rest/README.md) | REST | `ServerHelper` subclass for the built-in `remote_rest` QPU |
+| [`mock_rest/`](mock_rest/README.md) | REST (sample) | `ServerHelper` subclass for the built-in `remote_rest` QPU |
+| [`mock_observe_qpu/`](mock_observe_qpu/README.md) | Custom QPU (observe) | External `QPU` + `ServerHelper` for Fermioniq-style server-side `observe()` |
 
 See each plugin's README for its design, prerequisites, build and test commands,
 installation steps, and runnable examples.
