@@ -7,18 +7,18 @@
 # ============================================================================ #
 
 # The CLI reports machine-readable capabilities, including the oracle roadmap
-# with each oracle's assurance tier. Only the exact-tier oracles are supported.
+# with each oracle's assurance tier. Only the exact-unitary tier is supported.
 
 # RUN: PYTHONPATH=%cudaq_python_root python3 -m cudaq._compiler.optimization_cli --capabilities | FileCheck %s
 
-# CHECK-DAG: "capability_schema_version": 3
+# CHECK-DAG: "capability_schema_version": 4
 # CHECK-DAG: "assurance_tiers": [
-# CHECK-DAG: "exact"
+# CHECK-DAG: "exact-unitary"
 
 # CHECK-DAG: "kind": "up-to-global-phase"
 # CHECK-DAG: "kind": "clifford-tableau"
-# CHECK-DAG: "tier": "scalable-exact"
+# CHECK-DAG: "tier": "exact-clifford-sim"
 # CHECK-DAG: "kind": "density-matrix"
-# CHECK-DAG: "tier": "mixed-state"
+# CHECK-DAG: "tier": "exact-density-sim"
 # CHECK-DAG: "kind": "statevector-expectation"
 # CHECK-DAG: "tier": "advisory"
