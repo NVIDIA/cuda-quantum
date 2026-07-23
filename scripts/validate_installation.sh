@@ -217,9 +217,12 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+# Plugin sources are libraries or test infrastructure rather than standalone
+# examples; each plugin validates them through its dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -433,8 +436,11 @@ dynamics_backend_skipped_examples=(\
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
+# Plugin Python files are packaging or test infrastructure and are validated by
+# each plugin's dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-for ex in `find examples/ targets/ -name '*.py' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ targets/ -name '*.py' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -543,7 +549,12 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     echo "Installing Jupyter kernel infrastructure..."
     # Only install what's needed to register the kernel
     pip install --upgrade pip -q
-    pip install jupyter ipykernel notebook==7.5.6 -q
+    notebook_requirements="$this_script_dir/../requirements.txt"
+    if [ -f "$notebook_requirements" ]; then
+        pip install jupyter ipykernel -r "$notebook_requirements" -q
+    else
+        pip install jupyter ipykernel notebook -q
+    fi
     
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages

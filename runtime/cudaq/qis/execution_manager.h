@@ -18,6 +18,7 @@
 #include "cudaq/qis/measure_handle.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <deque>
+#include <stdexcept>
 #include <string_view>
 #include <vector>
 
@@ -120,6 +121,10 @@ public:
   /// Configure the execution context before an execution.
   void configureExecutionContext(const sample_policy &policy);
   void configureExecutionContext(const observe_policy &policy);
+  void configureExecutionContext(const msm_size_policy &policy);
+  void configureExecutionContext(const msm_policy &policy);
+  void configureExecutionContext(const dem_policy &policy);
+  void configureExecutionContext(const ptsbe::sample_policy &policy);
   void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
@@ -132,6 +137,23 @@ public:
 
   virtual observe_result
   finalizeExecutionContext(const observe_policy &policy) = 0;
+
+  virtual msm_dimensions
+  finalizeExecutionContext(const msm_size_policy &policy) = 0;
+
+  virtual msm_result finalizeExecutionContext(const msm_policy &policy) = 0;
+
+  virtual dem_result finalizeExecutionContext(const dem_policy &) {
+    throw std::runtime_error(
+        "This execution manager does not support detector error model "
+        "generation.");
+  }
+
+  virtual ptsbe::sample_policy::result_type
+  finalizeExecutionContext(const ptsbe::sample_policy &policy) {
+    throw std::runtime_error(
+        "PTSBE sampling is not supported by this execution manager.");
+  }
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
@@ -223,11 +245,17 @@ public:
     em->configureExecutionContext(policy);
     em->beginExecution();
     typename Policy::result_type result;
-    detail::try_finally([&] { f(); },
-                        [&] {
-                          result = em->finalizeExecutionContext(policy);
-                          em->endExecution();
-                        });
+    detail::try_finally(
+        [&] { f(); },
+        [&] {
+          // `endExecution` must run even when `finalizeExecutionContext`
+          // throws, otherwise a reused simulator keeps stale state for the next
+          // run. Nesting keeps the guarantee in the wrapper so every policy is
+          // exception-safe without a per-simulator catch.
+          detail::try_finally(
+              [&] { result = em->finalizeExecutionContext(policy); },
+              [&] { em->endExecution(); });
+        });
     return result;
   }
 };
@@ -240,6 +268,26 @@ inline sample_result finalize_execution_manager_impl(
 inline observe_result
 finalize_execution_manager_impl(ExecutionManager &mgr,
                                 const observe_policy &policy,
+                                ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline msm_dimensions
+finalize_execution_manager_impl(ExecutionManager &mgr,
+                                const msm_size_policy &policy,
+                                ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline msm_result finalize_execution_manager_impl(ExecutionManager &mgr,
+                                                  const msm_policy &policy,
+                                                  ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline ptsbe::sample_policy::result_type
+finalize_execution_manager_impl(ExecutionManager &mgr,
+                                const ptsbe::sample_policy &policy,
                                 ExecutionContext &ctx) {
   return mgr.finalizeExecutionContext(policy);
 }

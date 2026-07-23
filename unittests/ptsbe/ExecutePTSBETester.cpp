@@ -11,6 +11,7 @@
 #include "backends/QPPTester.h"
 #include "cudaq/ptsbe/KrausTrajectory.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
+#include "cudaq/simulators.h"
 #include <cmath>
 #include <numeric>
 

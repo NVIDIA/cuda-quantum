@@ -9,6 +9,8 @@
 // RUN: cudaq-opt --convert-to-qir-api %s | FileCheck %s
 // RUN: cudaq-opt --convert-to-qir-api -canonicalize %s | FileCheck --check-prefix=CHECK-E2E %s
 // RUN: cudaq-opt "--convert-to-qir-api=api=adaptive-profile:1.0 opaque-pointer=true" %s | FileCheck --check-prefix=ADAPT %s
+// RUN: cudaq-opt --memtoreg --add-wireset --assign-wire-indices "--lower-wireset-to-profile-qir=convert-to=qir-base" %s | FileCheck --check-prefixes=WIRE,WIRE-BASE %s
+// RUN: cudaq-opt --memtoreg --add-wireset --assign-wire-indices "--lower-wireset-to-profile-qir=convert-to=qir-adaptive" %s | FileCheck --check-prefixes=WIRE,WIRE-ADAPT %s
 
 // The module-level `llvm.data_layout` is what `FuseCastCascade` consults to
 // gate the `ptr -> int -> ptr` fold; bridge-emitted modules always carry
@@ -37,6 +39,47 @@ func.func @scalar_handle() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 // ADAPT:           call @__quantum__qis__mz__body({{.*}}) {{.*}} : (!cc.ptr<none>, !cc.ptr<none>) -> ()
 // ADAPT:           %[[VAL_B:.*]] = call @__quantum__rt__read_result({{.*}}) : (!cc.ptr<none>) -> i1
 // ADAPT:           return %[[VAL_B]] : i1
+// WIRE-LABEL:      llvm.func @scalar_handle() -> i1
+// WIRE-BASE-SAME:    "qir_profiles", "base_profile"
+// WIRE-ADAPT-SAME:   "qir_profiles", "adaptive_profile"
+// WIRE:              llvm.call @__quantum__qis__mz__body({{.*}}, %[[VAL_R:.*]]) : (!llvm.ptr, !llvm.ptr) -> ()
+// WIRE:              %[[VAL_H:.*]] = llvm.ptrtoint %[[VAL_R]] : !llvm.ptr to i64
+// WIRE:              llvm.call @__quantum__rt__result_record_output(%[[VAL_R]], {{.*}}) : (!llvm.ptr, !llvm.ptr) -> ()
+// WIRE:              %[[VAL_R_AGAIN:.*]] = llvm.inttoptr %[[VAL_H]] : i64 to !llvm.ptr
+// WIRE:              %[[VAL_B:.*]] = llvm.call @__quantum__qis__read_result__body(%[[VAL_R_AGAIN]]) : (!llvm.ptr) -> i1
+// WIRE:              llvm.return %[[VAL_B]] : i1
+
+// -----
+// Measurement results used to compute a `cudaq::run` return value must not
+// also be recorded as sampled measurement output.
+
+func.func @scalar_handle_run() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [i1]} {
+  %0 = quake.alloca !quake.ref
+  %m = quake.mz %0 name "h" : (!quake.ref) -> !cc.measure_handle
+  %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+  return %b : i1
+}
+
+// WIRE-LABEL:      llvm.func @scalar_handle_run() -> i1
+// WIRE-NOT:          llvm.call @__quantum__rt__result_record_output
+// WIRE:              llvm.call @__quantum__qis__mz__body
+// WIRE-NOT:          llvm.call @__quantum__rt__result_record_output
+// WIRE:              llvm.call @__quantum__qis__read_result__body
+// WIRE-NOT:          llvm.call @__quantum__rt__result_record_output
+// WIRE:              llvm.return
+
+func.func @scalar_measure_run() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", quake.cudaq_run = [i1]} {
+  %0 = quake.alloca !quake.ref
+  %m = quake.mz %0 name "h" : (!quake.ref) -> !quake.measure
+  %b = quake.discriminate %m : (!quake.measure) -> i1
+  return %b : i1
+}
+
+// WIRE-LABEL:      llvm.func @scalar_measure_run() -> i1
+// WIRE:              llvm.call @__quantum__qis__mz__body
+// WIRE-NOT:          llvm.call @__quantum__rt__result_record_output
+// WIRE-ADAPT:        llvm.call @__quantum__qis__read_result__body
+// WIRE:              llvm.return
 
 // -----
 // Function signatures with handle parameter and return.
@@ -48,6 +91,20 @@ func.func @handle_signature(%arg0: !cc.measure_handle) -> !cc.measure_handle att
 // CHECK-LABEL:   func.func @handle_signature(
 // CHECK-SAME:      %[[VAL_0:.*]]: i64) -> i64
 // CHECK:           return %[[VAL_0]] : i64
+
+// -----
+// A handle received directly as a block argument and discriminated.
+
+func.func @handle_block_arg(%h: !cc.measure_handle) -> i1 attributes {"cudaq-kernel"} {
+  %0 = quake.discriminate %h : (!cc.measure_handle) -> i1
+  return %0 : i1
+}
+
+// WIRE-LABEL:      llvm.func @handle_block_arg(
+// WIRE-SAME:         %[[VAL_H:.*]]: i64) -> i1
+// WIRE:              %[[VAL_R:.*]] = llvm.inttoptr %[[VAL_H]] : i64 to !llvm.ptr
+// WIRE:              %[[VAL_B:.*]] = llvm.call @__quantum__qis__read_result__body(%[[VAL_R]]) : (!llvm.ptr) -> i1
+// WIRE:              llvm.return %[[VAL_B]] : i1
 
 // -----
 // `cc.alloca` of a scalar handle.
@@ -147,6 +204,12 @@ func.func @handle_array_rw(%h: !cc.measure_handle, %i: i64) -> i1 attributes {"c
 // CHECK:           cc.store %[[VAL_H]], %[[VAL_PI]] : !cc.ptr<i64>
 // CHECK:           %[[VAL_P0:.*]] = cc.cast %[[VAL_BUF]] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
 // CHECK:           %[[VAL_LOAD:.*]] = cc.load %[[VAL_P0]] : !cc.ptr<i64>
+// WIRE-LABEL:      llvm.func @handle_array_rw(
+// WIRE-SAME:         %{{.*}}: i64, %{{.*}}: i64) -> i1
+// WIRE:              %[[VAL_LOAD:.*]] = llvm.load {{.*}} : !llvm.ptr -> i64
+// WIRE:              %[[VAL_R:.*]] = llvm.inttoptr %[[VAL_LOAD]] : i64 to !llvm.ptr
+// WIRE:              %[[VAL_B:.*]] = llvm.call @__quantum__qis__read_result__body(%[[VAL_R]]) : (!llvm.ptr) -> i1
+// WIRE:              llvm.return %[[VAL_B]] : i1
 
 // -----
 // `cc.stdvec_init` + `cc.stdvec_data` + `cc.stdvec_size` over a handle buffer.

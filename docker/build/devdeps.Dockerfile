@@ -57,8 +57,8 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 ## [Build Dependencies]
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        wget git unzip ccache libstdc++-13-dev \
-        python3-dev python3-pip && \
+    wget git unzip ccache libstdc++-13-dev \
+    python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
@@ -75,43 +75,43 @@ ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 RUN cd /cuda-quantum && git init && \
     git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | \
     while read path_key local_path; do \
-        if [ -f "/.git_modules/$local_path/HEAD" ]; then \
-            url_key=$(echo $path_key | sed 's/\.path/.url/') && \
-            url=$(git config -f .gitmodules --get "$url_key") && \
-            git update-index --add --cacheinfo 160000 \
-            $(cat /.git_modules/$local_path/HEAD) $local_path; \
-        fi; \
+    if [ -f "/.git_modules/$local_path/HEAD" ]; then \
+    url_key=$(echo $path_key | sed 's/\.path/.url/') && \
+    url=$(git config -f .gitmodules --get "$url_key") && \
+    git update-index --add --cacheinfo 160000 \
+    $(cat /.git_modules/$local_path/HEAD) $local_path; \
+    fi; \
     done && git submodule init && git submodule
+
+## [Dev Dependencies]
+RUN if [ "$(uname -m)" == "x86_64" ]; then \
+    # Pre-built binaries for doxygen are (only) available for x86_64.
+    wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz && \
+    tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7*; \
+    else \
+    apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
+    # Fixed commit corresponding to release 1.9.7
+    wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip && \
+    unzip repo.zip && mv doxygen* repo && rm repo.zip && \
+    cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release && \
+    rm -rf repo && apt-get remove -y make cmake flex bison g++ && \
+    apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 ## [Source Dependencies]
 ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 RUN if [ "$toolchain" = "llvm" ]; then \
-        export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
-        apt-get update && apt-get install -y --no-install-recommends clang lld && \
-        CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
-        (apt-get remove -y clang lld || true); \
+    export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
+    apt-get update && apt-get install -y --no-install-recommends clang lld && \
+    CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
+    (apt-get remove -y clang lld || true); \
     else \
-        export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
-        bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
+    export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
+    bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
     fi && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-## [Dev Dependencies]
-RUN if [ "$(uname -m)" == "x86_64" ]; then \
-        # Pre-built binaries for doxygen are (only) available for x86_64.
-        wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz && \
-        tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7*; \
-    else \
-        apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
-        # Fixed commit corresponding to release 1.9.7
-        wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip && \
-        unzip repo.zip && mv doxygen* repo && rm repo.zip && \
-        cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release && \
-        rm -rf repo && apt-get remove -y make cmake flex bison g++ && \
-        apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
-    fi
 
 # [CUDA-Q Dev Environment]
 FROM ${base_image}
@@ -134,18 +134,18 @@ ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 ARG toolchain=llvm
 RUN mkdir -p /usr/local/toolchain/bin && \
     if [ "$toolchain" = "gcc12" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            gcc-12 g++-12 gfortran-12 libstdc++-12-dev && \
-        apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-        mkdir -p /usr/local/toolchain/bin && \
-        ln -s /usr/bin/gcc-12 /usr/local/toolchain/bin/cc && \
-        ln -s /usr/bin/g++-12 /usr/local/toolchain/bin/c++; \
-        ln -s /usr/bin/gfortran-12 /usr/local/toolchain/bin/fortran; \
+    apt-get update && apt-get install -y --no-install-recommends \
+    gcc-12 g++-12 gfortran-12 libstdc++-12-dev && \
+    apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /usr/local/toolchain/bin && \
+    ln -s /usr/bin/gcc-12 /usr/local/toolchain/bin/cc && \
+    ln -s /usr/bin/g++-12 /usr/local/toolchain/bin/c++; \
+    ln -s /usr/bin/gfortran-12 /usr/local/toolchain/bin/fortran; \
     else \
-        mkdir -p /usr/local/toolchain/bin && \
-        ln -s "$LLVM_INSTALL_PREFIX/bin/clang" /usr/local/toolchain/bin/cc && \
-        ln -s "$LLVM_INSTALL_PREFIX/bin/clang++" /usr/local/toolchain/bin/c++; \
-        ln -s "$LLVM_INSTALL_PREFIX/bin/fortran" /usr/local/toolchain/bin/flang; \
+    mkdir -p /usr/local/toolchain/bin && \
+    ln -s "$LLVM_INSTALL_PREFIX/bin/clang" /usr/local/toolchain/bin/cc && \
+    ln -s "$LLVM_INSTALL_PREFIX/bin/clang++" /usr/local/toolchain/bin/c++; \
+    ln -s "$LLVM_INSTALL_PREFIX/bin/fortran" /usr/local/toolchain/bin/flang; \
     fi
 ENV CC=/usr/local/toolchain/bin/cc
 ENV CXX=/usr/local/toolchain/bin/c++
@@ -167,19 +167,21 @@ COPY --from=prereqs /usr/local/aws "$AWS_INSTALL_PREFIX"
 
 # Install additional dependencies required to build and test CUDA-Q.
 RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certificates \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).tar.gz \
-    && tar xf cmake-3.28.4* && mv cmake-3.28.4-linux-$(uname -m)/ /usr/local/cmake-3.28/ && rm -rf cmake-3.28.4* \
+    && wget https://github.com/Kitware/CMake/releases/download/v4.0.7/cmake-4.0.7-linux-$(uname -m).tar.gz \
+    && tar xf cmake-4.0.7* && mv cmake-4.0.7-linux-$(uname -m)/ /usr/local/cmake-4.0/ && rm -rf cmake-4.0.7* \
     # NOTE: removing ca-certificates also remove python3-pip.
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-ENV PATH="${PATH}:/usr/local/cmake-3.28/bin"
+ENV PATH="${PATH}:/usr/local/cmake-4.0/bin"
+COPY requirements.txt /cuda-quantum/requirements.txt
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
+COPY requirements-mock-qpu.txt /cuda-quantum/requirements-mock-qpu.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git gdb ninja-build file lldb ccache libatomic1 \
-        libstdc++-13-dev \
-        python3 python3-pip libpython3-dev \
+    git gdb ninja-build file lldb ccache libatomic1 \
+    libstdc++-13-dev \
+    python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
-        -r /cuda-quantum/requirements-dev.txt \
+    -r /cuda-quantum/requirements-dev.txt \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA-Q documentation generation.
@@ -187,7 +189,7 @@ COPY --from=prereqs /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc aspell aspell-en \
     && python3 -m pip install --no-cache-dir --break-system-packages \
-        ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
-        sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
-        nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.3.2 \
-        ipywidgets==8.1.5 sphinx-tags==0.4
+    ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
+    sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
+    nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.3.2 \
+    ipywidgets==8.1.5 sphinx-tags==0.4

@@ -20,8 +20,8 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/VirtualFileSystem.h"
-#include "llvm/Support/YAMLTraits.h"
 #include "llvm/Support/raw_ostream.h"
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <unistd.h>
@@ -53,6 +53,11 @@ static llvm::cl::opt<std::string>
     inputConfigFile(llvm::cl::Positional,
                     llvm::cl::desc("<input target config YAML file>"),
                     llvm::cl::init("-"), llvm::cl::value_desc("filename"));
+
+static llvm::cl::opt<bool> externalPlugin(
+    "external-plugin",
+    llvm::cl::desc("Require and validate external plugin version metadata"),
+    llvm::cl::init(false));
 
 static llvm::cl::opt<std::string>
     outputFilename("o", llvm::cl::desc("Specify output filename"),
@@ -120,9 +125,25 @@ int main(int argc, char **argv) {
       std::exit(ec.value());
     }
   }
-  cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(*(fileOrErr.get()));
-  Input >> config;
+  auto configContents = fileOrErr.get()->getBuffer().str();
+  const auto pluginRoot = std::filesystem::path(inputConfigFile.getValue())
+                              .parent_path()
+                              .parent_path();
+  auto config = cudaq::config::parseTargetConfig(configContents, pluginRoot);
+
+  if (externalPlugin) {
+    const auto compatibility = cudaq::config::checkExternalTargetVersion(
+        config, CUDAQ_VERSION_STRING,
+        std::filesystem::path(inputConfigFile.getValue()));
+    if (compatibility.Status ==
+        cudaq::config::TargetVersionCompatibility::Error) {
+      llvm::errs() << compatibility.Diagnostic << "\n";
+      return 1;
+    }
+    if (compatibility.Status ==
+        cudaq::config::TargetVersionCompatibility::Warning)
+      llvm::errs() << compatibility.Diagnostic << "\n";
+  }
 
   // Verify GPU requirement
   if (!skipGpuCheck && config.GpuRequired && countGPUs() <= 0) {

@@ -10,5 +10,7 @@ set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 
 set(EXE_NAME cudaq-target-conf)
 add_llvm_executable(${EXE_NAME} cudaq-target-conf.cpp)
+target_compile_definitions(${EXE_NAME}
+  PRIVATE "CUDAQ_VERSION_STRING=\"${CUDA_QUANTUM_VERSION}\"")
 target_link_libraries(${EXE_NAME} PUBLIC CUDAQTargetConfigYaml)
 install(TARGETS ${EXE_NAME} DESTINATION bin)

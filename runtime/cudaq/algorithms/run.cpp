@@ -17,7 +17,7 @@ cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
     const std::string &kernel_name, const std::string &original_name,
     std::size_t shots,
     const cudaq_internal::compiler::LayoutInfoType &layoutInfo,
-    std::size_t qpu_id, bool allowCaching) {
+    std::size_t qpu_id) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
@@ -32,18 +32,15 @@ cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
     // In a remote simulator execution or hardware emulation environment, set
     // the `run` context name and number of iterations (shots)
     cudaq::ExecutionContext ctx("run", shots, qpu_id);
-    ctx.allowCompiledModuleCaching = allowCaching;
     // Launch the kernel a single time to post the 'run' request to the remote
     // server or emulation executor.
     platform.with_execution_context(ctx, std::move(kernel));
     // Retrieve the result output log.
-    // FIXME: this currently assumes all the shots are good.
     std::string remoteOutputLog(ctx.invocationResultBuffer.begin(),
                                 ctx.invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
   } else {
     cudaq::ExecutionContext ctx("run", 1, qpu_id);
-    ctx.allowCompiledModuleCaching = allowCaching;
     for (std::size_t i = 0; i < shots; ++i) {
       // Set the execution context since as noise model is attached to this
       // context.
@@ -58,13 +55,26 @@ cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
   // 4. Get the buffer and length of buffer (in bytes) from the parser.
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
+  std::size_t resultCount = parser.getResultCount();
+
+  // Validate that the buffer size is consistent with the successful shot count.
+  if (resultCount > 0 && bufferSize % resultCount != 0)
+    throw std::runtime_error(
+        "run: the number of result bytes (" + std::to_string(bufferSize) +
+        ") is not evenly divisible by the number of decoded results (" +
+        std::to_string(resultCount) + ").");
+  char *buffer = nullptr;
+  if (bufferSize != 0) {
+    buffer = static_cast<char *>(malloc(bufferSize));
+    if (!buffer)
+      throw std::runtime_error("run: result buffer allocation failed.");
+    std::memcpy(buffer, origBuffer, bufferSize);
+  }
 
   // 5. Clear the outputLog (?)
   circuitSimulator->outputLog.clear();
 
   // 6. Pass the span back as a RunResultSpan. NB: it is the responsibility of
   // the caller to free the buffer.
-  return {buffer, bufferSize};
+  return {buffer, bufferSize, resultCount};
 }

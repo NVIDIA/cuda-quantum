@@ -16,6 +16,15 @@
 
 namespace cudaq {
 
+template <typename T>
+bool noInlineEntryPointIntoThunk(mlir::Region *dest, T *src) {
+  if (auto destFunc = dest->template getParentOfType<mlir::func::FuncOp>())
+    if (destFunc.getName().ends_with(".thunk"))
+      if (auto srcFunc = src->template getParentOfType<mlir::func::FuncOp>())
+        return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
+  return true;
+}
+
 /// Generic opt-in with inlining any operation. Inlining kernels is important to
 /// build up larger functions to translate into quantum circuits.
 /// Do not allow kernel entry points to be inlined into their callers while in
@@ -25,19 +34,11 @@ struct EnableInlinerInterface : public mlir::DialectInlinerInterface {
 
   bool isLegalToInline(mlir::Region *dest, mlir::Region *src, bool,
                        mlir::IRMapping &) const final {
-    if (auto destFunc = dest->getParentOfType<mlir::func::FuncOp>())
-      if (destFunc.getName().ends_with(".thunk"))
-        if (auto srcFunc = src->getParentOfType<mlir::func::FuncOp>())
-          return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
-    return true;
+    return noInlineEntryPointIntoThunk(dest, src);
   }
   bool isLegalToInline(mlir::Operation *op, mlir::Region *dest, bool,
                        mlir::IRMapping &) const final {
-    if (auto destFunc = dest->getParentOfType<mlir::func::FuncOp>())
-      if (destFunc.getName().ends_with(".thunk"))
-        if (auto srcFunc = op->getParentOfType<mlir::func::FuncOp>())
-          return !(srcFunc->hasAttr(cudaq::entryPointAttrName));
-    return true;
+    return noInlineEntryPointIntoThunk(dest, op);
   }
   bool isLegalToInline(mlir::Operation *call, mlir::Operation *callable,
                        bool) const final;

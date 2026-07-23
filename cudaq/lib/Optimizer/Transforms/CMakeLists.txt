@@ -67,9 +67,9 @@ add_cudaq_library(OptTransforms
   RealtimeDeviceCall.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  RepairLinearType.cpp
   ReplaceStateWithKernel.cpp
   ResetBeforeReuse.cpp
-  ResourceCount.cpp
   ResourceCountPreprocess.cpp
   RunSemanticsHackery.cpp
   SROA.cpp
@@ -99,3 +99,5 @@ target_include_directories(OptTransforms SYSTEM
   PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
+
+register_cudaq_mlir_lib(OptTransforms)
