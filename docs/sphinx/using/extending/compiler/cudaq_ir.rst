@@ -1,4 +1,4 @@
-CUDA-Q compiler IRs
+CUDA-Q compiler ``IRs``
 *******************
 
 MLIR organizes compiler IR into dialects, each of which defines operations,
