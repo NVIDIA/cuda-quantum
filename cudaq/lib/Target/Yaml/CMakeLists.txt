@@ -11,3 +11,4 @@ add_library(CUDAQTargetConfigYaml
   TargetConfigYaml.cpp
 )
 target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig cudaqMLIR)
+target_compile_options(CUDAQTargetConfigYaml PRIVATE "-fexceptions" "-frtti")
