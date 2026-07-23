@@ -21,9 +21,8 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
                                                   cc)
 
 # Schema versions are part of the contract.
-# Each case now carries a structured `invariants` list
-# (equivalence / determinism / fixed-point).
-RESULT_SCHEMA_VERSION = 3
+# v4: each metric delta carries a `gating` flag (gating vs informational).
+RESULT_SCHEMA_VERSION = 4
 # Capabilities now advertise the `invariants` names.
 CAPABILITY_SCHEMA_VERSION = 4
 
@@ -329,10 +328,20 @@ class MetricSpec:
     ``multi-qubit-count``, ``depth``, ``t-count``, or ``gate:<name>``.
     ``predicate`` is one of ``nonincreasing``, ``decreasing``, ``unchanged``,
     ``any``.
+
+    ``gating`` decides whether a violated predicate fails the case. A gating
+    metric (the default) is a hard correctness gate. Violating its predicate is
+    an ``invariant-failure``. An informational metric (``gating=False``) has
+    its predicate outcome computed and reported, but never changes the case
+    status. This is the metric/objective boundary. The core reports the metric
+    tuple and each predicate outcome. The caller's (untrusted) objective owns the
+    weighted scalar reward. The core never reduces metrics to a single reward,
+    because that weighted reduction is exactly what an optimizer could game.
     """
 
     name: str
     predicate: str = "nonincreasing"
+    gating: bool = True
 
 
 @dataclass(frozen=True)
@@ -357,6 +366,9 @@ class MetricDelta:
     candidate: int
     delta: int
     satisfied: bool
+    # Whether a violated predicate gated (failed) the case. Informational
+    # metrics (gating=False) report `satisfied` but never change case status.
+    gating: bool = True
 
 
 @dataclass(frozen=True)
@@ -550,8 +562,12 @@ def _compute_metrics(baseline_obs: Module, candidate_obs: Module,
                             baseline=base_val,
                             candidate=cand_val,
                             delta=cand_val - base_val,
-                            satisfied=ok))
-            if not ok:
+                            satisfied=ok,
+                            gating=spec.gating))
+            # Only a gating metric can fail the case. An informational metric
+            # reports its predicate outcome but never escalates status. The
+            # weighted reward is the caller's objective, not the core's.
+            if not ok and spec.gating:
                 status = _worst(status, ValidationStatus.INVARIANT_FAILURE)
                 messages.append(f"metric '{spec.name}' violates "
                                 f"'{spec.predicate}': {base_val} -> {cand_val}")

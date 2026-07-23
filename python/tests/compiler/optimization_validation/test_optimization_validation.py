@@ -260,6 +260,56 @@ def test_violated_metric_predicate_is_invariant_failure(tmp_path):
         assert metric.satisfied
 
 
+# Metric/objective split: gating vs informational, and no scalar reward
+def _canonicalize_request(good, gating):
+    return _request([good],
+                    pipeline=PipelineSpec(
+                        prepare=_PREPARE,
+                        candidate="builtin.module(func.func(canonicalize))"),
+                    metrics=(MetricSpec("operation-count",
+                                        "unchanged",
+                                        gating=gating),))
+
+
+def test_informational_metric_reports_outcome_but_does_not_gate(tmp_path):
+    good = _good_input(tmp_path)
+    result = validate(_canonicalize_request(good, gating=False))
+    case = result.cases[0]
+    (metric,) = [m for m in case.metrics if m.name == "operation-count"]
+    assert not metric.satisfied
+    assert metric.gating is False
+    assert case.status == ValidationStatus.PASSED
+    assert result.status == ValidationStatus.PASSED
+
+
+def test_gating_metric_violation_fails_the_case(tmp_path):
+    good = _good_input(tmp_path)
+    result = validate(_canonicalize_request(good, gating=True))
+    case = result.cases[0]
+    (metric,) = [m for m in case.metrics if m.name == "operation-count"]
+    assert not metric.satisfied
+    assert metric.gating is True
+    assert case.status == ValidationStatus.INVARIANT_FAILURE
+
+
+def _all_keys(obj):
+    """Every mapping key anywhere in a nested dict/list structure."""
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            yield key
+            yield from _all_keys(value)
+    elif isinstance(obj, (list, tuple)):
+        for item in obj:
+            yield from _all_keys(item)
+
+
+def test_core_never_emits_a_scalar_reward(tmp_path):
+    result = validate(_request([_good_input(tmp_path)]))
+    keys = {k.lower() for k in _all_keys(result_to_dict(result))}
+    for banned in ("reward", "score", "scalar", "objective", "fitness"):
+        assert banned not in keys
+
+
 # Request validation -> INVALID_REQUEST
 def test_missing_input_file_is_invalid_request():
     result = validate(_request([Path("/no/such/file.qke")]))
