@@ -10,6 +10,7 @@
 #include <nanobind/operators.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
+#include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
 #include "py_SampleResult.h"
@@ -36,6 +37,8 @@ Note:
   `sample`. Use `run` instead.)#")
       .def_prop_ro("register_names", &sample_result::register_names)
       .def(nanobind::init<>())
+      .def(nanobind::init<
+           const std::unordered_map<std::string, std::size_t> &>())
       .def(
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "

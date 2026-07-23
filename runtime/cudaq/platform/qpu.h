@@ -90,6 +90,7 @@ public:
         execution_queue(std::make_unique<QuantumExecutionQueue>()) {}
   /// Move constructor
   QPU(QPU &&) = default;
+  QPU &operator=(QPU &&) = default;
   /// The destructor
   virtual ~QPU() = default;
   /// Set the current QPU Id

@@ -9,6 +9,7 @@
 #include "py_runtime_target.h"
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
+#include "runtime/cudaq/platform/PyDynamicQPU.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
@@ -189,6 +190,15 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "Set the `cudaq.Target` with given name to be used for CUDA-Q "
       "kernel execution. Can provide optional, target-specific configuration "
       "data via Python kwargs.");
+  mod.def(
+      "set_target",
+      [&](PyDynamicQPU qpu) {
+        holder.setTarget("python-dynamic");
+        auto &targetQpu = dynamic_cast<PyDynamicQPU &>(holder.getTargetQPU());
+        targetQpu = std::move(qpu);
+        onTargetChange(holder.getTarget());
+      },
+      "Set the given QPU to be used for CUDA-Q kernel execution.");
   mod.def(
       "register_set_target_callback",
       [&](std::function<void(const cudaq::RuntimeTarget &)> callback,

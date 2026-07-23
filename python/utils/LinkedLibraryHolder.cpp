@@ -44,6 +44,7 @@ static void lazyInitSimulator() {
     activeHolder->resetTarget();
 }
 void setQuantumPlatformInternal(quantum_platform *p);
+quantum_platform *getQuantumPlatformInternal();
 
 void setExecutionManagerInternal(ExecutionManager *em);
 void resetExecutionManagerInternal();
@@ -603,6 +604,14 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   for (auto &[name, target] : targets)
     ret.emplace_back(target);
   return ret;
+}
+
+cudaq::QPU &LinkedLibraryHolder::getTargetQPU() {
+  auto platform = getQuantumPlatformInternal();
+  auto &qpus = platform->platformQPUs;
+  if (qpus.size() != 1 || qpus[0] == nullptr)
+    throw std::runtime_error("Could not get QPU for target.");
+  return *qpus[0];
 }
 
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {

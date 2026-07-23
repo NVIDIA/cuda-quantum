@@ -17,6 +17,8 @@ namespace cudaq {
 class DefaultQPU : public QPU {
 public:
   DefaultQPU() = default;
+  DefaultQPU(DefaultQPU &&) = default;
+  DefaultQPU &operator=(DefaultQPU &&) = default;
   ~DefaultQPU() override;
 
   void enqueue(QuantumTask &task) override;
