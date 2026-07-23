@@ -7,23 +7,24 @@
 // ========================================================================== //
 
 
-// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=RxToRz,RyToRz},clifford-t-synthesis{epsilon=1e-3})' %s | \
 // RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
 
-// Rx and Ry lower to a Clifford sandwich around an inner Rz, which the
-// greedy driver then re-fires on. The result must contain no surviving
+// Rx and Ry are reduced to a Clifford sandwich around an inner Rz by the
+// RxToRz / RyToRz decomposition patterns; clifford-t-synthesis then expands
+// the Rz. The result must contain no surviving
 // rotation ops and a minimum of T gates per function.
 // 15 is a safety floor robust to gridsynth variance.
 // The actual T-count at epsilon=1e-3 is on the order of dozens.
 
-func.func @rx_pi_over_4() {
+func.func @rx_pi_over_4() attributes {"cudaq-entrypoint"} {
   %q = quake.alloca !quake.ref
   %a = arith.constant 0.7853981633974483 : f64
   quake.rx (%a) %q : (f64, !quake.ref) -> ()
   return
 }
 
-func.func @ry_pi_over_4() {
+func.func @ry_pi_over_4() attributes {"cudaq-entrypoint"} {
   %q = quake.alloca !quake.ref
   %a = arith.constant 0.7853981633974483 : f64
   quake.ry (%a) %q : (f64, !quake.ref) -> ()

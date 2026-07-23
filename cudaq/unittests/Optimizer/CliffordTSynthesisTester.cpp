@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -92,6 +93,7 @@ OwningOpRef<ModuleOp> buildRotationModule(MLIRContext *context, Rot gate,
 
   auto funcType = builder.getFunctionType({}, {});
   auto func = func::FuncOp::create(builder, loc, "rot_test", funcType);
+  func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
   auto *entry = func.addEntryBlock();
   builder.setInsertionPointToStart(entry);
 
@@ -205,6 +207,11 @@ TEST_P(CliffordTSynthesisRotationTest, RoundTripMatchesIdealUpToGlobalPhase) {
   auto module = buildRotationModule(context.get(), param.gate, param.theta);
 
   PassManager pm(context.get());
+  // clifford-t-synthesis handles Rz only.
+  cudaq::opt::DecompositionOptions decOpts;
+  decOpts.enabledPatterns = {"RxToRz", "RyToRz", "R1ToRz"};
+  decOpts.disabledPatterns = {};
+  pm.addPass(cudaq::opt::createDecomposition(decOpts));
   cudaq::opt::CliffordTSynthesisOptions opts;
   opts.epsilon = 1e-8;
   pm.addPass(cudaq::opt::createCliffordTSynthesis(opts));

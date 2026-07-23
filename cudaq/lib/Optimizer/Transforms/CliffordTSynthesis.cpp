@@ -89,23 +89,6 @@ static Value emitCliffordGate(OpBuilder &b, Location loc, Value target) {
   return target;
 }
 
-// Emit Rz(angle) on `target`, threading the wire in value semantics (see
-// emitCliffordGate). Rz alone carries a rotation parameter, so it needs its own
-// helper rather than the parameter-free template above.
-static Value emitRz(OpBuilder &b, Location loc, Value angle, Value target) {
-  if (isa<cudaq::quake::WireType>(target.getType())) {
-    auto op = cudaq::quake::RzOp::create(
-        b, loc, TypeRange{target.getType()}, /*is_adj=*/false,
-        /*parameters=*/ValueRange{angle}, /*controls=*/ValueRange{},
-        /*targets=*/ValueRange{target},
-        /*negated_qubit_controls=*/DenseBoolArrayAttr{});
-    return op.getWires()[0];
-  }
-  cudaq::quake::RzOp::create(b, loc, ValueRange{angle}, ValueRange{},
-                             ValueRange{target});
-  return target;
-}
-
 // Materialize a body of Clifford+T gates onto `qubit` from a synthesized
 // `Circuit`, threading value-semantics wires when `qubit` is a `!quake.wire`.
 // Returns the final qubit value (the last wire for value semantics, or `qubit`
@@ -321,134 +304,6 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
   bool *hadHardError;
 };
 
-// The Rx/Ry/R1 patterns below reduce those rotations to an inner Rz, which
-// RzPattern then expands to Clifford+T. Ideally this pass would accept Rz-only
-// IR and leave all gateset reduction to the shared Decomposition pass, but that
-// library currently has no Rx->Rz or Ry->Rz pattern (only Rx/Ry->PhasedRx), so
-// there is no upstream path to force a Rz+Clifford gateset here. R1->Rz does
-// exist upstream (R1ToRz). R1Pattern is kept only to keep this pass
-// self-contained.
-//
-// TODO: move the Rx->Rz (H.Rz.H) and Ry->Rz reductions into
-// DecompositionPatterns.cpp so any pass can request a Rz+Clifford basis, then
-// run decomposition-to-{rz,clifford} ahead of this pass and drop RxPattern,
-// RyPattern, and R1Pattern, leaving CliffordTSynthesis to handle Rz only.
-
-// Rx(theta) = H . Rz(theta) . H. The greedy driver then re-fires RzPattern
-// on the inner Rz to do the actual Clifford+T expansion.
-struct RxPattern : OpRewritePattern<cudaq::quake::RxOp> {
-  RxPattern(MLIRContext *ctx, RotationOptions opts, bool *hadHardError)
-      : OpRewritePattern(ctx), opts(std::move(opts)),
-        hadHardError(hadHardError) {}
-
-  LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
-                                PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(
-        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
-    switch (check.action) {
-    case PreCheck::Action::LeaveInPlace:
-      return failure();
-    case PreCheck::Action::Erased:
-      return success();
-    case PreCheck::Action::Lower:
-      break;
-    }
-
-    Location loc = op.getLoc();
-    Value target = op.getTarget();
-    Value angle = op.getParameter();
-    Value cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, target);
-    cur = emitRz(rewriter, loc, angle, cur);
-    cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, cur);
-    if (isa<cudaq::quake::WireType>(target.getType()))
-      rewriter.replaceOp(op, cur);
-    else
-      rewriter.eraseOp(op);
-    return success();
-  }
-
-  RotationOptions opts;
-  bool *hadHardError;
-};
-
-// Ry(theta) = S . H . Rz(theta) . H . S^dagger. Emitted as S.S.S . H . Rz .
-// H . S in circuit order (S^dagger = S^3 since S^4 = I), keeping the output
-// strictly in the Clifford+T alphabet {H, S, T, X}.
-struct RyPattern : OpRewritePattern<cudaq::quake::RyOp> {
-  RyPattern(MLIRContext *ctx, RotationOptions opts, bool *hadHardError)
-      : OpRewritePattern(ctx), opts(std::move(opts)),
-        hadHardError(hadHardError) {}
-
-  LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
-                                PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(
-        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
-    switch (check.action) {
-    case PreCheck::Action::LeaveInPlace:
-      return failure();
-    case PreCheck::Action::Erased:
-      return success();
-    case PreCheck::Action::Lower:
-      break;
-    }
-
-    Location loc = op.getLoc();
-    Value target = op.getTarget();
-    Value angle = op.getParameter();
-    Value cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, target);
-    cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, cur);
-    cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, cur);
-    cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, cur);
-    cur = emitRz(rewriter, loc, angle, cur);
-    cur = emitCliffordGate<cudaq::quake::HOp>(rewriter, loc, cur);
-    cur = emitCliffordGate<cudaq::quake::SOp>(rewriter, loc, cur);
-    if (isa<cudaq::quake::WireType>(target.getType()))
-      rewriter.replaceOp(op, cur);
-    else
-      rewriter.eraseOp(op);
-    return success();
-  }
-
-  RotationOptions opts;
-  bool *hadHardError;
-};
-
-// R1(theta) = e^{i theta/2} . Rz(theta). The leading global phase is
-// dropped for now and we will revisit when controlled rotations are
-// reintroduced.
-struct R1Pattern : OpRewritePattern<cudaq::quake::R1Op> {
-  R1Pattern(MLIRContext *ctx, RotationOptions opts, bool *hadHardError)
-      : OpRewritePattern(ctx), opts(std::move(opts)),
-        hadHardError(hadHardError) {}
-
-  LogicalResult matchAndRewrite(cudaq::quake::R1Op op,
-                                PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(
-        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
-    switch (check.action) {
-    case PreCheck::Action::LeaveInPlace:
-      return failure();
-    case PreCheck::Action::Erased:
-      return success();
-    case PreCheck::Action::Lower:
-      break;
-    }
-
-    Location loc = op.getLoc();
-    Value target = op.getTarget();
-    Value angle = op.getParameter();
-    Value cur = emitRz(rewriter, loc, angle, target);
-    if (isa<cudaq::quake::WireType>(target.getType()))
-      rewriter.replaceOp(op, cur);
-    else
-      rewriter.eraseOp(op);
-    return success();
-  }
-
-  RotationOptions opts;
-  bool *hadHardError;
-};
-
 } // namespace
 
 namespace {
@@ -504,7 +359,6 @@ public:
     state.module = getOperation();
     bool hadHardError = false;
     RewritePatternSet patterns(ctx);
-    patterns.add<R1Pattern, RxPattern, RyPattern>(ctx, opts, &hadHardError);
     patterns.add<RzPattern>(ctx, opts, &state, &hadHardError);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))) ||

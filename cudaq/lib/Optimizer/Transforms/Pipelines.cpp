@@ -156,6 +156,10 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon) {
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addPass(cudaq::opt::createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
+  // Reduce Rx, Ry, and R1 rotations to Rz + Clifford so that Clifford+T
+  // synthesis only has to handle Rz. These are the shared decomposition
+  // patterns.
+  cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
   cudaq::opt::CliffordTSynthesisOptions ctsOpts;
   ctsOpts.epsilon = epsilon;
   pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
