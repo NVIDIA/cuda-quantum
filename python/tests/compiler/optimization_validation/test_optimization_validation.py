@@ -23,9 +23,9 @@ import pytest
 from cudaq._compiler import optimization_corpus as corpus
 from cudaq._compiler.optimization_validation import (
     ASSURANCE_TIER_ADVISORY,
-    ASSURANCE_TIER_EXACT,
-    ASSURANCE_TIER_MIXED_STATE,
-    ASSURANCE_TIER_SCALABLE_EXACT,
+    ASSURANCE_TIER_EXACT_CLIFFORD_SIM,
+    ASSURANCE_TIER_EXACT_DENSITY_SIM,
+    ASSURANCE_TIER_EXACT_UNITARY,
     INVARIANT_KINDS,
     ORACLE_ROADMAP,
     MetricSpec,
@@ -78,7 +78,7 @@ def test_semantics_preserving_candidate_passes(tmp_path):
     assert len(result.cases) == 1
     case = result.cases[0]
     assert case.status == ValidationStatus.PASSED
-    assert case.assurance_tier == ASSURANCE_TIER_EXACT
+    assert case.assurance_tier == ASSURANCE_TIER_EXACT_UNITARY
     assert case.equal_up_to_global_phase
     # Invariants are present and satisfied on the happy path.
     by_name = {inv.name: inv for inv in case.invariants}
@@ -210,8 +210,8 @@ def test_aggregate_status_is_worst_case(tmp_path):
 # Capabilities / oracle-tier contract
 def test_capabilities_accepts_only_exact_tier():
     caps = capabilities()
-    assert caps.assurance_tiers == (ASSURANCE_TIER_EXACT,)
-    assert caps.capability_schema_version == 3
+    assert caps.assurance_tiers == (ASSURANCE_TIER_EXACT_UNITARY,)
+    assert caps.capability_schema_version == 4
 
 
 def test_capabilities_advertise_first_class_invariants():
@@ -226,11 +226,11 @@ def test_oracle_roadmap_is_machine_readable_and_complete():
     assert supported == set(
         caps.oracles) == {"strict-unitary", "up-to-global-phase"}
     for kind in supported:
-        assert roadmap[kind].tier == ASSURANCE_TIER_EXACT
+        assert roadmap[kind].tier == ASSURANCE_TIER_EXACT_UNITARY
 
-    assert roadmap["clifford-tableau"].tier == ASSURANCE_TIER_SCALABLE_EXACT
+    assert roadmap["clifford-tableau"].tier == ASSURANCE_TIER_EXACT_CLIFFORD_SIM
     assert roadmap["clifford-tableau"].status == "deferred"
-    assert roadmap["density-matrix"].tier == ASSURANCE_TIER_MIXED_STATE
+    assert roadmap["density-matrix"].tier == ASSURANCE_TIER_EXACT_DENSITY_SIM
     assert roadmap["density-matrix"].status == "deferred"
     assert roadmap["statevector-expectation"].tier == ASSURANCE_TIER_ADVISORY
     assert roadmap["statevector-expectation"].status == "deferred"

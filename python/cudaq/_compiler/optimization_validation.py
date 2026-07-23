@@ -21,34 +21,37 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
 
 # Schema versions are part of the contract.
 # Each case now carries a structured `invariants` list
-# (equivalence / determinism / fixed-point) in place of the loose booleans.
-RESULT_SCHEMA_VERSION = 2
-# Capabilities now advertise the first-class `invariants` names.
-CAPABILITY_SCHEMA_VERSION = 3
+# (equivalence / determinism / fixed-point).
+RESULT_SCHEMA_VERSION = 3
+# Capabilities now advertise the `invariants` names.
+CAPABILITY_SCHEMA_VERSION = 4
 
 # Assurance tiers, from strongest guarantee to weakest. The tier records what
 # kind of equivalence evidence an oracle produces, independent of the circuit it
-# ran on.
+# ran on. Names are deliberately concrete about the backing method, so a new
+# strategy gets a new named tier rather than overloading an abstract one.
 #
-#   exact           Full-operator equivalence built directly from the IR (dense
-#                   unitary, up to global phase). Basis-independent: checks the
-#                   whole operator, not one input state. Safest, but bounded by
-#                   the 2^n dense-matrix cost (see DEFAULT_EXACT_QUBIT_BOUND).
-#   scalable-exact  Exact equivalence that scales past the dense bound by
-#                   exploiting circuit structure, specifically Clifford
-#                   circuits via a tableau/`stim` simulator. Same strength as exact
-#                   on its (narrower) domain, but usable at many more qubits.
-#   mixed-state     Density-matrix equivalence for small circuits. Handles
-#                   measurement/reset/noise that the pure-unitary oracles reject,
-#                   at the same ~small-qubit cost ceiling.
-#   advisory        Sampled or expectation-value evidence (e.g. a statevector
-#                   compared on a fixed input state). Weaker: it can witness a
-#                   difference but cannot certify equivalence, so per the oracle
-#                   hardening rules it may only turn passed -> failed, never
-#                   failed -> passed.
-ASSURANCE_TIER_EXACT = "exact"
-ASSURANCE_TIER_SCALABLE_EXACT = "scalable-exact"
-ASSURANCE_TIER_MIXED_STATE = "mixed-state"
+#   exact-unitary       Full-operator equivalence built directly from the IR
+#                       (dense unitary, up to global phase). Basis- and
+#                       input-independent: checks the whole operator, not one
+#                       input state. Safest, but bounded by the 2^n dense-matrix
+#                       cost (see DEFAULT_EXACT_QUBIT_BOUND).
+#   exact-clifford-sim  Exact equivalence that scales past the dense bound by
+#                       exploiting circuit structure, specifically Clifford
+#                       circuits via a tableau/`stim` simulator. Same strength as
+#                       exact-unitary on its (narrower) domain, but usable at many
+#                       more qubits -- a scaling axis, not a generality superset.
+#   exact-density-sim   Density-matrix equivalence for small circuits. Handles
+#                       measurement/reset/noise that the pure-unitary oracles
+#                       reject, at the same ~small-qubit cost ceiling.
+#   advisory            Sampled or expectation-value evidence (e.g. a statevector
+#                       compared on a fixed input state). Weaker: it can witness a
+#                       difference but cannot certify equivalence, so per the
+#                       oracle hardening rules it may only turn passed -> failed,
+#                       never failed -> passed.
+ASSURANCE_TIER_EXACT_UNITARY = "exact-unitary"
+ASSURANCE_TIER_EXACT_CLIFFORD_SIM = "exact-clifford-sim"
+ASSURANCE_TIER_EXACT_DENSITY_SIM = "exact-density-sim"
 ASSURANCE_TIER_ADVISORY = "advisory"
 
 DEFAULT_EXACT_QUBIT_BOUND = 14
@@ -110,14 +113,14 @@ class OracleDescriptor:
 ORACLE_ROADMAP = (
     OracleDescriptor(
         kind="strict-unitary",
-        tier=ASSURANCE_TIER_EXACT,
+        tier=ASSURANCE_TIER_EXACT_UNITARY,
         status="supported",
         method="dense-unitary-from-ir",
         note="Element-wise unitary equality. Bounded by the dense 2^n cost.",
     ),
     OracleDescriptor(
         kind="up-to-global-phase",
-        tier=ASSURANCE_TIER_EXACT,
+        tier=ASSURANCE_TIER_EXACT_UNITARY,
         status="supported",
         method="dense-unitary-from-ir",
         note="Unitary equality after dividing out a global phase. Bounded by "
@@ -125,7 +128,7 @@ ORACLE_ROADMAP = (
     ),
     OracleDescriptor(
         kind="clifford-tableau",
-        tier=ASSURANCE_TIER_SCALABLE_EXACT,
+        tier=ASSURANCE_TIER_EXACT_CLIFFORD_SIM,
         status="deferred",
         method="tableau-stim",
         note="Exact equivalence for Clifford-only circuits, scalable well past "
@@ -133,7 +136,7 @@ ORACLE_ROADMAP = (
     ),
     OracleDescriptor(
         kind="density-matrix",
-        tier=ASSURANCE_TIER_MIXED_STATE,
+        tier=ASSURANCE_TIER_EXACT_DENSITY_SIM,
         status="deferred",
         method="density-matrix-sim",
         note="Small-circuit equivalence that also covers measurement/reset/"
@@ -412,7 +415,7 @@ def _failed_case(path: Path, status: str, messages) -> CaseResult:
     return CaseResult(
         input=str(path),
         status=status,
-        assurance_tier=ASSURANCE_TIER_EXACT,
+        assurance_tier=ASSURANCE_TIER_EXACT_UNITARY,
         strict_equal=False,
         equal_up_to_global_phase=False,
         phase=0.0,
@@ -561,7 +564,7 @@ def _evaluate_input(path: Path, request: ValidationRequest,
     return CaseResult(
         input=str(path),
         status=status,
-        assurance_tier=ASSURANCE_TIER_EXACT,
+        assurance_tier=ASSURANCE_TIER_EXACT_UNITARY,
         strict_equal=bool(comparison.get("strict_equal", False)),
         equal_up_to_global_phase=bool(
             comparison.get("equal_up_to_global_phase", False)),
@@ -646,7 +649,7 @@ def capabilities() -> ValidationCapabilities:
         predicates=PREDICATES,
         presets=_PRESETS,
         invariants=INVARIANT_KINDS,
-        assurance_tiers=(ASSURANCE_TIER_EXACT,),
+        assurance_tiers=(ASSURANCE_TIER_EXACT_UNITARY,),
         oracle_roadmap=ORACLE_ROADMAP,
         result_schema_version=RESULT_SCHEMA_VERSION,
         capability_schema_version=CAPABILITY_SCHEMA_VERSION,

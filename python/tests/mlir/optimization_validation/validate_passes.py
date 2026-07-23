@@ -17,7 +17,7 @@
 # RUN:   --oracle up-to-global-phase \
 # RUN:   --metric operation-count:nonincreasing | FileCheck %s
 
-# CHECK-DAG: "assurance_tier": "exact"
+# CHECK-DAG: "assurance_tier": "exact-unitary"
 # CHECK-DAG: "equal_up_to_global_phase": true
 # CHECK-DAG: "name": "equivalence"
 # CHECK-DAG: "name": "determinism"
