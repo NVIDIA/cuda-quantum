@@ -754,30 +754,48 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a new Hardware Backend</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Implement a Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#plugin-directory-structure">Plugin Directory Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#rest-style-backends-server-helper">REST-Style Backends (Server Helper)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#server-helper-class">Server Helper Class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#target-yaml-configuration">Target YAML Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#cmake-build-file">CMake Build File</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#target-configuration">Target Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#testing">Testing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#unit-tests">Unit Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#mock-server">Mock Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#python-tests">Python Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#integration-tests">Integration Tests</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#auxiliary-files-and-plugin-root">Auxiliary Files and <code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#testing-your-backend">Testing Your Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#example-usage">Example Usage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#code-review">Code Review</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#conclusion">Conclusion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#next-steps">Next Steps</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../extending/packaging.html">Package &amp; Distribute a Backend Plugin</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#python-packaging">Python Packaging</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#main-py-install-nvqpp-hook"><code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> (<code class="docutils literal notranslate"><span class="pre">--install-nvqpp</span></code> hook)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#installing-the-plugin-for-end-users">Installing the Plugin for End Users</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#pip-install-python-zero-config"><code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code> (Python — zero config)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#install-nvqpp-make-visible-to-nvq"><code class="docutils literal notranslate"><span class="pre">--install-nvqpp</span></code> (make visible to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#cudaq-install-plugin-c-only-workflows"><code class="docutils literal notranslate"><span class="pre">cudaq-install-plugin</span></code> (C++-only workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#discovery-mechanics">Discovery Mechanics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#nvq-target-resolution"><code class="docutils literal notranslate"><span class="pre">nvq++</span></code> target resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#python-target-resolution">Python target resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#environment-variables">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#reference-plugins">Reference Plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#quick-start-checklist">Quick-Start Checklist</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>

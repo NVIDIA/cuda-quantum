@@ -1199,54 +1199,101 @@ latest
             toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
 -   [Extending](../extending/extending.html){.reference .internal}
-    -   [Add a new Hardware
+    -   [Implement a Hardware
         Backend](../extending/backend.html){.reference .internal}
-        -   [Overview](../extending/backend.html#overview){.reference
+        -   [Plugin Directory
+            Structure](../extending/backend.html#plugin-directory-structure){.reference
             .internal}
-        -   [Server Helper
-            Implementation](../extending/backend.html#server-helper-implementation){.reference
+        -   [REST-Style Backends (Server
+            Helper)](../extending/backend.html#rest-style-backends-server-helper){.reference
             .internal}
-            -   [Directory
-                Structure](../extending/backend.html#directory-structure){.reference
-                .internal}
             -   [Server Helper
                 Class](../extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [[`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../extending/backend.html#cmakelists-txt){.reference
+            -   [Target YAML
+                Configuration](../extending/backend.html#target-yaml-configuration){.reference
                 .internal}
-        -   [Target
-            Configuration](../extending/backend.html#target-configuration){.reference
+            -   [CMake Build
+                File](../extending/backend.html#cmake-build-file){.reference
+                .internal}
+        -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
+            .notranslate}]{.pre}](../extending/backend.html#auxiliary-files-and-plugin-root){.reference
             .internal}
-            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../extending/backend.html#update-parent-cmakelists-txt){.reference
-                .internal}
-        -   [Testing](../extending/backend.html#testing){.reference
-            .internal}
-            -   [Unit
-                Tests](../extending/backend.html#unit-tests){.reference
-                .internal}
-            -   [Mock
-                Server](../extending/backend.html#mock-server){.reference
-                .internal}
-            -   [Python
-                Tests](../extending/backend.html#python-tests){.reference
-                .internal}
-            -   [Integration
-                Tests](../extending/backend.html#integration-tests){.reference
-                .internal}
-        -   [Documentation](../extending/backend.html#documentation){.reference
+        -   [Testing Your
+            Backend](../extending/backend.html#testing-your-backend){.reference
             .internal}
         -   [Example
             Usage](../extending/backend.html#example-usage){.reference
             .internal}
-        -   [Code
-            Review](../extending/backend.html#code-review){.reference
+        -   [Next
+            Steps](../extending/backend.html#next-steps){.reference
             .internal}
-        -   [Maintaining a
-            Backend](../extending/backend.html#maintaining-a-backend){.reference
+    -   [Package & Distribute a Backend
+        Plugin](../extending/packaging.html){.reference .internal}
+        -   [Plugin Package
+            Layout](../extending/packaging.html#plugin-package-layout){.reference
             .internal}
-        -   [Conclusion](../extending/backend.html#conclusion){.reference
+        -   [Target YAML Reference (Plugin
+            Fields)](../extending/packaging.html#target-yaml-reference-plugin-fields){.reference
+            .internal}
+            -   [[`%PLUGIN_ROOT%`{.docutils .literal
+                .notranslate}]{.pre}](../extending/packaging.html#plugin-root){.reference
+                .internal}
+            -   [[`target-arguments`{.docutils .literal
+                .notranslate}]{.pre}](../extending/packaging.html#target-arguments){.reference
+                .internal}
+        -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
+            .notranslate}]{.pre}](../extending/packaging.html#building-with-cudaq-external-projects){.reference
+            .internal}
+        -   [Python
+            Packaging](../extending/packaging.html#python-packaging){.reference
+            .internal}
+            -   [[`pyproject.toml`{.docutils .literal
+                .notranslate}]{.pre}](../extending/packaging.html#pyproject-toml){.reference
+                .internal}
+            -   [[`__init__.py`{.docutils .literal
+                .notranslate}]{.pre}](../extending/packaging.html#init-py){.reference
+                .internal}
+            -   [[`__main__.py`{.docutils .literal .notranslate}]{.pre}
+                ([`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre}
+                hook)](../extending/packaging.html#main-py-install-nvqpp-hook){.reference
+                .internal}
+        -   [Installing the Plugin for End
+            Users](../extending/packaging.html#installing-the-plugin-for-end-users){.reference
+            .internal}
+            -   [[`pip`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`install`{.docutils .literal
+                .notranslate}]{.pre} (Python --- zero
+                config)](../extending/packaging.html#pip-install-python-zero-config){.reference
+                .internal}
+            -   [[`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre} (make visible to [`nvq++`{.docutils
+                .literal
+                .notranslate}]{.pre})](../extending/packaging.html#install-nvqpp-make-visible-to-nvq){.reference
+                .internal}
+            -   [[`cudaq-install-plugin`{.docutils .literal
+                .notranslate}]{.pre} (C++-only
+                workflows)](../extending/packaging.html#cudaq-install-plugin-c-only-workflows){.reference
+                .internal}
+        -   [Discovery
+            Mechanics](../extending/packaging.html#discovery-mechanics){.reference
+            .internal}
+            -   [[`nvq++`{.docutils .literal .notranslate}]{.pre} target
+                resolution](../extending/packaging.html#nvq-target-resolution){.reference
+                .internal}
+            -   [Python target
+                resolution](../extending/packaging.html#python-target-resolution){.reference
+                .internal}
+            -   [Environment
+                variables](../extending/packaging.html#environment-variables){.reference
+                .internal}
+        -   [Reference
+            Plugins](../extending/packaging.html#reference-plugins){.reference
+            .internal}
+        -   [Quick-Start
+            Checklist](../extending/packaging.html#quick-start-checklist){.reference
             .internal}
     -   [Create a new NVQIR
         Simulator](../extending/nvqir_simulator.html){.reference

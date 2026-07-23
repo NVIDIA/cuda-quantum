@@ -1227,55 +1227,103 @@ latest
             .internal}
 -   [Extending](../../using/extending/extending.html){.reference
     .internal}
-    -   [Add a new Hardware
+    -   [Implement a Hardware
         Backend](../../using/extending/backend.html){.reference
         .internal}
-        -   [Overview](../../using/extending/backend.html#overview){.reference
+        -   [Plugin Directory
+            Structure](../../using/extending/backend.html#plugin-directory-structure){.reference
             .internal}
-        -   [Server Helper
-            Implementation](../../using/extending/backend.html#server-helper-implementation){.reference
+        -   [REST-Style Backends (Server
+            Helper)](../../using/extending/backend.html#rest-style-backends-server-helper){.reference
             .internal}
-            -   [Directory
-                Structure](../../using/extending/backend.html#directory-structure){.reference
-                .internal}
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [[`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [Target YAML
+                Configuration](../../using/extending/backend.html#target-yaml-configuration){.reference
                 .internal}
-        -   [Target
-            Configuration](../../using/extending/backend.html#target-configuration){.reference
+            -   [CMake Build
+                File](../../using/extending/backend.html#cmake-build-file){.reference
+                .internal}
+        -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
+            .notranslate}]{.pre}](../../using/extending/backend.html#auxiliary-files-and-plugin-root){.reference
             .internal}
-            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
-                .internal}
-        -   [Testing](../../using/extending/backend.html#testing){.reference
-            .internal}
-            -   [Unit
-                Tests](../../using/extending/backend.html#unit-tests){.reference
-                .internal}
-            -   [Mock
-                Server](../../using/extending/backend.html#mock-server){.reference
-                .internal}
-            -   [Python
-                Tests](../../using/extending/backend.html#python-tests){.reference
-                .internal}
-            -   [Integration
-                Tests](../../using/extending/backend.html#integration-tests){.reference
-                .internal}
-        -   [Documentation](../../using/extending/backend.html#documentation){.reference
+        -   [Testing Your
+            Backend](../../using/extending/backend.html#testing-your-backend){.reference
             .internal}
         -   [Example
             Usage](../../using/extending/backend.html#example-usage){.reference
             .internal}
-        -   [Code
-            Review](../../using/extending/backend.html#code-review){.reference
+        -   [Next
+            Steps](../../using/extending/backend.html#next-steps){.reference
             .internal}
-        -   [Maintaining a
-            Backend](../../using/extending/backend.html#maintaining-a-backend){.reference
+    -   [Package & Distribute a Backend
+        Plugin](../../using/extending/packaging.html){.reference
+        .internal}
+        -   [Plugin Package
+            Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
-        -   [Conclusion](../../using/extending/backend.html#conclusion){.reference
+        -   [Target YAML Reference (Plugin
+            Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
+            .internal}
+            -   [[`%PLUGIN_ROOT%`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#plugin-root){.reference
+                .internal}
+            -   [[`target-arguments`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#target-arguments){.reference
+                .internal}
+        -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
+            .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
+            .internal}
+        -   [Python
+            Packaging](../../using/extending/packaging.html#python-packaging){.reference
+            .internal}
+            -   [[`pyproject.toml`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#pyproject-toml){.reference
+                .internal}
+            -   [[`__init__.py`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#init-py){.reference
+                .internal}
+            -   [[`__main__.py`{.docutils .literal .notranslate}]{.pre}
+                ([`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre}
+                hook)](../../using/extending/packaging.html#main-py-install-nvqpp-hook){.reference
+                .internal}
+        -   [Installing the Plugin for End
+            Users](../../using/extending/packaging.html#installing-the-plugin-for-end-users){.reference
+            .internal}
+            -   [[`pip`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`install`{.docutils .literal
+                .notranslate}]{.pre} (Python --- zero
+                config)](../../using/extending/packaging.html#pip-install-python-zero-config){.reference
+                .internal}
+            -   [[`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre} (make visible to [`nvq++`{.docutils
+                .literal
+                .notranslate}]{.pre})](../../using/extending/packaging.html#install-nvqpp-make-visible-to-nvq){.reference
+                .internal}
+            -   [[`cudaq-install-plugin`{.docutils .literal
+                .notranslate}]{.pre} (C++-only
+                workflows)](../../using/extending/packaging.html#cudaq-install-plugin-c-only-workflows){.reference
+                .internal}
+        -   [Discovery
+            Mechanics](../../using/extending/packaging.html#discovery-mechanics){.reference
+            .internal}
+            -   [[`nvq++`{.docutils .literal .notranslate}]{.pre} target
+                resolution](../../using/extending/packaging.html#nvq-target-resolution){.reference
+                .internal}
+            -   [Python target
+                resolution](../../using/extending/packaging.html#python-target-resolution){.reference
+                .internal}
+            -   [Environment
+                variables](../../using/extending/packaging.html#environment-variables){.reference
+                .internal}
+        -   [Reference
+            Plugins](../../using/extending/packaging.html#reference-plugins){.reference
+            .internal}
+        -   [Quick-Start
+            Checklist](../../using/extending/packaging.html#quick-start-checklist){.reference
             .internal}
     -   [Create a new NVQIR
         Simulator](../../using/extending/nvqir_simulator.html){.reference
@@ -2424,7 +2472,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![6375e59ece6646f5b0e3c94aa73ffaa0](../../_images/speedup.png){.no-scaled-link
+![eaca3face7b247dfb063fc3019cc3886](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2438,9 +2486,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![6f3caf49649d409fb0a229bd70c581bc](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![9b84e1fb60cb4d51bbb692ed69be29ef](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![d9aee298254d446fbdfab162899fa402](../../_images/efficiency.jpeg){.no-scaled-link
+![6d99b5554ad0453b9c5ce8e4f459e2ea](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 
