@@ -160,11 +160,13 @@ configure_package_config_file(
 install(EXPORT cudaq-realtime-targets
   FILE cudaq-realtime-targets.cmake
   NAMESPACE cudaq::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 if (CUDAQ_REALTIME_BUILD_EXAMPLES)
   message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")
