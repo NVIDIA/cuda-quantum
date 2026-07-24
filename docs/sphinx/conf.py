@@ -116,7 +116,8 @@ master_doc = 'index'
 exclude_patterns = [
     '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
-    'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
+    'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
+    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md'
 ]
 
 #redirect links
@@ -217,6 +218,13 @@ nitpick_ignore = [
     ('cpp:identifier', 'cudaq::detail::EigenSparseMatrix'),
     ('cpp:identifier', 'detail'),
     ('cpp:identifier', 'detail::NoisePoint'),
+    ('cpp:identifier', 'CompileTarget'),
+    ('cpp:identifier', 'sample_policy'),
+    ('py:class', 'optional'),
+    ('py:class', 'State'),
+    ('py:class', 'Kernel'),
+    ('py:class', 'QuakeValue'),
+    ('py:class', 'SampleResult'),
     # nanobind generates RST function directives whose description text gets
     # misinterpreted as py:class cross-references in nitpick mode
     ('py:class', 'Convert spin_op to JSON string'),
