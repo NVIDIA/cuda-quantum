@@ -1,0 +1,229 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --normalize-phase-placement %s | FileCheck %s
+// RUN: cudaq-opt --normalize-phase-placement %s | cudaq-opt --normalize-phase-placement | FileCheck %s
+
+func.func private @opaque()
+
+// A phase may move past a unitary that does not touch its predicate.
+// CHECK-LABEL: func.func @safe_reference_move(
+// CHECK: quake.h %[[OTHER:.*]]
+// CHECK-NEXT: quake.phase (%{{.*}}) {{\[}}%{{.*}}{{\]}} %{{.*}}
+// CHECK: return
+func.func @safe_reference_move(%theta: f64) {
+  %control = quake.alloca !quake.ref
+  %anchor = quake.alloca !quake.ref
+  %other = quake.alloca !quake.ref
+  quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.h %other : (!quake.ref) -> ()
+  quake.dealloc %other : !quake.ref
+  quake.dealloc %anchor : !quake.ref
+  quake.dealloc %control : !quake.ref
+  return
+}
+
+// Compatible phases merge at the section end, and the last compatible
+// phase's live scalar anchor is selected deterministically.
+// CHECK-LABEL: func.func @merge_reference(
+// CHECK-SAME: %[[A:[a-zA-Z0-9_.$-]+]]: f64, %[[B:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[CONTROL:.*]] = quake.alloca !quake.ref
+// CHECK: %[[FIRST_ANCHOR:.*]] = quake.alloca !quake.ref
+// CHECK: %[[LAST_ANCHOR:.*]] = quake.alloca !quake.ref
+// CHECK: %[[OTHER:.*]] = quake.alloca !quake.ref
+// CHECK: quake.h
+// CHECK-NEXT: quake.z
+// CHECK-NEXT: %[[SUM:.*]] = arith.addf %[[A]], %[[B]] : f64
+// CHECK-NEXT: quake.phase (%[[SUM]]) {{\[}}%[[CONTROL]]{{\]}} %[[LAST_ANCHOR]]
+// CHECK-NOT: quake.phase
+func.func @merge_reference(%a: f64, %b: f64) {
+  %control = quake.alloca !quake.ref
+  %first_anchor = quake.alloca !quake.ref
+  %last_anchor = quake.alloca !quake.ref
+  %other = quake.alloca !quake.ref
+  quake.phase (%a) [%control] %first_anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.h %other : (!quake.ref) -> ()
+  quake.phase (%b) [%control] %last_anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.z %other : (!quake.ref) -> ()
+  quake.dealloc %other : !quake.ref
+  quake.dealloc %last_anchor : !quake.ref
+  quake.dealloc %first_anchor : !quake.ref
+  quake.dealloc %control : !quake.ref
+  return
+}
+
+// Changing a phase control ends the safe section.
+// CHECK-LABEL: func.func @stop_at_control_change
+// CHECK: quake.phase
+// CHECK-NEXT: quake.x
+// CHECK-NEXT: quake.phase
+func.func @stop_at_control_change(%a: f64, %b: f64, %control: !quake.ref,
+                                  %anchor: !quake.ref) {
+  quake.phase (%a) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.x %control : (!quake.ref) -> ()
+  quake.phase (%b) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Calls with unknown behavior end the safe section.
+// CHECK-LABEL: func.func @stop_at_call
+// CHECK: quake.phase
+// CHECK-NEXT: call @opaque
+// CHECK-NEXT: quake.phase
+func.func @stop_at_call(%a: f64, %b: f64, %control: !quake.ref,
+                        %anchor: !quake.ref) {
+  quake.phase (%a) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  func.call @opaque() : () -> ()
+  quake.phase (%b) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A non-unitary operation ends the safe section.
+// CHECK-LABEL: func.func @stop_at_measurement
+// CHECK: quake.phase
+// CHECK-NEXT: %{{.*}} = quake.mz
+// CHECK-NEXT: quake.phase
+func.func @stop_at_measurement(%a: f64, %b: f64, %control: !quake.ref,
+                               %anchor: !quake.ref) {
+  quake.phase (%a) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  %measurement = quake.mz %anchor
+      : (!quake.ref) -> !quake.measure
+  quake.phase (%b) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Wire controls are reconnected positionally. The first anchor bypasses, and
+// the last compatible phase supplies the deterministic normalized anchor.
+// CHECK-LABEL: func.func @merge_wire(
+// CHECK-SAME: %[[A:[a-zA-Z0-9_.$-]+]]: f64, %[[B:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[CONTROL:.*]] = quake.null_wire
+// CHECK: %[[FIRST_ANCHOR:.*]] = quake.null_wire
+// CHECK: %[[LAST_ANCHOR:.*]] = quake.null_wire
+// CHECK: %[[OTHER:.*]] = quake.null_wire
+// CHECK: %[[H:.*]] = quake.h %[[OTHER]]
+// CHECK-NEXT: %[[Z:.*]] = quake.z %[[H]]
+// CHECK-NEXT: %[[SUM:.*]] = arith.addf %[[A]], %[[B]] : f64
+// CHECK-NEXT: %[[PHASE:.*]]:2 = quake.phase (%[[SUM]]) {{\[}}%[[CONTROL]]{{\]}} %[[LAST_ANCHOR]]
+// CHECK: quake.sink %[[FIRST_ANCHOR]] : !quake.wire
+// CHECK: quake.sink %[[PHASE]]#0 : !quake.wire
+// CHECK: quake.sink %[[PHASE]]#1 : !quake.wire
+// CHECK: quake.sink %[[Z]] : !quake.wire
+func.func @merge_wire(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %first_anchor = quake.null_wire
+  %last_anchor = quake.null_wire
+  %other = quake.null_wire
+  %first:2 = quake.phase (%a) [%control] %first_anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %h = quake.h %other : (!quake.wire) -> !quake.wire
+  %last:2 = quake.phase (%b) [%first#0] %last_anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %z = quake.z %h : (!quake.wire) -> !quake.wire
+  quake.sink %first#1 : !quake.wire
+  quake.sink %last#0 : !quake.wire
+  quake.sink %last#1 : !quake.wire
+  quake.sink %z : !quake.wire
+  return
+}
+
+// Compatible predicates merge even when another phase predicate is
+// interleaved. The merged A correction uses the later A phase's anchor.
+// CHECK-LABEL: func.func @merge_interleaved_predicates(
+// CHECK-SAME: %[[A0:[a-zA-Z0-9_.$-]+]]: f64, %[[B:[a-zA-Z0-9_.$-]+]]: f64, %[[A1:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[CONTROL_A:.*]] = quake.alloca !quake.ref
+// CHECK: %[[CONTROL_B:.*]] = quake.alloca !quake.ref
+// CHECK: %[[FIRST_A_ANCHOR:.*]] = quake.alloca !quake.ref
+// CHECK: %[[B_ANCHOR:.*]] = quake.alloca !quake.ref
+// CHECK: %[[LAST_A_ANCHOR:.*]] = quake.alloca !quake.ref
+// CHECK-NOT: quake.phase
+// CHECK: %[[A_SUM:.*]] = arith.addf %[[A0]], %[[A1]] : f64
+// CHECK-NEXT: quake.phase (%[[B]]) {{\[}}%[[CONTROL_B]]{{\]}} %[[B_ANCHOR]]
+// CHECK-NEXT: quake.phase (%[[A_SUM]]) {{\[}}%[[CONTROL_A]]{{\]}} %[[LAST_A_ANCHOR]]
+// CHECK-NOT: quake.phase
+func.func @merge_interleaved_predicates(%a0: f64, %b: f64, %a1: f64) {
+  %control_a = quake.alloca !quake.ref
+  %control_b = quake.alloca !quake.ref
+  %first_a_anchor = quake.alloca !quake.ref
+  %b_anchor = quake.alloca !quake.ref
+  %last_a_anchor = quake.alloca !quake.ref
+  quake.phase (%a0) [%control_a] %first_a_anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%b) [%control_b] %b_anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%a1) [%control_a] %last_a_anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.dealloc %last_a_anchor : !quake.ref
+  quake.dealloc %b_anchor : !quake.ref
+  quake.dealloc %first_a_anchor : !quake.ref
+  quake.dealloc %control_b : !quake.ref
+  quake.dealloc %control_a : !quake.ref
+  return
+}
+
+// Interleaved wire predicates merge positionally even when the middle phase
+// threads A's control as its identity anchor.
+// CHECK-LABEL: func.func @merge_interleaved_wire(
+// CHECK-SAME: %[[WA0:[a-zA-Z0-9_.$-]+]]: f64, %[[WB:[a-zA-Z0-9_.$-]+]]: f64, %[[WA1:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[WCONTROL_A:[a-zA-Z0-9_.$-]+]] = quake.null_wire
+// CHECK: %[[WCONTROL_B:[a-zA-Z0-9_.$-]+]] = quake.null_wire
+// CHECK: %[[WFIRST_ANCHOR:[a-zA-Z0-9_.$-]+]] = quake.null_wire
+// CHECK: %[[WLAST_ANCHOR:[a-zA-Z0-9_.$-]+]] = quake.null_wire
+// CHECK: %[[WSUM:[a-zA-Z0-9_.$-]+]] = arith.addf %[[WA0]], %[[WA1]] : f64
+// CHECK-NEXT: %[[WMIDDLE:[a-zA-Z0-9_.$-]+]]:2 = quake.phase (%[[WB]]) {{\[}}%[[WCONTROL_B]]{{\]}} %[[WCONTROL_A]]
+// CHECK-NEXT: %[[WLAST:[a-zA-Z0-9_.$-]+]]:2 = quake.phase (%[[WSUM]]) {{\[}}%[[WMIDDLE]]#1{{\]}} %[[WLAST_ANCHOR]]
+// CHECK-NEXT: quake.sink %[[WFIRST_ANCHOR]] : !quake.wire
+// CHECK-NEXT: quake.sink %[[WMIDDLE]]#0 : !quake.wire
+// CHECK-NEXT: quake.sink %[[WLAST]]#0 : !quake.wire
+// CHECK-NEXT: quake.sink %[[WLAST]]#1 : !quake.wire
+func.func @merge_interleaved_wire(%a0: f64, %b: f64, %a1: f64) {
+  %control_a = quake.null_wire
+  %control_b = quake.null_wire
+  %first_a_anchor = quake.null_wire
+  %last_a_anchor = quake.null_wire
+  %first:2 = quake.phase (%a0) [%control_a] %first_a_anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %middle:2 = quake.phase (%b) [%control_b] %first#0
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %last:2 = quake.phase (%a1) [%middle#1] %last_a_anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %first#1 : !quake.wire
+  quake.sink %middle#0 : !quake.wire
+  quake.sink %last#0 : !quake.wire
+  quake.sink %last#1 : !quake.wire
+  return
+}
+
+// Distinct reference-typed function arguments are not proof of distinct
+// qubits: callers may alias them. Conservatively stop before a gate targeting
+// another reference argument when it may therefore change the phase control.
+// CHECK-LABEL: func.func @stop_at_may_alias_ref_args
+// CHECK: quake.phase
+// CHECK-NEXT: quake.h
+func.func @stop_at_may_alias_ref_args(%theta: f64,
+                                      %control: !quake.ref,
+                                      %other: !quake.ref,
+                                      %anchor: !quake.ref) {
+  quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.h %other : (!quake.ref) -> ()
+  return
+}
