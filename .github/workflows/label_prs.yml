@@ -1,0 +1,33 @@
+name: Labeling new pull requests
+
+# pull_request_target is safe here: no code from the PR branch is checked
+# out or executed; actions/labeler only reads changed file paths via the API.
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - synchronize
+
+permissions:
+  contents: read
+
+jobs:
+  label-prs:
+    name: Apply labels based on changed files
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    # Skip drafts (labeled once ready for review) and PRs with many
+    # commits, which are usually rebase accidents touching every path.
+    if: >
+      github.repository == 'NVIDIA/cuda-quantum' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.commits < 10
+    steps:
+      - uses: actions/labeler@v6
+        with:
+          configuration-path: .github/labeler.yml
+          sync-labels: false

@@ -132,4 +132,8 @@ if(CUDA_FOUND)
   if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
     add_subdirectory(bridge/hololink)
   endif()
+  # CPU transport bridge providers (thin provider .so's over the
+  # cpu_transport ring transceivers; loaded via CUDAQ_REALTIME_BRIDGE_LIB).
+  add_subdirectory(bridge/udp)
+  add_subdirectory(bridge/cpu_roce)
 endif()

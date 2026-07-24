@@ -11,6 +11,7 @@
 
 // RUN: test_argument_conversion | FileCheck %s
 
+#include "common/ArgumentWrapper.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -681,6 +682,24 @@ void test_combinations(mlir::MLIRContext *ctx) {
   // clang-format on
 }
 
+// A `CallableClosureArgument` must own (clone) its module so it
+// stays valid after the source module it was constructed from is destroyed.
+void test_callable_closure_argument(mlir::MLIRContext *ctx) {
+  const char *code = R"#(
+func.func @closure_fn() {
+  return
+})#";
+  std::unique_ptr<cudaq::runtime::CallableClosureArgument> closure;
+  {
+    auto source = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
+    closure = std::make_unique<cudaq::runtime::CallableClosureArgument>(
+        "closure_fn", *source, std::nullopt, cudaq::OpaqueArguments{});
+  }
+  if (closure->getModule().lookupSymbol("closure_fn"))
+    llvm::outs() << "Callable closure owns its module\n";
+  // CHECK: Callable closure owns its module
+}
+
 int main() {
   mlir::DialectRegistry registry;
   cudaq::registerAllDialects(registry);
@@ -692,5 +711,6 @@ int main() {
   test_recursive(&context);
   test_simulation_state(&context);
   test_combinations(&context);
+  test_callable_closure_argument(&context);
   return 0;
 }

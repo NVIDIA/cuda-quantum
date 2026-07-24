@@ -173,6 +173,14 @@ public:
                                       const CompiledModule &module,
                                       KernelArgs args);
 
+  virtual run_result launchKernel(const run_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
+  virtual async_run_policy::result_type
+  launchKernel(const async_run_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
   virtual msm_dimensions launchKernel(const msm_size_policy &policy,
                                       const CompiledModule &module,
                                       KernelArgs args);
@@ -203,6 +211,8 @@ public:
   getCompileTarget(const sample_policy &policy);
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(const observe_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const run_policy &policy);
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(const msm_size_policy &policy);
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>

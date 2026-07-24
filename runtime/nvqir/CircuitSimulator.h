@@ -296,6 +296,7 @@ public:
             ctx.result = r.raw_data();
             ctx.expectationValue = r.expectation();
           },
+          [&](cudaq::run_result &&r) {},
           [&](cudaq::msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
           [&](cudaq::msm_result &&r) {
             ctx.result = std::move(r.samples);
@@ -312,6 +313,8 @@ public:
   finalizeExecutionContext(const cudaq::observe_policy &policy) = 0;
   virtual cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
+  virtual cudaq::run_result
+  finalizeExecutionContext(const cudaq::run_policy &policy) = 0;
   virtual cudaq::msm_dimensions
   finalizeExecutionContext(const cudaq::msm_size_policy &policy) {
     throw std::runtime_error("This target does not support policy " +
@@ -346,6 +349,14 @@ public:
   virtual void configureExecutionContext(const cudaq::observe_policy &policy) {
     configureExecutionContextImpl(policy);
     policy.canHandleObserve = canHandleObserve();
+  }
+
+  /// @brief Set the execution context
+  virtual void configureExecutionContext(const cudaq::run_policy &policy) {
+    configureExecutionContextImpl(policy);
+    // Start each run with a clean output log so results are not accumulated
+    // across invocations.
+    outputLog.clear();
   }
 
   /// @brief Set the execution context
@@ -1095,7 +1106,8 @@ public:
   }
 
   void deallocateQubits(const std::vector<std::size_t> &qubits) override {
-    if (cudaq::getExecutionContext() != nullptr) {
+    auto *ctx = cudaq::getExecutionContext();
+    if (ctx != nullptr && ctx->name != "run") {
       // Avoid deallocation as we may need to access the state after the
       // execution has completed.
       // TODO: reduce the cases where this is needed.
@@ -1137,6 +1149,16 @@ protected:
   void finalizeExecutionContextImpl() {
     // Flush the queue if there are any gates to apply
     flushGateQueue();
+  }
+
+  cudaq::run_result
+  finalizeExecutionContext(const cudaq::run_policy &policy) override {
+    finalizeExecutionContextImpl();
+    // Capture the output log for this run. Do not clear it here: the log is
+    // reset at the start of each run in configureExecutionContext(run_policy).
+    // The getAndClearOutputLog helper used by the mock QPUs reads the
+    // simulator's output log *after* finalization.
+    return cudaq::run_result{this->outputLog};
   }
 
   cudaq::observe_result
@@ -1614,6 +1636,11 @@ namespace cudaq {
 inline sample_result
 finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
                                  const sample_policy &policy) {
+  return sim.finalizeExecutionContext(policy);
+}
+
+inline run_result finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
+                                                   const run_policy &policy) {
   return sim.finalizeExecutionContext(policy);
 }
 
