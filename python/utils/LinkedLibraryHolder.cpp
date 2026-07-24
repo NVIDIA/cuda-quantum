@@ -506,8 +506,7 @@ void LinkedLibraryHolder::setTarget(
   parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
 
   if (!target.config.PluginLibraries.empty()) {
-    const auto pythonCAPIName =
-        fmt::format("libCUDAQuantumPythonCAPI.{}", libSuffix);
+    const auto pythonCAPIName = fmt::format("libcudaqMLIRCAPI.{}", libSuffix);
     std::vector<std::filesystem::path> pythonCAPICandidates{
         cudaqLibPath.parent_path() / "cudaq" / "mlir" / "_mlir_libs" /
             pythonCAPIName,

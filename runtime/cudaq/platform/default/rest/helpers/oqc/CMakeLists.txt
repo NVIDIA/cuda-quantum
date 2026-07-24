@@ -18,7 +18,8 @@ target_link_libraries(cudaq-serverhelper-oqc
     cudaq-logger 
     cudaq-common 
 )
-install(TARGETS cudaq-serverhelper-oqc DESTINATION lib)
+install(TARGETS cudaq-serverhelper-oqc DESTINATION lib
+        COMPONENT Runtime)
 
 add_target_mapping_arch(oqc lucy.txt)
 add_target_mapping_arch(oqc toshiko.txt)

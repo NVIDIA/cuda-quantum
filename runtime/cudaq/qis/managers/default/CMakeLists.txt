@@ -17,11 +17,15 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-operator PRIVATE cudaq nvqir cudaq-common cudaq-logger fmt::fmt-header-only LLVMSupport)
+  PUBLIC cudaq-operator PRIVATE cudaq nvqir cudaq-common cudaq-logger fmt::fmt-header-only)
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-default-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-em-default-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 install(EXPORT cudaq-em-default-targets
         FILE CUDAQEmDefaultTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)

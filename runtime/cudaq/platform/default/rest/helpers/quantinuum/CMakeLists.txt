@@ -15,5 +15,6 @@ target_link_libraries(cudaq-serverhelper-quantinuum
     cudaq-logger 
     fmt::fmt-header-only 
 )
-install(TARGETS cudaq-serverhelper-quantinuum DESTINATION lib)
+install(TARGETS cudaq-serverhelper-quantinuum DESTINATION lib
+        COMPONENT Runtime)
 

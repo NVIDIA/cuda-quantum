@@ -28,12 +28,8 @@ target_link_libraries(${LIBRARY_NAME}
     nvqir
 )
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-
-# install(EXPORT cudaq-fermioniq-qpu-targets
-#         FILE CUDAQQPUFermioniqTargets.cmake
-#         NAMESPACE cudaq::fermioniq::
-#         DESTINATION lib/cmake/cudaq)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)
 
 add_target_config(fermioniq)
 

@@ -15,5 +15,6 @@ target_link_libraries(cudaq-serverhelper-qci
     cudaq-logger
     cudaq-common 
 )
-install(TARGETS cudaq-serverhelper-qci DESTINATION lib)
+install(TARGETS cudaq-serverhelper-qci DESTINATION lib
+        COMPONENT Runtime)
 

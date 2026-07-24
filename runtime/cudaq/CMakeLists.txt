@@ -70,7 +70,7 @@ if (CUDA_FOUND)
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE
-      MLIRIR
+      cudaqMLIR
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
@@ -97,7 +97,7 @@ else()
       cudaq-logger
       CUDAQTargetConfig
     PRIVATE
-      MLIRIR
+      cudaqMLIR
       nvqir
       fmt::fmt-header-only
       CUDAQTargetConfigYaml
@@ -118,12 +118,16 @@ add_subdirectory(domains)
 add_subdirectory(operators)
 add_subdirectory(ptsbe)
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 install(EXPORT cudaq-targets
         FILE CUDAQTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
 
 # Install CUDAQ MPI interface header, reference implementation, and build script
 # for manual activation on a local system if needed.
@@ -133,5 +137,6 @@ install(
       distributed/builtin/mpi_comm_impl.cpp
       distributed/builtin/activate_custom_mpi.sh
   DESTINATION distributed_interfaces
+  COMPONENT Runtime
   PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ
 )

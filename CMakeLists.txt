@@ -350,6 +350,7 @@ if(CUDAQ_ENABLE_STATIC_LINKING)
 endif()
 option(CUDAQ_STATIC_CXX_RUNTIME "Statically link libstdc++ and libgcc into CUDA-Q libraries." OFF)
 option(CUDAQ_STATIC_DEPS "Prefer static archives for external dependencies (zlib, OpenSSL, curl, BLAS)." OFF)
+option(CUDAQ_BUNDLE_MLIR_INSTALL "Bundle upstream LLVM/MLIR (headers, libs etc.) in installation" OFF)
 option (CUDAQ_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${CUDAQ_FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
@@ -429,21 +430,19 @@ if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
-  # macOS Two-Level Namespace Workaround:
-  # By default, macOS uses two-level namespace linking where symbols are bound
-  # to the specific library they came from. This causes issues when LLVM/MLIR
-  # static initializers (e.g., PassRegistry, TargetRegistry) are duplicated
-  # across multiple shared libraries - each gets its own isolated copy.
-  #
-  # flat_namespace makes all symbols global, allowing shared libraries to see
-  # each other's registrations. This is not a very graceful fix.
-  # Alternatives might be:
-  # A. Restructuring libraries to avoid multiple symbol definitions
-  #    (but this still might struggle due to how plugin systems are used).
-  # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as
-  #    the first versions of this setting did not appropriately link all libraries to the dylibs.
-  add_link_options("-Wl,-flat_namespace")
-  add_link_options("-Wl,-undefined,dynamic_lookup")
+  # Find path to the compiler-rt library
+  set(_cudaq_builtins "")
+  execute_process(
+    COMMAND ${CMAKE_CXX_COMPILER} --rtlib=compiler-rt --print-libgcc-file-name
+    OUTPUT_VARIABLE _cudaq_builtins
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  if(EXISTS "${_cudaq_builtins}")
+    message(STATUS "Found compiler-rt builtins: ${_cudaq_builtins}")
+    link_libraries("${_cudaq_builtins}")
+  else()
+    message(WARNING "compiler-rt builtins not found, symbol resolution may fail at runtime")
+    add_link_options("LINKER:-undefined,dynamic_lookup")
+  endif()
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
@@ -752,7 +751,8 @@ cmake_policy(POP)
 include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
-  DESTINATION include/nlohmann)
+  DESTINATION include/nlohmann
+  COMPONENT Development)
 
 # Add spdlog
 set(SPDLOG_BUILD_SHARED OFF)
