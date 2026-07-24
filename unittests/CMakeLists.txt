@@ -247,6 +247,19 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
+# Server-side observe helpers (Fermioniq / external custom QPU wire format)
+add_executable(test_observable_user_data
+  main.cpp
+  common/ObservableUserDataTester.cpp)
+target_include_directories(test_observable_user_data PRIVATE .)
+target_link_libraries(test_observable_user_data
+  PRIVATE
+  cudaq
+  cudaq-common
+  cudaq-operator
+  gtest_main)
+cudaq_gtest_discover_tests(test_observable_user_data DISCOVERY_TIMEOUT 120)
+
 add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)

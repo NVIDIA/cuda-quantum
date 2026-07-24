@@ -20,7 +20,8 @@ Every plugin follows the same directory convention:
     ├── targets/
     │   └── my-backend.yml          # Target YAML configuration
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so  # Backend shared library
+    │   ├── libcudaq-serverhelper-my-backend.so  # REST-style ServerHelper
+    │   └── libcudaq-my-qpu-qpu.so               # Custom QPU (optional)
     ├── data/                        # Optional auxiliary files
     │   └── topology.txt
     ├── pyproject.toml               # Python package metadata
@@ -29,6 +30,13 @@ Every plugin follows the same directory convention:
 
 The ``targets/`` and ``lib/`` directories are required. The ``data/`` directory
 is optional and holds any auxiliary files your backend needs at runtime.
+
+Library auto-load conventions (when the target is activated):
+
+- ``libcudaq-serverhelper-<target>.so``
+- ``libcudaq-<platform-qpu>-qpu.so`` when ``platform-qpu`` is set
+
+You may also list libraries explicitly under YAML ``plugin-libraries``.
 
 
 Target YAML Reference (Plugin Fields)
@@ -93,7 +101,7 @@ modifying any in-tree files:
       -DCUDAQ_EXTERNAL_PROJECTS="my-backend" \
       -DCUDAQ_EXTERNAL_MY_BACKEND_SOURCE_DIR=/path/to/my-backend
 
-    ninja -C build cudaq-serverhelper-my-backend   # or cudaq-qpu-my-backend
+    ninja -C build cudaq-serverhelper-my-backend   # or cudaq-my-qpu-qpu
 
 The plugin output lands in ``build/external/my-backend/`` with the standard
 ``targets/``, ``lib/``, and packaging files ready to use.
@@ -304,8 +312,8 @@ Environment variables
 Reference Plugins
 =================
 
-CUDA-Q ships a reference plugin under ``docs/sphinx/examples/plugins/``
-that demonstrates the full plugin lifecycle:
+CUDA-Q ships reference plugins under ``docs/sphinx/examples/plugins/``
+that demonstrate the full plugin lifecycle:
 
 .. list-table::
    :header-rows: 1
@@ -314,10 +322,13 @@ that demonstrates the full plugin lifecycle:
      - Shape
      - What it demonstrates
    * - `mock_rest <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest>`_
-     - REST
+     - REST (sample)
      - ``ServerHelper`` subclass, ``remote_rest`` QPU, mock server testing
+   * - `mock_observe_qpu <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_observe_qpu>`_
+     - Custom QPU (observe)
+     - External ``QPU`` + ``ServerHelper``, no Pauli split, full ``spin_op``, expectation results
 
-Use this as a starter template for new plugins. It includes a complete
+Use these as starter templates for new plugins. Each includes a complete
 build configuration, Python packaging, lit tests, and documentation.
 
 
@@ -326,8 +337,9 @@ Quick-Start Checklist
 
 .. code-block:: text
 
-    □ Implement ServerHelper subclass
+    □ Implement ServerHelper subclass (and custom QPU if needed)
     □ Create targets/<name>.yml with target configuration
+    □ For server-side observe: platform-qpu: <custom>, ship libcudaq-<qpu>-qpu.so
     □ Create CMakeLists.txt (build with CUDAQ_EXTERNAL_PROJECTS)
     □ Add pyproject.toml with cudaq.backends entry point
     □ Add __init__.py with register() function
