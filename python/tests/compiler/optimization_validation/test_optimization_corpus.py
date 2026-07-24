@@ -16,6 +16,9 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
 
 from cudaq._compiler import optimization_corpus as corpus
 
+# A few arbitrary, fixed seeds to exercise the generator over.
+_SAMPLE_SEEDS = (184467, 184468, 184469)
+
 
 def _context() -> Context:
     ctx = Context()
@@ -59,44 +62,11 @@ def test_provenance_header_records_version_and_params():
     assert "length=5" in head[1]
 
 
-# Pinned seed sets
-def test_seed_sets_are_pinned_and_sized():
-    sizes = {p: len(s) for p, s in corpus.CORPUS_SEED_SETS.items()}
-    assert sizes == {
-        "single-reproducer": 1,
-        "smoke": 3,
-        "quick": 8,
-        "ci": 24,
-        "full": 64,
-    }
-    # Depth ordering holds.
-    assert (len(corpus.CORPUS_SEED_SETS["smoke"]) < len(
-        corpus.CORPUS_SEED_SETS["quick"]) < len(corpus.CORPUS_SEED_SETS["ci"]) <
-            len(corpus.CORPUS_SEED_SETS["full"]))
-
-
-def test_seeds_for_preset_matches_table():
-    assert corpus.seeds_for_preset("smoke") == corpus.CORPUS_SEED_SETS["smoke"]
-
-
-def test_seeds_for_preset_rejects_unknown():
-    with pytest.raises(ValueError):
-        corpus.seeds_for_preset("enormous")
-
-
-def test_corpus_for_preset_writes_the_seed_set(tmp_path):
-    paths = corpus.corpus_for_preset(tmp_path, "smoke")
-    assert len(paths) == len(corpus.CORPUS_SEED_SETS["smoke"])
-    for seed, path in zip(corpus.CORPUS_SEED_SETS["smoke"], paths):
-        assert path.name == f"generated_{seed}.qke"
-        assert path.read_text() == corpus.generate_module_text(seed)
-
-
 # The corpus must actually be usable by the validator: every generated module is
 # a valid, in-domain bounded-unitary circuit.
 def test_generated_modules_are_valid_and_in_domain():
     ctx = _context()
-    for seed in corpus.CORPUS_SEED_SETS["smoke"]:
+    for seed in _SAMPLE_SEEDS:
         text = corpus.generate_module_text(seed)
         module = Module.parse(text, ctx)
         assert module.operation.verify()

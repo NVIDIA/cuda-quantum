@@ -28,32 +28,6 @@ _SINGLE = ("h", "x", "y", "z", "s", "t")
 # Involutions: g applied twice is the identity (up to nothing for these).
 _INVOLUTIONS = ("h", "x", "y", "z")
 
-_BASE_SEED = 184467
-_PRESET_SIZES = {
-    "single-reproducer": 1,
-    "smoke": 3,
-    "quick": 8,
-    "ci": 24,
-    "full": 64,
-}
-CORPUS_SEED_SETS = {
-    preset: tuple(_BASE_SEED + i for i in range(size))
-    for preset, size in _PRESET_SIZES.items()
-}
-
-
-def seeds_for_preset(preset: str) -> tuple:
-    """Return the pinned seed tuple for ``preset``.
-
-    Raises ``ValueError`` for an unknown preset so a typo can never silently
-    yield an empty corpus.
-    """
-    try:
-        return CORPUS_SEED_SETS[preset]
-    except KeyError:
-        raise ValueError(f"unknown corpus preset '{preset}'; "
-                         f"known: {sorted(CORPUS_SEED_SETS)}")
-
 
 def _provenance_header(seed: int, num_qubits: int, length: int) -> list:
     """Comment lines identifying how a generated module was produced."""
@@ -164,19 +138,6 @@ def write_corpus(directory,
         path.write_text(text)
         paths.append(path)
     return paths
-
-
-def corpus_for_preset(directory,
-                      preset: str,
-                      num_qubits: int = 2,
-                      length: int = 6) -> list:
-    """Materialize the pinned corpus for ``preset`` into ``directory``.
-
-    Depth knob over the seed sets: ``smoke`` < ``quick`` < ``ci`` < ``full``,
-    plus a one-input ``single-reproducer``. Reproducible for a given generator
-    version and parameters.
-    """
-    return write_corpus(directory, seeds_for_preset(preset), num_qubits, length)
 
 
 # Canonical corpus: A small, curated set of named straight-line bounded-unitary
