@@ -13,6 +13,8 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Sequence, Tuple
 
+# trigger rebuild
+
 import numpy
 
 from ._metadata import cuda_major
