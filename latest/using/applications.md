@@ -1899,15 +1899,9 @@ launchable](https://www.nvidia.com/cudaq-apps/){.reference .external}.
 
 All
 
-Optimization
-
 Chemistry
 
 Fundamental Algorithms
-
-AI for Quantum
-
-Quantum for AI
 
 Dynamics
 
@@ -1925,8 +1919,6 @@ CPU
 
 Single GPU
 
-Multi-GPU
-
 Multi-QPU
 :::
 :::
@@ -1936,14 +1928,6 @@ Noisy Simulator
 
 ::: backend-options
 Density Matrix
-:::
-:::
-
-::: backend-group
-QPUs
-
-::: backend-options
-Neutral Atom
 :::
 :::
 :::
@@ -1975,7 +1959,7 @@ Learn how the QSCI method uses the observe and sample primitives.
 Preview](../_static/app_title_images/qsci_preview.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="chemistry,noiseless"}
+::: {.notebook-entry tags="chemistry,noiseless,gpu"}
 [Sample-Based Krylov Quantum Diagonalization
 (SKQD)](../applications/python/skqd.html){.notebook-title}
 
@@ -2107,15 +2091,15 @@ Learn how to approximately prepare quantum states via MPS using CUDA-Q.
 Encoding](../_static/app_title_images/mps_encoding.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="gpu, dynamics, noiseless"}
+::: {.notebook-entry tags="gpu,dynamics,noiseless"}
 [Entanglement Accelerates Quantum
-Simulation](../applications/python/entanglement_acc_hamiltonian_simulation){.notebook-title}
+Simulation](../applications/python/entanglement_acc_hamiltonian_simulation.html){.notebook-title}
 
 ::: notebook-content
-Learn how entanglement growth can \*reduce\* the Trotter error of the
+Learn how entanglement growth can *reduce* the Trotter error of the
 first-order product formula (PF1), recovering the result from the
-\[paper\](https://www.nature.com/articles/s41567-025-02945-2) using
-NVIDIA CUDA-Q.
+[paper](https://www.nature.com/articles/s41567-025-02945-2) using NVIDIA
+CUDA-Q.
 :::
 
 ![PF1 error decreases as entanglement
