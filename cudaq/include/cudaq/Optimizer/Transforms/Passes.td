@@ -162,33 +162,6 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
-def PruneNegligibleRotations
-    : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
-  let summary = "Erase constant-angle rotations that are effectively identity.";
-  let description = [{
-    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations whose
-    constant angle has magnitude below `threshold`, treating them as the
-    identity. In memory semantics (`!quake.ref` targets) the op is simply
-    dropped and in value semantics (`!quake.wire` targets) the input wire is
-    threaded straight through to the users of the result.
-
-    Only uncontrolled rotations are pruned: a controlled rotation with a
-    negligible angle is left in place (materialize controls with
-    `ApplyOpSpecialization` first if pruning them matters). Non-constant and
-    non-finite angles are also left untouched.
-
-    This is the negligible-rotation pruning used internally by
-    `clifford-t-synthesis`, exposed as a standalone pass so it can be run
-    independently of Clifford+T synthesis.
-  }];
-  let options = [
-    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
-      "Erase (treat as identity) rotations whose |theta| is below this "
-      "threshold. Set to 0 to disable.">,
-  ];
-  let dependentDialects = ["quake::QuakeDialect"];
-}
-
 def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
   let summary = "Perform the rough-in cabling for value semantics conversion.";
   let description = [{
@@ -1218,6 +1191,33 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
   }];
+}
+
+def PruneNegligibleRotations
+    : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
+  let summary = "Erase constant-angle rotations that are effectively identity.";
+  let description = [{
+    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations whose
+    constant angle has magnitude below `threshold`, treating them as the
+    identity. In memory semantics (`!quake.ref` targets) the op is simply
+    dropped and in value semantics (`!quake.wire` targets) the input wire is
+    threaded straight through to the users of the result.
+
+    Only uncontrolled rotations are pruned: a controlled rotation with a
+    negligible angle is left in place (materialize controls with
+    `ApplyOpSpecialization` first if pruning them matters). Non-constant and
+    non-finite angles are also left untouched.
+
+    This is the negligible-rotation pruning used internally by
+    `clifford-t-synthesis`, exposed as a standalone pass so it can be run
+    independently of Clifford+T synthesis.
+  }];
+  let options = [
+    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
+      "Erase (treat as identity) rotations whose |theta| is below this "
+      "threshold. Set to 0 to disable.">,
+  ];
+  let dependentDialects = ["quake::QuakeDialect"];
 }
 
 def PyFrontendCleanup : Pass<"py-frontend-cleanup", "mlir::func::FuncOp"> {
