@@ -964,27 +964,11 @@ void CuDensityMatState::distributeBatchedStateData(
       /*stateComponentLocalId=*/0, &stateComponentGlobalId, &numModes,
       stateComponentModeExtents.data(), stateComponentModeOffsets.data()));
 
-  // Calculate the batch index using the batch mode location.
-  // The batchModeLocation tells us which mode corresponds to the batch
-  // dimension. If batchModeLocation is valid (>= 0), use the offset directly
-  // from that mode. Otherwise, fall back to computing from the linear index.
-  int batchIdx = 0;
-  if (batchModeLocation >= 0 && batchModeLocation < numModes) {
-    // The batch mode offset directly gives us the starting batch index
-    batchIdx = static_cast<int>(stateComponentModeOffsets[batchModeLocation]);
-  } else {
-    // Fallback: compute from linear index (original logic)
-    int64_t startIdx = 0;
-    int64_t accumulatedIdx = 1;
-    for (int32_t i = 0; i < numModes; ++i) {
-      accumulatedIdx *= stateComponentModeExtents[i];
-      startIdx += (stateComponentModeOffsets[i] * accumulatedIdx);
-    }
-    batchIdx = startIdx / singleStateDimension;
-    if (batchIdx * singleStateDimension != startIdx)
-      throw std::runtime_error(
-          "Batched state cannot be evenly distributed across available GPUs");
-  }
+  if (batchModeLocation < 0 || batchModeLocation >= numModes)
+    throw std::runtime_error(
+        "Invalid distributed batched state layout: batch mode is absent");
+  const int batchIdx =
+      static_cast<int>(stateComponentModeOffsets[batchModeLocation]);
 
   const int64_t stateVolume = batchedState.dimension;
   const int numStatesPerGpu = stateVolume / singleStateDimension;
