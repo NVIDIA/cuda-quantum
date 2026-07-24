@@ -31,6 +31,7 @@ struct kernel {
   }
 };
 
+// clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
 // CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
