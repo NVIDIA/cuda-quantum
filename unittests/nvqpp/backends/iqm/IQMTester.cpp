@@ -116,6 +116,31 @@ CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
       << "(see GitHub issue #4621). Got \"" << mostFrequent << "\".";
 }
 
+// A user-named register (e.g. `auto result = mz(q)`) yields a non-numeric
+// measurement key. processResults must accept it, not reject it as malformed.
+// Regression test for the nightly IQM failure from PR #4818.
+CUDAQ_TEST(IQMTester, processResultsAcceptsNonNumericMeasurementKey) {
+  auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("iqm");
+  ASSERT_TRUE(serverHelper);
+
+  cudaq::BackendConfig config;
+  config["url"] = "http://localhost:62443";
+  serverHelper->initialize(config);
+
+  // Single measurement into a user-named register `result`.
+  cudaq::ServerMessage response = {
+      {{"counts", {{"1", 1000}}}, {"measurement_keys", {"result"}}}};
+
+  std::string jobId = "test-job-id";
+  cudaq::sample_result result;
+  EXPECT_NO_THROW(result = serverHelper->processResults(response, jobId))
+      << "IQMServerHelper rejected a non-numeric measurement key instead of "
+      << "leaving the bitstrings in measurement order.";
+
+  auto counts = result.to_map();
+  EXPECT_EQ(counts["1"], 1000);
+}
+
 // Setting an arbitrary string in the IQM_TOKEN environment variable must
 // trigger the response that the authentication failed.
 CUDAQ_TEST(IQMTester, invalidTokenFromEnvVariable) {

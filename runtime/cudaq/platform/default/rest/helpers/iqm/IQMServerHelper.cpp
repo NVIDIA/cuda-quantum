@@ -338,19 +338,26 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
     // is used to sort the strings in numerical order and then the bitstrings
     // are ordered accordingly. As result the bitstrings are ordered according
     // to the physical qubit numbering.
+    //
+    // The sort only applies when every key ends in a digit (auto-generated
+    // `r00000`, ...). A user-named register (e.g. `auto result = mz(q)`) has
+    // no position to sort by, so keep the emission order instead of rejecting.
+    bool sortable = true;
     for (std::string key : counts["measurement_keys"]) {
-      // keys must not be empty and end with a digit
       if (key.empty() || !std::isdigit(key.back())) {
-        throw std::runtime_error("Malformed measurement key received: " + key);
+        sortable = false;
+        break;
       }
       mxKeys[key] = i++;
     }
-    mxOrder.reserve(mxKeys.size());
-    i = 0;
-    for (auto [_, idx] : mxKeys) {
-      mxOrder.push_back(idx);
-      if (!reorder && idx != i++)
-        reorder = true;
+    if (sortable) {
+      mxOrder.reserve(mxKeys.size());
+      i = 0;
+      for (auto [_, idx] : mxKeys) {
+        mxOrder.push_back(idx);
+        if (!reorder && idx != i++)
+          reorder = true;
+      }
     }
 
     if (reorder) {
