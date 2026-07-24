@@ -399,23 +399,36 @@ public:
   // Mathematical constants
   //===--------------------------------------------------------------------===//
   //
-  // Function-local statics dodge static-initialization-order issues and
-  // capture the default precision in force at first use.
+  // Function-local statics dodge static-initialization-order issues. The value
+  // is materialized at the default precision in force at first use and then
+  // re-materialized whenever the default precision changes, so a later
+  // higher-precision run does not read a stale low-precision constant. The
+  // recompute is skipped on the common path where the precision is unchanged.
+  // Like `default_precision_` itself, this cache assumes the precision is not
+  // being changed concurrently from another thread.
 
   static const Real &sqrt2() {
-    static const Real value = []() {
+    static Real value = []() {
       Real v;
       mpfr_sqrt_ui(v.get_mpfr(), 2, MPFR_RNDN);
       return v;
     }();
+    if (value.precision() != default_precision_) {
+      value.set_precision(default_precision_);
+      mpfr_sqrt_ui(value.get_mpfr(), 2, MPFR_RNDN);
+    }
     return value;
   }
   static const Real &pi() {
-    static const Real value = []() {
+    static Real value = []() {
       Real v;
       mpfr_const_pi(v.get_mpfr(), MPFR_RNDN);
       return v;
     }();
+    if (value.precision() != default_precision_) {
+      value.set_precision(default_precision_);
+      mpfr_const_pi(value.get_mpfr(), MPFR_RNDN);
+    }
     return value;
   }
   // Infinity is precision-independent; use mpfr_set_inf directly rather
