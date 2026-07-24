@@ -24,8 +24,7 @@ jobs:
     # commits, which are usually rebase accidents touching every path.
     if: >
       github.repository == 'NVIDIA/cuda-quantum' &&
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.commits < 10
+      github.event.pull_request.draft == false
     steps:
       - uses: actions/labeler@v6
         with:
