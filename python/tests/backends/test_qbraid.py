@@ -176,6 +176,28 @@ def test_qbraid_machine_alternative_device():
     assert len(counts) >= 1
 
 
+def test_qbraid_rejects_analog_device():
+    """An analog/AHS device (paradigm != gate_model) is rejected up front.
+
+    The helper queries device metadata when the target is configured and
+    refuses a non-gate-model device, surfacing an actionable error at
+    set_target time instead of an opaque downstream job failure.
+    """
+    with pytest.raises(RuntimeError, match="gate-model"):
+        _set_qbraid_target(machine="aws:quera:qpu:aquila")
+
+
+def test_qbraid_accepts_gate_model_device():
+    """A gate-model device passes the paradigm check and executes normally."""
+    _set_qbraid_target(machine="aws:aws:sim:sv1")
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
+    counts = cudaq.sample(kernel)
+    assert len(counts) >= 1
+
+
 def _arm_result_status(code: int):
     """Force the next /result call on the mock to return the given HTTP code.
 
