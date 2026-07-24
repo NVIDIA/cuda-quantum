@@ -35,9 +35,10 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE cudaq-logger
 )
 
-install(TARGETS ${LIBRARY_NAME} 
-        EXPORT nvqir-targets 
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT nvqir-targets
         LIBRARY DESTINATION lib
+        COMPONENT Runtime
         INCLUDES DESTINATION include/nvqir)
 
 add_subdirectory(qpp)
@@ -56,4 +57,5 @@ endif()
 install(EXPORT nvqir-targets
         FILE NVQIRTargets.cmake
         NAMESPACE nvqir::
-        DESTINATION lib/cmake/nvqir)
+        DESTINATION lib/cmake/nvqir
+        COMPONENT Development)

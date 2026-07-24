@@ -113,10 +113,13 @@ getEntryPointName(mlir::OwningOpRef<mlir::ModuleOp> &module);
 
 void initializeLangMLIR();
 
-/// Run pm on op. Implementation is selected at link time by
-/// RuntimeCppMLIR.cpp / RuntimePyMLIR.cpp so the host language can wrap
-/// the call with any required interpreter-lock handling.
+/// Run pm on op. Python extension uses setRunPassManagerHook to override hook
+/// (for required interpreter-lock / signal handling).
 mlir::LogicalResult runPassManager(mlir::PassManager &pm, mlir::Operation *op);
+
+using RunPassManagerHook = mlir::LogicalResult (*)(mlir::PassManager &,
+                                                   mlir::Operation *);
+void setRunPassManagerHook(RunPassManagerHook hook);
 
 /// Configure the pass manager according to environment variables
 void configurePassManagerFromEnv(mlir::PassManager &pm);

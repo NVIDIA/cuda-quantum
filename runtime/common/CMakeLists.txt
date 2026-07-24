@@ -82,12 +82,6 @@ if(OPENSSL_FOUND)
     target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB ${CMAKE_DL_LIBS})
   endif()
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
-  # Override the global flat_namespace for this library. cudaq-common doesn't need
-  # LLVM symbol sharing, and flat_namespace causes issues with statically-linked
-  # OpenSSL assembly code linked with flat namespace.
-  if(APPLE)
-    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-twolevel_namespace")
-  endif()
 endif()
 
 
@@ -98,14 +92,20 @@ if (CUDAQ_UPPERCASE_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
 endif()
 
 # Install the target
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-common-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-common-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 install(EXPORT cudaq-common-targets
         FILE CUDAQCommonTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
 if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   # Copy to build directory so that developers can run from the build directory
   file(COPY "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION "${CMAKE_BINARY_DIR}")
   # Also include it as an install target
-  install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
+  install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem"
+          DESTINATION .
+          COMPONENT Runtime)
 endif()

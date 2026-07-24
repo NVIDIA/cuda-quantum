@@ -16,6 +16,9 @@ target_include_directories(CUDAQTargetConfig PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 target_link_libraries(CUDAQTargetConfig PRIVATE cudaq-logger)
-install(TARGETS CUDAQTargetConfig EXPORT cudaq-common-targets DESTINATION lib)
+install(TARGETS CUDAQTargetConfig
+        EXPORT cudaq-common-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 add_subdirectory(Yaml)

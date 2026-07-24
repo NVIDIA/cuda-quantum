@@ -97,5 +97,8 @@ else()
   target_link_options(${LIBRARY_NAME} PRIVATE "LINKER:--gc-sections")
 endif()
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 set_target_properties(${LIBRARY_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

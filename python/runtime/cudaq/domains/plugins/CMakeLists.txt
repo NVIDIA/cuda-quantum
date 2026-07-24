@@ -24,7 +24,7 @@ if (SKBUILD)
   target_link_libraries(cudaq-pyscf
     PRIVATE
       nanobind-static Python3::Module
-      cudaq-chemistry cudaq-operator cudaq cudaq-py-utils cudaq-platform-default)
+      cudaq-chemistry cudaq-operator cudaq cudaq-platform-default)
   # Apple's linker (ld64) doesn't support --unresolved-symbols flag
   if (NOT APPLE)
     target_link_options(cudaq-pyscf
@@ -34,7 +34,7 @@ else()
   target_link_libraries(cudaq-pyscf
     PRIVATE
       nanobind-static Python3::Python
-      cudaq-chemistry cudaq-operator cudaq cudaq-py-utils cudaq-platform-default)
+      cudaq-chemistry cudaq-operator cudaq cudaq-platform-default)
 endif()
 
-install(TARGETS cudaq-pyscf DESTINATION lib/plugins)
+install(TARGETS cudaq-pyscf DESTINATION lib/plugins COMPONENT Python)

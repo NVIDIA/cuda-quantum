@@ -32,17 +32,34 @@ target_include_directories(${LIBRARY_NAME}
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
-    pthread cudaq-em-default cudaq-operator cudaq-common cudaq-logger
+    pthread cudaq-operator cudaq-common cudaq-logger
   PRIVATE
-     cudaq CUDAQTargetConfigYaml cudaq-qpu-default)
+    cudaq nvqir CUDAQTargetConfigYaml cudaq-qpu-default
+    # On Linux, we link in the default execution manager and rely on nvq++
+    # to shadow it with the active target's execution manager.
+    $<$<PLATFORM_ID:Linux>:cudaq-em-default>
+  INTERFACE
+    cudaq-em-default)
+
+# On MacOS, we keep the cudaq::getRegisteredExecutionManager() symbol undefined,
+# to be resolved dynamically by nvq++ at runtime.
+target_link_options(${LIBRARY_NAME} PRIVATE
+  "$<$<PLATFORM_ID:Darwin>:LINKER:-U,__ZN5cudaq29getRegisteredExecutionManagerEv>")
+
+add_dependencies(${LIBRARY_NAME} cudaqMLIR)
+target_link_options(${LIBRARY_NAME} BEFORE PRIVATE
+  "$<TARGET_FILE:cudaqMLIR>")
 
 install(TARGETS ${LIBRARY_NAME}
-  EXPORT cudaq-platform-default-targets DESTINATION lib)
+        EXPORT cudaq-platform-default-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 install(EXPORT cudaq-platform-default-targets
         FILE CUDAQPlatformDefaultTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)

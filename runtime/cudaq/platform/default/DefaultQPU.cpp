@@ -14,10 +14,36 @@
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 
+namespace nvqir {
+void setRandomSeed(std::size_t seed);
+}
+
 cudaq::DefaultQPU::~DefaultQPU() = default;
 
 void cudaq::DefaultQPU::enqueue(QuantumTask &task) {
   execution_queue->enqueue(task);
+}
+
+void cudaq::DefaultQPU::onRandomSeedSet(std::size_t seed) {
+  // QPP's random generator is thread-local. Seed it on the QPU execution
+  // thread as well, which is where asynchronous algorithm tasks run.
+  if (std::this_thread::get_id() == getExecutionThreadId()) {
+    nvqir::setRandomSeed(seed);
+    return;
+  }
+
+  std::promise<void> seeded;
+  auto completed = seeded.get_future();
+  QuantumTask task = [seed, &seeded]() {
+    try {
+      nvqir::setRandomSeed(seed);
+      seeded.set_value();
+    } catch (...) {
+      seeded.set_exception(std::current_exception());
+    }
+  };
+  enqueue(task);
+  completed.get();
 }
 
 cudaq::KernelThunkResultType
