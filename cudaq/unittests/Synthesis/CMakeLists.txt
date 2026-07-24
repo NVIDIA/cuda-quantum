@@ -14,6 +14,8 @@ function(add_synthesis_test target_name source_file)
   target_include_directories(${target_name}
     PRIVATE ${CMAKE_SOURCE_DIR}/cudaq/lib/Synthesis
   )
+  add_dependencies(CudaQUnitTests ${target_name})
+  set_property(GLOBAL APPEND PROPERTY CUDAQ_UNIT_TEST_TARGETS ${target_name})
   gtest_discover_tests(${target_name}
     PROPERTIES LABELS "cudaq-synth-unittest"
     DISCOVERY_TIMEOUT 120
