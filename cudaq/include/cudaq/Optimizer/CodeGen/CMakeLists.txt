@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 add_cudaq_dialect(CodeGen codegen)
-add_cudaq_dialect_doc(CodeGenDialect codegen)
+add_cudaq_dialect_doc(CodeGen codegen)
 
 set(LLVM_TARGET_DEFINITIONS Passes.td)
 mlir_tablegen(Passes.h.inc -gen-pass-decls -name OptCodeGen)

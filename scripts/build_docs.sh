@@ -70,6 +70,8 @@ docs_build_output="$build_dir/docs"
 sphinx_output_dir="$docs_build_output/sphinx"
 doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
+dialect_reference_names=(Quake CC QEC CodeGen)
+build_compiler_developer_docs="${CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS:-0}"
 rm -rf "$docs_build_output"
 
 # Check if the cudaq Python package is installed and if not, build and install it
@@ -101,6 +103,17 @@ if [ ! "$cmake_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation from the cudaq-doc build target."
     echo "CMake exit code: $cmake_exit_code"
     docs_exit_code=10
+elif [ "$build_compiler_developer_docs" = "1" ]; then
+    for dialect_name in "${dialect_reference_names[@]}"; do
+        dialect_reference_file="$dialect_output_dir/$dialect_name.md"
+        if [ ! -f "$dialect_reference_file" ]; then
+            echo "Failed to generate the $dialect_name reference at $dialect_reference_file."
+            docs_exit_code=10
+        fi
+    done
+fi
+if [ ! "$docs_exit_code" -eq "0" ]; then
+    cd "$working_dir" && (return 0 2>/dev/null) && return $docs_exit_code || exit $docs_exit_code
 fi
 
 # Check if a new enough version of doxygen is installed, and otherwise build it from source
@@ -165,20 +178,47 @@ fi
 echo "Building CUDA-Q documentation using Sphinx..."
 cd "$repo_root/docs"
 
-# The docs build so far is fast such that we do not care about the cached outputs.
-# Revisit this when caching becomes necessary.
-rm -rf sphinx/_doxygen/
-rm -rf sphinx/_mdgen/
-cp -r "$doxygen_output_dir" sphinx/_doxygen/
-# cp -r "$dialect_output_dir" sphinx/_mdgen/ # uncomment once we use the content from those files
+# Run staging and Sphinx in a subshell so the EXIT trap also works when this
+# script is sourced.
+build_sphinx_docs() (
+    cleanup_staged_docs() {
+        rm -rf "$repo_root/docs/sphinx/_doxygen/"
+        rm -rf "$repo_root/docs/sphinx/_mdgen/"
+    }
+    trap cleanup_staged_docs EXIT
 
-rm -rf "$sphinx_output_dir"
-echo "Running sphinx in $PWD"
-set -x
-sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
-set +x
+    # The docs build so far is fast such that we do not care about the cached
+    # outputs. Revisit this when caching becomes necessary.
+    cleanup_staged_docs
+    if ! cp -r "$doxygen_output_dir" sphinx/_doxygen/; then
+        echo "Failed to stage the Doxygen reference."
+        return 10
+    fi
+    if [ "$build_compiler_developer_docs" = "1" ]; then
+        mkdir -p sphinx/_mdgen/Dialects
+        for dialect_name in "${dialect_reference_names[@]}"; do
+            dialect_reference_file="$dialect_output_dir/$dialect_name.md"
+            if ! cp "$dialect_reference_file" "sphinx/_mdgen/Dialects/$dialect_name.md"; then
+                echo "Failed to stage the $dialect_name reference."
+                return 10
+            fi
+        done
+    fi
+
+    rm -rf "$sphinx_output_dir"
+    echo "Running sphinx in $PWD"
+    set -x
+    sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+    sphinx_exit_code=$?
+    set +x
+    return "$sphinx_exit_code"
+)
+
+build_sphinx_docs
 sphinx_exit_code=$?
-if [ ! "$sphinx_exit_code" -eq "0" ]; then
+if [ "$sphinx_exit_code" -eq "10" ]; then
+    docs_exit_code=10
+elif [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation using sphinx-build."
     echo "Sphinx exit code: $sphinx_exit_code"
     echo "======== logs ========"
@@ -186,9 +226,6 @@ if [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "======================"
     docs_exit_code=12
 fi
-
-rm -rf sphinx/_doxygen/
-rm -rf sphinx/_mdgen/
 
 mkdir -p "$DOCS_INSTALL_PREFIX"
 if [ "$docs_exit_code" -eq "0" ]; then
