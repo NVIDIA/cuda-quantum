@@ -13,7 +13,6 @@
 #include "mlir/IR/DialectImplementation.h"
 
 using namespace mlir;
-using cudaq::quake::Pauli;
 
 //===----------------------------------------------------------------------===//
 // Generated logic
@@ -22,16 +21,16 @@ using cudaq::quake::Pauli;
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.cpp.inc"
 
-static std::optional<Pauli> symbolizePauli(char value) {
+static std::optional<cudaq::quake::Pauli> symbolizePauli(char value) {
   switch (value) {
   case 'I':
-    return Pauli::I;
+    return cudaq::quake::Pauli::I;
   case 'X':
-    return Pauli::X;
+    return cudaq::quake::Pauli::X;
   case 'Y':
-    return Pauli::Y;
+    return cudaq::quake::Pauli::Y;
   case 'Z':
-    return Pauli::Z;
+    return cudaq::quake::Pauli::Z;
   default:
     return std::nullopt;
   }
@@ -39,7 +38,7 @@ static std::optional<Pauli> symbolizePauli(char value) {
 
 std::optional<cudaq::quake::PauliWord>
 cudaq::quake::symbolizePauliWord(llvm::StringRef value) {
-  PauliWord result;
+  cudaq::quake::PauliWord result;
   result.reserve(value.size());
   for (char character : value) {
     auto pauli = symbolizePauli(character);
