@@ -11,6 +11,10 @@
 #include <cctype>
 #include <functional>
 
+cudaq::CompileTarget::RuntimeEndpoint::RuntimeEndpoint(
+    const std::string &name, const std::map<std::string, std::string> &options)
+    : name(name), options(options) {}
+
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
 static void substitutePipelinePlaceholders(
     std::string &pipeline,
@@ -129,21 +133,32 @@ inline std::size_t hash_val(const Args &...args) {
 
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
-  std::size_t seed = hash_val(
-      t.pipelineConfig.overridePassPipeline, t.pipelineConfig.highLevelPipeline,
-      t.pipelineConfig.midLevelPipeline, t.pipelineConfig.lowLevelPipeline,
-      t.pipelineConfig.codegenTranslation, t.pipelineConfig.postCodeGenPasses,
-      t.pipelineConfig.skipTargetLoweringPipeline,
-      t.pipelineConfig.disableQubitMapping,
-      t.pipelineConfig.replaceStateWithKernel, t.pipelineConfig.addMeasurements,
-      t.overrideAOTCompilation, t.emulate, t.warnNamedMeasurements,
-      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
-      t.storeReorderIdx, t.emitResourceCounts, t.emitJit, t.emitTargetCode,
-      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics);
+  auto pauliStr =
+      t.pauliTermSplitObservable ? t.pauliTermSplitObservable->to_string() : "";
+  return hash_val(t.pipelineConfig, t.overrideAOTCompilation, t.emulate,
+                  t.warnNamedMeasurements,
+                  t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+                  t.storeReorderIdx, t.emitResourceCounts, t.emitJit,
+                  t.emitTargetCode, t.fullySpecialize, t.isLocalSimulator,
+                  t.argumentSynthChangeSemantics, t.runtimeEndpoint, pauliStr);
+}
 
-  // Optional spin observable: include its string representation when present.
-  if (t.pauliTermSplitObservable)
-    hash_combine(seed, t.pauliTermSplitObservable->to_string());
+std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
+    const cudaq::CompileTarget::PipelineConfig &pc) const noexcept {
+  return hash_val(pc.overridePassPipeline, pc.highLevelPipeline,
+                  pc.midLevelPipeline, pc.lowLevelPipeline,
+                  pc.codegenTranslation, pc.postCodeGenPasses,
+                  pc.skipTargetLoweringPipeline, pc.disableQubitMapping,
+                  pc.replaceStateWithKernel, pc.addMeasurements);
+}
 
+std::size_t std::hash<cudaq::CompileTarget::RuntimeEndpoint>::operator()(
+    const cudaq::CompileTarget::RuntimeEndpoint &re) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &[key, value] : re.options) {
+    hash_combine(seed, key);
+    hash_combine(seed, value);
+  }
+  hash_combine(seed, re.name);
   return seed;
 }

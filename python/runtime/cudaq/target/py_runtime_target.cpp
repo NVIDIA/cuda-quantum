@@ -52,10 +52,8 @@ void onTargetChange(const cudaq::RuntimeTarget &newTarget) {
 }
 } // namespace
 
-namespace cudaq {
-
 std::map<std::string, std::string>
-parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
+cudaq::parseTargetKwArgs(const nanobind::dict &extraConfig) {
   if (extraConfig.contains("options"))
     throw std::runtime_error("The keyword `options` argument is not supported "
                              "in cudaq.set_target(). Please use the keyword "
@@ -80,7 +78,8 @@ parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
   return config;
 }
 
-void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
+void cudaq::bindRuntimeTarget(nanobind::module_ &mod,
+                              LinkedLibraryHolder &holder) {
 
   nanobind::enum_<simulation_precision>(
       mod, "SimulationPrecision",
@@ -190,6 +189,14 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "kernel execution. Can provide optional, target-specific configuration "
       "data via Python kwargs.");
   mod.def(
+      "set_target",
+      [&](CompileTarget target) {
+        holder.setTarget(std::move(target));
+        onTargetChange(holder.getTarget());
+      },
+      "Set the given CompileTarget to be used for CUDA-Q kernel compilation "
+      "and execution.");
+  mod.def(
       "register_set_target_callback",
       [&](std::function<void(const cudaq::RuntimeTarget &)> callback,
           const std::string &id) {
@@ -222,5 +229,3 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         g_callbacks.clear();
       }));
 }
-
-} // namespace cudaq
