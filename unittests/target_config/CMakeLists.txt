@@ -6,11 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_target_config
-  TargetConfigTester.cpp
-  # This test group currently uses Python's LinkedLibraryHolder for dynamic plugin loading.
-  ${CMAKE_SOURCE_DIR}/python/utils/LinkedLibraryHolder.cpp
-)
+add_executable(test_target_config TargetConfigTester.cpp)
 target_compile_definitions(test_target_config
   PRIVATE "CUDAQ_TEST_VERSION=\"${CUDA_QUANTUM_VERSION}\"")
 
@@ -25,26 +21,32 @@ set_target_properties(cudaq-dlopen-sentinel-plugin
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_target_config PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
-target_include_directories(test_target_config PRIVATE
-  ${CMAKE_SOURCE_DIR}/python/utils
-)
-# libcudaq.so has an unresolved reference to getRegisteredExecutionManager
-# that is normally provided at runtime by an execution manager plugin.
-# Link the default execution manager to satisfy it; this test does not
-# actually execute any kernels.
 target_link_libraries(test_target_config
   PRIVATE
     CUDAQTargetConfigYaml
     gtest_main
-    cudaq
-    cudaq-em-default
-    nvqir
 )
-target_compile_definitions(test_target_config
-  PRIVATE
-    "CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH=\"$<TARGET_FILE:cudaq-dlopen-sentinel-plugin>\""
-    "CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME=\"$<TARGET_FILE_NAME:cudaq-dlopen-sentinel-plugin>\""
-)
-add_dependencies(test_target_config cudaq-dlopen-sentinel-plugin)
+
+if(CUDAQ_ENABLE_PYTHON)
+  target_sources(test_target_config PRIVATE
+    ${CMAKE_SOURCE_DIR}/python/utils/LinkedLibraryHolder.cpp
+  )
+  target_include_directories(test_target_config PRIVATE
+    ${CMAKE_SOURCE_DIR}/python/utils
+  )
+  # libcudaq.so has an unresolved reference to getRegisteredExecutionManager
+  # that is normally provided at runtime by an execution manager plugin.
+  # Link the default execution manager to satisfy it; this test does not
+  # actually execute any kernels.
+  target_link_libraries(test_target_config
+    PRIVATE cudaq cudaq-em-default nvqir)
+  target_compile_definitions(test_target_config PRIVATE CUDAQ_ENABLE_PYTHON)
+  target_compile_definitions(test_target_config
+    PRIVATE
+      "CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH=\"$<TARGET_FILE:cudaq-dlopen-sentinel-plugin>\""
+      "CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME=\"$<TARGET_FILE_NAME:cudaq-dlopen-sentinel-plugin>\""
+  )
+  add_dependencies(test_target_config cudaq-dlopen-sentinel-plugin)
+endif()
 
 cudaq_gtest_discover_tests(test_target_config DISCOVERY_TIMEOUT 120)

@@ -6,17 +6,22 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Target/TargetConfigYaml.h"
+#ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
 #include "common/RuntimeTarget.h"
-#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/qpu_utils.h"
+#endif
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
-#include <regex>
 #include <unordered_map>
 
+// ExternalBackendTester is not inherently Python-specific, but this test group
+// currently uses backend discovery helpers and LinkedLibraryHolder from
+// python/utils, which is only available when the Python project is enabled.
+#ifdef CUDAQ_ENABLE_PYTHON
 class ExternalBackendTester : public ::testing::Test {
 protected:
   std::filesystem::path tmpRoot;
@@ -54,6 +59,7 @@ protected:
     return root;
   }
 };
+#endif
 
 TEST(TargetConfigTester, parsesCudaqVersion) {
   const auto config = cudaq::config::parseTargetConfig(R"(
@@ -264,6 +270,7 @@ target-arguments:
             "qir-adaptive:1.0:int_computations,float_computations");
 }
 
+#ifdef CUDAQ_ENABLE_PYTHON
 TEST_F(ExternalBackendTester, setsPluginLibDir) {
   auto root = createBackendPackage("my-backend");
 
@@ -411,8 +418,9 @@ TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {
   // validator falls back to string comparison and only warns, so no throw
   // occurs.
   const std::string testVersion(CUDAQ_TEST_VERSION);
-  if (!std::regex_search(testVersion,
-                         std::regex(R"(^[0-9]+\.[0-9]+\.[0-9]+)"))) {
+  if (testVersion.empty() ||
+      testVersion.find_first_of("0123456789") == std::string::npos ||
+      testVersion.find('.') == std::string::npos) {
     GTEST_SKIP() << "Skipping: current CUDA-Q version '" << testVersion
                  << "' is non-numeric; semver rejection is not tested in dev "
                     "builds";
@@ -518,6 +526,8 @@ TEST_F(ExternalBackendTester, nativeTargetLoadsPluginLibraries) {
   EXPECT_TRUE(std::filesystem::exists(sentinelPath));
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
+
+#endif // CUDAQ_ENABLE_PYTHON
 
 TEST(TargetConfigTester, pluginRootTokenSubstitutionReplacesAllOccurrences) {
   const std::string yaml = R"(
