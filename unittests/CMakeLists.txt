@@ -227,11 +227,6 @@ add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
 target_link_libraries(test_nvqir_verify
   PRIVATE
     cudaq
-    MLIRIR
-    MLIRMathDialect
-    MLIRParser
-    MLIRSupport
-    MLIROptLib
     cudaq-qir-verifier
     cudaq-platform-default
     gtest_main)

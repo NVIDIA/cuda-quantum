@@ -14,20 +14,11 @@ add_mlir_public_c_api_library(cudaqDialectsCAPI
   QECOpsIncGen
 
   LINK_LIBS PRIVATE
-  QuakeDialect
-  CCDialect
-  QECDialect
-  MLIRArithDialect
-  MLIRControlFlowDialect
-  MLIRComplexDialect
-  MLIRFuncDialect
-  MLIRLLVMDialect
-  MLIRMathDialect
-  MLIRFuncInlinerExtension
-  MLIRLLVMIRTransforms
+  cudaqMLIR
 )
 
 add_cudaq_capi_shared_library(cudaqMLIRCAPI
+  cudaqDialectsCAPI
   MLIRCAPIDebug
   MLIRCAPIExecutionEngine
   MLIRCAPIFunc
