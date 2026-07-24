@@ -49,8 +49,12 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
   if (!(epsilonReal > 0))
     throw nanobind::value_error("epsilon must be strictly positive");
 
-  llvm::FailureOr<cudaq::synth::Circuit> result = cudaq::synth::gridsynth(
-      thetaReal, epsilonReal, diophantine_timeout_ms, factoring_timeout_ms);
+  llvm::FailureOr<cudaq::synth::Circuit> result = llvm::failure();
+  {
+    nanobind::gil_scoped_release nogil;
+    result = cudaq::synth::gridsynth(
+        thetaReal, epsilonReal, diophantine_timeout_ms, factoring_timeout_ms);
+  }
   if (llvm::failed(result))
     throw nanobind::value_error(
         "gridsynth: failed to synthesize a Clifford+T approximation "
