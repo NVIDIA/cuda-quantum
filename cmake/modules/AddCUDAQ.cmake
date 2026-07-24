@@ -187,6 +187,34 @@ function(add_cudaq_python_modules name)
   # Delegate to MLIR's real implementation.
   add_mlir_python_modules(${name} ${ARGN})
 
+  # The extension modules install to cudaq/mlir/_mlir_libs, whereas the CUDA-Q
+  # runtime libraries (libcudaq-common, libnvqir, libcudaqMLIR, cudaqMLIRCAPI,
+  # and the dlopen'd simulator plugins) live three levels up under lib/.
+  # INSTALL_RPATH must therefore be a *relative* ($ORIGIN / @loader_path) path
+  # so the installed and wheel-repaired modules can resolve those libraries at
+  # load time. Using the absolute build directory (CUDAQ_LIBRARY_DIR) here is
+  # wrong: it is stripped by auditwheel/delocate, which then treats the CUDA-Q
+  # libraries as external and grafts (and mangles) them into a separate .libs
+  # directory. That moves libcudaq-common away from the simulator plugins, so
+  # getCUDAQLibraryPath() resolves to .libs/ and the plugins (which stay in
+  # lib/) can no longer be found ("target qpp-cpu doesn't define a simulator" /
+  # "Could not load the requested plugin"). Keeping a relative rpath into lib/
+  # lets auditwheel find them in-wheel and leave them in place.
+  if(APPLE)
+    set(_origin_prefix "@loader_path")
+  else()
+    set(_origin_prefix "$ORIGIN")
+  endif()
+  if(SKBUILD)
+    set(_cudaq_python_install_rpaths
+      "${_origin_prefix}/../../../lib"
+      "${_origin_prefix}/../../../cuda_quantum.libs")
+  else()
+    set(_cudaq_python_install_rpaths
+      "${_origin_prefix}/../../../lib"
+      "${_origin_prefix}/../../../lib/plugins")
+  endif()
+
   # Collect every *.extension.*.dso target created for this module set.
   get_property(_all_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
   list(FILTER _all_targets INCLUDE REGEX "^${name}\\.extension\\.")
@@ -198,9 +226,12 @@ function(add_cudaq_python_modules name)
     target_link_options(${_dso} BEFORE PRIVATE
       "$<TARGET_FILE:cudaq::cudaqMLIR>")
 
+    set_property(TARGET ${_dso} APPEND PROPERTY
+      INSTALL_RPATH ${_cudaq_python_install_rpaths})
+    # BUILD_RPATH may use the absolute build lib dir so the bindings can run
+    # from the build tree (e.g. ctest-driven python tests).
     if(CUDAQ_LIBRARY_DIR)
-      set_property(TARGET ${_dso} APPEND PROPERTY INSTALL_RPATH "${CUDAQ_LIBRARY_DIR}")
-      set_property(TARGET ${_dso} APPEND PROPERTY BUILD_RPATH   "${CUDAQ_LIBRARY_DIR}")
+      set_property(TARGET ${_dso} APPEND PROPERTY BUILD_RPATH "${CUDAQ_LIBRARY_DIR}")
     endif()
   endforeach()
 endfunction()
