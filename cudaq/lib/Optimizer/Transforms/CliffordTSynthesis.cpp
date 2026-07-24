@@ -97,8 +97,8 @@ static Value emitCliffordGate(OpBuilder &b, Location loc, Value target) {
 static Value emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
                              const cudaq::synth::Circuit &circuit) {
   Value cur = qubit;
-  for (cudaq::synth::Gate g : circuit) {
-    switch (g) {
+  for (auto it = circuit.rbegin(); it != circuit.rend(); ++it) {
+    switch (*it) {
     case cudaq::synth::Gate::H:
       cur = emitCliffordGate<cudaq::quake::HOp>(b, loc, cur);
       break;
