@@ -124,4 +124,67 @@ UnitaryComparisonResult compareUnitaries(mlir::func::FuncOp baseline,
                                          double rtol = 1e-5,
                                          double atol = 1e-8);
 
+/// Reasons a module can be rejected from the Clifford validation domain.
+///
+/// The scalable (tableau) equivalence oracle reasons only about Clifford
+/// circuits (H, S/S-adjoint, the Paulis X/Y/Z, single-controlled Paulis
+/// (CX/CY/CZ), SWAP), and the axis rotations rx/ry/rz/r1 at integer multiples
+/// of pi/2. Anything outside that class is rejected here so the tableau oracle
+/// never silently downgrades a non-Clifford circuit to an unsound equivalent
+/// verdict.
+enum class CliffordRejectionKind {
+  /// A measurement operation (`quake.mz`/`mx`/`my`, etc.) is present.
+  Measurement,
+  /// A `quake.reset` operation is present.
+  Reset,
+  /// A noise channel (`quake.apply_noise`) is present.
+  Noise,
+  /// Classical control flow (`cc.if`/`cc.loop`) is present.
+  DynamicControlFlow,
+  /// An un-inlined call is present. Inline before validating.
+  UnsupportedCall,
+  /// A dynamically-sized `!quake.veq` is present. The qubit count is not
+  /// statically knowable.
+  DynamicQubitRegister,
+  /// A non-Clifford gate (`t`/`t-adjoint`, `u2`, `u3`, `phased_rx`, a custom
+  /// unitary, or any other operator outside the Clifford set).
+  NonCliffordGate,
+  /// An axis rotation (`rx`/`ry`/`rz`/`r1`) whose angle is not a
+  /// statically-known integer multiple of pi/2.
+  NonCliffordRotation,
+  /// A control structure outside the Clifford set. Two or more controls
+  /// (Toffoli-class), or any control on a non-Pauli gate (controlled
+  /// H/S/SWAP/rotation).
+  NonCliffordControl,
+};
+
+/// Return a stable, consumable slug for kind (e.g. "measurement").
+/// Part of the `validator's` diagnostic contract; must stay stable.
+llvm::StringRef toString(CliffordRejectionKind kind);
+
+/// A reason a kernel was rejected from the Clifford domain, with context.
+struct CliffordRejection {
+  CliffordRejectionKind kind;
+  /// The kernel (function) symbol name the rejection was found in.
+  std::string kernel;
+  /// Context (e.g. the offending op name or angle).
+  std::string detail;
+  /// Source location of the offending construct, when available.
+  mlir::Location loc;
+};
+
+/// Result of a Clifford-domain `preflight` over a whole module.
+struct CliffordDomainStatus {
+  /// True iff every kernel with a body is a Clifford circuit.
+  bool supported = true;
+  /// The largest statically-known qubit count observed across kernels.
+  std::size_t maxQubits = 0;
+  /// All rejections found, in discovery order. Empty iff supported.
+  llvm::SmallVector<CliffordRejection> rejections;
+};
+
+/// Determine whether every function-with-a-body in module is a Clifford
+/// circuit suitable for exact tableau (stabilizer) equivalence checking.
+CliffordDomainStatus checkCliffordDomain(mlir::ModuleOp module);
+
 } // namespace cudaq::opt

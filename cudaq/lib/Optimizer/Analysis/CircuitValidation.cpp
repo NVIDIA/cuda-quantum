@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Interfaces/CallInterfaces.h"
 #include <cmath>
@@ -128,6 +129,154 @@ BoundedUnitaryDomainStatus checkBoundedUnitaryDomain(ModuleOp module,
       checker.reject(DomainRejectionKind::TooManyQubits, func.getOperation(),
                      std::to_string(checker.qubits) + " > " +
                          std::to_string(exactQubitBound));
+  }
+
+  return status;
+}
+
+// Clifford domain preflight
+llvm::StringRef toString(CliffordRejectionKind kind) {
+  switch (kind) {
+  case CliffordRejectionKind::Measurement:
+    return "measurement";
+  case CliffordRejectionKind::Reset:
+    return "reset";
+  case CliffordRejectionKind::Noise:
+    return "noise";
+  case CliffordRejectionKind::DynamicControlFlow:
+    return "dynamic-control-flow";
+  case CliffordRejectionKind::UnsupportedCall:
+    return "unsupported-call";
+  case CliffordRejectionKind::DynamicQubitRegister:
+    return "dynamic-qubit-register";
+  case CliffordRejectionKind::NonCliffordGate:
+    return "non-clifford-gate";
+  case CliffordRejectionKind::NonCliffordRotation:
+    return "non-clifford-rotation";
+  case CliffordRejectionKind::NonCliffordControl:
+    return "non-clifford-control";
+  }
+  return "unknown";
+}
+
+static std::optional<double> constantAngle(Value value) {
+  if (auto cst =
+          dyn_cast_if_present<arith::ConstantFloatOp>(value.getDefiningOp()))
+    return cast<FloatAttr>(cst.getValue()).getValueAsDouble();
+  return std::nullopt;
+}
+
+static bool isMultipleOfHalfPi(double angle) {
+  double k = angle / M_PI_2;
+  return std::abs(k - std::round(k)) <= 1e-9;
+}
+
+static std::optional<std::size_t>
+controlQubitCount(quake::OperatorInterface optor) {
+  std::size_t count = 0;
+  for (Value control : optor.getControls()) {
+    if (auto n = qubitsInType(control.getType()))
+      count += *n;
+    else
+      return std::nullopt;
+  }
+  return count;
+}
+
+static std::optional<CliffordRejectionKind>
+classifyCliffordGate(quake::OperatorInterface optor) {
+  Operation *op = optor.getOperation();
+
+  auto controls = controlQubitCount(optor);
+  if (!controls)
+    return CliffordRejectionKind::NonCliffordControl;
+
+  if (isa<quake::HOp, quake::SOp>(op)) {
+    if (*controls != 0)
+      return CliffordRejectionKind::NonCliffordControl;
+    return std::nullopt;
+  }
+  if (isa<quake::XOp, quake::YOp, quake::ZOp>(op)) {
+    if (*controls > 1)
+      return CliffordRejectionKind::NonCliffordControl;
+    return std::nullopt;
+  }
+  if (isa<quake::SwapOp>(op)) {
+    if (*controls != 0)
+      return CliffordRejectionKind::NonCliffordControl;
+    return std::nullopt;
+  }
+  if (isa<quake::RxOp, quake::RyOp, quake::RzOp, quake::R1Op>(op)) {
+    if (*controls != 0)
+      return CliffordRejectionKind::NonCliffordControl;
+    auto params = optor.getParameters();
+    if (params.size() != 1)
+      return CliffordRejectionKind::NonCliffordRotation;
+    auto angle = constantAngle(params[0]);
+    if (!angle || !isMultipleOfHalfPi(*angle))
+      return CliffordRejectionKind::NonCliffordRotation;
+    return std::nullopt;
+  }
+  return CliffordRejectionKind::NonCliffordGate;
+}
+
+CliffordDomainStatus checkCliffordDomain(ModuleOp module) {
+  CliffordDomainStatus status;
+
+  for (auto func : module.getOps<func::FuncOp>()) {
+    if (func.empty())
+      continue;
+
+    StringRef kernel = func.getSymName();
+    std::size_t qubits = 0;
+    bool sawDynamicRegister = false;
+
+    auto reject = [&](CliffordRejectionKind kind, Operation *op,
+                      std::string detail) {
+      status.supported = false;
+      status.rejections.push_back(
+          {kind, kernel.str(), std::move(detail), op->getLoc()});
+    };
+
+    auto tally = [&](Type ty, Operation *op) {
+      if (auto n = qubitsInType(ty)) {
+        qubits += *n;
+      } else if (isa<quake::VeqType>(ty) && !sawDynamicRegister) {
+        sawDynamicRegister = true;
+        reject(CliffordRejectionKind::DynamicQubitRegister, op,
+               "dynamically-sized !quake.veq");
+      }
+    };
+
+    for (BlockArgument arg : func.getArguments())
+      tally(arg.getType(), func.getOperation());
+
+    func.walk([&](Operation *op) {
+      if (isa<quake::MeasurementInterface>(op)) {
+        reject(CliffordRejectionKind::Measurement, op,
+               op->getName().getStringRef().str());
+      } else if (isa<quake::ResetOp>(op)) {
+        reject(CliffordRejectionKind::Reset, op, "quake.reset");
+      } else if (isa<quake::ApplyNoiseOp>(op)) {
+        reject(CliffordRejectionKind::Noise, op, "quake.apply_noise");
+      } else if (isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(op)) {
+        reject(CliffordRejectionKind::DynamicControlFlow, op,
+               op->getName().getStringRef().str());
+      } else if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
+        if (auto rejection = classifyCliffordGate(optor))
+          reject(*rejection, op, op->getName().getStringRef().str());
+      } else if (isa<CallOpInterface>(op)) {
+        reject(CliffordRejectionKind::UnsupportedCall, op,
+               op->getName().getStringRef().str());
+      }
+
+      if (auto alloca = dyn_cast<quake::AllocaOp>(op))
+        tally(alloca.getResult().getType(), op);
+      else if (isa<quake::BorrowWireOp, quake::NullWireOp>(op))
+        qubits += 1;
+    });
+
+    status.maxQubits = std::max(status.maxQubits, qubits);
   }
 
   return status;

@@ -22,6 +22,9 @@ using namespace mlir;
 
 using cudaq::opt::BoundedUnitaryDomainStatus;
 using cudaq::opt::checkBoundedUnitaryDomain;
+using cudaq::opt::checkCliffordDomain;
+using cudaq::opt::CliffordDomainStatus;
+using cudaq::opt::CliffordRejectionKind;
 using cudaq::opt::compareUnitaries;
 using cudaq::opt::DomainRejectionKind;
 
@@ -34,6 +37,14 @@ static void loadTestDialects(MLIRContext &context) {
 
 static bool hasKind(const BoundedUnitaryDomainStatus &status,
                     DomainRejectionKind kind) {
+  for (const auto &r : status.rejections)
+    if (r.kind == kind)
+      return true;
+  return false;
+}
+
+static bool hasKind(const CliffordDomainStatus &status,
+                    CliffordRejectionKind kind) {
   for (const auto &r : status.rejections)
     if (r.kind == kind)
       return true;
@@ -258,4 +269,127 @@ TEST_F(CircuitValidationTest, CompareDimensionMismatch) {
   auto result = compareUnitaries(base, cand);
   EXPECT_FALSE(result.computed);
   EXPECT_FALSE(result.error.empty());
+}
+
+// Clifford domain preflight
+// A circuit of H, S, CX, SWAP and an rz(pi/2) is entirely Clifford.
+TEST_F(CircuitValidationTest, AcceptsCliffordCircuit) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("kern", {refTy, refTy}, builder);
+  Location loc = builder.getUnknownLoc();
+  Value q0 = func.getArgument(0);
+  Value q1 = func.getArgument(1);
+  cudaq::quake::HOp::create(builder, loc, q0);
+  cudaq::quake::SOp::create(builder, loc, /*is_adj=*/false, ValueRange{},
+                            ValueRange{}, ValueRange{q1});
+  cudaq::quake::XOp::create(builder, loc, ValueRange{q0}, ValueRange{q1});
+  cudaq::quake::SwapOp::create(builder, loc, ValueRange{}, ValueRange{q0, q1});
+  Value halfPi = arith::ConstantFloatOp::create(
+      builder, loc, builder.getF64Type(), llvm::APFloat(M_PI_2));
+  cudaq::quake::RzOp::create(builder, loc, halfPi, ValueRange{},
+                             ValueRange{q0});
+  func::ReturnOp::create(builder, loc);
+
+  auto status = checkCliffordDomain(*module);
+  EXPECT_TRUE(status.supported);
+  EXPECT_TRUE(status.rejections.empty());
+  EXPECT_EQ(status.maxQubits, 2u);
+}
+
+// A T gate is outside the Clifford group.
+TEST_F(CircuitValidationTest, RejectsTGate) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("kern", {refTy}, builder);
+  Location loc = builder.getUnknownLoc();
+  cudaq::quake::TOp::create(builder, loc, func.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto status = checkCliffordDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, CliffordRejectionKind::NonCliffordGate));
+}
+
+// A doubly-controlled X (Toffoli) is not Clifford, even though CX is.
+TEST_F(CircuitValidationTest, RejectsToffoli) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("kern", {refTy, refTy, refTy}, builder);
+  Location loc = builder.getUnknownLoc();
+  cudaq::quake::XOp::create(
+      builder, loc, ValueRange{func.getArgument(0), func.getArgument(1)},
+      ValueRange{func.getArgument(2)});
+  func::ReturnOp::create(builder, loc);
+
+  auto status = checkCliffordDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, CliffordRejectionKind::NonCliffordControl));
+}
+
+// A controlled Hadamard leaves the Clifford group. Only Paulis may be
+// controlled.
+TEST_F(CircuitValidationTest, RejectsControlledHadamard) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("kern", {refTy, refTy}, builder);
+  Location loc = builder.getUnknownLoc();
+  cudaq::quake::HOp::create(builder, loc, ValueRange{func.getArgument(0)},
+                            ValueRange{func.getArgument(1)});
+  func::ReturnOp::create(builder, loc);
+
+  auto status = checkCliffordDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, CliffordRejectionKind::NonCliffordControl));
+}
+
+// An rz at an arbitrary (non-k*pi/2) angle is not Clifford.
+TEST_F(CircuitValidationTest, RejectsArbitraryRotationAngle) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("kern", {refTy}, builder);
+  Location loc = builder.getUnknownLoc();
+  Value angle = arith::ConstantFloatOp::create(
+      builder, loc, builder.getF64Type(), llvm::APFloat(0.3));
+  cudaq::quake::RzOp::create(builder, loc, angle, ValueRange{},
+                             ValueRange{func.getArgument(0)});
+  func::ReturnOp::create(builder, loc);
+
+  auto status = checkCliffordDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, CliffordRejectionKind::NonCliffordRotation));
+}
+
+// A rotation whose angle is a runtime value cannot be proven Clifford and is
+// rejected (fail closed).
+TEST_F(CircuitValidationTest, RejectsNonConstantRotationAngle) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("kern", {refTy, builder.getF64Type()}, builder);
+  Location loc = builder.getUnknownLoc();
+  cudaq::quake::RzOp::create(builder, loc, func.getArgument(1), ValueRange{},
+                             ValueRange{func.getArgument(0)});
+  func::ReturnOp::create(builder, loc);
+
+  auto status = checkCliffordDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, CliffordRejectionKind::NonCliffordRotation));
+}
+
+// The Clifford oracle has no qubit bound. A 40-qubit register that the
+// bounded-unitary domain rejects as too wide is in the Clifford domain. This is
+// the whole reason the tableau oracle exists.
+TEST_F(CircuitValidationTest, NoQubitBound) {
+  OpBuilder builder(&context);
+  auto veqTy = cudaq::quake::VeqType::get(&context, 40);
+  auto func = createKernel("kern", {veqTy}, builder);
+  func::ReturnOp::create(builder, builder.getUnknownLoc());
+
+  auto clifford = checkCliffordDomain(*module);
+  EXPECT_TRUE(clifford.supported);
+  EXPECT_EQ(clifford.maxQubits, 40u);
+
+  auto bounded = checkBoundedUnitaryDomain(*module);
+  EXPECT_FALSE(bounded.supported);
+  EXPECT_TRUE(hasKind(bounded, DomainRejectionKind::TooManyQubits));
 }
