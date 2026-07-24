@@ -295,14 +295,21 @@ evolve_result evolveSingle(
     dims.emplace_back(dim);
 
   auto *cudmState = asCudmState(const_cast<state &>(initialState));
-  if (!cudmState->is_initialized())
+  state initial_State = initialState;
+  std::size_t stateVectorSize = 1;
+  for (const auto extent : dims)
+    stateVectorSize *= extent;
+  if (!cudmState->is_initialized() && !collapseOperators.empty() &&
+      cudmState->get_element_count() == stateVectorSize) {
+    initial_State =
+        state(new CuDensityMatState(cudmState->to_density_matrix(dims)));
+    cudmState = asCudmState(initial_State);
+  } else if (!cudmState->is_initialized()) {
     cudmState->initialize_cudm(handle, dims, /*batchSize=*/1);
-
-  state initial_State = [&]() {
-    if (!collapseOperators.empty() && !cudmState->is_density_matrix())
-      return state(new CuDensityMatState(cudmState->to_density_matrix()));
-    return initialState;
-  }();
+  }
+  if (!collapseOperators.empty() && !cudmState->is_density_matrix())
+    initial_State =
+        state(new CuDensityMatState(cudmState->to_density_matrix()));
 
   SystemDynamics system(dims, hamiltonian, collapseOperators);
   cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);

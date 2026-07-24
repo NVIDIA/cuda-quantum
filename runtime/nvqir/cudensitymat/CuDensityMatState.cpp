@@ -696,6 +696,11 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
                              "matrix is not supported.");
 
   const std::size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
+  if (dimension != vectorSize)
+    throw std::runtime_error(
+        "Conversion of a rank-local distributed state vector to a density "
+        "matrix is not supported; provide the complete global state vector or "
+        "an explicit distributed density matrix.");
   const std::size_t expectedDensityMatrixSize = vectorSize * vectorSize;
   const std::size_t dmSizeBytes =
       expectedDensityMatrixSize * sizeof(std::complex<double>);
@@ -712,6 +717,42 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
       1, reinterpret_cast<const cuDoubleComplex *>(devicePtr), 1,
       reinterpret_cast<cuDoubleComplex *>(dmState.devicePtr), vectorSize));
   dmState.initialize_cudm(cudmHandle, hilbertSpaceDims, batchSize);
+  assert(dmState.is_initialized());
+  assert(dmState.is_density_matrix());
+  return dmState;
+}
+
+CuDensityMatState cudaq::CuDensityMatState::to_density_matrix(
+    const std::vector<int64_t> &dims) const {
+  if (is_initialized())
+    throw std::runtime_error("State is already initialized.");
+  if (batchSize > 1)
+    throw std::runtime_error("Conversion of a batched state to a density "
+                             "matrix is not supported.");
+
+  const std::size_t vectorSize = calculate_state_vector_size(dims);
+  if (dimension != vectorSize)
+    throw std::runtime_error(
+        "Conversion to a density matrix requires a complete global state "
+        "vector.");
+  const std::size_t expectedDensityMatrixSize =
+      checked_multiply(vectorSize, vectorSize, "density matrix size");
+  const std::size_t dmSizeBytes =
+      checked_multiply(expectedDensityMatrixSize, sizeof(std::complex<double>),
+                       "density matrix storage");
+
+  CuDensityMatState dmState;
+  dmState.devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dmSizeBytes);
+  dmState.isDensityMatrix = true;
+  HANDLE_CUDA_ERROR(cudaMemset(dmState.devicePtr, 0, dmSizeBytes));
+  dmState.dimension = expectedDensityMatrixSize;
+  cuDoubleComplex scalar{1.0, 0.0};
+  HANDLE_CUBLAS_ERROR(cublasZgerc(
+      dynamics::Context::getCurrentContext()->getCublasHandle(), vectorSize,
+      vectorSize, &scalar, reinterpret_cast<const cuDoubleComplex *>(devicePtr),
+      1, reinterpret_cast<const cuDoubleComplex *>(devicePtr), 1,
+      reinterpret_cast<cuDoubleComplex *>(dmState.devicePtr), vectorSize));
+  dmState.initialize_cudm(cudmHandle, dims, /*batchSize=*/1);
   assert(dmState.is_initialized());
   assert(dmState.is_density_matrix());
   return dmState;

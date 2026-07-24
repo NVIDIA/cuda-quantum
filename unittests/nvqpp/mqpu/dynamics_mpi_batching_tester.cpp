@@ -135,6 +135,35 @@ TEST(DynamicsBatchingMpi, checkSaveModes) {
   }
 }
 
+TEST(DynamicsBatchingMpi, checkDistributedExplicitStateWithCollapse) {
+  EXPECT_TRUE(cudaq::mpi::is_initialized());
+  EXPECT_GT(cudaq::mpi::num_ranks(), 1);
+
+  const cudaq::dimension_map dimensions{{0, 16}, {1, 2}};
+  constexpr int64_t targetLevel = 9;
+  std::vector<std::complex<double>> stateData(32, 0.0);
+  stateData[targetLevel + 16] = 1.0;
+  auto initialState = cudaq::state::from_data(stateData);
+  auto numberOperator = cudaq::boson_op::number(0);
+  constexpr double decayRate = 0.1;
+  constexpr double finalTime = 0.1;
+  cudaq::schedule schedule({0.0, finalTime}, {"time"});
+  cudaq::integrators::runge_kutta integrator;
+
+  auto result = cudaq::evolve(
+      0.0 * numberOperator, dimensions, schedule, initialState, integrator,
+      {std::sqrt(decayRate) * cudaq::boson_op::annihilate(0)}, {numberOperator},
+      cudaq::IntermediateResultSave::ExpectationValue);
+
+  ASSERT_TRUE(result.expectation_values.has_value());
+  ASSERT_EQ(result.expectation_values->size(), 2);
+  ASSERT_EQ(result.expectation_values->front().size(), 1);
+  EXPECT_NEAR(static_cast<double>(result.expectation_values->front().front()),
+              targetLevel, 1e-12);
+  EXPECT_NEAR(static_cast<double>(result.expectation_values->back().front()),
+              targetLevel * std::exp(-decayRate * finalTime), 1e-5);
+}
+
 TEST(DynamicsBatchingMpi, checkDifferentBatchSizes) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
