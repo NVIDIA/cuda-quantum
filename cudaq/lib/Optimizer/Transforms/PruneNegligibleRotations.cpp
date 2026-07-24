@@ -36,9 +36,19 @@ namespace {
 //   - memory (`!quake.ref`): the op produces no result, so it is dropped.
 //   - value (`!quake.wire`): the op threads its target wire to a result wire.
 //     The identity forwards that input wire to the result's users.
-// Controlled rotations are left in place. The wire threading of a controlled
-// gate carries the control wires through as well, and materializing controls
-// (ApplyOpSpecialization) is the intended path before pruning them.
+// Controlled rotations are left in place, for two reasons:
+//   - Under a control, the global phase folded away above becomes a relative
+//     phase and is observable.
+//        ctrl-rz(2*pi) = diag(1, 1, -1, -1)
+//     a phase on the control, not the identity. Pruning a controlled rotation
+//     would need the exact-identity period (4*pi for rz/rx/ry, 2*pi for r1)
+//     instead of this up-to-phase 2*pi fold.
+//   - The value-semantics rewrite below forwards only the target wire. A
+//     controlled gate also threads its control wires through as results, so an
+//     identity replacement would have to forward those as well.
+// Materialize controls (ApplyOpSpecialization) first if pruning them matters.
+// TODO: an opt-in mode could prune controlled rotations using the exact-
+// identity fold and by forwarding the control wires alongside the target.
 template <typename RotOp>
 struct PruneRotationPattern : OpRewritePattern<RotOp> {
   PruneRotationPattern(MLIRContext *ctx, double threshold)
