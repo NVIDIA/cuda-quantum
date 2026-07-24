@@ -13,6 +13,8 @@
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <limits>
+#include <numeric>
 namespace cudaq {
 
 std::size_t CuDensityMatState::getNumQubits() const {
@@ -249,17 +251,208 @@ void CuDensityMatState::destroyState() {
   }
 }
 
-static size_t
+namespace {
+
+size_t
 calculate_state_vector_size(const std::vector<int64_t> &hilbertSpaceDims) {
   return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
                          std::size_t{1}, std::multiplies<>());
 }
 
-static size_t
+size_t
 calculate_density_matrix_size(const std::vector<int64_t> &hilbertSpaceDims) {
   size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
   return vectorSize * vectorSize;
 }
+
+std::vector<int64_t>
+get_global_component_extents(const std::vector<int64_t> &hilbertSpaceDims,
+                             bool isDensityMatrix, int64_t batchSize) {
+  std::vector<int64_t> globalExtents = hilbertSpaceDims;
+  if (isDensityMatrix)
+    globalExtents.insert(globalExtents.end(), hilbertSpaceDims.begin(),
+                         hilbertSpaceDims.end());
+  if (batchSize > 1)
+    globalExtents.emplace_back(batchSize);
+  return globalExtents;
+}
+
+std::size_t checked_multiply(std::size_t lhs, std::size_t rhs,
+                             const char *description) {
+  if (rhs != 0 && lhs > std::numeric_limits<std::size_t>::max() / rhs)
+    throw std::overflow_error(
+        fmt::format("Overflow while computing {}", description));
+  return lhs * rhs;
+}
+
+struct GlobalSliceLayout {
+  std::size_t startIdx;
+  std::size_t localVolume;
+  std::vector<int64_t> globalStrides;
+  bool isContiguous;
+};
+
+GlobalSliceLayout
+get_global_slice_layout(const std::vector<int64_t> &globalExtents,
+                        const std::vector<int64_t> &localExtents,
+                        const std::vector<int64_t> &offsets,
+                        std::size_t storageVolume, std::size_t globalVolume) {
+  if (globalExtents.size() != localExtents.size() ||
+      globalExtents.size() != offsets.size())
+    throw std::runtime_error(
+        "Invalid distributed state layout: mode count mismatch");
+
+  std::size_t localVolume = 1;
+  std::size_t stride = 1;
+  std::size_t startIdx = 0;
+  std::vector<int64_t> globalStrides(globalExtents.size());
+  bool foundPartialMode = false;
+  bool isContiguous = true;
+
+  for (std::size_t i = 0; i < globalExtents.size(); ++i) {
+    const auto globalExtent = globalExtents[i];
+    const auto localExtent = localExtents[i];
+    const auto offset = offsets[i];
+    if (globalExtent <= 0 || localExtent <= 0 || offset < 0 ||
+        localExtent > globalExtent || offset > globalExtent - localExtent)
+      throw std::runtime_error(fmt::format(
+          "Invalid distributed state layout for mode {}: global extent {}, "
+          "local extent {}, offset {}",
+          i, globalExtent, localExtent, offset));
+
+    const auto localExtentSize = static_cast<std::size_t>(localExtent);
+    const auto offsetSize = static_cast<std::size_t>(offset);
+    localVolume =
+        checked_multiply(localVolume, localExtentSize, "local state volume");
+
+    const auto offsetContribution =
+        checked_multiply(offsetSize, stride, "distributed state offset");
+    if (startIdx > std::numeric_limits<std::size_t>::max() - offsetContribution)
+      throw std::overflow_error(
+          "Overflow while computing distributed state offset");
+    startIdx += offsetContribution;
+    globalStrides[i] = static_cast<int64_t>(stride);
+
+    const bool isFullMode = offset == 0 && localExtent == globalExtent;
+    if (!foundPartialMode && !isFullMode)
+      foundPartialMode = true;
+    else if (foundPartialMode && localExtent != 1)
+      isContiguous = false;
+
+    stride = checked_multiply(stride, static_cast<std::size_t>(globalExtent),
+                              "global state stride");
+  }
+
+  if (localVolume > storageVolume)
+    throw std::runtime_error(fmt::format(
+        "Invalid distributed state layout: local volume {} exceeds component "
+        "storage volume {}",
+        localVolume, storageVolume));
+  if (stride != globalVolume)
+    throw std::runtime_error(fmt::format(
+        "Invalid distributed state layout: global volume {} does not match "
+        "input state volume {}",
+        stride, globalVolume));
+  std::size_t lastIdx = startIdx;
+  for (std::size_t i = 0; i < localExtents.size(); ++i) {
+    const auto contribution =
+        checked_multiply(static_cast<std::size_t>(localExtents[i] - 1),
+                         static_cast<std::size_t>(globalStrides[i]),
+                         "distributed state slice bound");
+    if (lastIdx > std::numeric_limits<std::size_t>::max() - contribution)
+      throw std::overflow_error(
+          "Overflow while computing distributed state slice bound");
+    lastIdx += contribution;
+  }
+  if (lastIdx >= globalVolume)
+    throw std::runtime_error(
+        "Distributed state slice exceeds the global state buffer");
+  return GlobalSliceLayout{startIdx, localVolume, std::move(globalStrides),
+                           isContiguous};
+}
+
+struct CutensorGatherResources {
+  cutensorHandle_t handle{nullptr};
+  cutensorTensorDescriptor_t sourceDescriptor{nullptr};
+  cutensorTensorDescriptor_t destinationDescriptor{nullptr};
+  cutensorOperationDescriptor_t operationDescriptor{nullptr};
+  cutensorPlanPreference_t planPreference{nullptr};
+  cutensorPlan_t plan{nullptr};
+
+  ~CutensorGatherResources() {
+    if (plan)
+      cutensorDestroyPlan(plan);
+    if (planPreference)
+      cutensorDestroyPlanPreference(planPreference);
+    if (operationDescriptor)
+      cutensorDestroyOperationDescriptor(operationDescriptor);
+    if (destinationDescriptor)
+      cutensorDestroyTensorDescriptor(destinationDescriptor);
+    if (sourceDescriptor)
+      cutensorDestroyTensorDescriptor(sourceDescriptor);
+    if (handle)
+      cutensorDestroy(handle);
+  }
+};
+
+uint32_t get_pointer_alignment(const void *ptr) {
+  constexpr uint32_t maxAlignment = 256;
+  const auto address = reinterpret_cast<std::uintptr_t>(ptr);
+  uint32_t alignment = 1;
+  while (alignment < maxAlignment && (address & alignment) == 0)
+    alignment <<= 1;
+  return alignment;
+}
+
+void gather_global_slice(void *devicePtr,
+                         const std::vector<int64_t> &localExtents,
+                         const GlobalSliceLayout &layout) {
+  const auto copySize = checked_multiply(
+      layout.localVolume, sizeof(std::complex<double>), "local copy size");
+  void *temporaryPtr = cudaq::dynamics::DeviceAllocator::allocate(copySize);
+  try {
+    CutensorGatherResources resources;
+    HANDLE_CUTENSOR_ERROR(cutensorCreate(&resources.handle));
+    const auto numModes = static_cast<uint32_t>(localExtents.size());
+    const auto *sourcePtr =
+        static_cast<const std::complex<double> *>(devicePtr) + layout.startIdx;
+    HANDLE_CUTENSOR_ERROR(cutensorCreateTensorDescriptor(
+        resources.handle, &resources.sourceDescriptor, numModes,
+        localExtents.data(), layout.globalStrides.data(), CUDA_C_64F,
+        get_pointer_alignment(sourcePtr)));
+    HANDLE_CUTENSOR_ERROR(cutensorCreateTensorDescriptor(
+        resources.handle, &resources.destinationDescriptor, numModes,
+        localExtents.data(), /*stride=*/nullptr, CUDA_C_64F,
+        get_pointer_alignment(temporaryPtr)));
+
+    std::vector<int32_t> modes(numModes);
+    std::iota(modes.begin(), modes.end(), 0);
+    HANDLE_CUTENSOR_ERROR(cutensorCreatePermutation(
+        resources.handle, &resources.operationDescriptor,
+        resources.sourceDescriptor, modes.data(), CUTENSOR_OP_IDENTITY,
+        resources.destinationDescriptor, modes.data(),
+        CUTENSOR_COMPUTE_DESC_64F));
+    HANDLE_CUTENSOR_ERROR(cutensorCreatePlanPreference(
+        resources.handle, &resources.planPreference, CUTENSOR_ALGO_DEFAULT,
+        CUTENSOR_JIT_MODE_NONE));
+    HANDLE_CUTENSOR_ERROR(cutensorCreatePlan(
+        resources.handle, &resources.plan, resources.operationDescriptor,
+        resources.planPreference, /*workspaceSizeLimit=*/0));
+
+    const cuDoubleComplex alpha{1.0, 0.0};
+    HANDLE_CUTENSOR_ERROR(cutensorPermute(resources.handle, resources.plan,
+                                          &alpha, sourcePtr, temporaryPtr,
+                                          /*stream=*/nullptr));
+    HANDLE_CUDA_ERROR(
+        cudaMemcpy(devicePtr, temporaryPtr, copySize, cudaMemcpyDefault));
+  } catch (...) {
+    cudaq::dynamics::DeviceAllocator::free(temporaryPtr);
+    throw;
+  }
+  cudaq::dynamics::DeviceAllocator::free(temporaryPtr);
+}
+
+} // namespace
 
 CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr, bool borrowed)
     : devicePtr(ptr), dimension(size), borrowedData(borrowed),
@@ -595,20 +788,43 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
         &stateComponentGlobalId, &numModes, stateComponentModeExtents.data(),
         stateComponentModeOffsets.data()));
 
-    dimension = stateVolume;
-    int64_t startIdx = 0;
-    int64_t accumulatedIdx = 1;
-    for (int32_t i = 0; i < numModes; ++i) {
-      accumulatedIdx *= stateComponentModeExtents[i];
-      startIdx += (stateComponentModeOffsets[i] * accumulatedIdx);
-    }
-    if (startIdx > 0) {
+    const auto globalExtents = get_global_component_extents(
+        hilbertSpaceDims, isDensityMatrix, batchSize);
+    const auto layout = get_global_slice_layout(
+        globalExtents, stateComponentModeExtents, stateComponentModeOffsets,
+        stateVolume, dimension);
+    if (!layout.isContiguous) {
+      gather_global_slice(devicePtr, stateComponentModeExtents, layout);
+    } else if (layout.startIdx > 0) {
       std::complex<double> *startPtr =
-          static_cast<std::complex<double> *>(devicePtr) + startIdx;
-      HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, startPtr,
-                                   stateVolume * sizeof(std::complex<double>),
-                                   cudaMemcpyDefault));
+          static_cast<std::complex<double> *>(devicePtr) + layout.startIdx;
+      const auto copySize = layout.localVolume * sizeof(std::complex<double>);
+      if (layout.startIdx < layout.localVolume) {
+        void *temporaryPtr =
+            cudaq::dynamics::DeviceAllocator::allocate(copySize);
+        try {
+          HANDLE_CUDA_ERROR(
+              cudaMemcpy(temporaryPtr, startPtr, copySize, cudaMemcpyDefault));
+          HANDLE_CUDA_ERROR(
+              cudaMemcpy(devicePtr, temporaryPtr, copySize, cudaMemcpyDefault));
+        } catch (...) {
+          cudaq::dynamics::DeviceAllocator::free(temporaryPtr);
+          throw;
+        }
+        cudaq::dynamics::DeviceAllocator::free(temporaryPtr);
+      } else {
+        HANDLE_CUDA_ERROR(
+            cudaMemcpy(devicePtr, startPtr, copySize, cudaMemcpyDefault));
+      }
     }
+    if (layout.localVolume < stateVolume) {
+      auto *paddingPtr =
+          static_cast<std::complex<double> *>(devicePtr) + layout.localVolume;
+      const auto paddingSize =
+          (stateVolume - layout.localVolume) * sizeof(std::complex<double>);
+      HANDLE_CUDA_ERROR(cudaMemset(paddingPtr, 0, paddingSize));
+    }
+    dimension = stateVolume;
   }
   // Attach initialized GPU storage to the input quantum state
   HANDLE_CUDM_ERROR(cudensitymatStateAttachComponentStorage(
