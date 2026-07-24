@@ -77,12 +77,52 @@ cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
       [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
 }
 
+cudaq::msm_dimensions
+cudaq::DefaultQPU::launchKernel(const cudaq::msm_size_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
+cudaq::msm_result
+cudaq::DefaultQPU::launchKernel(const cudaq::msm_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
 cudaq::async_observe_result
 cudaq::DefaultQPU::launchKernel(const async_observe_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   throw std::runtime_error(
       "DefaultQPU does not support launching the async_observe_policy.");
+}
+
+cudaq::dem_result
+cudaq::DefaultQPU::launchKernel(const cudaq::dem_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
+cudaq::ptsbe::sample_policy::result_type
+cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
 }
 
 std::unique_ptr<cudaq::CompileTarget>
@@ -92,6 +132,11 @@ cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
+  return getDefaultCompileTarget(policy);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::DefaultQPU::getCompileTarget(const dem_policy &policy) {
   return getDefaultCompileTarget(policy);
 }
 

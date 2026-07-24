@@ -10,6 +10,10 @@
 
 #include "KrausTrajectory.h"
 #include "PTSBEExecutionData.h"
+#include "PTSBESampleResult.h"
+#include "common/ExecutionContext.h"
+#include "cudaq/ptsbe/policy.h"
+#include "cudaq/qis/execution_manager.h"
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -63,21 +67,47 @@ aggregateResults(const std::vector<cudaq::sample_result> &results);
 /// @throws std::runtime_error if simulator cast fails or contract violated
 std::vector<cudaq::sample_result> samplePTSBE(const PTSBatch &batch);
 
+/// @brief Finalize a PTSBE execution for the given policy
+///
+/// @param policy Policy for the PTSBE execution
+/// @return Aggregated sample result
+/// @throws std::runtime_error if the policy has no batch and the active
+///         context is not trace-capturing
+ptsbe::sample_result finalizePTSBE(const cudaq::ptsbe::sample_policy &policy);
+
+/// @brief Execute a batch through the standard policy machinery
+///
+/// @param policy Sampling inputs (kernel name, options, noise model)
+/// @param batch The pre-built batch to replay (trace + trajectories + measure
+///        qubits)
+/// @return Per-trajectory sample results
+inline std::vector<cudaq::sample_result>
+executeBatch(const cudaq::ptsbe::sample_policy &policy, const PTSBatch &batch) {
+  cudaq::ExecutionContext ctx(cudaq::ptsbe::sample_policy::name,
+                              batch.totalShots());
+  ctx.kernelName = policy.kernelName;
+
+  std::vector<cudaq::sample_result> perTrajectoryResults;
+  cudaq::detail::with_policy_and_ctx(policy, ctx, [&] {
+    cudaq::ExecutionManager::with_default_em(
+        policy, [&] { perTrajectoryResults = samplePTSBE(batch); });
+  });
+  return perTrajectoryResults;
+}
+
 /// @brief Execute PTSBE with full life-cycle management (registry-based)
 ///
-/// Convenience function that handles the complete simulator life-cycle:
-/// 1. Gets current simulator from registry
-/// 2. Creates ExecutionContext with specified type
-/// 3. Sets context on simulator and allocates qubits
-/// 4. Calls samplePTSBE for precision dispatch and trajectory execution
-/// 5. Deallocates qubits and resets context
+/// Convenience wrapper over executeBatch for callers that only need the
+/// per-trajectory results.
 ///
 /// @param batch PTSBE specification (includes includeSequentialData flag)
-/// @param contextType ExecutionContext type (default: `"ptsbe-sample"`).
 /// @return Per-trajectory sample results
 /// @throws std::runtime_error if simulator cast fails or gate conversion fails
-std::vector<cudaq::sample_result>
-samplePTSBEWithLifecycle(const PTSBatch &batch,
-                         const std::string &contextType = "ptsbe-sample");
+inline std::vector<cudaq::sample_result>
+samplePTSBEWithLifecycle(const PTSBatch &batch) {
+  cudaq::ptsbe::sample_policy policy;
+  policy.shots = batch.totalShots();
+  return executeBatch(policy, batch);
+}
 
 } // namespace cudaq::ptsbe::detail

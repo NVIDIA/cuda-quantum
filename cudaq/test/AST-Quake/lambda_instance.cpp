@@ -21,6 +21,7 @@ struct test0 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test0()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = cc.create_lambda {
@@ -38,6 +39,7 @@ struct test0 {
 // CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct test1 {
   void operator()() __qpu__ {
@@ -46,6 +48,7 @@ struct test1 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = cc.create_lambda {
@@ -63,6 +66,7 @@ struct test1 {
 // CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct test2a {
   template <typename C>
@@ -84,6 +88,7 @@ struct test2b {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2b() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
@@ -103,6 +108,7 @@ struct test2b {
 // CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct test2a_c {
   template <typename C>
@@ -124,6 +130,7 @@ struct test2c {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2c() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
@@ -145,10 +152,11 @@ struct test2c {
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct test3a {
   void operator()(std::function<void(cudaq::qubit &)> &&callme,
-		  cudaq::qvector<> &q) __qpu__ {
+                  cudaq::qvector<> &q) __qpu__ {
     callme(q[0]);
     callme(q[1]);
   }
@@ -166,6 +174,7 @@ struct test3 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test3a(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
@@ -196,6 +205,7 @@ struct test3 {
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct test4x2 {
   template <typename C>
@@ -219,6 +229,7 @@ struct test4x4 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4x4() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
@@ -238,6 +249,7 @@ struct test4x4 {
 // CHECK:           quake.y %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct test4x8 {
   void operator()() __qpu__ {
@@ -247,10 +259,11 @@ struct test4x8 {
       z(q);
       h(q);
     };
-    test4x2{}(lz, q);  // this is not the same instance as test4x4
+    test4x2{}(lz, q); // this is not the same instance as test4x4
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__test4x8() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_1:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
@@ -272,9 +285,11 @@ struct test4x8 {
 // CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 // Now the lambda instances ...
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__instance_test2aZN6test2b
 // CHECK-SAME:      [[LAM2A]](%[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>{{.*}}, %[[VAL_1:.*]]: !quake.veq<?>{{.*}}) attributes {"cudaq-kernel"} {
 // CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<?>) -> !quake.ref
@@ -310,3 +325,4 @@ struct test4x8 {
 // CHECK:           call @__nvqpp__mlirgen__ZN7test4x8cl{{.*}}_(%[[VAL_3]]) : (!quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

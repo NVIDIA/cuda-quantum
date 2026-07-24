@@ -42,7 +42,7 @@
 
 # Centralized version / source definitions used by both installation and lockfile
 # generation. Keeping these here avoids duplication between code paths.
-CMAKE_VERSION=3.26.4
+CMAKE_VERSION=4.0.7
 CMAKE_MACOS_TARBALL_URL="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-macos-universal.tar.gz"
 CMAKE_LINUX_INSTALLER_URL_BASE="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-"
 
@@ -149,7 +149,7 @@ if $lock_mode; then
     "url=${NINJA_TARBALL_URL}" \
     "version=${NINJA_VERSION}"
 
-  # [Zlib / Minizip]
+  # [Zlib]
   add_lock_line "zlib" \
     "type=tar" \
     "url=${ZLIB_TARBALL_URL}" \
@@ -307,7 +307,7 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       mv "cmake-${CMAKE_VERSION}-macos-universal/CMake.app/Contents/share/"* "$HOME/.local/share/"
     else
       wget "${CMAKE_LINUX_INSTALLER_URL_BASE}$(uname -m).sh" -O cmake-install.sh
-      bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
+      bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
     fi
     popd
   fi
@@ -345,11 +345,10 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
-# [Minizip] Needed by rest_server for archive handling
-# Build both from source for consistency across platforms.
+# Build from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
-    echo "Installing libz and minizip..."
+  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
+    echo "Installing libz..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown automake automake
@@ -369,23 +368,11 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
-    cd contrib/minizip
-    # On macOS with Homebrew, set up environment for autoreconf:
-    # - Add Homebrew's m4 macros to aclocal search path
-    # - Point LIBTOOLIZE to glibtoolize (Homebrew's GNU libtoolize)
-    if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v brew)" ]; then
-      export ACLOCAL_PATH="$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
-      export LIBTOOLIZE=glibtoolize
-    fi
-    autoreconf --install
-    CC="$CC" CFLAGS="-fPIC" \
-    ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
-    make CC="$CC" && make install
 
     popd
     remove_temp_installs
   else
-    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
+    echo "libz already installed in $ZLIB_INSTALL_PREFIX."
   fi
 fi
 
@@ -602,6 +589,7 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
     cmake -G Ninja .. \
       -DCMAKE_INSTALL_PREFIX="${AWS_INSTALL_PREFIX}" \
       -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
       -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF \
       -DAWS_SDK_WARNINGS_ARE_ERRORS=OFF \
       -DAWS_USER_AGENT_CUSTOMIZATION=CUDA-Q/${CUDA_QUANTUM_VERSION} \

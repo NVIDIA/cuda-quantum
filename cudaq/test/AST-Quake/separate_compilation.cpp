@@ -18,6 +18,8 @@ __qpu__ uint64_t test_entry_point() {
   return otherKernel(results);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point.
 // CHECK-SAME:      () -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_3:.*]] = call @{{.*}}otherKernel{{.*}}(%{{.*}}) : (!cc.stdvec<!cc.measure_handle>) -> i64
+// clang-format on

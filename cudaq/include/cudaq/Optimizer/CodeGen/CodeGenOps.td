@@ -9,11 +9,11 @@
 #ifndef CUDAQ_OPTIMIZER_CODEGEN_OPS
 #define CUDAQ_OPTIMIZER_CODEGEN_OPS
 
-include "cudaq/Optimizer/CodeGen/CodeGenDialect.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
-include "cudaq/Optimizer/Dialect/Common/Traits.td"
+include "cudaq/Optimizer/CodeGen/CodeGenDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
+include "cudaq/Optimizer/Dialect/Traits.td"
 
 //===----------------------------------------------------------------------===//
 // The codegen quake dialect is a transitory set of operations used exclusively

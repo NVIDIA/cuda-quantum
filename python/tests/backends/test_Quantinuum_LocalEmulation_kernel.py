@@ -126,7 +126,8 @@ def test_quantinuum_exp_pauli():
 
     # Run the observe task on quantinuum synchronously
     res = cudaq.observe(ansatz, hamiltonian, .59 * -0.5, shots_count=100000)
-    assert assert_close(-1.7, res.expectation())
+    sync_expectation = res.expectation()
+    assert assert_close(-1.7, sync_expectation)
 
     # Launch it asynchronously, enters the job into the queue
     future = cudaq.observe_async(ansatz,
@@ -135,7 +136,8 @@ def test_quantinuum_exp_pauli():
                                  shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
-    assert assert_close(-1.7, res.expectation())
+    async_expectation = res.expectation()
+    assert assert_close(-1.7, async_expectation)
 
 
 def test_u3_emulatation():

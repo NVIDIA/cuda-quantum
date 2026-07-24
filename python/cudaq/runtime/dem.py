@@ -35,11 +35,10 @@ def _detail_check_conditionals_on_measure(kernel):
 def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
-    Runs `kernel` under the internal `"dem"` execution context, captures
-    the recorded circuit from the backend, and returns Stim's standard
-    `.dem` text via `stim::DetectorErrorModel::str()`. The active CUDA-Q
-    target is unaffected; the analysis simulator is an internal,
-    thread-local override.
+    Runs `kernel` under `dem_policy` with a thread-local Stim analysis
+    scope, then returns Stim's standard `.dem` text via
+    `stim::DetectorErrorModel::str()`. The active CUDA-Q target is
+    unaffected.
 
     Args:
       kernel (:class:`Kernel`): The :class:`Kernel` to analyze.
@@ -55,9 +54,10 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
       approximate_disjoint_errors_threshold (float, optional): Threshold
           for approximating disjoint-error products; set to ``0`` to
           disable. Default ``0.0``.
-      ignore_decomposition_failures (bool, optional): Skip error mechanisms
-          that cannot be decomposed instead of raising an exception.
-          Default ``False``.
+      ignore_decomposition_failures (bool, optional): When decomposition
+          fails for an error mechanism, insert it into the DEM undecomposed
+          (as a hyper-edge) instead of raising an exception. Only relevant
+          when ``decompose_errors`` is ``True``. Default ``False``.
       block_decomposition_from_introducing_remnant_edges (bool, optional):
           Prevent the decomposer from introducing remnant edges.
           Default ``False``.
@@ -92,17 +92,17 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(*args)
-    result = cudaq_runtime.dem_from_kernel_impl(decorator.uniqName, module,
-                                                noise_model, dem_kwargs,
-                                                *processedArgs)
+    policy = cudaq_runtime.DemPolicy(decorator.uniqName, noise_model,
+                                     dem_kwargs)
+    result = cudaq_runtime.launch_dem(policy, lambda: decorator(*args))
 
-    if not dem_kwargs.get("return_measurement_matrices", False):
+    if not policy.return_measurement_matrices:
         return result
 
     import numpy as np
     import scipy.sparse as sp
 
+    # Positional 4-tuple order is the shared contract with `launch_dem`.
     dem_text, num_measurements, det_rows, obs_rows = result
 
     def _make_csr(rows, num_cols):

@@ -15,6 +15,15 @@ include "mlir/Pass/PassBase.td"
 // the passes are listed in alphabetical order. Changes that add passes in
 // non-alphabetical order should get a Request Changes.
 
+def AddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
+  let summary = "Add quake deallocs to functions before they return.";
+  let description = [{
+    This pass ensures that a dealloc is inserted before functions return
+    if the function contains a AllocaOp. It should be run before converting
+    to QIR, for example, in order to generate correct code.
+  }];
+}
+
 def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
   let summary = "Add measurement operations.";
   let description = [{
@@ -48,18 +57,6 @@ def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
     common `quake.wire_set` without any topological information.  Each wire is
     assigned a unique identifier (the index into the `quake.wire_set`) through
     this process.
-  }];
-}
-
-def ApplyControlNegations :
-    Pass<"apply-control-negations", "mlir::func::FuncOp"> {
-  let summary =
-    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
-
-  let description = [{
-    For every quantum operation with a negative control, replace that operation 
-    with an X operation on the control qubit, the controlled operation with
-    positive polarity, and a final X operation on the control qubit. 
   }];
 }
 
@@ -433,20 +430,14 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
     distributed memory model.
   }];
 
-  // Realtime `stdvec` lowering may materialize `quake.discriminate` when
-  // converting measurement-handle vectors to boolean payload bytes.
-  let dependentDialects = ["mlir::LLVM::LLVMDialect",
-                           "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 
   let options = [
     Option<"insertTrapImplementation", "insert-trap", "bool",
       /*default=*/"false",
       "Enable pass to insert a default implementation (runtime trap) for "
       "device call (default=false). The default implementation has weak "
-      "linkage, i.e., allowed to be overridden at link time.">,
-    Option<"realtimeLowering", "realtime", "bool",
-      /*default=*/"false",
-      "Lower device calls to the realtime device-call frame ABI.">
+      "linkage, i.e., allowed to be overridden at link time.">
   ];
 }
 
@@ -486,6 +477,18 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
     the calling function copying the heap data to a new vector on the stack.
     Since the callee is inlined, none of this is really required. The callee and
     caller share a common stack frame, so one copy is plenty.
+  }];
+}
+
+def ExpandControlNegations :
+    Pass<"expand-control-negations", "mlir::func::FuncOp"> {
+  let summary =
+    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
+
+  let description = [{
+    For every quantum operation with a negated control, replace that operation 
+    with an X operation on the control qubit, the controlled operation with
+    positive polarity, and a final X operation on the control qubit. 
   }];
 }
 
@@ -958,6 +961,39 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     Note 3: as a result of note 2, if the IR contains no measurements, this pass
     will inject measurements so that the post-mapping measurements correspond
     to all of the input (user) qubits.
+
+    Control flow: structured `cc.if` and `cc.loop` operations that carry
+    quantum wires are routed. Each branch and loop body is routed recursively
+    against the layout that is live where the region is entered, and the
+    placements that meet at each control-flow join must be reconciled to a
+    single layout so the block after the join has an unambiguous entry.
+
+    Reconciliation is currently done by reverting each predecessor to the
+    layout it entered with (its swaps are replayed in reverse before the region
+    terminator):
+
+    - `cc.if`: both branches share the same entry layout, so restoring each to
+      its entry makes them agree at the if-join with no extra search.
+    - `cc.loop`: the body is restored to its entry layout, making that layout
+      the loop invariant. This needs no swaps before the loop, but pays the
+      full restoration cost on every iteration.
+
+    This handles two-qubit gates and swaps inside branches and loop bodies
+    (unlike a scheme that forbids them), but always collapses back to the entry
+    layout rather than searching for a cheaper common layout. A future strategy
+    may pick a different common exit layout and add the swaps needed to reach it
+    on each predecessor (including before a loop).
+
+    The following control flow is not yet supported and is rejected (a hard
+    error under `raise-fatal-errors`, otherwise the function is skipped):
+
+    - measurements nested inside a branch or loop, unless the function is a
+      `run` entry point (where results are recorded by index, not order);
+    - a mid-circuit measurement whose measured wire feeds a non-terminal user,
+      or any measurement-dependent (adaptive) control flow;
+    - loops with a multi-block body, a Python `else`, or a `break`;
+    - quantum gates in a loop's condition or step region;
+    - more than one block at the function's top level.
   }];
 
   let options = [
@@ -990,6 +1026,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "Layout search strategy: sabre (SABRE forward-backward-forward "
            "reverse-traversal refinement of each seed), none (single forward "
            "route per seed; legacy mapping is placement=identity search=none)">,
+    Option<"islandPackingAttemptBudget", "island-packing-attempt-budget",
+           "unsigned", /*default=*/"1048576",
+           "For disconnected devices with greedy placement: the maximum number "
+           "of placement attempts the exhaustive island-packing fallback may "
+           "make before giving up. The fallback only runs when the fast "
+           "best-fit-decreasing packer fails, and feasible packings settle in a "
+           "handful of attempts; this bound caps the cost of proving "
+           "infeasibility on pathological topologies. Exhausting it emits a "
+           "diagnostic suggesting a larger value. 0 disables the fallback "
+           "(best-fit-decreasing only) (advanced)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
            "internal compiler errors">
@@ -1195,17 +1241,6 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
-def QuakeAddDeallocs : Pass<"add-dealloc", "mlir::func::FuncOp"> {
-  let summary = "Add quake deallocs to functions before they return.";
-  let description = [{
-    This pass ensures that a dealloc is inserted before functions return
-    if the function contains a AllocaOp. It should be run before converting
-    to QIR, for example, in order to generate correct code.
-  }];
-
-  let constructor = "cudaq::opt::createQuakeAddDeallocs()";
-}
-
 def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let summary = "Add various metadata attributes to a Quake function.";
   let description = [{
@@ -1251,6 +1286,38 @@ def QubitResetBeforeReuse :
 
 }
 
+def RealtimeDeviceCall : Pass<"realtime-device-call", "mlir::ModuleOp"> {
+  let summary = "Lower cc.device_call operations to the realtime frame ABI.";
+
+  let description = [{
+    Lower `cc.device_call` operations to the realtime device-call frame ABI.
+    Each device call is rewritten into a sequence of runtime calls operating
+    on a leased request/response frame: acquire a frame from the selected
+    device channel, marshal the operands into the request payload, dispatch
+    the frame, and read the response back before releasing the frame.
+
+    The generated code calls
+    `__cudaq_device_call_acquire_realtime_frame`,
+    `__cudaq_device_call_dispatch_realtime_frame`, and
+    `__cudaq_device_call_safely_release_realtime_frame`, so the final
+    executable must be linked against a runtime that provides this leased
+    frame API.
+
+    Boolean vector payloads are marshaled through the private
+    `__nvqpp_RealtimePackBits`, `__nvqpp_RealtimePackMeasurements`, and
+    `__nvqpp_RealtimeUnpackBits` intrinsic functions. Run the `inline`
+    pass afterwards to expand these helpers at their call sites.
+  }];
+
+  // The lowering materializes `cc` and `arith` ops for payload sizing and
+  // marshaling, `func` calls/declarations for the runtime ABI, and may
+  // materialize `quake.discriminate` (within the loaded packing intrinsics)
+  // when converting measurement-handle vectors to boolean payload bytes.
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
+                           "mlir::func::FuncDialect",
+                           "cudaq::quake::QuakeDialect"];
+}
+
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let summary = "Converts register-SSA to memory-SSA form.";
   let description = [{
@@ -1271,7 +1338,22 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     use cloning to recover such a finite DAG representation. This pass does not,
     however, attempt to perform such heroics.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
+}
+
+def RepairLinearType : Pass<"repair-linear-type", "mlir::func::FuncOp"> {
+  let summary = "Repair linear type constraints.";
+  let description = [{
+    The desired linear type constraint is that a value of linear type must be
+    used exactly once. That is \e not SSA. Unfortunately, MLIR assumes SSA
+    semantics at a very deep level and can and will destroy the linear type
+    constraints in its own default optimizations.
+
+    Running this pass will repair the damage in such a way that the linear type
+    value is lifted to a reference type, which is a valid SSA value.
+  }];
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
 }
 
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",

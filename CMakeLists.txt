@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
 
 # Policies
 # ==============================================================================
@@ -73,6 +73,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
+# Disable scanning since we have no C++20 modules.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # Set warnings as errors by default.
 # Individual targets and the command line invocation can override this behavior.
 if(NOT DEFINED CMAKE_COMPILE_WARNING_AS_ERROR)
@@ -87,6 +90,11 @@ endif()
 # Enable the ensmallen optimizer by default. Requires BLAS.
 if (NOT DEFINED CUDAQ_ENABLE_ENSMALLEN)
   set(CUDAQ_ENABLE_ENSMALLEN ON CACHE BOOL "Enable building the ensmallen optimizer (requires BLAS).")
+endif()
+
+# Enable the NLopt optimizer by default.
+if (NOT DEFINED CUDAQ_ENABLE_NLOPT)
+  set(CUDAQ_ENABLE_NLOPT ON CACHE BOOL "Enable building the NLopt optimizer.")
 endif()
 
 # CUDAQ_ENABLE_ALL_BACKEND, if defined, becomes the default value used for
@@ -990,6 +998,7 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     endif()
   endif()
   include(GoogleTest)
+  include(CUDAQGtestDiscovery)
   include(CTest)
   if (NOT CUDAQ_DISABLE_RUNTIME)
     add_subdirectory(targettests)

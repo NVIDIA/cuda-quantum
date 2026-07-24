@@ -299,7 +299,11 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
-    pip install pytest pytest-xdist
+    # Mock QPU server deps for tests/backends. The script may run from a copy
+    # outside the repo (conda validation), so fall back to the CI checkout.
+    backend_requirements="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../requirements-tests-backend.txt"
+    [ ! -f "$backend_requirements" ] && backend_requirements="$GITHUB_WORKSPACE/requirements-tests-backend.txt"
+    pip install pytest pytest-xdist -r "$backend_requirements"
 fi
 
 # Run OpenMPI setup (Linux only)
@@ -333,9 +337,12 @@ else
     done
 fi
 
+# Keep each xdist_group (fixed-port mock-server test files) on one worker.
+xdist_flags="--dist=loadgroup"
+
 # Run core tests
 echo "Running core tests."
-python3 -m pytest -v -n "$pytest_workers" "$root_folder/tests" \
+python3 -m pytest -v -n "$pytest_workers" $xdist_flags "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
     --ignore "$root_folder/tests/dynamics/integrators" \
     --ignore "$root_folder/tests/parallel" \
@@ -355,7 +362,7 @@ fi
 
 # Run backend tests (single invocation with xdist; --rootdir matches upstream import layout)
 echo "Running backend tests."
-python3 -m pytest -v -n "$pytest_workers" --rootdir "$root_folder/tests" "$root_folder/tests/backends"
+python3 -m pytest -v -n "$pytest_workers" $xdist_flags --rootdir "$root_folder/tests" "$root_folder/tests/backends"
 status=$?
 # Exit code 5 indicates that no tests were collected.
 if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then

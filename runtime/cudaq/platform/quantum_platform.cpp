@@ -135,17 +135,19 @@ getDefaultCompileTarget(const observe_policy &) {
   return ct;
 }
 std::unique_ptr<cudaq::CompileTarget>
+getDefaultCompileTarget(const dem_policy &) {
+  auto ct = getDefaultPythonCompileTargetImpl();
+  ct->overrideAOTCompilation = false;
+  ct->emitJit = true;
+  ct->emitTargetCode = false;
+  ct->pipelineConfig.skipTargetLoweringPipeline = true;
+  return ct;
+}
+std::unique_ptr<cudaq::CompileTarget>
 getDefaultCompileTarget(const other_policies &, ExecutionContext *context) {
   auto ct = getDefaultPythonCompileTargetImpl();
   ct->overrideAOTCompilation = false;
-
-  if (context && context->name == "dem") {
-    ct->emitJit = true;
-    ct->emitTargetCode = false;
-    ct->pipelineConfig.skipTargetLoweringPipeline = true;
-  }
   ct->emitResourceCounts = context && context->name == "resource-count";
-
   return ct;
 }
 

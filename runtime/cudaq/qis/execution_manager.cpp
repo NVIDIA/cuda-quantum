@@ -52,9 +52,27 @@ void ExecutionManager::configureExecutionContext(const sample_policy &policy) {
 }
 
 void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
-  if (auto *ctx = getExecutionContext())
+  if (auto *ctx = getExecutionContext()) {
     configureExecutionContext(*ctx);
+  }
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
 
+void ExecutionManager::configureExecutionContext(
+    const msm_size_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(const msm_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(const dem_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(
+    const ptsbe::sample_policy &policy) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
 }
 
@@ -66,6 +84,12 @@ void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
         [&](observe_result &&r) {
           ctx.result = r.raw_data();
           ctx.expectationValue = r.expectation();
+        },
+        [&](msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
+        [&](msm_result &&r) {
+          ctx.result = std::move(r.samples);
+          ctx.msm_probabilities = std::move(r.probabilities);
+          ctx.msm_prob_err_id = std::move(r.probability_error_ids);
         },
         [&](policies::void_result &&r) {});
   });

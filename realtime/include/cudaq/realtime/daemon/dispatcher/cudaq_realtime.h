@@ -38,7 +38,10 @@ typedef enum {
   CUDAQ_OK = 0,
   CUDAQ_ERR_INVALID_ARG = 1,
   CUDAQ_ERR_INTERNAL = 2,
-  CUDAQ_ERR_CUDA = 3
+  CUDAQ_ERR_CUDA = 3,
+  // The component does not implement the requested optional capability
+  // (e.g. a version-1 bridge provider asked for a version-2 interface field).
+  CUDAQ_ERR_UNSUPPORTED = 4
 } cudaq_status_t;
 
 // Dispatch control path: GPU-resident persistent kernel vs CPU host loop.
@@ -326,6 +329,18 @@ CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_launch_dispatch_graph(
 CUDAQ_REALTIME_DISPATCH_API cudaError_t
 cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
 
+// Read the trigger-path debug state: the device-side cudaGraphLaunch result
+// of the most recent fire-and-forget of the triggered graph (-1000 = never
+// fired), the count of fires, and the count of tail self-relaunches.  A
+// healthy scheduler shows rc==0 with fires == tail_relaunches; {rc=0,
+// fires=N, tails=N-1} means the triggered graph launched but never
+// completed.  Uses asynchronous copies on a private non-blocking stream, so
+// it is safe to call while the dispatch graph is resident (live or wedged).
+// Any output pointer may be NULL to skip that value.
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_dispatch_get_trigger_debug(
+    int *trigger_rc, unsigned long long *trigger_fires,
+    unsigned long long *tail_relaunches);
+
 #endif
 
 // Manager lifecycle
@@ -378,6 +393,13 @@ cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx);
 
+// CPU data-plane wiring for the host unified path. `cpu_dataplane` is a
+// `cudaq_cpu_dataplane_t*` obtained from the bridge. When set, the dispatcher
+// runs the single-thread unified loop over it.
+cudaq_status_t
+cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
+                                   void *cpu_dataplane);
+
 // Start/stop
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
@@ -385,32 +407,6 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
 // Stats
 cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
-
-//==============================================================================
-// Host dispatcher path (CUDAQ_DISPATCH_PATH_HOST)
-//==============================================================================
-// When config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST, start() uses these
-// instead of launch_fn. The realtime lib calls them; implementation is in
-// libcudaq-realtime-host-dispatch.
-
-typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
-
-// Start the host dispatcher loop in a new thread. Call from
-// cudaq_dispatcher_start when dispatch_path is CUDAQ_DISPATCH_PATH_HOST.
-// Returns a handle for stop, or NULL on error. If external_mailbox is non-NULL,
-// uses it instead of allocating internally.
-cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
-    const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
-    const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
-    uint64_t *stats, void **external_mailbox);
-
-// Stop the host dispatcher thread and free resources.
-void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle);
-
-// Release a worker back to the idle pool (handle-level, called by API layer).
-cudaq_status_t
-cudaq_host_dispatcher_release_worker(cudaq_host_dispatcher_handle_t *handle,
-                                     int worker_id);
 
 //==============================================================================
 // Ring buffer slot helpers (producer / consumer side)

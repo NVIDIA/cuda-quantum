@@ -6,8 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-
+// clang-format off
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
@@ -29,7 +30,6 @@ int main() {
   auto gateCounts = cudaq::estimate_resources(kernel);
   auto counts2 = cudaq::sample(10, kernel);
 
-  
   counts1.dump();
   // CHECK: m1 : { 1:5 }
   gateCounts.dump();

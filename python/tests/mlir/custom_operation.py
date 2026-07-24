@@ -49,9 +49,8 @@ def test_custom_adjoint():
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.custom_unitary_constant @__nvqpp__mlirgen__custom_h_generator_1.rodata %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           quake.custom_unitary_constant @__nvqpp__mlirgen__custom_x_generator_1.rodata {{\[}}%[[VAL_2]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           quake.custom_unitary_constant @__nvqpp__mlirgen__custom_x_generator_1.rodata {{\[}}%[[VAL_1]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:           quake.dealloc %[[VAL_0]] : !quake.veq<2>
 # CHECK:           return
 # CHECK:         }

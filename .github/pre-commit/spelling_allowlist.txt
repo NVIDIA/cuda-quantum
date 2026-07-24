@@ -138,6 +138,7 @@ QuTiP
 Quake
 Quantinuum
 RDMA
+README
 REPL
 RFSoC
 RHEL
@@ -174,7 +175,9 @@ Verilog
 Vivado
 WQEs
 WSL
+XDG
 Xcode
+YAML
 Zener
 accessor
 acknowledgement
@@ -193,8 +196,10 @@ arity
 auxillary
 backend
 backends
+backpressure
 bernstein
 bitcode
+bitmask
 bitstring
 bitstrings
 bitwidth
@@ -218,6 +223,7 @@ comparator
 comparators
 composability
 composable
+config
 constructible
 controlled
 coprocessing
@@ -234,6 +240,9 @@ cuQuantum
 cuTensor
 cudaq
 dataflow
+datagram
+datagrams
+dataplane
 ddots
 deallocate
 deallocated
@@ -277,6 +286,7 @@ enum
 et
 excitations
 executables
+exponentials
 exponentiated
 expressibility
 expressivity
@@ -284,6 +294,7 @@ extensibility
 extremal
 fermionic
 fermioniq
+filesystems
 fourier
 frontend
 frontends
@@ -313,6 +324,7 @@ iteratively
 kets
 krylov
 libunwind
+lifecycle
 linker
 linkers
 logarithmically
@@ -351,6 +363,7 @@ photonic
 photonics
 pipelined
 pluggable
+portably
 precompute
 precomputed
 prepend
@@ -380,11 +393,14 @@ reproducibility
 responder
 resultData
 reusability
+ringbuffer
 rkey
+runnable
 runtime
 runtimes
 rvalue
 rx
+sandboxed
 scalability
 scalable
 schemas
@@ -392,6 +408,7 @@ selectable
 sexualized
 shifter
 shifters
+sizeof
 splitter
 splitters
 sqale
@@ -405,6 +422,7 @@ subclassed
 subclasses
 subclassing
 subcommand
+subdirectory
 subexpression
 subexpressions
 subfolder
@@ -418,6 +436,8 @@ subtypes
 subtyping
 summarize
 superpositions
+symlink
+symlinks
 symplectic
 tablegen
 templated
@@ -425,15 +445,19 @@ testability
 toolchain
 toolchains
 toolset
+topologies
+traceback
 transmon
 transpilation
 transpile
 trixie
 trotterization
+tx
 uccsd
 unary
 uncomputation
 uncompute
+undecomposed
 unitaries
 unitarity
 unitary

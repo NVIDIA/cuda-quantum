@@ -10,6 +10,7 @@
 /// @brief Hololink bridge interface implementation for libcudaq-realtime
 /// dispatch.
 
+#include <cstdio>
 #include <sstream>
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
@@ -277,6 +278,42 @@ hololink_bridge_disconnect(cudaq_realtime_bridge_handle_t handle) {
   return CUDAQ_OK;
 }
 
+static cudaq_status_t
+hololink_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle,
+                                  char *buf, size_t buf_len) {
+  if (!handle || !buf || buf_len == 0)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *ctx = reinterpret_cast<HololinkBridgeContext *>(handle);
+  if (!ctx->transceiver)
+    return CUDAQ_ERR_INTERNAL;
+  const int n = std::snprintf(
+      buf, buf_len,
+      "transport=gpu_roce qp=0x%x rkey=%u buffer_addr=0x%llx peer_ip=%s",
+      hololink_get_qp_number(ctx->transceiver),
+      hololink_get_rkey(ctx->transceiver),
+      static_cast<unsigned long long>(
+          hololink_get_buffer_addr(ctx->transceiver)),
+      ctx->config.peer_ip.c_str());
+  return (n > 0 && static_cast<size_t>(n) < buf_len) ? CUDAQ_OK
+                                                     : CUDAQ_ERR_INVALID_ARG;
+}
+
+static cudaq_status_t
+hololink_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
+                                  uint32_t *out_num_slots,
+                                  uint32_t *out_slot_size) {
+  if (!handle || !out_num_slots || !out_slot_size)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *ctx = reinterpret_cast<HololinkBridgeContext *>(handle);
+  if (!ctx->transceiver)
+    return CUDAQ_ERR_INTERNAL;
+  *out_num_slots =
+      static_cast<uint32_t>(hololink_get_num_pages(ctx->transceiver));
+  *out_slot_size =
+      static_cast<uint32_t>(hololink_get_page_size(ctx->transceiver));
+  return CUDAQ_OK;
+}
+
 cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
   static cudaq_realtime_bridge_interface_t cudaq_hololink_bridge_interface = {
       CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION,
@@ -286,6 +323,9 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       hololink_bridge_connect,
       hololink_bridge_launch,
       hololink_bridge_disconnect,
+      /*get_cpu_dataplane=*/nullptr, // GPU rings; no host unified shape
+      hololink_bridge_get_endpoint_info,
+      hololink_bridge_get_ring_geometry,
   };
   return &cudaq_hololink_bridge_interface;
 }

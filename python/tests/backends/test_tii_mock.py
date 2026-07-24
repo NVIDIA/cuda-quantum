@@ -22,6 +22,8 @@ skipIfTiiNotInstalled = pytest.mark.skipif(
 
 from utils.mock_qpu.tii import startServer
 
+pytestmark = pytest.mark.xdist_group("tii_mock")
+
 # Define the port for the mock server - make sure this is unique
 # across all tests.
 port = 62451

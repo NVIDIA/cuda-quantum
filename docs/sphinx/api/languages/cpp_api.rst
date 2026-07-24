@@ -339,8 +339,21 @@ Algorithms
 .. doxygenclass:: cudaq::gradients::forward_difference
     :members:
 
+.. doxygenstruct:: cudaq::dem_options
+    :members:
+
+.. doxygenstruct:: cudaq::M2DSparseMatrix
+    :members:
+
+.. doxygenstruct:: cudaq::M2OSparseMatrix
+    :members:
+
+.. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, const cudaq::noise_model *noise, const cudaq::dem_options &options, Args &&...args)
 .. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, const cudaq::noise_model *noise, Args &&...args)
 .. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, const cudaq::noise_model *noise, const cudaq::dem_options &options, cudaq::M2DSparseMatrix &m2d_out, cudaq::M2OSparseMatrix &m2o_out, Args &&...args)
+.. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, const cudaq::noise_model *noise, cudaq::M2DSparseMatrix &m2d_out, cudaq::M2OSparseMatrix &m2o_out, Args &&...args)
+.. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, cudaq::M2DSparseMatrix &m2d_out, cudaq::M2OSparseMatrix &m2o_out, Args &&...args)
 
 Quantum Error Correction
 ========================

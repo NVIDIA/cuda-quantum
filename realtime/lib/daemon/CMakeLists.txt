@@ -101,7 +101,7 @@ if(CUDA_FOUND)
   # include paths. Host-only code; no device code in this TU.
   add_library(cudaq-realtime-host-dispatch STATIC
     dispatcher/host_dispatcher.cu
-    dispatcher/host_dispatcher_capi.cu
+    dispatcher/graph_launch_engine.cu
   )
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
@@ -132,4 +132,8 @@ if(CUDA_FOUND)
   if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
     add_subdirectory(bridge/hololink)
   endif()
+  # CPU transport bridge providers (thin provider .so's over the
+  # cpu_transport ring transceivers; loaded via CUDAQ_REALTIME_BRIDGE_LIB).
+  add_subdirectory(bridge/udp)
+  add_subdirectory(bridge/cpu_roce)
 endif()

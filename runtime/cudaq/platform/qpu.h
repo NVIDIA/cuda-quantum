@@ -173,9 +173,25 @@ public:
                                       const CompiledModule &module,
                                       KernelArgs args);
 
+  virtual msm_dimensions launchKernel(const msm_size_policy &policy,
+                                      const CompiledModule &module,
+                                      KernelArgs args);
+
+  virtual msm_result launchKernel(const msm_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
   virtual async_observe_result launchKernel(const async_observe_policy &policy,
                                             const CompiledModule &module,
                                             KernelArgs args);
+
+  virtual dem_result launchKernel(const dem_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
+  virtual ptsbe::sample_policy::result_type
+  launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
 
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
@@ -187,6 +203,14 @@ public:
   getCompileTarget(const sample_policy &policy);
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(const observe_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const msm_size_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const msm_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const dem_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const ptsbe::sample_policy &policy);
   // Overload for currently unsupported policies (to be removed).
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(const other_policies &policy, ExecutionContext *context);
