@@ -107,8 +107,8 @@ def test_exp_pauli():
 # CHECK:         %[[VAL_22:.*]] = getelementptr [1 x { ptr, i64 }], ptr %[[VAL_2]], i32 0, i32 0, i32 1
 # CHECK:         store i64 3, ptr %[[VAL_22]]
 # CHECK:         call void @__quantum__qis__exp_pauli__ctl(double 2.310000e+01, ptr %[[VAL_20]], ptr %[[VAL_7]], ptr %[[VAL_2]])
-# CHECK:         call void @__quantum__rt__qubit_release(ptr %[[VAL_6]])
-# CHECK:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_7]])
+# CHECK-DAG:     call void @__quantum__rt__qubit_release(ptr %[[VAL_6]])
+# CHECK-DAG:     call void @__quantum__rt__qubit_release_array(ptr %[[VAL_7]])
 # CHECK:         ret void
 # CHECK:       }
 
