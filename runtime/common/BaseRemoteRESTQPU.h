@@ -265,6 +265,15 @@ public:
     return target;
   }
 
+  std::unique_ptr<CompileTarget> getCompileTarget(const run_policy &) override {
+    auto target = std::make_unique<CompileTarget>(
+        targetConfig, backendConfig, emulate,
+        serverHelper->getPipelineSubstitutions(platformPath));
+    target->pipelineConfig.replaceStateWithKernel = true;
+    target->overrideAOTCompilation = true;
+    return target;
+  }
+
   /// Build a local JIT artifact for DEM analysis. No provider target code is
   /// emitted or submitted while this policy is active.
   std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
@@ -326,77 +335,67 @@ public:
       return;
     }
 
-    // Get the current execution context and number of shots
-    std::size_t localShots = 1000;
-    if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&
-        executionContext->shots != 0)
-      localShots = executionContext->shots;
+    return;
+  }
 
-    executor->setShots(localShots);
-    assert(executionContext && executionContext->name == "run");
+  run_result completeLaunchKernel(const run_policy &policy,
+                                  const std::string &kernelName,
+                                  std::vector<cudaq::KernelExecution> &&codes) {
+    // The synchronous run policy is only ever used for the emulation path;
+    // remote execution is dispatched through async_run_policy and the executor.
+    assert(emulate);
 
-    // If emulation requested, then just grab the function and invoke it with
-    // the simulator
-    cudaq::detail::future future;
-    if (emulate) {
+    // Seed the simulator RNG for reproducibility. If seed is 0, then it has
+    // not been set.
+    std::size_t seed = cudaq::get_random_seed();
+    if (seed > 0)
+      cudaq::set_random_seed(seed);
 
-      // TODO: This assert demonstrates that we are never expected to return a
-      // future in emulation mode. We are launching a new thread just to wait
-      // for its execution to finish below. We need to make this work without
-      // the thread as the executionContext is crossing the thread boundary
-      // which is not thread safe in the general case.
-      assert(!executionContext->asyncExec);
+    // cudaq::run kernels should only generate one JIT'ed kernel, which we
+    // invoke once per shot and let the execution manager collect the QIR
+    // output log.
+    assert(codes.size() == 1 && codes[0].jit);
+    return cudaq::ExecutionManager::with_default_em(policy, [&] {
+      // Run each shot with the thread-local execution context cleared.
+      // CircuitSimulator::deallocateQubits skips deallocation while an
+      // execution context is set, so if the context stays set across the whole
+      // shot loop the per-shot qubits allocated by the kernel accumulate and
+      // blow up the simulator state (OOM). Clearing it lets each shot fully
+      // deallocate, matching the pre-policy behavior where the shot loop ran on
+      // a separate thread with no execution context.
+      auto *savedContext = cudaq::getExecutionContext();
+      cudaq::detail::resetExecutionContext();
+      cudaq::detail::try_finally(
+          [&] {
+            for (std::size_t shot = 0; shot < policy.shots; shot++)
+              codes[0].jit->run(kernelName);
+          },
+          [&] {
+            if (savedContext)
+              cudaq::detail::setExecutionContext(savedContext);
+          });
+    });
+  }
 
-      // Fetch the thread-specific seed outside and then pass it inside.
-      std::size_t seed = cudaq::get_random_seed();
-
-      // Launch the execution of the simulated jobs asynchronously
-      future = cudaq::detail::future(
-          std::async(std::launch::async,
-                     [&, codes, localShots, kernelName,
-                      seed]() mutable -> cudaq::sample_result {
-                       std::vector<cudaq::ExecutionResult> results;
-
-                       // If seed is 0, then it has not been set.
-                       if (seed > 0)
-                         cudaq::set_random_seed(seed);
-
-                       // Validate the execution logic: cudaq::run kernels
-                       // should only generate one JIT'ed kernel.
-                       assert(codes.size() == 1 && codes[0].jit);
-                       executor->setShots(1); // run one shot at a time
-
-                       // If this is executed via cudaq::run, then you have to
-                       // run the code localShots times
-                       for (std::size_t shot = 0; shot < localShots; shot++)
-                         codes[0].jit->run(kernelName);
-
-                       // Get QIR output log
-                       const auto qirOutputLog = nvqir::getQirOutputLog();
-                       executionContext->invocationResultBuffer.assign(
-                           qirOutputLog.begin(), qirOutputLog.end());
-                       return cudaq::sample_result();
-                     }));
-
-    } else {
-      // Execute the codes produced in quake lowering
-      // Allow developer to disable remote sending (useful for debugging IR)
-      if (getEnvBool("DISABLE_REMOTE_SEND", false))
-        return;
-
-      future =
-          executor->execute(codes, cudaq::detail::ExecutionContextType::run,
-                            &executionContext->invocationResultBuffer);
+  async_run_result
+  completeLaunchKernel(const async_run_policy &policy,
+                       const std::string &kernelName,
+                       std::vector<cudaq::KernelExecution> &&codes) {
+    executor->setShots(policy.inner.shots);
+    assert(!emulate);
+    if (getEnvBool("DISABLE_REMOTE_SEND", false)) {
+      auto rawOutput = std::make_shared<std::vector<char>>();
+      std::promise<sample_result> promise;
+      auto future = promise.get_future();
+      promise.set_value({});
+      return async_run_result(cudaq::detail::future(std::move(future)),
+                              std::move(rawOutput));
     }
 
-    // Keep this asynchronous if requested
-    if (executionContext->asyncExec) {
-      executionContext->futureResult = future;
-      return;
-    }
-
-    // Otherwise make this synchronous
-    executionContext->result = future.get();
+    auto rawOutput = std::make_shared<std::vector<char>>();
+    auto future = executor->execute(
+        codes, cudaq::detail::ExecutionContextType::run, rawOutput.get());
+    return async_run_result(std::move(future), std::move(rawOutput));
   }
 
   async_sample_result
@@ -434,8 +433,6 @@ public:
     if (policy.options.shots != std::numeric_limits<std::size_t>::max() &&
         policy.options.shots != 0)
       localShots = policy.options.shots;
-
-    executor->setShots(localShots);
 
     // If emulation requested, then just grab the function and invoke it with
     // the simulator
@@ -504,7 +501,6 @@ public:
     if (policy.options.shots > 0)
       localShots = static_cast<std::size_t>(policy.options.shots);
 
-    executor->setShots(localShots);
     assert(emulate);
 
     std::size_t seed = cudaq::get_random_seed();

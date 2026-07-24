@@ -46,6 +46,14 @@ public:
                               const CompiledModule &module,
                               KernelArgs args) override;
 
+  run_result launchKernel(const run_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override;
+
+  async_run_result launchKernel(const async_run_policy &policy,
+                                const CompiledModule &module,
+                                KernelArgs args) override;
+
   async_observe_result launchKernel(const async_observe_policy &policy,
                                     const CompiledModule &module,
                                     KernelArgs args) override;

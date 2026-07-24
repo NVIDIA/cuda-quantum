@@ -36,6 +36,14 @@ public:
                               const CompiledModule &module,
                               KernelArgs args) override;
 
+  run_result launchKernel(const run_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override;
+
+  async_run_policy::result_type launchKernel(const async_run_policy &policy,
+                                             const CompiledModule &module,
+                                             KernelArgs args) override;
+
   msm_dimensions launchKernel(const msm_size_policy &policy,
                               const CompiledModule &module,
                               KernelArgs args) override;
@@ -62,6 +70,9 @@ public:
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const observe_policy &policy) override;
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const run_policy &policy) override;
 
   std::unique_ptr<CompileTarget>
   getCompileTarget(const dem_policy &policy) override;
