@@ -52,6 +52,30 @@ func.func @tiny_others() {
 // CHECK-LABEL: func.func @tiny_others
 // CHECK-NOT:     quake.r{{[xy1]}}
 
+// A full turn is the identity up to a global phase (rz(2*pi) = -I), so it is
+// folded into (-pi, pi] and pruned. Two full turns (4*pi) fold to 0 as well.
+func.func @full_turn(%q: !quake.ref) {
+  %a = arith.constant 6.2831853071795862 : f64
+  %b = arith.constant 12.566370614359172 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%b) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @full_turn
+// CHECK-NOT:     quake.rz
+// CHECK-NOT:     quake.r1
+
+// A half turn (pi) folds to itself, well above threshold, so it survives.
+func.func @half_turn(%q: !quake.ref) {
+  %a = arith.constant 3.1415926535897931 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @half_turn
+// CHECK:         quake.rz
+
 // An above-threshold rotation is left untouched.
 func.func @big(%q: !quake.ref) {
   %a = arith.constant 0.5 : f64

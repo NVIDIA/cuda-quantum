@@ -27,8 +27,12 @@ using namespace mlir;
 
 namespace {
 
-// Erases an uncontrolled constant-angle rotation whose magnitude is below
-// `threshold`, treating it as the identity. Works for both quake semantics:
+// Erases an uncontrolled constant-angle rotation that is the identity up to a
+// global phase, treating it as the identity. All of `rz`, `rx`, `ry`, and `r1`
+// have period 2*pi up to a global phase (e.g. rz(2*pi) = -I), so the angle is
+// folded into (-pi, pi] and pruned when the folded magnitude is below
+// `threshold`. The discarded global phase is unobservable because only
+// uncontrolled rotations are pruned. Works for both quake semantics:
 //   - memory (`!quake.ref`): the op produces no result, so it is dropped.
 //   - value (`!quake.wire`): the op threads its target wire to a result wire.
 //     The identity forwards that input wire to the result's users.
@@ -50,7 +54,14 @@ struct PruneRotationPattern : OpRewritePattern<RotOp> {
       return failure();
 
     double theta = attr.getValueAsDouble();
-    if (!std::isfinite(theta) || std::abs(theta) >= threshold)
+    if (!std::isfinite(theta))
+      return failure();
+
+    // Fold into (-pi, pi]: a full turn is identity up to a global phase, so
+    // e.g. rz(2*pi) = -I is pruned just like rz(0). std::remainder yields the
+    // representative in [-pi, pi] closest to zero.
+    double residual = std::remainder(theta, 2.0 * M_PI);
+    if (std::abs(residual) >= threshold)
       return failure();
 
     // Negligible angle: replace with the identity.

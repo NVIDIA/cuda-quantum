@@ -1197,11 +1197,16 @@ def PruneNegligibleRotations
     : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
   let summary = "Erase constant-angle rotations that are effectively identity.";
   let description = [{
-    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations whose
-    constant angle has magnitude below `threshold`, treating them as the
-    identity. In memory semantics (`!quake.ref` targets) the op is simply
-    dropped and in value semantics (`!quake.wire` targets) the input wire is
-    threaded straight through to the users of the result.
+    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations that
+    are the identity up to a global phase, treating them as the identity. Each
+    of these rotations has period `2*pi` up to a global phase (for example
+    `rz(2*pi) = -I`), so the constant angle is folded into `(-pi, pi]` and the
+    op is pruned when the folded magnitude is below `threshold`. The discarded
+    global phase is unobservable because only uncontrolled rotations are pruned.
+
+    In memory semantics (`!quake.ref` targets) the op is simply dropped and in
+    value semantics (`!quake.wire` targets) the input wire is threaded straight
+    through to the users of the result.
 
     Only uncontrolled rotations are pruned: a controlled rotation with a
     negligible angle is left in place (materialize controls with
@@ -1214,8 +1219,8 @@ def PruneNegligibleRotations
   }];
   let options = [
     Option<"threshold", "threshold", "double", /*default=*/"1e-12",
-      "Erase (treat as identity) rotations whose |theta| is below this "
-      "threshold. Set to 0 to disable.">,
+      "Erase (treat as identity) rotations whose angle, folded into (-pi, pi], "
+      "has magnitude below this threshold. Set to 0 to disable.">,
   ];
   let dependentDialects = ["quake::QuakeDialect"];
 }
