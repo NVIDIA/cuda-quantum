@@ -118,6 +118,7 @@ ADD "unittests" /cuda-quantum/unittests
 ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
+ADD "LICENSES" /cuda-quantum/LICENSES
 ADD "NOTICE" /cuda-quantum/NOTICE
 
 ARG release_version=
@@ -201,6 +202,7 @@ ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
+ADD "LICENSES" /cuda-quantum/LICENSES
 ADD "NOTICE" /cuda-quantum/NOTICE
 ADD "CITATION.cff" /cuda-quantum/CITATION.cff
 

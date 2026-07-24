@@ -30,6 +30,7 @@ header:
     - '**/Doxyfile.in'
     - 'CITATION.cff'
     - 'LICENSE'
+    - 'LICENSES/**'
     - 'NOTICE'
     - 'llms.txt'
     - 'cudaq/test/README.txt'

@@ -15,7 +15,7 @@ authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = { file="README.md.in", content-type = "text/markdown"}
 requires-python = ">=3.11"
-license-files = ["LICENSE", "NOTICE", "CITATION.cff"]
+license-files = ["LICENSE", "NOTICE", "CITATION.cff", "LICENSES/*"]
 classifiers = [
     'Intended Audience :: Science/Research',
     'Intended Audience :: Developers',

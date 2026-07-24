@@ -43,6 +43,8 @@ Fock
 Fortran
 Fourier
 GHCR
+GMP
+GPL
 GPU
 GPUDirect
 GPUs
@@ -72,11 +74,13 @@ JupyterLab
 Kagome
 Kraus
 Kutta
+LGPL
 LLVM
 LSB
 Libraries
 MCA
 MLIR
+MPFR
 MPI
 MPICH
 MPS

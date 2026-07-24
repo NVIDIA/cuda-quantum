@@ -351,10 +351,10 @@ if [ "$platform" = "Darwin" ]; then
     # references.
     mkdir -p wheelhouse
     if $verbose; then
-        echo "  Command: delocate-wheel -v -w wheelhouse $wheel_file"
-        delocate-wheel -v -w wheelhouse "$wheel_file"
+        echo "  Command: delocate-wheel -v -e libgmp -e libmpfr -w wheelhouse $wheel_file"
+        delocate-wheel -v -e libgmp -e libmpfr -w wheelhouse "$wheel_file"
     else
-        delocate-wheel -w wheelhouse "$wheel_file"
+        delocate-wheel -e libgmp -e libmpfr -w wheelhouse "$wheel_file"
     fi
 
     # Move repaired wheel to output
@@ -400,6 +400,8 @@ else
     auditwheel_args="$auditwheel_args --exclude libcudart.so.$cudart_libsuffix"
     auditwheel_args="$auditwheel_args --exclude libnvidia-ml.so.1"
     auditwheel_args="$auditwheel_args --exclude libcuda.so.1"
+    auditwheel_args="$auditwheel_args --exclude libgmp.so.10"
+    auditwheel_args="$auditwheel_args --exclude libmpfr.so.6"
 
     if $verbose; then
         echo "  Command: auditwheel $auditwheel_args"
