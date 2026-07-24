@@ -231,6 +231,40 @@ def testMpiDistributedUnevenQuditSlices():
 
 
 @skipIfUnsupported
+def testMpiDistributedQuditExplicitStateWithCollapse():
+    """Test distributed pure-to-mixed conversion from an explicit state."""
+    import cupy as cp
+
+    dimensions = {0: 16, 1: 2}
+    target_level = 9
+    state_data = cp.zeros(32, dtype=cp.complex128)
+    state_data[target_level + 16] = 1.0
+    initial_state = cudaq.State.from_data(state_data)
+
+    number_operator = boson.number(0)
+    decay_rate = 0.1
+    final_time = 0.1
+    result = cudaq.evolve(
+        0.0 * number_operator,
+        dimensions,
+        Schedule([0.0, final_time], ["time"]),
+        initial_state,
+        observables=[number_operator],
+        collapse_operators=[np.sqrt(decay_rate) * boson.annihilate(0)],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+        integrator=RungeKuttaIntegrator())
+
+    expectations = result.expectation_values()
+    np.testing.assert_allclose(expectations[0][0].expectation(),
+                               target_level,
+                               atol=1e-12)
+    np.testing.assert_allclose(expectations[1][0].expectation(),
+                               target_level * np.exp(-decay_rate * final_time),
+                               rtol=1e-5)
+
+
+@skipIfUnsupported
 def testMpiDistributedRankLocalExplicitState():
     """Test initialization from an already packed rank-local state buffer."""
     import cupy as cp
@@ -262,6 +296,35 @@ def testMpiDistributedRankLocalExplicitState():
     np.testing.assert_allclose(np.array(result.final_state()),
                                cp.asnumpy(local_state_data),
                                atol=1e-12)
+
+
+@skipIfUnsupported
+def testMpiDistributedRankLocalExplicitStateWithCollapseRejected():
+    """Test that rank-local pure states cannot be promoted after partitioning."""
+    import cupy as cp
+    from cudaq.dynamics import nvqir_dynamics_bindings as bindings
+
+    _require_exactly_two_ranks()
+    dimensions = {0: 16, 1: 2}
+    local_state_data = cp.zeros(16, dtype=cp.complex128)
+    if cudaq.mpi.rank() == 1:
+        local_state_data[9] = 1.0
+    initial_state = bindings.initializeState(local_state_data.data.ptr,
+                                             local_state_data.size,
+                                             list(dimensions.values()), 1)
+
+    number_operator = boson.number(0)
+    with pytest.raises(RuntimeError,
+                       match="rank-local distributed state vector"):
+        cudaq.evolve(0.0 * number_operator,
+                     dimensions,
+                     Schedule([0.0], ["time"]),
+                     initial_state,
+                     observables=[number_operator],
+                     collapse_operators=[0.1 * boson.annihilate(0)],
+                     store_intermediate_results=cudaq.IntermediateResultSave.
+                     EXPECTATION_VALUE,
+                     integrator=RungeKuttaIntegrator())
 
 
 @skipIfUnsupported
