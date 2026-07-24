@@ -231,7 +231,7 @@ nitpick_ignore = [
     ('py:class', 'Checks if all operators in the product are the identity. Note'),
 ]
 
-suppress_warnings = ["myst.duplicate_def"]
+suppress_warnings = ["myst.duplicate_def", "ref.ref"]
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
