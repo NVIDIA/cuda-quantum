@@ -59,9 +59,10 @@ struct SynthState {
 // LogicalResult:
 //    Lower -> proceed and return success()
 //    LeaveInPlace -> return failure() with the op untouched
-//    Erased -> return success() with no further emission.
+//    Erase -> the rotation is a no-op. The caller removes it (forwarding the
+//             qubit wire in value semantics) and returns success().
 struct PreCheck {
-  enum class Action { Lower, LeaveInPlace, Erased };
+  enum class Action { Lower, LeaveInPlace, Erase };
   Action action;
   double theta;
 };
@@ -201,11 +202,10 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
 //   - non-constant angle, on-dyn=error    -> error,  LeaveInPlace (hard error)
 //   - non-constant angle, on-dyn=skip     -> remark, LeaveInPlace
 //   - NaN/Inf angle                       -> error,  LeaveInPlace (hard error)
-//   - |theta| < skipBelow                 -> erase,  Erased
+//   - |theta| < skipBelow                 -> Erase
 //   - otherwise                           -> Lower with the constant angle
 static PreCheck validateRotationOperands(Operation *op, Value angleVal,
                                          ValueRange controls,
-                                         PatternRewriter &rewriter,
                                          const RotationOptions &opts,
                                          bool *hadHardError) {
   if (!controls.empty()) {
@@ -244,10 +244,8 @@ static PreCheck validateRotationOperands(Operation *op, Value angleVal,
   }
 
   // gridsynth is never invoked for an angle that would be erased anyway.
-  if (std::abs(theta) < opts.skipBelow) {
-    rewriter.eraseOp(op);
-    return {PreCheck::Action::Erased, 0.0};
-  }
+  if (std::abs(theta) < opts.skipBelow)
+    return {PreCheck::Action::Erase, 0.0};
 
   return {PreCheck::Action::Lower, theta};
 }
@@ -262,19 +260,25 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
 
   LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
-    auto check = validateRotationOperands(
-        op, op.getParameter(), op.getControls(), rewriter, opts, hadHardError);
+    auto check = validateRotationOperands(op, op.getParameter(),
+                                          op.getControls(), opts, hadHardError);
+    Value target = op.getTarget();
+    bool valueSemantics = isa<cudaq::quake::WireType>(target.getType());
     switch (check.action) {
     case PreCheck::Action::LeaveInPlace:
       return failure();
-    case PreCheck::Action::Erased:
+    case PreCheck::Action::Erase:
+      // Near-zero angle: the rotation is a no-op. In value semantics forward
+      // the incoming wire to the op's users, in memory semantics just drop it.
+      if (valueSemantics)
+        rewriter.replaceOp(op, target);
+      else
+        rewriter.eraseOp(op);
       return success();
     case PreCheck::Action::Lower:
       break;
     }
 
-    Value target = op.getTarget();
-    bool valueSemantics = isa<cudaq::quake::WireType>(target.getType());
     auto symRef =
         getOrCreateRzHelper(check.theta, valueSemantics, opts, *state);
     if (llvm::failed(symRef)) {
