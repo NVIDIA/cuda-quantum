@@ -276,8 +276,8 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
   let options = [
     Option<"allowDynamicResult", "allow-dynamic-result", "bool",
            /*default=*/"true",
-           "Allow dynamic-size vector result logging. Set to false for targets"
-           "that require statically-known output record counts (e.g., targets"
+           "Allow dynamic-size vector result logging. Set to false for targets "
+           "that require statically-known output record counts (e.g., targets "
            "that don't support full QIR).">,
   ];
 }

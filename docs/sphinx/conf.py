@@ -19,6 +19,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
+from pygments.lexers.special import TextLexer
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
@@ -114,13 +115,38 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb',
+    '_doxygen/**', '_static/**', '_tags/**', '_templates/**',
+    '**/__pycache__/**', 'using/extending/_noise.rst', '.DS_Store',
+    'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
 ]
 
-#redirect links
-redirects = {"backends/dynamics": "../dynamics.html"}
+compiler_developer_docs = (
+    os.getenv('CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS') == '1'
+)
+
+if compiler_developer_docs:
+    tags.add('compiler_developer_docs')
+    rst_epilog = '''
+.. |CUDA-Q dialect documentation| replace:: :doc:`CUDA-Q dialect documentation </using/extending/compiler/dialect_reference>`
+.. |compiler pass development guide| replace:: :doc:`compiler pass development guide </using/extending/compiler/mlir_pass>`
+.. |available compiler passes| replace:: :doc:`available compiler passes </using/extending/compiler/available_passes>`
+'''
+else:
+    rst_epilog = '''
+.. |CUDA-Q dialect documentation| replace:: CUDA-Q dialect documentation
+.. |compiler pass development guide| replace:: compiler pass development guide
+.. |available compiler passes| replace:: available compiler passes
+'''
+    exclude_patterns.extend([
+        'using/extending/compiler/mlir_pass.rst',
+        'using/extending/compiler/available_passes.md',
+        'using/extending/compiler/dialect_reference.rst',
+        '_mdgen/Dialects/**',
+        '_mdgen/Transforms.md',
+        '_mdgen/CodeGenPasses.md',
+    ])
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 default_role = 'code'  # NOTE: the following may be a better choice to error on the side of flagging anything that is referenced but but not declared
@@ -164,6 +190,7 @@ htmlhelp_basename = 'cudaqDoc'
 
 
 def setup(app):
+    app.add_lexer('mlir', TextLexer)
     app.add_css_file('cudaq_override.css')
 
 
@@ -188,7 +215,12 @@ intersphinx_mapping = {
     'numpy': ('https://numpy.org/doc/stable/', None),
 }
 
-redirects = {"versions": "../latest/releases.html"}
+redirects = {
+    "backends/dynamics": "../dynamics.html",
+    "versions": "../latest/releases.html",
+    "using/extending/cudaq_ir": "compiler/cudaq_ir.html",
+    "using/extending/mlir_pass": "compiler/pass_plugins.html",
+}
 
 nitpick_ignore = [
     ('cpp:identifier', 'GlobalRegisterName'),
