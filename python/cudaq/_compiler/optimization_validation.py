@@ -20,39 +20,15 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
                                                   register_all_dialects, quake,
                                                   cc)
 
-# Schema versions are part of the contract.
-# v4: each metric delta carries a `gating` flag (gating vs informational).
-RESULT_SCHEMA_VERSION = 4
-# Capabilities now advertise the `invariants` names.
-CAPABILITY_SCHEMA_VERSION = 4
-
-# Assurance tiers, from strongest guarantee to weakest. The tier records what
-# kind of equivalence evidence an oracle produces, independent of the circuit it
-# ran on. Names are deliberately concrete about the backing method, so a new
-# strategy gets a new named tier rather than overloading an abstract one.
+# The assurance tier records what kind of equivalence evidence an oracle
+# produces, independent of the circuit it ran on. Only one tier is executable:
 #
 #   exact-unitary       Full-operator equivalence built directly from the IR
 #                       (dense unitary, up to global phase). Basis- and
 #                       input-independent: checks the whole operator, not one
 #                       input state. Safest, but bounded by the 2^n dense-matrix
 #                       cost (see DEFAULT_EXACT_QUBIT_BOUND).
-#   `exact-clifford-sim`  Exact equivalence that scales past the dense bound by
-#                       exploiting circuit structure, specifically Clifford
-#                       circuits via a tableau/`stim` simulator. Same strength as
-#                       exact-unitary on its (narrower) domain, but usable at many
-#                       more qubits -- a scaling axis, not a generality `superset`.
-#   exact-density-sim   Density-matrix equivalence for small circuits. Handles
-#                       measurement/reset/noise that the pure-unitary oracles
-#                       reject, at the same ~small-qubit cost ceiling.
-#   advisory            Sampled or expectation-value evidence (e.g. a statevector
-#                       compared on a fixed input state). Weaker: it can witness a
-#                       difference but cannot certify equivalence, so per the
-#                       oracle hardening rules it may only turn passed -> failed,
-#                       never failed -> passed.
 ASSURANCE_TIER_EXACT_UNITARY = "exact-unitary"
-ASSURANCE_TIER_EXACT_CLIFFORD_SIM = "exact-clifford-sim"
-ASSURANCE_TIER_EXACT_DENSITY_SIM = "exact-density-sim"
-ASSURANCE_TIER_ADVISORY = "advisory"
 
 DEFAULT_EXACT_QUBIT_BOUND = 14
 
@@ -78,7 +54,6 @@ _SEVERITY = {
 
 _ORACLE_KINDS = ("strict-unitary", "up-to-global-phase")
 PREDICATES = ("nonincreasing", "decreasing", "unchanged", "any")
-_PRESETS = ("smoke", "quick", "ci", "full", "single-reproducer")
 
 # The first-class boolean `invariants` checked on every in-domain case, reported as
 # structured `InvariantResult`s. These are the semantic guarantees the `validator`
@@ -92,62 +67,35 @@ INVARIANT_KINDS = (INVARIANT_EQUIVALENCE, INVARIANT_DETERMINISM,
 
 @dataclass(frozen=True)
 class OracleDescriptor:
-    """One equivalence oracle in the `roadmap`, executable or deferred.
+    """One executable equivalence oracle.
 
-    This is the authoritative, machine-readable description of how an oracle
-    decides equivalence and how far it scales, so a caller (or the agent-facing
-    skill) never has to infer an oracle's strength or domain from prose.
+    The authoritative, machine-readable description of how an oracle decides
+    equivalence and how far it scales, so a caller (or the agent-facing skill)
+    never has to infer an oracle's strength or domain from prose.
     """
 
     kind: str
     tier: str
-    # "supported" if executable in this build, else "deferred".
-    status: str
     # The simulation/analysis method backing the decision.
     method: str
     # domain + scaling note.
     note: str
 
 
-# The oracle `roadmap`.
+# The equivalence oracles executable in this build.
 ORACLE_ROADMAP = (
     OracleDescriptor(
         kind="strict-unitary",
         tier=ASSURANCE_TIER_EXACT_UNITARY,
-        status="supported",
         method="dense-unitary-from-ir",
         note="Element-wise unitary equality. Bounded by the dense 2^n cost.",
     ),
     OracleDescriptor(
         kind="up-to-global-phase",
         tier=ASSURANCE_TIER_EXACT_UNITARY,
-        status="supported",
         method="dense-unitary-from-ir",
         note="Unitary equality after dividing out a global phase. Bounded by "
         "the dense 2^n cost.",
-    ),
-    OracleDescriptor(
-        kind="clifford-tableau",
-        tier=ASSURANCE_TIER_EXACT_CLIFFORD_SIM,
-        status="deferred",
-        method="tableau-stim",
-        note="Exact equivalence for Clifford-only circuits, scalable well past "
-        "the dense bound. Requires a Clifford-domain preflight.",
-    ),
-    OracleDescriptor(
-        kind="density-matrix",
-        tier=ASSURANCE_TIER_EXACT_DENSITY_SIM,
-        status="deferred",
-        method="density-matrix-sim",
-        note="Small-circuit equivalence that also covers measurement/reset/"
-        "noise. Same small-qubit ceiling as the dense oracle.",
-    ),
-    OracleDescriptor(
-        kind="statevector-expectation",
-        tier=ASSURANCE_TIER_ADVISORY,
-        status="deferred",
-        method="statevector-sim",
-        note="Expectation-value evidence on fixed input states.",
     ),
 )
 
@@ -350,11 +298,9 @@ class ValidationRequest:
     pipeline: PipelineSpec
     oracle: Union[OracleSpec, Oracle] = field(default_factory=OracleSpec)
     metrics: tuple[MetricSpec, ...] = ()
-    seed: int = 0
     fixed_point_runs: int = 1
     exact_qubit_bound: int = DEFAULT_EXACT_QUBIT_BOUND
     kernel_name: Optional[str] = None
-    preset: str = "quick"
 
 
 # Result contracts
@@ -404,10 +350,7 @@ class ValidationResult:
     status: str
     cases: tuple[CaseResult, ...]
     aggregate_metrics: Mapping[str, MetricDelta]
-    seed: int
-    preset: str
     messages: tuple[str, ...] = ()
-    result_schema_version: int = RESULT_SCHEMA_VERSION
 
 
 @dataclass(frozen=True)
@@ -416,15 +359,12 @@ class ValidationCapabilities:
     oracles: tuple[str, ...]
     metrics: tuple[str, ...]
     predicates: tuple[str, ...]
-    presets: tuple[str, ...]
     # Invariants checked on every in-domain case.
     invariants: tuple[str, ...]
     # Assurance tiers this `validator` can accept at.
     assurance_tiers: tuple[str, ...]
-    # Full oracle `roadmap`, tier and method for each.
+    # The executable oracles, with tier and method for each.
     oracle_roadmap: tuple[OracleDescriptor, ...]
-    result_schema_version: int
-    capability_schema_version: int
 
 
 class InvalidRequest(Exception):
@@ -598,8 +538,6 @@ def _validate_request(request: ValidationRequest, ctx: Context) -> None:
     elif not isinstance(request.oracle, Oracle):
         raise InvalidRequest(
             "oracle must be an OracleSpec or an Oracle instance")
-    if request.preset not in _PRESETS:
-        raise InvalidRequest(f"unknown preset '{request.preset}'")
     if request.fixed_point_runs < 0:
         raise InvalidRequest("fixed_point_runs must be non-negative")
     for metric in request.metrics:
@@ -856,8 +794,6 @@ def validate(request: ValidationRequest) -> ValidationResult:
             status=ValidationStatus.INVALID_REQUEST,
             cases=(),
             aggregate_metrics={},
-            seed=request.seed,
-            preset=request.preset,
             messages=(str(exc),),
         )
 
@@ -880,8 +816,6 @@ def validate(request: ValidationRequest) -> ValidationResult:
         status=status,
         cases=tuple(cases),
         aggregate_metrics=_aggregate_metrics(cases),
-        seed=request.seed,
-        preset=request.preset,
     )
 
 
@@ -890,9 +824,7 @@ def validate_artifacts(pairs,
                        oracle: Optional[Union[OracleSpec, Oracle]] = None,
                        metrics: tuple = (),
                        exact_qubit_bound: int = DEFAULT_EXACT_QUBIT_BOUND,
-                       kernel_name: Optional[str] = None,
-                       seed: int = 0,
-                       preset: str = "quick") -> ValidationResult:
+                       kernel_name: Optional[str] = None) -> ValidationResult:
     """Validate already-compiled ``(baseline, candidate)`` Quake artifacts.
 
     The trusted, crash-isolated primitive: it runs no passes. The caller is
@@ -916,8 +848,6 @@ def validate_artifacts(pairs,
             status=ValidationStatus.INVALID_REQUEST,
             cases=(),
             aggregate_metrics={},
-            seed=seed,
-            preset=preset,
             messages=(str(exc),),
         )
 
@@ -958,8 +888,6 @@ def validate_artifacts(pairs,
         status=status,
         cases=tuple(cases),
         aggregate_metrics=_aggregate_metrics(cases),
-        seed=seed,
-        preset=preset,
     )
 
 
@@ -977,20 +905,17 @@ def _aggregate_metrics(cases) -> dict:
 def capabilities() -> ValidationCapabilities:
     """Return the machine-readable capabilities of this `validator`.
 
-    This is the authoritative source for which oracles, metrics, and presets
-    have executable support.
+    This is the authoritative source for which oracles and metrics have
+    executable support.
     """
     return ValidationCapabilities(
         oracles=_ORACLE_KINDS,
         metrics=("operation-count", "two-qubit-count", "multi-qubit-count",
                  "depth", "t-count", "gate:<name>"),
         predicates=PREDICATES,
-        presets=_PRESETS,
         invariants=INVARIANT_KINDS,
         assurance_tiers=(ASSURANCE_TIER_EXACT_UNITARY,),
         oracle_roadmap=ORACLE_ROADMAP,
-        result_schema_version=RESULT_SCHEMA_VERSION,
-        capability_schema_version=CAPABILITY_SCHEMA_VERSION,
     )
 
 

@@ -22,9 +22,6 @@ import pytest
 
 from cudaq._compiler import optimization_corpus as corpus
 from cudaq._compiler.optimization_validation import (
-    ASSURANCE_TIER_ADVISORY,
-    ASSURANCE_TIER_EXACT_CLIFFORD_SIM,
-    ASSURANCE_TIER_EXACT_DENSITY_SIM,
     ASSURANCE_TIER_EXACT_UNITARY,
     INVARIANT_KINDS,
     ORACLE_ROADMAP,
@@ -71,8 +68,6 @@ def _request(inputs, **kwargs) -> ValidationRequest:
         oracle=OracleSpec(kind="up-to-global-phase"),
         metrics=(MetricSpec("operation-count", "nonincreasing"),),
         fixed_point_runs=1,
-        seed=184467,
-        preset="quick",
     )
     defaults.update(kwargs)
     return ValidationRequest(inputs=tuple(inputs), **defaults)
@@ -330,11 +325,6 @@ def test_unknown_oracle_is_invalid_request(tmp_path):
     assert result.status == ValidationStatus.INVALID_REQUEST
 
 
-def test_unknown_preset_is_invalid_request(tmp_path):
-    result = validate(_request([_good_input(tmp_path)], preset="deep"))
-    assert result.status == ValidationStatus.INVALID_REQUEST
-
-
 def test_bad_pipeline_string_is_invalid_request(tmp_path):
     result = validate(
         _request([_good_input(tmp_path)],
@@ -365,7 +355,6 @@ def test_result_json_round_trips(tmp_path):
     text = json.dumps(payload, sort_keys=True)
     back = json.loads(text)
     assert back["status"] == result.status
-    assert back["result_schema_version"] == result.result_schema_version
     assert len(back["cases"]) == len(result.cases)
 
 
@@ -384,7 +373,6 @@ def test_aggregate_status_is_worst_case(tmp_path):
 def test_capabilities_accepts_only_exact_tier():
     caps = capabilities()
     assert caps.assurance_tiers == (ASSURANCE_TIER_EXACT_UNITARY,)
-    assert caps.capability_schema_version == 4
 
 
 def test_capabilities_advertise_first_class_invariants():
@@ -392,21 +380,14 @@ def test_capabilities_advertise_first_class_invariants():
     assert set(caps.invariants) == set(INVARIANT_KINDS)
 
 
-def test_oracle_roadmap_is_machine_readable_and_complete():
+def test_oracle_roadmap_lists_only_supported_oracles():
     caps = capabilities()
     roadmap = {o.kind: o for o in caps.oracle_roadmap}
-    supported = {o.kind for o in caps.oracle_roadmap if o.status == "supported"}
-    assert supported == set(
+    # Every listed oracle is executable, so the roadmap kinds match `oracles`.
+    assert set(roadmap) == set(
         caps.oracles) == {"strict-unitary", "up-to-global-phase"}
-    for kind in supported:
-        assert roadmap[kind].tier == ASSURANCE_TIER_EXACT_UNITARY
-
-    assert roadmap["clifford-tableau"].tier == ASSURANCE_TIER_EXACT_CLIFFORD_SIM
-    assert roadmap["clifford-tableau"].status == "deferred"
-    assert roadmap["density-matrix"].tier == ASSURANCE_TIER_EXACT_DENSITY_SIM
-    assert roadmap["density-matrix"].status == "deferred"
-    assert roadmap["statevector-expectation"].tier == ASSURANCE_TIER_ADVISORY
-    assert roadmap["statevector-expectation"].status == "deferred"
+    for descriptor in caps.oracle_roadmap:
+        assert descriptor.tier == ASSURANCE_TIER_EXACT_UNITARY
 
 
 def test_oracle_roadmap_serializes():
@@ -416,4 +397,4 @@ def test_oracle_roadmap_serializes():
     back = json.loads(text)
     assert len(back["oracle_roadmap"]) == len(ORACLE_ROADMAP)
     for entry in back["oracle_roadmap"]:
-        assert {"kind", "tier", "status", "method", "note"} <= set(entry.keys())
+        assert {"kind", "tier", "method", "note"} == set(entry.keys())

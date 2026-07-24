@@ -19,8 +19,6 @@ The CLI holds no validation logic of its own.
       `--metric operation-count:nonincreasing \\`
       `--metric two-qubit-count:nonincreasing \\`
       `--fixed-point-runs 1 \\`
-      `--preset quick \\`
-      `--seed 184467 \\`
       `--result /tmp/commutation-cancellation/result.json`
 
 An ``--input`` may be either a Quake ``.qke`` file or a Python file of
@@ -205,8 +203,6 @@ def build_parser() -> argparse.ArgumentParser:
                         default=None,
                         help="Kernel symbol to compare when a module has more "
                         "than one.")
-    parser.add_argument("--preset", default="quick")
-    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--result",
                         default=None,
                         metavar="FILE",
@@ -243,8 +239,6 @@ def main(argv=None) -> int:
                 status=ValidationStatus.INVALID_REQUEST,
                 cases=(),
                 aggregate_metrics={},
-                seed=args.seed,
-                preset=args.preset,
                 messages=(str(exc),),
             )
             _emit(result_to_dict(result), args.result)
@@ -256,11 +250,9 @@ def main(argv=None) -> int:
             pipeline=target.with_pipeline(args.candidate),
             oracle=OracleSpec(kind=args.oracle, rtol=args.rtol, atol=args.atol),
             metrics=tuple(_parse_metric(m) for m in args.metric),
-            seed=args.seed,
             fixed_point_runs=args.fixed_point_runs,
             exact_qubit_bound=args.exact_qubit_bound,
             kernel_name=args.kernel_name,
-            preset=args.preset,
         )
 
         result = validate(request)
