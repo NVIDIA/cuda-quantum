@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <atomic>
 #include <gtest/gtest.h>
@@ -17,6 +18,26 @@
 #include <vector>
 
 using namespace cudaq;
+
+TEST(QPUUtilsTester, getsRawBackendConfigOption) {
+  const std::string backend =
+      "target;__yml_path;/tmp/plugin/targets/target.yml;emulate;false";
+  EXPECT_EQ(cudaq::detail::getBackendConfigOption(backend, "__yml_path"),
+            "/tmp/plugin/targets/target.yml");
+}
+
+TEST(QPUUtilsTester, getsBase64BackendConfigOptionWithSpaces) {
+  const std::string backend = "target;__yml_path;base64_"
+                              "L3RtcC9wbHVnaW4gcGF0aC90YXJnZXRzL3Rlc3QueW1s";
+  EXPECT_EQ(cudaq::detail::getTargetConfigPath(backend, "/fallback.yml"),
+            "/tmp/plugin path/targets/test.yml");
+}
+
+TEST(QPUUtilsTester, usesFallbackTargetConfigPath) {
+  EXPECT_EQ(cudaq::detail::getTargetConfigPath("target;emulate;false",
+                                               "/fallback.yml"),
+            "/fallback.yml");
+}
 
 class DummyQPU : public cudaq::QPU {
 public:
