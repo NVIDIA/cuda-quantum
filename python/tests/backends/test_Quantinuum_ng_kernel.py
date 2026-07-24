@@ -205,6 +205,34 @@ def test_run():
     assert non_zero_count > 0
 
 
+def test_run_async():
+
+    @cudaq.kernel
+    def simple(numQubits: int) -> int:
+        qubits = cudaq.qvector(numQubits)
+        h(qubits.front())
+        for i, qubit in enumerate(qubits.front(numQubits - 1)):
+            x.ctrl(qubit, qubits[i + 1])
+        result = 0
+        for i in range(numQubits):
+            if mz(qubits[i]):
+                result += 1
+        return result
+
+    shots = 100
+    qubitCount = 4
+    future = cudaq.run_async(simple, qubitCount, shots_count=shots)
+    results = future.get()
+    print(results)
+    assert len(results) == shots
+    non_zero_count = 0
+    for result in results:
+        assert result == 0 or result == qubitCount  # 00..0 or 1...11
+        if result == qubitCount:
+            non_zero_count += 1
+    assert non_zero_count > 0
+
+
 def test_quantinuum_state_preparation():
 
     @cudaq.kernel

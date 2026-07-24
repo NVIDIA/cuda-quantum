@@ -52,6 +52,20 @@ observe_result cudaq::QPU::launchKernel(const observe_policy &policy,
       "This QPU does not support launching the observe_policy.");
 }
 
+run_result cudaq::QPU::launchKernel(const run_policy &policy,
+                                    const CompiledModule &module,
+                                    KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the run_policy.");
+}
+
+async_run_policy::result_type
+cudaq::QPU::launchKernel(const async_run_policy &policy,
+                         const CompiledModule &module, KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the async_run_policy.");
+}
+
 msm_dimensions cudaq::QPU::launchKernel(const msm_size_policy &policy,
                                         const CompiledModule &module,
                                         KernelArgs args) {
@@ -169,6 +183,12 @@ cudaq::QPU::getCompileTarget(const sample_policy &) {
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const observe_policy &) {
+  // Fall back to policy-agnostic compile target.
+  return getCompileTarget(other_policies{}, nullptr);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const run_policy &) {
   // Fall back to policy-agnostic compile target.
   return getCompileTarget(other_policies{}, nullptr);
 }

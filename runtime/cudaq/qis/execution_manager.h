@@ -121,6 +121,7 @@ public:
   /// Configure the execution context before an execution.
   void configureExecutionContext(const sample_policy &policy);
   void configureExecutionContext(const observe_policy &policy);
+  void configureExecutionContext(const run_policy &policy);
   void configureExecutionContext(const msm_size_policy &policy);
   void configureExecutionContext(const msm_policy &policy);
   void configureExecutionContext(const dem_policy &policy);
@@ -137,6 +138,11 @@ public:
 
   virtual observe_result
   finalizeExecutionContext(const observe_policy &policy) = 0;
+
+  virtual run_result finalizeExecutionContext(const run_policy &policy) {
+    throw std::runtime_error(
+        "This execution manager does not support run execution.");
+  }
 
   virtual msm_dimensions
   finalizeExecutionContext(const msm_size_policy &policy) = 0;
@@ -269,6 +275,12 @@ inline observe_result
 finalize_execution_manager_impl(ExecutionManager &mgr,
                                 const observe_policy &policy,
                                 ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy);
+}
+
+inline run_result finalize_execution_manager_impl(ExecutionManager &mgr,
+                                                  const run_policy &policy,
+                                                  ExecutionContext &ctx) {
   return mgr.finalizeExecutionContext(policy);
 }
 

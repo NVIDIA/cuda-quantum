@@ -42,8 +42,6 @@ void bindExecutionContext(nanobind::module_ &mod) {
               &cudaq::ExecutionContext::numberTrajectories)
       .def_rw("explicitMeasurements",
               &cudaq::ExecutionContext::explicitMeasurements)
-      .def_ro("invocationResultBuffer",
-              &cudaq::ExecutionContext::invocationResultBuffer)
       .def("setSpinOperator",
            [](cudaq::ExecutionContext &ctx, cudaq::spin_op &spin) {
              ctx.spin = spin;
