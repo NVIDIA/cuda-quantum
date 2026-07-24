@@ -10,6 +10,7 @@
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <cublas_v2.h>
 #include <cudensitymat.h>
+#include <cutensor.h>
 #include <stdexcept>
 
 #define HANDLE_CUDM_ERROR(x)                                                   \
@@ -39,5 +40,15 @@
       std::printf("[cublas] error %d at %s:%d\n", cudaq_fmt::underlying(err_), \
                   __FILE__, __LINE__);                                         \
       throw std::runtime_error("cublas error");                                \
+    }                                                                          \
+  } while (0)
+
+#define HANDLE_CUTENSOR_ERROR(x)                                               \
+  do {                                                                         \
+    const auto err = (x);                                                      \
+    if (err != CUTENSOR_STATUS_SUCCESS) {                                      \
+      throw std::runtime_error(cudaq_fmt::format(                              \
+          "[cutensor] %{} ({}) in {} (line {})", cudaq_fmt::underlying(err),   \
+          cutensorGetErrorString(err), __FUNCTION__, __LINE__));               \
     }                                                                          \
   } while (0)
