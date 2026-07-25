@@ -27,7 +27,8 @@
 #include <vector>
 
 #ifndef UDP_BRIDGE_PROVIDER_PATH
-#error "UDP_BRIDGE_PROVIDER_PATH must be defined (path to the built udp provider .so)"
+#error                                                                         \
+    "UDP_BRIDGE_PROVIDER_PATH must be defined (path to the built udp provider .so)"
 #endif
 
 TEST(UdpBridgeProvider, LoadsAndCreatesPlainBridgeWithoutCudaRuntime) {
