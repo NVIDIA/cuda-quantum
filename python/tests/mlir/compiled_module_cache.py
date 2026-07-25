@@ -13,10 +13,16 @@
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s dependencies 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=DEPENDENCIES %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s runtime_inputs 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=RUNTIME-INPUTS %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s callable_argument 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=CALLABLE-ARGUMENT %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s single_flight 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=SINGLE-FLIGHT %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s multi_entry 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=MULTI-ENTRY %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s fifo_eviction 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=FIFO-EVICTION %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s execution_failure 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=EXECUTION-FAILURE %s
 # clang-format on
 
+import concurrent.futures
 import math
 import sys
+import threading
 from typing import Callable
 
 import cudaq
@@ -243,6 +249,180 @@ def scenario_callable_argument():
 # CALLABLE-ARGUMENT-NEXT: Reusing cached module
 # CALLABLE-ARGUMENT-NOT: Compiling module
 
+
+def scenario_single_flight():
+    """Concurrent equivalent calls share one compilation."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        for _ in range(200):
+            x(q)
+
+    # Build portable Quake before starting the threads so this scenario
+    # isolates the runtime compiled-module cache.
+    kernel.compile()
+
+    thread_count = 4
+    barrier = threading.Barrier(thread_count)
+
+    def launch():
+        barrier.wait()
+        kernel()
+
+    with concurrent.futures.ThreadPoolExecutor(
+            max_workers=thread_count) as executor:
+        futures = [executor.submit(launch) for _ in range(thread_count)]
+        for future in futures:
+            future.result()
+
+
+# Exactly one caller produces the compiled artifact. Depending on scheduling,
+# the other callers either join that in-flight compilation or find it ready.
+# SINGLE-FLIGHT: Compiling module
+# SINGLE-FLIGHT-COUNT-3: {{Joined existing compilation|Reusing cached module}}
+# SINGLE-FLIGHT-NOT: Compiling module
+
+
+def scenario_multi_entry():
+    """Alternating compilation keys remain resident in one decorator cache."""
+
+    @cudaq.kernel
+    def apply_x(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def apply_identity(q: cudaq.qubit):
+        pass
+
+    helper = apply_x
+
+    @cudaq.kernel
+    def outer() -> bool:
+        q = cudaq.qubit()
+        helper(q)
+        return mz(q)
+
+    # A, B, A, B distinguishes a multi-entry cache from the former single
+    # slot: after compiling A and B, both later calls must be ready hits.
+    for helper, expected in ((apply_x, True), (apply_identity, False),
+                             (apply_x, True), (apply_identity, False)):
+        assert outer() is expected
+
+
+# Two distinct keys compile once each, then both remain resident.
+# MULTI-ENTRY: Compiling module
+# MULTI-ENTRY-NEXT: Caching module
+# MULTI-ENTRY-NEXT: Compiling module
+# MULTI-ENTRY-NEXT: Caching module
+# MULTI-ENTRY-NEXT: Reusing cached module
+# MULTI-ENTRY-NEXT: Reusing cached module
+# MULTI-ENTRY-NOT: Compiling module
+
+
+def scenario_fifo_eviction():
+    """Ready entries use bounded, non-refreshing FIFO eviction."""
+
+    @cudaq.kernel
+    def apply_x(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def apply_identity(q: cudaq.qubit):
+        pass
+
+    @cudaq.kernel
+    def apply_y(q: cudaq.qubit):
+        y(q)
+
+    @cudaq.kernel
+    def apply_z(q: cudaq.qubit):
+        z(q)
+
+    @cudaq.kernel
+    def apply_s(q: cudaq.qubit):
+        s(q)
+
+    helper = apply_x
+
+    @cudaq.kernel
+    def outer() -> bool:
+        q = cudaq.qubit()
+        helper(q)
+        return mz(q)
+
+    launches = (
+        # A, B, C, D fill the four ready-entry slots.
+        (apply_x, True),
+        (apply_identity, False),
+        (apply_y, True),
+        (apply_z, False),
+        # A is a hit, but FIFO deliberately does not refresh its position.
+        (apply_x, True),
+        # E therefore evicts A, and the final A must compile again.
+        (apply_s, False),
+        (apply_x, True),
+    )
+    for helper, expected in launches:
+        assert outer() is expected
+
+
+# A, B, C, D compile; hitting A does not refresh it; inserting E evicts A.
+# FIFO-EVICTION: Compiling module
+# FIFO-EVICTION-NEXT: Caching module
+# FIFO-EVICTION-NEXT: Compiling module
+# FIFO-EVICTION-NEXT: Caching module
+# FIFO-EVICTION-NEXT: Compiling module
+# FIFO-EVICTION-NEXT: Caching module
+# FIFO-EVICTION-NEXT: Compiling module
+# FIFO-EVICTION-NEXT: Caching module
+# FIFO-EVICTION-NEXT: Reusing cached module
+# FIFO-EVICTION-NEXT: Compiling module
+# FIFO-EVICTION-NEXT: Caching module
+# FIFO-EVICTION-NEXT: Compiling module
+# FIFO-EVICTION-NEXT: Caching module
+# FIFO-EVICTION-NOT: Compiling module
+
+
+def scenario_execution_failure():
+    """Execution errors do not invalidate successful compilation.
+
+    Compilation of `failing` succeeds; the adjoint synthesis error is raised
+    at execution time. The artifact therefore stays published: the second
+    call reuses it and fails with the same error. This also guards the
+    `getOrCompile` contract that the compile callback contains no execution —
+    if execution moved inside the callback, the failure would erase the
+    published entry and the second call would recompile.
+    """
+
+    @cudaq.kernel
+    def unadjointable(q: cudaq.qview):
+        while True:
+            if mz(q[1]):
+                x(q[1])
+                break
+
+    @cudaq.kernel
+    def failing():
+        q = cudaq.qvector(2)
+        h(q)
+        cudaq.adjoint(unadjointable, q)
+
+    for _ in range(2):
+        try:
+            cudaq.sample(failing, shots_count=1)
+        except RuntimeError as error:
+            assert "could not autogenerate the adjoint" in str(error).lower()
+        else:
+            raise AssertionError("unadjointable kernel unexpectedly executed")
+
+
+# One compile, published before the execution error; the second call reuses.
+# EXECUTION-FAILURE: Compiling module
+# EXECUTION-FAILURE-NEXT: Caching module
+# EXECUTION-FAILURE-NEXT: Reusing cached module
+# EXECUTION-FAILURE-NOT: Compiling module
+
 SCENARIOS = {
     "run": scenario_run,
     "sample": scenario_sample,
@@ -250,6 +430,10 @@ SCENARIOS = {
     "dependencies": scenario_dependencies,
     "runtime_inputs": scenario_runtime_inputs,
     "callable_argument": scenario_callable_argument,
+    "single_flight": scenario_single_flight,
+    "multi_entry": scenario_multi_entry,
+    "fifo_eviction": scenario_fifo_eviction,
+    "execution_failure": scenario_execution_failure,
 }
 
 if __name__ == "__main__":
