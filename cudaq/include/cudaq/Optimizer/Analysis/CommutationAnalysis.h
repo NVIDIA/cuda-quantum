@@ -61,7 +61,7 @@ enum class CommutationReason {
   DifferentBlocks,
   /// At least one operation does not implement Quake `OperatorInterface`.
   UnsupportedOperationKind,
-  /// A quantum operand is not a supported scalar wire or control value.
+  /// A quantum operand is not a supported scalar wire value.
   UnsupportedQuantumOperandType,
   /// A quantum operand has no analysis-local qubit identifier.
   UnmappedQubitId,
@@ -95,14 +95,15 @@ struct CommutationResult {
 ///
 /// The block must contain valid Quake value-form IR. Candidate operations must
 /// implement Quake `OperatorInterface`, and their quantum operands must use
-/// supported scalar `!quake.wire` or `!quake.control` values. Operations on
-/// disjoint qubits commute regardless of their operator kind. For overlapping
-/// qubits, the analysis applies structural rules for recognized built-in Quake
-/// operators. Custom unitaries with the same defining symbol, exact parameters,
-/// controls, and targets are also recognized as the same operation. The
-/// analysis does not inspect custom-unitary matrices or infer
-/// overlapping-support semantics from different custom definitions or dynamic
-/// Pauli words.
+/// scalar `!quake.wire` values. Operations on disjoint qubits commute
+/// regardless of their operator kind. For overlapping qubits, the analysis
+/// applies structural rules for recognized built-in Quake operators. Custom
+/// unitaries with the same defining symbol, exact parameters, controls, and
+/// targets are also recognized as the same operation. The analysis does not
+/// inspect custom-unitary matrices or infer overlapping-support semantics from
+/// different custom definitions or dynamic Pauli words.
+/// Pass pipelines can establish the supported form by running
+/// `linear-ctrl-form` after `memtoreg`.
 ///
 /// `DoesNotCommute` is returned only for the limited cases where an available
 /// rule proves that the operations do not commute. `Indeterminate` means that
@@ -113,11 +114,12 @@ struct CommutationResult {
 /// `Indeterminate` as not safe to reorder. The separate statuses preserve the
 /// distinction between a proven failure to commute and the absence of a proof.
 ///
-/// Qubit identity is followed through supported scalar wire/control value
-/// forms, including operators, measurement, and reset. The analysis does not
-/// follow identity through calls, references, or aggregates. Each scalar block
-/// argument establishes a local identity that is not correlated with values on
-/// predecessor edges.
+/// Qubit identity is followed through supported scalar wire operators,
+/// including controls represented as `!quake.wire`. The analysis does not
+/// follow identity through reusable `!quake.control`, `quake.to_ctrl`,
+/// `quake.from_ctrl`, measurement, reset, calls, references, aggregates, or
+/// unsupported effects. Each wire block argument establishes a local identity
+/// that is not correlated with values on predecessor edges.
 ///
 /// Any mutation of the block invalidates the analysis instance. The caller
 /// must discard it before querying the changed block.

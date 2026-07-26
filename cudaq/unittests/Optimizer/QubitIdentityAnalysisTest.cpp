@@ -37,14 +37,21 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
         %x = quake.x %initial : (!quake.wire) -> !quake.wire
         %reset = quake.reset %x : (!quake.wire) -> !quake.wire
         %distinct = quake.null_wire
+        %measurementInput = quake.null_wire
         %measurement, %measuredInitial, %measuredDistinct =
-            quake.mz %reset, %distinct
+            quake.mz %measurementInput, %distinct
                 : (!quake.wire, !quake.wire)
                   -> (!cc.stdvec<!quake.measure>, !quake.wire, !quake.wire)
-        %control = quake.to_ctrl %measuredInitial
+        %conversionInput = quake.null_wire
+        %control = quake.to_ctrl %conversionInput
             : (!quake.wire) -> !quake.control
         %returned = quake.from_ctrl %control
             : (!quake.control) -> !quake.wire
+        %wireControl = quake.null_wire
+        %wireTarget = quake.null_wire
+        %wireResults:2 = quake.x [%wireControl] %wireTarget
+            : (!quake.wire, !quake.wire)
+              -> (!quake.wire, !quake.wire)
         %mixedWireControl = quake.null_wire
         %mixedControlWire = quake.null_wire
         %mixedTarget = quake.null_wire
@@ -65,7 +72,11 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
         %reference = quake.alloca !quake.ref
         %unwrapped = quake.unwrap %reference : (!quake.ref) -> !quake.wire
         quake.sink %returned : !quake.wire
+        quake.sink %reset : !quake.wire
+        quake.sink %measuredInitial : !quake.wire
         quake.sink %measuredDistinct : !quake.wire
+        quake.sink %wireResults#0 : !quake.wire
+        quake.sink %wireResults#1 : !quake.wire
         quake.sink %mixedResults#0 : !quake.wire
         quake.sink %mixedResults#1 : !quake.wire
         quake.sink %call : !quake.wire
@@ -96,8 +107,8 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   auto borrows = llvm::to_vector(block.getOps<cudaq::quake::BorrowWireOp>());
   auto calls = llvm::to_vector(block.getOps<func::CallOp>());
   auto unwraps = llvm::to_vector(block.getOps<cudaq::quake::UnwrapOp>());
-  ASSERT_EQ(nullWires.size(), 5u);
-  ASSERT_EQ(xOps.size(), 2u);
+  ASSERT_EQ(nullWires.size(), 9u);
+  ASSERT_EQ(xOps.size(), 3u);
   ASSERT_EQ(resets.size(), 1u);
   ASSERT_EQ(measurements.size(), 1u);
   ASSERT_EQ(toControls.size(), 2u);
@@ -109,7 +120,8 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   Value initial = nullWires[0].getResult();
   Value distinct = nullWires[1].getResult();
   auto x = xOps[0];
-  auto mixedX = xOps[1];
+  auto wireX = xOps[1];
+  auto mixedX = xOps[2];
   auto reset = resets[0];
   auto measurement = measurements[0];
   auto control = toControls[0];
@@ -124,41 +136,39 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   QubitIdentityAnalysis analysis(function.front());
   auto initialId = analysis.getQubitId(initial);
   ASSERT_TRUE(initialId);
-  // State-changing and control-conversion operations preserve virtual-qubit
-  // identity as they replace their scalar SSA inputs.
+  // Operators thread identities through scalar wire controls and targets.
   EXPECT_EQ(initialId, analysis.getQubitId(x.getWires().front()));
-  EXPECT_EQ(initialId, analysis.getQubitId(reset.getWires().front()));
-  EXPECT_EQ(initialId, analysis.getQubitId(measurement.getWires().front()));
-  EXPECT_EQ(initialId, analysis.getQubitId(control));
-  EXPECT_EQ(initialId, analysis.getQubitId(returned));
+  ASSERT_EQ(wireX.getWires().size(), 2u);
+  EXPECT_EQ(analysis.getQubitId(wireX.getControls()[0]),
+            analysis.getQubitId(wireX.getWires()[0]));
+  EXPECT_EQ(analysis.getQubitId(wireX.getTargets()[0]),
+            analysis.getQubitId(wireX.getWires()[1]));
 
-  // Operator wire results follow wire controls and targets in operand order;
-  // !quake.control operands do not produce replacement wire results.
+  // Any reusable control makes the whole operator unsupported for identity
+  // propagation, even when its other operands and results are scalar wires.
   ASSERT_EQ(mixedX.getWires().size(), 2u);
-  ASSERT_TRUE(analysis.getQubitId(mixedX.getWires()[0]));
-  ASSERT_TRUE(analysis.getQubitId(mixedX.getWires()[1]));
-  EXPECT_EQ(analysis.getQubitId(mixedX.getControls()[0]),
-            analysis.getQubitId(mixedX.getWires()[0]));
-  EXPECT_EQ(analysis.getQubitId(mixedX.getTargets()[0]),
-            analysis.getQubitId(mixedX.getWires()[1]));
+  EXPECT_FALSE(analysis.getQubitId(mixedX.getWires()[0]));
+  EXPECT_FALSE(analysis.getQubitId(mixedX.getWires()[1]));
 
-  // Scalar block arguments and null wires introduce distinct local identities.
+  // Wire block arguments and null wires introduce distinct local identities.
   ASSERT_TRUE(analysis.getQubitId(function.getArgument(0)));
-  ASSERT_TRUE(analysis.getQubitId(function.getArgument(1)));
-  EXPECT_EQ(analysis.getQubitId(function.getArgument(1)),
-            analysis.getQubitId(controlArgumentWire));
+  EXPECT_FALSE(analysis.getQubitId(function.getArgument(1)));
   ASSERT_TRUE(analysis.getQubitId(distinct));
   EXPECT_NE(initialId, analysis.getQubitId(distinct));
-  EXPECT_EQ(analysis.getQubitId(distinct),
-            analysis.getQubitId(measurement.getWires()[1]));
 
   // A returned and reborrowed wire retains its wire-set identity, while a
   // different wire-set index identifies a different virtual qubit.
   EXPECT_EQ(analysis.getQubitId(borrow0a), analysis.getQubitId(borrow0b));
   EXPECT_NE(analysis.getQubitId(borrow0a), analysis.getQubitId(borrow1));
 
-  // Identity propagation through aggregates, calls, and references is
-  // deliberately unsupported.
+  // Conversions, measurement, reset, aggregates, calls, and references are
+  // deliberately unsupported boundaries.
+  EXPECT_FALSE(analysis.getQubitId(reset.getWires().front()));
+  EXPECT_FALSE(analysis.getQubitId(measurement.getWires()[0]));
+  EXPECT_FALSE(analysis.getQubitId(measurement.getWires()[1]));
+  EXPECT_FALSE(analysis.getQubitId(control));
+  EXPECT_FALSE(analysis.getQubitId(returned));
+  EXPECT_FALSE(analysis.getQubitId(controlArgumentWire));
   EXPECT_FALSE(analysis.getQubitId(function.getArgument(2)));
   EXPECT_FALSE(analysis.getQubitId(call.getResult(0)));
   EXPECT_FALSE(analysis.getQubitId(unwrapped.getResult()));
