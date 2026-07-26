@@ -9,6 +9,7 @@
 #include "QubitIdentityAnalysis.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include <utility>
 
 using namespace mlir;
@@ -17,16 +18,26 @@ using cudaq::quake::detail::QubitIdentityAnalysis;
 using QubitId = QubitIdentityAnalysis::QubitId;
 using BorrowKey = std::pair<Attribute, std::int32_t>;
 
-static void propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
-                              Operation *operation) {
-  auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
-  if (!flow)
-    return;
-  for (auto [input, result] : llvm::zip(flow->inputs, flow->results)) {
+// Propagate only an unambiguous one-to-one scalar wire correspondence.
+// Reference, aggregate, and malformed shapes leave their results unmapped.
+static bool
+propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
+                  const cudaq::quake::detail::ScalarWireFlow &flow) {
+  llvm::SmallVector<QubitId> inputIds;
+  inputIds.reserve(flow.inputs.size());
+  for (Value input : flow.inputs) {
     auto qubitId = qubitIds.find(input);
-    if (qubitId != qubitIds.end())
-      qubitIds.try_emplace(result, qubitId->second);
+    if (qubitId == qubitIds.end())
+      return false;
+    inputIds.push_back(qubitId->second);
   }
+
+  for (auto [result, qubitId] : llvm::zip(flow.results, inputIds)) {
+    auto [entry, inserted] = qubitIds.try_emplace(result, qubitId);
+    if (!inserted && entry->second != qubitId)
+      return false;
+  }
+  return true;
 }
 
 // Build block-local qubit identities in program order. Block arguments and
@@ -54,7 +65,8 @@ static void buildQubitIdMap(Block &block,
       qubitIds.try_emplace(borrowWire.getResult(), qubitId->second);
       continue;
     }
-    propagateQubitIds(qubitIds, &operation);
+    if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
+      (void)propagateQubitIds(qubitIds, *flow);
   }
 }
 
@@ -68,4 +80,48 @@ QubitIdentityAnalysis::getQubitId(mlir::Value value) const {
   if (qubitId == qubitIds.end())
     return std::nullopt;
   return qubitId->second;
+}
+
+bool QubitIdentityAnalysis::haveSameOrderedQubitIdentities(
+    ValueRange lhs, ValueRange rhs) const {
+  if (lhs.size() != rhs.size())
+    return false;
+  for (auto [lhsValue, rhsValue] : llvm::zip(lhs, rhs)) {
+    auto lhsId = getQubitId(lhsValue);
+    auto rhsId = getQubitId(rhsValue);
+    if (!lhsId || !rhsId || lhsId != rhsId)
+      return false;
+  }
+  return true;
+}
+
+bool QubitIdentityAnalysis::registerOperation(Operation &operation) {
+  if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
+    return propagateQubitIds(qubitIds, *flow);
+
+  bool hasQuantumValue =
+      llvm::any_of(operation.getOperandTypes(), cudaq::quake::isQuantumType) ||
+      llvm::any_of(operation.getResultTypes(), cudaq::quake::isQuantumType);
+  return !hasQuantumValue;
+}
+
+bool QubitIdentityAnalysis::replacementPreservesIdentities(
+    Operation &operation, ValueRange replacement) const {
+  if (operation.getNumResults() != replacement.size())
+    return false;
+  for (auto [result, replacementValue] :
+       llvm::zip(operation.getResults(), replacement)) {
+    if (!cudaq::quake::isQuantumType(result.getType()))
+      continue;
+    auto oldId = getQubitId(result);
+    auto replacementId = getQubitId(replacementValue);
+    if (!oldId || !replacementId || oldId != replacementId)
+      return false;
+  }
+  return true;
+}
+
+void QubitIdentityAnalysis::eraseOperation(Operation &operation) {
+  for (Value result : operation.getResults())
+    qubitIds.erase(result);
 }

@@ -10,6 +10,7 @@ add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
     SOURCES
         HermitianTrait.cpp
         FactoryMergeModuleTest.cpp
+        CommutationAwareRewriteTest.cpp
         DecompositionPatternsTest.cpp
         DecompositionPatternSelectionTest.cpp
         CliffordTSynthesisTester.cpp
