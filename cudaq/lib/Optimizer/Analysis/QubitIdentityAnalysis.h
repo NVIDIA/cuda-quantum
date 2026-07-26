@@ -10,12 +10,14 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "mlir/IR/Value.h"
+#include "mlir/IR/ValueRange.h"
 #include <cstdint>
 #include <optional>
 
 namespace mlir {
 class Block;
-}
+class Operation;
+} // namespace mlir
 
 namespace cudaq::quake::detail {
 
@@ -43,7 +45,11 @@ namespace cudaq::quake::detail {
 /// reference arguments, reference selections, aggregates, unsupported
 /// non-unitary quantum operations, or block edges. Vector allocations and
 /// references derived through `quake.extract_ref` or `quake.concat` remain
-/// unidentified. Any mutation of the block invalidates the analysis.
+/// unidentified. Values that cannot be identified unambiguously remain
+/// unidentified. The commutation-aware rewrite driver selectively maintains
+/// identities for
+/// verified identity-preserving insertions, replacements, and erasures.
+/// Unsupported mutations invalidate the owning analysis.
 class QubitIdentityAnalysis {
 public:
   using QubitId = std::uint32_t;
@@ -53,6 +59,24 @@ public:
   /// Return the analysis-local qubit identifier, or no value when identity
   /// cannot be propagated unambiguously.
   std::optional<QubitId> getQubitId(mlir::Value value) const;
+
+  /// Return true only for equal-size ranges whose corresponding values have
+  /// the same known analysis-local qubit identities.
+  bool haveSameOrderedQubitIdentities(mlir::ValueRange lhs,
+                                      mlir::ValueRange rhs) const;
+
+  /// Propagate result identities for a supported all-wire operation.
+  /// Classical-only operations succeed without changing identity state.
+  /// Return false for unsupported or ambiguous quantum propagation.
+  bool registerOperation(mlir::Operation &operation);
+
+  /// Return true when result arity is unchanged and each quantum result is
+  /// replaced by a value with the same known analysis-local identity.
+  bool replacementPreservesIdentities(mlir::Operation &operation,
+                                      mlir::ValueRange replacement) const;
+
+  /// Remove identity mappings for the operation's results only.
+  void eraseOperation(mlir::Operation &operation);
 
 private:
   llvm::DenseMap<mlir::Value, QubitId> qubitIds;

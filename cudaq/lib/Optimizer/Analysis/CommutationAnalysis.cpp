@@ -728,6 +728,63 @@ CommutationAnalysis::CommutationAnalysis(Block &block)
 
 CommutationAnalysis::~CommutationAnalysis() = default;
 
+bool CommutationAnalysis::haveSameOrderedQuantumOperands(Operation *lhs,
+                                                         Operation *rhs) const {
+  auto lhsInterface = dyn_cast_if_present<cudaq::quake::OperatorInterface>(lhs);
+  auto rhsInterface = dyn_cast_if_present<cudaq::quake::OperatorInterface>(rhs);
+  if (!lhsInterface || !rhsInterface)
+    return false;
+
+  return qubitIdentity->haveSameOrderedQubitIdentities(
+             lhsInterface.getControls(), rhsInterface.getControls()) &&
+         qubitIdentity->haveSameOrderedQubitIdentities(
+             lhsInterface.getTargets(), rhsInterface.getTargets());
+}
+
+bool CommutationAnalysis::registerIdentityPreservingOperation(
+    Operation *operation) {
+  return operation && operation->getBlock() == block &&
+         qubitIdentity->registerOperation(*operation);
+}
+
+bool CommutationAnalysis::prepareIdentityPreservingReplacement(
+    Operation *operation, ValueRange replacement) {
+  if (!operation || operation->getBlock() != block ||
+      !qubitIdentity->replacementPreservesIdentities(*operation, replacement))
+    return false;
+  invalidateOperation(operation);
+  return true;
+}
+
+void CommutationAnalysis::invalidateOperation(Operation *operation) {
+  auto dependency = cacheDependencies.find(operation);
+  if (dependency == cacheDependencies.end())
+    return;
+
+  llvm::SmallVector<OperationPair> incidentPairs(dependency->second.begin(),
+                                                 dependency->second.end());
+  cacheDependencies.erase(dependency);
+  for (OperationPair pair : incidentPairs) {
+    cache.erase(pair);
+    Operation *other = pair.first == operation ? pair.second : pair.first;
+    if (other == operation)
+      continue;
+    auto otherDependency = cacheDependencies.find(other);
+    if (otherDependency == cacheDependencies.end())
+      continue;
+    otherDependency->second.erase(pair);
+    if (otherDependency->second.empty())
+      cacheDependencies.erase(otherDependency);
+  }
+}
+
+void CommutationAnalysis::eraseOperation(Operation *operation) {
+  if (!operation || operation->getBlock() != block)
+    return;
+  invalidateOperation(operation);
+  qubitIdentity->eraseOperation(*operation);
+}
+
 CommutationResult CommutationAnalysis::getResult(Operation *lhs,
                                                  Operation *rhs) {
   if (!lhs || !rhs)
@@ -740,8 +797,12 @@ CommutationResult CommutationAnalysis::getResult(Operation *lhs,
   if (cached != cache.end())
     return cached->second;
   auto result = evaluate(lhs, rhs, *qubitIdentity);
-  cache.try_emplace(key, result);
-  return result;
+  auto [entry, inserted] = cache.try_emplace(key, result);
+  if (inserted) {
+    cacheDependencies[key.first].insert(key);
+    cacheDependencies[key.second].insert(key);
+  }
+  return entry->second;
 }
 
 bool CommutationAnalysis::canCommute(Operation *lhs, Operation *rhs) {
