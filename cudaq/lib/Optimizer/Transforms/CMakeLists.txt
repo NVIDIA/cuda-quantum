@@ -15,7 +15,6 @@ add_cudaq_library(OptTransforms
   AddMeasurements.cpp
   AddMetadata.cpp
   AggressiveInlining.cpp
-  ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
@@ -35,6 +34,7 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
+  ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp

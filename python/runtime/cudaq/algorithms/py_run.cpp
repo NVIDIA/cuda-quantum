@@ -96,14 +96,14 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   }
   auto layoutInfo =
       cudaq_internal::compiler::getLayoutInfo(name, mod.getOperation());
-  auto results = detail::runTheKernel(
+  cudaq::run_result runResult = detail::launchRun(
       [&]() mutable {
         [[maybe_unused]] auto result =
             clean_launch_module(name, mod, opaques, compiled);
       },
-      platform, name, name, shots_count, layoutInfo, qpu_id);
+      platform, name, shots_count, qpu_id);
 
-  return results;
+  return detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
 }
 
 static std::vector<nanobind::object>
@@ -154,7 +154,7 @@ namespace {
 // `results` and `error` are owned by the struct; the deferred future captures
 // non-owning raw pointers to them, which stay valid for the future's lifetime
 // because the future is destroyed before these members.
-struct async_run_result {
+struct PyAsyncRunResult {
   std::unique_ptr<std::vector<nanobind::object>> results;
   std::unique_ptr<std::string> error;
   std::future<void> ready;
@@ -162,7 +162,7 @@ struct async_run_result {
 } // namespace
 
 /// @brief Run `cudaq::run_async` on the provided kernel.
-static async_run_result
+static PyAsyncRunResult
 run_async_impl(const std::string &shortName, MlirModule module,
                std::size_t shots_count, std::optional<noise_model> noise_model,
                std::size_t qpu_id, nanobind::args runtimeArgs) {
@@ -181,7 +181,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
 
-  async_run_result result;
+  PyAsyncRunResult result;
   result.results = std::make_unique<std::vector<nanobind::object>>();
   result.error = std::make_unique<std::string>();
 
@@ -278,10 +278,10 @@ Returns:
 
 /// @brief Bind the run_async cudaq function.
 void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
-  nanobind::class_<async_run_result>(mod, "AsyncRunResultImpl", "")
+  nanobind::class_<PyAsyncRunResult>(mod, "AsyncRunResultImpl", "")
       .def(
           "get",
-          [](async_run_result &self) {
+          [](PyAsyncRunResult &self) {
             {
               // Release the GIL so the async task's MLIR worker threads
               // can call PyGILState_Ensure without deadlocking on us.

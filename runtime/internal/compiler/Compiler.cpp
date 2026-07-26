@@ -169,23 +169,6 @@ void cudaq_internal::compiler::Compiler::applyPipeline(
     throw std::runtime_error("Remote rest platform Quake lowering failed.");
 }
 
-static bool eraseNonCallableArguments(std::span<void *const> &rawArgs,
-                                      std::vector<void *> &closureArgs,
-                                      mlir::func::FuncOp funcOp) {
-  bool isFullySpecialized = true;
-
-  FunctionType fromFuncTy = funcOp.getFunctionType();
-  closureArgs = std::vector(rawArgs.begin(), rawArgs.end());
-  for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
-    if (!isa<cudaq::cc::CallableType>(ty)) {
-      isFullySpecialized = false;
-      closureArgs[i] = nullptr;
-    }
-  }
-  rawArgs = closureArgs;
-  return isFullySpecialized;
-}
-
 std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>
 cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
                                                   mlir::ModuleOp m_module,
@@ -229,15 +212,15 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       const bool boolVecBitPacked = target->isLocalSimulator;
       cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp,
                                                          boolVecBitPacked);
-      // Must stay in scope as `eraseNonCallableArguments` may populate it
+      // Must stay in scope as `retainCallableArguments` may populate it
       std::vector<void *> closureArgs;
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
         // Already fully specialized, nothing to do.
         isFullySpecialized = true;
       } else if (isEntryPoint && !target->fullySpecialize) {
         // We disable specialization by erasing args that should not be inlined
-        isFullySpecialized =
-            eraseNonCallableArguments(*rawArgs, closureArgs, epFunc);
+        isFullySpecialized = cudaq_internal::compiler::retainCallableArguments(
+            *rawArgs, closureArgs, epFunc);
       }
       argCon.gen(*rawArgs);
 

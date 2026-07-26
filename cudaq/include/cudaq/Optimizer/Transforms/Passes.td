@@ -60,18 +60,6 @@ def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
   }];
 }
 
-def ApplyControlNegations :
-    Pass<"apply-control-negations", "mlir::func::FuncOp"> {
-  let summary =
-    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
-
-  let description = [{
-    For every quantum operation with a negative control, replace that operation 
-    with an X operation on the control qubit, the controlled operation with
-    positive polarity, and a final X operation on the control qubit. 
-  }];
-}
-
 // ApplyOpSpecialization is a module pass because it may modify the ModuleOp
 // and add new FuncOps.
 def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
@@ -489,6 +477,18 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
     the calling function copying the heap data to a new vector on the stack.
     Since the callee is inlined, none of this is really required. The callee and
     caller share a common stack frame, so one copy is plenty.
+  }];
+}
+
+def ExpandControlNegations :
+    Pass<"expand-control-negations", "mlir::func::FuncOp"> {
+  let summary =
+    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
+
+  let description = [{
+    For every quantum operation with a negated control, replace that operation 
+    with an X operation on the control qubit, the controlled operation with
+    positive polarity, and a final X operation on the control qubit. 
   }];
 }
 
