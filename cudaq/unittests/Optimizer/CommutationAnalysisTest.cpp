@@ -299,16 +299,16 @@ TEST_F(CommutationAnalysisTest, CompatibleControlledTargets) {
     module {
       func.func @compatible_targets() {
         %angle = arith.constant 5.0e-1 : f64
-        %control_wire = quake.null_wire
+        %control = quake.null_wire
         %target = quake.null_wire
-        %control = quake.to_ctrl %control_wire : (!quake.wire) -> !quake.control
-        %cx = quake.x [%control] %target : (!quake.control, !quake.wire) -> !quake.wire
-        %crx = quake.rx (%angle) [%control] %cx : (f64, !quake.control, !quake.wire) -> !quake.wire
+        %cx:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %crx:2 = quake.rx (%angle) [%cx#0] %cx#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
         %cross_control = quake.null_wire
         %cross_target = quake.null_wire
         %cross_x:2 = quake.x [%cross_control] %cross_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
         %cross_z:2 = quake.z [%cross_x#1] %cross_x#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-        quake.sink %crx : !quake.wire
+        quake.sink %crx#0 : !quake.wire
+        quake.sink %crx#1 : !quake.wire
         quake.sink %cross_z#0 : !quake.wire
         quake.sink %cross_z#1 : !quake.wire
         return
@@ -332,12 +332,12 @@ TEST_F(CommutationAnalysisTest, MutuallyExclusiveControls) {
   auto module = parseModule(R"mlir(
     module {
       func.func @exclusive_controls() {
-        %control_wire = quake.null_wire
+        %control = quake.null_wire
         %target = quake.null_wire
-        %control = quake.to_ctrl %control_wire : (!quake.wire) -> !quake.control
-        %x = quake.x [%control] %target : (!quake.control, !quake.wire) -> !quake.wire
-        %y = quake.y [%control neg [true]] %x : (!quake.control, !quake.wire) -> !quake.wire
-        quake.sink %y : !quake.wire
+        %x:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %y:2 = quake.y [%x#0 neg [true]] %x#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %y#0 : !quake.wire
+        quake.sink %y#1 : !quake.wire
         return
       }
     })mlir");
@@ -425,12 +425,17 @@ TEST_F(CommutationAnalysisTest, UnsupportedQueries) {
         quake.x %q : (!quake.veq<2>) -> ()
         return
       }
-      func.func @duplicate_role() {
+      func.func @reusable_control() {
         %control_wire = quake.null_wire
-        %target = quake.null_wire
+        %target0 = quake.null_wire
+        %target1 = quake.null_wire
         %control = quake.to_ctrl %control_wire : (!quake.wire) -> !quake.control
-        %x = quake.x [%control, %control] %target : (!quake.control, !quake.control, !quake.wire) -> !quake.wire
-        quake.sink %x : !quake.wire
+        %x0 = quake.x [%control] %target0 : (!quake.control, !quake.wire) -> !quake.wire
+        %x1 = quake.x [%control] %target1 : (!quake.control, !quake.wire) -> !quake.wire
+        %returned = quake.from_ctrl %control : (!quake.control) -> !quake.wire
+        quake.sink %returned : !quake.wire
+        quake.sink %x0 : !quake.wire
+        quake.sink %x1 : !quake.wire
         return
       }
       func.func @call_result() {
@@ -477,14 +482,14 @@ TEST_F(CommutationAnalysisTest, UnsupportedQueries) {
              CommutationStatus::Indeterminate,
              CommutationReason::UnsupportedQuantumOperandType);
 
-  auto duplicate = getFunction(*module, "duplicate_role");
-  auto duplicateOperators = getOperators(duplicate);
-  ASSERT_EQ(duplicateOperators.size(), 1u);
-  CommutationAnalysis duplicateAnalysis(duplicate.front());
-  // One virtual qubit cannot occupy two positions in a supported operation.
-  expectPair(duplicateAnalysis, duplicateOperators[0], duplicateOperators[0],
-             CommutationStatus::Indeterminate,
-             CommutationReason::DuplicateQubitOperand);
+  auto reusableControl = getFunction(*module, "reusable_control");
+  auto reusableControlOperators = getOperators(reusableControl);
+  ASSERT_EQ(reusableControlOperators.size(), 2u);
+  CommutationAnalysis reusableControlAnalysis(reusableControl.front());
+  // Reusable controls are valid Quake but outside the scalar wire contract.
+  expectPair(reusableControlAnalysis, reusableControlOperators[0],
+             reusableControlOperators[1], CommutationStatus::Indeterminate,
+             CommutationReason::UnsupportedQuantumOperandType);
 
   auto callResult = getFunction(*module, "call_result");
   auto callOperators = getOperators(callResult);

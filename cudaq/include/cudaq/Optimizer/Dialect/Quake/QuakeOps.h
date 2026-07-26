@@ -99,6 +99,23 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
   return std::nullopt;
 }
 
+/// Returns an operator's wire operands: its wire controls, then its wire
+/// targets. In value form an operator returns one wire result per wire operand
+/// in this same order, so `getWireOperands(op)[i]` and `op.getWires()[i]` are
+/// the same qubit before and after \p op. An operator in memory form names its
+/// qubits by reference instead, so both lists come back empty.
+inline mlir::SmallVector<mlir::Value>
+getWireOperands(cudaq::quake::OperatorInterface op) {
+  mlir::SmallVector<mlir::Value> wires;
+  for (mlir::Value control : op.getControls())
+    if (isa<cudaq::quake::WireType>(control.getType()))
+      wires.push_back(control);
+  for (mlir::Value target : op.getTargets())
+    if (isa<cudaq::quake::WireType>(target.getType()))
+      wires.push_back(target);
+  return wires;
+}
+
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())

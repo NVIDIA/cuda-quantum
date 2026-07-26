@@ -521,9 +521,9 @@ static CommutationResult dispatchRules(const OperationView &lhs,
   return indeterminate(CommutationReason::NoApplicableRule);
 }
 
-// Populate the normalized view used by commutation rules. Resolve supported
-// scalar controls and targets to analysis-local qubit IDs, record their roles
-// and control polarities, and reject unmapped or duplicate qubit uses.
+// Populate the normalized view used by commutation rules. Resolve scalar wire
+// controls and targets to analysis-local qubit IDs, record their roles and
+// control polarities, and reject unmapped or duplicate qubit uses.
 static std::optional<CommutationReason>
 populateOperationView(OperationView &view,
                       const QubitIdentityAnalysis &qubitIdentity) {
@@ -540,8 +540,7 @@ populateOperationView(OperationView &view,
   // identity-to-polarity lookup required by controlled-operation rules.
   view.controls.reserve(controls.size());
   for (auto [index, control] : llvm::enumerate(controls)) {
-    if (!isa<cudaq::quake::WireType, cudaq::quake::ControlType>(
-            control.getType()))
+    if (!isa<cudaq::quake::WireType>(control.getType()))
       return CommutationReason::UnsupportedQuantumOperandType;
     auto qubitId = qubitIdentity.getQubitId(control);
     if (!qubitId)

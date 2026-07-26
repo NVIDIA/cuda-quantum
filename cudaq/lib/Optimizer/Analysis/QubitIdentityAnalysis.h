@@ -20,19 +20,18 @@ class Block;
 namespace cudaq::quake::detail {
 
 /// Assigns analysis-local identifiers to virtual qubits represented by scalar
-/// `!quake.wire` and `!quake.control` SSA values within one block of valid
-/// Quake value-form IR. `CommutationAnalysis` uses these identifiers to
-/// determine whether operations act on the same or disjoint virtual qubits.
+/// `!quake.wire` values within one block of valid Quake value-form IR.
+/// `CommutationAnalysis` uses these identifiers to determine whether operations
+/// act on the same or disjoint virtual qubits.
 ///
 /// Block arguments, `quake.null_wire`, and `quake.borrow_wire` establish local
-/// identities. The analysis propagates them through supported operators,
-/// measurements, resets, and wire/control conversions. Identity does not imply
-/// quantum-state equivalence. For example, measurement and reset preserve the
-/// virtual-qubit identity while changing its state.
+/// identities. The analysis propagates them through operators whose controls
+/// and targets are all scalar wires.
 ///
-/// The analysis does not propagate identifiers through calls, references,
-/// aggregates, or block edges. Values that cannot be identified unambiguously
-/// remain unidentified. Any mutation of the block invalidates the analysis.
+/// The analysis does not propagate identifiers through controls, conversions,
+/// measurement, reset, calls, references, aggregates, unsupported effects, or
+/// block edges. Values that cannot be identified unambiguously remain
+/// unidentified. Any mutation of the block invalidates the analysis.
 class QubitIdentityAnalysis {
 public:
   using QubitId = std::uint32_t;

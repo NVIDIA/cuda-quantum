@@ -9,7 +9,6 @@
 #include "QubitIdentityAnalysis.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/SmallVector.h"
 #include <utility>
 
 using namespace mlir;
@@ -17,15 +16,6 @@ using namespace mlir;
 using cudaq::quake::detail::QubitIdentityAnalysis;
 using QubitId = QubitIdentityAnalysis::QubitId;
 using BorrowKey = std::pair<Attribute, std::int32_t>;
-
-// Copy an input's known qubit ID to the SSA value that replaces it. An unknown
-// input leaves the result unmapped so later queries remain conservative.
-static void propagateQubitId(llvm::DenseMap<Value, QubitId> &qubitIds,
-                             Value input, Value result) {
-  auto qubitId = qubitIds.find(input);
-  if (qubitId != qubitIds.end())
-    qubitIds.try_emplace(result, qubitId->second);
-}
 
 // Propagate only an unambiguous one-to-one scalar wire correspondence.
 // Reference, aggregate, and malformed shapes leave their results unmapped.
@@ -41,38 +31,34 @@ propagateQubitIdsThroughWires(llvm::DenseMap<Value, QubitId> &qubitIds,
         return !isa<cudaq::quake::WireType>(result.getType());
       }))
     return;
-  for (auto [input, result] : llvm::zip(wireInputs, wireResults))
-    propagateQubitId(qubitIds, input, result);
+  for (auto [input, result] : llvm::zip(wireInputs, wireResults)) {
+    auto qubitId = qubitIds.find(input);
+    if (qubitId != qubitIds.end())
+      qubitIds.try_emplace(result, qubitId->second);
+  }
 }
 
-// Thread qubit IDs through a value-form operator. Quake returns one wire for
-// each wire control and target in operand order; unsupported result shapes are
-// left unmapped.
+// Thread qubit IDs through an operator only when every control and target is a
+// scalar wire. Mixed and reusable-control forms remain unsupported boundaries.
 static void
 propagateQubitIdsThroughOperator(llvm::DenseMap<Value, QubitId> &qubitIds,
                                  cudaq::quake::OperatorInterface op) {
-  llvm::SmallVector<Value> wireInputs;
-  for (Value control : op.getControls())
-    if (isa<cudaq::quake::WireType>(control.getType()))
-      wireInputs.push_back(control);
-  for (Value target : op.getTargets())
-    if (isa<cudaq::quake::WireType>(target.getType()))
-      wireInputs.push_back(target);
-
+  auto wireInputs = cudaq::quake::getWireOperands(op);
+  if (wireInputs.size() != op.getControls().size() + op.getTargets().size())
+    return;
   propagateQubitIdsThroughWires(qubitIds, wireInputs, op.getWires());
 }
 
 // Build block-local qubit identities in program order. Block arguments and
 // null wires introduce IDs, repeated borrows reuse their (wire set, identity)
-// ID, and supported conversions and identity-preserving results propagate IDs.
+// ID, and supported scalar-wire operators propagate IDs.
 static void buildQubitIdMap(Block &block,
                             llvm::DenseMap<Value, QubitId> &qubitIds) {
   QubitId nextQubitId = 0;
   llvm::DenseMap<BorrowKey, QubitId> borrowedQubitIds;
 
   for (BlockArgument argument : block.getArguments())
-    if (isa<cudaq::quake::WireType, cudaq::quake::ControlType>(
-            argument.getType()))
+    if (isa<cudaq::quake::WireType>(argument.getType()))
       qubitIds.try_emplace(argument, nextQubitId++);
 
   for (Operation &operation : block) {
@@ -86,22 +72,6 @@ static void buildQubitIdMap(Block &block,
       if (inserted)
         ++nextQubitId;
       qubitIds.try_emplace(borrowWire.getResult(), qubitId->second);
-      continue;
-    }
-    if (auto toControl = dyn_cast<cudaq::quake::ToControlOp>(operation)) {
-      propagateQubitId(qubitIds, toControl.getQubit(), toControl.getResult());
-      continue;
-    }
-    if (auto fromControl = dyn_cast<cudaq::quake::FromControlOp>(operation)) {
-      propagateQubitId(qubitIds, fromControl.getCtrlbit(),
-                       fromControl.getResult());
-      continue;
-    }
-    if (isa<cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp>(
-            operation)) {
-      propagateQubitIdsThroughWires(
-          qubitIds, cudaq::quake::getQuantumOperands(&operation),
-          cudaq::quake::getQuantumResults(&operation));
       continue;
     }
     if (auto operatorInterface =
