@@ -18,10 +18,12 @@ from typing import List
 
 
 def _kernel_has_conditionals_on_measure(kernel) -> bool:
-    """Return True if @p kernel branches on a measurement result.
+    """Return True if @p kernel feeds a measurement result back into the
+    computation (classical control flow or a runtime operand such as an
+    observable index).
 
-    Shared by primitives that need to reject measurement-dependent
-    control flow with their own diagnostic. The caller is responsible for
+    Shared by primitives that need to reject measurement feedback
+    with their own diagnostic. The caller is responsible for
     raising the API-specific error message; this helper only returns the
     boolean detection result.
     """

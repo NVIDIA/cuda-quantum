@@ -18,8 +18,9 @@ func.func @qec_kernel(%h0 : !cc.measure_handle,
   qec.detector %h0 : !cc.measure_handle
   qec.detector %h0, %h1 : !cc.measure_handle, !cc.measure_handle
   qec.detector %v : !cc.stdvec<!cc.measure_handle>
+  %c1 = arith.constant 1 : i64
   qec.observable %h0 : !cc.measure_handle
-  qec.observable %v index 1 : !cc.stdvec<!cc.measure_handle>
+  qec.observable %v index %c1 : !cc.stdvec<!cc.measure_handle>
   qec.pair_detectors %v, %v : !cc.stdvec<!cc.measure_handle>, !cc.stdvec<!cc.measure_handle>
   %r = quake.discriminate %m : (!quake.measure) -> i1
   return %r : i1

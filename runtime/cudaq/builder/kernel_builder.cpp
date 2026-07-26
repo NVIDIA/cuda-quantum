@@ -853,14 +853,14 @@ void logical_observable(ImplicitLocOpBuilder &builder,
     throw std::runtime_error("kernel_builder logical_observable "
                              "observable_index must be in the range "
                              "[0, 2^63 - 1]");
-  // Skip the attribute at the default 0 so the printed IR omits the optional
-  // `index 0` literal at the spec shape.
-  auto idxAttr = (observableIndex == 0)
-                     ? IntegerAttr{}
-                     : builder.getI64IntegerAttr(
-                           static_cast<std::int64_t>(observableIndex));
+  // Skip the operand at the default 0 so the printed IR omits the optional
+  // `index` clause at the spec shape.
+  Value idxValue;
+  if (observableIndex != 0)
+    idxValue = arith::ConstantIntOp::create(
+        builder, static_cast<std::int64_t>(observableIndex), 64);
   cudaq::qec::ObservableOp::create(builder, qecOperandValues(measurements),
-                                   idxAttr);
+                                   idxValue);
 }
 
 void detectors(ImplicitLocOpBuilder &builder, QuakeValue &prev,

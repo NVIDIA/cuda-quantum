@@ -22,7 +22,10 @@ Three kernel-side declarations are available in both C++ and Python :
 constraint over the given measurements; ``detectors(prev, curr)`` declares ``N``
 detectors by pairing two equal-length handle vectors element-wise (the
 standard form for cross-round detectors); and
-``logical_observable(m0, m1, ...)`` declares a logical observable.
+``logical_observable(m0, m1, ...)`` declares a logical observable. For codes
+with ``k`` logical qubits, pass a handle vector together with an
+``observable_index`` (any runtime value, e.g. a loop variable) to declare
+each observable ``0..k-1``.
 
 The example below is a three-qubit bit-flip memory experiment: each round
 measures the data qubits and pairs them with the previous round via

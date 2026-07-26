@@ -238,7 +238,7 @@ def test_quantinuum_conditional_kernel():
         m1 = mz(q1)
         cudaq.detector(m0, m1)
 
-    with pytest.raises(RuntimeError, match=r"branches on a measurement"):
+    with pytest.raises(RuntimeError, match=r"uses a measurement"):
         cudaq.dem_from_kernel(kernel)
 
 

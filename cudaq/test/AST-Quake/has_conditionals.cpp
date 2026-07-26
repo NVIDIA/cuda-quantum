@@ -43,6 +43,34 @@ struct kernelNoConditional {
   }
 };
 
+// A measurement result consumed as a runtime `observable_index` is
+// measurement feedback even though there is no control flow.
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelObservableIndexFeedback
+// CHECK-SAME: () attributes {
+// CHECK-SAME: {{("cudaq-entrypoint".*qubitMeasurementFeedback = true.*[}])|([{].*qubitMeasurementFeedback = true.*"cudaq-entrypoint")}} {
+// clang-format on
+struct kernelObservableIndexFeedback {
+  void operator()() __qpu__ {
+    cudaq::qvector q(2);
+    auto ms = mz(q);
+    cudaq::logical_observable(ms, static_cast<bool>(ms[0]));
+  }
+};
+
+// A runtime `observable_index` that does not derive from a measurement (a
+// loop induction variable) is NOT measurement feedback.
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelObservableLoopIndex
+// CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+struct kernelObservableLoopIndex {
+  void operator()() __qpu__ {
+    cudaq::qvector q(2);
+    auto ms = mz(q);
+    for (std::size_t i = 0; i < 2; i++)
+      cudaq::logical_observable(ms, i);
+  }
+};
+
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelComplex
 // CHECK-SAME: () attributes {
