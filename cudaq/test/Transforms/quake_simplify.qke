@@ -48,11 +48,14 @@ func.func @simp5() -> (i1, i1) {
   func.return %6, %7 : i1, i1
 }
 
+// The second Swap names the two qubits in the opposite order, so its first
+// result is the qubit that entered on %[[VAL_1]]. Each measurement must follow
+// its own qubit back to the wire that qubit entered on.
 // CHECK-LABEL:   func.func @simp5() -> (i1, i1) {
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_1:.*]] = quake.null_wire
-// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
-// CHECK:           %[[VAL_4:.*]], %[[VAL_5:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_2:.*]], %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_4:.*]], %[[VAL_5:.*]] = quake.mz %[[VAL_0]] : (!quake.wire) -> (!quake.measure, !quake.wire)
 // CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 // CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
 // CHECK:           quake.sink %[[VAL_3]] : !quake.wire

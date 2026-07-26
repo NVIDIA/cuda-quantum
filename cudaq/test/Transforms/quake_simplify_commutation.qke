@@ -1,0 +1,265 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         //
+// All rights reserved.                                                        //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt --quake-simplify %s | FileCheck %s
+// RUN: cudaq-opt --symbol-dce %s > %t.baseline
+// RUN: cudaq-opt --quake-simplify --symbol-dce %s | CircuitCheck %t.baseline
+// RUN: cudaq-opt --quake-simplify %s > %t.first
+// RUN: cudaq-opt --quake-simplify %s > %t.second
+// RUN: diff %t.first %t.second
+
+// Every exact-inverse family in one fixture: the Hermitian gates X, Y and Z,
+// and the opposite-adjoint pairs S/S<adj> and T<adj>/T. Each pair straddles a
+// rotation about its own axis, which it commutes with, so each pair cancels and
+// leaves the rotation behind.
+func.func @cancel_scalar_families() {
+  %x_angle = arith.constant 0.125 : f64
+  %y_angle = arith.constant 0.25 : f64
+  %z_angle = arith.constant 0.375 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %q3 = quake.null_wire
+  %q4 = quake.null_wire
+
+  %x0 = quake.x %q0 : (!quake.wire) -> !quake.wire                      // anchor
+  %rx = quake.rx (%x_angle) %x0 : (f64, !quake.wire) -> !quake.wire     // crossed
+  %x1 = quake.x %rx : (!quake.wire) -> !quake.wire                      // endpoint
+
+  %y0 = quake.y %q1 : (!quake.wire) -> !quake.wire
+  %ry = quake.ry (%y_angle) %y0 : (f64, !quake.wire) -> !quake.wire
+  %y1 = quake.y %ry : (!quake.wire) -> !quake.wire
+
+  %z0 = quake.z %q2 : (!quake.wire) -> !quake.wire
+  %rz0 = quake.rz (%z_angle) %z0 : (f64, !quake.wire) -> !quake.wire
+  %z1 = quake.z %rz0 : (!quake.wire) -> !quake.wire
+
+  // S and T cancel against their own adjoint rather than against a copy.
+  %s0 = quake.s %q3 : (!quake.wire) -> !quake.wire
+  %rz1 = quake.rz (%z_angle) %s0 : (f64, !quake.wire) -> !quake.wire
+  %s1 = quake.s<adj> %rz1 : (!quake.wire) -> !quake.wire
+
+  %t0 = quake.t<adj> %q4 : (!quake.wire) -> !quake.wire
+  %rz2 = quake.rz (%z_angle) %t0 : (f64, !quake.wire) -> !quake.wire
+  %t1 = quake.t %rz2 : (!quake.wire) -> !quake.wire
+
+  quake.sink %x1 : !quake.wire
+  quake.sink %y1 : !quake.wire
+  quake.sink %z1 : !quake.wire
+  quake.sink %s1 : !quake.wire
+  quake.sink %t1 : !quake.wire
+  return
+}
+
+// Each rotation must keep its own angle operand and must now take the wire that
+// entered the cancelled pair. Binding the constants rather than spelling their
+// values out is enough, because the pass never touches them. CHECK-NEXT
+// throughout, so a leftover operation anywhere in the body fails the test.
+// CHECK-LABEL: func.func @cancel_scalar_families() {
+// CHECK:         %[[X_ANGLE:.*]] = arith.constant {{.*}} : f64
+// CHECK-NEXT:    %[[Y_ANGLE:.*]] = arith.constant {{.*}} : f64
+// CHECK-NEXT:    %[[Z_ANGLE:.*]] = arith.constant {{.*}} : f64
+// CHECK-NEXT:    %[[Q0:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[Q1:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[Q2:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[Q3:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[Q4:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[RX:.*]] = quake.rx (%[[X_ANGLE]]) %[[Q0]] :
+// CHECK-NEXT:    %[[RY:.*]] = quake.ry (%[[Y_ANGLE]]) %[[Q1]] :
+// CHECK-NEXT:    %[[RZ0:.*]] = quake.rz (%[[Z_ANGLE]]) %[[Q2]] :
+// CHECK-NEXT:    %[[RZ1:.*]] = quake.rz (%[[Z_ANGLE]]) %[[Q3]] :
+// CHECK-NEXT:    %[[RZ2:.*]] = quake.rz (%[[Z_ANGLE]]) %[[Q4]] :
+// CHECK-NEXT:    quake.sink %[[RX]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[RY]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[RZ0]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[RZ1]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[RZ2]] : !quake.wire
+// CHECK-NEXT:    return
+
+// A pair only cancels when both endpoints control on the same polarity. Quake
+// can write a positive control either as an explicit false entry or by leaving
+// the attribute off, and the two spellings have to compare equal. Both pairs
+// below cross a Z that touches only their control wire.
+func.func @cancel_matching_control_polarity() {
+  %negated_control = quake.null_wire
+  %negated_target = quake.null_wire
+  %negated_other = quake.null_wire
+  %positive_control = quake.null_wire
+  %positive_target = quake.null_wire
+  %positive_other = quake.null_wire
+
+  // Both endpoints negate the control. The Z is crossed because it meets the
+  // pair only on the control wire, never on the target.
+  %x0:2 = quake.x [%negated_control neg [true]] %negated_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)  // anchor
+  %xz:2 = quake.z [%x0#0] %negated_other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)                         // crossed
+  %x1:2 = quake.x [%xz#0 neg [true]] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)                       // endpoint
+
+  // Same shape, but the anchor writes no polarity and the endpoint writes an
+  // explicit false. The two must still be treated as equal.
+  %h0:2 = quake.h [%positive_control] %positive_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)   // anchor
+  %hz:2 = quake.z [%h0#0] %positive_other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)                // crossed
+  %h1:2 = quake.h [%hz#0 neg [false]] %h0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)              // endpoint
+
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  quake.sink %xz#1 : !quake.wire
+  quake.sink %h1#0 : !quake.wire
+  quake.sink %h1#1 : !quake.wire
+  quake.sink %hz#1 : !quake.wire
+  return
+}
+
+// Both pairs go, each Z keeps its control and target, and each cancelled pair's
+// target passes straight through to its sink.
+// CHECK-LABEL: func.func @cancel_matching_control_polarity() {
+// CHECK:         %[[NEG_CONTROL:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[NEG_TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[NEG_OTHER:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[POS_CONTROL:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[POS_TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[POS_OTHER:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[NEG_Z:.*]]:2 = quake.z {{\[}}%[[NEG_CONTROL]]] %[[NEG_OTHER]]
+// CHECK-NEXT:    %[[POS_Z:.*]]:2 = quake.z {{\[}}%[[POS_CONTROL]]] %[[POS_OTHER]]
+// CHECK-NEXT:    quake.sink %[[NEG_Z]]#0 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[NEG_TARGET]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[NEG_Z]]#1 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[POS_Z]]#0 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[POS_TARGET]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[POS_Z]]#1 : !quake.wire
+// CHECK-NEXT:    return
+
+// Cancelling a pair can leave two rotations adjacent that were not adjacent
+// before. The one greedy fixed point has to fold them without a second run of
+// the pass, so the two angles must arrive combined.
+func.func @fold_rotations_exposed_by_cancellation() {
+  %first = arith.constant 0.25 : f64
+  %second = arith.constant 0.5 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %other = quake.null_wire
+  // The two rotations sit outside the X pair, so nothing can fold them until
+  // the pair is gone.
+  %rz0 = quake.rz (%first) %target : (f64, !quake.wire) -> !quake.wire                        // folds with %rz1
+  %x0:2 = quake.x [%control] %rz0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)  // anchor
+  %z:2 = quake.z [%x0#0] %other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)    // crossed
+  %x1:2 = quake.x [%z#0] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)     // endpoint
+  %rz1 = quake.rz (%second) %x1#1 : (f64, !quake.wire) -> !quake.wire                         // folds with %rz0
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %rz1 : !quake.wire
+  quake.sink %z#1 : !quake.wire
+  return
+}
+
+// The surviving angle is the sum of the two originals, which is what proves the
+// fold happened rather than one rotation simply being dropped.
+// CHECK-LABEL: func.func @fold_rotations_exposed_by_cancellation() {
+// CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK-NEXT:    %[[CONTROL:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[OTHER:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[Z:.*]]:2 = quake.z {{\[}}%[[CONTROL]]] %[[OTHER]]
+// CHECK-NEXT:    %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[TARGET]] :
+// CHECK-NEXT:    quake.sink %[[Z]]#0 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[RZ]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[Z]]#1 : !quake.wire
+// CHECK-NEXT:    return
+
+// Swap is symmetric in its targets, so a second Swap naming the same two
+// qubits in either order cancels the first. Whichever order it uses, each
+// qubit must come back out on the wire it entered on, which is what the sink
+// order below pins down.
+func.func @cancel_uncontrolled_swaps() {
+  %left = quake.null_wire
+  %right = quake.null_wire
+  %tleft = quake.null_wire
+  %tright = quake.null_wire
+  // Same operand order at both endpoints.
+  %ordered0:2 = quake.swap %left, %right : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %ordered1:2 = quake.swap %ordered0#0, %ordered0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  // Reversed operand order: #1 before #0. The qubits still have to unwind onto
+  // the wires they came in on, which the sink order below checks.
+  %transposed0:2 = quake.swap %tleft, %tright : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %transposed1:2 = quake.swap %transposed0#1, %transposed0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %ordered1#0 : !quake.wire
+  quake.sink %ordered1#1 : !quake.wire
+  quake.sink %transposed1#0 : !quake.wire
+  quake.sink %transposed1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_uncontrolled_swaps() {
+// CHECK:         %[[LEFT:.*]] = quake.null_wire
+// CHECK:         %[[RIGHT:.*]] = quake.null_wire
+// CHECK:         %[[TLEFT:.*]] = quake.null_wire
+// CHECK:         %[[TRIGHT:.*]] = quake.null_wire
+// CHECK-NOT:     quake.swap
+// CHECK:         quake.sink %[[LEFT]] : !quake.wire
+// CHECK:         quake.sink %[[RIGHT]] : !quake.wire
+// CHECK:         quake.sink %[[TRIGHT]] : !quake.wire
+// CHECK:         quake.sink %[[TLEFT]] : !quake.wire
+// CHECK:         return
+
+// Reusable controls remain valid Quake but are outside the supported optimizer
+// form. Their pair stays unchanged while the independent scalar-wire H pair
+// still simplifies in the same function.
+func.func private @leave_reusable_control_chain(%control: !quake.control) {
+  %control_target = quake.null_wire
+  %wire_target = quake.null_wire
+  %x0 = quake.x [%control] %control_target : (!quake.control, !quake.wire) -> !quake.wire
+  %x1 = quake.x [%control] %x0 : (!quake.control, !quake.wire) -> !quake.wire
+  %h0 = quake.h %wire_target : (!quake.wire) -> !quake.wire
+  %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+  quake.sink %x1 : !quake.wire
+  quake.sink %h1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func private @leave_reusable_control_chain
+// CHECK-SAME:  (%[[CONTROL:.*]]: !quake.control) {
+// CHECK:         %[[CONTROL_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[WIRE_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[X0:.*]] = quake.x {{\[}}%[[CONTROL]]] %[[CONTROL_TARGET]]
+// CHECK:         %[[X1:.*]] = quake.x {{\[}}%[[CONTROL]]] %[[X0]]
+// CHECK-NOT:     quake.h
+// CHECK:         quake.sink %[[X1]] : !quake.wire
+// CHECK:         quake.sink %[[WIRE_TARGET]] : !quake.wire
+// CHECK:         return
+
+// A controlled Swap pair cancels across a Z that shares only its control. The
+// control here is a wire rather than a reusable control, so it threads through
+// the first Swap and the Z, and the second Swap has to name the Z's control
+// result for the two Swaps to be recognized as the same operation.
+func.func private @cancel_ordered_swap() {
+  %control = quake.null_wire
+  %left = quake.null_wire
+  %right = quake.null_wire
+  %other = quake.null_wire
+  // %swap0#0 is the control wire coming out; #1 and #2 are the two targets.
+  %swap0:3 = quake.swap [%control] %left, %right : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)  // anchor
+  %z:2 = quake.z [%swap0#0] %other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)                                          // crossed, control wire only
+  %swap1:3 = quake.swap [%z#0] %swap0#1, %swap0#2 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) // endpoint, control now from %z
+  quake.sink %swap1#0 : !quake.wire
+  quake.sink %swap1#1 : !quake.wire
+  quake.sink %swap1#2 : !quake.wire
+  quake.sink %z#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func private @cancel_ordered_swap() {
+// CHECK:         %[[CONTROL:.*]] = quake.null_wire
+// CHECK:         %[[LEFT:.*]] = quake.null_wire
+// CHECK:         %[[RIGHT:.*]] = quake.null_wire
+// CHECK:         %[[OTHER:.*]] = quake.null_wire
+// CHECK:         %[[Z:.*]]:2 = quake.z {{\[}}%[[CONTROL]]] %[[OTHER]]
+// CHECK-NOT:     quake.swap
+// CHECK:         quake.sink %[[Z]]#0 : !quake.wire
+// CHECK:         quake.sink %[[LEFT]] : !quake.wire
+// CHECK:         quake.sink %[[RIGHT]] : !quake.wire
+// CHECK:         quake.sink %[[Z]]#1 : !quake.wire
+// CHECK:         return
