@@ -234,18 +234,76 @@ private:
   cudaq::opt::CommutationAwareRewriteMatcher &matcher;
 };
 
+// The angle, in radians, after which QOP is exactly the identity operator. The
+// axis rotations are spinors: they pick up an overall `-1` at `2*pi` and return
+// to the identity only after `4*pi`. `r1` is `diag(1, exp(i*theta))` and has
+// period `2*pi` outright.
 template <typename QOP>
-class RotationCombine : public OpRewritePattern<QOP> {
+constexpr double exactIdentityPeriod() {
+  if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>)
+    return 2.0 * M_PI;
+  return 4.0 * M_PI;
+}
+
+// `quake.ry (12 * pi) %1` is a special backdoor NOP that is never optimized.
+// TODO: Consider if it would be better to add an I (identity) gate to Quake.
+template <typename QOP>
+static bool isBackdoorNopGate(double theta) {
+  return std::is_same_v<QOP, cudaq::quake::RyOp> && theta == 12.0 * M_PI;
+}
+
+template <typename QOP>
+static bool isIdentityRotation(QOP qop, double threshold) {
+  Attribute attr;
+  if (!matchPattern(qop.getParameters().front(), m_Constant(&attr)))
+    return false;
+
+  // A parameter may use any float type, so widen to double for the test.
+  APFloat angle = cast<FloatAttr>(attr).getValue();
+  bool lostPrecision = false;
+  if (angle.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
+                    &lostPrecision) != APFloat::opOK ||
+      lostPrecision)
+    return false;
+  double theta = angle.convertToDouble();
+
+  if (isBackdoorNopGate<QOP>(theta))
+    return false;
+
+  // Never the shorter period: the `-1` an axis rotation picks up at `2*pi` is
+  // observable if the rotation runs under a control, and this op may yet be
+  // given one by control synthesis of the function it is in.
+  double residual = std::remainder(theta, exactIdentityPeriod<QOP>());
+
+  // At its default the threshold admits only representation error.
+  return std::abs(residual) <= threshold;
+}
+
+static bool haveExactValue(Value lhs, Value rhs) {
+  if (lhs == rhs)
+    return true;
+  if (lhs.getType() != rhs.getType())
+    return false;
+
+  Attribute lhsConstant;
+  Attribute rhsConstant;
+  return matchPattern(lhs, m_Constant(&lhsConstant)) &&
+         matchPattern(rhs, m_Constant(&rhsConstant)) &&
+         lhsConstant == rhsConstant;
+}
+
+// PhasedRx has two parameters: only theta is a signed rotation angle, while
+// phi selects the axis and must match exactly. Keep its adjacent rule separate
+// from the one-parameter rotation families.
+class PhasedRxCombine : public OpRewritePattern<cudaq::quake::PhasedRxOp> {
 public:
-  using Base = OpRewritePattern<QOP>;
+  PhasedRxCombine(MLIRContext *context, double threshold)
+      : OpRewritePattern(context), threshold(threshold) {}
 
-  RotationCombine(MLIRContext *ctx, double threshold)
-      : Base(ctx), threshold(threshold) {}
-
-  LogicalResult matchAndRewrite(QOP qop,
+  LogicalResult matchAndRewrite(cudaq::quake::PhasedRxOp qop,
                                 PatternRewriter &rewriter) const override {
     auto params = qop.getParameters();
-    if (isIdentityRotation(qop)) {
+    if (isIdentityRotation(qop, threshold)) {
       // Forward the target to the uses.
       LLVM_DEBUG(llvm::dbgs() << "zero rotation eliminated [" << qop << "]\n");
       SmallVector<Value> newOperands;
@@ -267,7 +325,7 @@ public:
     Value trgt = targets[0];
 
     // Check that these are the same rotation op back-to-back.
-    auto prev = targets[0].template getDefiningOp<QOP>();
+    auto prev = targets[0].getDefiningOp<cudaq::quake::PhasedRxOp>();
     if (!prev) {
       LLVM_DEBUG(llvm::dbgs() << "previous op must be the same\n"
                               << qop << '\n');
@@ -320,113 +378,116 @@ public:
       return failure(); // This should never happen.
     }
 
-    SmallVector<Value> newParams;
-    auto loc = qop.getLoc();
-    if constexpr (std::is_same_v<QOP, cudaq::quake::PhasedRxOp>) {
-      Value phi = params[1];
-      Value prevPhi = prevParams[1];
-      Attribute phiConstant;
-      Attribute prevPhiConstant;
-      bool samePhi = phi == prevPhi ||
-                     (phi.getType() == prevPhi.getType() &&
-                      matchPattern(phi, m_Constant(&phiConstant)) &&
-                      matchPattern(prevPhi, m_Constant(&prevPhiConstant)) &&
-                      phiConstant == prevPhiConstant);
-      if (!samePhi)
-        return failure();
+    Value phi = params[1];
+    Value prevPhi = prevParams[1];
+    if (!haveExactValue(phi, prevPhi))
+      return failure();
 
-      Value theta = params.front();
-      Value prevTheta = prevParams.front();
-      auto thetaType = theta.getType();
-      if (thetaType != prevTheta.getType()) {
-        LLVM_DEBUG(llvm::dbgs() << "parameters must have same type\n");
-        return failure();
-      }
-      if (qop.isAdj())
-        theta = arith::NegFOp::create(rewriter, loc, thetaType, theta);
-      if (prev.isAdj())
-        prevTheta = arith::NegFOp::create(rewriter, loc, thetaType, prevTheta);
-      newParams.push_back(
-          arith::AddFOp::create(rewriter, loc, thetaType, theta, prevTheta));
-      newParams.push_back(phi);
-    } else {
-      // Compute the new parameters. Negate all if adjoint is set.
-      for (auto [param, prevParam] : llvm::zip(params, prevParams)) {
-        auto type = param.getType();
-        if (type != prevParam.getType()) {
-          LLVM_DEBUG(llvm::dbgs() << "parameters must have same type\n");
-          return failure();
-        }
-        if (qop.isAdj())
-          param = arith::NegFOp::create(rewriter, loc, type, param);
-        if (prev.isAdj())
-          prevParam = arith::NegFOp::create(rewriter, loc, type, prevParam);
-        newParams.push_back(
-            arith::AddFOp::create(rewriter, loc, type, param, prevParam));
-      }
+    Value theta = params.front();
+    Value prevTheta = prevParams.front();
+    auto thetaType = theta.getType();
+    if (thetaType != prevTheta.getType()) {
+      LLVM_DEBUG(llvm::dbgs() << "parameters must have same type\n");
+      return failure();
     }
+
+    auto loc = qop.getLoc();
+    if (qop.isAdj())
+      theta = arith::NegFOp::create(rewriter, loc, thetaType, theta);
+    if (prev.isAdj())
+      prevTheta = arith::NegFOp::create(rewriter, loc, thetaType, prevTheta);
+    SmallVector<Value> newParams{
+        arith::AddFOp::create(rewriter, loc, thetaType, theta, prevTheta), phi};
 
     // Combine the two rotations.
     LLVM_DEBUG(llvm::dbgs() << "combined: " << qop << '\n' << prev << '\n');
-    [[maybe_unused]] auto newOp = rewriter.replaceOpWithNewOp<QOP>(
-        qop, qop.getResultTypes(), UnitAttr{}, newParams, prevCtls, prevTrgs,
-        DenseBoolArrayAttr{});
+    [[maybe_unused]] auto newOp =
+        rewriter.replaceOpWithNewOp<cudaq::quake::PhasedRxOp>(
+            qop, qop.getResultTypes(), UnitAttr{}, newParams, prevCtls,
+            prevTrgs, DenseBoolArrayAttr{});
     rewriter.eraseOp(prev);
     LLVM_DEBUG(llvm::dbgs() << "into: " << newOp << '\n');
     return success();
   }
 
 private:
-  // The angle is folded into the period after which the op is the identity,
-  // so a full turn is caught along with a zero angle.
-  bool isIdentityRotation(QOP qop) const {
-    Attribute attr;
-    if (!matchPattern(qop.getParameters().front(), m_Constant(&attr)))
-      return false;
+  double threshold;
+};
 
-    // A parameter may use any float type, so widen to double for the test.
-    APFloat angle = cast<FloatAttr>(attr).getValue();
-    bool lostPrecision = false;
-    if (angle.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
-                      &lostPrecision) != APFloat::opOK ||
-        lostPrecision)
-      return false;
-    double theta = angle.convertToDouble();
+template <typename QOP>
+class RotationCombine : public OpRewritePattern<QOP> {
+public:
+  RotationCombine(MLIRContext *context,
+                  cudaq::opt::CommutationAwareRewriteMatcher &matcher,
+                  double threshold)
+      : OpRewritePattern<QOP>(context), matcher(matcher), threshold(threshold) {}
 
-    if (isBackdoorNopGate(theta))
-      return false;
+  LogicalResult matchAndRewrite(QOP anchor,
+                                PatternRewriter &rewriter) const override {
+    auto parameters = anchor.getParameters();
+    if (parameters.size() != 1)
+      return failure();
 
-    // Never the shorter period: the `-1` an axis rotation picks up at `2*pi` is
-    // observable if the rotation runs under a control, and this op may yet be
-    // given one by control synthesis of the function it is in.
-    double residual = std::remainder(theta, exactIdentityPeriod());
-
-    // At its default the threshold admits only representation error.
-    return std::abs(residual) <= threshold;
-  }
-
-  /// `quake.ry (12 * π) %1` is a special backdoor NOP that is never optimized.
-  /// TODO: Consider if it would be better to add an I (identity) gate to Quake.
-  static bool isBackdoorNopGate(double theta) {
-    if constexpr (std::same_as<QOP, cudaq::quake::RyOp>) {
-      return theta == 12.0 * M_PI;
-    } else {
-      return false;
+    if (isIdentityRotation(anchor, threshold)) {
+      LLVM_DEBUG(llvm::dbgs()
+                 << "zero rotation eliminated [" << anchor << "]\n");
+      SmallVector<Value> operands;
+      filterArgs(operands, anchor.getControls());
+      filterArgs(operands, anchor.getTargets());
+      rewriter.replaceOp(anchor, operands);
+      return success();
     }
-  }
 
-  // The angle, in radians, after which QOP is exactly the identity operator.
-  // The axis rotations are spinors: they pick up an overall `-1` at `2*pi` and
-  // return to the identity only after `4*pi`. `r1` is `diag(1, exp(i*theta))`
-  // and has period `2*pi` outright.
-  static constexpr double exactIdentityPeriod() {
-    if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>) {
-      return 2.0 * M_PI;
-    } else {
-      return 4.0 * M_PI;
+    Value anchorAngle = parameters.front();
+    auto match = matcher.findNearest(
+        anchor, cudaq::opt::CommutationSearchDirection::Forward,
+        [&](Operation *candidate) {
+          auto endpoint = dyn_cast<QOP>(candidate);
+          if (!endpoint || !haveSameControlArityAndPolarity(anchor, endpoint) ||
+              !matcher.haveSameOrderedQuantumOperands(anchor, endpoint))
+            return false;
+          auto endpointParameters = endpoint.getParameters();
+          return endpointParameters.size() == 1 &&
+                 endpointParameters.front().getType() == anchorAngle.getType();
+        });
+    if (!match)
+      return failure();
+
+    auto endpoint = cast<QOP>(match->endpoint);
+    Value endpointAngle = endpoint.getParameters().front();
+    if (anchor.isAdj() != endpoint.isAdj() &&
+        haveExactValue(anchorAngle, endpointAngle)) {
+      cancelPair(anchor, endpoint, rewriter);
+      return success();
     }
+
+    {
+      OpBuilder::InsertionGuard guard(rewriter);
+      rewriter.setInsertionPoint(endpoint);
+      Type angleType = endpointAngle.getType();
+      if (endpoint.isAdj())
+        endpointAngle = arith::NegFOp::create(rewriter, endpoint.getLoc(),
+                                              angleType, endpointAngle);
+      if (anchor.isAdj())
+        anchorAngle = arith::NegFOp::create(rewriter, endpoint.getLoc(),
+                                            angleType, anchorAngle);
+      Value combinedAngle = arith::AddFOp::create(
+          rewriter, endpoint.getLoc(), angleType, endpointAngle, anchorAngle);
+
+      LLVM_DEBUG(llvm::dbgs() << "combined: " << anchor << '\n'
+                              << endpoint << '\n');
+      [[maybe_unused]] auto combined = rewriter.replaceOpWithNewOp<QOP>(
+          endpoint, endpoint.getResultTypes(), UnitAttr{},
+          ValueRange{combinedAngle}, endpoint.getControls(),
+          endpoint.getTargets(), endpoint.getNegatedQubitControlsAttr());
+      LLVM_DEBUG(llvm::dbgs() << "into: " << combined << '\n');
+    }
+    rewriter.replaceOp(anchor, cudaq::quake::getWireOperands(anchor));
+    return success();
   }
 
+private:
+  cudaq::opt::CommutationAwareRewriteMatcher &matcher;
   double threshold;
 };
 
@@ -677,13 +738,13 @@ public:
     auto *ctx = &getContext();
     cudaq::opt::CommutationAwareRewriteDriver driver(*ctx, config);
     auto &patterns = driver.getPatterns();
-    patterns.add<EraseDoubleReset, EraseResetSink, ReduceYSX,
-                 RotationCombine<cudaq::quake::R1Op>,
+    patterns.add<EraseDoubleReset, EraseResetSink, ReduceYSX>(ctx);
+    auto &matcher = driver.getMatcher();
+    patterns.add<RotationCombine<cudaq::quake::R1Op>,
                  RotationCombine<cudaq::quake::RxOp>,
                  RotationCombine<cudaq::quake::RyOp>,
-                 RotationCombine<cudaq::quake::RzOp>,
-                 RotationCombine<cudaq::quake::PhasedRxOp>>(ctx, threshold);
-    auto &matcher = driver.getMatcher();
+                 RotationCombine<cudaq::quake::RzOp>>(ctx, matcher, threshold);
+    patterns.add<PhasedRxCombine>(ctx, threshold);
     patterns.add<DiscretePhaseFold<cudaq::quake::SOp, cudaq::quake::ZOp>,
                  DiscretePhaseFold<cudaq::quake::TOp, cudaq::quake::SOp>,
                  HermitianElimination<cudaq::quake::HOp>,

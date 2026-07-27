@@ -169,6 +169,99 @@ func.func @fold_rotations_exposed_by_cancellation() {
 // CHECK-NEXT:    quake.sink %[[Z]]#1 : !quake.wire
 // CHECK-NEXT:    return
 
+// Scalar-wire rotations fold across commuting operations. The Rx endpoint
+// angle is defined after its crossed X to require endpoint-local arithmetic,
+// while the controlled Ry pair checks exact negative-control preservation.
+func.func @fold_rotation_families() {
+  %r1_first = arith.constant 0.125 : f64
+  %r1_second = arith.constant 0.25 : f64
+  %rx_first = arith.constant 1.0 : f64
+  %ry_first = arith.constant 0.25 : f64
+  %ry_second = arith.constant 0.5 : f64
+  %rz_first = arith.constant 0.125 : f64
+  %rz_second = arith.constant 0.625 : f64
+  %r1_target = quake.null_wire
+  %rx_target = quake.null_wire
+  %ry_control = quake.null_wire
+  %ry_target = quake.null_wire
+  %rz_target = quake.null_wire
+
+  %r1_0 = quake.r1 (%r1_first) %r1_target : (f64, !quake.wire) -> !quake.wire
+  %r1_z = quake.z %r1_0 : (!quake.wire) -> !quake.wire
+  %r1_1 = quake.r1 (%r1_second) %r1_z : (f64, !quake.wire) -> !quake.wire
+
+  %rx_0 = quake.rx (%rx_first) %rx_target : (f64, !quake.wire) -> !quake.wire
+  %rx_x = quake.x %rx_0 : (!quake.wire) -> !quake.wire
+  %rx_second = arith.constant 0.25 : f64
+  %rx_1 = quake.rx<adj> (%rx_second) %rx_x : (f64, !quake.wire) -> !quake.wire
+
+  %ry_0:2 = quake.ry (%ry_first) [%ry_control neg [true]] %ry_target : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %ry_z = quake.z %ry_0#0 : (!quake.wire) -> !quake.wire
+  %ry_1:2 = quake.ry (%ry_second) [%ry_z neg [true]] %ry_0#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  %rz_0 = quake.rz (%rz_first) %rz_target : (f64, !quake.wire) -> !quake.wire
+  %rz_s = quake.s %rz_0 : (!quake.wire) -> !quake.wire
+  %rz_1 = quake.rz (%rz_second) %rz_s : (f64, !quake.wire) -> !quake.wire
+
+  quake.sink %r1_1 : !quake.wire
+  quake.sink %rx_1 : !quake.wire
+  quake.sink %ry_1#0 : !quake.wire
+  quake.sink %ry_1#1 : !quake.wire
+  quake.sink %rz_1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @fold_rotation_families() {
+// CHECK:         %[[THREE_QUARTERS:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK-NEXT:    %[[R1_SUM:.*]] = arith.constant 3.750000e-01 : f64
+// CHECK:         %[[R1_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[RX_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[RY_CONTROL:.*]] = quake.null_wire
+// CHECK:         %[[RY_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[RZ_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[R1_Z:.*]] = quake.z %[[R1_TARGET]]
+// CHECK-NEXT:    %[[R1:.*]] = quake.r1 (%[[R1_SUM]]) %[[R1_Z]]
+// CHECK:         %[[RX_X:.*]] = quake.x %[[RX_TARGET]]
+// CHECK-NEXT:    %[[RX:.*]] = quake.rx (%[[THREE_QUARTERS]]) %[[RX_X]]
+// CHECK:         %[[RY_Z:.*]] = quake.z %[[RY_CONTROL]]
+// CHECK-NEXT:    %[[RY:.*]]:2 = quake.ry (%[[THREE_QUARTERS]]) {{\[}}%[[RY_Z]] neg [true]] %[[RY_TARGET]]
+// CHECK:         %[[RZ_S:.*]] = quake.s %[[RZ_TARGET]]
+// CHECK-NEXT:    %[[RZ:.*]] = quake.rz (%[[THREE_QUARTERS]]) %[[RZ_S]]
+// CHECK:         quake.sink %[[R1]] : !quake.wire
+// CHECK:         quake.sink %[[RX]] : !quake.wire
+// CHECK:         quake.sink %[[RY]]#0 : !quake.wire
+// CHECK:         quake.sink %[[RY]]#1 : !quake.wire
+// CHECK:         quake.sink %[[RZ]] : !quake.wire
+// CHECK:         return
+
+// Exact opposite-adjoint angles cancel without materializing arithmetic, and a
+// literal zero rotation forwards its original wire.
+func.func @cancel_exact_rotation_angles() {
+  %theta = arith.constant 0.375 : f64
+  %zero = arith.constant 0.0 : f64
+  %target = quake.null_wire
+  %zero_target = quake.null_wire
+  %rz_0 = quake.rz (%theta) %target : (f64, !quake.wire) -> !quake.wire
+  %s = quake.s %rz_0 : (!quake.wire) -> !quake.wire
+  %rz_1 = quake.rz<adj> (%theta) %s : (f64, !quake.wire) -> !quake.wire
+  %rx = quake.rx (%zero) %zero_target : (f64, !quake.wire) -> !quake.wire
+  quake.sink %rz_1 : !quake.wire
+  quake.sink %rx : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_exact_rotation_angles() {
+// CHECK-NOT:     arith.negf
+// CHECK-NOT:     arith.addf
+// CHECK-NOT:     quake.rz
+// CHECK-NOT:     quake.rx
+// CHECK:         %[[TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[ZERO_TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[S:.*]] = quake.s %[[TARGET]]
+// CHECK-NEXT:    quake.sink %[[S]] : !quake.wire
+// CHECK-NEXT:    quake.sink %[[ZERO_TARGET]] : !quake.wire
+// CHECK-NEXT:    return
+
 // Swap is symmetric in its targets, so a second Swap naming the same two
 // qubits in either order cancels the first. Whichever order it uses, each
 // qubit must come back out on the wire it entered on, which is what the sink
