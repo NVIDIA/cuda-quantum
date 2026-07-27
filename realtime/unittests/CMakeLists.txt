@@ -75,7 +75,6 @@ if(CMAKE_CUDA_COMPILER)
     ${CUDADEVRT_LIBRARY}
   )
   
-  add_dependencies(CudaqRealtimeUnitTests test_dispatch_kernel)
   cudaq_gtest_discover_tests(test_dispatch_kernel
     TEST_PREFIX "test_dispatch_kernel."
   )
@@ -100,7 +99,6 @@ if(CMAKE_CUDA_COMPILER)
     cudaq-realtime-host-dispatch
     ${CUDADEVRT_LIBRARY}
   )
-  add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
   cudaq_gtest_discover_tests(test_host_dispatcher
     TEST_PREFIX "test_host_dispatcher."
   )
@@ -116,6 +114,10 @@ if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
   add_subdirectory(utils)
   add_subdirectory(bridge_interface/hololink)
 endif()
+
+# UDP bridge provider tests: self-gated on the always-built udp provider
+# target, so they run in CI without any hololink/RDMA setup.
+add_subdirectory(bridge_interface/udp)
 
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
 # Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
