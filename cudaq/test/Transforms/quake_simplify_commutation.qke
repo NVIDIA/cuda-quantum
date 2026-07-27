@@ -205,6 +205,43 @@ func.func @cancel_uncontrolled_swaps() {
 // CHECK:         quake.sink %[[TLEFT]] : !quake.wire
 // CHECK:         return
 
+// Matching discrete phase gates fold across operations that commute with them.
+// The controlled S pair retains its negative control and the adjoint T pair
+// retains its adjoint state.
+func.func @fold_discrete_phases() {
+  %angle = arith.constant 0.25 : f64
+  %control = quake.null_wire
+  %s_target = quake.null_wire
+  %t_target = quake.null_wire
+
+  %s0:2 = quake.s [%control neg [true]] %s_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %z = quake.z %s0#0 : (!quake.wire) -> !quake.wire
+  %s1:2 = quake.s [%z neg [true]] %s0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  %t0 = quake.t<adj> %t_target : (!quake.wire) -> !quake.wire
+  %rz = quake.rz (%angle) %t0 : (f64, !quake.wire) -> !quake.wire
+  %t1 = quake.t<adj> %rz : (!quake.wire) -> !quake.wire
+
+  quake.sink %s1#0 : !quake.wire
+  quake.sink %s1#1 : !quake.wire
+  quake.sink %t1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @fold_discrete_phases() {
+// CHECK:         %[[ANGLE:.*]] = arith.constant {{.*}} : f64
+// CHECK-NEXT:    %[[CONTROL:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[S_TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[T_TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[CROSSED_Z:.*]] = quake.z %[[CONTROL]]
+// CHECK-NEXT:    %[[FOLDED_Z:.*]]:2 = quake.z {{\[}}%[[CROSSED_Z]] neg [true]] %[[S_TARGET]]
+// CHECK-NEXT:    %[[RZ:.*]] = quake.rz (%[[ANGLE]]) %[[T_TARGET]]
+// CHECK-NEXT:    %[[FOLDED_S:.*]] = quake.s<adj> %[[RZ]]
+// CHECK-NEXT:    quake.sink %[[FOLDED_Z]]#0 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[FOLDED_Z]]#1 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[FOLDED_S]] : !quake.wire
+// CHECK-NEXT:    return
+
 // Reusable controls remain valid Quake but are outside the supported optimizer
 // form. Their pair stays unchanged while the independent scalar-wire H pair
 // still simplifies in the same function.
