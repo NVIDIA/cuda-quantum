@@ -45,13 +45,14 @@ struct ControlUse {
 struct OperationView {
   explicit OperationView(Operation *operation)
       : operation(operation),
-        interface(dyn_cast<cudaq::quake::OperatorInterface>(operation)) {}
+        operatorInterface(
+            dyn_cast<cudaq::quake::OperatorInterface>(operation)) {}
 
   // Underlying operation used for kind-specific commutation rules.
   Operation *operation;
-  // Quake interface used by unitary rules. Channel and instrument views leave
-  // it null.
-  cudaq::quake::OperatorInterface interface;
+  // Quake interface used by unitary-channel rules. Measurement-instrument and
+  // other non-unitary operation views leave it null.
+  cudaq::quake::OperatorInterface operatorInterface;
   // Controls in operand order, including their positive or negative polarity.
   llvm::SmallVector<ControlUse> controls;
   // Targets in operand order, preserving positional gate semantics.
@@ -209,7 +210,7 @@ static bool haveSameCustomUnitaryDefinition(Operation *lhs, Operation *rhs) {
 // Prove that two views describe the same action on the same qubits.
 static bool haveSameOperation(const OperationView &lhs,
                               const OperationView &rhs) {
-  if (!lhs.interface || !rhs.interface)
+  if (!lhs.operatorInterface || !rhs.operatorInterface)
     return false;
 
   // Match the operation kind and every action-bearing interface value. Adjoint
@@ -221,7 +222,7 @@ static bool haveSameOperation(const OperationView &lhs,
       haveSameCustomUnitaryDefinition(lhs.operation, rhs.operation);
   if (!sameRecognizedKind || lhs.controls != rhs.controls ||
       !haveSameTargets(lhs, rhs) ||
-      !haveExactParameters(lhs.interface, rhs.interface))
+      !haveExactParameters(lhs.operatorInterface, rhs.operatorInterface))
     return false;
 
   // ExpPauli stores part of its action in the Pauli word rather than among the
@@ -371,7 +372,7 @@ static bool targetActionsCommute(const OperationView &lhs,
     return true;
   if (lhs.operation->getName() == rhs.operation->getName() &&
       haveSameTargets(lhs, rhs) &&
-      haveExactParameters(lhs.interface, rhs.interface)) {
+      haveExactParameters(lhs.operatorInterface, rhs.operatorInterface)) {
     if (!isa<cudaq::quake::ExpPauliOp>(lhs.operation) ||
         getLiteralPaulis(lhs) == getLiteralPaulis(rhs))
       return true;
@@ -421,34 +422,42 @@ trySameOperation(const OperationView &lhs, const OperationView &rhs) {
   return std::nullopt;
 }
 
-// A projective measurement commutes with target rotations diagonal in its
-// measured basis. Reset commutes with Z-axis rotations because both orders
-// produce the same |0><0| output state.
 static std::optional<CommutationResult>
-trySupportedEffectRelation(const OperationView &lhs, const OperationView &rhs) {
-  const OperationView *effect = nullptr;
-  const OperationView *unitary = nullptr;
-  if (!lhs.interface && rhs.interface) {
-    effect = &lhs;
-    unitary = &rhs;
-  } else if (lhs.interface && !rhs.interface) {
-    effect = &rhs;
-    unitary = &lhs;
+tryMeasurementInstrumentOrResetChannelRelation(const OperationView &lhs,
+                                               const OperationView &rhs) {
+  const OperationView *nonUnitaryOperation = nullptr;
+  const OperationView *unitaryChannel = nullptr;
+  if (!lhs.operatorInterface && rhs.operatorInterface) {
+    nonUnitaryOperation = &lhs;
+    unitaryChannel = &rhs;
+  } else if (lhs.operatorInterface && !rhs.operatorInterface) {
+    nonUnitaryOperation = &rhs;
+    unitaryChannel = &lhs;
   }
-  if (!effect || !unitary || !unitary->controls.empty() ||
-      effect->targets.size() != 1 || unitary->targets.size() != 1 ||
-      effect->targets.front() != unitary->targets.front())
+  if (!nonUnitaryOperation || !unitaryChannel ||
+      !isa<cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp>(
+          nonUnitaryOperation->operation) ||
+      !unitaryChannel->controls.empty() ||
+      nonUnitaryOperation->targets.size() != 1 ||
+      unitaryChannel->targets.size() != 1 ||
+      nonUnitaryOperation->targets.front() != unitaryChannel->targets.front())
     return std::nullopt;
 
-  if ((isa<cudaq::quake::MxOp>(effect->operation) &&
-       isXAxis(unitary->operation)) ||
-      (isa<cudaq::quake::MyOp>(effect->operation) &&
-       isYAxis(unitary->operation)))
-    return commutes(CommutationReason::PreservedEffectBasis);
-  if ((isa<cudaq::quake::MzOp>(effect->operation) ||
-       isa<cudaq::quake::ResetOp>(effect->operation)) &&
-      isZAxis(unitary->operation))
-    return commutes(CommutationReason::PreservedEffectBasis);
+  // For each outcome m, M_m(rho) = Pi_m rho Pi_m. If [U, Pi_m] = 0, then
+  // M_m(U rho U^dagger) = U M_m(rho) U^dagger, preserving outcome m.
+  if ((isa<cudaq::quake::MxOp>(nonUnitaryOperation->operation) &&
+       isXAxis(unitaryChannel->operation)) ||
+      (isa<cudaq::quake::MyOp>(nonUnitaryOperation->operation) &&
+       isYAxis(unitaryChannel->operation)) ||
+      (isa<cudaq::quake::MzOp>(nonUnitaryOperation->operation) &&
+       isZAxis(unitaryChannel->operation)))
+    return commutes(CommutationReason::MeasurementInstrumentBasis);
+
+  // Reset is R(rho) = |0><0| Tr(rho). A Z-axis unitary preserves |0> up to
+  // phase, so R(U rho U^dagger) = U R(rho) U^dagger = R(rho).
+  if (isa<cudaq::quake::ResetOp>(nonUnitaryOperation->operation) &&
+      isZAxis(unitaryChannel->operation))
+    return commutes(CommutationReason::PreservedResetState);
   return std::nullopt;
 }
 
@@ -544,8 +553,8 @@ static CommutationResult dispatchRules(const OperationView &lhs,
     return indeterminate(CommutationReason::NoApplicableRule);
   if (auto result = tryDisjointSupport(lhs, rhs))
     return *result;
-  if (!lhs.interface || !rhs.interface) {
-    if (auto result = trySupportedEffectRelation(lhs, rhs))
+  if (!lhs.operatorInterface || !rhs.operatorInterface) {
+    if (auto result = tryMeasurementInstrumentOrResetChannelRelation(lhs, rhs))
       return *result;
     return indeterminate(CommutationReason::NoApplicableRule);
   }
@@ -578,16 +587,19 @@ static CommutationResult dispatchRules(const OperationView &lhs,
 static std::optional<CommutationReason>
 populateOperationView(OperationView &view,
                       const QubitIdentityAnalysis &qubitIdentity) {
-  // A supported operator may use a qubit in only one control or target role.
-  // Track all resolved IDs here so duplicates are rejected across both groups.
+  // A supported operation view may use a qubit in only one control or target
+  // role. Track all resolved IDs here so duplicates are rejected across both
+  // groups.
   llvm::DenseSet<QubitId> seenQubitIds;
   llvm::SmallVector<Value> targets;
 
-  if (view.interface) {
+  if (auto quantumOperator = view.operatorInterface) {
+    // Operators contribute ordered controls, their polarities, and ordered
+    // targets because later rules distinguish each qubit's role.
     // Valid Quake IR guarantees that polarity metadata, when present, has one
     // entry per control operand.
-    auto negatedControls = view.interface.getNegatedControls();
-    auto controls = view.interface.getControls();
+    auto negatedControls = quantumOperator.getNegatedControls();
+    auto controls = quantumOperator.getControls();
 
     // Preserve control operand order while also building the support and
     // identity-to-polarity lookup required by controlled-operation rules.
@@ -606,14 +618,22 @@ populateOperationView(OperationView &view,
       view.controlPolarities.try_emplace(
           *qubitId, negatedControls && (*negatedControls)[index]);
     }
-    llvm::append_range(targets, view.interface.getTargets());
-  } else if (auto measurement =
+    llvm::append_range(targets, quantumOperator.getTargets());
+  } else if (auto measurementInstrument =
                  dyn_cast<cudaq::quake::MeasurementInterface>(view.operation)) {
-    llvm::append_range(targets, measurement.getTargets());
-  } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(view.operation)) {
-    targets.push_back(reset.getTargets());
+    // Only the measured quantum targets contribute to qubit support. Classical
+    // outcomes are instrument results, not qubit identities.
+    llvm::append_range(targets, measurementInstrument.getTargets());
+  } else if (auto resetChannel =
+                 dyn_cast<cudaq::quake::ResetOp>(view.operation)) {
+    // Reset is a single-target channel with no control role.
+    targets.push_back(resetChannel.getTargets());
+  } else if (auto sink = dyn_cast<cudaq::quake::SinkOp>(view.operation)) {
+    // Sink consumes the target identity. Recording that target makes shared
+    // support a conservative boundary.
+    targets.push_back(sink.getTarget());
   } else {
-    targets.push_back(cast<cudaq::quake::SinkOp>(view.operation).getTarget());
+    llvm_unreachable("operation kind was validated before normalization");
   }
 
   // Preserve target order for positional gate semantics and build the target
@@ -661,8 +681,10 @@ cudaq::quake::detail::getCommutationReasonId(CommutationReason reason) {
     return "computational-diagonal";
   case CommutationReason::SameAxis:
     return "same-axis";
-  case CommutationReason::PreservedEffectBasis:
-    return "preserved-effect-basis";
+  case CommutationReason::MeasurementInstrumentBasis:
+    return "measurement-instrument-basis";
+  case CommutationReason::PreservedResetState:
+    return "preserved-reset-state";
   case CommutationReason::EvenPauliParity:
     return "even-pauli-parity";
   case CommutationReason::OddPauliParity:
