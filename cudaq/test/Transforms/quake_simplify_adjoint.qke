@@ -156,3 +156,77 @@ func.func @cancel_controlled_s_sdg() {
 // CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
 // CHECK-NEXT:      return
 // CHECK-NEXT:    }
+
+func.func @erase_zero_phased_rx() {
+  %theta = arith.constant 0.0 : f64
+  %phi = arith.constant 0.25 : f64
+  %0 = quake.null_wire
+  %1 = quake.phased_rx (%theta, %phi) %0 : (f64, f64, !quake.wire) -> !quake.wire
+  %2 = quake.null_wire
+  %3 = quake.phased_rx<adj> (%theta, %phi) %2 : (f64, f64, !quake.wire) -> !quake.wire
+  %4 = quake.null_wire
+  %5 = quake.null_wire
+  %6:2 = quake.phased_rx (%theta, %phi) [%4 neg [true]] %5 : (f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %1 : !quake.wire
+  quake.sink %3 : !quake.wire
+  quake.sink %6#0 : !quake.wire
+  quake.sink %6#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @erase_zero_phased_rx() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_2:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_3:.*]] = quake.null_wire
+// CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_2]] : !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_3]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @combine_phased_rx_same_axis() {
+  %theta0 = arith.constant 1.0 : f64
+  %theta1 = arith.constant 0.25 : f64
+  %phi0 = arith.constant 0.5 : f64
+  %phi1 = arith.constant 0.5 : f64
+  %0 = quake.null_wire
+  %1 = quake.phased_rx (%theta0, %phi0) %0 : (f64, f64, !quake.wire) -> !quake.wire
+  %2 = quake.phased_rx<adj> (%theta1, %phi1) %1 : (f64, f64, !quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @combine_phased_rx_same_axis() {
+// CHECK:           %[[THETA:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK:           %[[PHI:.*]] = arith.constant 5.000000e-01 : f64
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.phased_rx (%[[THETA]], %[[PHI]]) %[[VAL_0]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+func.func @preserve_phased_rx_different_axes() {
+  %theta0 = arith.constant 1.0 : f64
+  %theta1 = arith.constant 0.25 : f64
+  %phi0 = arith.constant 0.5 : f64
+  %phi1 = arith.constant 0.75 : f64
+  %0 = quake.null_wire
+  %1 = quake.phased_rx (%theta0, %phi0) %0 : (f64, f64, !quake.wire) -> !quake.wire
+  %2 = quake.phased_rx (%theta1, %phi1) %1 : (f64, f64, !quake.wire) -> !quake.wire
+  quake.sink %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @preserve_phased_rx_different_axes() {
+// CHECK:           %[[THETA0:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[THETA1:.*]] = arith.constant 2.500000e-01 : f64
+// CHECK:           %[[PHI0:.*]] = arith.constant 5.000000e-01 : f64
+// CHECK:           %[[PHI1:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[VAL_1:.*]] = quake.phased_rx (%[[THETA0]], %[[PHI0]]) %[[VAL_0]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[VAL_2:.*]] = quake.phased_rx (%[[THETA1]], %[[PHI1]]) %[[VAL_1]] : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK-NEXT:      quake.sink %[[VAL_2]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
