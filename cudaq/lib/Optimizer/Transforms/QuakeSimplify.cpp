@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdint>
 #include <optional>
+#include <type_traits>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKESIMPLIFY
@@ -261,9 +262,7 @@ public:
 
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
-    if (qop.getNegatedQubitControls())
-      return failure();
-
+    auto params = qop.getParameters();
     if (isIdentityRotation(qop)) {
       // Forward the target to the uses.
       LLVM_DEBUG(llvm::dbgs() << "zero rotation eliminated [" << qop << "]\n");
@@ -275,6 +274,8 @@ public:
       ++zeroStat;
       return success();
     }
+    if (qop.getNegatedQubitControls())
+      return failure();
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
@@ -329,7 +330,6 @@ public:
       }
     }
 
-    SmallVector<Value> params = qop.getParameters();
     SmallVector<Value> prevParams = prev.getParameters();
     if (params.size() != prevParams.size()) {
       LLVM_DEBUG(llvm::dbgs()
@@ -339,20 +339,50 @@ public:
       return failure(); // This should never happen.
     }
 
-    // Compute the new parameters. Negate all if adjoint is set.
     SmallVector<Value> newParams;
     auto loc = qop.getLoc();
-    for (auto [p, pp] : llvm::zip(params, prevParams)) {
-      auto ty = p.getType();
-      if (ty != pp.getType()) {
+    if constexpr (std::is_same_v<QOP, cudaq::quake::PhasedRxOp>) {
+      Value phi = params[1];
+      Value prevPhi = prevParams[1];
+      Attribute phiConstant;
+      Attribute prevPhiConstant;
+      bool samePhi = phi == prevPhi ||
+                     (phi.getType() == prevPhi.getType() &&
+                      matchPattern(phi, m_Constant(&phiConstant)) &&
+                      matchPattern(prevPhi, m_Constant(&prevPhiConstant)) &&
+                      phiConstant == prevPhiConstant);
+      if (!samePhi)
+        return failure();
+
+      Value theta = params.front();
+      Value prevTheta = prevParams.front();
+      auto thetaType = theta.getType();
+      if (thetaType != prevTheta.getType()) {
         LLVM_DEBUG(llvm::dbgs() << "parameters must have same type\n");
         return failure();
       }
       if (qop.isAdj())
-        p = arith::NegFOp::create(rewriter, loc, ty, p);
+        theta = arith::NegFOp::create(rewriter, loc, thetaType, theta);
       if (prev.isAdj())
-        pp = arith::NegFOp::create(rewriter, loc, ty, pp);
-      newParams.push_back(arith::AddFOp::create(rewriter, loc, ty, p, pp));
+        prevTheta = arith::NegFOp::create(rewriter, loc, thetaType, prevTheta);
+      newParams.push_back(
+          arith::AddFOp::create(rewriter, loc, thetaType, theta, prevTheta));
+      newParams.push_back(phi);
+    } else {
+      // Compute the new parameters. Negate all if adjoint is set.
+      for (auto [param, prevParam] : llvm::zip(params, prevParams)) {
+        auto type = param.getType();
+        if (type != prevParam.getType()) {
+          LLVM_DEBUG(llvm::dbgs() << "parameters must have same type\n");
+          return failure();
+        }
+        if (qop.isAdj())
+          param = arith::NegFOp::create(rewriter, loc, type, param);
+        if (prev.isAdj())
+          prevParam = arith::NegFOp::create(rewriter, loc, type, prevParam);
+        newParams.push_back(
+            arith::AddFOp::create(rewriter, loc, type, param, prevParam));
+      }
     }
 
     // Combine the two rotations.
