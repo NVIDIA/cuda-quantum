@@ -8,9 +8,11 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+#include <cmath>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKESIMPLIFY
@@ -284,22 +286,29 @@ public:
   }
 };
 
+// The angle, in radians, after which QOP is exactly the identity operator.
+template <typename QOP>
+constexpr double exactIdentityPeriod() {
+  if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>)
+    return 2.0 * M_PI;
+  else
+    return 4.0 * M_PI;
+}
+
 template <typename QOP>
 class RotationCombine : public OpRewritePattern<QOP> {
 public:
   using Base = OpRewritePattern<QOP>;
-  using Base::Base;
+
+  RotationCombine(MLIRContext *ctx, double threshold)
+      : Base(ctx), threshold(threshold) {}
 
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
     if (qop.getNegatedQubitControls())
       return failure();
 
-    if (std::all_of(qop.getParameters().begin(), qop.getParameters().end(),
-                    [&](Value v) {
-                      auto ofr = getAsOpFoldResult(v);
-                      return isZeroFloat(ofr);
-                    })) {
+    if (isIdentityRotation(qop)) {
       // Forward the target to the uses.
       LLVM_DEBUG(llvm::dbgs() << "zero rotation eliminated [" << qop << "]\n");
       SmallVector<Value> newOperands;
@@ -401,6 +410,32 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "into: " << newOp << '\n');
     return success();
   }
+
+private:
+  // The angle is folded into the period after which the op is the identity,
+  // so a full turn is caught along with a zero angle.
+  bool isIdentityRotation(QOP qop) const {
+    auto params = qop.getParameters();
+    if (params.empty())
+      return false;
+
+    FloatAttr attr;
+    if (!matchPattern(params.front(), m_Constant<FloatAttr>(&attr)))
+      return false;
+    double theta = attr.getValueAsDouble();
+    if (!std::isfinite(theta))
+      return false;
+
+    double period =
+        qop.getControls().empty() ? 2.0 * M_PI : exactIdentityPeriod<QOP>();
+
+    double residual = std::remainder(theta, period);
+
+    // The default threshold of 0 admits only an exactly-identity rotation.
+    return std::abs(residual) <= threshold;
+  }
+
+  double threshold;
 };
 
 // Z = SS = S<adj>S<adj>
@@ -756,12 +791,12 @@ public:
                     HermitianElimination<cudaq::quake::YOp>,
                     HermitianElimination<cudaq::quake::ZOp>,
                     AdjointElimination<cudaq::quake::SOp>,
-                    AdjointElimination<cudaq::quake::TOp>,
-                    RotationCombine<cudaq::quake::R1Op>,
+                    AdjointElimination<cudaq::quake::TOp>>(ctx);
+    patterns.insert<RotationCombine<cudaq::quake::R1Op>,
                     RotationCombine<cudaq::quake::RxOp>,
                     RotationCombine<cudaq::quake::RyOp>,
                     RotationCombine<cudaq::quake::RzOp>,
-                    RotationCombine<cudaq::quake::PhasedRxOp>>(ctx);
+                    RotationCombine<cudaq::quake::PhasedRxOp>>(ctx, threshold);
     if (failed(applyPatternsGreedily(op, std::move(patterns), config)))
       signalPassFailure();
   }

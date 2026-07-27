@@ -1193,38 +1193,6 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
   }];
 }
 
-def PruneNegligibleRotations
-    : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
-  let summary = "Erase constant-angle rotations that are effectively identity.";
-  let description = [{
-    Erases `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations that
-    are the identity up to a global phase, treating them as the identity. Each
-    of these rotations has period `2*pi` up to a global phase (for example
-    `rz(2*pi) = -I`), so the constant angle is folded into `(-pi, pi]` and the
-    op is pruned when the folded magnitude is below `threshold`. The discarded
-    global phase is unobservable because only uncontrolled rotations are pruned.
-
-    In memory semantics (`!quake.ref` targets) the op is simply dropped and in
-    value semantics (`!quake.wire` targets) the input wire is threaded straight
-    through to the users of the result.
-
-    Only uncontrolled rotations are pruned: a controlled rotation with a
-    negligible angle is left in place (materialize controls with
-    `ApplyOpSpecialization` first if pruning them matters). Non-constant and
-    non-finite angles are also left untouched.
-
-    This is the negligible-rotation pruning used internally by
-    `clifford-t-synthesis`, exposed as a standalone pass so it can be run
-    independently of Clifford+T synthesis.
-  }];
-  let options = [
-    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
-      "Erase (treat as identity) rotations whose angle, folded into (-pi, pi], "
-      "has magnitude below this threshold. Set to 0 to disable.">,
-  ];
-  let dependentDialects = ["quake::QuakeDialect"];
-}
-
 def PyFrontendCleanup : Pass<"py-frontend-cleanup", "mlir::func::FuncOp"> {
   let summary = "Clean up IR residue specific to the Python AST bridge.";
   let description = [{
@@ -1300,7 +1268,29 @@ def QuakeSimplify : Pass<"quake-simplify"> {
   let description = [{
     This pass performs several simplifications on quake operations. The
     IR is expected to be in value-semantics form.
+
+    Among these, a constant-angle rotation that is the identity is erased. A
+    rotation is folded into its exact identity period before the angle is
+    tested, so a full turn is pruned just like a zero angle. The axis
+    rotations (`rx`, `ry`, `rz`, `phased_rx`) are spinors and return to the
+    identity only after `4*pi`, picking up an overall `-1` at `2*pi`, while
+    `r1` is `diag(1, exp(i*theta))` and has period `2*pi`. When the rotation
+    carries no controls that overall `-1` is an unobservable global phase, so
+    `2*pi` is used for every rotation. Under a control it becomes a relative
+    phase (`ctrl-rz(2*pi) = diag(1, 1, -1, -1)`) and the exact period is used
+    instead. Non-constant and non-finite angles are left untouched.
+
+    By default only exactly-identity rotations are erased, which preserves the
+    semantics of the circuit. Setting `threshold` additionally erases rotations
+    whose folded angle is merely small. that is an approximation with an error
+    of roughly the angle per gate, so it is opt-in.
   }];
+  let options = [
+    Option<"threshold", "threshold", "double", /*default=*/"0.0",
+      "Also erase (treat as identity) rotations whose angle, folded into its "
+      "identity period, has magnitude at or below this value. The default of "
+      "0 erases only exactly-identity rotations.">,
+  ];
 }
 
 def QubitResetBeforeReuse :
