@@ -423,40 +423,39 @@ trySameOperation(const OperationView &lhs, const OperationView &rhs) {
 }
 
 static std::optional<CommutationResult>
-tryMeasurementInstrumentOrResetChannelRelation(const OperationView &lhs,
-                                               const OperationView &rhs) {
-  const OperationView *nonUnitaryOperation = nullptr;
-  const OperationView *unitaryChannel = nullptr;
-  if (!lhs.operatorInterface && rhs.operatorInterface) {
-    nonUnitaryOperation = &lhs;
-    unitaryChannel = &rhs;
-  } else if (lhs.operatorInterface && !rhs.operatorInterface) {
-    nonUnitaryOperation = &rhs;
-    unitaryChannel = &lhs;
-  }
-  if (!nonUnitaryOperation || !unitaryChannel ||
-      !isa<cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp>(
-          nonUnitaryOperation->operation) ||
-      !unitaryChannel->controls.empty() ||
-      nonUnitaryOperation->targets.size() != 1 ||
-      unitaryChannel->targets.size() != 1 ||
-      nonUnitaryOperation->targets.front() != unitaryChannel->targets.front())
+tryInstrumentOrReset(const OperationView &lhs, const OperationView &rhs) {
+  const bool lhsIsOperator = static_cast<bool>(lhs.operatorInterface);
+  const bool rhsIsOperator = static_cast<bool>(rhs.operatorInterface);
+  if (lhsIsOperator == rhsIsOperator)
+    return std::nullopt;
+
+  const OperationView &unitaryChannel = lhsIsOperator ? lhs : rhs;
+  const OperationView &nonUnitaryOperation = lhsIsOperator ? rhs : lhs;
+  if (!isa<cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp>(
+          nonUnitaryOperation.operation))
+    return std::nullopt;
+  if (!unitaryChannel.controls.empty())
+    return std::nullopt;
+  if (nonUnitaryOperation.targets.size() != 1 ||
+      unitaryChannel.targets.size() != 1)
+    return std::nullopt;
+  if (nonUnitaryOperation.targets.front() != unitaryChannel.targets.front())
     return std::nullopt;
 
   // For each outcome m, M_m(rho) = Pi_m rho Pi_m. If [U, Pi_m] = 0, then
   // M_m(U rho U^dagger) = U M_m(rho) U^dagger, preserving outcome m.
-  if ((isa<cudaq::quake::MxOp>(nonUnitaryOperation->operation) &&
-       isXAxis(unitaryChannel->operation)) ||
-      (isa<cudaq::quake::MyOp>(nonUnitaryOperation->operation) &&
-       isYAxis(unitaryChannel->operation)) ||
-      (isa<cudaq::quake::MzOp>(nonUnitaryOperation->operation) &&
-       isZAxis(unitaryChannel->operation)))
+  if ((isa<cudaq::quake::MxOp>(nonUnitaryOperation.operation) &&
+       isXAxis(unitaryChannel.operation)) ||
+      (isa<cudaq::quake::MyOp>(nonUnitaryOperation.operation) &&
+       isYAxis(unitaryChannel.operation)) ||
+      (isa<cudaq::quake::MzOp>(nonUnitaryOperation.operation) &&
+       isZAxis(unitaryChannel.operation)))
     return commutes(CommutationReason::MeasurementInstrumentBasis);
 
   // Reset is R(rho) = |0><0| Tr(rho). A Z-axis unitary preserves |0> up to
   // phase, so R(U rho U^dagger) = U R(rho) U^dagger = R(rho).
-  if (isa<cudaq::quake::ResetOp>(nonUnitaryOperation->operation) &&
-      isZAxis(unitaryChannel->operation))
+  if (isa<cudaq::quake::ResetOp>(nonUnitaryOperation.operation) &&
+      isZAxis(unitaryChannel.operation))
     return commutes(CommutationReason::PreservedResetState);
   return std::nullopt;
 }
@@ -554,7 +553,7 @@ static CommutationResult dispatchRules(const OperationView &lhs,
   if (auto result = tryDisjointSupport(lhs, rhs))
     return *result;
   if (!lhs.operatorInterface || !rhs.operatorInterface) {
-    if (auto result = tryMeasurementInstrumentOrResetChannelRelation(lhs, rhs))
+    if (auto result = tryInstrumentOrReset(lhs, rhs))
       return *result;
     return indeterminate(CommutationReason::NoApplicableRule);
   }
