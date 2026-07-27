@@ -55,6 +55,26 @@ observe_result RemoteRESTQPU::launchKernel(const observe_policy &policy,
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
+run_result RemoteRESTQPU::launchKernel(const run_policy &policy,
+                                       const CompiledModule &module,
+                                       KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
+
+  auto target = getCompileTarget(policy);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
+async_run_result RemoteRESTQPU::launchKernel(const async_run_policy &policy,
+                                             const CompiledModule &module,
+                                             KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
+
+  auto target = getCompileTarget(policy.inner);
+  auto codes = runCodegen(module, std::move(target));
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
 async_observe_result
 RemoteRESTQPU::launchKernel(const async_observe_policy &policy,
                             const CompiledModule &module, KernelArgs args) {

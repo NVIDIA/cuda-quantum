@@ -1338,7 +1338,7 @@ struct ExpPauliOpPattern
   matchAndRewrite(cudaq::quake::ExpPauliOp pauli, Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = pauli.getLoc();
-    // Make sure that apply-control-negations pass was run.
+    // Make sure that expand-control-negations pass was run.
     if (adaptor.getNegatedQubitControls())
       return pauli->emitOpError("negated control qubits not allowed.");
     SmallVector<Value> controls;
@@ -1821,7 +1821,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     };
     auto qirFunctionName = M::quakeToFuncName(op);
 
-    // Make sure that apply-control-negations pass was run.
+    // Make sure that expand-control-negations pass was run.
     if (adaptor.getNegatedQubitControls())
       return op.emitOpError("negated control qubits not allowed.");
 

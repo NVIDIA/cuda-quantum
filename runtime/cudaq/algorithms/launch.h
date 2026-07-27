@@ -27,7 +27,7 @@ namespace cudaq_internal::compiler {
 cudaq::CompiledModule
 compileModule(std::unique_ptr<cudaq::CompileTarget> target,
               const cudaq::SourceModule &src, cudaq::KernelArgs args,
-              bool isEntryPoint = true);
+              bool isEntryPoint);
 } // namespace cudaq_internal::compiler
 #endif
 
@@ -80,7 +80,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
         target = cudaq::get_compile_target(policy);
       }
       compiled = cudaq_internal::compiler::compileModule(std::move(target),
-                                                         *source, args);
+                                                         *source, args,
+                                                         /*isEntryPoint=*/true);
 #endif
     } else {
       CUDAQ_INFO("Found compiled module. Skipping compilation.");
