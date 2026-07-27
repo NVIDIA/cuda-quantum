@@ -2018,9 +2018,9 @@ Using Holoscan Sensor Bridge
 Note
 
 Please make sure to [set up the host
-system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html){.reference
+system](https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/host-setup){.reference
 .external} and the [set up the HSB FPGA device IP
-address](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration){.reference
+address](https://docs.nvidia.com/holoscan/sensor-bridge/applications/architecture#datachannel-enumeration-and-ip-address-configuration){.reference
 .external}.
 :::
 :::

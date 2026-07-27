@@ -3851,17 +3851,18 @@ discriminated bits into an integer.)
 
     :   qubit 0 contributes 2\^0 to the statevector index, qubit 1
         contributes 2\^1, and so on. For two qubits, statevector index 1
-        corresponds to the basis state [[\|]{#id3
-        .problematic}](#id2)q_0 q_1\> = [[\|]{#id5
-        .problematic}](#id4)10\> (qubit 0 in [[\|]{#id7
-        .problematic}](#id6)1\>, qubit 1 in [[\|]{#id9
-        .problematic}](#id8)0\>), so a state where qubit 0 equals 1 with
-        probability 1 is the vector {0., 1., 0., 0.}. This convention
-        matches [`cudaq.get_state`{.code .docutils .literal
-        .notranslate}]{.pre}, [`SampleResult`{.code .docutils .literal
-        .notranslate}]{.pre} bitstring keys, and the Pauli word produced
-        by [`get_pauli_word()`{.code .docutils .literal
-        .notranslate}]{.pre}, all of which place qubit 0 as the
+        corresponds to the basis state [`|q_0`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`q_1>`{.docutils .literal .notranslate}]{.pre} =
+        [`|10>`{.docutils .literal .notranslate}]{.pre} (qubit 0 in
+        [`|1>`{.docutils .literal .notranslate}]{.pre}, qubit 1 in
+        [`|0>`{.docutils .literal .notranslate}]{.pre}), so a state
+        where qubit 0 equals 1 with probability 1 is the vector {0., 1.,
+        0., 0.}. This convention matches [`cudaq.get_state`{.code
+        .docutils .literal .notranslate}]{.pre}, [`SampleResult`{.code
+        .docutils .literal .notranslate}]{.pre} bitstring keys, and the
+        Pauli word produced by [`get_pauli_word()`{.code .docutils
+        .literal .notranslate}]{.pre}, all of which place qubit 0 as the
         left-most character. Note that writing the statevector index as
         a binary number (e.g. index 1 as [`01`{.code .docutils .literal
         .notranslate}]{.pre}) places qubit 0 on the right, since it is

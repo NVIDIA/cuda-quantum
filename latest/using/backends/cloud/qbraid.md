@@ -1906,10 +1906,21 @@ aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
 
 [qBraid](https://www.qbraid.com/){.reference .external} is a cloud
 platform that brokers access to quantum simulators and hardware from
-multiple vendors through a single API. CUDA-Q can submit OpenQASM 2 jobs
-to any device exposed by the qBraid service. See the [qBraid device
+multiple vendors through a single API. CUDA-Q submits OpenQASM 2 jobs to
+gate-based devices exposed by the qBraid service. See the [qBraid device
 catalog](https://account.qbraid.com/devices){.reference .external} for
 the set of simulators and QPUs currently available.
+
+::: {.admonition .note}
+Note
+
+Only gate-based (gate-model) devices are supported through this target.
+qBraid also brokers analog devices, such as analog Hamiltonian
+simulation (AHS) QPUs, which cannot execute the gate-based kernels
+CUDA-Q emits. Selecting such a device (for example,
+[`aws:quera:qpu:aquila`{.docutils .literal .notranslate}]{.pre}) is
+rejected when the target is configured.
+:::
 
 ::: {#setting-credentials .section}
 ## Setting Credentials[¶](#setting-credentials "Permalink to this heading"){.headerlink}

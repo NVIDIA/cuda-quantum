@@ -1085,9 +1085,17 @@
 <h1>qBraid<a class="headerlink" href="#qbraid" title="Permalink to this heading">¶</a></h1>
 <p id="qbraid-backend"><a class="reference external" href="https://www.qbraid.com/">qBraid</a> is a cloud platform that brokers access to
 quantum simulators and hardware from multiple vendors through a single API.
-CUDA-Q can submit OpenQASM 2 jobs to any device exposed by the qBraid service.
-See the <a class="reference external" href="https://account.qbraid.com/devices">qBraid device catalog</a> for the
-set of simulators and QPUs currently available.</p>
+CUDA-Q submits OpenQASM 2 jobs to gate-based devices exposed by the qBraid
+service. See the <a class="reference external" href="https://account.qbraid.com/devices">qBraid device catalog</a>
+for the set of simulators and QPUs currently available.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only gate-based (gate-model) devices are supported through this target.
+qBraid also brokers analog devices, such as analog Hamiltonian simulation
+(AHS) QPUs, which cannot execute the gate-based kernels CUDA-Q emits.
+Selecting such a device (for example, <code class="docutils literal notranslate"><span class="pre">aws:quera:qpu:aquila</span></code>) is rejected
+when the target is configured.</p>
+</div>
 <section id="setting-credentials">
 <h2>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h2>
 <p>Generate an API key from your <a class="reference external" href="https://account.qbraid.com/">qBraid account</a>

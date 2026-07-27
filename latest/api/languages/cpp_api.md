@@ -8699,17 +8699,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1a2cbc25e01de0353f7909f3e434cb2065 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[char]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[invocationResultBuffer]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE "Permalink to this definition"){.headerlink}\
-
-    :   A buffer containing the return value of a kernel invocation.
-        Note: this is only needed for invocation not able to return a
-        [[[`sample_result`{.docutils .literal .notranslate}]{.pre}]{.std
-        .std-ref}](#classcudaq_1_1sample__result){.reference .internal}.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1ExecutionContext_1a1d8a8a13f8765a8fce850e1a124a5fbb .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[numberTrajectories]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext18numberTrajectoriesE "Permalink to this definition"){.headerlink}\
 
     :   The number of trajectories to be used for an expectation
@@ -8782,8 +8771,10 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   True while a JIT/AOT-compiled kernel frame is executing on this
         thread (set by the launcher around the kernel invocation; see
-        QPU::InKernelLaunchScope). The simulator only defers exceptions
-        into [`deferredKernelException`{.docutils .literal
+        [[QPU::InKernelLaunchScope]{.std
+        .std-ref}](#structcudaq_1_1QPU_1_1InKernelLaunchScope){.reference
+        .internal}). The simulator only defers exceptions into
+        [`deferredKernelException`{.docutils .literal
         .notranslate}]{.pre} while this is set. Outside the kernel frame
         (for example, gate application during sample/observe
         finalization) there is no JIT frame for an exception to unwind
@@ -12909,7 +12900,10 @@ them they are erased before execution.
 
     Subclassed by [[cudaq::BaseRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1BaseRemoteRESTQPU){.reference .internal},
-    cudaq::DefaultQPU, cudaq::GPUEmulatedQPU,
+    [[cudaq::DefaultQPU]{.std
+    .std-ref}](#classcudaq_1_1DefaultQPU){.reference .internal},
+    [[cudaq::GPUEmulatedQPU]{.std
+    .std-ref}](#classcudaq_1_1GPUEmulatedQPU){.reference .internal},
     [[cudaq::OrcaRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1OrcaRemoteRESTQPU){.reference .internal}
 
@@ -13089,7 +13083,9 @@ them they are erased before execution.
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
         given policy.
 
-        By default, fall back to other_policies compile target.
+        By default, fall back to [[other_policies]{.std
+        .std-ref}](#structcudaq_1_1other__policies){.reference
+        .internal} compile target.
 
     ```{=html}
     <!-- -->
@@ -13106,13 +13102,76 @@ them they are erased before execution.
 <!-- -->
 ```
 
+[]{#structcudaq_1_1QPU_1_1InKernelLaunchScope .target}[[struct]{.pre}]{.k}[ ]{.w}[[[InKernelLaunchScope]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq3QPU19InKernelLaunchScopeE "Permalink to this definition"){.headerlink}\
+
+:   RAII marker for the window in which a JIT/AOT-compiled kernel frame
+    is executing. While alive it sets
+    [[[`ExecutionContext::inKernelLaunch`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1ExecutionContext_1a7be42e76958d7d38341d8d4af172ffe7){.reference
+    .internal} on the active context, so the simulator defers (rather
+    than throws) exceptions that would otherwise have to unwind through
+    the kernel frame. Launchers wrap the raw kernel invocation in this
+    scope and call rethrowDeferredKernelException() immediately
+    afterwards.
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1other__policies .target}[[struct]{.pre}]{.k}[ ]{.w}[[[other_policies]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq14other_policiesE "Permalink to this definition"){.headerlink}\
+
+:   Fallback policy tag used when no specific policy matches.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1DefaultQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[DefaultQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq10DefaultQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[DefaultQPU]{.std
+    .std-ref}](#classcudaq_1_1DefaultQPU){.reference .internal} models a
+    simulated [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
+    .internal} by specifically targeting the QIS ExecutionManager.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1GPUEmulatedQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[GPUEmulatedQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq14GPUEmulatedQPUE "Permalink to this definition"){.headerlink}\
+
+:   This [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
+    .internal} implementation enqueues kernel execution tasks and sets
+    the CUDA GPU device that it represents. There is a
+    [[GPUEmulatedQPU]{.std
+    .std-ref}](#classcudaq_1_1GPUEmulatedQPU){.reference .internal} per
+    available GPU.
+
+```{=html}
+<!-- -->
+```
+
 []{#classcudaq_1_1BaseRemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[BaseRemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq17BaseRemoteRESTQPUE "Permalink to this definition"){.headerlink}\
 
 :   Subclassed by [[cudaq::AnalogRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1AnalogRemoteRESTQPU){.reference
     .internal}, [[cudaq::FermioniqQPU]{.std
     .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal},
-    cudaq::RemoteRESTQPU
+    [[cudaq::RemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1RemoteRESTQPU){.reference .internal}
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1RemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[RemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[BaseRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq17BaseRemoteRESTQPUE "cudaq::BaseRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq13RemoteRESTQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[RemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1RemoteRESTQPU){.reference .internal} is a
+    subtype of [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
+    .internal} that enables the execution of CUDA-Q kernels on remotely
+    hosted quantum computing services via a REST Client / Server
+    interaction.
 
 ```{=html}
 <!-- -->
@@ -13126,7 +13185,10 @@ them they are erased before execution.
     .notranslate}]{.pre}. Provides common functionality and
     implementation.
 
-    Subclassed by cudaq::PasqalRemoteRESTQPU, cudaq::QuEraRemoteRESTQPU
+    Subclassed by [[cudaq::PasqalRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1PasqalRemoteRESTQPU){.reference
+    .internal}, [[cudaq::QuEraRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1QuEraRemoteRESTQPU){.reference .internal}
 
 ```{=html}
 <!-- -->
@@ -13154,6 +13216,30 @@ them they are erased before execution.
     Moreover, this [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
     .internal} handles launching kernels under the Execution Context
     that includes sampling via synchronous client invocations.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1PasqalRemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[PasqalRemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[AnalogRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq19AnalogRemoteRESTQPUE "cudaq::AnalogRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq19PasqalRemoteRESTQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[PasqalRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1PasqalRemoteRESTQPU){.reference .internal}
+    is a subtype of [[QPU]{.std
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal} that enables
+    the execution of Analog Hamiltonian Programs via a REST Client.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1QuEraRemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[QuEraRemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[AnalogRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq19AnalogRemoteRESTQPUE "cudaq::AnalogRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq18QuEraRemoteRESTQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[QuEraRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1QuEraRemoteRESTQPU){.reference .internal}
+    is a subtype of [[QPU]{.std
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal} that enables
+    the execution of Analog Hamiltonian Programs via a REST Client.
 
 ```{=html}
 <!-- -->
