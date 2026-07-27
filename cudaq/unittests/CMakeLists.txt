@@ -105,3 +105,4 @@ function(add_cudaq_unittest test_name)
 endfunction(add_cudaq_unittest)
 
 add_subdirectory(Optimizer)
+add_subdirectory(plugins)

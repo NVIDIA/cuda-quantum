@@ -112,3 +112,21 @@ CUDAQ_TEST(LatexDrawTester, checkOps) {
   EXPECT_EQ(expected_str.size(), produced_str.size());
   EXPECT_EQ(expected_str, produced_str);
 }
+
+CUDAQ_TEST(LatexDrawTester, skipsNonGateInstructions) {
+  cudaq::Trace trace;
+  trace.appendInstruction("h", {}, {}, {{2, 0}});
+  trace.appendMeasurement("mz", {{2, 0}});
+  trace.appendInstruction("x", {}, {}, {{2, 0}});
+
+  const std::string expected_str = R"(\documentclass{minimal}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}
+  \lstick{$q_0$} & \gate{H} & \gate{X} & \qw \\
+\end{quantikz}
+\end{document}
+)";
+
+  EXPECT_EQ(expected_str, cudaq::detail::getLaTeXString(trace));
+}

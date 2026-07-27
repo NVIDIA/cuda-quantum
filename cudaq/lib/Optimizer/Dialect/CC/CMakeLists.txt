@@ -24,3 +24,5 @@ add_cudaq_dialect_library(CCDialect
     MLIRLoopLikeInterface
     MLIRIR
 )
+
+register_cudaq_mlir_lib(CCDialect)
