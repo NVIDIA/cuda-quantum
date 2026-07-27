@@ -27,7 +27,8 @@ target_link_libraries(cudaq-realtime-bridge-udp
     Threads::Threads
     # --pinned-rings allocates CUDA pinned+mapped ring memory for GPU
     # consumers; no GPU is touched unless the flag is used.
-    CUDA::cudart
+    # Static link, so only the build host need to toolkit, not the runtime host.
+    CUDA::cudart_static
 )
 
 set_target_properties(cudaq-realtime-bridge-udp PROPERTIES
