@@ -40,16 +40,17 @@ struct ControlUse {
   bool operator==(const ControlUse &) const = default;
 };
 
-// Query-local view of a Quake operator's controls, targets, and support,
-// expressed using analysis-local qubit identifiers.
+// Query-local view of a supported Quake operation's controls, targets, and
+// support, expressed using analysis-local qubit identifiers.
 struct OperationView {
-  OperationView(Operation *operation,
-                cudaq::quake::OperatorInterface operatorInterface)
-      : operation(operation), interface(operatorInterface) {}
+  explicit OperationView(Operation *operation)
+      : operation(operation),
+        interface(dyn_cast<cudaq::quake::OperatorInterface>(operation)) {}
 
   // Underlying operation used for kind-specific commutation rules.
   Operation *operation;
-  // Quake interface used to access parameters and quantum operands.
+  // Quake interface used by unitary rules. Channel and instrument views leave
+  // it null.
   cudaq::quake::OperatorInterface interface;
   // Controls in operand order, including their positive or negative polarity.
   llvm::SmallVector<ControlUse> controls;
@@ -88,6 +89,12 @@ static OperationPair getCanonicalPair(Operation *lhs, Operation *rhs) {
   if (std::less<Operation *>{}(rhs, lhs))
     std::swap(lhs, rhs);
   return {lhs, rhs};
+}
+
+static bool isSupportedViewOperation(Operation *operation) {
+  return isa<cudaq::quake::OperatorInterface,
+             cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp,
+             cudaq::quake::SinkOp>(operation);
 }
 
 // Identify built-in operations for which shared-support rules are implemented.
@@ -202,6 +209,9 @@ static bool haveSameCustomUnitaryDefinition(Operation *lhs, Operation *rhs) {
 // Prove that two views describe the same action on the same qubits.
 static bool haveSameOperation(const OperationView &lhs,
                               const OperationView &rhs) {
+  if (!lhs.interface || !rhs.interface)
+    return false;
+
   // Match the operation kind and every action-bearing interface value. Adjoint
   // state may differ because an operation commutes with its exact inverse.
   bool sameRecognizedKind =
@@ -411,6 +421,37 @@ trySameOperation(const OperationView &lhs, const OperationView &rhs) {
   return std::nullopt;
 }
 
+// A projective measurement commutes with target rotations diagonal in its
+// measured basis. Reset commutes with Z-axis rotations because both orders
+// produce the same |0><0| output state.
+static std::optional<CommutationResult>
+trySupportedEffectRelation(const OperationView &lhs, const OperationView &rhs) {
+  const OperationView *effect = nullptr;
+  const OperationView *unitary = nullptr;
+  if (!lhs.interface && rhs.interface) {
+    effect = &lhs;
+    unitary = &rhs;
+  } else if (lhs.interface && !rhs.interface) {
+    effect = &rhs;
+    unitary = &lhs;
+  }
+  if (!effect || !unitary || !unitary->controls.empty() ||
+      effect->targets.size() != 1 || unitary->targets.size() != 1 ||
+      effect->targets.front() != unitary->targets.front())
+    return std::nullopt;
+
+  if ((isa<cudaq::quake::MxOp>(effect->operation) &&
+       isXAxis(unitary->operation)) ||
+      (isa<cudaq::quake::MyOp>(effect->operation) &&
+       isYAxis(unitary->operation)))
+    return commutes(CommutationReason::PreservedEffectBasis);
+  if ((isa<cudaq::quake::MzOp>(effect->operation) ||
+       isa<cudaq::quake::ResetOp>(effect->operation)) &&
+      isZAxis(unitary->operation))
+    return commutes(CommutationReason::PreservedEffectBasis);
+  return std::nullopt;
+}
+
 // Computational-basis diagonal matrices satisfy D1 D2 = D2 D1 because their
 // products are pointwise scalar products in the same basis.
 static std::optional<CommutationResult>
@@ -496,8 +537,18 @@ using CommutationRule = std::optional<CommutationResult> (*)(
 // remaining shared-support rules in stable proof-reason precedence order.
 static CommutationResult dispatchRules(const OperationView &lhs,
                                        const OperationView &rhs) {
+  if ((isa<cudaq::quake::MeasurementInterface>(lhs.operation) &&
+       lhs.targets.size() != 1) ||
+      (isa<cudaq::quake::MeasurementInterface>(rhs.operation) &&
+       rhs.targets.size() != 1))
+    return indeterminate(CommutationReason::NoApplicableRule);
   if (auto result = tryDisjointSupport(lhs, rhs))
     return *result;
+  if (!lhs.interface || !rhs.interface) {
+    if (auto result = trySupportedEffectRelation(lhs, rhs))
+      return *result;
+    return indeterminate(CommutationReason::NoApplicableRule);
+  }
   if (auto result = trySameOperation(lhs, rhs))
     return *result;
   if (!isSupportedSharedOperation(lhs.operation) ||
@@ -527,36 +578,46 @@ static CommutationResult dispatchRules(const OperationView &lhs,
 static std::optional<CommutationReason>
 populateOperationView(OperationView &view,
                       const QubitIdentityAnalysis &qubitIdentity) {
-  // Valid Quake IR guarantees that polarity metadata, when present, has one
-  // entry per control operand.
-  auto negatedControls = view.interface.getNegatedControls();
-  auto controls = view.interface.getControls();
-
   // A supported operator may use a qubit in only one control or target role.
   // Track all resolved IDs here so duplicates are rejected across both groups.
   llvm::DenseSet<QubitId> seenQubitIds;
+  llvm::SmallVector<Value> targets;
 
-  // Preserve control operand order while also building the support and
-  // identity-to-polarity lookup required by controlled-operation rules.
-  view.controls.reserve(controls.size());
-  for (auto [index, control] : llvm::enumerate(controls)) {
-    if (!isa<cudaq::quake::WireType>(control.getType()))
-      return CommutationReason::UnsupportedQuantumOperandType;
-    auto qubitId = qubitIdentity.getQubitId(control);
-    if (!qubitId)
-      return CommutationReason::UnmappedQubitId;
-    if (!seenQubitIds.insert(*qubitId).second)
-      return CommutationReason::DuplicateQubitOperand;
-    view.controls.push_back(
-        {*qubitId, negatedControls && (*negatedControls)[index]});
-    view.support.insert(*qubitId);
-    view.controlPolarities.try_emplace(*qubitId, negatedControls &&
-                                                     (*negatedControls)[index]);
+  if (view.interface) {
+    // Valid Quake IR guarantees that polarity metadata, when present, has one
+    // entry per control operand.
+    auto negatedControls = view.interface.getNegatedControls();
+    auto controls = view.interface.getControls();
+
+    // Preserve control operand order while also building the support and
+    // identity-to-polarity lookup required by controlled-operation rules.
+    view.controls.reserve(controls.size());
+    for (auto [index, control] : llvm::enumerate(controls)) {
+      if (!isa<cudaq::quake::WireType>(control.getType()))
+        return CommutationReason::UnsupportedQuantumOperandType;
+      auto qubitId = qubitIdentity.getQubitId(control);
+      if (!qubitId)
+        return CommutationReason::UnmappedQubitId;
+      if (!seenQubitIds.insert(*qubitId).second)
+        return CommutationReason::DuplicateQubitOperand;
+      view.controls.push_back(
+          {*qubitId, negatedControls && (*negatedControls)[index]});
+      view.support.insert(*qubitId);
+      view.controlPolarities.try_emplace(
+          *qubitId, negatedControls && (*negatedControls)[index]);
+    }
+    llvm::append_range(targets, view.interface.getTargets());
+  } else if (auto measurement =
+                 dyn_cast<cudaq::quake::MeasurementInterface>(view.operation)) {
+    llvm::append_range(targets, measurement.getTargets());
+  } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(view.operation)) {
+    targets.push_back(reset.getTargets());
+  } else {
+    targets.push_back(cast<cudaq::quake::SinkOp>(view.operation).getTarget());
   }
 
   // Preserve target order for positional gate semantics and build the target
   // membership lookup used by overlap and crossover rules.
-  auto targets = view.interface.getTargets();
   view.targets.reserve(targets.size());
   for (Value target : targets) {
     if (!isa<cudaq::quake::WireType>(target.getType()))
@@ -576,13 +637,11 @@ populateOperationView(OperationView &view,
 // Validate and normalize a query, then apply general and shared-support rules.
 static CommutationResult evaluate(Operation *lhs, Operation *rhs,
                                   const QubitIdentityAnalysis &qubitIdentity) {
-  auto lhsInterface = dyn_cast<cudaq::quake::OperatorInterface>(lhs);
-  auto rhsInterface = dyn_cast<cudaq::quake::OperatorInterface>(rhs);
-  if (!lhsInterface || !rhsInterface)
+  if (!isSupportedViewOperation(lhs) || !isSupportedViewOperation(rhs))
     return indeterminate(CommutationReason::UnsupportedOperationKind);
 
-  OperationView lhsView{lhs, lhsInterface};
-  OperationView rhsView{rhs, rhsInterface};
+  OperationView lhsView{lhs};
+  OperationView rhsView{rhs};
   if (auto reason = populateOperationView(lhsView, qubitIdentity))
     return indeterminate(*reason);
   if (auto reason = populateOperationView(rhsView, qubitIdentity))
@@ -602,6 +661,8 @@ cudaq::quake::detail::getCommutationReasonId(CommutationReason reason) {
     return "computational-diagonal";
   case CommutationReason::SameAxis:
     return "same-axis";
+  case CommutationReason::PreservedEffectBasis:
+    return "preserved-effect-basis";
   case CommutationReason::EvenPauliParity:
     return "even-pauli-parity";
   case CommutationReason::OddPauliParity:

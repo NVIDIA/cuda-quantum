@@ -161,11 +161,16 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   EXPECT_EQ(analysis.getQubitId(borrow0a), analysis.getQubitId(borrow0b));
   EXPECT_NE(analysis.getQubitId(borrow0a), analysis.getQubitId(borrow1));
 
-  // Conversions, measurement, reset, aggregates, calls, and references are
-  // deliberately unsupported boundaries.
-  EXPECT_FALSE(analysis.getQubitId(reset.getWires().front()));
-  EXPECT_FALSE(analysis.getQubitId(measurement.getWires()[0]));
-  EXPECT_FALSE(analysis.getQubitId(measurement.getWires()[1]));
+  // Reset and measurement preserve each scalar wire's block-local identity.
+  EXPECT_EQ(analysis.getQubitId(x.getWires().front()),
+            analysis.getQubitId(reset.getWires().front()));
+  EXPECT_EQ(analysis.getQubitId(measurement.getTargets()[0]),
+            analysis.getQubitId(measurement.getWires()[0]));
+  EXPECT_EQ(analysis.getQubitId(measurement.getTargets()[1]),
+            analysis.getQubitId(measurement.getWires()[1]));
+
+  // Conversions, aggregates, calls, and references remain unsupported
+  // boundaries.
   EXPECT_FALSE(analysis.getQubitId(control));
   EXPECT_FALSE(analysis.getQubitId(returned));
   EXPECT_FALSE(analysis.getQubitId(controlArgumentWire));
