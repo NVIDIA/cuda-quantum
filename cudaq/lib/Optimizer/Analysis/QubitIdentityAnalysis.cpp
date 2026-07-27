@@ -77,13 +77,15 @@ static void buildQubitIdMap(Block &block,
     if (auto operatorInterface =
             dyn_cast<cudaq::quake::OperatorInterface>(operation))
       propagateQubitIdsThroughOperator(qubitIds, operatorInterface);
-    else if (auto measurement =
+    else if (auto measurementInstrument =
                  dyn_cast<cudaq::quake::MeasurementInterface>(operation))
-      propagateQubitIdsThroughWires(qubitIds, measurement.getTargets(),
-                                    measurement.getWires());
-    else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(operation))
-      propagateQubitIdsThroughWires(qubitIds, ValueRange{reset.getTargets()},
-                                    reset.getWires());
+      propagateQubitIdsThroughWires(qubitIds,
+                                    measurementInstrument.getTargets(),
+                                    measurementInstrument.getWires());
+    else if (auto resetChannel = dyn_cast<cudaq::quake::ResetOp>(operation))
+      propagateQubitIdsThroughWires(qubitIds,
+                                    ValueRange{resetChannel.getTargets()},
+                                    resetChannel.getWires());
   }
 }
 

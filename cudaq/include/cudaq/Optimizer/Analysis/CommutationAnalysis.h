@@ -39,8 +39,11 @@ enum class CommutationReason {
   /// `PhasedRx` rotation angles may differ, but their axis-defining phase
   /// parameters must be the same SSA value or equal constants.
   SameAxis,
-  /// The unitary preserves a measurement basis or reset output state.
-  PreservedEffectBasis,
+  /// The unitary channel is diagonal in the recognized measurement
+  /// instrument's basis.
+  MeasurementInstrumentBasis,
+  /// The unitary channel preserves the reset channel's output state.
+  PreservedResetState,
   /// Pauli products have even anti-commutation parity on shared targets.
   EvenPauliParity,
   /// A diagonal operation overlaps the other operation only on controls.
@@ -61,7 +64,7 @@ enum class CommutationReason {
   NullOperation,
   /// At least one operation is outside the analyzed block.
   DifferentBlocks,
-  /// At least one operation is not a supported unitary, channel, or instrument.
+  /// At least one operation has no supported analysis operation view.
   UnsupportedOperationKind,
   /// A quantum operand is not a supported scalar wire value.
   UnsupportedQuantumOperandType,
@@ -90,20 +93,25 @@ struct CommutationResult {
   }
 };
 
-/// Read-only commutation analysis for operations in one block.
+/// Exact block-local commutation analysis for supported Quake quantum
+/// operations.
 ///
-/// Analyzes whether two Quake operations in the same block are proven to
-/// commute and therefore can be reordered.
+/// A query asks whether two operations have the same induced action when
+/// composed in either order. Gates are treated as unitary channels. For
+/// supported measurement instruments, equality is required outcome by outcome,
+/// preserving each classical outcome and its conditional output state.
 ///
 /// The block must contain valid Quake value-form IR. Candidate operations must
 /// implement Quake `OperatorInterface` or be single-target scalar-wire
-/// measurements, resets, or sinks. Operations on disjoint qubits commute
-/// regardless of their supported operation kind. For overlapping qubits, the
-/// analysis applies structural rules for recognized built-in Quake operators,
-/// matching-basis measurements, and reset-preserving unitaries. Custom
-/// unitaries with the same defining symbol, exact parameters, controls, and
-/// targets are also recognized as the same operation. The analysis does not
-/// inspect custom-unitary matrices or infer overlapping-support semantics from
+/// measurement instruments, reset channels, or sinks. Operations on disjoint
+/// qubits commute regardless of their supported operation kind. For
+/// overlapping qubits, the analysis applies structural rules for recognized
+/// built-in Quake operators, matching-basis measurement instruments, and
+/// unitary channels that preserve the reset output state. Custom unitaries with
+/// the same defining symbol, exact parameters, controls, and targets are also
+/// recognized as the same operation. The analysis does not inspect
+/// custom-unitary matrices, analyze arbitrary quantum-channel or measurement-
+/// instrument representations, or infer overlapping-support semantics from
 /// different custom definitions or dynamic Pauli words.
 /// Pass pipelines can establish the supported form by running
 /// `linear-ctrl-form` after `memtoreg`.
@@ -118,13 +126,15 @@ struct CommutationResult {
 /// distinction between a proven failure to commute and the absence of a proof.
 ///
 /// Qubit identity is followed through supported scalar wire operators,
-/// measurements, and resets, including controls represented as `!quake.wire`.
-/// Shared-support effect rules cover only single-target matching-basis
-/// measurement and reset relations; sinks and other supported effect pairs
-/// remain indeterminate. The analysis does not follow identity through reusable
+/// measurement instruments, and reset channels, including controls represented
+/// as `!quake.wire`. Shared-support non-unitary rules cover only single-target
+/// matching-basis measurement instruments and reset-channel relations with
+/// unitary channels; sinks and pairs of non-unitary operations remain
+/// indeterminate. The analysis does not follow identity through reusable
 /// `!quake.control`, `quake.to_ctrl`, `quake.from_ctrl`, calls, references,
-/// aggregates, or unsupported effects. Each wire block argument establishes a
-/// local identity that is not correlated with values on predecessor edges.
+/// aggregates, or unsupported non-unitary quantum operations. Each wire block
+/// argument establishes a local identity that is not correlated with values on
+/// predecessor edges.
 ///
 /// Any mutation of the block invalidates the analysis instance. The caller
 /// must discard it before querying the changed block.
