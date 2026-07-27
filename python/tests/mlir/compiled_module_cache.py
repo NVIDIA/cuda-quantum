@@ -16,7 +16,8 @@
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s single_flight 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=SINGLE-FLIGHT %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s multi_entry 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=MULTI-ENTRY %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s fifo_eviction 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=FIFO-EVICTION %s
-# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s execution_failure 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=EXECUTION-FAILURE %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s execution_failure > %t.execution_failure 2>&1 || (cat %t.execution_failure && false)
+# RUN: grep 'py_alt_launch_kernel.cpp' %t.execution_failure | FileCheck --check-prefix=EXECUTION-FAILURE %s
 # clang-format on
 
 import concurrent.futures
@@ -387,34 +388,27 @@ def scenario_fifo_eviction():
 def scenario_execution_failure():
     """Execution errors do not invalidate successful compilation.
 
-    Compilation of `failing` succeeds; the adjoint synthesis error is raised
-    at execution time. The artifact therefore stays published: the second
-    call reuses it and fails with the same error. This also guards the
-    `getOrCompile` contract that the compile callback contains no execution —
-    if execution moved inside the callback, the failure would erase the
-    published entry and the second call would recompile.
+    The qubit count is a runtime input, so compilation of `failing` succeeds
+    before execution detects that the Pauli word and register sizes differ.
+    The artifact therefore stays published: the second call reuses it and
+    fails with the same error. This also guards the `getOrCompile` contract
+    that the compile callback contains no execution — if execution moved
+    inside the callback, the attempt would fail before publication and the
+    second call would compile again.
     """
 
     @cudaq.kernel
-    def unadjointable(q: cudaq.qview):
-        while True:
-            if mz(q[1]):
-                x(q[1])
-                break
-
-    @cudaq.kernel
-    def failing():
-        q = cudaq.qvector(2)
-        h(q)
-        cudaq.adjoint(unadjointable, q)
+    def failing(n: int):
+        q = cudaq.qvector(n)
+        exp_pauli(1.0, q, "XX")
 
     for _ in range(2):
         try:
-            cudaq.sample(failing, shots_count=1)
+            cudaq.sample(failing, 1, shots_count=1)
         except RuntimeError as error:
-            assert "could not autogenerate the adjoint" in str(error).lower()
+            assert "incorrect number of qubits" in str(error)
         else:
-            raise AssertionError("unadjointable kernel unexpectedly executed")
+            raise AssertionError("mismatched exp_pauli unexpectedly succeeded")
 
 
 # One compile, published before the execution error; the second call reuses.
