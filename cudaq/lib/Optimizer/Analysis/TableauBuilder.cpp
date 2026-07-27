@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "stim.h"
 #include "cudaq/Optimizer/Analysis/CircuitValidation.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
-#include "stim.h"
 #include <cmath>
 #include <numeric>
 #include <optional>
@@ -32,7 +32,8 @@ std::optional<double> constantAngle(Value value) {
   return std::nullopt;
 }
 
-/// Compiles one straight-line Clifford kernel into a stabilizer tableau.
+/// Compiles one straight-line Clifford kernel into a stabilizer tableau. The
+/// tableau produced is the inverse of the kernel's operation.
 class TableauBuilder {
 public:
   using Qubit = uint32_t;
@@ -55,8 +56,8 @@ public:
       if (auto unwrap = dyn_cast<quake::UnwrapOp>(op))
         return visitUnwrapOp(unwrap);
       if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
-        for (auto &&[result, operand] : llvm::zip(quake::getQuantumResults(op),
-                                                  quake::getQuantumOperands(op)))
+        for (auto &&[result, operand] : llvm::zip(
+                 quake::getQuantumResults(op), quake::getQuantumOperands(op)))
           qubitMap[result] = qubitMap[operand];
         if (failed(emitOperator(optor)))
           return WalkResult::interrupt();
@@ -66,9 +67,15 @@ public:
     if (result.wasInterrupted())
       return failure();
 
+    // The inverse tableau is what the simulator accumulates. Asking for the
+    // forward one costs an O(n^3) inversion that dominates the build. Since
+    // both kernels are built the same way and equality is symmetric under
+    // inversion (T == T' iff T^-1 == T'^-1), comparing the inverses is
+    // equivalent and skips that cost.
     tableau = stim::circuit_to_tableau<W>(circuit, /*ignore_noise=*/false,
                                           /*ignore_measurement=*/false,
-                                          /*ignore_reset=*/false);
+                                          /*ignore_reset=*/false,
+                                          /*inverse=*/true);
     if (tableau.num_qubits < numQubits)
       tableau.expand(numQubits, /*resize_pad_factor=*/1.0);
     return success();
@@ -112,7 +119,8 @@ private:
 
   WalkResult visitUnwrapOp(quake::UnwrapOp op) {
     ArrayRef<Qubit> qubits = qubitMap[op.getOperand()];
-    qubitMap.try_emplace(op.getResult()).first->second.push_back(qubits.front());
+    qubitMap.try_emplace(op.getResult())
+        .first->second.push_back(qubits.front());
     return WalkResult::advance();
   }
 
@@ -140,8 +148,8 @@ private:
   }
 
   void emit(const std::string &name, ArrayRef<Qubit> targets) {
-    circuit.safe_append_u(name, std::vector<uint32_t>(targets.begin(),
-                                                      targets.end()));
+    circuit.safe_append_u(
+        name, std::vector<uint32_t>(targets.begin(), targets.end()));
   }
 
   LogicalResult emitOperator(quake::OperatorInterface optor) {
