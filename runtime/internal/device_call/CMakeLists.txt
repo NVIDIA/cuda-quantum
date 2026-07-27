@@ -69,6 +69,16 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA::cudart_static
       dl)
   target_link_options(cudaq-device-call-runtime PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+  # The transport archives are implementation details of this runtime's
+  # channels.  Do NOT re-export their symbols: a bridge provider .so (e.g.
+  # libcudaq-realtime-bridge-udp.so) carries its own copy of the same
+  # transceiver code, and if this library exports cpu_udp_*/cpu_roce_* the
+  # dynamic linker binds the provider's calls to THIS copy -- a silent
+  # one-definition violation that corrupts teardown whenever the copies
+  # diverge.
+  target_link_options(cudaq-device-call-runtime PRIVATE
+    "LINKER:--exclude-libs,libcudaq-realtime-udp-transport.a"
+    "LINKER:--exclude-libs,libcudaq-realtime-cpu-roce-transport.a")
 
   install(TARGETS cudaq-device-call-runtime-headers
           EXPORT cudaq-targets)

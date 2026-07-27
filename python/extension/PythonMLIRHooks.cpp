@@ -10,10 +10,6 @@
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
 
-// Pass registration is done through the 'register_dialect' python call.
-// The native target initialization is built into the MLIR python extension.
-void cudaq_internal::compiler::initializeLangMLIR() {}
-
 // FIXME: Declare this in a header file!
 // Forward-declare the Python-aware helper so this translation unit does not
 // pull in headers from python/. The symbol is defined in
@@ -24,11 +20,14 @@ mlir::LogicalResult runPassManagerReleasingGIL(mlir::PassManager &pm,
                                                mlir::Operation *op);
 }
 
-mlir::LogicalResult
-cudaq_internal::compiler::runPassManager(mlir::PassManager &pm,
-                                         mlir::Operation *op) {
+static mlir::LogicalResult pythonRunPassManager(mlir::PassManager &pm,
+                                                mlir::Operation *op) {
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   cudaq::addPythonSignalInstrumentation(pm);
   cudaq_internal::compiler::configurePassManagerFromEnv(pm);
   return cudaq::runPassManagerReleasingGIL(pm, op);
 }
+
+namespace cudaq_internal::compiler {
+void installPythonMLIRHooks() { setRunPassManagerHook(&pythonRunPassManager); }
+} // namespace cudaq_internal::compiler

@@ -11,12 +11,12 @@
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
-#include <fstream>
 
 /// This file defines the default, library mode, quantum platform. Its goal is
 /// to create a single QPU that is added to the quantum_platform which delegates
@@ -65,19 +65,21 @@ private:
       std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
       auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
       std::string fileName = mutableBackend + std::string(".yml");
-      auto configFilePath = platformPath / fileName;
+      const auto explicitConfigPath =
+          cudaq::detail::getBackendConfigOption(backend, "__yml_path");
+      auto configFilePath = explicitConfigPath
+                                ? std::filesystem::path(*explicitConfigPath)
+                                : platformPath / fileName;
       CUDAQ_INFO("Config file path = {}", configFilePath.string());
 
-      if (!std::filesystem::exists(configFilePath)) {
+      if (!explicitConfigPath && !std::filesystem::exists(configFilePath)) {
         platformQPUs.front()->setTargetBackend(backend);
         return;
       }
 
-      std::ifstream configFile(configFilePath.string());
-      std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                                 std::istreambuf_iterator<char>());
-      llvm::yaml::Input Input(configContents.c_str());
-      Input >> config;
+      config = cudaq::config::loadTargetConfig(configFilePath);
+      cudaq::detail::loadTargetPluginLibraries(mutableBackend, configFilePath,
+                                               config);
       runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
       runtimeTarget->config = config;
       runtimeTarget->name = mutableBackend;

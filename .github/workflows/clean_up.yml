@@ -96,7 +96,7 @@ jobs:
 
     strategy:
       matrix:
-        image_name: [cuda-quantum, cuda-quantum-assets, cuda-quantum-dev, cuda-quantum-devdeps, open-mpi, cuda-quantum-macos-devdeps, cuda-quantum-macos-devdeps-ci, cuda-quantum-macos-ccache, cuda-quantum-linux-ccache]
+        image_name: [cuda-quantum, cuda-quantum-assets, cuda-quantum-dev, cuda-quantum-devcontainer, cuda-quantum-devdeps, open-mpi, cuda-quantum-macos-devdeps, cuda-quantum-macos-devdeps-ci, cuda-quantum-macos-ccache, cuda-quantum-linux-ccache]
       fail-fast: false
 
     steps:

@@ -244,6 +244,8 @@ def test_control():
             cudaq.control(cudaq.kernels.uccsd, c, qubits, thetas, num_electrons,
                           num_qubits)
 
+    cudaq.set_random_seed(13)
+
     counts = cudaq.sample(kernel, 0, shots_count=1000)
     assert len(counts) == 6
     counts = cudaq.sample(kernel, 1, shots_count=1000)

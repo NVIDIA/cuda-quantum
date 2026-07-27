@@ -148,9 +148,9 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
 
-  /// @brief Update `passPipeline` with architecture-specific pass options
-  void updatePassPipeline(const std::filesystem::path &platformPath,
-                          std::string &passPipeline) override;
+  /// @brief Return architecture-specific pipeline placeholder substitutions.
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) override;
 
   /// @brief Default destructor removes the dynamic quantum architecture file
   ~IQMServerHelper() {
@@ -429,8 +429,8 @@ IQMServerHelper::generateRequestHeader() const {
  * parameter in the backend string, or even more flexible by setting the
  * environment variable 'IQM_QPU_QA' to the path+filename.
  */
-void IQMServerHelper::updatePassPipeline(
-    const std::filesystem::path &platformPath, std::string &passPipeline) {
+std::map<std::string, std::string> IQMServerHelper::getPipelineSubstitutions(
+    const std::filesystem::path &platformPath) {
   std::string pathToFile;
 
   // For normal operation the dynamic quantum architecture is retrieved from
@@ -461,8 +461,7 @@ void IQMServerHelper::updatePassPipeline(
   // shell glob.
   pathToFile.insert(0, "'").append("'");
 
-  passPipeline =
-      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+  return {{"%QPU_ARCH%", pathToFile}};
 }
 
 /**

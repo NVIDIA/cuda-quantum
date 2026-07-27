@@ -733,6 +733,12 @@ public:
     std::vector<std::string> targets;
     /// Whether to include system headers (-MD) or omit them (-MMD).
     bool includeSystemHeaders = false;
+    /// Canonical on-disk path of the main input file. clang::tooling maps the
+    /// source to a virtual file named after the (bare) input spelling, so the
+    /// dependency generator would otherwise record the main file under a
+    /// non-existent relative name. When set, that entry is rewritten to this
+    /// path so the emitted rule's prerequisite matches the real source.
+    std::string mainFileRealPath;
   };
 
   /// Constructor. \p depOpts is stored by reference and so must outlive this

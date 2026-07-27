@@ -139,6 +139,7 @@ QuTiP
 Quake
 Quantinuum
 RDMA
+README
 REPL
 RFSoC
 RHEL
@@ -175,7 +176,9 @@ Verilog
 Vivado
 WQEs
 WSL
+XDG
 Xcode
+YAML
 Zener
 accessor
 acknowledgement
@@ -221,6 +224,7 @@ comparator
 comparators
 composability
 composable
+config
 constructible
 controlled
 coprocessing
@@ -291,6 +295,7 @@ extensibility
 extremal
 fermionic
 fermioniq
+filesystems
 fourier
 frontend
 frontends
@@ -320,6 +325,7 @@ iteratively
 kets
 krylov
 libunwind
+lifecycle
 linker
 linkers
 logarithmically
@@ -358,6 +364,7 @@ photonic
 photonics
 pipelined
 pluggable
+portably
 precompute
 precomputed
 prepend
@@ -394,6 +401,7 @@ runtime
 runtimes
 rvalue
 rx
+sandboxed
 scalability
 scalable
 schemas
@@ -415,6 +423,7 @@ subclassed
 subclasses
 subclassing
 subcommand
+subdirectory
 subexpression
 subexpressions
 subfolder
@@ -428,6 +437,8 @@ subtypes
 subtyping
 summarize
 superpositions
+symlink
+symlinks
 symplectic
 tablegen
 templated
@@ -435,6 +446,8 @@ testability
 toolchain
 toolchains
 toolset
+topologies
+traceback
 transmon
 transpilation
 transpile

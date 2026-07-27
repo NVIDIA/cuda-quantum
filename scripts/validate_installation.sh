@@ -217,9 +217,12 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+# Plugin sources are libraries or test infrastructure rather than standalone
+# examples; each plugin validates them through its dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -433,8 +436,11 @@ dynamics_backend_skipped_examples=(\
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
+# Plugin Python files are packaging or test infrastructure and are validated by
+# each plugin's dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-for ex in `find examples/ targets/ -name '*.py' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ targets/ -name '*.py' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"

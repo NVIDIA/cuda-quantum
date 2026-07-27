@@ -20,7 +20,7 @@ config:
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "func.func(add-dealloc,expand-control-veqs,combine-quantum-alloc,canonicalize,cc-loop-normalize,cc-loop-unroll{unroll-only-wire-blocking-loops=true},canonicalize,cse,factor-quantum-alloc,dqe,cable-rough-in,canonicalize,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
-  jit-low-level-pipeline: "return-to-output-log,symbol-dce"
+  jit-low-level-pipeline: "return-to-output-log,symbol-dce%QUAKE_EMULATE_SUFFIX%"
   # Tell the rest-qpu that we are simply dumping CUDA-Q MLIR code.
   codegen-emission: nop
   # Library mode is only for simulators, physical backends must turn this off

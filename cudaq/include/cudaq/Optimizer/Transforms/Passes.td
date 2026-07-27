@@ -60,18 +60,6 @@ def AssignWireIndices : Pass<"assign-wire-indices", "mlir::func::FuncOp"> {
   }];
 }
 
-def ApplyControlNegations :
-    Pass<"apply-control-negations", "mlir::func::FuncOp"> {
-  let summary =
-    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
-
-  let description = [{
-    For every quantum operation with a negative control, replace that operation 
-    with an X operation on the control qubit, the controlled operation with
-    positive polarity, and a final X operation on the control qubit. 
-  }];
-}
-
 // ApplyOpSpecialization is a module pass because it may modify the ModuleOp
 // and add new FuncOps.
 def ApplySpecialization : Pass<"apply-op-specialization", "mlir::ModuleOp"> {
@@ -489,6 +477,18 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
     the calling function copying the heap data to a new vector on the stack.
     Since the callee is inlined, none of this is really required. The callee and
     caller share a common stack frame, so one copy is plenty.
+  }];
+}
+
+def ExpandControlNegations :
+    Pass<"expand-control-negations", "mlir::func::FuncOp"> {
+  let summary =
+    "Replace all `Ops` with negated controls with normal controls and `XOp`s.";
+
+  let description = [{
+    For every quantum operation with a negated control, replace that operation 
+    with an X operation on the control qubit, the controlled operation with
+    positive polarity, and a final X operation on the control qubit. 
   }];
 }
 
@@ -1026,6 +1026,16 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "Layout search strategy: sabre (SABRE forward-backward-forward "
            "reverse-traversal refinement of each seed), none (single forward "
            "route per seed; legacy mapping is placement=identity search=none)">,
+    Option<"islandPackingAttemptBudget", "island-packing-attempt-budget",
+           "unsigned", /*default=*/"1048576",
+           "For disconnected devices with greedy placement: the maximum number "
+           "of placement attempts the exhaustive island-packing fallback may "
+           "make before giving up. The fallback only runs when the fast "
+           "best-fit-decreasing packer fails, and feasible packings settle in a "
+           "handful of attempts; this bound caps the cost of proving "
+           "infeasibility on pathological topologies. Exhausting it emits a "
+           "diagnostic suggesting a larger value. 0 disables the fallback "
+           "(best-fit-decreasing only) (advanced)">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
            "internal compiler errors">
