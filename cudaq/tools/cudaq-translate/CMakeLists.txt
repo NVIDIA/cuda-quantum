@@ -13,6 +13,9 @@ set(TOOL_NAME "cudaq-translate")
 add_llvm_executable(${TOOL_NAME} ${TOOL_NAME}.cpp)
 
 llvm_update_compile_flags(${TOOL_NAME})
+
+# Link MLIR statically for performance
+cudaq_use_static_mlir(${TOOL_NAME})
 target_link_libraries(${TOOL_NAME}
   PRIVATE
     MLIRIR
@@ -37,7 +40,6 @@ target_link_libraries(${TOOL_NAME}
     QuakeDialect
     cudaq-qir-verifier
 )
-
 mlir_check_all_link_libraries(${TOOL_NAME})
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)

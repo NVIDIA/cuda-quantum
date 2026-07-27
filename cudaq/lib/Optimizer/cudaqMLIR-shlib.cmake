@@ -81,12 +81,11 @@ foreach(_lib IN LISTS _cudaq_llvm_native_libs)
   endif()
 endforeach()
 
-# We are using the following linker flags:
-#   - -Bsymbolic-functions: ELF treats symbols as preemptible by default. This adds a
-#      PLT/GOT indirection overhead that we remove.
-#   - -dead_strip/--gc-sections: Garbage-collect functions/data not reachable from
-#      exported symbols.
-if(NOT APPLE)
+# Ideally, we use -Bsymbolic-functions as it removes PLT/GOT indirection. However
+# that also opts the library out of ELF symbol interposition, which we currently
+# rely on to deduplicate symbols when libstdc++/libgcc are statically linked into
+# multiple CUDA-Q shared objects (otherwise exception unwinding breaks).
+if(NOT APPLE AND NOT CUDAQ_STATIC_CXX_RUNTIME)
   target_link_options(${LIBRARY_NAME} PRIVATE "LINKER:-Bsymbolic-functions")
 endif()
 

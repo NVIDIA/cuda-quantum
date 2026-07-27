@@ -6,8 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(utils)
-
 # [RFC]:
 # Check how to solve this better than just disable the warning for the whole directory.
 # If this is better addressed after updating to a newer LLVM version, track as an issue on GitHub.
