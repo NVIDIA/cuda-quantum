@@ -177,7 +177,7 @@ static void createJITTargetFinalizePipeline(
   if (options.lowerDeviceCalls)
     pm.addPass(cudaq::opt::createDistributedDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
 }
 

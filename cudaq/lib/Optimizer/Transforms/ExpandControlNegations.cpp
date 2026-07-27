@@ -15,7 +15,7 @@
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_APPLYCONTROLNEGATIONS
+#define GEN_PASS_DEF_EXPANDCONTROLNEGATIONS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -78,10 +78,10 @@ public:
 
 namespace {
 
-struct ApplyControlNegationsPass
-    : public cudaq::opt::impl::ApplyControlNegationsBase<
-          ApplyControlNegationsPass> {
-  using ApplyControlNegationsBase::ApplyControlNegationsBase;
+struct ExpandControlNegationsPass
+    : public cudaq::opt::impl::ExpandControlNegationsBase<
+          ExpandControlNegationsPass> {
+  using ExpandControlNegationsBase::ExpandControlNegationsBase;
 
   void runOnOperation() override {
     auto funcOp = getOperation();

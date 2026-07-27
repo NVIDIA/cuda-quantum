@@ -1,0 +1,94 @@
+# Used by workflows/label_prs.yml: a PR gets every label (must already
+# exist in the repo) whose globs match at least one changed file.
+
+core compiler:
+  - changed-files:
+    - any-glob-to-any-file:
+      - cudaq/**
+
+'driver (nvq++)':
+  - changed-files:
+    - any-glob-to-any-file:
+      - cudaq/tools/nvqpp/**
+
+c++ bridge:
+  - changed-files:
+    - any-glob-to-any-file:
+      - cudaq/lib/Frontend/**
+      - cudaq/tools/cudaq-quake/**
+
+codegen:
+  - changed-files:
+    - any-glob-to-any-file:
+      - cudaq/lib/Target/**
+      - cudaq/tools/cudaq-translate/**
+
+python-lang:
+  - changed-files:
+    - any-glob-to-any-file:
+      - python/**
+
+python bridge:
+  - changed-files:
+    - any-glob-to-any-file:
+      - python/cudaq/kernel/**
+      - python/cudaq/mlir/**
+      - python/extension/**
+
+kernel builder:
+  - changed-files:
+    - any-glob-to-any-file:
+      - runtime/cudaq/builder/**
+      - python/cudaq/kernel/kernel_builder.py
+
+runtime:
+  - changed-files:
+    - any-glob-to-any-file:
+      - runtime/**
+
+simulation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - runtime/nvqir/**
+
+dynamics:
+  - changed-files:
+    - any-glob-to-any-file:
+      - python/cudaq/dynamics/**
+      - python/runtime/cudaq/dynamics/**
+      - python/tests/dynamics/**
+      - runtime/cudaq/dynamics_integrators.h
+      - runtime/nvqir/cudensitymat/**
+
+ptsbe:
+  - changed-files:
+    - any-glob-to-any-file:
+      - runtime/cudaq/ptsbe/**
+
+realtime:
+  - changed-files:
+    - any-glob-to-any-file:
+      - realtime/**
+      - runtime/cudaq/realtime.h
+      - runtime/cudaq/realtime.cpp
+      - runtime/cudaq/realtime/**
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - docs/**
+      - '*.md'
+
+applications:
+  - changed-files:
+    - any-glob-to-any-file:
+      - docs/sphinx/applications/**
+      - examples/**
+
+build:
+  - changed-files:
+    - any-glob-to-any-file:
+      - cmake/**
+      - docker/**
+      - scripts/**
+      - CMakeLists.txt
