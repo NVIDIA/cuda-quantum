@@ -187,4 +187,28 @@ struct CliffordDomainStatus {
 /// circuit suitable for exact tableau (stabilizer) equivalence checking.
 CliffordDomainStatus checkCliffordDomain(mlir::ModuleOp module);
 
+/// Result of an exact stabilizer-tableau comparison of two Clifford kernels.
+struct CliffordComparisonResult {
+  /// True iff both tableaux were built and cover the same qubit count. When
+  /// false, no comparison was performed and error explains why.
+  bool computed = false;
+  /// True iff the two Clifford operations are equal. A stabilizer tableau does
+  /// not represent global phase, so this is inherently an up-to-global-phase
+  /// verdict (the same acceptance signal as the dense-unitary oracle).
+  bool equivalent = false;
+  /// Populated only when computed is false (a non-Clifford op slipped past the
+  /// domain preflight, or the kernels differ in qubit count).
+  std::string error;
+};
+
+/// Compare two straight-line Clifford kernels by their stabilizer tableaux.
+///
+/// Each kernel is compiled (no simulator, no target) into a stabilizer tableau
+/// and the tableaux are compared for equality. Unlike compareUnitaries there is
+/// no qubit bound: the tableau is polynomial in the qubit count. Because a
+/// tableau does not track global phase, equality is inherently up to a global
+/// phase.
+CliffordComparisonResult compareTableaux(mlir::func::FuncOp baseline,
+                                         mlir::func::FuncOp candidate);
+
 } // namespace cudaq::opt
