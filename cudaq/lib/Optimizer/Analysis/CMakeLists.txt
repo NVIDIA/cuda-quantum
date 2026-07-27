@@ -42,4 +42,5 @@ target_link_libraries(OptValidationStim PRIVATE libstim QuakeDialect CCDialect)
 if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
   target_compile_options(OptValidationStim PRIVATE -mavx2 -msse2)
 endif()
-target_compile_options(OptValidationStim PRIVATE -Wno-deprecated-copy)
+target_compile_options(OptValidationStim PRIVATE
+  -Wno-deprecated-copy -Wno-covered-switch-default)
