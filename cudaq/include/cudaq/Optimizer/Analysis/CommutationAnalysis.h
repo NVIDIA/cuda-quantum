@@ -39,6 +39,8 @@ enum class CommutationReason {
   /// `PhasedRx` rotation angles may differ, but their axis-defining phase
   /// parameters must be the same SSA value or equal constants.
   SameAxis,
+  /// The unitary preserves a measurement basis or reset output state.
+  PreservedEffectBasis,
   /// Pauli products have even anti-commutation parity on shared targets.
   EvenPauliParity,
   /// A diagonal operation overlaps the other operation only on controls.
@@ -59,7 +61,7 @@ enum class CommutationReason {
   NullOperation,
   /// At least one operation is outside the analyzed block.
   DifferentBlocks,
-  /// At least one operation does not implement Quake `OperatorInterface`.
+  /// At least one operation is not a supported unitary, channel, or instrument.
   UnsupportedOperationKind,
   /// A quantum operand is not a supported scalar wire value.
   UnsupportedQuantumOperandType,
@@ -94,10 +96,11 @@ struct CommutationResult {
 /// commute and therefore can be reordered.
 ///
 /// The block must contain valid Quake value-form IR. Candidate operations must
-/// implement Quake `OperatorInterface`, and their quantum operands must use
-/// scalar `!quake.wire` values. Operations on disjoint qubits commute
-/// regardless of their operator kind. For overlapping qubits, the analysis
-/// applies structural rules for recognized built-in Quake operators. Custom
+/// implement Quake `OperatorInterface` or be single-target scalar-wire
+/// measurements, resets, or sinks. Operations on disjoint qubits commute
+/// regardless of their supported operation kind. For overlapping qubits, the
+/// analysis applies structural rules for recognized built-in Quake operators,
+/// matching-basis measurements, and reset-preserving unitaries. Custom
 /// unitaries with the same defining symbol, exact parameters, controls, and
 /// targets are also recognized as the same operation. The analysis does not
 /// inspect custom-unitary matrices or infer overlapping-support semantics from
@@ -115,11 +118,13 @@ struct CommutationResult {
 /// distinction between a proven failure to commute and the absence of a proof.
 ///
 /// Qubit identity is followed through supported scalar wire operators,
-/// including controls represented as `!quake.wire`. The analysis does not
-/// follow identity through reusable `!quake.control`, `quake.to_ctrl`,
-/// `quake.from_ctrl`, measurement, reset, calls, references, aggregates, or
-/// unsupported effects. Each wire block argument establishes a local identity
-/// that is not correlated with values on predecessor edges.
+/// measurements, and resets, including controls represented as `!quake.wire`.
+/// Shared-support effect rules cover only single-target matching-basis
+/// measurement and reset relations; sinks and other supported effect pairs
+/// remain indeterminate. The analysis does not follow identity through reusable
+/// `!quake.control`, `quake.to_ctrl`, `quake.from_ctrl`, calls, references,
+/// aggregates, or unsupported effects. Each wire block argument establishes a
+/// local identity that is not correlated with values on predecessor edges.
 ///
 /// Any mutation of the block invalidates the analysis instance. The caller
 /// must discard it before querying the changed block.

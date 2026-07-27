@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -23,6 +24,7 @@ using namespace mlir;
 using cudaq::quake::detail::CommutationAnalysis;
 using cudaq::quake::detail::CommutationReason;
 using cudaq::quake::detail::CommutationStatus;
+using cudaq::quake::detail::getCommutationReasonId;
 
 namespace {
 class CommutationAnalysisTest : public ::testing::Test {
@@ -349,6 +351,105 @@ TEST_F(CommutationAnalysisTest, MutuallyExclusiveControls) {
   // Opposite polarity on the shared control makes the predicates exclusive.
   expectPair(analysis, operators[0], operators[1], CommutationStatus::Commutes,
              CommutationReason::MutuallyExclusiveControls);
+}
+
+TEST_F(CommutationAnalysisTest, ChannelRelations) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @measurement() {
+        %angle = arith.constant 5.0e-1 : f64
+        %q = quake.null_wire
+        %x = quake.x %q : (!quake.wire) -> !quake.wire
+        %measurement, %measured = quake.mx %x
+            : (!quake.wire) -> (!quake.measure, !quake.wire)
+        %rx = quake.rx (%angle) %measured
+            : (f64, !quake.wire) -> !quake.wire
+        quake.sink %rx : !quake.wire
+        return
+      }
+      func.func @reset() {
+        %q = quake.null_wire
+        %z = quake.z %q : (!quake.wire) -> !quake.wire
+        %reset = quake.reset %z : (!quake.wire) -> !quake.wire
+        %s = quake.s %reset : (!quake.wire) -> !quake.wire
+        quake.sink %s : !quake.wire
+        return
+      }
+      func.func @multi_target_measurement() {
+        %q0 = quake.null_wire
+        %q1 = quake.null_wire
+        %q2 = quake.null_wire
+        %measurement, %measured:2 = quake.mz %q0, %q1
+            : (!quake.wire, !quake.wire)
+              -> (!cc.stdvec<!quake.measure>, !quake.wire, !quake.wire)
+        %x = quake.x %q2 : (!quake.wire) -> !quake.wire
+        quake.sink %measured#0 : !quake.wire
+        quake.sink %measured#1 : !quake.wire
+        quake.sink %x : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  auto measurement = getFunction(*module, "measurement");
+  auto xOps = llvm::to_vector(measurement.front().getOps<cudaq::quake::XOp>());
+  auto mxOps =
+      llvm::to_vector(measurement.front().getOps<cudaq::quake::MxOp>());
+  auto rxOps =
+      llvm::to_vector(measurement.front().getOps<cudaq::quake::RxOp>());
+  auto sinks =
+      llvm::to_vector(measurement.front().getOps<cudaq::quake::SinkOp>());
+  ASSERT_EQ(xOps.size(), 1u);
+  ASSERT_EQ(mxOps.size(), 1u);
+  ASSERT_EQ(rxOps.size(), 1u);
+  ASSERT_EQ(sinks.size(), 1u);
+
+  CommutationAnalysis measurementAnalysis(measurement.front());
+  // X is diagonal in the basis observed by Mx.
+  expectPair(measurementAnalysis, xOps[0], mxOps[0],
+             CommutationStatus::Commutes,
+             CommutationReason::PreservedEffectBasis);
+  EXPECT_EQ(getCommutationReasonId(CommutationReason::PreservedEffectBasis),
+            "preserved-effect-basis");
+  // The later Rx retains the measured wire's block-local identity.
+  expectPair(measurementAnalysis, xOps[0], rxOps[0],
+             CommutationStatus::Commutes, CommutationReason::SameAxis);
+  // A shared sink remains a conservative boundary.
+  expectPair(measurementAnalysis, rxOps[0], sinks[0],
+             CommutationStatus::Indeterminate,
+             CommutationReason::NoApplicableRule);
+
+  auto reset = getFunction(*module, "reset");
+  auto resetZOps = llvm::to_vector(reset.front().getOps<cudaq::quake::ZOp>());
+  auto resetOps =
+      llvm::to_vector(reset.front().getOps<cudaq::quake::ResetOp>());
+  auto sOps = llvm::to_vector(reset.front().getOps<cudaq::quake::SOp>());
+  ASSERT_EQ(resetZOps.size(), 1u);
+  ASSERT_EQ(resetOps.size(), 1u);
+  ASSERT_EQ(sOps.size(), 1u);
+
+  CommutationAnalysis resetAnalysis(reset.front());
+  // Reset commutes with operations that preserve the |0><0| state.
+  expectPair(resetAnalysis, resetZOps[0], resetOps[0],
+             CommutationStatus::Commutes,
+             CommutationReason::PreservedEffectBasis);
+  // The later S retains the reset wire's block-local identity.
+  expectPair(resetAnalysis, resetZOps[0], sOps[0], CommutationStatus::Commutes,
+             CommutationReason::ComputationalDiagonal);
+
+  auto multiTarget = getFunction(*module, "multi_target_measurement");
+  auto multiMeasurements =
+      llvm::to_vector(multiTarget.front().getOps<cudaq::quake::MzOp>());
+  auto disjointXOps =
+      llvm::to_vector(multiTarget.front().getOps<cudaq::quake::XOp>());
+  ASSERT_EQ(multiMeasurements.size(), 1u);
+  ASSERT_EQ(disjointXOps.size(), 1u);
+
+  CommutationAnalysis multiTargetAnalysis(multiTarget.front());
+  // Multi-target instruments remain unsupported even on disjoint support.
+  expectPair(multiTargetAnalysis, multiMeasurements[0], disjointXOps[0],
+             CommutationStatus::Indeterminate,
+             CommutationReason::NoApplicableRule);
 }
 
 TEST_F(CommutationAnalysisTest, CustomUnitaryRules) {
