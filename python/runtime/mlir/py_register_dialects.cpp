@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "py_register_dialects.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
@@ -18,9 +19,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#ifdef __APPLE__
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
-#endif
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/InitAllDialects.h"
 #include <fmt/core.h>
@@ -45,11 +43,7 @@ static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
           mlirDialectHandleLoadDialect(handle, context);
 
         if (!registered) {
-#ifdef __APPLE__
           cudaq_internal::compiler::initializeMLIR();
-#else
-          cudaq::registerAllPasses();
-#endif
           registered = true;
         }
       },

@@ -40,7 +40,6 @@ if (TARGET cudaq-realtime-udp-transport)
     Threads::Threads
   )
 
-  add_dependencies(CudaqRealtimeUnitTests test_udp_transceiver)
   gtest_discover_tests(test_udp_transceiver
     TEST_PREFIX "test_udp_transceiver."
   )
