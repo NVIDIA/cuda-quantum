@@ -42,9 +42,15 @@ if (CUDAQ_REALTIME_DIR)
 else()
   # Do not use find_dependency here: it inherits find_package(CUDAQ REQUIRED)
   # and would make realtime mandatory for CUDA-Q installs that do not use it.
-  find_package(cudaq-realtime CONFIG QUIET
-    PATHS "${CUDAQ_CMAKE_DIR}/../cudaq-realtime"
-    NO_DEFAULT_PATH)
+  # Preflight the dependency as well: a CUDA-enabled realtime package requires
+  # the CUDA development toolkit, which is intentionally absent from some
+  # supported CUDA-Q runtime installations.
+  find_package(CUDAToolkit QUIET)
+  if (CUDAToolkit_FOUND)
+    find_package(cudaq-realtime CONFIG QUIET
+      PATHS "${CUDAQ_CMAKE_DIR}/../cudaq-realtime"
+      NO_DEFAULT_PATH)
+  endif()
 endif()
 
 get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)

@@ -41,6 +41,11 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+# CUDA-Q installers use a single relocatable library tree. Keep every realtime
+# library and its CMake package under that tree on distributions where
+# GNUInstallDirs would otherwise default to lib64.
+set(CMAKE_INSTALL_LIBDIR lib)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # The following must go after `project(...)` 

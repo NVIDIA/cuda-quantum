@@ -105,6 +105,7 @@ ADD "docs/sphinx/applications" /cuda-quantum/docs/sphinx/applications
 ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "cudaq" /cuda-quantum/cudaq
+ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
@@ -155,7 +156,9 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v -- -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
+    bash scripts/build_cudaq.sh -t llvm -v -- \
+        "-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime" \
+        -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
     echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
     ## [<CUDAQuantumCppBuild]
@@ -166,6 +169,34 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
         exit 1; \
     fi
+
+# Validate that the realtime integration and its CUDA-Q device-call consumers
+# were built and installed. The GPU test is compile-only in this CPU-runner
+# pipeline; the no-GPU host-dispatch tests run in the cpp_tests stage below.
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    for artifact in \
+        include/cudaq/realtime.h \
+        lib/libcudaq-realtime.so \
+        lib/libcudaq-realtime-dispatch.a \
+        lib/libcudaq-realtime-host-dispatch.a \
+        lib/libcudaq-realtime-udp-transport.a \
+        lib/libcudaq-device-call-runtime.so \
+        lib/cmake/cudaq-realtime/cudaq-realtime-config.cmake; \
+    do \
+        if [ ! -e "$CUDAQ_INSTALL_PREFIX/$artifact" ]; then \
+            echo -e "\e[01;31mError: Missing realtime artifact: $artifact.\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done && \
+    for executable in \
+        /cuda-quantum/build/unittests/test_device_call_dispatch \
+        /cuda-quantum/build/unittests/test_host_dispatch_no_gpu; \
+    do \
+        if [ ! -x "$executable" ]; then \
+            echo -e "\e[01;31mError: Missing realtime test executable: $executable.\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -329,6 +360,18 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|pycudaq-mlir|Tensor.*Error" && \
     ctest --output-on-failure --test-dir build $excludes
 
+# Run the realtime host-dispatch tests explicitly and reject skipped tests.
+# These tests hide CUDA devices themselves and exercise the no-device path on
+# both GPU and GPU-less hosts.
+RUN cd /cuda-quantum && \
+    set -o pipefail && \
+    ctest --test-dir build --no-tests=error --output-on-failure \
+        -R '^HostDispatchNoGpuTest\.' 2>&1 | tee /tmp/realtime_no_gpu_ctest.out && \
+    if grep -Eq '\[  SKIPPED \]|Not Run' /tmp/realtime_no_gpu_ctest.out; then \
+        echo -e "\e[01;31mError: Unexpected skipped realtime host-dispatch test.\e[0m" >&2; \
+        exit 1; \
+    fi
+
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
         source /cuda-quantum/scripts/configure_build.sh install-cudart && \
@@ -384,4 +427,3 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
         dnf install -y --nobest --setopt=install_weak_deps=False \
             libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \
     fi
-
