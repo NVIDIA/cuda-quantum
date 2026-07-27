@@ -55,15 +55,15 @@ struct CommutationAwareRewriteStatistics {
 /// Starting at `anchor`, the search walks in the selected direction and returns
 /// the first endpoint accepted by the consumer. No operation is moved.
 ///
-/// The search expects block-local linear-wire Quake: every control and target
-/// of a participating operation is a scalar `!quake.wire`, and the operation
-/// threads those wires to its results. Controlled operations remain controlled
-/// semantically; only their SSA representation is linear. The search ends
-/// rather than reason about anything else, including reusable
-/// `!quake.control`, reference and aggregate quantum values, dataflow that
-/// leaves the block, and operands whose virtual qubit `CommutationAnalysis`
-/// cannot resolve. Pass pipelines can establish the supported form by running
-/// `linear-ctrl-form` after `memtoreg`.
+/// The search expects block-local linear-wire Quake. Anchors and endpoints
+/// implement `OperatorInterface`; every control and target is a scalar
+/// `!quake.wire`, and the operation threads those wires to its results.
+/// Measurement and reset may be crossed when the analysis proves that they
+/// commute with the anchor and their scalar target wires thread one-to-one.
+/// Other effects, reusable `!quake.control`, reference and aggregate quantum
+/// values, dataflow that leaves the block, and unresolved virtual qubits end
+/// the search. Pass pipelines can establish the supported operator form by
+/// running `linear-ctrl-form` after `memtoreg`.
 ///
 /// Endpoints are found by following the anchor's own wire dataflow, not by
 /// scanning the block. An operation that uses none of the anchor's quantum
@@ -92,9 +92,9 @@ public:
   operator=(const CommutationAwareRewriteMatcher &) = delete;
 
   /// Find the nearest consumer-compatible supported quantum endpoint in
-  /// `direction`. The predicate is called after verifying that a candidate has
-  /// supported, unambiguous quantum identities and before deciding whether it
-  /// may be crossed.
+  /// `direction`. The predicate is called only for an `OperatorInterface`
+  /// candidate, after verifying that it has supported, unambiguous quantum
+  /// identities and before deciding whether it may be crossed.
   std::optional<CommutationAwareRewriteMatch>
   findNearest(mlir::Operation *anchor, CommutationSearchDirection direction,
               llvm::function_ref<bool(mlir::Operation *)> isEndpoint);

@@ -61,16 +61,30 @@ static bool comesFirst(Operation *lhs, Operation *rhs, bool isForward) {
   return isForward ? lhs->isBeforeInBlock(rhs) : rhs->isBeforeInBlock(lhs);
 }
 
-// Map a wire operand of `op` to the result carrying the same virtual qubit, or
-// the reverse when `toResult` is false. Quake returns one wire result per wire
-// control and wire target in operand order, the same convention
-// `QubitIdentityAnalysis` uses to propagate identities; the two must agree. A
-// null value means the operand and result shapes do not correspond, which ends
-// the cursor conservatively.
-static Value mapWireAcross(cudaq::quake::OperatorInterface op, Value value,
-                           bool toResult) {
-  auto wireInputs = cudaq::quake::getWireOperands(op);
-  ValueRange wireResults = op.getWires();
+// Map a wire operand to the result carrying the same virtual qubit, or the
+// reverse when `toResult` is false. These are the same one-to-one forms that
+// `QubitIdentityAnalysis` propagates. Measurement's classical result is not
+// part of its `getWires()` range.
+static Value mapWireAcross(Operation *operation, Value value, bool toResult) {
+  llvm::SmallVector<Value> wireInputs;
+  ValueRange wireResults;
+  if (auto op = dyn_cast<cudaq::quake::OperatorInterface>(operation)) {
+    wireInputs = cudaq::quake::getWireOperands(op);
+    wireResults = op.getWires();
+  } else if (auto measurement =
+                 dyn_cast<cudaq::quake::MeasurementInterface>(operation)) {
+    for (Value target : measurement.getTargets())
+      if (isa<cudaq::quake::WireType>(target.getType()))
+        wireInputs.push_back(target);
+    wireResults = measurement.getWires();
+  } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(operation)) {
+    if (isa<cudaq::quake::WireType>(reset.getTargets().getType()))
+      wireInputs.push_back(reset.getTargets());
+    wireResults = reset.getWires();
+  } else {
+    return {};
+  }
+
   if (wireInputs.size() != wireResults.size())
     return {};
   for (auto [input, result] : llvm::zip(wireInputs, wireResults)) {
@@ -137,11 +151,10 @@ advanceFrontierPast(llvm::SmallVectorImpl<WireCursor> &frontier,
                     Operation *candidate,
                     cudaq::opt::CommutationSearchDirection direction) {
   bool isForward = direction == cudaq::opt::CommutationSearchDirection::Forward;
-  auto op = dyn_cast<cudaq::quake::OperatorInterface>(candidate);
   for (WireCursor &cursor : frontier) {
     if (cursor.next != candidate)
       continue;
-    Value stepped = op ? mapWireAcross(op, cursor.value, isForward) : Value();
+    Value stepped = mapWireAcross(candidate, cursor.value, isForward);
     cursor.value = stepped;
     cursor.next = stepped ? (isForward ? getSoleWireUser(stepped)
                                        : stepped.getDefiningOp())
@@ -349,6 +362,9 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
     llvm::function_ref<bool(Operation *)> isEndpoint) {
   if (!anchor || !anchor->getBlock())
     return std::nullopt;
+  auto anchorInterface = dyn_cast<cudaq::quake::OperatorInterface>(anchor);
+  if (!anchorInterface)
+    return std::nullopt;
 
   Block *block = anchor->getBlock();
   auto &analysis = impl->getAnalysis(block);
@@ -363,25 +379,30 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
   // operations sharing a virtual qubit with the anchor are reachable this way.
   // Every operation skipped is disjoint from the anchor's support and therefore
   // commutes with it, so it needs neither a probe nor a cache entry.
-  auto frontier =
-      openFrontier(cast<cudaq::quake::OperatorInterface>(anchor), direction);
+  auto frontier = openFrontier(anchorInterface, direction);
 
   bool isForward = direction == cudaq::opt::CommutationSearchDirection::Forward;
   cudaq::opt::CommutationAwareRewriteMatch match;
   while (Operation *candidate = takeNext(frontier, block, isForward)) {
     ++impl->statistics.frontierCandidates;
     // Reference and aggregate quantum values, and nested code that could reach
-    // further qubits, are outside the adopted semantics. So is anything the
-    // analysis cannot resolve, which is what stops the search at a measurement,
-    // a reset, or a released wire.
-    if (!hasBoundedQuantumSupport(candidate) ||
-        !analysis.canCommute(candidate, candidate))
+    // further qubits, are outside the adopted semantics. Measurement and reset
+    // are the only effects with supported scalar-wire flow; all other reached
+    // operations retain the conservative self-query barrier.
+    if (!hasBoundedQuantumSupport(candidate))
+      return std::nullopt;
+    bool isTraversalEffect =
+        isa<cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp>(
+            candidate);
+    auto candidateInterface =
+        dyn_cast<cudaq::quake::OperatorInterface>(candidate);
+    if (!isTraversalEffect && !analysis.canCommute(candidate, candidate))
       return std::nullopt;
 
     // Consumer policy decides compatibility first. An accepted endpoint is
     // where the anchor stops, so it is never crossed and needs no commutation
     // proof; the consumer owns the endpoint pair's algebraic identity.
-    if (isEndpoint(candidate)) {
+    if (candidateInterface && isEndpoint(candidate)) {
       // A backward search collects in reverse, so restore block order.
       if (!isForward)
         std::reverse(match.crossed.begin(), match.crossed.end());
