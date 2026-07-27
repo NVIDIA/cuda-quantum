@@ -128,10 +128,10 @@ UnitaryComparisonResult compareUnitaries(mlir::func::FuncOp baseline,
 ///
 /// The scalable (tableau) equivalence oracle reasons only about Clifford
 /// circuits (H, S/S-adjoint, the Paulis X/Y/Z, single-controlled Paulis
-/// (CX/CY/CZ), SWAP), and the axis rotations rx/ry/rz/r1 at integer multiples
-/// of pi/2. Anything outside that class is rejected here so the tableau oracle
-/// never silently downgrades a non-Clifford circuit to an unsound equivalent
-/// verdict.
+/// (CX/CY/CZ), SWAP), and the axis rotations `rx`/`ry`/`rz`/`r1` at integer
+/// multiples of pi/2. Anything outside that class is rejected here so the
+/// tableau oracle never silently downgrades a non-Clifford circuit to an
+/// unsound equivalent verdict.
 enum class CliffordRejectionKind {
   /// A measurement operation (`quake.mz`/`mx`/`my`, etc.) is present.
   Measurement,
@@ -141,7 +141,7 @@ enum class CliffordRejectionKind {
   Noise,
   /// Classical control flow (`cc.if`/`cc.loop`) is present.
   DynamicControlFlow,
-  /// An un-inlined call is present. Inline before validating.
+  /// An `un-inlined` call is present. Inline before validating.
   UnsupportedCall,
   /// A dynamically-sized `!quake.veq` is present. The qubit count is not
   /// statically knowable.
@@ -197,7 +197,7 @@ struct CliffordComparisonResult {
   /// verdict (the same acceptance signal as the dense-unitary oracle).
   bool equivalent = false;
   /// Populated only when computed is false (a non-Clifford op slipped past the
-  /// domain preflight, or the kernels differ in qubit count).
+  /// domain `preflight`, or the kernels differ in qubit count).
   std::string error;
 };
 
