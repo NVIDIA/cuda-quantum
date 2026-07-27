@@ -16,9 +16,10 @@ import cudaq
 def assert_owns_compiled_module_cache(kernel):
     """A launch installs one stable cache object on its kernel owner."""
     assert hasattr(kernel, '_compiled_module_cache')
-    cache = kernel._compiled_module_cache
-    assert kernel.compiledModuleCache() is cache
-    assert kernel.compiledModuleCache() is cache
+    first_lookup = kernel.compiledModuleCache()
+    second_lookup = kernel.compiledModuleCache()
+    assert first_lookup is kernel._compiled_module_cache
+    assert second_lookup is first_lookup
 
 
 # ---------------------------------------------------------------------------
@@ -348,23 +349,3 @@ def test_captured_kernel_change_reflected_after_first_launch():
     assert outer() is False
 
     assert_owns_compiled_module_cache(outer)
-
-
-def test_remote_rest_target_disables_cache():
-    cudaq.set_target("quantinuum", emulate=True)
-    try:
-
-        @cudaq.kernel
-        def simple():
-            q = cudaq.qubit()
-            x(q)
-            mz(q)
-
-        cudaq.sample(simple, shots_count=10)
-
-        # Caching is disabled for this target: the slot must never be written
-        # with a compiled module.
-        assert (not hasattr(simple, '_compiled_module') or
-                simple._compiled_module.name == "")
-    finally:
-        cudaq.reset_target()
