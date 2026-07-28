@@ -10,7 +10,6 @@
 #include "common/NamedVariantStore.h"
 #include "common/Resources.h"
 #include "common/ThunkInterface.h"
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -192,14 +191,6 @@ public:
     std::vector<std::size_t> reorderIdx;
     /// Whether the kernel has conditional feedback on measure results.
     bool hasConditionalsOnMeasureResults = false;
-    /// Hash of the CompileTarget used to compile this module.
-    std::size_t targetHash = 0;
-    /// SHA-256 digest of the resolved program presented to compilation: the
-    /// module IR with all callable closures merged in, plus every argument
-    /// substitution generated for compile-time-bound (callable) arguments.
-    /// Only set for kernels with such compile-time dependencies; stays
-    /// all-zeros otherwise.
-    std::array<std::uint8_t, 32> programDigest = {};
   };
 
   // --- Queries ---
@@ -326,10 +317,6 @@ public:
   // `CompiledModuleHelper`.
   CompiledModule() : FatQuakeModule(std::string{}) {}
   explicit CompiledModule(SourceModule src) : FatQuakeModule(std::move(src)) {}
-
-  /// Stamp the cache key (targetHash + programDigest) for the compiled module.
-  void setCacheKey(std::size_t targetHash,
-                   const std::array<std::uint8_t, 32> &programDigest);
 };
 
 using AnyModule = std::variant<SourceModule, CompiledModule>;
