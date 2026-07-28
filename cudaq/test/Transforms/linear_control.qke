@@ -143,4 +143,3 @@ func.func @linear_expr1() {
 // CHECK:           quake.sink %[[VAL_17]]#2 : !quake.wire
 // CHECK:           return
 // CHECK:         }
-
