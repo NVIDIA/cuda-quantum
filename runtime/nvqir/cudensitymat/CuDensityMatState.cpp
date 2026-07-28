@@ -13,8 +13,20 @@
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <cutensor.h>
 #include <limits>
 #include <numeric>
+
+#define HANDLE_CUTENSOR_ERROR(x)                                               \
+  do {                                                                         \
+    const auto err = (x);                                                      \
+    if (err != CUTENSOR_STATUS_SUCCESS) {                                      \
+      throw std::runtime_error(cudaq_fmt::format(                              \
+          "[cutensor] %{} ({}) in {} (line {})", cudaq_fmt::underlying(err),   \
+          cutensorGetErrorString(err), __FUNCTION__, __LINE__));               \
+    }                                                                          \
+  } while (0)
+
 namespace cudaq {
 
 std::size_t CuDensityMatState::getNumQubits() const {
