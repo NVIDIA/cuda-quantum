@@ -449,47 +449,77 @@ template <typename NoiseType, int num_qubits>
 std::tuple<std::vector<std::string>, std::vector<double>,
            std::vector<std::size_t>>
 get_msm_test(double noise_probability) {
-  // This simple kernel just creates qubits and applies one noise operation,
-  // depending on the template parameters.
-  struct simple_test {
-    void operator()(double noise_probability) __qpu__ {
-      cudaq::qvector q(num_qubits);
-      if constexpr (std::is_same_v<NoiseType, cudaq::pauli1>) {
+  cudaq::noise_model noise;
+  cudaq::set_noise(noise);
+
+  // Helper that runs the two-stage MSM protocol for a given kernel and returns
+  // the transposed MSM, the probabilities, and the error ids.
+  auto run_msm = [&](auto kernel) {
+    // Stage 1 - get the MSM size by running with "msm_size". The
+    // result will be returned in ctx_msm_size.shots.
+    auto msm_dimensions =
+        cudaq::launch(cudaq::msm_size_policy{}, kernel, noise_probability);
+
+    // Stage 2 - get the MSM using the size calculated above
+    // (ctx_msm_size.msm_dimensions).
+    cudaq::msm_policy policy;
+    policy.dimensions = msm_dimensions;
+    auto msm = cudaq::launch(policy, kernel, noise_probability);
+
+    return std::tuple<std::vector<std::string>, std::vector<double>,
+                      std::vector<std::size_t>>{
+        transpose_msm(msm.samples.sequential_data()), msm.probabilities,
+        msm.probability_error_ids};
+  };
+
+  // These simple kernels just create qubits and apply one noise operation. The
+  // kernel is selected based on the template parameters here (on the host)
+  // rather than with `if constexpr` inside the kernel, which nvq++ does not
+  // support.
+  if constexpr (std::is_same_v<NoiseType, cudaq::pauli1>) {
+    struct simple_test {
+      void operator()(double noise_probability) __qpu__ {
+        cudaq::qvector q(num_qubits);
         double noise_prob_per_pauli = noise_probability / 3;
         cudaq::apply_noise<NoiseType>(noise_prob_per_pauli,
                                       noise_prob_per_pauli,
                                       noise_prob_per_pauli, q[0]);
-      } else if constexpr (std::is_same_v<NoiseType, cudaq::pauli2>) {
+        mz(q);
+      }
+    };
+    return run_msm(simple_test{});
+  } else if constexpr (std::is_same_v<NoiseType, cudaq::pauli2>) {
+    struct simple_test {
+      void operator()(double noise_probability) __qpu__ {
+        cudaq::qvector q(num_qubits);
         double tmp_prob = noise_probability / 15;
         cudaq::apply_noise<NoiseType>(tmp_prob, tmp_prob, tmp_prob, tmp_prob,
                                       tmp_prob, tmp_prob, tmp_prob, tmp_prob,
                                       tmp_prob, tmp_prob, tmp_prob, tmp_prob,
                                       tmp_prob, tmp_prob, tmp_prob, q[0], q[1]);
-      } else if constexpr (num_qubits > 1) {
-        cudaq::apply_noise<NoiseType>(noise_probability, q[0], q[1]);
-      } else {
-        cudaq::apply_noise<NoiseType>(noise_probability, q[0]);
+        mz(q);
       }
-      mz(q);
-    }
-  };
-
-  cudaq::noise_model noise;
-  cudaq::set_noise(noise);
-
-  // Stage 1 - get the MSM size by running with "msm_size". The
-  // result will be returned in ctx_msm_size.shots.
-  auto msm_dimensions =
-      cudaq::launch(cudaq::msm_size_policy{}, simple_test{}, noise_probability);
-
-  // Stage 2 - get the MSM using the size calculated above
-  // (ctx_msm_size.msm_dimensions).
-  cudaq::msm_policy policy;
-  policy.dimensions = msm_dimensions;
-  auto msm = cudaq::launch(policy, simple_test{}, noise_probability);
-
-  return {transpose_msm(msm.samples.sequential_data()), msm.probabilities,
-          msm.probability_error_ids};
+    };
+    return run_msm(simple_test{});
+  } else if constexpr (num_qubits > 1) {
+    struct simple_test {
+      void operator()(double noise_probability) __qpu__ {
+        cudaq::qvector q(num_qubits);
+        cudaq::apply_noise<NoiseType>(noise_probability, q[0], q[1]);
+        mz(q);
+      }
+    };
+    return run_msm(simple_test{});
+  } else {
+    struct simple_test {
+      void operator()(double noise_probability) __qpu__ {
+        cudaq::qvector q(num_qubits);
+        cudaq::apply_noise<NoiseType>(noise_probability, q[0]);
+        mz(q);
+      }
+    };
+    return run_msm(simple_test{});
+  }
 }
 
 CUDAQ_TEST(KernelsTester, msmTester_depol2) {

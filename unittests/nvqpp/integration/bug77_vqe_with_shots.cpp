@@ -16,9 +16,8 @@
 CUDAQ_TEST(VqeWithShots, checkBug77) {
 
   struct ansatz {
-    const int n_qubits;
-    const int n_layers;
-    void operator()(std::vector<double> theta) __qpu__ {
+    void operator()(std::vector<double> theta, int n_qubits,
+                    int n_layers) __qpu__ {
 
       cudaq::qvector q(n_qubits);
 
@@ -63,7 +62,7 @@ CUDAQ_TEST(VqeWithShots, checkBug77) {
 
   // Call the optimizer
   auto [opt_val, opt_params] =
-      cudaq::vqe(ansatz{n_qubits, n_layers}, Hp, optimizer, n_params);
+      cudaq::vqe(ansatz{}, Hp, optimizer, n_params, n_qubits, n_layers);
 
   // Print the optimized value and the parameters
   printf("Optimal value = %lf\n", opt_val);
