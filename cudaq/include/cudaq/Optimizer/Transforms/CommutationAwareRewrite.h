@@ -56,9 +56,10 @@ struct CommutationAwareRewriteStatistics {
 /// the first endpoint accepted by the consumer. No operation is moved.
 ///
 /// The anchor is the operator supplied by the consumer pattern. The endpoint is
-/// the first operator accepted by that pattern's endpoint predicate. Both roles
-/// require `OperatorInterface`; every control and target is a scalar
-/// `!quake.wire`, and the operation threads those wires to its results.
+/// the first operator accepted by that pattern's endpoint predicate after every
+/// anchor wire path reaches it at the same frontier. Both roles require
+/// `OperatorInterface`; every control and target is a scalar `!quake.wire`, and
+/// the operation threads those wires to its results.
 ///
 /// The search expects block-local linear-wire Quake. Measurement instruments
 /// and reset channels may be crossed, but cannot be anchors or endpoints. The
@@ -98,7 +99,8 @@ public:
   /// Find the nearest consumer-compatible supported quantum endpoint in
   /// `direction`. The predicate is called only for an `OperatorInterface`
   /// candidate, after verifying that it has supported, unambiguous quantum
-  /// identities and before deciding whether it may be crossed.
+  /// identities and before checking complete frontier alignment or deciding
+  /// whether it may be crossed.
   std::optional<CommutationAwareRewriteMatch>
   findNearest(mlir::Operation *anchor, CommutationSearchDirection direction,
               llvm::function_ref<bool(mlir::Operation *)> isEndpoint);

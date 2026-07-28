@@ -123,22 +123,31 @@ openFrontier(cudaq::quake::OperatorInterface anchor,
 }
 
 // Take the next operation off the frontier: the head closest to the anchor in
-// the search direction. Returns null when every chain has ended, and also when
-// a chain leaves the block, since a use nested in a region or reached through a
-// block edge is beyond a block-local search. Both mean the same thing to the
-// caller, so they share an answer.
+// the search direction. Every anchor wire must retain an unambiguous path in
+// the block. Otherwise the frontier no longer represents the anchor's complete
+// support, so the block-local search ends.
 static Operation *takeNext(llvm::ArrayRef<WireCursor> frontier, Block *block,
                            bool isForward) {
   Operation *nearest = nullptr;
   for (const WireCursor &cursor : frontier) {
-    if (!cursor.next)
-      continue;
-    if (cursor.next->getBlock() != block)
+    if (!cursor.next || cursor.next->getBlock() != block)
       return nullptr;
     if (!nearest || comesFirst(cursor.next, nearest, isForward))
       nearest = cursor.next;
   }
   return nearest;
+}
+
+// `QubitIdentityAnalysis` identifies logical qubits, not SSA paths. For
+// example, an endpoint can consume a second `borrow_wire` for the same wire-set
+// slot while the cursor from the anchor's result reaches another operation.
+// The identities match, but the complete frontier reaches the endpoint only
+// when every cursor points to it.
+static bool doesCompleteFrontierReach(llvm::ArrayRef<WireCursor> frontier,
+                                      Operation *candidate) {
+  return llvm::all_of(frontier, [candidate](const WireCursor &cursor) {
+    return cursor.next == candidate;
+  });
 }
 
 // Step past `candidate`. An operation on several of the anchor's qubits is the
@@ -405,6 +414,8 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
     // where the anchor stops, so it is never crossed and needs no commutation
     // proof; the consumer owns the endpoint pair's algebraic identity.
     if (candidateInterface && isEndpoint(candidate)) {
+      if (!doesCompleteFrontierReach(frontier, candidate))
+        return std::nullopt;
       // A backward search collects in reverse, so restore block order.
       if (!isForward)
         std::reverse(match.crossed.begin(), match.crossed.end());
