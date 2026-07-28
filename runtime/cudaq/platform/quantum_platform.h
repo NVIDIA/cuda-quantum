@@ -14,9 +14,12 @@
 #include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "common/RuntimeTarget.h"
+#include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -132,10 +135,8 @@ public:
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformQPUs.size(); }
 
-  QPU &getQPU(std::size_t qpu_id = 0) const {
-    validateQpuId(qpu_id);
-    return *(platformQPUs[qpu_id].get());
-  }
+  /// Get the RuntimeEndpoint for the QPU with ID qpuId.
+  RuntimeEndpoint getRuntimeEndpoint(std::size_t qpuId = 0) const;
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
@@ -211,6 +212,12 @@ public:
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
   getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
     validateQpuId(qpu_id);
+    if (compileTarget.has_value()) {
+      // TODO: Check that it's fine to enforce a single `CompileTarget` for all
+      // QPUs on MultiQPU platforms (seems to be the case for now).
+      return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
+    }
+    // Fallback to old behaviour: query the QPU for its compile target.
     auto &qpu = platformQPUs[qpu_id];
     return qpu->getCompileTarget(policy);
   }
@@ -218,8 +225,14 @@ public:
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
   getCompileTarget(const cudaq::other_policies &policy,
                    std::size_t qpu_id = 0) {
-    auto *ctx = getExecutionContext();
     validateQpuId(qpu_id);
+    if (compileTarget.has_value()) {
+      // TODO: Check that it's fine to enforce a single `CompileTarget` for all
+      // QPUs on MultiQPU platforms (seems to be the case for now).
+      return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
+    }
+    // Fallback to old behaviour: query the QPU for its compile target.
+    auto *ctx = getExecutionContext();
     auto &qpu = platformQPUs[qpu_id];
     return qpu->getCompileTarget(policy, ctx);
   }
@@ -253,6 +266,17 @@ protected:
 
   /// The Platform QPUs, populated by concrete subtypes
   std::vector<std::unique_ptr<QPU>> platformQPUs;
+
+  /// The compile target for the platform.
+  ///
+  /// If not set, defaults to querying the compile target from the QPUs.
+  std::optional<CompileTarget> compileTarget;
+
+  /// The runtime endpoints for launching kernels on the platform.
+  ///
+  /// If not set, defaults to creating a RuntimeEndpoint from the respective
+  /// QPU.
+  std::vector<RuntimeEndpoint> runtimeEndpoints;
 
   /// Name of the platform.
   std::string platformName;

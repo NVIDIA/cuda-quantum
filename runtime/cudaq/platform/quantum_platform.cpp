@@ -294,6 +294,15 @@ quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
   return qpu->unifiedLaunchModule(module, args);
 }
 
+RuntimeEndpoint quantum_platform::getRuntimeEndpoint(std::size_t qpuId) const {
+  validateQpuId(qpuId);
+  if (qpuId < runtimeEndpoints.size()) {
+    return runtimeEndpoints[qpuId];
+  }
+  // Fallback: create a RuntimeEndpoint from the current QPU.
+  return RuntimeEndpoint::wrapQPU(*platformQPUs[qpuId]);
+}
+
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
   for (auto &qpu : platformQPUs)
