@@ -59,7 +59,8 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
 # 3 - Install DOCA-OFED 3.1.0 (userspace)
 # Install only the RDMA/IB libraries needed by the HPC stack (UCX/OpenMPI), plus SHARP,
 # not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
-# Note: the sharp package Depends on DOCA's ucx package.
+# Note: the sharp package Depends on DOCA's ucx; our UCX build below is preferred via
+# ld.so.conf.d / LD_LIBRARY_PATH.
 
 ARG DOCA_VERSION=3.1.0-091000-25.07
 ENV SHARP_INSTALL_PREFIX=/opt/mellanox/sharp
@@ -95,7 +96,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/NVIDIA/gdrcopy/archive/v${GDRCOPY_VERSION}.tar.gz \
     && tar -x -f /var/tmp/v${GDRCOPY_VERSION}.tar.gz -C /var/tmp -z && cd /var/tmp/gdrcopy-${GDRCOPY_VERSION} \
     && mkdir -p "$GDRCOPY_INSTALL_PREFIX/include" "$GDRCOPY_INSTALL_PREFIX/lib64" \
-    && make PREFIX="$GDRCOPY_INSTALL_PREFIX" lib lib_install \
+    && make prefix="$GDRCOPY_INSTALL_PREFIX" libdir="$GDRCOPY_INSTALL_PREFIX/lib64" lib lib_install \
     && echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
     && rm -rf /var/tmp/gdrcopy-${GDRCOPY_VERSION} /var/tmp/v${GDRCOPY_VERSION}.tar.gz \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
@@ -103,13 +104,14 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
 
-# 5 - Install UCX version v1.19.0
+# 5 - Install UCX version 1.21.0
 
+ENV UCX_VERSION=1.21.0
 ENV UCX_INSTALL_PREFIX=/usr/local/ucx
-RUN mkdir -p /var/tmp && cd /var/tmp \
-    && git clone https://github.com/openucx/ucx.git ucx && cd /var/tmp/ucx \
-    && git checkout v1.19.0 \
-    && ./autogen.sh \
+RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://github.com/openucx/ucx/releases/download/v${UCX_VERSION}/ucx-${UCX_VERSION}.tar.gz" \
+    && tar -x -f /var/tmp/ucx-${UCX_VERSION}.tar.gz -C /var/tmp -z \
+    && cd /var/tmp/ucx-${UCX_VERSION} \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
     &&  CC=gcc CFLAGS="$common_flags" \
         CXX=g++ CXXFLAGS="$common_flags" \
@@ -118,12 +120,23 @@ RUN mkdir -p /var/tmp && cd /var/tmp \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$UCX_INSTALL_PREFIX" \
             --with-cuda="$CUDA_INSTALL_PREFIX" --with-gdrcopy="$GDRCOPY_INSTALL_PREFIX" \
-            --disable-assertions --disable-backtrace-detail --disable-debug \
+            --with-knem=/opt/knem-1.1.4.90mlnx3 --with-xpmem=/usr/include \
+            --with-devx --with-rdmacm --with-dm \
+            --without-java --enable-devel-headers --enable-shared \
+            --enable-optimizations --enable-cma --enable-mt \
+            --disable-assertions --disable-debug \
             --disable-params-check --disable-static \
             --disable-doxygen-doc --disable-logging \
-            --enable-mt \
+            --with-bfd=no \
     && make -j$(nproc) && make -j$(nproc) install \
-    && rm -rf /var/tmp/ucx
+    && rm -rf /var/tmp/ucx-${UCX_VERSION} /var/tmp/ucx-${UCX_VERSION}.tar.gz
+
+# DOCA's sharp package pulls DOCA's ucx into /usr/lib; listing our prefix in
+# ld.so.conf.d makes the loader prefer this build (those entries precede the
+# default system directories).
+RUN echo "$UCX_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
+ENV LD_LIBRARY_PATH="$UCX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
+    PATH="$UCX_INSTALL_PREFIX/bin:$PATH"
 
 # 6 - Install MUNGE version 0.5.14
 

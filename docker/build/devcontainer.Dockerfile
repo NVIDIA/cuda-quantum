@@ -53,7 +53,8 @@ RUN rm -f /etc/apt/sources.list.d/cuda.list
 # Install DOCA-OFED 3.1.0 userspace runtime dependencies.
 # Install only the RDMA/IB libraries needed by the HPC stack (UCX/OpenMPI), plus SHARP,
 # not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
-# Note: the sharp package Depends on DOCA's ucx package.
+# Note: the sharp package Depends on DOCA's ucx; our UCX build is preferred via
+# ld.so.conf.d / LD_LIBRARY_PATH.
 
 ARG TARGETARCH
 ARG DOCA_VERSION=3.1.0-091000-25.07
@@ -104,8 +105,14 @@ RUN echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldco
 
 ARG UCX_INSTALL_PREFIX=/usr/local/ucx
 ENV UCX_INSTALL_PREFIX="$UCX_INSTALL_PREFIX"
-ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$UCX_INSTALL_PREFIX/lib"
+ENV LD_LIBRARY_PATH="$UCX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV PATH="$UCX_INSTALL_PREFIX/bin:$PATH"
 COPY --from=ompibuild "$UCX_INSTALL_PREFIX" "$UCX_INSTALL_PREFIX"
+
+# DOCA's sharp package pulls DOCA's ucx into /usr/lib; listing our prefix in
+# ld.so.conf.d makes the loader prefer this build (those entries precede the
+# default system directories).
+RUN echo "$UCX_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
 
 # Copy over MUNGE.
 
