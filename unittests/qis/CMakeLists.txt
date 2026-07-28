@@ -12,6 +12,9 @@
 # unittests/nvqpp/qis/.
 
 add_executable(test_qis ${CUDAQ_GTEST_MAIN} QubitQISTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_qis PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+endif()
 target_compile_definitions(test_qis PRIVATE -DNVQIR_BACKEND_NAME=qpp)
 target_link_libraries(test_qis
   PRIVATE
