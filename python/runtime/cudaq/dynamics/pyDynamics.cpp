@@ -203,13 +203,23 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
   // Helper to initialize a data buffer state
   m.def("initializeState",
         [](cudaq::state &state, const std::vector<int64_t> &modeExtents,
-           bool asDensityMat, int64_t batchSize) {
+           bool requireDensityMatrix, int64_t batchSize) {
           auto &castSimState = *asCudmState(state);
-          if (!castSimState.is_initialized())
+          if (!castSimState.is_initialized()) {
+            if (requireDensityMatrix) {
+              std::size_t stateVectorSize = 1;
+              for (const auto extent : modeExtents)
+                stateVectorSize *= extent;
+              if (batchSize == 1 &&
+                  castSimState.get_element_count() == stateVectorSize)
+                return cudaq::state(new cudaq::CuDensityMatState(
+                    castSimState.to_density_matrix(modeExtents)));
+            }
             castSimState.initialize_cudm(
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                 modeExtents, batchSize);
-          if (asDensityMat && !castSimState.is_density_matrix()) {
+          }
+          if (requireDensityMatrix && !castSimState.is_density_matrix()) {
             return cudaq::state(
                 new cudaq::CuDensityMatState(castSimState.to_density_matrix()));
           }
@@ -241,14 +251,14 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
         });
   m.def("createBatchedState",
         [](std::vector<cudaq::state> &states,
-           const std::vector<int64_t> &modeExtents, bool asDensityMat) {
+           const std::vector<int64_t> &modeExtents, bool requireDensityMatrix) {
           std::vector<cudaq::CuDensityMatState *> statePtrs;
           for (auto &state : states) {
             statePtrs.emplace_back(asCudmState(state));
           }
           auto batchedState = cudaq::CuDensityMatState::createBatchedState(
               cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-              statePtrs, modeExtents, asDensityMat);
+              statePtrs, modeExtents, requireDensityMatrix);
           return cudaq::state(batchedState.release());
         });
 
