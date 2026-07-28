@@ -128,7 +128,6 @@ RUN echo "$OPENMPI_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconf
 
 # Set some configurations in the form of environment variables.
 
-ENV OMPI_MCA_btl=^smcuda,vader,tcp,uct,openib
 ENV OMPI_MCA_pml=ucx
 
 # Install CUDA
