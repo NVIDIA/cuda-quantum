@@ -38,7 +38,7 @@ if [ "$(uname)" = "Darwin" ]; then
   # Homebrew's libomp via 'brew install libomp'), set LLVM_PROJECTS without openmp.
   # `export LLVM_PROJECTS='clang;lld;mlir;python-bindings'`
   if [ -z "${LLVM_PROJECTS:-}" ]; then
-    export LLVM_PROJECTS='clang;lld;mlir;python-bindings;openmp'
+    export LLVM_PROJECTS='clang;lld;mlir;python-bindings;openmp;compiler-rt'
   fi
   # Set minimum macOS deployment target for consistent builds.
   # This ensures LLVM/clang and CUDA-Q libraries use the same target.

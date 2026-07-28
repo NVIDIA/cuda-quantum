@@ -17,6 +17,8 @@
 // Note: CUDA-Q API level tests (e.g., `cudaq::observe`) should cover all
 // backend-specific functionalities required to interface gradient modules.
 #if !defined CUDAQ_BACKEND_DM && !defined CUDAQ_BACKEND_TENSORNET
+
+namespace gradient_tester {
 struct deuteron_n3_ansatz {
   void operator()(double x0, double x1) __qpu__ {
     cudaq::qvector q(3);
@@ -30,6 +32,9 @@ struct deuteron_n3_ansatz {
     x<cudaq::ctrl>(q[1], q[0]);
   }
 };
+} // namespace gradient_tester
+
+using namespace gradient_tester;
 
 CUDAQ_TEST(GradientTester, checkSimple) {
 

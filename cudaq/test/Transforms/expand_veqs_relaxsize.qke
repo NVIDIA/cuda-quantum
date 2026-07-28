@@ -45,3 +45,19 @@ func.func @relaxsize_3() {
 // CHECK:         %[[C1:.*]] = quake.extract_ref %[[SUB]][1] : (!quake.veq<3>) -> !quake.ref
 // CHECK:         %[[C2:.*]] = quake.extract_ref %[[SUB]][2] : (!quake.veq<3>) -> !quake.ref
 // CHECK:         quake.x [%[[C0]], %[[C1]], %[[C2]]] %[[TARGET]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+
+func.func @relaxsize_negative_control() {
+  %q = quake.alloca !quake.veq<2>
+  %relaxed = quake.relax_size %q : (!quake.veq<2>) -> !quake.veq<?>
+  %target = quake.alloca !quake.ref
+  quake.x [%relaxed neg [true]] %target : (!quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @relaxsize_negative_control() {
+// CHECK:         %[[SIZED:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[RELAXED:.*]] = quake.relax_size %[[SIZED]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:         %[[NEG_TARGET:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[NEG_C0:.*]] = quake.extract_ref %[[SIZED]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:         %[[NEG_C1:.*]] = quake.extract_ref %[[SIZED]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:         quake.x [%[[NEG_C0]], %[[NEG_C1]] neg [true, true]] %[[NEG_TARGET]] : (!quake.ref, !quake.ref, !quake.ref) -> ()

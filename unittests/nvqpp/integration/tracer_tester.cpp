@@ -54,46 +54,39 @@ CUDAQ_TEST(TracerTester, checkGHZ) {
 
 CUDAQ_TEST(TracerTester, checkLargeTrace) {
 
-  static std::unordered_map<std::string, std::function<void(cudaq::qubit &)>>
-      operations{{"h", [](cudaq::qubit &q) {
-        h(q); }},
-                 {"x", [](cudaq::qubit &q) {
-        x(q); }},
-                 {"y", [](cudaq::qubit &q) {
-        y(q); }},
-                 {"z", [](cudaq::qubit &q) {
-        z(q); }},
-                 {"s", [](cudaq::qubit &q) {
-        s(q); }},
-                 {"t", [](cudaq::qubit &q) {
-        t(q); }}};
+  auto largeTrace = [](int numQubits, int numLayers, std::vector<int> cnotPairs)
+                        __qpu__ {
+                          cudaq::qvector q(numQubits);
 
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<> distr(0, 5);
+                          for (int layer = 0; layer < numLayers; layer++) {
+                            // each layer should be composed of a set of random
+                            // single qubit gates on every qubit, followed by
+                            // a layer of random cnots
+                            for (int i = 0; i < numQubits; i++) {
+                              int choice = cnotPairs[layer * numQubits + i] % 6;
+                              if (choice == 0)
+                                h(q[i]);
+                              else if (choice == 1)
+                                x(q[i]);
+                              else if (choice == 2)
+                                y(q[i]);
+                              else if (choice == 3)
+                                z(q[i]);
+                              else if (choice == 4)
+                                s(q[i]);
+                              else
+                                t(q[i]);
+                            }
 
-  auto largeTrace = [&](int numQubits, int numLayers,
-                        std::vector<int> cnotPairs) __qpu__ {
-    cudaq::qvector q(numQubits);
-
-    for (int layer = 0; layer < numLayers; layer++) {
-      // each layer should be composed of a set of random
-      // single qubit gates on every qubit, followed by
-      // a layer of random cnots
-      for (int i = 0; i < numQubits; i++) {
-        auto iter = std::next(operations.begin(), distr(gen));
-        iter->second(q[i]);
-      }
-
-      for (int i = 0; i < numQubits; i += 2)
-        x<cudaq::ctrl>(q[i], q[i + 1]);
-    }
-  };
+                            for (int i = 0; i < numQubits; i += 2)
+                              x<cudaq::ctrl>(q[i], q[i + 1]);
+                          }
+                        };
 
   int numQubits = 1000;
   int numLayers = 1000;
 
-  std::vector<int> cnots(numQubits);
+  std::vector<int> cnots(numQubits * numLayers);
   std::iota(cnots.begin(), cnots.end(), 0);
   std::shuffle(cnots.begin(), cnots.end(),
                std::mt19937{std::random_device{}()});

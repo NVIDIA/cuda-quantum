@@ -43,7 +43,6 @@ add_cudaq_library(OptCodeGen
     OptTransformsPassIncGen
     QECDialect
     QuakeDialect
-    cudaq-qir-verifier
     
   LINK_LIBS PUBLIC
     CCDialect

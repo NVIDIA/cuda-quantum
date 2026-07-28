@@ -20,8 +20,7 @@
 
 // ExternalBackendTester is not inherently Python-specific, but this test group
 // currently uses backend discovery helpers and LinkedLibraryHolder from
-// cudaq-py-utils, which is built only when the Python project is enabled. Keep
-// it gated until those general-purpose helpers are moved into the runtime.
+// python/utils, which is only available when the Python project is enabled.
 #ifdef CUDAQ_ENABLE_PYTHON
 class ExternalBackendTester : public ::testing::Test {
 protected:
