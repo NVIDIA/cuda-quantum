@@ -165,6 +165,38 @@ TEST_F(CommutationAwareRewriteTest,
 }
 
 TEST_F(CommutationAwareRewriteTest,
+       StopsBeforeEndpointWhenARequiredWirePathEnds) {
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @ended_path() {
+        %control = quake.null_wire
+        %target = quake.null_wire
+        %controlled:2 = quake.x [%control] %target
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %candidate = quake.x %controlled#1
+            : (!quake.wire) -> !quake.wire
+        quake.sink %candidate : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  cudaq::opt::CommutationAwareRewriteDriver driver(context);
+  auto operators = getOperators(getFunction(*module, "ended_path"));
+  ASSERT_EQ(operators.size(), 2u);
+  unsigned predicateCalls = 0;
+  auto match = driver.getMatcher().findNearest(
+      operators[0], cudaq::opt::CommutationSearchDirection::Forward,
+      [&](Operation *candidate) {
+        ++predicateCalls;
+        return candidate == operators[1];
+      });
+
+  EXPECT_FALSE(match);
+  EXPECT_EQ(predicateCalls, 0u);
+}
+
+TEST_F(CommutationAwareRewriteTest,
        MaintainsPublicContractsAcrossObservedRewrites) {
   auto module = parseModule(R"mlir(
     module {

@@ -13,6 +13,7 @@
 // to cross, or the two endpoints are not inverses of each other after all.
 
 func.func private @opaque_wire(!quake.wire) -> !quake.wire
+quake.wire_set @frontier_alignment_wires[2]
 
 // Measurement instruments and reset channels propagate scalar wire identity,
 // but the analysis still requires a supported commutation proof before the
@@ -181,3 +182,32 @@ func.func @mismatched_polarity(%angle: f64) {
 // CHECK:         %[[X1:.*]]:2 = quake.x {{\[}}%[[X0]]#0 neg [true]] %[[RX]]
 // CHECK:         quake.sink %[[X1]]#0
 // CHECK:         quake.sink %[[X1]]#1
+
+// Identity equality alone cannot make an endpoint reachable. The second X
+// names the same control identity through another borrow, while the anchor's
+// actual control result reaches H instead. The two frontier paths are therefore
+// not aligned at the candidate.
+func.func @incompletely_aligned_endpoint() {
+  %control = quake.borrow_wire @frontier_alignment_wires[0] : !quake.wire
+  %target = quake.borrow_wire @frontier_alignment_wires[1] : !quake.wire
+  %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %same_control = quake.borrow_wire @frontier_alignment_wires[0] : !quake.wire
+  %x1:2 = quake.x [%same_control] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %h = quake.h %x0#0 : (!quake.wire) -> !quake.wire
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  quake.sink %h : !quake.wire
+  return
+}
+
+// Both X gates survive because their required paths do not meet at %x1.
+// CHECK-LABEL: func.func @incompletely_aligned_endpoint() {
+// CHECK:         %[[CONTROL:.*]] = quake.borrow_wire @frontier_alignment_wires[0]
+// CHECK:         %[[TARGET:.*]] = quake.borrow_wire @frontier_alignment_wires[1]
+// CHECK:         %[[X0:.*]]:2 = quake.x {{\[}}%[[CONTROL]]] %[[TARGET]]
+// CHECK:         %[[SAME_CONTROL:.*]] = quake.borrow_wire @frontier_alignment_wires[0]
+// CHECK:         %[[X1:.*]]:2 = quake.x {{\[}}%[[SAME_CONTROL]]] %[[X0]]#1
+// CHECK:         %[[H:.*]] = quake.h %[[X0]]#0
+// CHECK:         quake.sink %[[X1]]#0
+// CHECK:         quake.sink %[[X1]]#1
+// CHECK:         quake.sink %[[H]]
