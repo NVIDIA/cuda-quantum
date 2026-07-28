@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
@@ -23,25 +24,6 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-static SmallVector<bool> getControlPolarities(cudaq::quake::PhaseOp phase) {
-  SmallVector<bool> polarities(phase.getControls().size(), false);
-  if (auto negated = phase.getNegatedQubitControls()) {
-    for (auto [index, value] : llvm::enumerate(*negated)) {
-      if (index == polarities.size())
-        break;
-      polarities[index] = value;
-    }
-  }
-  return polarities;
-}
-
-static DenseBoolArrayAttr makeNegatedControlsAttr(OpBuilder &builder,
-                                                  ArrayRef<bool> polarities) {
-  if (llvm::none_of(polarities, [](bool value) { return value; }))
-    return {};
-  return builder.getDenseBoolArrayAttr(polarities);
-}
 
 static SmallVector<Type> getWireResultTypes(MLIRContext *context,
                                             ValueRange controls, Value target) {
@@ -67,9 +49,13 @@ static SmallVector<Value> getWireInputs(cudaq::quake::PhaseOp phase) {
   return inputs;
 }
 
-static bool hasUnambiguousLinearUse(Value value) {
-  return !isa<cudaq::quake::WireType>(value.getType()) || value.use_empty() ||
-         value.hasOneUse();
+/// Wire values model linear dataflow and must have at most one live user while
+/// being threaded. Reference-semantics values are not subject to that SSA-use
+/// constraint; their possible aliasing is checked separately.
+static bool hasUnambiguousWireUse(Value value) {
+  if (!isa<cudaq::quake::WireType>(value.getType()))
+    return true;
+  return value.use_empty() || value.hasOneUse();
 }
 
 /// Return the output wire corresponding to \p input, or the input itself when
@@ -153,7 +139,7 @@ static LogicalResult advanceAcrossOperator(cudaq::quake::OperatorInterface op,
   bool bookkeepingPhase = isa<cudaq::quake::PhaseOp>(op.getOperation());
 
   for (Value &control : controls) {
-    if (!hasUnambiguousLinearUse(control))
+    if (!hasUnambiguousWireUse(control))
       return failure();
     // Without element-level alias information, a composite control might
     // overlap any target of an intervening operator. Statically sized vectors
@@ -169,7 +155,7 @@ static LogicalResult advanceAcrossOperator(cudaq::quake::OperatorInterface op,
     control = *threaded;
   }
 
-  if (!hasUnambiguousLinearUse(anchor))
+  if (!hasUnambiguousWireUse(anchor))
     return failure();
   FailureOr<Value> threadedAnchor = getThreadedValue(op, anchor);
   if (failed(threadedAnchor))
@@ -250,9 +236,9 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
   if (!crossedOperation)
     return;
   for (Value control : controls)
-    if (!hasUnambiguousLinearUse(control))
+    if (!hasUnambiguousWireUse(control))
       return;
-  if (!hasUnambiguousLinearUse(anchor))
+  if (!hasUnambiguousWireUse(anchor))
     return;
 
   if (destination)
@@ -289,7 +275,8 @@ static bool haveSamePredicate(cudaq::quake::PhaseOp first,
                               cudaq::quake::PhaseOp second) {
   if (first.getControls().size() != second.getControls().size() ||
       first.getParameter().getType() != second.getParameter().getType() ||
-      getControlPolarities(first) != getControlPolarities(second))
+      cudaq::opt::getControlPolarities(first) !=
+          cudaq::opt::getControlPolarities(second))
     return false;
 
   SmallVector<Value> secondControls(second.getControls().begin(),
@@ -383,7 +370,8 @@ mergePair(IRRewriter &rewriter, cudaq::quake::PhaseOp first,
   auto merged = cudaq::quake::PhaseOp::create(
       rewriter, second.getLoc(), resultTypes, /*is_adj=*/false,
       ValueRange{angle}, controls, ValueRange{anchor},
-      makeNegatedControlsAttr(rewriter, getControlPolarities(second)));
+      cudaq::opt::makeNegatedControlsAttr(
+          rewriter, cudaq::opt::getControlPolarities(second)));
 
   rewriter.replaceOp(second, merged.getWires());
   return merged;
