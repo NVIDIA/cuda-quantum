@@ -379,6 +379,7 @@ def test_measure_handles_survive_python_callback():
     assert num_measurements == 2
 
 
+@skipIfValueSemantics
 def test_measure_handle_created_before_python_callback_survives():
     pytest.importorskip('cudaq_test_cpp_algo')
 
