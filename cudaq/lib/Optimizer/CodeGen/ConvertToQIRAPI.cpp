@@ -2777,8 +2777,25 @@ struct QuakeToQIRAPIPass
            isa<cudaq::cc::MeasureHandleType>(ty);
   }
 
+  LogicalResult diagnoseUnresolvedCustomUnitaries() {
+    auto result = getOperation()->walk(
+        [](cudaq::quake::CustomUnitaryCallOp call) -> WalkResult {
+          call.emitError(
+              "custom operation was not lowered to a constant unitary matrix. "
+              "Compiling a custom operation requires the array conversion "
+              "passes, which are disabled by the nvq++ option "
+              "'-fno-array-conversion'.");
+          return WalkResult::interrupt();
+        });
+    return failure(result.wasInterrupted());
+  }
+
   void runOnOperation() override {
     LLVM_DEBUG(llvm::dbgs() << "Begin converting to QIR\n");
+    if (failed(diagnoseUnresolvedCustomUnitaries())) {
+      signalPassFailure();
+      return;
+    }
     QIRAPITypeConverter typeConverter(opaquePtr);
     SmallVector<StringRef> apiField;
     splitTransportTriple(apiField, api);

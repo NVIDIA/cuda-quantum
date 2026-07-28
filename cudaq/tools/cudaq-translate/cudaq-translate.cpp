@@ -80,10 +80,6 @@ static llvm::cl::opt<bool> emitLLVM(
                    "translation will terminate with the selected dialect."),
     llvm::cl::init(true));
 
-static constexpr const char BOLD[] = "\033[1m";
-static constexpr const char RED[] = "\033[91m";
-static constexpr const char CLEAR[] = "\033[0m";
-
 using namespace mlir;
 
 static void checkErrorCode(const std::error_code &ec) {
@@ -129,23 +125,10 @@ int main(int argc, char **argv) {
   sourceMgr.AddNewSourceBuffer(std::move(*fileOrErr), llvm::SMLoc());
   auto module = parseSourceFile<ModuleOp>(sourceMgr, &context);
 
-  DiagnosticEngine &engine = context.getDiagEngine();
-  engine.registerHandler([&](Diagnostic &diag) -> LogicalResult {
-    llvm::errs() << BOLD << RED
-                 << "[quake-translate] Dumping Module after error.\n"
-                 << CLEAR;
-    for (auto &n : diag.getNotes()) {
-      std::string s;
-      llvm::raw_string_ostream os(s);
-      n.print(os);
-      os.flush();
-      llvm::errs() << BOLD << RED << "[quake-translate] Reported Error: " << s
-                   << "\n"
-                   << CLEAR;
-    }
-    bool should_propagate_diagnostic = true;
-    return failure(should_propagate_diagnostic);
-  });
+  SourceMgrDiagnosticHandler diagHandler(sourceMgr, &context);
+
+  // IR can be fetched by passing `-mlir-print-ir-after-failure`.
+  context.printOpOnDiagnostic(false);
 
   PassManager pm(&context);
   // Apply any generic pass manager command line options and run the pipeline.
@@ -204,7 +187,7 @@ int main(int argc, char **argv) {
       })();
 
   if (failed(pm.run(*module)))
-    cudaq::emitFatalError(module->getLoc(), "pipeline failed");
+    return 1;
 
   if (!targetUsesLlvm) {
     targetAction();
