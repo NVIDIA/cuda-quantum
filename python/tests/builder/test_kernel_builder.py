@@ -1362,6 +1362,7 @@ def test_apply_call_captures_from_definition_scope():
     cudaq.sample(builder, shots_count=3)
 
 
+@skipIfValueSemantics
 def test_sample_with_no_qubits():
     kernel = cudaq.make_kernel()
     with pytest.raises(RuntimeError) as e:
