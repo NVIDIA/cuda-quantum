@@ -726,10 +726,6 @@ static bool haveMatchingPhasePolarities(cudaq::quake::PhaseOp first,
 
   auto firstNegations = first.getNegatedQubitControls();
   auto secondNegations = second.getNegatedQubitControls();
-  if ((firstNegations && firstNegations->size() != firstControls.size()) ||
-      (secondNegations && secondNegations->size() != secondControls.size()))
-    return false;
-
   for (std::size_t i = 0, e = firstControls.size(); i != e; ++i) {
     bool firstIsNegated = firstNegations && (*firstNegations)[i];
     bool secondIsNegated = secondNegations && (*secondNegations)[i];
