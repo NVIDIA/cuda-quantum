@@ -415,14 +415,10 @@ private:
   // The angle is folded into the period after which the op is the identity,
   // so a full turn is caught along with a zero angle.
   bool isIdentityRotation(QOP qop) const {
-    auto params = qop.getParameters();
-    if (params.empty())
+    Attribute attr;
+    if (!matchPattern(qop.getParameters().front(), m_Constant(&attr)))
       return false;
-
-    FloatAttr attr;
-    if (!matchPattern(params.front(), m_Constant<FloatAttr>(&attr)))
-      return false;
-    double theta = attr.getValueAsDouble();
+    double theta = cast<FloatAttr>(attr).getValueAsDouble();
     if (!std::isfinite(theta))
       return false;
 
