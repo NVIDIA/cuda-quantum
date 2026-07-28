@@ -1,8 +1,8 @@
-diff --git a/mlir/include/mlir/IR/Types.h b/mlir/include/mlir/IR/Types.h
-index 70599b448f76..d54dbbe7f2f4 100644
---- a/mlir/include/mlir/IR/Types.h
-+++ b/mlir/include/mlir/IR/Types.h
-@@ -252,6 +252,16 @@ template <typename ConcreteType, template <typename> class TraitType>
+diff --git a/tpls/llvm/mlir/include/mlir/IR/Types.h b/tpls/llvm/mlir/include/mlir/IR/Types.h
+index 4ffdbfa5b122..da5813ff71d1 100644
+--- a/tpls/llvm/mlir/include/mlir/IR/Types.h
++++ b/tpls/llvm/mlir/include/mlir/IR/Types.h
+@@ -249,6 +249,16 @@ template <typename ConcreteType, template <typename> class TraitType>
  using TraitBase = detail::StorageUserTraitBase<ConcreteType, TraitType>;
  } // namespace TypeTrait
  
@@ -19,11 +19,11 @@ index 70599b448f76..d54dbbe7f2f4 100644
  //===----------------------------------------------------------------------===//
  // TypeInterface
  //===----------------------------------------------------------------------===//
-diff --git a/mlir/lib/Interfaces/ControlFlowInterfaces.cpp b/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
-index 475969a7c0d0..ba26715796e6 100644
---- a/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
-+++ b/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
-@@ -736,6 +736,11 @@ struct MakeRegionBranchOpSuccessorInputsDead : public RewritePattern {
+diff --git a/tpls/llvm/mlir/lib/Interfaces/ControlFlowInterfaces.cpp b/tpls/llvm/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
+index 684d9ec3c0d1..75fedc347146 100644
+--- a/tpls/llvm/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
++++ b/tpls/llvm/mlir/lib/Interfaces/ControlFlowInterfaces.cpp
+@@ -709,6 +709,11 @@ struct MakeRegionBranchOpSuccessorInputsDead : public RewritePattern {
        // Nothing to do for successor inputs that are already dead.
        if (value.use_empty())
          continue;
@@ -34,23 +34,23 @@ index 475969a7c0d0..ba26715796e6 100644
 +        continue;
        // Nothing to do for successor inputs that may have multiple reachable
        // values.
-       llvm::SmallDenseSet<Value> reachableValues;
-@@ -1046,6 +1051,11 @@ struct RemoveDuplicateSuccessorInputUses : public RewritePattern {
-     // Total complexity: O(n * k * max(log k, log n)). For each input, sorting
-     // the signature costs O(k log k) and the std::map lookup costs O(k log n).
-     for (Value input : inputs) {
-+      // Do not deduplicate SSI-typed successor inputs. Each represents a
-+      // distinct control-flow information point even when all predecessors
-+      // forward identical values.
-+      if (input.getType().hasTrait<TypeTrait::SSIType>())
-+        continue;
-       // Gather the predecessor value for each predecessor (region branch
-       // point) and sort them to form this input's signature.
-       Signature sig;
-diff --git a/mlir/lib/Transforms/Utils/RegionUtils.cpp b/mlir/lib/Transforms/Utils/RegionUtils.cpp
-index ae3ea83758da..313ddcad6221 100644
---- a/mlir/lib/Transforms/Utils/RegionUtils.cpp
-+++ b/mlir/lib/Transforms/Utils/RegionUtils.cpp
+       llvm::SmallDenseSet<Value> reachableValues =
+@@ -1000,6 +1005,11 @@ struct RemoveDuplicateSuccessorInputUses : public RewritePattern {
+         // Nothing to do if input2 is already dead.
+         if (input2.use_empty())
+           continue;
++        // Do not deduplicate SSI-typed successor inputs. Each represents a
++        // distinct control-flow information point even when all predecessors
++        // forward identical values.
++        if (input2.getType().hasTrait<TypeTrait::SSIType>())
++          continue;
+         // Replace only values that belong to the same block / operation.
+         // This implies that the two values are either both block arguments or
+         // both op results.
+diff --git a/tpls/llvm/mlir/lib/Transforms/Utils/RegionUtils.cpp b/tpls/llvm/mlir/lib/Transforms/Utils/RegionUtils.cpp
+index 082a88365300..9e5f6c234994 100644
+--- a/tpls/llvm/mlir/lib/Transforms/Utils/RegionUtils.cpp
++++ b/tpls/llvm/mlir/lib/Transforms/Utils/RegionUtils.cpp
 @@ -15,6 +15,7 @@
  #include "mlir/IR/IRMapping.h"
  #include "mlir/IR/Operation.h"
@@ -59,7 +59,7 @@ index ae3ea83758da..313ddcad6221 100644
  #include "mlir/IR/Value.h"
  #include "mlir/Interfaces/ControlFlowInterfaces.h"
  #include "mlir/Interfaces/SideEffectInterfaces.h"
-@@ -1095,6 +1096,9 @@ static LogicalResult dropRedundantArguments(RewriterBase &rewriter,
+@@ -960,6 +961,9 @@ static LogicalResult dropRedundantArguments(RewriterBase &rewriter,
  
    // Go through the arguments of the block.
    for (auto [argIdx, blockOperand] : llvm::enumerate(block.getArguments())) {
@@ -69,11 +69,11 @@ index ae3ea83758da..313ddcad6221 100644
      bool sameArg = true;
      Value commonValue;
  
-diff --git a/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir b/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir
+diff --git a/tpls/llvm/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir b/tpls/llvm/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir
 new file mode 100644
 index 000000000000..a8118048f7a5
 --- /dev/null
-+++ b/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir
++++ b/tpls/llvm/mlir/test/Transforms/canonicalize-redundant-ssi-type.mlir
 @@ -0,0 +1,105 @@
 +// RUN: mlir-opt -allow-unregistered-dialect %s -split-input-file \
 +// RUN:   -pass-pipeline='builtin.module(func.func(canonicalize{region-simplify=aggressive}))' \
@@ -180,11 +180,11 @@ index 000000000000..a8118048f7a5
 +^exit(%4: !test.ssi_type):
 +  return %4 : !test.ssi_type
 +}
-diff --git a/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir b/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir
+diff --git a/tpls/llvm/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir b/tpls/llvm/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir
 new file mode 100644
 index 000000000000..fae43caed89e
 --- /dev/null
-+++ b/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir
++++ b/tpls/llvm/mlir/test/Transforms/canonicalize-ssi-type-scf.mlir
 @@ -0,0 +1,105 @@
 +// RUN: mlir-opt -allow-unregistered-dialect %s -split-input-file \
 +// RUN:   -pass-pipeline='builtin.module(func.func(canonicalize{region-simplify=aggressive}))' \
@@ -291,14 +291,14 @@ index 000000000000..fae43caed89e
 +  }
 +  return %res : !test.ssi_type
 +}
-diff --git a/mlir/test/lib/Dialect/Test/TestTypeDefs.td b/mlir/test/lib/Dialect/Test/TestTypeDefs.td
-index 9481aa1b35ef..9384e34704ce 100644
---- a/mlir/test/lib/Dialect/Test/TestTypeDefs.td
-+++ b/mlir/test/lib/Dialect/Test/TestTypeDefs.td
-@@ -189,6 +189,14 @@ def TestTypeWithTrait : Test_Type<"TestTypeWithTrait", [TestTypeTrait]> {
+diff --git a/tpls/llvm/mlir/test/lib/Dialect/Test/TestTypeDefs.td b/tpls/llvm/mlir/test/lib/Dialect/Test/TestTypeDefs.td
+index d840339a0926..0c433bbae5d8 100644
+--- a/tpls/llvm/mlir/test/lib/Dialect/Test/TestTypeDefs.td
++++ b/tpls/llvm/mlir/test/lib/Dialect/Test/TestTypeDefs.td
+@@ -178,6 +178,13 @@ def TestTypeTrait : NativeTypeTrait<"TestTypeTrait">;
+ def TestTypeWithTrait : Test_Type<"TestTypeWithTrait", [TestTypeTrait]> {
    let mnemonic = "test_type_with_trait";
  }
- 
 +def SSITypeTrait : NativeTypeTrait<"SSIType">;
 +
 +// A type that carries SSIType trait, opting block arguments of this type out
@@ -306,7 +306,6 @@ index 9481aa1b35ef..9384e34704ce 100644
 +def TestSSIType : Test_Type<"TestSSI", [SSITypeTrait]> {
 +  let mnemonic = "ssi_type";
 +}
-+
+ 
  // Type with assembly format.
  def TestTypeWithFormat : Test_Type<"TestTypeWithFormat"> {
-   let parameters = (
