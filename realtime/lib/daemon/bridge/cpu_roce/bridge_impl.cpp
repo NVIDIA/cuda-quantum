@@ -26,10 +26,10 @@
 ///     emulator's), the transceiver is created one-shot with the peer already
 ///     known, and create() prints this end's QP / RKey / Buffer Addr in the
 ///     canonical bridge handshake format ("  KEY: VALUE", single space after
-///     the colon -- hololink_bridge_common.h; orchestration scripts parse it
-///     with strict regexes, same contract as the Hololink bridges), so the
+///     the colon -- gpu_roce_bridge_common.h; orchestration scripts parse it
+///     with strict regexes, same contract as the GpuRoceTransceiver bridges), so the
 ///     banner precedes any consumer readiness line.  The provider performs
-///     NO Hololink control-plane traffic; the playback tool alone programs
+///     NO HSB control-plane traffic; the playback tool alone programs
 ///     the FPGA.
 ///
 /// tx_mode is always CPU_ROCE_TX_MODE_RDMA_SEND: this end Sends responses;
@@ -211,14 +211,14 @@ cudaq_status_t create_hsb_fpga(CpuRoceBridgeContext *ctx) {
   const size_t frame_size = ctx->frame_size ? ctx->frame_size : ctx->slot_size;
 
   // The HSB receive queue is WQE_NUM=64 deep; a deeper ring would alias two
-  // slots per WQE and race RX against TX (same constraint as the Hololink
+  // slots per WQE and race RX against TX (same constraint as the GpuRoceTransceiver
   // bridges).
-  constexpr uint32_t kHsbWqeNum = 64;
-  if (ctx->num_slots > kHsbWqeNum) {
+  constexpr uint32_t kGpuRoceWqeNum = 64;
+  if (ctx->num_slots > kGpuRoceWqeNum) {
     std::cerr << "WARNING: cpu_roce bridge: --num-slots=" << ctx->num_slots
-              << " exceeds the HSB WQE depth; clamping to " << kHsbWqeNum
+              << " exceeds the HSB WQE depth; clamping to " << kGpuRoceWqeNum
               << std::endl;
-    ctx->num_slots = kHsbWqeNum;
+    ctx->num_slots = kGpuRoceWqeNum;
   }
 
   std::cout << "HSB FPGA QP exchange:\n"
@@ -247,9 +247,9 @@ cudaq_status_t create_hsb_fpga(CpuRoceBridgeContext *ctx) {
   }
 
   // Publish this end's identity in the canonical bridge handshake format
-  // ("  KEY: VALUE", single space after the colon -- hololink_bridge_common.h)
+  // ("  KEY: VALUE", single space after the colon -- gpu_roce_bridge_common.h)
   // for the orchestration script to relay to the playback tool, which alone
-  // programs the FPGA over the Hololink control plane.  Printed from create()
+  // programs the FPGA over the HSB control plane.  Printed from create()
   // (not connect()) so the banner precedes any consumer readiness line, the
   // same ordering hsb_bridge_cpu.cpp established.  Buffer Addr is 0 with an
   // iova=0 MR registration; the playback tool handles that.

@@ -1,7 +1,7 @@
 # CPU RoCE Transport
 
 `CpuRoceTransceiver` is a **pure-CPU `RoCEv2` RDMA transport** -- no GPU, no DOCA,
-no Hololink/HSB. It moves RPC messages between a quantum control system (FPGA)
+no GpuRoceTransceiver/HSB. It moves RPC messages between a quantum control system (FPGA)
 and a CPU-based decoder entirely in host memory at microsecond latency. It is a
 reference implementation of the `libibverbs` transport option described in the
 [CUDA-Q Realtime Host API](host.md): it implements the same ring-buffer slot +

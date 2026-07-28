@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 /// @file unified_dispatch_kernel.cu
-/// @brief Hololink/DOCA unified dispatch: RDMA RX + RPC dispatch + RDMA TX
-/// in one GPU kernel, using Hololink's gpu_roce_transceiver.cuh device
+/// @brief GpuRoceTransceiver/DOCA unified dispatch: RDMA RX + RPC dispatch + RDMA TX
+/// in one GPU kernel, using GpuRoceTransceiver's gpu_roce_transceiver.cuh device
 /// functions for WQE preparation and TX.
 ///
 /// Two TX paths selected at runtime via the use_bf flag:
@@ -16,10 +16,10 @@
 ///   iGPU: send (NIC_HANDLER_AUTO -> CPU proxy) -- required because the
 ///         GPU cannot ring the NIC doorbell directly on integrated GPUs.
 ///
-/// Compiled into libcudaq-realtime-bridge-hololink.so (transport-specific).
+/// Compiled into libcudaq-realtime-bridge-gpu-roce.so (transport-specific).
 /// The core libcudaq-realtime-dispatch.a no longer contains this file.
 
-#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
+#include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
@@ -86,7 +86,7 @@ unified_lookup_entry(std::uint32_t function_id,
 // Receive WQEs are pre-posted by the host before this kernel launches.
 //==============================================================================
 
-__global__ void hololink_unified_dispatch_kernel(
+__global__ void gpu_roce_unified_dispatch_kernel(
     struct doca_gpu_dev_verbs_qp *qp, volatile int *shutdown_flag,
     std::uint8_t *ring_buf, std::size_t ring_buf_stride_sz,
     std::uint32_t ring_buf_mkey, std::uint32_t ring_buf_stride_num,
@@ -103,7 +103,7 @@ __global__ void hololink_unified_dispatch_kernel(
   const bool use_inline = (frame_size <= MAX_SEND_INLINE_WQE);
 
   // Receive WQEs are pre-posted by the host (GpuRoceTransceiverPrepareKernel
-  // in start() on dGPU, or hololink_prepare_receive_send() on iGPU).
+  // in start() on dGPU, or gpu_roce_prepare_receive_send() on iGPU).
   __shared__ struct doca_gpu_dev_verbs_wqe wqe_sh;
 
   if (use_bf) {
@@ -206,13 +206,13 @@ __global__ void hololink_unified_dispatch_kernel(
 // Host launch wrapper -- matches cudaq_unified_launch_fn_t signature.
 //==============================================================================
 
-extern "C" void hololink_launch_unified_dispatch(
+extern "C" void gpu_roce_launch_unified_dispatch(
     void *transport_ctx, cudaq_function_entry_t *function_table,
     size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
     cudaStream_t stream) {
-  auto *ctx = static_cast<hololink_doca_transport_ctx *>(transport_ctx);
+  auto *ctx = static_cast<gpu_roce_doca_transport_ctx *>(transport_ctx);
 
-  hololink_unified_dispatch_kernel<<<1, 1, 0, stream>>>(
+  gpu_roce_unified_dispatch_kernel<<<1, 1, 0, stream>>>(
       static_cast<struct doca_gpu_dev_verbs_qp *>(ctx->gpu_dev_qp),
       shutdown_flag, ctx->rx_ring_data, ctx->rx_ring_stride_sz,
       ctx->rx_ring_mkey, ctx->rx_ring_stride_num, ctx->frame_size,

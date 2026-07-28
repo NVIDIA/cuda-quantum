@@ -6,14 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// @file hololink_bridge.cpp
-/// @brief Generic Hololink bridge tool for testing libcudaq-realtime dispatch.
+/// @file gpu_roce_bridge.cpp
+/// @brief Generic GpuRoceTransceiver bridge tool for testing libcudaq-realtime dispatch.
 ///
 /// Registers a simple increment RPC handler (adds 1 to each byte) and wires
-/// it through the Hololink GPU-RoCE Transceiver.  No QEC or decoder dependency.
+/// it through the GpuRoceTransceiver (GPU RoCE transceiver).  No QEC or decoder dependency.
 ///
 /// Usage:
-///   ./hololink_bridge \
+///   ./gpu_roce_bridge \
 ///       --device=rocep1s0f0 \
 ///       --peer-ip=10.0.0.2 \
 ///       --remote-qp=0x2 \
@@ -29,7 +29,7 @@
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/hololink_bridge_common.h"
+#include "cudaq/realtime/gpu_roce_bridge_common.h"
 
 //==============================================================================
 // Increment RPC Handler Function Table
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
       std::cout
           << "Usage: " << argv[0] << " [options]\n"
           << "\n"
-          << "Generic Hololink bridge for testing libcudaq-realtime dispatch.\n"
+          << "Generic GpuRoceTransceiver bridge for testing libcudaq-realtime dispatch.\n"
           << "Registers increment handler (adds 1 to each byte of the RPC "
              "payload).\n"
           << "\n"
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]) {
           << "  --exchange-qp         Enable QP exchange protocol\n"
           << "  --exchange-port=N     TCP port for QP exchange (default: "
              "12345)\n"
-          << "  --forward             Use Hololink forward kernel (echo) "
+          << "  --forward             Use GpuRoceTransceiver forward kernel (echo) "
              "instead of dispatch\n"
           << "  --unified             Use unified dispatch kernel (RX + "
              "dispatch + TX in one kernel)\n"
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    std::cout << "=== Hololink Generic Bridge ===" << std::endl;
+    std::cout << "=== GpuRoceTransceiver Generic Bridge ===" << std::endl;
 
     // Parse common bridge args
     cudaq::realtime::BridgeConfig config;

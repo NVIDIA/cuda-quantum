@@ -15,8 +15,8 @@
 extern "C" {
 #endif
 
-/// Hololink/DOCA transport context for the unified dispatch kernel.
-/// Packed by the Hololink bridge layer and passed as the opaque
+/// GpuRoceTransceiver/DOCA transport context for the unified dispatch kernel.
+/// Packed by the GpuRoceTransceiver bridge layer and passed as the opaque
 /// transport_ctx pointer through the transport-agnostic dispatcher API.
 typedef struct {
   void *gpu_dev_qp;         ///< doca_gpu_dev_verbs_qp* handle
@@ -27,7 +27,7 @@ typedef struct {
   size_t frame_size;           ///< Actual frame/payload size within a slot
   int use_bf;                  ///< Non-zero: use BlueFlame TX (dGPU).
                                ///< Zero: use NIC_HANDLER_AUTO (iGPU/CPU proxy).
-} hololink_doca_transport_ctx;
+} gpu_roce_doca_transport_ctx;
 
 #ifdef __cplusplus
 }

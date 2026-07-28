@@ -10,11 +10,11 @@
 # hsb_test_cpu.sh
 #
 # Phase 1 orchestration: end-to-end CPU-RoCE bridge test.  Sibling of
-# hololink_test.sh but driving hsb_bridge_cpu (CpuRoceTransceiver +
-# CUDAQ_DISPATCH_HOST_CALL) instead of hololink_bridge (GpuRoceTransceiver +
+# gpu_roce_test.sh but driving hsb_bridge_cpu (CpuRoceTransceiver +
+# CUDAQ_DISPATCH_HOST_CALL) instead of gpu_roce_bridge (GpuRoceTransceiver +
 # device-side dispatch kernel).
 #
-# Reuses the existing hololink_fpga_emulator and hololink_fpga_playback
+# Reuses the existing hsb_fpga_emulator and hsb_fpga_playback
 # because the on-wire RDMA framing is identical to the GPU bridge — only
 # the bridge endpoint changes from GPU memory to CPU memory.
 #
@@ -24,10 +24,10 @@
 #
 # Actions (can be combined):
 #   --build            Build all required tools (hsb_bridge_cpu plus the
-#                      existing hololink_fpga_emulator and
-#                      hololink_fpga_playback that this test reuses).
+#                      existing hsb_fpga_emulator and
+#                      hsb_fpga_playback that this test reuses).
 #   --setup-network    Configure ConnectX interfaces (calls into the
-#                      same loopback setup as hololink_test.sh).
+#                      same loopback setup as gpu_roce_test.sh).
 #   --unified          Run the bridge with --unified (single-thread RX +
 #                      dispatch + TX).  Default is the three-thread layout.
 #
@@ -57,14 +57,14 @@ FORWARD=false
 
 # Directory defaults.  Per the plan we point at the current HSB source
 # checkout at /workspaces/holoscan-sensor-bridge (not the legacy
-# /workspaces/hololink path).  --hololink-dir lets the caller override
+# /workspaces/hololink path).  --hsb-dir lets the caller override
 # if needed.
-HOLOLINK_DIR="/workspaces/holoscan-sensor-bridge"
+HSB_DIR="/workspaces/holoscan-sensor-bridge"
 CUDA_QUANTUM_DIR="/workspaces/cuda-quantum"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR=""
 
-# Network defaults (match hololink_test.sh so the loopback wiring is
+# Network defaults (match gpu_roce_test.sh so the loopback wiring is
 # interchangeable on the same NIC pair).
 IB_DEVICE=""           # auto-detect
 BRIDGE_IP="10.0.0.1"
@@ -102,7 +102,7 @@ Actions:
   --no-run               Skip running the test (useful with --build)
 
 Build options:
-  --hololink-dir DIR     HSB source dir (default: /workspaces/holoscan-sensor-bridge)
+  --hsb-dir DIR     HSB source dir (default: /workspaces/holoscan-sensor-bridge)
   --cuda-quantum-dir DIR cuda-quantum source dir (default: /workspaces/cuda-quantum)
   --jobs N               Parallel build jobs (default: nproc)
 
@@ -135,7 +135,7 @@ while [[ $# -gt 0 ]]; do
         --no-verify)        VERIFY=false ;;
         --unified)          UNIFIED=true ;;
         --forward)          FORWARD=true ;;
-        --hololink-dir)     HOLOLINK_DIR="$2"; shift ;;
+        --hsb-dir)     HSB_DIR="$2"; shift ;;
         --cuda-quantum-dir) CUDA_QUANTUM_DIR="$2"; shift ;;
         --bin-dir)          BIN_DIR="$2"; shift ;;
         --jobs)             JOBS="$2"; shift ;;
@@ -161,7 +161,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ============================================================================
-# Helpers (most are direct ports from hololink_test.sh)
+# Helpers (most are direct ports from gpu_roce_test.sh)
 # ============================================================================
 
 detect_ib_device() {
@@ -205,7 +205,7 @@ do_build() {
 
     local realtime_dir="$CUDA_QUANTUM_DIR/realtime"
     local realtime_build="$realtime_dir/build"
-    local hololink_build="$HOLOLINK_DIR/build"
+    local gpu_roce_build="$HSB_DIR/build"
 
     local arch
     arch=$(uname -m)
@@ -229,11 +229,11 @@ do_build() {
         echo "  CUDA arch: $cuda_arch"
     fi
 
-    # Build hololink — we only need the libraries that hololink_fpga_emulator
-    # and hololink_fpga_playback link against (we reuse those binaries for
+    # Build HSB — we only need the libraries that hsb_fpga_emulator
+    # and hsb_fpga_playback link against (we reuse those binaries for
     # the wire-format-compatible playback path).
-    echo "--- Building hololink ($target_arch) ---"
-    cmake -G Ninja -S "$HOLOLINK_DIR" -B "$hololink_build" \
+    echo "--- Building HSB ($target_arch) ---"
+    cmake -G Ninja -S "$HSB_DIR" -B "$gpu_roce_build" \
         -DCMAKE_BUILD_TYPE=Release \
         $cuda_arch_flag \
         -DTARGET_ARCH="$target_arch" \
@@ -243,28 +243,28 @@ do_build() {
         -DHOLOLINK_BUILD_TOOLS=OFF \
         -DHOLOLINK_BUILD_EXAMPLES=OFF \
         -DHOLOLINK_BUILD_EMULATOR=OFF
-    cmake --build "$hololink_build" -j"$JOBS" \
+    cmake --build "$gpu_roce_build" -j"$JOBS" \
         --target roce_receiver gpu_roce_transceiver hololink_core
 
     # Build cuda-quantum/realtime — hsb_bridge_cpu is gated only on
-    # libibverbs (no hololink dep), but we keep the hololink tools
+    # libibverbs (no HSB dep), but we keep the HSB tools
     # enabled here so the emulator + playback are also built into the
     # same tree for the test harness to find.
     echo "--- Building cuda-quantum/realtime ---"
     cmake -G Ninja -S "$realtime_dir" -B "$realtime_build" \
         -DCMAKE_BUILD_TYPE=Release \
         $cuda_arch_flag \
-        -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON \
-        -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HOLOLINK_DIR" \
-        -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$hololink_build"
+        -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON \
+        -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HSB_DIR" \
+        -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$gpu_roce_build"
     cmake --build "$realtime_build" -j"$JOBS" \
-        --target hsb_bridge_cpu hololink_fpga_emulator hololink_fpga_playback
+        --target hsb_bridge_cpu hsb_fpga_emulator hsb_fpga_playback
 
     echo "=== Build complete ==="
 }
 
 # ============================================================================
-# Network setup (shared logic with hololink_test.sh; copy rather than
+# Network setup (shared logic with gpu_roce_test.sh; copy rather than
 # source so the script stays standalone)
 # ============================================================================
 
@@ -420,12 +420,12 @@ do_run() {
 
     if [ -n "$BIN_DIR" ]; then
         local bridge_bin="$BIN_DIR/hsb_bridge_cpu"
-        local emulator_bin="$BIN_DIR/hololink_fpga_emulator"
-        local playback_bin="$BIN_DIR/hololink_fpga_playback"
+        local emulator_bin="$BIN_DIR/hsb_fpga_emulator"
+        local playback_bin="$BIN_DIR/hsb_fpga_playback"
     else
         local bridge_bin="$utils_dir/hsb_bridge_cpu"
-        local emulator_bin="$utils_dir/hololink_fpga_emulator"
-        local playback_bin="$utils_dir/hololink_fpga_playback"
+        local emulator_bin="$utils_dir/hsb_fpga_emulator"
+        local playback_bin="$utils_dir/hsb_fpga_playback"
     fi
 
     for bin in "$bridge_bin"; do
@@ -531,7 +531,7 @@ do_run() {
 
     echo "--- Starting playback ---"
     local playback_args=(
-        --hololink="$FPGA_TARGET_IP"
+        --hsb-ip="$FPGA_TARGET_IP"
         --bridge-qp="0x$BRIDGE_QP"
         --bridge-rkey="$BRIDGE_RKEY"
         --bridge-buffer="0x$BRIDGE_BUFFER"

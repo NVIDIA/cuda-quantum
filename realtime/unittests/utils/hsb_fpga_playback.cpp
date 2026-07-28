@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// @file hololink_fpga_playback.cpp
-/// @brief Generic RPC playback tool for Hololink FPGA / emulator testing.
+/// @file hsb_fpga_playback.cpp
+/// @brief Generic RPC playback tool for HSB FPGA / emulator testing.
 ///
-/// Sends RPC messages to the FPGA (or emulator) via the Hololink control
+/// Sends RPC messages to the FPGA (or emulator) via the HSB control
 /// plane, triggering RDMA transmission to the bridge.  After playback, reads
 /// back responses from the ILA capture RAM and verifies them.
 ///
@@ -17,8 +17,8 @@
 /// the expected response is each byte incremented by 1.
 ///
 /// Usage:
-///   ./hololink_fpga_playback \
-///       --hololink 192.168.0.2 \
+///   ./hsb_fpga_playback \
+///       --hsb-ip 192.168.0.2 \
 ///       --bridge-qp=0x5 --bridge-rkey=12345 --bridge-buffer=0x7f... \
 ///       --page-size=384 --num-pages=128 --num-messages=100
 
@@ -101,7 +101,7 @@ constexpr std::uint32_t ROCEV2_UDP_PORT = 4791;
 // ============================================================================
 
 struct PlaybackArgs {
-  std::string hololink_ip = "192.168.0.2";
+  std::string hsb_ip = "192.168.0.2";
   uint16_t control_port = 8192;
   uint32_t bridge_qp = 0;
   uint32_t bridge_rkey = 0;
@@ -130,12 +130,12 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
     auto val_of = [&](const std::string &prefix) -> std::string {
       return a.substr(prefix.size());
     };
-    if (a.find("--hololink=") == 0)
-      args.hololink_ip = val_of("--hololink=");
-    else if (a == "--hololink")
-      args.hololink_ip = next();
+    if (a.find("--hsb-ip=") == 0)
+      args.hsb_ip = val_of("--hsb-ip=");
+    else if (a == "--hsb-ip")
+      args.hsb_ip = next();
     else if (a.find("--control-ip=") == 0)
-      args.hololink_ip = val_of("--control-ip=");
+      args.hsb_ip = val_of("--control-ip=");
     else if (a.find("--control-port=") == 0)
       args.control_port = std::stoi(val_of("--control-port="));
     else if (a.find("--bridge-qp=") == 0)
@@ -170,10 +170,10 @@ PlaybackArgs parse_args(int argc, char *argv[]) {
       args.forward = true;
     else if (a == "--help" || a == "-h") {
       std::cout
-          << "Usage: hololink_fpga_playback [options]\n"
-          << "\nGeneric RPC playback tool for Hololink FPGA/emulator.\n"
+          << "Usage: hsb_fpga_playback [options]\n"
+          << "\nGeneric RPC playback tool for HSB FPGA/emulator.\n"
           << "\nOptions:\n"
-          << "  --hololink ADDR       FPGA/emulator IP (default: 192.168.0.2)\n"
+          << "  --hsb-ip ADDR       FPGA/emulator IP (default: 192.168.0.2)\n"
           << "  --control-port=N      UDP control port (default: 8192)\n"
           << "  --bridge-qp=N         Bridge QP number\n"
           << "  --bridge-rkey=N       Bridge RKey\n"
@@ -472,25 +472,25 @@ int64_t ptp_delta_ns(PtpTimestamp send, PtpTimestamp recv) {
 int main(int argc, char *argv[]) {
   auto args = parse_args(argc, argv);
 
-  std::cout << "=== Hololink Generic RPC Playback ===" << std::endl;
-  std::cout << "Hololink: " << args.hololink_ip << std::endl;
+  std::cout << "=== HSB Generic RPC Playback ===" << std::endl;
+  std::cout << "HSB: " << args.hsb_ip << std::endl;
   std::cout << "Messages: " << args.num_messages << std::endl;
   std::cout << "Payload size: " << args.payload_size << " bytes" << std::endl;
 
   // ------------------------------------------------------------------
-  // Build Hololink DataChannel
+  // Build HSB DataChannel
   // ------------------------------------------------------------------
   hololink::Metadata channel_metadata;
 
   if (args.emulator) {
-    channel_metadata["channel_ip"] = args.hololink_ip;
-    channel_metadata["cpnx_ip"] = args.hololink_ip;
+    channel_metadata["channel_ip"] = args.hsb_ip;
+    channel_metadata["cpnx_ip"] = args.hsb_ip;
     channel_metadata["control_port"] =
         static_cast<std::int64_t>(args.control_port);
     channel_metadata["hsb_ip_version"] = static_cast<std::int64_t>(0x2501);
     channel_metadata["fpga_uuid"] = std::string("emulator");
     channel_metadata["serial_number"] = std::string("emulator-0");
-    channel_metadata["peer_ip"] = args.hololink_ip;
+    channel_metadata["peer_ip"] = args.hsb_ip;
     channel_metadata["vp_mask"] = static_cast<std::int64_t>(0x1);
     channel_metadata["data_plane"] = static_cast<std::int64_t>(0);
     channel_metadata["sensor"] = static_cast<std::int64_t>(0);
@@ -499,16 +499,16 @@ int main(int argc, char *argv[]) {
     channel_metadata["hif_address"] =
         static_cast<std::int64_t>(args.hif_address);
   } else {
-    channel_metadata = hololink::Enumerator::find_channel(args.hololink_ip);
+    channel_metadata = hololink::Enumerator::find_channel(args.hsb_ip);
     hololink::DataChannel::use_sensor(channel_metadata, 0);
   }
 
-  hololink::DataChannel hololink_channel(channel_metadata);
-  auto hololink = hololink_channel.hololink();
+  hololink::DataChannel hsb_channel(channel_metadata);
+  auto hsb = hsb_channel.hololink();
 
-  hololink->start();
+  hsb->start();
   if (!args.emulator) {
-    hololink->reset();
+    hsb->reset();
   }
 
   // ------------------------------------------------------------------
@@ -527,8 +527,8 @@ int main(int argc, char *argv[]) {
   std::cout << "  Num pages: " << args.num_pages << std::endl;
   std::cout << "  Frame size: " << bytes_per_window << " bytes" << std::endl;
 
-  hololink_channel.authenticate(args.bridge_qp, args.bridge_rkey);
-  hololink_channel.configure_roce(
+  hsb_channel.authenticate(args.bridge_qp, args.bridge_rkey);
+  hsb_channel.configure_roce(
       args.bridge_buffer, static_cast<uint32_t>(bytes_per_window),
       static_cast<uint32_t>(args.page_size), args.num_pages, ROCEV2_UDP_PORT);
 
@@ -539,7 +539,7 @@ int main(int argc, char *argv[]) {
   // ------------------------------------------------------------------
   std::cout << "\n[2/4] Loading RPC messages into BRAM..." << std::endl;
 
-  if (!hololink->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET,
+  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET,
                               PLAYER_DISABLE))
     throw std::runtime_error("Failed to disable player");
 
@@ -552,7 +552,7 @@ int main(int argc, char *argv[]) {
   config_write.queue_write_uint32(PLAYER_ADDR + PLAYER_TIMER_OFFSET,
                                   RF_SOC_TIMER_SCALE *
                                       DEFAULT_TIMER_SPACING_US);
-  if (!hololink->write_uint32(config_write))
+  if (!hsb->write_uint32(config_write))
     throw std::runtime_error("Failed to configure player");
 
   // Build and load RPC messages
@@ -564,13 +564,13 @@ int main(int argc, char *argv[]) {
     windows.push_back(std::move(msg));
   }
 
-  write_bram(*hololink, windows, bytes_per_window);
+  write_bram(*hsb, windows, bytes_per_window);
   std::cout << "  BRAM write completed (" << args.num_messages << " messages)"
             << std::endl;
 
   // Verify BRAM contents
   std::cout << "  Verifying BRAM..." << std::endl;
-  if (!verify_bram(*hololink, windows, bytes_per_window)) {
+  if (!verify_bram(*hsb, windows, bytes_per_window)) {
     std::cerr << "  BRAM readback verification FAILED" << std::endl;
   } else {
     std::cout << "  BRAM readback verification PASSED" << std::endl;
@@ -582,9 +582,9 @@ int main(int argc, char *argv[]) {
   std::cout << "\n[3/4] Triggering playback..." << std::endl;
 
   if (args.verify) {
-    ila_disable(*hololink);
-    ila_reset(*hololink);
-    ila_enable(*hololink);
+    ila_disable(*hsb);
+    ila_reset(*hsb);
+    ila_enable(*hsb);
     std::cout << "  ILA: armed for capture" << std::endl;
   }
 
@@ -592,18 +592,18 @@ int main(int argc, char *argv[]) {
   // Needed for FPGA bitfile 0x0227+; comment out for older bitfiles (e.g.
   // 0x2601).
   {
-    std::uint32_t val = hololink->read_uint32(METADATA_PACKET_ADDR);
-    if (!hololink->write_uint32(METADATA_PACKET_ADDR, val | (1u << 16)))
+    std::uint32_t val = hsb->read_uint32(METADATA_PACKET_ADDR);
+    if (!hsb->write_uint32(METADATA_PACKET_ADDR, val | (1u << 16)))
       throw std::runtime_error("Failed to disable metadata packet");
   }
 
   // Set SIF TX streaming threshold to zero for immediate streaming.
-  if (!hololink->write_uint32(SIF_TX_THRESHOLD_ADDR,
+  if (!hsb->write_uint32(SIF_TX_THRESHOLD_ADDR,
                               SIF_TX_THRESHOLD_IMMEDIATE))
     throw std::runtime_error("Failed to set SIF TX streaming threshold");
 
   // Enable player in single-pass mode
-  if (!hololink->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET,
+  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET,
                               PLAYER_ENABLE_SINGLEPASS))
     throw std::runtime_error("Failed to enable player");
 
@@ -628,7 +628,7 @@ int main(int argc, char *argv[]) {
     while (elapsed < kVerifyTimeoutMs) {
       std::this_thread::sleep_for(std::chrono::milliseconds(kPollIntervalMs));
       elapsed += kPollIntervalMs;
-      std::uint32_t count = ila_sample_count(*hololink);
+      std::uint32_t count = ila_sample_count(*hsb);
       if (count > 0 && count == prev_count)
         ++stable;
       else
@@ -638,8 +638,8 @@ int main(int argc, char *argv[]) {
         break;
     }
 
-    std::uint32_t actual_samples = ila_sample_count(*hololink);
-    ila_disable(*hololink);
+    std::uint32_t actual_samples = ila_sample_count(*hsb);
+    ila_disable(*hsb);
 
     if (actual_samples == 0) {
       std::cerr << "  ILA: captured 0 samples (timeout " << kVerifyTimeoutMs
@@ -650,7 +650,7 @@ int main(int argc, char *argv[]) {
               << std::endl;
 
     // Read all captured samples
-    auto samples = ila_dump(*hololink, actual_samples);
+    auto samples = ila_dump(*hsb, actual_samples);
     std::cout << "  Read " << samples.size() << " samples from ILA"
               << std::endl;
 

@@ -67,8 +67,8 @@ option(CUDAQ_REALTIME_BUILD_TESTS
        ${_cudaq_realtime_build_tests_default})
 option(CUDAQ_REALTIME_BUILD_EXAMPLES
        "Generate build targets for the CUDAQ real-time example programs" ON)
-option(CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS
-       "Build Hololink bridge/emulator/playback tools (requires hololink)."
+option(CUDAQ_REALTIME_ENABLE_HSB_TOOLS
+       "Build HSB bridge/emulator/playback tools (requires the holoscan-sensor-bridge libraries)."
        OFF)
 
 set(_host_compiler_opts_list "")

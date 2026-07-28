@@ -8,12 +8,12 @@
 
 #pragma once
 
-/// @file hololink_bridge_common.h
-/// @brief Header-only bridge skeleton for Hololink-based RPC dispatch.
+/// @file gpu_roce_bridge_common.h
+/// @brief Header-only bridge skeleton for GpuRoceTransceiver-based RPC dispatch.
 ///
-/// Provides common infrastructure used by all Hololink bridge tools:
+/// Provides common infrastructure used by all GpuRoceTransceiver bridge tools:
 ///   - Command-line argument parsing for IB device, peer IP, QP, etc.
-///   - Hololink transceiver creation and QP connection
+///   - GpuRoceTransceiver creation and QP connection
 ///   - Dispatch kernel wiring via the cudaq host API
 ///   - Main run loop with diagnostics
 ///   - Graceful shutdown
@@ -24,8 +24,8 @@
 ///   2. Sets up its RPC function table on the GPU
 ///   3. Calls bridge_run() with a BridgeConfig struct
 ///
-/// This header is compiled by a standard C++ compiler; all CUDA and Hololink
-/// calls go through C interfaces (cudaq_realtime.h, hololink_wrapper.h).
+/// This header is compiled by a standard C++ compiler; all CUDA and GpuRoceTransceiver
+/// calls go through C interfaces (cudaq_realtime.h, gpu_roce_wrapper.h).
 
 #include <algorithm>
 #include <atomic>
@@ -42,19 +42,19 @@
 #include <arpa/inet.h>
 #include <cuda_runtime.h>
 
-#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
+#include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
-// Hololink C wrapper (link against hololink_wrapper_bridge static library)
-#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
+// GpuRoceTransceiver C wrapper (link against gpu_roce_wrapper_bridge static library)
+#include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
 
-// Weak declaration of the Hololink unified dispatch launch function
-// (defined in libcudaq-realtime-bridge-hololink.so).  Weak so that
+// Weak declaration of the GpuRoceTransceiver unified dispatch launch function
+// (defined in libcudaq-realtime-bridge-gpu-roce.so).  Weak so that
 // bridge tools that only use the 3-kernel architecture don't need
-// to link the bridge-hololink library.
+// to link the bridge-gpu_roce library.
 extern "C" __attribute__((weak)) void
-hololink_launch_unified_dispatch(void *transport_ctx,
+gpu_roce_launch_unified_dispatch(void *transport_ctx,
                                  cudaq_function_entry_t *function_table,
                                  size_t func_count, volatile int *shutdown_flag,
                                  uint64_t *stats, cudaStream_t stream);
@@ -93,7 +93,7 @@ inline void bridge_signal_handler(int) { bridge_shutdown_flag() = true; }
 // Bridge Configuration
 //==============================================================================
 
-/// @brief Configuration for the bridge's Hololink and dispatch kernel setup.
+/// @brief Configuration for the bridge's GpuRoceTransceiver and dispatch kernel setup.
 struct BridgeConfig {
   // IB / network
   std::string device = "rocep1s0f0"; ///< IB device name
@@ -113,7 +113,7 @@ struct BridgeConfig {
   bool exchange_qp = false;  ///< Use QP exchange protocol
   int exchange_port = 12345; ///< TCP port for QP exchange
 
-  // Forward mode: use Hololink's built-in forward kernel (echo) instead of
+  // Forward mode: use GpuRoceTransceiver's built-in forward kernel (echo) instead of
   // separate RX + dispatch + TX kernels.  Useful for baseline latency testing.
   bool forward = false;
 
@@ -137,7 +137,7 @@ struct BridgeConfig {
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
 
   // Set this to CUDAQ_DISPATCH_PATH_HOST for the HOST_LOOP graph launch mode --
-  // CPU-side dispatcher that polls Hololink ring flags and launches CUDA
+  // CPU-side dispatcher that polls GpuRoceTransceiver ring flags and launches CUDA
   // graphs.  Requires a Grace-based system (Grace-Hopper / DGX Spark,
   // Grace-Blackwell / GB200) where GPU memory is CPU-accessible via NVLink-C2C,
   // since the HOST_LOOP thread reads DOCA GPU ring flags directly from the CPU.
@@ -210,14 +210,14 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
 // Bridge Run Function
 //==============================================================================
 
-/// @brief Run the Hololink bridge with the given configuration.
+/// @brief Run the GpuRoceTransceiver bridge with the given configuration.
 ///
 /// This function:
 ///   1. Initialises CUDA on the configured GPU
-///   2. Creates the Hololink transceiver and connects the QP
+///   2. Creates the GpuRoceTransceiver and connects the QP
 ///   3. Forces eager CUDA module loading
-///   4. Wires the cudaq dispatch kernel to the Hololink ring buffers
-///   5. Launches Hololink RX+TX kernels
+///   4. Wires the cudaq dispatch kernel to the GpuRoceTransceiver ring buffers
+///   5. Launches GpuRoceTransceiver RX+TX kernels
 ///   6. Runs the main diagnostic loop until timeout or signal
 ///   7. Performs orderly shutdown
 ///
@@ -243,9 +243,9 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  GPU: " << prop.name << std::endl;
 
   //============================================================================
-  // [2] Create Hololink transceiver
+  // [2] Create GpuRoceTransceiver
   //============================================================================
-  std::cout << "\n[2/5] Creating Hololink transceiver..." << std::endl;
+  std::cout << "\n[2/5] Creating GpuRoceTransceiver..." << std::endl;
 
   // Ensure page_size >= frame_size
   if (config.page_size < config.frame_size) {
@@ -259,9 +259,9 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
   // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
-  // thread.  Hololink's blocking_monitor() starts this thread alongside its
+  // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread alongside its
   // kernels.  For unified mode on iGPU we need the CPU proxy but NOT the
-  // hololink kernels, so we pass (false, false, false) -- blocking_monitor
+  // gpu_roce kernels, so we pass (false, false, false) -- blocking_monitor
   // will start only the CPU proxy thread.  On dGPU, no CPU proxy is needed
   // and we use forward=true to get 64-deep receive pre-posting from start().
   bool is_igpu = (prop.integrated != 0);
@@ -271,7 +271,7 @@ inline int bridge_run(BridgeConfig &config) {
   bool use_forward = config.forward || (config.unified && !is_igpu);
   bool use_3kernel = is_host_loop || (!config.forward && !config.unified);
 
-  hololink_transceiver_t transceiver = hololink_create_transceiver(
+  gpu_roce_transceiver_t transceiver = gpu_roce_create_transceiver(
       config.device.c_str(), 1, // ib_port
       config.remote_qp,         // remote QP number (FPGA default: 2)
       config.gpu_id,            // DOCA GPU device ID
@@ -283,24 +283,24 @@ inline int bridge_run(BridgeConfig &config) {
   );
 
   if (!transceiver) {
-    std::cerr << "ERROR: Failed to create Hololink transceiver" << std::endl;
+    std::cerr << "ERROR: Failed to create GpuRoceTransceiver" << std::endl;
     return 1;
   }
 
   // HOST_LOOP needs CPU-readable ring flags and data; allocate as CPU_GPU.
   if (is_host_loop)
-    hololink_set_cpu_ring_buffers(transceiver, 1);
+    gpu_roce_set_cpu_ring_buffers(transceiver, 1);
 
   std::cout << "  Connecting to remote QP 0x" << std::hex << config.remote_qp
             << std::dec << " at " << config.peer_ip << "..." << std::endl;
 
-  if (!hololink_start(transceiver)) {
-    std::cerr << "ERROR: Failed to start Hololink transceiver" << std::endl;
-    hololink_destroy_transceiver(transceiver);
+  if (!gpu_roce_start(transceiver)) {
+    std::cerr << "ERROR: Failed to start GpuRoceTransceiver" << std::endl;
+    gpu_roce_destroy_transceiver(transceiver);
     return 1;
   }
 
-  // Hololink start() pops the CUDA context via cuCtxPopCurrent; restore it.
+  // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent; restore it.
   BRIDGE_CUDA_CHECK(cudaSetDevice(config.gpu_id));
 
   // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
@@ -308,9 +308,9 @@ inline int bridge_run(BridgeConfig &config) {
   // prepare kernel here so the NIC has receive buffers before any packets
   // arrive.
   if (unified_igpu) {
-    if (!hololink_prepare_receive_send(transceiver, config.frame_size)) {
+    if (!gpu_roce_prepare_receive_send(transceiver, config.frame_size)) {
       std::cerr << "ERROR: Failed to pre-post receive WQEs" << std::endl;
-      hololink_destroy_transceiver(transceiver);
+      gpu_roce_destroy_transceiver(transceiver);
       return 1;
     }
     std::cout << "  Pre-posted receive WQEs (iGPU unified mode)" << std::endl;
@@ -318,9 +318,9 @@ inline int bridge_run(BridgeConfig &config) {
 
   std::cout << "  QP connected to remote peer" << std::endl;
 
-  uint32_t our_qp = hololink_get_qp_number(transceiver);
-  uint32_t our_rkey = hololink_get_rkey(transceiver);
-  uint64_t our_buffer = hololink_get_buffer_addr(transceiver);
+  uint32_t our_qp = gpu_roce_get_qp_number(transceiver);
+  uint32_t our_rkey = gpu_roce_get_rkey(transceiver);
+  uint64_t our_buffer = gpu_roce_get_buffer_addr(transceiver);
 
   std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;
   std::cout << "  RKey: " << our_rkey << std::endl;
@@ -329,15 +329,15 @@ inline int bridge_run(BridgeConfig &config) {
 
   // Ring buffer pointers
   uint8_t *rx_ring_data =
-      reinterpret_cast<uint8_t *>(hololink_get_rx_ring_data_addr(transceiver));
-  uint64_t *rx_ring_flag = hololink_get_rx_ring_flag_addr(transceiver);
+      reinterpret_cast<uint8_t *>(gpu_roce_get_rx_ring_data_addr(transceiver));
+  uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
   uint8_t *tx_ring_data =
-      reinterpret_cast<uint8_t *>(hololink_get_tx_ring_data_addr(transceiver));
-  uint64_t *tx_ring_flag = hololink_get_tx_ring_flag_addr(transceiver);
+      reinterpret_cast<uint8_t *>(gpu_roce_get_tx_ring_data_addr(transceiver));
+  uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
 
   if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
     std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
-    hololink_destroy_transceiver(transceiver);
+    gpu_roce_destroy_transceiver(transceiver);
     return 1;
   }
 
@@ -346,7 +346,7 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   std::cout << "\n[3/5] Forcing CUDA module loading..." << std::endl;
 
-  // Hololink kernels are already warmed up by start() (which does warmup
+  // GpuRoceTransceiver kernels are already warmed up by start() (which does warmup
   // launches for prepare_receive_send, forward, rx_only, tx_only).
   // The dispatch kernel occupancy query below handles our own kernels.
 
@@ -358,7 +358,7 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatcher_t *dispatcher = nullptr;
 
   // Transport context for unified mode (must outlive the dispatcher)
-  hololink_doca_transport_ctx unified_ctx{};
+  gpu_roce_doca_transport_ctx unified_ctx{};
 
   if (!config.forward) {
     if (!config.unified && !is_host_loop) {
@@ -425,7 +425,7 @@ inline int bridge_run(BridgeConfig &config) {
       dconfig.dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
       dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
       dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      // Hololink TX kernel polls tx_flags for ready data; writing sentinel
+      // GpuRoceTransceiver TX kernel polls tx_flags for ready data; writing sentinel
       // markers (0xEEEE) would be misinterpreted as a valid TX buffer address.
       dconfig.skip_tx_markers = 1;
     } else {
@@ -452,7 +452,7 @@ inline int bridge_run(BridgeConfig &config) {
     }
 
     if (is_host_loop) {
-      // HOST_LOOP: wire ringbuffer with Hololink GPU pointers as both
+      // HOST_LOOP: wire ringbuffer with GpuRoceTransceiver GPU pointers as both
       // device and host views.  On Grace-based systems (Grace-Hopper,
       // Grace-Blackwell), GPU memory is CPU-accessible via NVLink-C2C.
       cudaq_ringbuffer_t ringbuffer{};
@@ -492,16 +492,16 @@ inline int bridge_run(BridgeConfig &config) {
       }
     } else if (config.unified) {
       // Pack DOCA transport handles into the opaque context
-      unified_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+      unified_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
       unified_ctx.rx_ring_data = rx_ring_data;
-      unified_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
-      unified_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
-      unified_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+      unified_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
+      unified_ctx.rx_ring_mkey = htonl(gpu_roce_get_rkey(transceiver));
+      unified_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
       unified_ctx.frame_size = config.frame_size;
       unified_ctx.use_bf = is_igpu ? 0 : 1;
 
       if (cudaq_dispatcher_set_unified_launch(dispatcher,
-                                              &hololink_launch_unified_dispatch,
+                                              &gpu_roce_launch_unified_dispatch,
                                               &unified_ctx) != CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set unified launch function"
                   << std::endl;
@@ -559,26 +559,26 @@ inline int bridge_run(BridgeConfig &config) {
   }
 
   //============================================================================
-  // [5] Launch Hololink kernels (if needed) and run
+  // [5] Launch GpuRoceTransceiver kernels (if needed) and run
   //============================================================================
-  std::thread hololink_thread;
+  std::thread gpu_roce_thread;
 
   if (config.unified && !unified_igpu) {
-    std::cout << "\n[5/5] Unified mode (dGPU) -- Hololink kernels not needed"
+    std::cout << "\n[5/5] Unified mode (dGPU) -- GpuRoceTransceiver kernels not needed"
               << std::endl;
   } else if (unified_igpu) {
-    std::cout << "\n[5/5] Unified mode (iGPU) -- starting Hololink monitor "
-              << "(CPU proxy only, no hololink kernels)" << std::endl;
-    hololink_thread = std::thread(
-        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    std::cout << "\n[5/5] Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
+              << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
+    gpu_roce_thread = std::thread(
+        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
   } else {
-    std::cout << "\n[5/5] Launching Hololink kernels..." << std::endl;
+    std::cout << "\n[5/5] Launching GpuRoceTransceiver kernels..." << std::endl;
     std::cout.flush();
-    hololink_thread = std::thread(
-        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    gpu_roce_thread = std::thread(
+        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    std::cout << "  Hololink RX+TX kernels started" << std::endl;
+    std::cout << "  GpuRoceTransceiver RX+TX kernels started" << std::endl;
   }
 
   // Print QP info for FPGA stimulus tool
@@ -647,15 +647,15 @@ inline int bridge_run(BridgeConfig &config) {
               << std::endl;
   }
 
-  hololink_close(transceiver);
-  if (hololink_thread.joinable())
-    hololink_thread.join();
+  gpu_roce_close(transceiver);
+  if (gpu_roce_thread.joinable())
+    gpu_roce_thread.join();
 
   if (dispatcher)
     cudaq_dispatcher_destroy(dispatcher);
   if (manager)
     cudaq_dispatch_manager_destroy(manager);
-  hololink_destroy_transceiver(transceiver);
+  gpu_roce_destroy_transceiver(transceiver);
 
   if (shutdown_flag)
     cudaFreeHost(const_cast<int *>(shutdown_flag));

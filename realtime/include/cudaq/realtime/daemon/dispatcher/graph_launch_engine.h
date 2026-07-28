@@ -107,7 +107,7 @@ typedef struct {
 ///
 /// `skip_tx_markers`: when non-zero, the engine does NOT write the
 /// CUDAQ_TX_FLAG_IN_FLIGHT sentinel before a graph launch (set it when an
-/// external consumer polls the same tx_flags, e.g. the Hololink TX kernel). The
+/// external consumer polls the same tx_flags, e.g. the GpuRoceTransceiver TX kernel). The
 /// single-thread unified loop needs the markers (its publish_ready
 /// distinguishes in-flight from done), so it must pass 0.
 cudaq_graph_launch_engine_t *cudaq_graph_launch_engine_create(

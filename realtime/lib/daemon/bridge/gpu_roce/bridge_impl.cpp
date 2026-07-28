@@ -7,15 +7,15 @@
  ******************************************************************************/
 
 /// @file bridge_impl.cpp
-/// @brief Hololink bridge interface implementation for libcudaq-realtime
+/// @brief GpuRoceTransceiver bridge interface implementation for libcudaq-realtime
 /// dispatch.
 
 #include <cstdio>
 #include <sstream>
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
-#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
-#include "cudaq/realtime/hololink_bridge_common.h"
+#include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
+#include "cudaq/realtime/gpu_roce_bridge_common.h"
 
 namespace {
 #define HANDLE_CUDA_ERROR(x)                                                   \
@@ -29,12 +29,12 @@ namespace {
     }                                                                          \
   }
 
-struct HololinkBridgeContext {
+struct GpuRoceBridgeContext {
   cudaq::realtime::BridgeConfig config;
-  hololink_transceiver_t transceiver = nullptr;
-  std::unique_ptr<std::thread> hololink_thread;
+  gpu_roce_transceiver_t transceiver = nullptr;
+  std::unique_ptr<std::thread> gpu_roce_thread;
   bool is_igpu = false;
-  HololinkBridgeContext(const cudaq::realtime::BridgeConfig &cfg)
+  GpuRoceBridgeContext(const cudaq::realtime::BridgeConfig &cfg)
       : config(cfg) {
     //============================================================================
     // [1] Initialize CUDA
@@ -44,7 +44,7 @@ struct HololinkBridgeContext {
     HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, config.gpu_id));
 
     //============================================================================
-    // [2] Create Hololink transceiver
+    // [2] Create GpuRoceTransceiver
     //============================================================================
     // Ensure page_size >= frame_size
     if (config.page_size < config.frame_size) {
@@ -52,9 +52,9 @@ struct HololinkBridgeContext {
     }
 
     // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
-    // thread.  Hololink's blocking_monitor() starts this thread alongside its
+    // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread alongside its
     // kernels.  For unified mode on iGPU we need the CPU proxy but NOT the
-    // hololink kernels, so we pass (false, false, false) -- blocking_monitor
+    // gpu_roce kernels, so we pass (false, false, false) -- blocking_monitor
     // will start only the CPU proxy thread.  On dGPU, no CPU proxy is needed
     // and we use forward=true to get 64-deep receive pre-posting from start().
     is_igpu = (prop.integrated != 0);
@@ -63,7 +63,7 @@ struct HololinkBridgeContext {
     bool use_forward = config.forward || (config.unified && !is_igpu);
     bool use_3kernel = !config.forward && !config.unified;
 
-    transceiver = hololink_create_transceiver(
+    transceiver = gpu_roce_create_transceiver(
         config.device.c_str(), 1, // ib_port (FIXME: make configurable?)
         config.remote_qp,         // remote QP number
         config.gpu_id,            // GPU device ID
@@ -79,7 +79,7 @@ struct HololinkBridgeContext {
 
 extern "C" {
 static cudaq_status_t
-hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
+gpu_roce_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
                        char **argv) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
@@ -91,30 +91,30 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
   // Frame size: RPCHeader + payload size
   config.frame_size = sizeof(cudaq::realtime::RPCHeader) + config.payload_size;
 
-  // Create and initialize the bridge context (including the Hololink
+  // Create and initialize the bridge context (including the GpuRoceTransceiver
   // transceiver)
-  HololinkBridgeContext *ctx = new HololinkBridgeContext(config);
+  GpuRoceBridgeContext *ctx = new GpuRoceBridgeContext(config);
   if (!ctx) {
-    std::cerr << "ERROR: Failed to create HololinkBridgeContext" << std::endl;
+    std::cerr << "ERROR: Failed to create GpuRoceBridgeContext" << std::endl;
     return CUDAQ_ERR_INTERNAL;
   }
   // Set the output handle to the created context (opaque to the caller)
   *handle = ctx;
 
   if (!ctx->transceiver) {
-    std::cerr << "ERROR: Failed to create Hololink transceiver" << std::endl;
+    std::cerr << "ERROR: Failed to create GpuRoceTransceiver" << std::endl;
     delete ctx;
     return CUDAQ_ERR_INTERNAL;
   }
 
-  if (!hololink_start(ctx->transceiver)) {
-    std::cerr << "ERROR: Failed to start Hololink transceiver" << std::endl;
-    hololink_destroy_transceiver(ctx->transceiver);
+  if (!gpu_roce_start(ctx->transceiver)) {
+    std::cerr << "ERROR: Failed to start GpuRoceTransceiver" << std::endl;
+    gpu_roce_destroy_transceiver(ctx->transceiver);
     delete ctx;
     return CUDAQ_ERR_INTERNAL;
   }
 
-  // Hololink start() pops the CUDA context via cuCtxPopCurrent; restore it.
+  // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent; restore it.
   HANDLE_CUDA_ERROR(cudaSetDevice(config.gpu_id));
 
   // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
@@ -123,9 +123,9 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
   // arrive.
   const bool unified_igpu = config.unified && ctx->is_igpu;
   if (unified_igpu) {
-    if (!hololink_prepare_receive_send(ctx->transceiver, config.frame_size)) {
+    if (!gpu_roce_prepare_receive_send(ctx->transceiver, config.frame_size)) {
       std::cerr << "ERROR: Failed to pre-post receive WQEs" << std::endl;
-      hololink_destroy_transceiver(ctx->transceiver);
+      gpu_roce_destroy_transceiver(ctx->transceiver);
       delete ctx;
       return CUDAQ_ERR_INTERNAL;
     }
@@ -134,26 +134,26 @@ hololink_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
 }
 
 static cudaq_status_t
-hololink_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
+gpu_roce_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
-  HololinkBridgeContext *ctx =
-      reinterpret_cast<HololinkBridgeContext *>(handle);
+  GpuRoceBridgeContext *ctx =
+      reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (ctx->transceiver) {
-    hololink_destroy_transceiver(ctx->transceiver);
+    gpu_roce_destroy_transceiver(ctx->transceiver);
   }
   delete ctx;
   return CUDAQ_OK;
 }
 
-static cudaq_status_t hololink_bridge_get_transport_context(
+static cudaq_status_t gpu_roce_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t handle,
     cudaq_realtime_transport_context_t context_type, void *out_context) {
 
   if (!handle || !out_context)
     return CUDAQ_ERR_INVALID_ARG;
-  HololinkBridgeContext *ctx =
-      reinterpret_cast<HololinkBridgeContext *>(handle);
+  GpuRoceBridgeContext *ctx =
+      reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
 
@@ -164,11 +164,11 @@ static cudaq_status_t hololink_bridge_get_transport_context(
 
     // Ring buffer pointers
     uint8_t *rx_ring_data = reinterpret_cast<uint8_t *>(
-        hololink_get_rx_ring_data_addr(transceiver));
-    uint64_t *rx_ring_flag = hololink_get_rx_ring_flag_addr(transceiver);
+        gpu_roce_get_rx_ring_data_addr(transceiver));
+    uint64_t *rx_ring_flag = gpu_roce_get_rx_ring_flag_addr(transceiver);
     uint8_t *tx_ring_data = reinterpret_cast<uint8_t *>(
-        hololink_get_tx_ring_data_addr(transceiver));
-    uint64_t *tx_ring_flag = hololink_get_tx_ring_flag_addr(transceiver);
+        gpu_roce_get_tx_ring_data_addr(transceiver));
+    uint64_t *tx_ring_flag = gpu_roce_get_tx_ring_flag_addr(transceiver);
 
     if (!rx_ring_data || !rx_ring_flag || !tx_ring_data || !tx_ring_flag) {
       std::cerr << "ERROR: Failed to get ring buffer pointers" << std::endl;
@@ -185,17 +185,17 @@ static cudaq_status_t hololink_bridge_get_transport_context(
     cudaq_unified_dispatch_ctx_t *dispatch_ctx =
         reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
 
-    static hololink_doca_transport_ctx doca_ctx{};
-    doca_ctx.gpu_dev_qp = hololink_get_gpu_dev_qp(transceiver);
+    static gpu_roce_doca_transport_ctx doca_ctx{};
+    doca_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
     doca_ctx.rx_ring_data = reinterpret_cast<uint8_t *>(
-        hololink_get_rx_ring_data_addr(transceiver));
-    doca_ctx.rx_ring_stride_sz = hololink_get_page_size(transceiver);
-    doca_ctx.rx_ring_mkey = htonl(hololink_get_rkey(transceiver));
-    doca_ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
+        gpu_roce_get_rx_ring_data_addr(transceiver));
+    doca_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
+    doca_ctx.rx_ring_mkey = htonl(gpu_roce_get_rkey(transceiver));
+    doca_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
     doca_ctx.frame_size = ctx->config.frame_size;
     doca_ctx.use_bf = ctx->is_igpu ? 0 : 1;
 
-    dispatch_ctx->launch_fn = &hololink_launch_unified_dispatch;
+    dispatch_ctx->launch_fn = &gpu_roce_launch_unified_dispatch;
     dispatch_ctx->transport_ctx = &doca_ctx;
   } else {
     std::cerr << "ERROR: Invalid transport context type" << std::endl;
@@ -206,23 +206,23 @@ static cudaq_status_t hololink_bridge_get_transport_context(
 }
 
 static cudaq_status_t
-hololink_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
+gpu_roce_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
-  HololinkBridgeContext *ctx =
-      reinterpret_cast<HololinkBridgeContext *>(handle);
+  GpuRoceBridgeContext *ctx =
+      reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
-  if (ctx->hololink_thread && ctx->hololink_thread->joinable()) {
-    std::cerr << "ERROR: Hololink bridge already connected" << std::endl;
+  if (ctx->gpu_roce_thread && ctx->gpu_roce_thread->joinable()) {
+    std::cerr << "ERROR: GpuRoceTransceiver bridge already connected" << std::endl;
     return CUDAQ_ERR_INTERNAL;
   }
 
   auto &transceiver = ctx->transceiver;
 
-  uint32_t our_qp = hololink_get_qp_number(transceiver);
-  uint32_t our_rkey = hololink_get_rkey(transceiver);
-  uint64_t our_buffer = hololink_get_buffer_addr(transceiver);
+  uint32_t our_qp = gpu_roce_get_qp_number(transceiver);
+  uint32_t our_rkey = gpu_roce_get_rkey(transceiver);
+  uint64_t our_buffer = gpu_roce_get_buffer_addr(transceiver);
 
   // FIXME: Figure out a better way to share this info with the caller (e.g. via
   // output params or context struct) rather than printing to stdout. Print QP
@@ -239,27 +239,27 @@ hololink_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
 }
 
 static cudaq_status_t
-hololink_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
-  auto *ctx = reinterpret_cast<HololinkBridgeContext *>(handle);
+gpu_roce_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
+  auto *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx || !ctx->transceiver)
     return CUDAQ_ERR_INVALID_ARG;
   auto &transceiver = ctx->transceiver;
   const bool unified_igpu = ctx->config.unified && ctx->is_igpu;
   if (ctx->config.unified && !unified_igpu) {
-    std::cout << "\n Unified mode -- no hololink monitor thread needed"
+    std::cout << "\n Unified mode -- no gpu_roce monitor thread needed"
               << std::endl;
   } else if (unified_igpu) {
-    std::cout << "\n Unified mode (iGPU) -- starting Hololink monitor "
-              << "(CPU proxy only, no hololink kernels)" << std::endl;
-    ctx->hololink_thread = std::make_unique<std::thread>(
-        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    std::cout << "\n Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
+              << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
+    ctx->gpu_roce_thread = std::make_unique<std::thread>(
+        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
   } else {
     //============================================================================
-    // Launch Hololink kernels and run
+    // Launch GpuRoceTransceiver kernels and run
     //============================================================================
-    ctx->hololink_thread = std::make_unique<std::thread>(
-        [transceiver]() { hololink_blocking_monitor(transceiver); });
+    ctx->gpu_roce_thread = std::make_unique<std::thread>(
+        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
   }
@@ -267,66 +267,66 @@ hololink_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
 }
 
 static cudaq_status_t
-hololink_bridge_disconnect(cudaq_realtime_bridge_handle_t handle) {
-  auto *ctx = reinterpret_cast<HololinkBridgeContext *>(handle);
+gpu_roce_bridge_disconnect(cudaq_realtime_bridge_handle_t handle) {
+  auto *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx || !ctx->transceiver)
     return CUDAQ_ERR_INVALID_ARG;
   auto &transceiver = ctx->transceiver;
-  hololink_close(transceiver);
-  if (ctx->hololink_thread && ctx->hololink_thread->joinable())
-    ctx->hololink_thread->join();
+  gpu_roce_close(transceiver);
+  if (ctx->gpu_roce_thread && ctx->gpu_roce_thread->joinable())
+    ctx->gpu_roce_thread->join();
   return CUDAQ_OK;
 }
 
 static cudaq_status_t
-hololink_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle,
+gpu_roce_bridge_get_endpoint_info(cudaq_realtime_bridge_handle_t handle,
                                   char *buf, size_t buf_len) {
   if (!handle || !buf || buf_len == 0)
     return CUDAQ_ERR_INVALID_ARG;
-  auto *ctx = reinterpret_cast<HololinkBridgeContext *>(handle);
+  auto *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
   const int n = std::snprintf(
       buf, buf_len,
       "transport=gpu_roce qp=0x%x rkey=%u buffer_addr=0x%llx peer_ip=%s",
-      hololink_get_qp_number(ctx->transceiver),
-      hololink_get_rkey(ctx->transceiver),
+      gpu_roce_get_qp_number(ctx->transceiver),
+      gpu_roce_get_rkey(ctx->transceiver),
       static_cast<unsigned long long>(
-          hololink_get_buffer_addr(ctx->transceiver)),
+          gpu_roce_get_buffer_addr(ctx->transceiver)),
       ctx->config.peer_ip.c_str());
   return (n > 0 && static_cast<size_t>(n) < buf_len) ? CUDAQ_OK
                                                      : CUDAQ_ERR_INVALID_ARG;
 }
 
 static cudaq_status_t
-hololink_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
+gpu_roce_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t handle,
                                   uint32_t *out_num_slots,
                                   uint32_t *out_slot_size) {
   if (!handle || !out_num_slots || !out_slot_size)
     return CUDAQ_ERR_INVALID_ARG;
-  auto *ctx = reinterpret_cast<HololinkBridgeContext *>(handle);
+  auto *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
   *out_num_slots =
-      static_cast<uint32_t>(hololink_get_num_pages(ctx->transceiver));
+      static_cast<uint32_t>(gpu_roce_get_num_pages(ctx->transceiver));
   *out_slot_size =
-      static_cast<uint32_t>(hololink_get_page_size(ctx->transceiver));
+      static_cast<uint32_t>(gpu_roce_get_page_size(ctx->transceiver));
   return CUDAQ_OK;
 }
 
 cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
-  static cudaq_realtime_bridge_interface_t cudaq_hololink_bridge_interface = {
+  static cudaq_realtime_bridge_interface_t cudaq_gpu_roce_bridge_interface = {
       CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION,
-      hololink_bridge_create,
-      hololink_bridge_destroy,
-      hololink_bridge_get_transport_context,
-      hololink_bridge_connect,
-      hololink_bridge_launch,
-      hololink_bridge_disconnect,
+      gpu_roce_bridge_create,
+      gpu_roce_bridge_destroy,
+      gpu_roce_bridge_get_transport_context,
+      gpu_roce_bridge_connect,
+      gpu_roce_bridge_launch,
+      gpu_roce_bridge_disconnect,
       /*get_cpu_dataplane=*/nullptr, // GPU rings; no host unified shape
-      hololink_bridge_get_endpoint_info,
-      hololink_bridge_get_ring_geometry,
+      gpu_roce_bridge_get_endpoint_info,
+      gpu_roce_bridge_get_ring_geometry,
   };
-  return &cudaq_hololink_bridge_interface;
+  return &cudaq_gpu_roce_bridge_interface;
 }
 }

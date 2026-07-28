@@ -6,16 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// @file hololink_wrapper.cpp
-/// @brief C wrapper implementation for Hololink GpuRoceTransceiver.
+/// @file gpu_roce_wrapper.cpp
+/// @brief C wrapper implementation for GpuRoceTransceiver.
 ///
-/// This file is compiled by g++ (not nvcc) to isolate Hololink's fmt
+/// This file is compiled by g++ (not nvcc) to isolate GpuRoceTransceiver's fmt
 /// dependency from CUDA translation units.
 
-#include "cudaq/realtime/daemon/bridge/hololink/hololink_wrapper.h"
+#include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
 
-// Include Hololink headers here (with Holoscan's fmt)
-// Disable deprecation warnings for Hololink headers, which may use deprecated
+// Include GpuRoceTransceiver headers here (with Holoscan's fmt)
+// Disable deprecation warnings for GpuRoceTransceiver headers, which may use deprecated
 // APIs
 #if (defined(__GNUC__) && !defined(__clang__))
 #pragma GCC diagnostic push
@@ -41,7 +41,7 @@ using namespace hololink::operators;
 // Internal implementation struct
 //==============================================================================
 
-struct HololinkTransceiverImpl {
+struct GpuRoceTransceiverImpl {
   std::unique_ptr<GpuRoceTransceiver> transceiver;
 };
 
@@ -49,17 +49,17 @@ struct HololinkTransceiverImpl {
 // Lifecycle
 //==============================================================================
 
-hololink_transceiver_t hololink_create_transceiver(
+gpu_roce_transceiver_t gpu_roce_create_transceiver(
     const char *device_name, int ib_port, unsigned tx_ibv_qp, int gpu_id,
     size_t frame_size, size_t page_size, unsigned num_pages,
     const char *peer_ip, int forward, int rx_only, int tx_only) {
   try {
-    auto *impl = new HololinkTransceiverImpl();
+    auto *impl = new GpuRoceTransceiverImpl();
     impl->transceiver = std::make_unique<GpuRoceTransceiver>(
         device_name, static_cast<unsigned>(ib_port), tx_ibv_qp, gpu_id,
         frame_size, page_size, num_pages, peer_ip, forward != 0, rx_only != 0,
         tx_only != 0);
-    return reinterpret_cast<hololink_transceiver_t>(impl);
+    return reinterpret_cast<gpu_roce_transceiver_t>(impl);
   } catch (const std::exception &e) {
     std::cerr << "ERROR: Failed to create GpuRoceTransceiver: " << e.what()
               << std::endl;
@@ -71,38 +71,38 @@ hololink_transceiver_t hololink_create_transceiver(
   }
 }
 
-void hololink_destroy_transceiver(hololink_transceiver_t handle) {
+void gpu_roce_destroy_transceiver(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     delete impl;
   }
 }
 
-int hololink_start(hololink_transceiver_t handle) {
+int gpu_roce_start(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->start() ? 1 : 0;
   }
   return 0;
 }
 
-void hololink_close(hololink_transceiver_t handle) {
+void gpu_roce_close(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     impl->transceiver->close();
   }
 }
 
-void hololink_blocking_monitor(hololink_transceiver_t handle) {
+void gpu_roce_blocking_monitor(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     impl->transceiver->blocking_monitor();
   }
 }
 
-void hololink_set_cpu_ring_buffers(hololink_transceiver_t handle, int enable) {
+void gpu_roce_set_cpu_ring_buffers(gpu_roce_transceiver_t handle, int enable) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     impl->transceiver->set_cpu_ring_buffers(enable != 0);
   }
 }
@@ -111,33 +111,33 @@ void hololink_set_cpu_ring_buffers(hololink_transceiver_t handle, int enable) {
 // QP information
 //==============================================================================
 
-uint32_t hololink_get_qp_number(hololink_transceiver_t handle) {
+uint32_t gpu_roce_get_qp_number(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_qp_number();
   }
   return 0;
 }
 
-uint32_t hololink_get_rkey(hololink_transceiver_t handle) {
+uint32_t gpu_roce_get_rkey(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_rkey();
   }
   return 0;
 }
 
-uint64_t hololink_get_buffer_addr(hololink_transceiver_t handle) {
+uint64_t gpu_roce_get_buffer_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->external_frame_memory();
   }
   return 0;
 }
 
-void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle) {
+void *gpu_roce_get_gpu_dev_qp(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_doca_gpu_dev_qp(0);
   }
   return nullptr;
@@ -147,71 +147,71 @@ void *hololink_get_gpu_dev_qp(hololink_transceiver_t handle) {
 // Ring buffer access
 //==============================================================================
 
-void *hololink_get_rx_ring_data_addr(hololink_transceiver_t handle) {
+void *gpu_roce_get_rx_ring_data_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_rx_ring_data_addr();
   }
   return nullptr;
 }
 
-uint64_t *hololink_get_rx_ring_flag_addr(hololink_transceiver_t handle) {
+uint64_t *gpu_roce_get_rx_ring_flag_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_rx_ring_flag_addr();
   }
   return nullptr;
 }
 
-void *hololink_get_tx_ring_data_addr(hololink_transceiver_t handle) {
+void *gpu_roce_get_tx_ring_data_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_tx_ring_data_addr();
   }
   return nullptr;
 }
 
-uint64_t *hololink_get_tx_ring_flag_addr(hololink_transceiver_t handle) {
+uint64_t *gpu_roce_get_tx_ring_flag_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_tx_ring_flag_addr();
   }
   return nullptr;
 }
 
-bool hololink_query_kernel_occupancy(void) {
+bool gpu_roce_query_kernel_occupancy(void) {
   int prep = 0, rx = 0, tx = 0;
   cudaError_t err = GpuRoceTransceiverQueryOccupancy(&prep, &rx, &tx);
   if (err != cudaSuccess) {
-    fprintf(stderr, "ERROR: Hololink kernel occupancy query failed: %s\n",
+    fprintf(stderr, "ERROR: GpuRoceTransceiver kernel occupancy query failed: %s\n",
             cudaGetErrorString(err));
     return false;
   }
-  printf("  Hololink kernel occupancy: prepare=%d rx=%d tx=%d\n", prep, rx, tx);
+  printf("  GpuRoceTransceiver kernel occupancy: prepare=%d rx=%d tx=%d\n", prep, rx, tx);
   return true;
 }
 
-size_t hololink_get_page_size(hololink_transceiver_t handle) {
+size_t gpu_roce_get_page_size(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_rx_ring_stride_sz();
   }
   return 0;
 }
 
-unsigned hololink_get_num_pages(hololink_transceiver_t handle) {
+unsigned gpu_roce_get_num_pages(gpu_roce_transceiver_t handle) {
   if (handle) {
-    auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
     return impl->transceiver->get_rx_ring_stride_num();
   }
   return 0;
 }
 
-int hololink_prepare_receive_send(hololink_transceiver_t handle,
+int gpu_roce_prepare_receive_send(gpu_roce_transceiver_t handle,
                                   size_t frame_size) {
   if (!handle)
     return 0;
-  auto *impl = reinterpret_cast<HololinkTransceiverImpl *>(handle);
+  auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
   auto *qp = static_cast<struct doca_gpu_dev_verbs_qp *>(
       impl->transceiver->get_doca_gpu_dev_qp(0));
   if (!qp)
