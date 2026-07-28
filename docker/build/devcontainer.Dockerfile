@@ -51,7 +51,7 @@ RUN apt update && apt-get install -y --no-install-recommends ca-certificates wge
 RUN rm -f /etc/apt/sources.list.d/cuda.list
 
 # Install DOCA-OFED 3.1.0 userspace runtime dependencies.
-# Install only the RDMA/IB libraries needed by the HPC stack (UCX/OpenMPI), plus SHARP,
+# Install only the RDMA/IB libraries needed by UCX/UCC/OpenMPI, plus SHARP,
 # not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
 # Note: the sharp package Depends on DOCA's ucx; our UCX build is preferred via
 # ld.so.conf.d / LD_LIBRARY_PATH.
@@ -113,6 +113,15 @@ COPY --from=ompibuild "$UCX_INSTALL_PREFIX" "$UCX_INSTALL_PREFIX"
 # ld.so.conf.d makes the loader prefer this build (those entries precede the
 # default system directories).
 RUN echo "$UCX_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
+
+# Copy over UCC.
+
+ARG UCC_INSTALL_PREFIX=/usr/local/ucc
+ENV UCC_INSTALL_PREFIX="$UCC_INSTALL_PREFIX"
+ENV LD_LIBRARY_PATH="$UCC_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
+ENV PATH="$UCC_INSTALL_PREFIX/bin:$PATH"
+COPY --from=ompibuild "$UCC_INSTALL_PREFIX" "$UCC_INSTALL_PREFIX"
+RUN echo "$UCC_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
 
 # Copy over MUNGE.
 

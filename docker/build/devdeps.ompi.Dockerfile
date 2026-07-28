@@ -57,7 +57,7 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
     && rm -rf /var/tmp/slurm-21.08.8 /var/tmp/slurm-21.08.8.tar.bz2
 
 # 3 - Install DOCA-OFED 3.1.0 (userspace)
-# Install only the RDMA/IB libraries needed by the HPC stack (UCX/OpenMPI), plus SHARP,
+# Install only the RDMA/IB libraries needed to build UCX/UCC/OpenMPI, plus SHARP,
 # not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
 # Note: the sharp package Depends on DOCA's ucx; our UCX build below is preferred via
 # ld.so.conf.d / LD_LIBRARY_PATH.
@@ -138,7 +138,35 @@ RUN echo "$UCX_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
 ENV LD_LIBRARY_PATH="$UCX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
     PATH="$UCX_INSTALL_PREFIX/bin:$PATH"
 
-# 6 - Install MUNGE version 0.5.14
+# 6 - Install UCC version 1.8.0 (latest stable) with UCX + SHARP + CUDA
+
+ENV UCC_VERSION=1.8.0
+ENV UCC_INSTALL_PREFIX=/usr/local/ucc
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+        autoconf automake libtool \
+    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://github.com/openucx/ucc/archive/refs/tags/v${UCC_VERSION}.tar.gz" \
+    && tar -x -f /var/tmp/v${UCC_VERSION}.tar.gz -C /var/tmp -z \
+    && cd /var/tmp/ucc-${UCC_VERSION} \
+    && ./autogen.sh \
+    && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
+    &&  CC=gcc CFLAGS="$common_flags" \
+        CXX=g++ CXXFLAGS="$common_flags" \
+        LDFLAGS=-Wl,--as-needed \
+        ./configure --prefix="$UCC_INSTALL_PREFIX" \
+            --with-ucx="$UCX_INSTALL_PREFIX" \
+            --with-cuda="$CUDA_INSTALL_PREFIX" \
+            --with-sharp="$SHARP_INSTALL_PREFIX" \
+            --enable-optimizations \
+    && make -j$(nproc) && make -j$(nproc) install \
+    && echo "$UCC_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+    && rm -rf /var/tmp/ucc-${UCC_VERSION} /var/tmp/v${UCC_VERSION}.tar.gz \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV LD_LIBRARY_PATH="$UCC_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
+    PATH="$UCC_INSTALL_PREFIX/bin:$PATH"
+
+# 7 - Install MUNGE version 0.5.14
 
 ENV MUNGE_INSTALL_PREFIX=/usr/local/munge
 RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/dun/munge/releases/download/munge-0.5.14/munge-0.5.14.tar.xz \
@@ -153,7 +181,7 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
     && make -j$(nproc) && make -j$(nproc) install \
     && rm -rf /var/tmp/munge-0.5.14 /var/tmp/munge-0.5.14.tar.xz
 
-# 7 - Install PMIX version 3.2.3
+# 8 - Install PMIX version 3.2.3
 
 ENV PMIX_INSTALL_PREFIX=/usr/local/pmix
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
@@ -176,7 +204,7 @@ ENV CPATH="$PMIX_INSTALL_PREFIX/include:$CPATH" \
     LD_LIBRARY_PATH="$PMIX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
     PATH="$PMIX_INSTALL_PREFIX/bin:$PATH"
 
-# 8 - Install OMPI version 4.1.4
+# 9 - Install OMPI version 4.1.4
 
 ENV OPENMPI_INSTALL_PREFIX=/usr/local/openmpi
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
