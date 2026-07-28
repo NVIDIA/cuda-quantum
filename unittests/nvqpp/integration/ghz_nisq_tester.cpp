@@ -20,7 +20,7 @@ struct ghz {
   auto operator()(int N) __qpu__ {
     cudaq::qvector q(N);
     h(q[0]);
-    for (auto i : range(N - 1)) {
+    for (auto i : cudaq::range(N - 1)) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
     mz(q);
