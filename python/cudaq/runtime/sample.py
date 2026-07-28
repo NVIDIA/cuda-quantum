@@ -40,9 +40,10 @@ class AsyncSampleResult:
             self.counter = None
 
     def get(self):
-        result = self.impl.get()
-        self.getCalled = True
-        return result
+        try:
+            return self.impl.get()
+        finally:
+            self.getCalled = True
 
     def __del__(self):
         # FIXME : This potentially leaks memory intentionally. It is possible
@@ -268,8 +269,7 @@ def sample_async(decorator,
 
     _detail_check_explicit_measurements(explicit_measurements)
 
-    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName, module,
-                                                     shots_count, noise_model,
-                                                     explicit_measurements,
-                                                     qpu_id, *processedArgs)
+    sample_results = cudaq_runtime.sample_async_impl(
+        decorator.uniqName, module, decorator.compiledModuleCache(),
+        shots_count, noise_model, explicit_measurements, qpu_id, *processedArgs)
     return AsyncSampleResult(sample_results, module)
