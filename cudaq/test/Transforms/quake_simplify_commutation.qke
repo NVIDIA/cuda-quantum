@@ -234,6 +234,41 @@ func.func @fold_rotation_families() {
 // CHECK:         quake.sink %[[RZ]] : !quake.wire
 // CHECK:         return
 
+// PhasedRx folds across an operation that commutes on its negative control.
+// Equal phi constants select the same axis, while the adjoint endpoint
+// contributes a negative theta. The fold keeps the endpoint's phi value.
+func.func @fold_phased_rx() {
+  %theta0 = arith.constant 1.0 : f64
+  %theta1 = arith.constant 0.25 : f64
+  %phi0 = arith.constant 0.5 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %other = quake.null_wire
+
+  %rx0:2 = quake.phased_rx (%theta0, %phi0) [%control neg [true]] %target : (f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %z:2 = quake.z [%rx0#0] %other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %phi1 = arith.constant 0.5 : f64
+  %rx1:2 = quake.phased_rx<adj> (%theta1, %phi1) [%z#0 neg [true]] %rx0#1 : (f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  quake.sink %rx1#0 : !quake.wire
+  quake.sink %rx1#1 : !quake.wire
+  quake.sink %z#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @fold_phased_rx() {
+// CHECK:         %[[THETA:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK-NEXT:    %[[PHI:.*]] = arith.constant 5.000000e-01 : f64
+// CHECK:         %[[CONTROL:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[OTHER:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[Z:.*]]:2 = quake.z {{\[}}%[[CONTROL]]] %[[OTHER]]
+// CHECK-NEXT:    %[[RX:.*]]:2 = quake.phased_rx (%[[THETA]], %[[PHI]]) {{\[}}%[[Z]]#0 neg [true]] %[[TARGET]]
+// CHECK-NEXT:    quake.sink %[[RX]]#0 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[RX]]#1 : !quake.wire
+// CHECK-NEXT:    quake.sink %[[Z]]#1 : !quake.wire
+// CHECK-NEXT:    return
+
 // Exact opposite-adjoint angles cancel without materializing arithmetic, and a
 // literal zero rotation forwards its original wire.
 func.func @cancel_exact_rotation_angles() {
@@ -335,18 +370,22 @@ func.func @fold_discrete_phases() {
 // CHECK-NEXT:    quake.sink %[[FOLDED_S]] : !quake.wire
 // CHECK-NEXT:    return
 
-// Reusable controls remain valid Quake but are outside the supported optimizer
-// form. Their pair stays unchanged while the independent scalar-wire H pair
-// still simplifies in the same function.
+// Reusable controls remain valid Quake but are outside matcher traversal. Their
+// nonzero pair stays unchanged, while independent scalar-wire cancellation and
+// zero-angle identity simplification still apply.
 func.func private @leave_reusable_control_chain(%control: !quake.control) {
+  %zero = arith.constant 0.0 : f64
   %control_target = quake.null_wire
   %wire_target = quake.null_wire
+  %zero_target = quake.null_wire
   %x0 = quake.x [%control] %control_target : (!quake.control, !quake.wire) -> !quake.wire
   %x1 = quake.x [%control] %x0 : (!quake.control, !quake.wire) -> !quake.wire
   %h0 = quake.h %wire_target : (!quake.wire) -> !quake.wire
   %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+  %rx = quake.rx (%zero) [%control neg [true]] %zero_target : (f64, !quake.control, !quake.wire) -> !quake.wire
   quake.sink %x1 : !quake.wire
   quake.sink %h1 : !quake.wire
+  quake.sink %rx : !quake.wire
   return
 }
 
@@ -354,11 +393,14 @@ func.func private @leave_reusable_control_chain(%control: !quake.control) {
 // CHECK-SAME:  (%[[CONTROL:.*]]: !quake.control) {
 // CHECK:         %[[CONTROL_TARGET:.*]] = quake.null_wire
 // CHECK:         %[[WIRE_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[ZERO_TARGET:.*]] = quake.null_wire
 // CHECK:         %[[X0:.*]] = quake.x {{\[}}%[[CONTROL]]] %[[CONTROL_TARGET]]
 // CHECK:         %[[X1:.*]] = quake.x {{\[}}%[[CONTROL]]] %[[X0]]
 // CHECK-NOT:     quake.h
+// CHECK-NOT:     quake.rx
 // CHECK:         quake.sink %[[X1]] : !quake.wire
 // CHECK:         quake.sink %[[WIRE_TARGET]] : !quake.wire
+// CHECK:         quake.sink %[[ZERO_TARGET]] : !quake.wire
 // CHECK:         return
 
 // A controlled Swap pair cancels across a Z that shares only its control. The
