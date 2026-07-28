@@ -419,9 +419,6 @@ private:
     if (!matchPattern(qop.getParameters().front(), m_Constant(&attr)))
       return false;
     double theta = cast<FloatAttr>(attr).getValueAsDouble();
-    if (!std::isfinite(theta))
-      return false;
-
     double period =
         qop.getControls().empty() ? 2.0 * M_PI : exactIdentityPeriod<QOP>();
 
