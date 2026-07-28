@@ -45,6 +45,7 @@ MLIRFuncTransforms
 MLIRFuncInlinerExtension
 MLIRArithDialect
 MLIRControlFlowDialect
+MLIRSCFDialect
 MLIRComplexDialect
 MLIRMathDialect
 MLIRLLVMDialect
@@ -73,6 +74,8 @@ MLIRArithToLLVM
 MLIRComplexToLibm
 MLIRComplexToLLVM
 MLIRControlFlowToLLVM
+MLIRSCFTransforms
+MLIRSCFToControlFlow
 MLIRFuncToLLVM
 MLIRMathToFuncs
 MLIRMathToLLVM

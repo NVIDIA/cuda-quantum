@@ -60,6 +60,23 @@ if unzip -l "$devel_wheel" | grep -q 'lib/libcudaq\.so'; then
 fi
 echo "  OK: libcudaq.so not bundled in devel wheel"
 
+# Reject build-machine absolute paths that break out-of-tree consumers.
+scratch=$(mktemp -d)
+venv_dir=""
+smoke_dir=""
+trap 'rm -rf "$venv_dir" "$smoke_dir" "$scratch"' EXIT
+unzip -q -d "$scratch" "$devel_wheel" \
+  'lib/cmake/*Targets*.cmake' 'lib/cmake/*/*Targets*.cmake' \
+  'bin/clang.cfg' 'bin/clang++.cfg' \
+  'lib/cmake/llvm/LLVMConfig.cmake' 2>/dev/null || true
+bad_paths=$(grep -RInE '/Users/|/home/[^/]+/\.local/' "$scratch" 2>/dev/null || true)
+if [ -n "$bad_paths" ]; then
+  echo "Error: devel wheel contains absolute builder paths:" >&2
+  echo "$bad_paths" | head -20 >&2
+  exit 1
+fi
+echo "  OK: no absolute builder paths in CMake exports / clang.cfg"
+
 if $quick; then
   echo "Skipping smoke build (-q)"
   exit 0
@@ -68,8 +85,6 @@ fi
 python="${PYTHON:-python3}"
 venv_dir=$(mktemp -d)
 smoke_dir=$(mktemp -d)
-trap 'rm -rf "$venv_dir" "$smoke_dir"' EXIT
-
 "$python" -m venv "$venv_dir"
 # shellcheck source=/dev/null
 source "$venv_dir/bin/activate"

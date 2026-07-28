@@ -430,7 +430,8 @@ if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
-  # Find path to the compiler-rt library
+  # Find path to the compiler-rt library. Custom clang built with
+  # --rtlib=compiler-rt needs this on every link line on Darwin.
   set(_cudaq_builtins "")
   execute_process(
     COMMAND ${CMAKE_CXX_COMPILER} --rtlib=compiler-rt --print-libgcc-file-name
@@ -438,7 +439,7 @@ else()
     OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
   if(EXISTS "${_cudaq_builtins}")
     message(STATUS "Found compiler-rt builtins: ${_cudaq_builtins}")
-    link_libraries("${_cudaq_builtins}")
+    add_link_options("${_cudaq_builtins}")
   else()
     message(WARNING "compiler-rt builtins not found, symbol resolution may fail at runtime")
     add_link_options("LINKER:-undefined,dynamic_lookup")
@@ -1016,3 +1017,43 @@ if (CUDAQ_EXTERNAL_NVQIR_SIMS)
     add_target_libs_to_wheel(${LIB_SO_OR_CONFIG_FILE})
   endwhile()
 endif()
+
+# Safety net: strip absolute compiler-rt paths from installed CMake exports.
+# Must run after all install(EXPORT) rules (registered last).
+install(CODE [[
+  file(GLOB_RECURSE _cudaq_export_files
+    "${CMAKE_INSTALL_PREFIX}/lib/cmake/*Targets*.cmake")
+  foreach(_export_file IN LISTS _cudaq_export_files)
+    file(READ "${_export_file}" _content)
+    set(_original "${_content}")
+    # Drop absolute libclang_rt*.a entries (optional quotes, optional
+    # surrounding semicolons) from INTERFACE_LINK_LIBRARIES lists.
+    string(REGEX REPLACE
+      ";?/[^;\"]*libclang_rt[^;\"]*\\.a;?"
+      ";"
+      _content
+      "${_content}")
+    string(REGEX REPLACE
+      "\"/[^;\"]*libclang_rt[^;\"]*\\.a\""
+      "\"\""
+      _content
+      "${_content}")
+    string(REGEX REPLACE ";;+" ";" _content "${_content}")
+    string(REGEX REPLACE
+      "INTERFACE_LINK_LIBRARIES \";+"
+      "INTERFACE_LINK_LIBRARIES \""
+      _content
+      "${_content}")
+    string(REGEX REPLACE
+      ";+\""
+      "\""
+      _content
+      "${_content}")
+    if(NOT _content STREQUAL _original)
+      file(WRITE "${_export_file}" "${_content}")
+      message(STATUS
+        "Removed absolute compiler-rt paths from ${_export_file}")
+    endif()
+  endforeach()
+]]
+  COMPONENT Development)
