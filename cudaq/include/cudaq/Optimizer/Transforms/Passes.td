@@ -1437,7 +1437,7 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     This pass performs several simplifications on Quake operations. The
     IR is expected to be in value-semantics form.
 
-    Commutation-aware cancellation is block local and supports participating
+    Commutation-aware rewrites are block local and support participating
     operations whose controls and targets are scalar `!quake.wire` values.
     Other valid control representations conservatively do not match.
 
