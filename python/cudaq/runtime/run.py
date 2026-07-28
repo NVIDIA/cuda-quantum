@@ -63,7 +63,7 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
 
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
-                                  decorator.cachedCompiledModule(), shots_count,
+                                  decorator.compiledModuleCache(), shots_count,
                                   noise_model, qpu_id, *processedArgs)
 
 
