@@ -63,24 +63,24 @@ static bool comesFirst(Operation *lhs, Operation *rhs, bool isForward) {
 
 // Map a wire operand to the result carrying the same virtual qubit, or the
 // reverse when `toResult` is false. These are the same one-to-one forms that
-// `QubitIdentityAnalysis` propagates. Measurement's classical result is not
-// part of its `getWires()` range.
+// `QubitIdentityAnalysis` propagates. A measurement instrument's classical
+// result is not part of its `getWires()` range.
 static Value mapWireAcross(Operation *operation, Value value, bool toResult) {
   llvm::SmallVector<Value> wireInputs;
   ValueRange wireResults;
   if (auto op = dyn_cast<cudaq::quake::OperatorInterface>(operation)) {
     wireInputs = cudaq::quake::getWireOperands(op);
     wireResults = op.getWires();
-  } else if (auto measurement =
+  } else if (auto measurementInstrument =
                  dyn_cast<cudaq::quake::MeasurementInterface>(operation)) {
-    for (Value target : measurement.getTargets())
+    for (Value target : measurementInstrument.getTargets())
       if (isa<cudaq::quake::WireType>(target.getType()))
         wireInputs.push_back(target);
-    wireResults = measurement.getWires();
-  } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(operation)) {
-    if (isa<cudaq::quake::WireType>(reset.getTargets().getType()))
-      wireInputs.push_back(reset.getTargets());
-    wireResults = reset.getWires();
+    wireResults = measurementInstrument.getWires();
+  } else if (auto resetChannel = dyn_cast<cudaq::quake::ResetOp>(operation)) {
+    if (isa<cudaq::quake::WireType>(resetChannel.getTargets().getType()))
+      wireInputs.push_back(resetChannel.getTargets());
+    wireResults = resetChannel.getWires();
   } else {
     return {};
   }
@@ -386,17 +386,19 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
   while (Operation *candidate = takeNext(frontier, block, isForward)) {
     ++impl->statistics.frontierCandidates;
     // Reference and aggregate quantum values, and nested code that could reach
-    // further qubits, are outside the adopted semantics. Measurement and reset
-    // are the only effects with supported scalar-wire flow; all other reached
-    // operations retain the conservative self-query barrier.
+    // further qubits, are outside the adopted semantics. Measurement
+    // instruments and reset channels are the only non-unitary operations with
+    // supported scalar-wire flow; all other reached operations retain the
+    // conservative self-query barrier.
     if (!hasBoundedQuantumSupport(candidate))
       return std::nullopt;
-    bool isTraversalEffect =
+    bool isTraversableMeasurementOrReset =
         isa<cudaq::quake::MeasurementInterface, cudaq::quake::ResetOp>(
             candidate);
     auto candidateInterface =
         dyn_cast<cudaq::quake::OperatorInterface>(candidate);
-    if (!isTraversalEffect && !analysis.canCommute(candidate, candidate))
+    if (!isTraversableMeasurementOrReset &&
+        !analysis.canCommute(candidate, candidate))
       return std::nullopt;
 
     // Consumer policy decides compatibility first. An accepted endpoint is

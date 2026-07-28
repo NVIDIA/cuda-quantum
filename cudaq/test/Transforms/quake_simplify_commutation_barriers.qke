@@ -14,9 +14,10 @@
 
 func.func private @opaque_wire(!quake.wire) -> !quake.wire
 
-// Measurement and reset propagate scalar wire identity, but the analysis still
-// requires a supported commutation proof before the matcher may cross them.
-func.func @effect_relation_barriers() {
+// Measurement instruments and reset channels propagate scalar wire identity,
+// but the analysis still requires a supported commutation proof before the
+// matcher may cross them.
+func.func @non_unitary_relation_barriers() {
   %measured_qubit = quake.null_wire
   %reset_qubit = quake.null_wire
   %h0 = quake.h %measured_qubit : (!quake.wire) -> !quake.wire
@@ -31,7 +32,7 @@ func.func @effect_relation_barriers() {
 }
 
 // Both pairs survive, each still straddling the operation that stopped it.
-// CHECK-LABEL: func.func @effect_relation_barriers() {
+// CHECK-LABEL: func.func @non_unitary_relation_barriers() {
 // CHECK:         %[[H0:.*]] = quake.h
 // CHECK:         %[[BIT:.*]], %[[MEASURED:.*]] = quake.mz %[[H0]]
 // CHECK:         %[[H1:.*]] = quake.h %[[MEASURED]]
@@ -41,9 +42,9 @@ func.func @effect_relation_barriers() {
 // CHECK:         quake.sink %[[H1]]
 // CHECK:         quake.sink %[[X1]]
 
-// A computational-basis measurement commutes with Z. The matcher may cross it
-// without disturbing the classical result or the returned wire.
-func.func @measurement_commuting_path() {
+// A computational-basis measurement instrument commutes with Z. The matcher
+// may cross it without disturbing the classical result or the returned wire.
+func.func @measurement_instrument_commuting_path() {
   %q = quake.null_wire
   %z0 = quake.z %q : (!quake.wire) -> !quake.wire
   %bit, %measured = quake.mz %z0 : (!quake.wire) -> (!quake.measure, !quake.wire)
@@ -52,9 +53,9 @@ func.func @measurement_commuting_path() {
   return
 }
 
-// Both Z gates disappear. Measurement still consumes the original wire and
-// threads its quantum result to the sink.
-// CHECK-LABEL: func.func @measurement_commuting_path() {
+// Both Z gates disappear. The measurement instrument still consumes the
+// original wire and threads its quantum result to the sink.
+// CHECK-LABEL: func.func @measurement_instrument_commuting_path() {
 // CHECK:         %[[Q:.*]] = quake.null_wire
 // CHECK-NOT:     quake.z
 // CHECK:         %[[BIT:.*]], %[[MEASURED:.*]] = quake.mz %[[Q]]
