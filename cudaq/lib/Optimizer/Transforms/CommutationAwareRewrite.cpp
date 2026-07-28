@@ -150,6 +150,69 @@ static bool doesCompleteFrontierReach(llvm::ArrayRef<WireCursor> frontier,
   });
 }
 
+static bool hasSameOrderedWireTypes(ValueRange lhs, ValueRange rhs) {
+  if (lhs.size() != rhs.size())
+    return false;
+  return llvm::all_of(llvm::zip(lhs, rhs), [](auto pair) {
+    auto [lhsValue, rhsValue] = pair;
+    return lhsValue.getType() == rhsValue.getType() &&
+           isa<cudaq::quake::WireType>(lhsValue.getType());
+  });
+}
+
+static bool hasSameOrderedWireValues(ValueRange lhs, ValueRange rhs) {
+  if (!hasSameOrderedWireTypes(lhs, rhs))
+    return false;
+  return llvm::all_of(llvm::zip(lhs, rhs), [](auto pair) {
+    auto [lhsValue, rhsValue] = pair;
+    return lhsValue == rhsValue;
+  });
+}
+
+enum class DirectWireThreading { NotDirect, Exact, Mismatch };
+
+// Exact adjacent threading proves the empty-crossing case without consulting
+// block analysis. For A A, A A^-1, or R(a) R(b), the consumer still checks the
+// endpoint algebra. A direct producer-consumer pair with different wire order
+// or roles is also decided locally so identity analysis cannot reinterpret the
+// SSA path.
+static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
+                                                       Operation *rhs) {
+  auto lhsInterface = dyn_cast<cudaq::quake::OperatorInterface>(lhs);
+  auto rhsInterface = dyn_cast<cudaq::quake::OperatorInterface>(rhs);
+  if (!lhsInterface || !rhsInterface)
+    return DirectWireThreading::NotDirect;
+
+  bool lhsIsProducer = lhs->isBeforeInBlock(rhs);
+  ValueRange producerResults =
+      lhsIsProducer ? lhsInterface.getWires() : rhsInterface.getWires();
+  auto consumerOperands = cudaq::quake::getWireOperands(
+      lhsIsProducer ? rhsInterface : lhsInterface);
+  Operation *consumer = lhsIsProducer ? rhs : lhs;
+  if (!hasSameOrderedWireTypes(producerResults, consumerOperands))
+    return DirectWireThreading::NotDirect;
+
+  llvm::DenseSet<Value> producerValues;
+  for (Value result : producerResults) {
+    if (!result.hasOneUse() || result.use_begin()->getOwner() != consumer)
+      return DirectWireThreading::NotDirect;
+    producerValues.insert(result);
+  }
+  if (!llvm::all_of(consumerOperands, [&](Value operand) {
+        return producerValues.contains(operand);
+      }))
+    return DirectWireThreading::NotDirect;
+
+  bool hasSameRoles = hasSameOrderedWireTypes(lhsInterface.getControls(),
+                                              rhsInterface.getControls()) &&
+                      hasSameOrderedWireTypes(lhsInterface.getTargets(),
+                                              rhsInterface.getTargets());
+  if (!hasSameRoles ||
+      !hasSameOrderedWireValues(producerResults, consumerOperands))
+    return DirectWireThreading::Mismatch;
+  return DirectWireThreading::Exact;
+}
+
 // Step past `candidate`. An operation on several of the anchor's qubits is the
 // head of several chains at once, so every cursor pointing at it moves on
 // together and the operation is visited once rather than once per qubit. A
@@ -376,12 +439,7 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
     return std::nullopt;
 
   Block *block = anchor->getBlock();
-  auto &analysis = impl->getAnalysis(block);
-  // The anchor must be resolvable before any pair result involving it means
-  // anything, and its own support must be bounded by its operands. A self-query
-  // may cache one pair, but it preserves the existing public analysis boundary;
-  // a separate cache-neutral support API needs measured justification.
-  if (!hasBoundedQuantumSupport(anchor) || !analysis.canCommute(anchor, anchor))
+  if (!hasBoundedQuantumSupport(anchor))
     return std::nullopt;
 
   // Follow Quake's own wire dataflow rather than block order. Only
@@ -392,6 +450,12 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
 
   bool isForward = direction == cudaq::opt::CommutationSearchDirection::Forward;
   cudaq::opt::CommutationAwareRewriteMatch match;
+  cudaq::quake::detail::CommutationAnalysis *analysis = nullptr;
+  auto requireAnalysis = [&]() -> cudaq::quake::detail::CommutationAnalysis & {
+    if (!analysis)
+      analysis = &impl->getAnalysis(block);
+    return *analysis;
+  };
   while (Operation *candidate = takeNext(frontier, block, isForward)) {
     ++impl->statistics.frontierCandidates;
     // Reference and aggregate quantum values, and nested code that could reach
@@ -406,13 +470,12 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
             candidate);
     auto candidateInterface =
         dyn_cast<cudaq::quake::OperatorInterface>(candidate);
-    if (!isTraversableMeasurementOrReset &&
-        !analysis.canCommute(candidate, candidate))
-      return std::nullopt;
 
     // Consumer policy decides compatibility first. An accepted endpoint is
-    // where the anchor stops, so it is never crossed and needs no commutation
-    // proof; the consumer owns the endpoint pair's algebraic identity.
+    // where the anchor stops. When no operation C sits between anchor and
+    // endpoint, exact ordered def-use threading plus the consumer's algebra is
+    // enough to prove A A^-1 = I or R(a) R(b) = R(a+b). When C is non-empty,
+    // each crossed operation below must have a commutation proof.
     if (candidateInterface && isEndpoint(candidate)) {
       if (!doesCompleteFrontierReach(frontier, candidate))
         return std::nullopt;
@@ -425,8 +488,17 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
 
     // A candidate that is crossed rather than accepted must be proven to
     // commute with the anchor.
+    auto &blockAnalysis = requireAnalysis();
+    // The anchor and candidate must be resolvable before any pair result
+    // involving them means anything. Measurement instruments and reset
+    // channels are traversable through their scalar-wire flow, but other
+    // candidates keep the conservative self-query barrier.
+    if (!blockAnalysis.canCommute(anchor, anchor) ||
+        (!isTraversableMeasurementOrReset &&
+         !blockAnalysis.canCommute(candidate, candidate)))
+      return std::nullopt;
     ++impl->statistics.commutationProbes;
-    if (!analysis.canCommute(anchor, candidate))
+    if (!blockAnalysis.canCommute(anchor, candidate))
       return std::nullopt;
 
     match.crossed.push_back(candidate);
@@ -438,6 +510,11 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
 bool cudaq::opt::CommutationAwareRewriteMatcher::haveSameOrderedQuantumOperands(
     Operation *lhs, Operation *rhs) {
   if (!lhs || !rhs || !lhs->getBlock() || lhs->getBlock() != rhs->getBlock())
+    return false;
+  auto directThreading = classifyDirectWireThreading(lhs, rhs);
+  if (directThreading == DirectWireThreading::Exact)
+    return true;
+  if (directThreading == DirectWireThreading::Mismatch)
     return false;
   return impl->getAnalysis(lhs->getBlock())
       .haveSameOrderedQuantumOperands(lhs, rhs);
