@@ -118,18 +118,21 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<
         ExpandPat<cudaq::quake::HOp>, ExpandPat<cudaq::quake::PhasedRxOp>,
-        ExpandPat<cudaq::quake::R1Op>, ExpandPat<cudaq::quake::RxOp>,
-        ExpandPat<cudaq::quake::RyOp>, ExpandPat<cudaq::quake::RzOp>,
-        ExpandPat<cudaq::quake::SOp>, ExpandPat<cudaq::quake::SwapOp>,
-        ExpandPat<cudaq::quake::TOp>, ExpandPat<cudaq::quake::U2Op>,
-        ExpandPat<cudaq::quake::U3Op>, ExpandPat<cudaq::quake::XOp>,
-        ExpandPat<cudaq::quake::YOp>, ExpandPat<cudaq::quake::ZOp>>(ctx);
+        ExpandPat<cudaq::quake::PhaseOp>, ExpandPat<cudaq::quake::R1Op>,
+        ExpandPat<cudaq::quake::RxOp>, ExpandPat<cudaq::quake::RyOp>,
+        ExpandPat<cudaq::quake::RzOp>, ExpandPat<cudaq::quake::SOp>,
+        ExpandPat<cudaq::quake::SwapOp>, ExpandPat<cudaq::quake::TOp>,
+        ExpandPat<cudaq::quake::U2Op>, ExpandPat<cudaq::quake::U3Op>,
+        ExpandPat<cudaq::quake::XOp>, ExpandPat<cudaq::quake::YOp>,
+        ExpandPat<cudaq::quake::ZOp>>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::quake::QuakeDialect>();
     target.addDynamicallyLegalOp<cudaq::quake::HOp>(
         checkLegal<cudaq::quake::HOp>);
     target.addDynamicallyLegalOp<cudaq::quake::PhasedRxOp>(
         checkLegal<cudaq::quake::PhasedRxOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::PhaseOp>(
+        checkLegal<cudaq::quake::PhaseOp>);
     target.addDynamicallyLegalOp<cudaq::quake::R1Op>(
         checkLegal<cudaq::quake::R1Op>);
     target.addDynamicallyLegalOp<cudaq::quake::RxOp>(
