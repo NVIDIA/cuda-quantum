@@ -15,8 +15,8 @@
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
 
 // Include GpuRoceTransceiver headers here (with Holoscan's fmt)
-// Disable deprecation warnings for GpuRoceTransceiver headers, which may use deprecated
-// APIs
+// Disable deprecation warnings for GpuRoceTransceiver headers, which may use
+// deprecated APIs
 #if (defined(__GNUC__) && !defined(__clang__))
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -183,11 +183,13 @@ bool gpu_roce_query_kernel_occupancy(void) {
   int prep = 0, rx = 0, tx = 0;
   cudaError_t err = GpuRoceTransceiverQueryOccupancy(&prep, &rx, &tx);
   if (err != cudaSuccess) {
-    fprintf(stderr, "ERROR: GpuRoceTransceiver kernel occupancy query failed: %s\n",
+    fprintf(stderr,
+            "ERROR: GpuRoceTransceiver kernel occupancy query failed: %s\n",
             cudaGetErrorString(err));
     return false;
   }
-  printf("  GpuRoceTransceiver kernel occupancy: prepare=%d rx=%d tx=%d\n", prep, rx, tx);
+  printf("  GpuRoceTransceiver kernel occupancy: prepare=%d rx=%d tx=%d\n",
+         prep, rx, tx);
   return true;
 }
 

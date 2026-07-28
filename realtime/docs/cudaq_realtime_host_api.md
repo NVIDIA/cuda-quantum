@@ -4,19 +4,21 @@ This document explains the C host API for realtime dispatch, the RPC wire
 protocol, and complete wiring examples. It is written for external partners
 integrating CUDA-QX decoders with their own transport mechanisms. The API and
 protocol are **transport-agnostic** and support multiple data transport options,
-including the NVIDIA GpuRoceTransceiver (RDMA via ConnectX NIC's, from the Holoscan Sensor Bridge project), `libibverbs`, and proprietary
-transport layers. Handlers can execute on GPU (via CUDA kernels) or CPU (via
-host threads). Examples in this document use the GpuRoceTransceiver's 3-kernel workflow (RX
+including the NVIDIA GpuRoceTransceiver (RDMA via ConnectX NIC's, from the
+Holoscan Sensor Bridge project), `libibverbs`, and proprietary transport layers.
+Handlers can execute on GPU (via CUDA kernels) or CPU (via host threads).
+Examples in this document use the GpuRoceTransceiver's 3-kernel workflow (RX
 kernel/dispatch/TX kernel) for illustration, but the same principles apply to
 other transport mechanisms.
 
 ## What is the GpuRoceTransceiver?
 
-**GpuRoceTransceiver** is the GPU RoCE transceiver from NVIDIA's Holoscan Sensor Bridge (HSB) framework. It enables
-direct GPU memory access from external devices (FPGAs, sensors) over Ethernet
-using RDMA (Remote Direct Memory Access) via ConnectX NIC's. In the context of
-quantum error correction, the GpuRoceTransceiver is one example of a transport mechanism that
-connects the quantum control system (typically an FPGA) to GPU-based decoders.
+**GpuRoceTransceiver** is the GPU RoCE transceiver from NVIDIA's Holoscan
+Sensor Bridge (HSB) framework. It enables direct GPU memory access from
+external devices (FPGAs, sensors) over Ethernet using RDMA (Remote Direct
+Memory Access) via ConnectX NIC's. In the context of quantum error correction,
+the GpuRoceTransceiver is one example of a transport mechanism that connects
+the quantum control system (typically an FPGA) to GPU-based decoders.
 
 **Repository**: [`nvidia-holoscan/holoscan-sensor-bridge`](https://github.com/nvidia-holoscan/holoscan-sensor-bridge)
 
@@ -68,8 +70,8 @@ then reading TX slots after `tx_flags` are set.
 
 ## The 3-Kernel Architecture (GpuRoceTransceiver Example)
 
-The GpuRoceTransceiver workflow separates concerns into three persistent GPU kernels that
-communicate via shared ring buffers:
+The GpuRoceTransceiver workflow separates concerns into three persistent GPU
+kernels that communicate via shared ring buffers:
 
 ![3-kernel architecture](assets/three_kernel_architecture.svg)
 
@@ -160,10 +162,10 @@ The symmetric ring layout means the response overwrites the request in the same
 buffer slot.  `RPCHeader` fields (`request_id`, `ptp_timestamp`) are saved to
 registers before the handler runs.
 
-For example, the `GpuRoceTransceiver`/`DOCA` transport implementation polls a `DOCA` completion
-queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step 5, and re-posts a `DOCA`
-receive `WQE` in step 6.  Other transports would substitute their own receive and
-send primitives.
+For example, the `GpuRoceTransceiver`/`DOCA` transport implementation polls a
+`DOCA` completion queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step
+5, and re-posts a `DOCA` receive `WQE` in step 6. Other transports would
+substitute their own receive and send primitives.
 
 ### Transport-Agnostic Design
 
@@ -180,12 +182,12 @@ on any specific transport (no `DOCA`, no `GpuRoceTransceiver`).  Unified mode in
 Transport-specific details are packed into an opaque struct and passed through
 the `void* transport_ctx` pointer.  The transport provider supplies both the
 context struct and the launch function implementation.  For example, the
-`GpuRoceTransceiver`/`DOCA` transport packs `DOCA` `QP` handles, memory keys, and ring buffer
-addresses into a `doca_transport_ctx` and provides
+`GpuRoceTransceiver`/`DOCA` transport packs `DOCA` `QP` handles, memory keys,
+and ring buffer addresses into a `doca_transport_ctx` and provides
 `gpu_roce_launch_unified_dispatch` as the launch function (compiled into
-`libcudaq-realtime-bridge-gpu-roce.so`).  A different transport would define
-its own context struct and launch function; the dispatcher manages them
-identically without any transport-specific knowledge.
+`libcudaq-realtime-bridge-gpu-roce.so`). A different transport would define its
+own context struct and launch function; the dispatcher manages them identically
+without any transport-specific knowledge.
 
 ### When to Use Which Mode
 
@@ -262,13 +264,13 @@ cudaq_dispatcher_start(dispatcher);
 ## What This API Does (In One Paragraph)
 
 The host API wires a dispatcher (GPU kernel or CPU thread) to shared ring buffers.
-The transport mechanism (e.g., GpuRoceTransceiver RX/TX kernels, `libibverbs` threads, or
-proprietary transport) places incoming RPC messages into RX slots and retrieves
-responses from TX slots.
-The dispatcher polls RX flags (see Message completion note), looks up a
-handler by `function_id`, executes it on the GPU, and writes a response into the
-same slot. The transport's RX/TX components handle I/O; the dispatch kernel sits
-in the middle and runs the decoder handler.
+The transport mechanism (e.g., GpuRoceTransceiver RX/TX kernels, `libibverbs`
+threads, or proprietary transport) places incoming RPC messages into RX slots
+and retrieves responses from TX slots. The dispatcher polls RX flags (see
+Message completion note), looks up a handler by `function_id`, executes it on
+the GPU, and writes a response into the same slot. The transport's RX/TX
+components handle I/O; the dispatch kernel sits in the middle and runs the
+decoder handler.
 
 ## Scope
 
@@ -638,8 +640,8 @@ Parameters:
 
 Before calling `cudaq_dispatcher_start`, call the appropriate occupancy query
 to force eager loading of the dispatch kernel module. This avoids lazy-load
-deadlocks when the dispatch kernel and transport kernels (e.g., GpuRoceTransceiver RX/TX)
-run as persistent kernels.
+deadlocks when the dispatch kernel and transport kernels (e.g.,
+GpuRoceTransceiver RX/TX) run as persistent kernels.
 
 **`cudaq_dispatch_kernel_query_occupancy`** returns the
 maximum number of active blocks per multiprocessor for the **regular** dispatch

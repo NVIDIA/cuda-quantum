@@ -9,7 +9,8 @@
 #pragma once
 
 /// @file gpu_roce_bridge_common.h
-/// @brief Header-only bridge skeleton for GpuRoceTransceiver-based RPC dispatch.
+/// @brief Header-only bridge skeleton for GpuRoceTransceiver-based RPC
+/// dispatch.
 ///
 /// Provides common infrastructure used by all GpuRoceTransceiver bridge tools:
 ///   - Command-line argument parsing for IB device, peer IP, QP, etc.
@@ -24,8 +25,9 @@
 ///   2. Sets up its RPC function table on the GPU
 ///   3. Calls bridge_run() with a BridgeConfig struct
 ///
-/// This header is compiled by a standard C++ compiler; all CUDA and GpuRoceTransceiver
-/// calls go through C interfaces (cudaq_realtime.h, gpu_roce_wrapper.h).
+/// This header is compiled by a standard C++ compiler; all CUDA and
+/// GpuRoceTransceiver calls go through C interfaces (cudaq_realtime.h,
+/// gpu_roce_wrapper.h).
 
 #include <algorithm>
 #include <atomic>
@@ -46,7 +48,8 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 
-// GpuRoceTransceiver C wrapper (link against gpu_roce_wrapper_bridge static library)
+// GpuRoceTransceiver C wrapper (link against gpu_roce_wrapper_bridge static
+// library)
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
 
 // Weak declaration of the GpuRoceTransceiver unified dispatch launch function
@@ -93,7 +96,8 @@ inline void bridge_signal_handler(int) { bridge_shutdown_flag() = true; }
 // Bridge Configuration
 //==============================================================================
 
-/// @brief Configuration for the bridge's GpuRoceTransceiver and dispatch kernel setup.
+/// @brief Configuration for the bridge's GpuRoceTransceiver and dispatch kernel
+/// setup.
 struct BridgeConfig {
   // IB / network
   std::string device = "rocep1s0f0"; ///< IB device name
@@ -113,8 +117,9 @@ struct BridgeConfig {
   bool exchange_qp = false;  ///< Use QP exchange protocol
   int exchange_port = 12345; ///< TCP port for QP exchange
 
-  // Forward mode: use GpuRoceTransceiver's built-in forward kernel (echo) instead of
-  // separate RX + dispatch + TX kernels.  Useful for baseline latency testing.
+  // Forward mode: use GpuRoceTransceiver's built-in forward kernel (echo)
+  // instead of separate RX + dispatch + TX kernels.  Useful for baseline
+  // latency testing.
   bool forward = false;
 
   // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
@@ -137,8 +142,8 @@ struct BridgeConfig {
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
 
   // Set this to CUDAQ_DISPATCH_PATH_HOST for the HOST_LOOP graph launch mode --
-  // CPU-side dispatcher that polls GpuRoceTransceiver ring flags and launches CUDA
-  // graphs.  Requires a Grace-based system (Grace-Hopper / DGX Spark,
+  // CPU-side dispatcher that polls GpuRoceTransceiver ring flags and launches
+  // CUDA graphs.  Requires a Grace-based system (Grace-Hopper / DGX Spark,
   // Grace-Blackwell / GB200) where GPU memory is CPU-accessible via NVLink-C2C,
   // since the HOST_LOOP thread reads DOCA GPU ring flags directly from the CPU.
   cudaq_dispatch_path_t dispatch_path = CUDAQ_DISPATCH_PATH_DEVICE;
@@ -259,11 +264,12 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
   // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
-  // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread alongside its
-  // kernels.  For unified mode on iGPU we need the CPU proxy but NOT the
-  // gpu_roce kernels, so we pass (false, false, false) -- blocking_monitor
-  // will start only the CPU proxy thread.  On dGPU, no CPU proxy is needed
-  // and we use forward=true to get 64-deep receive pre-posting from start().
+  // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread
+  // alongside its kernels.  For unified mode on iGPU we need the CPU proxy but
+  // NOT the gpu_roce kernels, so we pass (false, false, false) --
+  // blocking_monitor will start only the CPU proxy thread.  On dGPU, no CPU
+  // proxy is needed and we use forward=true to get 64-deep receive pre-posting
+  // from start().
   bool is_igpu = (prop.integrated != 0);
   bool unified_igpu = config.unified && is_igpu;
 
@@ -300,7 +306,8 @@ inline int bridge_run(BridgeConfig &config) {
     return 1;
   }
 
-  // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent; restore it.
+  // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent;
+  // restore it.
   BRIDGE_CUDA_CHECK(cudaSetDevice(config.gpu_id));
 
   // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
@@ -346,9 +353,9 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   std::cout << "\n[3/5] Forcing CUDA module loading..." << std::endl;
 
-  // GpuRoceTransceiver kernels are already warmed up by start() (which does warmup
-  // launches for prepare_receive_send, forward, rx_only, tx_only).
-  // The dispatch kernel occupancy query below handles our own kernels.
+  // GpuRoceTransceiver kernels are already warmed up by start() (which does
+  // warmup launches for prepare_receive_send, forward, rx_only, tx_only). The
+  // dispatch kernel occupancy query below handles our own kernels.
 
   // Dispatch kernel resources (unused in forward mode)
   volatile int *shutdown_flag = nullptr;
@@ -425,8 +432,9 @@ inline int bridge_run(BridgeConfig &config) {
       dconfig.dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
       dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
       dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      // GpuRoceTransceiver TX kernel polls tx_flags for ready data; writing sentinel
-      // markers (0xEEEE) would be misinterpreted as a valid TX buffer address.
+      // GpuRoceTransceiver TX kernel polls tx_flags for ready data; writing
+      // sentinel markers (0xEEEE) would be misinterpreted as a valid TX buffer
+      // address.
       dconfig.skip_tx_markers = 1;
     } else {
       dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
@@ -564,11 +572,13 @@ inline int bridge_run(BridgeConfig &config) {
   std::thread gpu_roce_thread;
 
   if (config.unified && !unified_igpu) {
-    std::cout << "\n[5/5] Unified mode (dGPU) -- GpuRoceTransceiver kernels not needed"
+    std::cout << "\n[5/5] Unified mode (dGPU) -- GpuRoceTransceiver kernels "
+                 "not needed"
               << std::endl;
   } else if (unified_igpu) {
-    std::cout << "\n[5/5] Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
-              << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
+    std::cout
+        << "\n[5/5] Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
+        << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
     gpu_roce_thread = std::thread(
         [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

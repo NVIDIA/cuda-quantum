@@ -9,8 +9,8 @@
 /// @file gpu_roce_wrapper.h
 /// @brief C interface to GpuRoceTransceiver.
 ///
-/// This wrapper avoids `fmt` library conflicts between GpuRoceTransceiver (which uses
-/// Holoscan's `fmt`) and CUDA files compiled by nvcc.
+/// This wrapper avoids `fmt` library conflicts between GpuRoceTransceiver
+/// (which uses Holoscan's `fmt`) and CUDA files compiled by nvcc.
 
 #ifndef GPU_ROCE_WRAPPER_H
 #define GPU_ROCE_WRAPPER_H

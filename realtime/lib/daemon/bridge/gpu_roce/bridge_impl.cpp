@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 /// @file bridge_impl.cpp
-/// @brief GpuRoceTransceiver bridge interface implementation for libcudaq-realtime
-/// dispatch.
+/// @brief GpuRoceTransceiver bridge interface implementation for
+/// libcudaq-realtime dispatch.
 
 #include <cstdio>
 #include <sstream>
@@ -34,8 +34,7 @@ struct GpuRoceBridgeContext {
   gpu_roce_transceiver_t transceiver = nullptr;
   std::unique_ptr<std::thread> gpu_roce_thread;
   bool is_igpu = false;
-  GpuRoceBridgeContext(const cudaq::realtime::BridgeConfig &cfg)
-      : config(cfg) {
+  GpuRoceBridgeContext(const cudaq::realtime::BridgeConfig &cfg) : config(cfg) {
     //============================================================================
     // [1] Initialize CUDA
     //============================================================================
@@ -52,11 +51,12 @@ struct GpuRoceBridgeContext {
     }
 
     // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
-    // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread alongside its
-    // kernels.  For unified mode on iGPU we need the CPU proxy but NOT the
-    // gpu_roce kernels, so we pass (false, false, false) -- blocking_monitor
-    // will start only the CPU proxy thread.  On dGPU, no CPU proxy is needed
-    // and we use forward=true to get 64-deep receive pre-posting from start().
+    // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread
+    // alongside its kernels.  For unified mode on iGPU we need the CPU proxy
+    // but NOT the gpu_roce kernels, so we pass (false, false, false) --
+    // blocking_monitor will start only the CPU proxy thread.  On dGPU, no CPU
+    // proxy is needed and we use forward=true to get 64-deep receive
+    // pre-posting from start().
     is_igpu = (prop.integrated != 0);
     const bool unified_igpu = config.unified && is_igpu;
 
@@ -114,7 +114,8 @@ gpu_roce_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
     return CUDAQ_ERR_INTERNAL;
   }
 
-  // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent; restore it.
+  // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent;
+  // restore it.
   HANDLE_CUDA_ERROR(cudaSetDevice(config.gpu_id));
 
   // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
@@ -137,8 +138,7 @@ static cudaq_status_t
 gpu_roce_bridge_destroy(cudaq_realtime_bridge_handle_t handle) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
-  GpuRoceBridgeContext *ctx =
-      reinterpret_cast<GpuRoceBridgeContext *>(handle);
+  GpuRoceBridgeContext *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (ctx->transceiver) {
     gpu_roce_destroy_transceiver(ctx->transceiver);
   }
@@ -152,8 +152,7 @@ static cudaq_status_t gpu_roce_bridge_get_transport_context(
 
   if (!handle || !out_context)
     return CUDAQ_ERR_INVALID_ARG;
-  GpuRoceBridgeContext *ctx =
-      reinterpret_cast<GpuRoceBridgeContext *>(handle);
+  GpuRoceBridgeContext *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
 
@@ -209,12 +208,12 @@ static cudaq_status_t
 gpu_roce_bridge_connect(cudaq_realtime_bridge_handle_t handle) {
   if (!handle)
     return CUDAQ_ERR_INVALID_ARG;
-  GpuRoceBridgeContext *ctx =
-      reinterpret_cast<GpuRoceBridgeContext *>(handle);
+  GpuRoceBridgeContext *ctx = reinterpret_cast<GpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
   if (ctx->gpu_roce_thread && ctx->gpu_roce_thread->joinable()) {
-    std::cerr << "ERROR: GpuRoceTransceiver bridge already connected" << std::endl;
+    std::cerr << "ERROR: GpuRoceTransceiver bridge already connected"
+              << std::endl;
     return CUDAQ_ERR_INTERNAL;
   }
 
@@ -249,8 +248,9 @@ gpu_roce_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
     std::cout << "\n Unified mode -- no gpu_roce monitor thread needed"
               << std::endl;
   } else if (unified_igpu) {
-    std::cout << "\n Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
-              << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
+    std::cout
+        << "\n Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
+        << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
     ctx->gpu_roce_thread = std::make_unique<std::thread>(
         [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
     std::this_thread::sleep_for(std::chrono::milliseconds(500));

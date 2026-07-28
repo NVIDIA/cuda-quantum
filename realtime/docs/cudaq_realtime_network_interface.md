@@ -34,10 +34,10 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 ```
 
 This will initialize the networking layer context. The `cudaq_realtime_transport_provider_t`
-enum specifies whether it is a builtin provider (e.g., GpuRoceTransceiver) or an external one.
-For the latter, it will perform dynamic loading to retrieve the
-networking implementation. Arguments, e.g., networking information, can also be provided
-to initialize the networking context.
+enum specifies whether it is a builtin provider (e.g., GpuRoceTransceiver) or
+an external one. For the latter, it will perform dynamic loading to retrieve
+the networking implementation. Arguments, e.g., networking information, can
+also be provided to initialize the networking context.
 
 ### Initialize a connection to the remote peer, e.g., a FPGA
 

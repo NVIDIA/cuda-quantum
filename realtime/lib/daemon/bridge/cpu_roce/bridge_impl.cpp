@@ -27,9 +27,9 @@
 ///     known, and create() prints this end's QP / RKey / Buffer Addr in the
 ///     canonical bridge handshake format ("  KEY: VALUE", single space after
 ///     the colon -- gpu_roce_bridge_common.h; orchestration scripts parse it
-///     with strict regexes, same contract as the GpuRoceTransceiver bridges), so the
-///     banner precedes any consumer readiness line.  The provider performs
-///     NO HSB control-plane traffic; the playback tool alone programs
+///     with strict regexes, same contract as the GpuRoceTransceiver bridges),
+///     so the banner precedes any consumer readiness line.  The provider
+///     performs NO HSB control-plane traffic; the playback tool alone programs
 ///     the FPGA.
 ///
 /// tx_mode is always CPU_ROCE_TX_MODE_RDMA_SEND: this end Sends responses;
@@ -211,8 +211,8 @@ cudaq_status_t create_hsb_fpga(CpuRoceBridgeContext *ctx) {
   const size_t frame_size = ctx->frame_size ? ctx->frame_size : ctx->slot_size;
 
   // The HSB receive queue is WQE_NUM=64 deep; a deeper ring would alias two
-  // slots per WQE and race RX against TX (same constraint as the GpuRoceTransceiver
-  // bridges).
+  // slots per WQE and race RX against TX (same constraint as the
+  // GpuRoceTransceiver bridges).
   constexpr uint32_t kGpuRoceWqeNum = 64;
   if (ctx->num_slots > kGpuRoceWqeNum) {
     std::cerr << "WARNING: cpu_roce bridge: --num-slots=" << ctx->num_slots

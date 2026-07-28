@@ -539,8 +539,7 @@ int main(int argc, char *argv[]) {
   // ------------------------------------------------------------------
   std::cout << "\n[2/4] Loading RPC messages into BRAM..." << std::endl;
 
-  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET,
-                              PLAYER_DISABLE))
+  if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET, PLAYER_DISABLE))
     throw std::runtime_error("Failed to disable player");
 
   hololink::Hololink::WriteData config_write;
@@ -598,13 +597,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Set SIF TX streaming threshold to zero for immediate streaming.
-  if (!hsb->write_uint32(SIF_TX_THRESHOLD_ADDR,
-                              SIF_TX_THRESHOLD_IMMEDIATE))
+  if (!hsb->write_uint32(SIF_TX_THRESHOLD_ADDR, SIF_TX_THRESHOLD_IMMEDIATE))
     throw std::runtime_error("Failed to set SIF TX streaming threshold");
 
   // Enable player in single-pass mode
   if (!hsb->write_uint32(PLAYER_ADDR + PLAYER_ENABLE_OFFSET,
-                              PLAYER_ENABLE_SINGLEPASS))
+                         PLAYER_ENABLE_SINGLEPASS))
     throw std::runtime_error("Failed to enable player");
 
   std::cout << "  Playback triggered: " << args.num_messages << " messages"

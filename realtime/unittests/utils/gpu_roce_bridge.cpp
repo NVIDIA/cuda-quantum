@@ -7,10 +7,12 @@
  ******************************************************************************/
 
 /// @file gpu_roce_bridge.cpp
-/// @brief Generic GpuRoceTransceiver bridge tool for testing libcudaq-realtime dispatch.
+/// @brief Generic GpuRoceTransceiver bridge tool for testing libcudaq-realtime
+/// dispatch.
 ///
 /// Registers a simple increment RPC handler (adds 1 to each byte) and wires
-/// it through the GpuRoceTransceiver (GPU RoCE transceiver).  No QEC or decoder dependency.
+/// it through the GpuRoceTransceiver (GPU RoCE transceiver).  No QEC or decoder
+/// dependency.
 ///
 /// Usage:
 ///   ./gpu_roce_bridge \
@@ -61,7 +63,8 @@ int main(int argc, char *argv[]) {
       std::cout
           << "Usage: " << argv[0] << " [options]\n"
           << "\n"
-          << "Generic GpuRoceTransceiver bridge for testing libcudaq-realtime dispatch.\n"
+          << "Generic GpuRoceTransceiver bridge for testing libcudaq-realtime "
+             "dispatch.\n"
           << "Registers increment handler (adds 1 to each byte of the RPC "
              "payload).\n"
           << "\n"
@@ -78,7 +81,8 @@ int main(int argc, char *argv[]) {
           << "  --exchange-qp         Enable QP exchange protocol\n"
           << "  --exchange-port=N     TCP port for QP exchange (default: "
              "12345)\n"
-          << "  --forward             Use GpuRoceTransceiver forward kernel (echo) "
+          << "  --forward             Use GpuRoceTransceiver forward kernel "
+             "(echo) "
              "instead of dispatch\n"
           << "  --unified             Use unified dispatch kernel (RX + "
              "dispatch + TX in one kernel)\n"
