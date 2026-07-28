@@ -122,29 +122,6 @@ else
   (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
-# Apply additional MLIR patches from tpls/patches.
-cudaq_repo_root="$this_file_dir/.."
-cudaq_patches_dir="$(readlink -f "$cudaq_repo_root/tpls/patches/llvm-project")"
-if [ -d "$cudaq_patches_dir" ]; then
-  cd "$LLVM_SOURCE"
-  echo "Applying CUDA-Q patches in $cudaq_patches_dir..."
-  for patch in "$cudaq_patches_dir"/*.patch; do
-    [ -f "$patch" ] || continue
-    git apply "$patch" --ignore-whitespace --reverse --check 2>/dev/null
-    if [ ! 0 -eq $? ]; then
-      git apply "$patch" --ignore-whitespace
-      if [ ! 0 -eq $? ]; then
-        echo "Applying patch $patch failed. Please update patch."
-        (return 0 2>/dev/null) && return 1 || exit 1
-      else
-        echo "Applied patch $patch."
-      fi
-    else
-      echo "Skipping $patch because it has already been applied."
-    fi
-  done
-fi
-
 llvm_build_dir="$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
 llvm_log_dir="$llvm_build_dir/logs"
 mkdir -p "$LLVM_INSTALL_PREFIX"
