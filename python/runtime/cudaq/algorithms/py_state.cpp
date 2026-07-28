@@ -18,6 +18,7 @@
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <limits>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/shared_ptr.h>
 
 using namespace cudaq;
 
@@ -172,10 +173,10 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 static state get_state_impl(const std::string &shortName, MlirModule mod,
-                            cudaq::CompiledModule *compiled,
+                            std::shared_ptr<detail::CompiledModuleCache> cache,
                             nanobind::args args) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, args, compiled);
+    return marshal_and_launch_module(shortName, mod, args, cache);
   };
   return detail::extractState(std::move(closure));
 }
@@ -855,7 +856,8 @@ index pair.
   mod.def(
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module,
-          cudaq::CompiledModule *compiled, nanobind::args args) {
+          std::shared_ptr<detail::CompiledModuleCache> cache,
+          nanobind::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
@@ -863,7 +865,7 @@ index pair.
 
         if (is_remote_platform() || is_emulated_platform())
           return pyGetStateQPU(shortName, module, args);
-        return get_state_impl(shortName, module, compiled, args);
+        return get_state_impl(shortName, module, std::move(cache), args);
       },
       "See the python documentation for get_state.");
 
