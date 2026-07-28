@@ -224,9 +224,12 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
             --enable-mca-no-build=btl-uct --enable-mpi1-compatibility --enable-oshmem \
             --without-verbs \
             --with-cuda="$CUDA_INSTALL_PREFIX" \
+            --with-knem=/opt/knem-1.1.4.90mlnx3 \
+            --with-xpmem=/usr/include \
             --with-slurm --with-pmi="$PMI_INSTALL_PREFIX" \
             --with-pmix="$PMIX_INSTALL_PREFIX" \
             --with-ucx="$UCX_INSTALL_PREFIX" \
+            --with-ucc="$UCC_INSTALL_PREFIX" \
     && make -j$(nproc) && make -j$(nproc) install \
     && rm -rf /var/tmp/ompi \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
