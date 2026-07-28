@@ -63,16 +63,122 @@ function(add_cudaq_library name)
   add_mlir_library(${ARGV} DISABLE_INSTALL ENABLE_AGGREGATION)
 endfunction()
 
+# Read a newline-separated list file (one entry per line) into ``_out_var``,
+# stripping comments and whitespace.
+function(cudaq_read_symbol_list _file _out_var)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_file}")
+  file(STRINGS "${_file}" _lines)
+  set(_entries)
+  foreach(_line IN LISTS _lines)
+    string(STRIP "${_line}" _line)
+    if(NOT (_line STREQUAL "" OR _line MATCHES "^#"))
+      list(APPEND _entries "${_line}")
+    endif()
+  endforeach()
+  set(${_out_var} "${_entries}" PARENT_SCOPE)
+endfunction()
+
+# MLIR/LLVM libraries already provided by ``libcudaqMLIR.so``.
+function(_cudaq_read_mlir_provided_libs _out_var)
+  set(_provided)
+  get_property(_bundle GLOBAL PROPERTY CUDAQ_MLIR_BUNDLE_LIBS)
+  if(_bundle)
+    list(APPEND _provided ${_bundle})
+  endif()
+  get_property(_required GLOBAL PROPERTY CUDAQ_MLIR_REQUIRED_LIBS)
+  if(_required)
+    list(APPEND _provided ${_required})
+  endif()
+
+  set(_allowlist_candidates
+    "${CMAKE_CURRENT_LIST_DIR}/mlir-libs-allowlist.txt"
+    "${CMAKE_CURRENT_LIST_DIR}/../cudaq/lib/Optimizer/mlir-libs-allowlist.txt")
+  foreach(_candidate IN LISTS _allowlist_candidates)
+    if(EXISTS "${_candidate}")
+      cudaq_read_symbol_list("${_candidate}" _allowlist)
+      list(APPEND _provided ${_allowlist})
+      break()
+    endif()
+  endforeach()
+
+  list(REMOVE_DUPLICATES _provided)
+  set(${_out_var} "${_provided}" PARENT_SCOPE)
+endfunction()
+
+# Collect project-owned static libraries to link into a common CAPI shared
+# library. Upstream ``MLIRCAPI*`` shims are embedded as objects only; their
+# transitive deps are skipped. Other embedded CAPI libraries are walked and
+# any link dependency not already shipped in ``libcudaqMLIR.so`` is retained.
+function(_cudaq_collect_embedded_link_libs _out_var _embed_libs _mlir_provided)
+  set(_result)
+  set(_queue)
+  foreach(_capi IN LISTS _embed_libs)
+    if(_capi MATCHES "^MLIRCAPI")
+      continue()
+    endif()
+    list(APPEND _queue ${_capi})
+  endforeach()
+
+  set(_seen)
+  while(_queue)
+    list(POP_FRONT _queue _cur)
+    if(_cur IN_LIST _seen)
+      continue()
+    endif()
+    list(APPEND _seen ${_cur})
+
+    if(NOT TARGET ${_cur})
+      continue()
+    endif()
+
+    get_target_property(_link_iface ${_cur} INTERFACE_LINK_LIBRARIES)
+    if(NOT _link_iface OR _link_iface STREQUAL "_link_iface-NOTFOUND")
+      get_target_property(_link_iface ${_cur} LINK_LIBRARIES)
+    endif()
+    if(NOT _link_iface OR _link_iface STREQUAL "_link_iface-NOTFOUND")
+      continue()
+    endif()
+
+    foreach(_dep IN LISTS _link_iface)
+      if(_dep MATCHES "\\$<")
+        continue()
+      endif()
+      if(_dep MATCHES "^MLIRCAPI" OR _dep MATCHES "^LLVM")
+        continue()
+      endif()
+      if(_dep STREQUAL "cudaq::MLIR" OR _dep STREQUAL "cudaq::cudaqMLIR")
+        continue()
+      endif()
+      if(_dep IN_LIST _mlir_provided)
+        continue()
+      endif()
+      if(TARGET ${_dep})
+        get_target_property(_dep_type ${_dep} TYPE)
+        if(_dep_type STREQUAL "INTERFACE_LIBRARY")
+          continue()
+        endif()
+      endif()
+      list(APPEND _result ${_dep})
+      list(APPEND _queue ${_dep})
+    endforeach()
+  endwhile()
+
+  list(REMOVE_DUPLICATES _result)
+  set(${_out_var} "${_result}" PARENT_SCOPE)
+endfunction()
+
 # --------------------------------------------------------------------------- #
 # add_cudaq_python_common_capi_library(<name> ...)``
 #
 # Drop-in replacement for MLIR's ``add_mlir_python_common_capi_library``
-# that builds a **thin** common CAPI shared library (instead of statically
-# linking the whole archive MLIR).
+# that builds a common CAPI shared library without duplicating upstream MLIR.
 #
-# Embeds only the CAPI object files themselves (``obj.<lib>`` from each
-# ``EMBED_CAPI_LINK_LIBS`` entry); upstream MLIR and MLIRCAPI libs are stripped
-# out and resolved dynamically from `cudaq::MLIR` resp. `cudaq::MLIRCAPI``.
+# Embeds the CAPI object files themselves (``obj.<lib>`` from each
+# ``EMBED_CAPI_LINK_LIBS`` entry) and links project-owned transitive static
+# dependencies discovered from non-upstream CAPI libraries. ``libcudaqMLIR.so``
+# is placed first on the link line so upstream MLIR/LLVM archive members are
+# not extracted (their symbols are already defined in the shared library)
+# while project-owned archives (e.g. downstream dialect libraries) are embedded.
 #
 # Accepts the same keyword arguments as MLIR's version:
 #   ``INSTALL_COMPONENT``, ``INSTALL_DESTINATION``, ``OUTPUT_DIRECTORY``,
@@ -113,8 +219,30 @@ function(add_cudaq_python_common_capi_library name)
   endforeach()
 
   # 3. Create the shared library, with hidden visibility and linking to cudaqMLIR
+  _cudaq_read_mlir_provided_libs(_mlir_provided)
+  _cudaq_collect_embedded_link_libs(_project_link_libs "${_embed_libs}"
+    "${_mlir_provided}")
+  set(_project_link_files)
+  foreach(_lib IN LISTS _project_link_libs)
+    if(NOT TARGET ${_lib})
+      continue()
+    endif()
+    get_target_property(_lib_type ${_lib} TYPE)
+    if(_lib_type STREQUAL "STATIC_LIBRARY" OR _lib_type STREQUAL "SHARED_LIBRARY"
+        OR _lib_type STREQUAL "MODULE_LIBRARY")
+      list(APPEND _project_link_files "$<TARGET_FILE:${_lib}>")
+    endif()
+  endforeach()
+
   add_library(${name} SHARED ${_objects})
-  target_link_libraries(${name} PRIVATE cudaq::cudaqMLIR)
+  # libcudaqMLIR must precede the static archives below: archive members are
+  # only extracted for still-undefined symbols, so upstream MLIR/LLVM archives
+  # contribute nothing while project-owned deps (e.g. a downstream project's
+  # dialect libraries) are pulled in.
+  target_link_options(${name} BEFORE PRIVATE "$<TARGET_FILE:cudaq::cudaqMLIR>")
+  # Link archive files directly (not CMake targets) so INTERFACE_LINK_LIBRARIES
+  # from upstream MLIR static targets are not re-exported onto this shared lib.
+  target_link_libraries(${name} PRIVATE cudaq::cudaqMLIR ${_project_link_files})
   set_target_properties(${name} PROPERTIES
     LINKER_LANGUAGE CXX
     CXX_VISIBILITY_PRESET hidden
@@ -289,6 +417,7 @@ function(cudaq_add_mlir_extension name)
   add_library(${name} SHARED ${ARG_SOURCES})
 
   # cudaqMLIR must come first so downstream shares its MLIR/LLVM instance.
+  target_link_options(${name} BEFORE PRIVATE "$<TARGET_FILE:cudaq::cudaqMLIR>")
   target_link_libraries(${name} PRIVATE cudaq::cudaqMLIR ${ARG_LINK_LIBS})
 
   if(APPLE)

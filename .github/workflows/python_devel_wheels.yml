@@ -20,6 +20,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git -c submodule.tpls/llvm.update=none submodule update --init --recursive
+
       - name: Compute release version
         id: version
         run: |
