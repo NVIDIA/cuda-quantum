@@ -1710,15 +1710,15 @@ class PyKernel(object):
     def clearCache(self):
         if hasattr(self, 'qkeModule'):
             del self.qkeModule
-        if hasattr(self, '_compiled_module'):
-            del self._compiled_module
+        if hasattr(self, '_compiled_module_cache'):
+            del self._compiled_module_cache
 
-    def cachedCompiledModule(self):
-        """Return the kernel's CompiledModule cache slot, creating an empty
-        one on first access."""
-        if not hasattr(self, '_compiled_module'):
-            self._compiled_module = cudaq_runtime.CompiledModule()
-        return self._compiled_module
+    def compiledModuleCache(self):
+        """Return this builder kernel's shared compiled-module cache, creating
+        an empty one on first access."""
+        if not hasattr(self, '_compiled_module_cache'):
+            self._compiled_module_cache = cudaq_runtime.CompiledModuleCache()
+        return self._compiled_module_cache
 
     @trace.traced
     def compile(self):
@@ -1854,7 +1854,7 @@ class PyKernel(object):
             self.name,
             specialized,
             *processedArgs,
-            compiled=self.cachedCompiledModule())
+            cache=self.compiledModuleCache())
 
     def __getattr__(self, attr_name):
         # Search attributes in instance, class, base classes
