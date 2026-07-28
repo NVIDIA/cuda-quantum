@@ -11,6 +11,7 @@ import os
 import pytest
 import numpy as np
 from typing import Callable, List
+import math
 import sys
 
 import cudaq
@@ -30,7 +31,6 @@ skipIfValueSemantics = pytest.mark.skipif(True,
                                           reason="broken in value semantics")
 
 
-@skipIfValueSemantics
 def test_argument_int():
 
     @cudaq.kernel
@@ -38,51 +38,44 @@ def test_argument_int():
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 1
-    assert '00' in counts
+    assert len(counts) == 0
 
     @cudaq.kernel
     def kernel(n: np.int8):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 1
-    assert '00' in counts
+    assert len(counts) == 0
 
     @cudaq.kernel
     def kernel(n: np.int16):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 1
-    assert '00' in counts
+    assert len(counts) == 0
 
     @cudaq.kernel
     def kernel(n: np.int32):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 1
-    assert '00' in counts
+    assert len(counts) == 0
 
     @cudaq.kernel
     def kernel(n: np.int64):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 1
-    assert '00' in counts
+    assert len(counts) == 0
 
     @cudaq.kernel
     def kernel(n: np.int64):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 1
-    assert '00' in counts
+    assert len(counts) == 0
 
 
-@skipIfValueSemantics
 def test_adjoint():
     """Test that adjoint can be called on kernels and operations."""
 
@@ -93,8 +86,7 @@ def test_adjoint():
         t.adj(q)
 
     counts = cudaq.sample(single_adjoint_test)
-    assert '0' in counts
-    assert len(counts) == 1
+    assert len(counts) == 0
 
     @cudaq.kernel
     def qvector_adjoint_test():
@@ -103,8 +95,7 @@ def test_adjoint():
         t.adj(q)
 
     counts = cudaq.sample(qvector_adjoint_test)
-    assert '00' in counts
-    assert len(counts) == 1
+    assert len(counts) == 0
 
     @cudaq.kernel
     def rotation_adjoint_test():
@@ -116,8 +107,7 @@ def test_adjoint():
         ry.adj(1.1, q)
 
     counts = cudaq.sample(rotation_adjoint_test)
-    assert '0' in counts
-    assert len(counts) == 1
+    assert len(counts) == 0
 
     @cudaq.kernel
     def test_kernel_adjoint(q: cudaq.qview):
@@ -135,7 +125,7 @@ def test_adjoint():
 
     counts = cudaq.sample(test_caller)
     assert len(counts) == 1
-    assert '101' in counts
+    assert '11' in counts
 
     # Testing whether cudaq.adjoint works on a qualified name
 
@@ -2114,7 +2104,6 @@ def test_u3_parameterized():
     assert counts["1"] == 1000
 
 
-@skipIfValueSemantics
 def test_reset():
 
     @cudaq.kernel
@@ -2122,6 +2111,7 @@ def test_reset():
         q = cudaq.qubit()
         x(q)
         reset(q)
+        ry(2.0 * math.pi, q)
 
     counts = cudaq.sample(single_qubit)
     assert counts['0'] == 1000

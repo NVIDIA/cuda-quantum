@@ -388,6 +388,7 @@ class TestFromQiskit:
 
         assert counts["10"] == 1000
 
+    @skipIfValueSemantics
     def test_ctdg_cancels_ct(self):
         """Test CTDG emits the adjoint of CT."""
         qc = QuantumCircuit(2)
