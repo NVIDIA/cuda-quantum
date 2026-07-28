@@ -325,6 +325,65 @@ TEST_F(CommutationAwareRewriteTest,
   EXPECT_EQ(driver.getStatistics().analysisBuilds, 0u);
 }
 
+TEST_F(CommutationAwareRewriteTest, RejectsDirectRepeatedWireOperand) {
+  // The first operator uses one SSA wire as both control and target. Exact
+  // threading to the adjacent operator must not bypass operand validation.
+  auto module = parseModule(R"mlir(
+    module {
+      func.func @repeated_wire(%q: !quake.wire) {
+        %x0:2 = quake.x [%q] %q
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %x1:2 = quake.x [%x0#0] %x0#1
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %x1#0 : !quake.wire
+        quake.sink %x1#1 : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  cudaq::opt::CommutationAwareRewriteDriver driver(context);
+  auto operators = getOperators(getFunction(*module, "repeated_wire"));
+  ASSERT_EQ(operators.size(), 2u);
+  EXPECT_FALSE(driver.getMatcher().findNearest(
+      operators[0], cudaq::opt::CommutationSearchDirection::Forward,
+      [&](Operation *candidate) { return candidate == operators[1]; }));
+  EXPECT_FALSE(driver.getMatcher().haveSameOrderedQuantumOperands(
+      operators[0], operators[1]));
+  EXPECT_EQ(driver.getStatistics().analysisBuilds, 1u);
+}
+
+TEST_F(CommutationAwareRewriteTest, RejectsDirectAliasedWireOperands) {
+  // The control and target have different SSA values but borrow the same
+  // wire-set identity. Only identity normalization exposes the duplicate.
+  auto module = parseModule(R"mlir(
+    module {
+      quake.wire_set @wires[1]
+      func.func @aliased_wires() {
+        %q0 = quake.borrow_wire @wires[0] : !quake.wire
+        %q1 = quake.borrow_wire @wires[0] : !quake.wire
+        %x0:2 = quake.x [%q0] %q1
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        %x1:2 = quake.x [%x0#0] %x0#1
+            : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+        quake.sink %x1#0 : !quake.wire
+        quake.sink %x1#1 : !quake.wire
+        return
+      }
+    })mlir");
+  ASSERT_TRUE(module);
+
+  cudaq::opt::CommutationAwareRewriteDriver driver(context);
+  auto operators = getOperators(getFunction(*module, "aliased_wires"));
+  ASSERT_EQ(operators.size(), 2u);
+  EXPECT_FALSE(driver.getMatcher().findNearest(
+      operators[0], cudaq::opt::CommutationSearchDirection::Forward,
+      [&](Operation *candidate) { return candidate == operators[1]; }));
+  EXPECT_FALSE(driver.getMatcher().haveSameOrderedQuantumOperands(
+      operators[0], operators[1]));
+  EXPECT_EQ(driver.getStatistics().analysisBuilds, 1u);
+}
+
 TEST_F(CommutationAwareRewriteTest,
        MaintainsPublicContractsAcrossObservedRewrites) {
   auto module = parseModule(R"mlir(

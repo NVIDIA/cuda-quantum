@@ -81,10 +81,12 @@ struct CommutationAwareRewriteStatistics {
 /// A direct endpoint whose ordered scalar-wire operands are exactly the
 /// anchor's ordered scalar-wire results has an empty crossing slice. For
 /// identities such as A A^-1 = I or R(a) R(b) = R(a+b), that exact def-use
-/// threading plus the consumer's endpoint algebra is sufficient. When any
-/// operation lies in the anchor's crossed slice, the block-local
-/// `CommutationAnalysis` must prove that the anchor commutes with that
-/// operation before the search advances past it.
+/// threading plus distinct logical operands and the consumer's endpoint
+/// algebra is sufficient. Single-wire endpoints establish distinctness
+/// structurally; multi-wire endpoints use lazy block analysis to reject
+/// duplicate logical qubit roles. When any operation lies in the anchor's
+/// crossed slice, the block-local `CommutationAnalysis` must prove that the
+/// anchor commutes with that operation before the search advances past it.
 ///
 /// Two things are worth knowing before writing a consumer. Wire-set reuse
 /// relies on Quake's borrow and return discipline, so the search will not
