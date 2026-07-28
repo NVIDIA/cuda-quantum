@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/PatternMatch.h"
@@ -20,25 +21,6 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-static SmallVector<bool> getControlPolarities(cudaq::quake::PhaseOp phase) {
-  SmallVector<bool> polarities(phase.getControls().size(), false);
-  if (auto negated = phase.getNegatedQubitControls()) {
-    for (auto [index, value] : llvm::enumerate(*negated)) {
-      if (index == polarities.size())
-        break;
-      polarities[index] = value;
-    }
-  }
-  return polarities;
-}
-
-static DenseBoolArrayAttr makeNegatedControlsAttr(OpBuilder &builder,
-                                                  ArrayRef<bool> polarities) {
-  if (llvm::none_of(polarities, [](bool value) { return value; }))
-    return {};
-  return builder.getDenseBoolArrayAttr(polarities);
-}
 
 static SmallVector<Type> getWireResultTypes(MLIRContext *context,
                                             ValueRange controls, Value target) {
@@ -186,7 +168,7 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
 
   auto r1 = createParameterizedGate<cudaq::quake::R1Op>(
       rewriter, location, angle, remainingControls, controls[selectedControl],
-      makeNegatedControlsAttr(rewriter, remainingPolarities));
+      cudaq::opt::makeNegatedControlsAttr(rewriter, remainingPolarities));
   threadGateResults(r1, remainingControls, controls[selectedControl]);
   for (auto [position, index] : llvm::enumerate(remainingIndices))
     controls[index] = remainingControls[position];
@@ -206,7 +188,8 @@ static void lowerWithAnchorFallback(IRRewriter &rewriter,
                               phase.getControls().end());
   Value anchor = phase.getTarget();
   Location location = phase.getLoc();
-  auto negatedControls = makeNegatedControlsAttr(rewriter, polarities);
+  auto negatedControls =
+      cudaq::opt::makeNegatedControlsAttr(rewriter, polarities);
 
   // R1(phi)^2 Rz(-phi)^2 = exp(i phi) I on the active branch. This four-gate
   // form is equivalent to R1(2 phi) Rz(-2 phi), but it cannot overflow a
@@ -238,7 +221,7 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
   }
 
   Value angle = normalizeAdjointAngle(rewriter, phase);
-  SmallVector<bool> polarities = getControlPolarities(phase);
+  SmallVector<bool> polarities = cudaq::opt::getControlPolarities(phase);
 
   // Any scalar control can become the R1 target while vector controls remain
   // in the predicate. Prefer the last positive scalar, then the last negative
