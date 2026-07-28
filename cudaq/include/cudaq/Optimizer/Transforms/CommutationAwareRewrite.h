@@ -78,6 +78,14 @@ struct CommutationAwareRewriteStatistics {
 /// anchor's qubits the walk still finds it, because a use nested in a region is
 /// a use like any other, and the search then ends there for leaving the block.
 ///
+/// A direct endpoint whose ordered scalar-wire operands are exactly the
+/// anchor's ordered scalar-wire results has an empty crossing slice. For
+/// identities such as A A^-1 = I or R(a) R(b) = R(a+b), that exact def-use
+/// threading plus the consumer's endpoint algebra is sufficient. When any
+/// operation lies in the anchor's crossed slice, the block-local
+/// `CommutationAnalysis` must prove that the anchor commutes with that
+/// operation before the search advances past it.
+///
 /// Two things are worth knowing before writing a consumer. Wire-set reuse
 /// relies on Quake's borrow and return discipline, so the search will not
 /// follow a qubit across a return, and a wire held concurrently elsewhere is
@@ -98,15 +106,16 @@ public:
 
   /// Find the nearest consumer-compatible supported quantum endpoint in
   /// `direction`. The predicate is called only for an `OperatorInterface`
-  /// candidate, after verifying that it has supported, unambiguous quantum
-  /// identities and before checking complete frontier alignment or deciding
-  /// whether it may be crossed.
+  /// candidate with supported scalar-wire flow, and before checking complete
+  /// frontier alignment or deciding whether it may be crossed.
   std::optional<CommutationAwareRewriteMatch>
   findNearest(mlir::Operation *anchor, CommutationSearchDirection direction,
               llvm::function_ref<bool(mlir::Operation *)> isEndpoint);
 
   /// Return whether controls and targets carry the same ordered qubit
-  /// identities and occupy the same roles.
+  /// identities and occupy the same roles. Direct scalar-wire consumers are
+  /// decided from exact ordered def-use threading; non-direct queries fall back
+  /// to the block-local commutation analysis.
   bool haveSameOrderedQuantumOperands(mlir::Operation *lhs,
                                       mlir::Operation *rhs);
 
