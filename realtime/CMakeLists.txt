@@ -176,16 +176,7 @@ if (CUDAQ_REALTIME_BUILD_EXAMPLES)
 endif()
 
 if (CUDAQ_REALTIME_BUILD_TESTS)
-  add_custom_target(CudaqRealtimeUnitTests)
   include(CTest)
-
-  add_custom_target(run_tests
-    COMMAND ${CMAKE_COMMAND} -E env 
-            PYTHONPATH="${CUDAQ_INSTALL_DIR}:${CMAKE_BINARY_DIR}/python"
-            ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS CudaqRealtimeUnitTests
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
   add_subdirectory(unittests)
 endif()
 

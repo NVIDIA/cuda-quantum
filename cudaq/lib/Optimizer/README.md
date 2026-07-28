@@ -23,6 +23,13 @@ The `libcudaqMLIR` library is built in two layers:
    ensure that all symbols from these libraries are re-exported, so that CUDAQ libraries
    as well as downstream extensions can use them.
 
+## C API
+
+The C-APIs are shipped as a separate thin wrapper shared library that links to
+`libcudaqMLIR` and contains the C API object files. This keeps the C ABI separate
+while ensuring that C API calls use the same MLIR `TypeID`s, registries etc. as
+the rest of CUDA-Q.
+
 ## Adding a new library
 
 In the library's `CMakeLists.txt`:
