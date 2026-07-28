@@ -623,12 +623,12 @@ class PyKernelDecorator(object):
 
         return processed_args, module
 
-    def cachedCompiledModule(self):
-        """Return the kernel's CompiledModule cache slot, creating an empty
+    def compiledModuleCache(self):
+        """Return this kernel's shared compiled-module cache, creating an empty
         one on first access."""
-        if not hasattr(self, '_compiled_module'):
-            self._compiled_module = cudaq_runtime.CompiledModule()
-        return self._compiled_module
+        if not hasattr(self, '_compiled_module_cache'):
+            self._compiled_module_cache = cudaq_runtime.CompiledModuleCache()
+        return self._compiled_module_cache
 
     def get_none_type(self):
         if self._cached_qkeModule:
@@ -677,7 +677,7 @@ class PyKernelDecorator(object):
             self.uniqName,
             module,
             *processed_args,
-            compiled=self.cachedCompiledModule())
+            cache=self.compiledModuleCache())
 
     def beta_reduction(self, isEntryPoint, *args):
         """
@@ -757,9 +757,15 @@ def mk_decorator(builder):
     that handles both CUDA-Q kernel object classes more unified.
     """
     builder.compile()
-    return PyKernelDecorator(None,
-                             module=builder.qkeModule,
-                             kernelName=builder.uniqName)
+    decorator = PyKernelDecorator(None,
+                                  module=builder.qkeModule,
+                                  kernelName=builder.uniqName)
+    # The adapter is transient — one is made per wrapper call (`draw`,
+    # `get_state`, etc.). Share the builder's compiled-module cache so repeated
+    # wrapper calls reuse one compilation state instead of receiving a fresh,
+    # always-cold cache each time.
+    decorator._compiled_module_cache = builder.compiledModuleCache()
+    return decorator
 
 
 def kernel(function=None, **kwargs):
