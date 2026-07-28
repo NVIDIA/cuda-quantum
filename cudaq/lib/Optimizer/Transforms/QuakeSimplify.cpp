@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
@@ -420,12 +421,19 @@ private:
       return false;
     double theta = cast<FloatAttr>(attr).getValueAsDouble();
     double period =
-        qop.getControls().empty() ? 2.0 * M_PI : exactIdentityPeriod<QOP>();
+        globalPhaseIsFree(qop) ? 2.0 * M_PI : exactIdentityPeriod<QOP>();
 
     double residual = std::remainder(theta, period);
 
     // The default threshold of 0 admits only an exactly-identity rotation.
     return std::abs(residual) <= threshold;
+  }
+
+  static bool globalPhaseIsFree(QOP qop) {
+    if (!qop.getControls().empty())
+      return false;
+    auto func = qop->template getParentOfType<func::FuncOp>();
+    return func && func->hasAttr(cudaq::entryPointAttrName);
   }
 
   double threshold;

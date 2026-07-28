@@ -1274,11 +1274,20 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     tested, so a full turn is pruned just like a zero angle. The axis
     rotations (`rx`, `ry`, `rz`, `phased_rx`) are spinors and return to the
     identity only after `4*pi`, picking up an overall `-1` at `2*pi`, while
-    `r1` is `diag(1, exp(i*theta))` and has period `2*pi`. When the rotation
-    carries no controls that overall `-1` is an unobservable global phase, so
-    `2*pi` is used for every rotation. Under a control it becomes a relative
-    phase (`ctrl-rz(2*pi) = diag(1, 1, -1, -1)`) and the exact period is used
-    instead. Non-constant and non-finite angles are left untouched.
+    `r1` is `diag(1, exp(i*theta))` and has period `2*pi`. That overall `-1` is
+    an unobservable global phase only when the rotation can never execute under
+    a control, in which case `2*pi` is used for every rotation. Two things can
+    supply a control. The op may carry one itself, which makes the phase
+    relative (`ctrl-rz(2*pi) = diag(1, 1, -1, -1)`). Or the containing function
+    may acquire one later. Apply specialization adds a control to every gate in
+    a body when it builds the `.ctrl` variant of a function. Controlling a
+    kernel specializes a separate copy of it and leaves the entry point itself
+    alone, so the relaxation is applied only to an uncontrolled rotation in a
+    function marked `cudaq-entrypoint`. Everywhere else the exact period is
+    used. Non-constant and non-finite angles are left untouched.
+
+    Note that in an entry point this erases an uncontrolled full turn such as
+    `ry(2*pi)`, which is the identity up to global phase.
 
     By default only exactly-identity rotations are erased, which preserves the
     semantics of the circuit. Setting `threshold` additionally erases rotations

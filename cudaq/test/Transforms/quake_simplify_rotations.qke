@@ -39,9 +39,9 @@ func.func @zero_angle_wire() {
 // CHECK-NOT:     quake.rz
 
 // Without controls a full turn is the identity up to a global phase, which is
-// unobservable, so it is erased just like a zero angle. This holds for every
-// rotation: rz(2*pi) = -I and r1(2*pi) = I.
-func.func @full_turn(%q: !quake.ref) {
+// unobservable in an entry point, so it is erased just like a zero angle. This
+// holds for every rotation: rz(2*pi) = -I and r1(2*pi) = I.
+func.func @full_turn(%q: !quake.ref) attributes {"cudaq-entrypoint"} {
   %a = arith.constant 6.2831853071795862 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
   quake.rx (%a) %q : (f64, !quake.ref) -> ()
@@ -53,7 +53,38 @@ func.func @full_turn(%q: !quake.ref) {
 // CHECK-LABEL: func.func @full_turn
 // CHECK-NOT:     quake.r{{[xyz1]}}
 
-// Two full turns are exactly the identity for every rotation.
+// A function that is not an entry point may be specialized into a controlled
+// variant, which adds a control to every gate in this body and turns that
+// global phase into an observable relative one. The axis rotations therefore
+// keep their exact 4*pi period here, while r1 is the identity at 2*pi either
+// way.
+func.func @full_turn_not_entry(%q: !quake.ref) {
+  %a = arith.constant 6.2831853071795862 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @full_turn_not_entry
+// CHECK:         quake.rz
+// CHECK:         quake.rx
+// CHECK:         quake.ry
+// CHECK-NOT:     quake.r1
+
+// A zero angle is the identity in any context, entry point or not.
+func.func @zero_angle_not_entry(%q: !quake.ref) {
+  %a = arith.constant 0.0 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @zero_angle_not_entry
+// CHECK-NOT:     quake.rz
+
+// Two full turns are exactly the identity for every rotation, so no entry
+// point is needed to erase them.
 func.func @two_full_turns(%q: !quake.ref) {
   %a = arith.constant 12.566370614359172 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
@@ -130,8 +161,9 @@ func.func @tiny(%q: !quake.ref) {
 // APPROX-NOT:    quake.rz
 
 // An angle a hair under a full turn folds to a small negative residual, and is
-// erased under the same opt-in threshold.
-func.func @near_full_turn(%q: !quake.ref) {
+// erased under the same opt-in threshold. Folding against the 2*pi period is
+// what makes the residual small, so this needs an entry point.
+func.func @near_full_turn(%q: !quake.ref) attributes {"cudaq-entrypoint"} {
   %a = arith.constant 6.2831853071795852 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
   return
