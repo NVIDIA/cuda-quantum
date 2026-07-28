@@ -55,12 +55,16 @@ struct CommutationAwareRewriteStatistics {
 /// Starting at `anchor`, the search walks in the selected direction and returns
 /// the first endpoint accepted by the consumer. No operation is moved.
 ///
-/// The search expects block-local linear-wire Quake. Anchors and endpoints
-/// implement `OperatorInterface`; every control and target is a scalar
+/// The anchor is the operator supplied by the consumer pattern. The endpoint is
+/// the first operator accepted by that pattern's endpoint predicate. Both roles
+/// require `OperatorInterface`; every control and target is a scalar
 /// `!quake.wire`, and the operation threads those wires to its results.
-/// Measurement and reset may be crossed when the analysis proves that they
-/// commute with the anchor and their scalar target wires thread one-to-one.
-/// Other effects, reusable `!quake.control`, reference and aggregate quantum
+///
+/// The search expects block-local linear-wire Quake. Measurement instruments
+/// and reset channels may be crossed, but cannot be anchors or endpoints. The
+/// analysis must prove that a crossed operation commutes with the anchor, and
+/// its scalar target wires must thread one-to-one. Other non-unitary quantum
+/// operations, reusable `!quake.control`, reference and aggregate quantum
 /// values, dataflow that leaves the block, and unresolved virtual qubits end
 /// the search. Pass pipelines can establish the supported operator form by
 /// running `linear-ctrl-form` after `memtoreg`.
