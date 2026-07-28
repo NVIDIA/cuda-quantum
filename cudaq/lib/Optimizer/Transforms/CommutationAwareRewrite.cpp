@@ -160,22 +160,23 @@ static bool hasSameOrderedWireTypes(ValueRange lhs, ValueRange rhs) {
   });
 }
 
-static bool hasSameOrderedWireValues(ValueRange lhs, ValueRange rhs) {
-  if (!hasSameOrderedWireTypes(lhs, rhs))
-    return false;
-  return llvm::all_of(llvm::zip(lhs, rhs), [](auto pair) {
-    auto [lhsValue, rhsValue] = pair;
-    return lhsValue == rhsValue;
-  });
-}
-
 enum class DirectWireThreading { NotDirect, Exact, Mismatch };
 
-// Exact adjacent threading proves the empty-crossing case without consulting
-// block analysis. For A A, A A^-1, or R(a) R(b), the consumer still checks the
-// endpoint algebra. A direct producer-consumer pair with different wire order
-// or roles is also decided locally so identity analysis cannot reinterpret the
-// SSA path.
+// A unary operation cannot repeat a qubit in another operand role. Multi-wire
+// operations need identity normalization to establish that precondition.
+static bool requiresDistinctQubitProof(Operation *operation) {
+  auto operatorInterface = cast<cudaq::quake::OperatorInterface>(operation);
+  return cudaq::quake::getWireOperands(operatorInterface).size() > 1;
+}
+
+// With no crossed operation, exact result-to-operand threading proves the
+// endpoint pair's ordered SSA correspondence. The caller still owns the
+// endpoint algebra, and identity analysis still validates operand uniqueness
+// for multi-wire operations.
+//
+// A direct pair that permutes values or changes control and target roles is a
+// definitive mismatch. Falling back to logical identity matching could hide
+// that mismatch by resolving different SSA values to the same qubit.
 static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
                                                        Operation *rhs) {
   auto lhsInterface = dyn_cast<cudaq::quake::OperatorInterface>(lhs);
@@ -192,14 +193,8 @@ static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
   if (!hasSameOrderedWireTypes(producerResults, consumerOperands))
     return DirectWireThreading::NotDirect;
 
-  llvm::DenseSet<Value> producerValues;
-  for (Value result : producerResults) {
-    if (!result.hasOneUse() || result.use_begin()->getOwner() != consumer)
-      return DirectWireThreading::NotDirect;
-    producerValues.insert(result);
-  }
-  if (!llvm::all_of(consumerOperands, [&](Value operand) {
-        return producerValues.contains(operand);
+  if (!llvm::all_of(producerResults, [consumer](Value result) {
+        return result.hasOneUse() && result.use_begin()->getOwner() == consumer;
       }))
     return DirectWireThreading::NotDirect;
 
@@ -207,10 +202,22 @@ static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
                                               rhsInterface.getControls()) &&
                       hasSameOrderedWireTypes(lhsInterface.getTargets(),
                                               rhsInterface.getTargets());
-  if (!hasSameRoles ||
-      !hasSameOrderedWireValues(producerResults, consumerOperands))
+  bool hasSameValues =
+      llvm::all_of(llvm::zip(producerResults, consumerOperands), [](auto pair) {
+        auto [producer, consumer] = pair;
+        return producer == consumer;
+      });
+  if (hasSameValues)
+    return hasSameRoles ? DirectWireThreading::Exact
+                        : DirectWireThreading::Mismatch;
+
+  llvm::DenseSet<Value> producerValues(producerResults.begin(),
+                                       producerResults.end());
+  if (llvm::all_of(consumerOperands, [&](Value operand) {
+        return producerValues.contains(operand);
+      }))
     return DirectWireThreading::Mismatch;
-  return DirectWireThreading::Exact;
+  return DirectWireThreading::NotDirect;
 }
 
 // Step past `candidate`. An operation on several of the anchor's qubits is the
@@ -456,6 +463,13 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
       analysis = &impl->getAnalysis(block);
     return *analysis;
   };
+  // A self-query builds the normalized operation view and rejects a logical
+  // qubit used in more than one role. Unary operations cannot violate that
+  // constraint and retain the analysis-free adjacent path.
+  auto hasDistinctQubits = [&](Operation *operation) {
+    return !requiresDistinctQubitProof(operation) ||
+           requireAnalysis().canCommute(operation, operation);
+  };
   while (Operation *candidate = takeNext(frontier, block, isForward)) {
     ++impl->statistics.frontierCandidates;
     // Reference and aggregate quantum values, and nested code that could reach
@@ -471,11 +485,11 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
     auto candidateInterface =
         dyn_cast<cudaq::quake::OperatorInterface>(candidate);
 
-    // Consumer policy decides compatibility first. An accepted endpoint is
-    // where the anchor stops. When no operation C sits between anchor and
-    // endpoint, exact ordered def-use threading plus the consumer's algebra is
-    // enough to prove A A^-1 = I or R(a) R(b) = R(a+b). When C is non-empty,
-    // each crossed operation below must have a commutation proof.
+    // Consumer policy decides endpoint compatibility. Every operation crossed
+    // before an accepted endpoint requires the commutation proof below.
+    if (candidateInterface &&
+        (!hasDistinctQubits(anchor) || !hasDistinctQubits(candidate)))
+      return std::nullopt;
     if (candidateInterface && isEndpoint(candidate)) {
       if (!doesCompleteFrontierReach(frontier, candidate))
         return std::nullopt;
@@ -512,8 +526,14 @@ bool cudaq::opt::CommutationAwareRewriteMatcher::haveSameOrderedQuantumOperands(
   if (!lhs || !rhs || !lhs->getBlock() || lhs->getBlock() != rhs->getBlock())
     return false;
   auto directThreading = classifyDirectWireThreading(lhs, rhs);
-  if (directThreading == DirectWireThreading::Exact)
-    return true;
+  if (directThreading == DirectWireThreading::Exact) {
+    // Exact threading proves ordered operands for unary endpoints. Multi-wire
+    // endpoints still need normalized views that reject duplicate qubit roles.
+    if (!requiresDistinctQubitProof(lhs) && !requiresDistinctQubitProof(rhs))
+      return true;
+    auto &analysis = impl->getAnalysis(lhs->getBlock());
+    return analysis.canCommute(lhs, lhs) && analysis.canCommute(rhs, rhs);
+  }
   if (directThreading == DirectWireThreading::Mismatch)
     return false;
   return impl->getAnalysis(lhs->getBlock())
