@@ -20,6 +20,10 @@ inputs:
     description: 'Base branch to fall back to. Auto-detected from PR target when empty.'
     required: false
     default: ''
+  head-branch:
+    description: 'Head branch to fall back to. Auto-detected from the PR head (or the ref name for branch dispatches) when empty. Matches the branch tag ccache-push writes for non-PR builds.'
+    required: false
+    default: ''
 
 outputs:
   restored:
@@ -34,6 +38,8 @@ runs:
       continue-on-error: true
       shell: bash
       run: |
+        # continue-on-error hides failures here; make them visible on the run.
+        trap 'echo "::warning title=ccache restore failed::Unexpected error in ccache-restore; the build runs with a cold cache."' ERR
         repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
         platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
         image="ghcr.io/${repo_owner}/cuda-quantum-${platform}-ccache"
@@ -49,14 +55,23 @@ runs:
           pr_number="${BASH_REMATCH[2]}"
         fi
 
-        # Auto-detect base branch from PR if not provided
+        # Auto-detect base and head branch from the PR if not provided (one
+        # API call for both). The head branch falls back to the ref name for
+        # branch dispatches. ccache-push tags non-PR builds with the branch
+        # name, so caches prebuilt by e.g. a Deployments run on a feature
+        # branch are found via the head-branch tag.
         base_branch="${{ inputs.base-branch }}"
-        if [ -z "$base_branch" ] && [ -n "$pr_number" ]; then
+        head_branch="${{ inputs.head-branch }}"
+        if [ -n "$pr_number" ] && { [ -z "$base_branch" ] || [ -z "$head_branch" ]; }; then
           export GH_TOKEN="${{ inputs.registry-token }}"
-          base_branch=$(gh pr view "$pr_number" -R "${{ github.repository }}" \
-            --json baseRefName --jq .baseRefName 2>/dev/null || true)
+          pr_branches=$(gh pr view "$pr_number" -R "${{ github.repository }}" \
+            --json baseRefName,headRefName \
+            --jq '.baseRefName + " " + .headRefName' 2>/dev/null || true)
+          base_branch="${base_branch:-${pr_branches%% *}}"
+          head_branch="${head_branch:-${pr_branches##* }}"
         fi
         base_branch="${base_branch:-main}"
+        head_branch="${head_branch:-${{ github.head_ref || github.ref_name }}}"
 
         echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -64,19 +79,49 @@ runs:
         mkdir -p "$output_path"
 
         # Try tags in priority order: PR-specific cache first (most relevant),
-        # then the PR's target branch (e.g. releases/0.9), then main as
-        # final fallback.
+        # then the head branch (written by non-PR builds, e.g. Deployments
+        # dispatched on a feature branch), then the PR's target branch
+        # (e.g. releases/0.9), then main as final fallback. Branch names get
+        # slashes replaced the same way ccache-push does when tagging.
         tags=()
+        add_branch_tag() {
+          local t="${cache_key}-$(echo "$1" | tr '/' '-')"
+          local existing
+          for existing in "${tags[@]}"; do
+            if [ "$existing" = "$t" ]; then return 0; fi
+          done
+          tags+=("$t")
+        }
         if [ -n "$pr_number" ]; then
           tags+=("${cache_key}-pr-${pr_number}")
         fi
-        if [ -n "$base_branch" ] && [ "$base_branch" != "main" ]; then
-          tags+=("${cache_key}-${base_branch}")
+        if [ -n "$head_branch" ]; then
+          add_branch_tag "$head_branch"
         fi
-        tags+=("${cache_key}-main")
+        if [ -n "$base_branch" ] && [ "$base_branch" != "main" ]; then
+          add_branch_tag "$base_branch"
+        fi
+        add_branch_tag main
+
+        # Try candidates newest-first (manifest creation time) so a stale PR
+        # tag cannot shadow a fresher branch or main cache.
+        stamped=""
+        unstamped=""
+        for tag in "${tags[@]}"; do
+          # Guarded: runs under -e -o pipefail, and fetches of missing tags fail.
+          created=$(oras manifest fetch "$image:$tag" 2>/dev/null \
+            | sed -n 's/.*"org\.opencontainers\.image\.created" *: *"\([^"]*\)".*/\1/p' | head -1 || true)
+          if [ -n "$created" ]; then
+            stamped="${stamped}${created} ${tag}"$'\n'
+          else
+            unstamped="${unstamped}${tag}"$'\n'
+          fi
+        done
+        ordered_tags=$( { printf '%s' "$stamped" | sort -r | awk '{print $2}'; printf '%s' "$unstamped"; } )
+        echo "Restore candidate order:" $ordered_tags
 
         restored=false
-        for tag in "${tags[@]}"; do
+        for tag in $ordered_tags; do
           echo "Trying $image:$tag ..."
           if oras pull "$image:$tag" 2>/dev/null; then
             echo "Downloaded ccache tarball: $(du -sh ccache-data.tar.gz | cut -f1)"
@@ -88,10 +133,19 @@ runs:
           fi
         done
 
-        if ! $restored; then
+        if $restored; then
+          echo "ccache: restored $tag" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+        else
           echo "No ccache found; starting fresh."
+          echo "ccache: no cache found (cold build)" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
         fi
         echo "restored=$restored" >> $GITHUB_OUTPUT
+
+        # Let ccache-push flag high miss rates without per-workflow wiring.
+        echo "CCACHE_RESTORED=$restored" >> $GITHUB_ENV
+        if $restored; then
+          echo "CCACHE_RESTORED_TAG=$image:$tag" >> $GITHUB_ENV
+        fi
 
         # Zero stats after restore so ccache -s only reflects the current run
         # (the restored tarball includes stale stats from the previous run).

@@ -142,4 +142,8 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
+# Stats-only export for the CI extraction gate (ccache-extract action).
+FROM scratch AS ccache-export-stats
+COPY --from=devbuild /root/.ccache/_build_stats.txt /
+
 FROM devbuild

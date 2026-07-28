@@ -1,0 +1,108 @@
+name: ccache-extract
+description: >
+  Extract ccache data from a Docker build for ccache-push. Gated on a
+  stats-only export first: when the build's miss rate is below the push
+  threshold (and the push would therefore be skipped), the multi-GB cache
+  extraction is skipped entirely.
+
+inputs:
+  dockerfile:
+    description: 'Dockerfile the image was built from'
+    required: true
+  build-args:
+    description: 'Newline-separated build args matching the image build (needed for builder cache reuse)'
+    required: false
+    default: ''
+  export-target:
+    description: 'Dockerfile stage that exports ccache.tar. A "<target>-stats" stage is probed for the gate.'
+    required: false
+    default: 'ccache-export'
+  platform:
+    description: 'Docker platform flag when the image build used one'
+    required: false
+    default: ''
+  ccache-context:
+    description: 'Directory injected as the ccache-data build context'
+    required: false
+    default: '/tmp/ccache-data'
+  output-path:
+    description: 'Directory to place the extracted cache under (cache lands in <output-path>/ccache)'
+    required: false
+    default: '/tmp/ccache-export'
+  miss-threshold:
+    description: 'Skip extraction if the miss rate is below this percentage. Keep in sync with ccache-push.'
+    required: false
+    default: '5'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Extract ccache from build
+      shell: bash
+      run: |
+        args=()
+        [ -n "${{ inputs.platform }}" ] && args+=(--platform "${{ inputs.platform }}")
+        while IFS= read -r a; do [ -n "$a" ] && args+=(--build-arg "$a"); done <<< "${{ inputs.build-args }}"
+        # The export/stats stages read a BuildKit cache mount; cache_bust
+        # forces them to re-run instead of returning a stale layer-cache hit
+        # from a prior run on a persistent builder. It MUST match the value
+        # the image build used (dev_environment.yml passes run_id-run_attempt)
+        # so this probe reuses that build's compile layers instead of
+        # rebuilding the toolchain. Locally (no run id) a per-invocation value
+        # is fine since the harness clears the mount between cycles.
+        if [ -n "${GITHUB_RUN_ID:-}" ]; then
+          cache_bust="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT:-0}"
+        else
+          cache_bust="local-$RANDOM"
+        fi
+        args+=(--build-arg "cache_bust=$cache_bust")
+        build() {
+          docker buildx build -f "${{ inputs.dockerfile }}" . \
+            --build-context ccache-data="${{ inputs.ccache-context }}" \
+            "${args[@]}" \
+            --target "$1" --output type=local,dest="$2" 2>&1 | tail -20
+        }
+
+        # Mirror the ccache-push gate: on the default branch and in merge
+        # queues the cache is always pushed, so always extract there.
+        default_branch="${{ github.event.repository.default_branch }}"
+        always_push=false
+        if [ "${{ github.event_name }}" = "merge_group" ] || \
+           [ "${{ github.ref_name }}" = "${default_branch:-main}" ]; then
+          always_push=true
+        fi
+
+        threshold="${{ inputs.miss-threshold }}"
+        if ! $always_push && [ "$threshold" -gt 0 ] 2>/dev/null; then
+          # A missing -stats stage or unparsable stats falls through to the
+          # full extraction. Clean first: stale stats must not gate this run.
+          rm -rf /tmp/ccache-stats && mkdir -p /tmp/ccache-stats
+          build "${{ inputs.export-target }}-stats" /tmp/ccache-stats || true
+          if [ -f /tmp/ccache-stats/_build_stats.txt ]; then
+            read -r calls misses <<< "$(bash "${{ github.action_path }}/../ccache-push/parse_stats.sh" < /tmp/ccache-stats/_build_stats.txt)"
+            if [[ "$calls" =~ ^[0-9]+$ ]] && [ "$calls" -eq 0 ]; then
+              # The compile stage was served from the layer cache, so no
+              # compilation ran and there is nothing new to persist.
+              echo "No cacheable compiler calls in this build; skipping cache extraction."
+              echo "ccache: extraction and push skipped (no compiles ran)" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+              exit 0
+            fi
+            if [[ "$calls" =~ ^[0-9]+$ ]] && [[ "$misses" =~ ^[0-9]+$ ]] && [ "$calls" -gt 0 ]; then
+              miss_pct=$((misses * 100 / calls))
+              echo "Cache miss rate: ${miss_pct}% (${misses} misses / ${calls} cacheable calls)"
+              if [ "$miss_pct" -lt "$threshold" ]; then
+                echo "Below push threshold ${threshold}%; skipping cache extraction."
+                echo "ccache: extraction and push skipped (miss rate ${miss_pct}% below threshold)" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+                exit 0
+              fi
+            fi
+          fi
+        fi
+
+        out="${{ inputs.output-path }}"
+        rm -rf "$out" && mkdir -p "$out"
+        build "${{ inputs.export-target }}" "$out"
+        [ -f "$out/ccache.tar" ] || { echo "No ccache.tar produced; skipping push."; exit 0; }
+        mkdir -p "$out/ccache"
+        tar xf "$out/ccache.tar" -C "$out/ccache"
+        rm -f "$out/ccache.tar"

@@ -106,7 +106,9 @@ jobs:
           registry_cache=`echo "${{ inputs.build_cache }}" | (egrep -o 'type=registry,ref=[a-zA-Z0-9_:/\.-]*' || echo)`
           registry_cache_image=`echo $registry_cache | rev | cut -d : -f2- | rev`
 
-          ccache_key=${platform_tag}-${build_config_id:+$build_config_id-}assets
+          # Same key the source_build (prereqs) caching jobs use, so the
+          # installer restores the LLVM cache they pushed earlier in the run.
+          ccache_key=assets-${platform_tag}${build_config_id:+-$build_config_id}
 
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
@@ -192,24 +194,16 @@ jobs:
           push: true
 
       - name: Extract ccache from build
-        timeout-minutes: 15
+        timeout-minutes: 30
         continue-on-error: true
-        run: |
-          mkdir -p /tmp/ccache-export
-          docker buildx build \
-            -f ./docker/build/assets.Dockerfile . \
-            --build-context ccache-data=/tmp/ccache-data \
-            --build-arg release_version=${{ steps.config.outputs.cudaq_version }} \
-            --build-arg base_image=${{ inputs.platform_base_image }} \
-            --build-arg cuda_version=${{ inputs.cuda_version }} \
-            --target ccache-export \
-            --output type=local,dest=/tmp/ccache-export \
-            2>&1 | tail -20
-          if [ -f /tmp/ccache-export/ccache.tar ]; then
-            mkdir -p /tmp/ccache-export/ccache
-            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
-            rm -f /tmp/ccache-export/ccache.tar
-          fi
+        uses: ./.github/actions/ccache-extract
+        with:
+          dockerfile: ./docker/build/assets.Dockerfile
+          export-target: ccache-export-full
+          build-args: |
+            release_version=${{ steps.config.outputs.cudaq_version }}
+            base_image=${{ inputs.platform_base_image }}
+            cuda_version=${{ inputs.cuda_version }}
 
       - name: Push ccache to GHCR
         uses: ./.github/actions/ccache-push

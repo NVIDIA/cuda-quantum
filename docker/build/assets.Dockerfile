@@ -71,9 +71,29 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+# Seed CCACHE_DIR from the injected cache so a layer-cache miss reuses objects
+# from a previous run instead of rebuilding the whole LLVM toolchain.
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_MAXSIZE=25G
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        mkdir -p "$CCACHE_DIR" && cp -a /tmp/ccache-import/. "$CCACHE_DIR/" && (ccache -z 2>/dev/null || true); \
+    else mkdir -p "$CCACHE_DIR"; fi && \
+    cd /cuda-quantum && source scripts/configure_build.sh && \
+    # Pin stage-1 to a fixed path: a per-run mktemp path lands in every stage-2
+    # compile (clang resource headers), so stage-2 ccache could never hit.
+    mkdir -p /usr/local/llvm-stage1 && \
+    LLVM_STAGE1_BUILD=/usr/local/llvm-stage1 \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
-    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
+    if [ ! -x /usr/local/llvm-stage1/bin/clang ]; then \
+        echo "stage-1 toolchain missing from pinned path; stage-2 ccache would never hit" >&2; exit 1; \
+    fi && \
+    (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > "$CCACHE_DIR/_build_stats.txt"
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -144,7 +164,7 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
 # that can then be linked to and called from other C++ code compiled with a different toolchain
 # and linked against a different standard library.
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
+    LLVM_STAGE1_BUILD=/usr/local/llvm-stage1 \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
@@ -237,7 +257,7 @@ RUN cd /cuda-quantum && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     rm -rf "${LLVM_INSTALL_PREFIX}" && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
+    LLVM_STAGE1_BUILD=/usr/local/llvm-stage1 \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
@@ -248,7 +268,8 @@ RUN cd /cuda-quantum && \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
     FC="$LLVM_INSTALL_PREFIX/bin/flang" \
     python3 -m build --wheel && \
-    echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
+    echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
     ## [<CUDAQuantumPythonBuild]
 
 # The '[a-z]*linux_[^\.]*' is meant to catch things like:
@@ -367,6 +388,43 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
+
+# Stats-only export for the CI extraction gate (ccache-extract action).
+FROM scratch AS ccache-export-stats
+COPY --from=cpp_build /root/.ccache/_build_stats.txt /
+
+# Same export but rooted at prereqs, for build_target=prereqs jobs that only
+# build the LLVM toolchain (CI source_build). Build with --target ccache-export-prereqs.
+FROM prereqs AS ccache-tar-prereqs
+RUN tar cf /ccache.tar -C /root/.ccache .
+
+FROM scratch AS ccache-export-prereqs
+COPY --from=ccache-tar-prereqs /ccache.tar /
+
+FROM scratch AS ccache-export-prereqs-stats
+COPY --from=prereqs /root/.ccache/_build_stats.txt /
+
+# Merge python_build's cache (otherwise never exported) into cpp_build's;
+# stats are summed so the extract/push gates see the combined miss rate.
+FROM python_build AS ccache-tar-full
+COPY --from=cpp_build /root/.ccache /tmp/ccache-cpp
+COPY .github/actions/ccache-push/parse_stats.sh /tmp/parse_stats.sh
+RUN cpp_stats=$(bash /tmp/parse_stats.sh < /tmp/ccache-cpp/_build_stats.txt || true) && \
+    py_stats=$(bash /tmp/parse_stats.sh < /root/.ccache/_build_stats.txt || true) && \
+    cp -an /tmp/ccache-cpp/. /root/.ccache/ && \
+    if [ -n "$cpp_stats" ] && [ -n "$py_stats" ]; then \
+        calls=$(( ${cpp_stats% *} + ${py_stats% *} )) && \
+        misses=$(( ${cpp_stats#* } + ${py_stats#* } )) && \
+        printf 'direct_cache_hit\t%s\npreprocessed_cache_hit\t0\ncache_miss\t%s\n' \
+            "$(( calls - misses ))" "$misses" > /root/.ccache/_build_stats.txt; \
+    fi && \
+    tar cf /ccache.tar -C /root/.ccache .
+
+FROM scratch AS ccache-export-full
+COPY --from=ccache-tar-full /ccache.tar /
+
+FROM scratch AS ccache-export-full-stats
+COPY --from=ccache-tar-full /root/.ccache/_build_stats.txt /
 
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse

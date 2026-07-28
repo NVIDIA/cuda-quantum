@@ -5,7 +5,7 @@ inputs:
   max-size:
     description: 'Maximum ccache cache size'
     required: false
-    default: '3G'
+    default: '10G'
   compression:
     description: 'Enable ccache compression'
     required: false
