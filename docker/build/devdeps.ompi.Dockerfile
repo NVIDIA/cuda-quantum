@@ -56,16 +56,34 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
     && make -C contribs/pmi2 install \
     && rm -rf /var/tmp/slurm-21.08.8 /var/tmp/slurm-21.08.8.tar.bz2
 
-# 3 - Install Mellanox OFED version 5.3-1.0.0.1
+# 3 - Install DOCA-OFED 3.1.0 (userspace)
+# Install only the RDMA/IB libraries needed by the HPC stack (UCX/OpenMPI), plus SHARP,
+# not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
+# Note: the sharp package Depends on DOCA's ucx package.
 
-RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
-    && apt-get update -y && apt-get install -y --no-install-recommends \
-        ibverbs-providers ibverbs-utils \
-        libibmad-dev libibmad5 libibumad-dev libibumad3 \
-        libibverbs-dev libibverbs1 \
-        librdmacm-dev librdmacm1 \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+ARG DOCA_VERSION=3.1.0-091000-25.07
+ENV SHARP_INSTALL_PREFIX=/opt/mellanox/sharp
+RUN arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
+    && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
+    && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
+    && dpkg -i "/var/tmp/${doca_deb}" \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        libibverbs1 libibverbs-dev ibverbs-providers \
+        librdmacm1 librdmacm-dev \
+        libibumad3 libibumad-dev \
+        libibmad5 libibmad-dev \
+        libxpmem0 libxpmem-dev xpmem knem \
+        sharp \
+    && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+    && rm -f "/var/tmp/${doca_deb}" \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Optional runtime diagnostics (ibv_devinfo, rdma_*, ib_write_bw, ofed_info):
+# RUN apt-get update -y \
+#     && apt-get install -y --no-install-recommends \
+#         rdma-core ibverbs-utils rdmacm-utils perftest ofed-scripts \
+#     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 4 - Install GDRCOPY version 2.3.1
 

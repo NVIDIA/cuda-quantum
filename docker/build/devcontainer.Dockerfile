@@ -50,17 +50,35 @@ RUN apt update && apt-get install -y --no-install-recommends ca-certificates wge
 # When cuda packages are installed below, the keyring will be reinstalled.
 RUN rm -f /etc/apt/sources.list.d/cuda.list
 
-# Install Mellanox OFED runtime and development dependencies.
+# Install DOCA-OFED 3.1.0 userspace runtime dependencies.
+# Install only the RDMA/IB libraries needed by the HPC stack (UCX/OpenMPI), plus SHARP,
+# not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
+# Note: the sharp package Depends on DOCA's ucx package.
 
-RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
-    && wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | apt-key add - \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" \
-    && apt-get update -y && apt-get install -y --no-install-recommends \
-        ibverbs-providers ibverbs-utils \
-        libibmad5 libibumad3 libibverbs-dev libibverbs1 librdmacm1 \
-    && rm /etc/apt/trusted.gpg && rm /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
-    && apt-get remove -y gnupg \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+ARG TARGETARCH
+ARG DOCA_VERSION=3.1.0-091000-25.07
+ENV SHARP_INSTALL_PREFIX=/opt/mellanox/sharp
+RUN arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
+    && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
+    && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
+    && dpkg -i "/var/tmp/${doca_deb}" \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        libibverbs1 libibverbs-dev ibverbs-providers \
+        librdmacm1 librdmacm-dev \
+        libibumad3 libibumad-dev \
+        libibmad5 libibmad-dev \
+        libxpmem0 libxpmem-dev xpmem knem \
+        sharp \
+    && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+    && rm -f "/var/tmp/${doca_deb}" \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Optional runtime diagnostics (ibv_devinfo, rdma_*, ib_write_bw, ofed_info):
+# RUN apt-get update -y \
+#     && apt-get install -y --no-install-recommends \
+#         rdma-core ibverbs-utils rdmacm-utils perftest ofed-scripts \
+#     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy over SLURM PMI2.
 
@@ -116,8 +134,7 @@ ENV MPI_HOME="$OPENMPI_INSTALL_PREFIX"
 ENV MPI_ROOT="$OPENMPI_INSTALL_PREFIX"
 ENV MPI_PATH="$OPENMPI_INSTALL_PREFIX"
 ENV PATH="$OPENMPI_INSTALL_PREFIX/bin:$PATH"
-ENV CPATH="$OPENMPI_INSTALL_PREFIX/include:/usr/local/ofed/5.0-0/include:$CPATH"
-ENV LIBRARY_PATH="/usr/local/ofed/5.0-0/lib:$LIBRARY_PATH"
+ENV CPATH="$OPENMPI_INSTALL_PREFIX/include:$CPATH"
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENMPI_INSTALL_PREFIX/lib"
 COPY --from=ompibuild "$OPENMPI_INSTALL_PREFIX" "$OPENMPI_INSTALL_PREFIX"
 
