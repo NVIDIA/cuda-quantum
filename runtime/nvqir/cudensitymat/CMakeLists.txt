@@ -32,6 +32,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
     RungeKuttaIntegrator.cpp
     CrankNicolsonIntegrator.cpp
     MagnusIntegrator.cpp
+    AdaptiveIntegrator.cpp
     CuDensityMatExpectation.cpp
     CuDensityMatEvolution.cpp
     CuDensityMatState.cpp
