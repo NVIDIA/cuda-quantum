@@ -175,47 +175,41 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   return {nullptr, 0};
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const sample_policy &) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const sample_policy &) {
   // Fall back to policy-agnostic compile target.
   return getCompileTarget(other_policies{}, nullptr);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const observe_policy &) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const observe_policy &) {
   // Fall back to policy-agnostic compile target.
   return getCompileTarget(other_policies{}, nullptr);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const run_policy &) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const run_policy &) {
   // Fall back to policy-agnostic compile target.
   return getCompileTarget(other_policies{}, nullptr);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const dem_policy &) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const dem_policy &) {
   throw std::runtime_error(
       "This QPU does not support detector error model generation.");
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const msm_size_policy &) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const msm_size_policy &) {
   return getCompileTarget(other_policies{}, nullptr);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const msm_policy &) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const msm_policy &) {
   return getCompileTarget(other_policies{}, nullptr);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
+cudaq::CompileTarget
 cudaq::QPU::getCompileTarget(const ptsbe::sample_policy &) {
   return getCompileTarget(other_policies{}, nullptr);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const other_policies &olicy, ExecutionContext *) {
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const other_policies &olicy,
+                                                  ExecutionContext *) {
   throw std::runtime_error(
       "no CompileTarget defined for other_policies on this QPU");
 }

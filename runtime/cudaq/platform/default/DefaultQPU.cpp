@@ -169,27 +169,27 @@ cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
       [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
 }
 
-std::unique_ptr<cudaq::CompileTarget>
+cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
   return getDefaultCompileTarget(policy);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
+cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
   return getDefaultCompileTarget(policy);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
+cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const run_policy &policy) {
   return getDefaultCompileTarget(policy);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
+cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const dem_policy &policy) {
   return getDefaultCompileTarget(policy);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
+cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const other_policies &policy,
                                     ExecutionContext *context) {
   return getDefaultCompileTarget(policy, context);

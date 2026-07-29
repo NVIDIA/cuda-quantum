@@ -208,14 +208,14 @@ public:
                       std::size_t qpu_id = 0);
 
   template <typename Policy>
-  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
-  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
+  [[nodiscard]] cudaq::CompileTarget getCompileTarget(const Policy &policy,
+                                                      std::size_t qpu_id = 0) {
     validateQpuId(qpu_id);
     auto &qpu = platformQPUs[qpu_id];
     return qpu->getCompileTarget(policy);
   }
 
-  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
+  [[nodiscard]] cudaq::CompileTarget
   getCompileTarget(const cudaq::other_policies &policy,
                    std::size_t qpu_id = 0) {
     auto *ctx = getExecutionContext();

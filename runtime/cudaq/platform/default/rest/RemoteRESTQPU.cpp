@@ -12,8 +12,7 @@
 #include "cudaq_internal/compiler/Compiler.h"
 
 static std::vector<cudaq::KernelExecution>
-runCodegen(const cudaq::CompiledModule &module,
-           std::unique_ptr<cudaq::CompileTarget> target) {
+runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
   if (module.getMlirArtifacts().empty())
     CUDAQ_ERROR("QPU does not support launching a "
                 "CompiledModule without MLIR artifacts.");
