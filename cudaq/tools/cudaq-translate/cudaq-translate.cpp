@@ -120,15 +120,29 @@ int main(int argc, char **argv) {
     cudaq::emitFatalError(UnknownLoc::get(&context),
                           "Could not open input file: " + ec.message());
 
-  // Parse the input mlir.
   llvm::SourceMgr sourceMgr;
   sourceMgr.AddNewSourceBuffer(std::move(*fileOrErr), llvm::SMLoc());
-  auto module = parseSourceFile<ModuleOp>(sourceMgr, &context);
 
+  // Render diagnostics with the source line they came from.
   SourceMgrDiagnosticHandler diagHandler(sourceMgr, &context);
 
-  // IR can be fetched by passing `-mlir-print-ir-after-failure`.
+  // Returning failure here hands the diagnostic on to `diagHandler`, which
+  // does the printing.
+  unsigned numErrors = 0;
+  context.getDiagEngine().registerHandler([&](Diagnostic &diag) {
+    if (diag.getSeverity() == DiagnosticSeverity::Error)
+      ++numErrors;
+    return failure();
+  });
+
+  // The offending Op is not appended to each diagnostic. The IR can be fetched
+  // by passing `-mlir-print-ir-after-failure`.
   context.printOpOnDiagnostic(false);
+
+  // Parse the input mlir.
+  auto module = parseSourceFile<ModuleOp>(sourceMgr, &context);
+  if (!module)
+    return 1;
 
   PassManager pm(&context);
   // Apply any generic pass manager command line options and run the pipeline.
@@ -186,7 +200,7 @@ int main(int argc, char **argv) {
         std::exit(1);
       })();
 
-  if (failed(pm.run(*module)))
+  if (failed(pm.run(*module)) || numErrors)
     return 1;
 
   if (!targetUsesLlvm) {

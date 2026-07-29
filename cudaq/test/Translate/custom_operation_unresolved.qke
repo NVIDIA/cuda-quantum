@@ -7,11 +7,15 @@
 // ========================================================================== //
 
 // A `quake.custom_unitary_call` that still names its generator function has no
-// concrete matrix to emit. That happens when the array conversion passes are
-// skipped, e.g. `nvq++ -fno-array-conversion`. Code generation must report it
-// rather than aborting.
+// concrete matrix to emit. That happens whenever `get-concrete-matrix` did not
+// rewrite the call, most commonly because the array conversion passes it
+// depends on were skipped, e.g. `nvq++ -fno-array-conversion`. Code generation
+// must report it rather than aborting.
 
-// RUN: cudaq-opt --quake-to-qir-api=api=full --verify-diagnostics %s
+// The conversion reports the error and leaves legal IR behind: a trap in place
+// of the custom operation.
+// RUN: cudaq-opt --quake-to-qir-api-prep=api=full --quake-to-qir-api=api=full \
+// RUN:     --verify-diagnostics %s | FileCheck --check-prefix=TRAP %s
 
 // The end-to-end path must fail with a diagnostic and not a crash.
 // RUN: not cudaq-translate --convert-to=qir %s 2>&1 | FileCheck %s
@@ -23,10 +27,14 @@ module {
     %0 = quake.alloca !quake.ref
     // expected-error@+1 {{custom operation was not lowered to a constant unitary matrix}}
     quake.custom_unitary_call @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1RKSt6vectorIdSaIdEE %0 : (!quake.ref) -> ()
-    %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
     return
   }
 }
 
 // CHECK: error: custom operation was not lowered to a constant unitary matrix.
+// CHECK-SAME: get-concrete-matrix pipeline
 // CHECK-SAME: '-fno-array-conversion'
+
+// TRAP-LABEL: func.func @__nvqpp__mlirgen__function_kernel
+// TRAP-NOT: quake.custom_unitary_call
+// TRAP: call @__quantum__qis__trap

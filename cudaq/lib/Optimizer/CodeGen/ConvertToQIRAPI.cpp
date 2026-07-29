@@ -1688,6 +1688,30 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
   }
 };
 
+struct CustomUnitaryCallOpTrap
+    : public OpConversionPattern<cudaq::quake::CustomUnitaryCallOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::CustomUnitaryCallOp custom, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    custom.emitError(
+        "custom operation was not lowered to a constant unitary matrix. Code "
+        "generation requires a constant matrix from the array-conversion / "
+        "get-concrete-matrix pipeline (skipped by nvq++ "
+        "'-fno-array-conversion', or failed to materialize a constant)");
+    auto loc = custom.getLoc();
+    Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+    func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
+                         ValueRange{zero});
+    SmallVector<Value> values;
+    for (auto r : custom.getResults())
+      values.push_back(cudaq::cc::PoisonOp::create(rewriter, loc, r.getType()));
+    rewriter.replaceOp(custom, values);
+    return success();
+  }
+};
+
 struct CallByRefOpRewrite
     : public OpConversionPattern<cudaq::quake::CallByRefOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -2257,10 +2281,10 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, GetMemberOpRewrite,
-                  MakeStruqOpRewrite, ReturnOpPattern, RelaxSizeOpErase,
-                  UnwrapOpErase, VeqSizeOpRewrite, WrapOpErase, WrapNewOpErase>(
-      typeConverter, ctx);
+  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, CustomUnitaryCallOpTrap,
+                  GetMemberOpRewrite, MakeStruqOpRewrite, ReturnOpPattern,
+                  RelaxSizeOpErase, UnwrapOpErase, VeqSizeOpRewrite,
+                  WrapOpErase, WrapNewOpErase>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2777,25 +2801,8 @@ struct QuakeToQIRAPIPass
            isa<cudaq::cc::MeasureHandleType>(ty);
   }
 
-  LogicalResult diagnoseUnresolvedCustomUnitaries() {
-    auto result = getOperation()->walk(
-        [](cudaq::quake::CustomUnitaryCallOp call) -> WalkResult {
-          call.emitError(
-              "custom operation was not lowered to a constant unitary matrix. "
-              "Compiling a custom operation requires the array conversion "
-              "passes, which are disabled by the nvq++ option "
-              "'-fno-array-conversion'.");
-          return WalkResult::interrupt();
-        });
-    return failure(result.wasInterrupted());
-  }
-
   void runOnOperation() override {
     LLVM_DEBUG(llvm::dbgs() << "Begin converting to QIR\n");
-    if (failed(diagnoseUnresolvedCustomUnitaries())) {
-      signalPassFailure();
-      return;
-    }
     QIRAPITypeConverter typeConverter(opaquePtr);
     SmallVector<StringRef> apiField;
     splitTransportTriple(apiField, api);
