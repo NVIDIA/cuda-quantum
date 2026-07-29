@@ -15,6 +15,11 @@ func.func private @phase_helper(%theta: f64, %anchor: !quake.ref) {
   return
 }
 
+// CHECK-LABEL: llvm.func @phase_lifecycle(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK-SAME: %[[OUTER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
+// CHECK: llvm.call @__quantum__qis__r1(%[[THETA]], %[[OUTER]])
+// CHECK-NOT: quake.phase
 func.func @phase_lifecycle(%theta: f64, %outer: !quake.ref,
                            %anchor: !quake.ref) {
   quake.apply @phase_helper [%outer] %theta, %anchor
