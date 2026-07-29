@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "SampleResult.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/spin_op.h"
 #include <algorithm>
 #include <climits>
@@ -185,6 +186,14 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
           [](std::size_t sum, const auto &pair) { return sum + pair.second; });
     }
   }
+}
+
+sample_result::sample_result(CountsDictionary counts, cudaq_json annots)
+    : annotations(std::move(annots)) {
+  for (auto &[bits, count] : counts)
+    totalShots += count;
+  sampleResults.insert(
+      {GlobalRegisterName, ExecutionResult(std::move(counts))});
 }
 
 sample_result::sample_result(ExecutionResult &&result) {
@@ -452,6 +461,8 @@ void sample_result::clear() {
   sampleResults.clear();
   totalShots = 0;
 }
+
+std::size_t sample_result::get_total_shots() const { return totalShots; }
 
 /// @brief This is a helper function to sort the keys of an unordered map
 /// without making any deep copies.

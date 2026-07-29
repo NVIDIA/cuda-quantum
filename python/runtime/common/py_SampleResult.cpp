@@ -7,14 +7,18 @@
  ******************************************************************************/
 
 #include <nanobind/make_iterator.h>
+#include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
+#include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
 #include "py_SampleResult.h"
+#include "utils/NanobindAdaptors.h"
 
 #include "common/SampleResult.h"
+#include "nlohmann/json.hpp"
 
 #include <sstream>
 
@@ -36,6 +40,31 @@ Note:
   `sample`. Use `run` instead.)#")
       .def_prop_ro("register_names", &sample_result::register_names)
       .def(nanobind::init<>())
+      .def(
+          "__init__",
+          [](sample_result *self, const CountsDictionary &counts,
+             const nlohmann::json &annotations) {
+            new (self) sample_result(counts, cudaq_json(annotations));
+          },
+          nanobind::arg("counts"),
+          nanobind::arg("annotations") = nlohmann::json::object(),
+          R"#(Construct a SampleResult from a counts dictionary.
+
+Args:
+  counts (dict[str, int]): Mapping of bitstrings to observation counts.
+  annotations (dict, optional): Metadata dict. Use ``annotations={"shots": N}``
+    to record an authoritative shot count that may exceed ``sum(counts.values())``
+    when shots were filtered.)#")
+      .def_prop_ro(
+          "counts", [](sample_result &self) { return self.to_map(); },
+          "Return the global counts as a ``dict[str, int]``.")
+      .def_prop_ro(
+          "annotations",
+          [](sample_result &self) -> nlohmann::json & {
+            return self.annotations.get();
+          },
+          "Metadata dict set by backends. ``annotations['shots']`` "
+          "is the authoritative shot count when present.")
       .def(
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq_json.h"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -118,6 +119,11 @@ private:
   ExecutionResult &retrieve_result(const std::string &registerName);
 
 public:
+  /// @brief Language-neutral extension point for backends to attach metadata
+  /// (e.g. shot count, job ID, timing). Use annotations["shots"] to record an
+  /// authoritative shot count that may exceed sum(counts) after filtering.
+  cudaq_json annotations;
+
   /// @brief Default constructor
   sample_result() = default;
 
@@ -135,6 +141,10 @@ public:
   /// it with the `__global__` `ExecutionResult`.
   sample_result(double preComputedExp,
                 const std::vector<ExecutionResult> &results);
+
+  /// @brief Construct from a counts dictionary and optional annotations.
+  /// The global register is populated with the provided counts.
+  sample_result(CountsDictionary counts, cudaq_json annotations);
 
   /// @brief Constructors
   sample_result(sample_result &&) = default;
@@ -285,8 +295,8 @@ public:
   /// @return
   CountsDictionary::const_iterator end() const { return cend(); }
 
-  /// @brief Get the total number of shots in the result
-  std::size_t get_total_shots() const { return totalShots; }
+  /// @brief Get the total number of shots in the result.
+  std::size_t get_total_shots() const;
 
   /// @brief Return true if the bit string has even parity
   /// @param bitString
