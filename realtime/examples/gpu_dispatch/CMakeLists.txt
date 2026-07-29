@@ -53,7 +53,7 @@ add_executable(dispatch_kernel dispatch_kernel.cu)
 
 set_target_properties(dispatch_kernel PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
-  CUDA_STANDARD 17
+  CUDA_STANDARD 20
 )
 set_target_properties(dispatch_kernel PROPERTIES CUDA_ARCHITECTURES "80;90")
 
