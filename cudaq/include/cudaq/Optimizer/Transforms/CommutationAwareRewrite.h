@@ -35,19 +35,13 @@ struct CommutationAwareRewriteMatch {
   llvm::SmallVector<mlir::Operation *> crossed;
 };
 
-/// Observable maintenance work performed during one rewrite invocation.
+/// Observable analysis-maintenance work performed by one rewrite driver.
 struct CommutationAwareRewriteStatistics {
   /// Number of block-local analysis instances constructed, including rebuilds.
   std::size_t analysisBuilds = 0;
   /// Number of analysis builds after an observed unsupported mutation discarded
   /// live state for the same block.
   std::size_t fallbackRebuilds = 0;
-  /// Number of reached candidates queried for commutation after the endpoint
-  /// predicate rejected them.
-  std::size_t commutationProbes = 0;
-  /// Number of block-local operations selected from the merged value-flow
-  /// frontier, including accepted endpoints and stopping barriers.
-  std::size_t frontierCandidates = 0;
 };
 
 /// Directional block-local search owned by a rewrite driver.
@@ -165,9 +159,9 @@ public:
   /// Return the driver-owned endpoint search for use by consumer patterns.
   CommutationAwareRewriteMatcher &getMatcher();
 
-  /// Return stable event counts for incremental-maintenance verification and
-  /// focused traversal-cost measurements. Counts cover this driver's single
-  /// rewrite invocation and any `matcher` queries made before it.
+  /// Return stable event counts for incremental-maintenance verification.
+  /// Counts cover this driver's single rewrite invocation and any `matcher`
+  /// queries made before it.
   CommutationAwareRewriteStatistics getStatistics() const;
 
   /// Apply the owned pattern set to one region whose parent is isolated from

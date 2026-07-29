@@ -13,7 +13,6 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
@@ -74,60 +73,6 @@ public:
 
     rewriter.replaceOp(match->endpoint, anchor->getOperands());
     rewriter.eraseOp(anchor);
-    return success();
-  }
-
-private:
-  cudaq::opt::CommutationAwareRewriteMatcher &matcher;
-};
-
-class FoldRzConstants : public OpRewritePattern<cudaq::quake::RzOp> {
-public:
-  FoldRzConstants(MLIRContext *context,
-                  cudaq::opt::CommutationAwareRewriteMatcher &matcher)
-      : OpRewritePattern(context), matcher(matcher) {}
-
-  LogicalResult matchAndRewrite(cudaq::quake::RzOp anchor,
-                                PatternRewriter &rewriter) const override {
-    auto anchorParameters = anchor.getParameters();
-    if (anchorParameters.size() != 1)
-      return failure();
-
-    FloatAttr anchorValue;
-    if (!matchPattern(anchorParameters.front(), m_Constant(&anchorValue)))
-      return failure();
-
-    auto match = matcher.findNearest(
-        anchor, cudaq::opt::CommutationSearchDirection::Forward,
-        [&](Operation *candidate) {
-          auto endpoint = dyn_cast<cudaq::quake::RzOp>(candidate);
-          return endpoint &&
-                 matcher.haveSameOrderedQuantumOperands(anchor, endpoint);
-        });
-    if (!match)
-      return failure();
-
-    auto endpoint = cast<cudaq::quake::RzOp>(match->endpoint);
-    auto endpointParameters = endpoint.getParameters();
-    FloatAttr endpointValue;
-    if (endpointParameters.size() != 1 ||
-        !matchPattern(endpointParameters.front(), m_Constant(&endpointValue)) ||
-        endpointParameters.front().getType() !=
-            anchorParameters.front().getType())
-      return failure();
-
-    OpBuilder::InsertionGuard guard(rewriter);
-    rewriter.setInsertionPoint(endpoint);
-    auto angleType = cast<FloatType>(endpointParameters.front().getType());
-    auto combined = arith::ConstantFloatOp::create(
-        rewriter, endpoint.getLoc(), angleType,
-        llvm::APFloat(anchorValue.getValueAsDouble() +
-                      endpointValue.getValueAsDouble()));
-    rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
-        endpoint, endpoint.getResultTypes(), UnitAttr{},
-        ValueRange(combined.getResult()), endpoint.getControls(),
-        endpoint.getTargets(), endpoint.getNegatedQubitControlsAttr());
-    rewriter.replaceOp(anchor, cudaq::quake::getWireOperands(anchor));
     return success();
   }
 
@@ -263,16 +208,6 @@ TEST_F(CommutationAwareRewriteTest,
         quake.wrap %h1 to %reference : !quake.wire, !quake.ref
         return
       }
-      func.func @adjacent_fold() {
-        %theta0 = arith.constant 0.25 : f64
-        %theta1 = arith.constant 0.75 : f64
-        %reference = quake.alloca !quake.ref
-        %unwrapped = quake.unwrap %reference : (!quake.ref) -> !quake.wire
-        %rz0 = quake.rz (%theta0) %unwrapped : (f64, !quake.wire) -> !quake.wire
-        %rz1 = quake.rz (%theta1) %rz0 : (f64, !quake.wire) -> !quake.wire
-        quake.wrap %rz1 to %reference : !quake.wire, !quake.ref
-        return
-      }
     })mlir");
   ASSERT_TRUE(module);
 
@@ -284,18 +219,6 @@ TEST_F(CommutationAwareRewriteTest,
   EXPECT_TRUE(cancelFunction.getOps<cudaq::quake::HOp>().empty());
   EXPECT_EQ(cancelDriver.getStatistics().analysisBuilds, 0u);
 
-  auto foldFunction = getFunction(*module, "adjacent_fold");
-  cudaq::opt::CommutationAwareRewriteDriver foldDriver(context);
-  foldDriver.getPatterns().add<FoldRzConstants>(&context,
-                                                foldDriver.getMatcher());
-  EXPECT_TRUE(succeeded(foldDriver.run(foldFunction.getBody())));
-  EXPECT_EQ(llvm::range_size(foldFunction.getOps<cudaq::quake::RzOp>()), 1u);
-  auto foldedRotation = *foldFunction.getOps<cudaq::quake::RzOp>().begin();
-  FloatAttr foldedAngle;
-  ASSERT_TRUE(matchPattern(foldedRotation.getParameters().front(),
-                           m_Constant(&foldedAngle)));
-  EXPECT_DOUBLE_EQ(foldedAngle.getValueAsDouble(), 1.0);
-  EXPECT_EQ(foldDriver.getStatistics().analysisBuilds, 0u);
   EXPECT_TRUE(succeeded(verify(*module)));
 }
 

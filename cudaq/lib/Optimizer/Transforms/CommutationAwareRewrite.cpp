@@ -61,33 +61,14 @@ static bool comesFirst(Operation *lhs, Operation *rhs, bool isForward) {
   return isForward ? lhs->isBeforeInBlock(rhs) : rhs->isBeforeInBlock(lhs);
 }
 
-// Map a wire operand to the result carrying the same virtual qubit, or the
-// reverse when `toResult` is false. These are the same one-to-one forms that
-// `QubitIdentityAnalysis` propagates. A measurement instrument's classical
-// result is not part of its `getWires()` range.
+// Map one lane through a validated scalar-wire flow, or in reverse when
+// `toResult` is false.
 static Value mapWireAcross(Operation *operation, Value value, bool toResult) {
-  llvm::SmallVector<Value> wireInputs;
-  ValueRange wireResults;
-  if (auto op = dyn_cast<cudaq::quake::OperatorInterface>(operation)) {
-    wireInputs = cudaq::quake::getWireOperands(op);
-    wireResults = op.getWires();
-  } else if (auto measurementInstrument =
-                 dyn_cast<cudaq::quake::MeasurementInterface>(operation)) {
-    for (Value target : measurementInstrument.getTargets())
-      if (isa<cudaq::quake::WireType>(target.getType()))
-        wireInputs.push_back(target);
-    wireResults = measurementInstrument.getWires();
-  } else if (auto resetChannel = dyn_cast<cudaq::quake::ResetOp>(operation)) {
-    if (isa<cudaq::quake::WireType>(resetChannel.getTargets().getType()))
-      wireInputs.push_back(resetChannel.getTargets());
-    wireResults = resetChannel.getWires();
-  } else {
+  auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
+  if (!flow)
     return {};
-  }
 
-  if (wireInputs.size() != wireResults.size())
-    return {};
-  for (auto [input, result] : llvm::zip(wireInputs, wireResults)) {
+  for (auto [input, result] : llvm::zip(flow->inputs, flow->results)) {
     if (toResult && input == value)
       return result;
     if (!toResult && result == value)
@@ -471,7 +452,6 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
            requireAnalysis().canCommute(operation, operation);
   };
   while (Operation *candidate = takeNext(frontier, block, isForward)) {
-    ++impl->statistics.frontierCandidates;
     // Reference and aggregate quantum values, and nested code that could reach
     // further qubits, are outside the adopted semantics. Measurement
     // instruments and reset channels are the only non-unitary operations with
@@ -511,7 +491,6 @@ cudaq::opt::CommutationAwareRewriteMatcher::findNearest(
         (!isTraversableMeasurementOrReset &&
          !blockAnalysis.canCommute(candidate, candidate)))
       return std::nullopt;
-    ++impl->statistics.commutationProbes;
     if (!blockAnalysis.canCommute(anchor, candidate))
       return std::nullopt;
 
