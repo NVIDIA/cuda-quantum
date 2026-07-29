@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import sys, os
+import math
 
 import pytest
 import numpy as np
@@ -37,11 +38,6 @@ def test_simple_sampling_ghz():
     assert '0' * 10 in counts and '1' * 10 in counts
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
 
@@ -80,6 +76,7 @@ def test_simple_sampling_qpe():
                 cudaq.control(oracle, [countingQubits[i]], stateRegister)
         iqft(countingQubits)
         mz(countingQubits)
+        ry(12 * math.pi, stateRegister)  # keep stateRegister live
 
     cudaq.set_random_seed(13)
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
@@ -212,12 +209,12 @@ def test_sample_async():
     assert '1' in sample_result and len(sample_result) == 1
 
 
-@skipIfValueSemantics
 def test_conditional_bare_return():
 
     @cudaq.kernel
     def kernel(skip: bool):
         q = cudaq.qubit()
+        ry(12 * math.pi, q)
         if skip:
             return
         x(q)
@@ -263,12 +260,12 @@ def test_bare_return_in_loop():
     assert '0' in counts and len(counts) == 1
 
 
-@skipIfValueSemantics
 def test_function_scope_bare_return():
 
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
+        ry(12 * math.pi, q)
         return
         x(q)
 

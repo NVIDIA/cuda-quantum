@@ -2111,7 +2111,7 @@ def test_reset():
         q = cudaq.qubit()
         x(q)
         reset(q)
-        ry(2.0 * math.pi, q)
+        ry(12 * math.pi, q)
 
     counts = cudaq.sample(single_qubit)
     assert counts['0'] == 1000

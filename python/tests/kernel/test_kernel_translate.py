@@ -8,6 +8,7 @@
 
 import pytest
 import cudaq
+import re
 
 import numpy as np
 
@@ -112,14 +113,10 @@ def test_translate_openqasm_return_typed_kernel():
     assert "OPENQASM 2.0;" in asm
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_translate_qir():
     qir = cudaq.translate(bell_pair, format="qir")
-    assert "@__quantum__rt__qubit_allocate_array(i64 2)" in qir
+    pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
+    assert re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
 
 
 def test_translate_qir_ignored_args():
@@ -128,16 +125,16 @@ def test_translate_qir_ignored_args():
     assert 'Invalid number of argu' in repr(e)
 
 
-@skipIfValueSemantics
 def test_translate_qir_with_args():
     qir = cudaq.translate(kernel_loop_params, 5, format="qir")
-    assert "@__quantum__rt__qubit_allocate_array(i64 5)" in qir
+    pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
+    assert re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
 
 
-@skipIfValueSemantics
 def test_translate_qir_call():
     qir = cudaq.translate(kernel_with_call, format="qir")
-    assert "@__quantum__rt__qubit_allocate_array(i64 2)" in qir
+    pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
+    assert not re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
 
 
 def test_translate_qir_base():
