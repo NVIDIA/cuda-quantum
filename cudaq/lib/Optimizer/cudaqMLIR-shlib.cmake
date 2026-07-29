@@ -77,8 +77,17 @@ foreach(_lib IN LISTS _cudaq_mlir_whole_archive)
   endif()
 endforeach()
 
-# 4. Bundle the LLVM native target for JITing, plus LLVMCore.
-llvm_map_components_to_libnames(_cudaq_llvm_native_libs native nativecodegen core)
+# 4. Bundle the LLVM native target for JITing, plus LLVMCore and LLVMSupport.
+#
+# `support` has to be whole-archived rather than picked up as a transitive
+# dependency of the libraries above: CUDA-Q sources that link only against
+# libcudaqMLIR.so still call llvm::Support APIs directly (for instance
+# llvm::SHA256 in python/runtime/cudaq/platform/ProgramFingerprint.cpp), and a
+# plain link only pulls in the archive members that MLIR itself happens to
+# reference. Anything else stays unresolved in the dependent shared object and
+# surfaces as an ImportError at dlopen time rather than as a link error.
+llvm_map_components_to_libnames(_cudaq_llvm_native_libs
+  native nativecodegen core support)
 foreach(_lib IN LISTS _cudaq_llvm_native_libs)
   if(TARGET ${_lib})
     target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")

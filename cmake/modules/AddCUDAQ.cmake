@@ -85,9 +85,11 @@ function(_cudaq_read_mlir_provided_libs _out_var)
     list(APPEND _provided ${_required})
   endif()
 
+  # In an installed tree the allowlist sits next to this file in
+  # lib/cmake/cudaq; in-tree this file lives in <repo>/cmake/modules.
   set(_allowlist_candidates
     "${CMAKE_CURRENT_LIST_DIR}/mlir-libs-allowlist.txt"
-    "${CMAKE_CURRENT_LIST_DIR}/../cudaq/lib/Optimizer/mlir-libs-allowlist.txt")
+    "${CMAKE_CURRENT_LIST_DIR}/../../cudaq/lib/Optimizer/mlir-libs-allowlist.txt")
   foreach(_candidate IN LISTS _allowlist_candidates)
     if(EXISTS "${_candidate}")
       cudaq_read_symbol_list("${_candidate}" _allowlist)
