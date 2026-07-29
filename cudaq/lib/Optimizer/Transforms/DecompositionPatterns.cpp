@@ -456,9 +456,7 @@ struct ExpPauliDecomposition
 REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition,
                                {"exp_pauli", "rx", "h", "x(1)", "rz"});
 
-// Naive mapping of R1 to Rz, ignoring the global phase.
-// This is only expected to work with full inlining and
-// quake apply specialization.
+// Exact mapping of R1 to Rz plus its phase residue.
 struct R1ToRzType; // forward declare the pattern type, defined in the macro
                    // below
 struct R1ToRz
@@ -468,12 +466,29 @@ struct R1ToRz
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
-    if (r1Op.isAdj() || !r1Op.getControls().empty())
-      return failure();
+    Location location = r1Op.getLoc();
+    SmallVector<Value> controls(r1Op.getControls());
+    SmallVector<Value> targets(r1Op.getTargets());
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
-        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
-        r1Op.getTargets());
+    auto resultTypes =
+        cudaq::opt::getWireResultTypes(rewriter, controls, targets);
+    auto rz = cudaq::quake::RzOp::create(
+        rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
+        r1Op.getParameters(), controls, targets,
+        r1Op.getNegatedQubitControlsAttr());
+    cudaq::opt::threadWireResults(rz, controls, targets);
+
+    Value phase = createDivF(location, r1Op.getParameter(), 2.0, rewriter);
+    if (r1Op.isAdj())
+      phase = arith::NegFOp::create(rewriter, location, phase);
+
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, location, phase, controls, r1Op.getNegatedQubitControlsAttr(),
+        targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(r1Op, cudaq::opt::getWireValues(controls, targets));
     return success();
   }
 };
