@@ -10,7 +10,6 @@
 #include "QubitIdentityAnalysis.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -40,6 +39,8 @@ struct ControlUse {
   bool operator==(const ControlUse &) const = default;
 };
 
+enum class QubitRole { Target, PositiveControl, NegativeControl };
+
 // Query-local view of a supported Quake operation's controls, targets, and
 // support, expressed using analysis-local qubit identifiers.
 struct OperationView {
@@ -57,12 +58,8 @@ struct OperationView {
   llvm::SmallVector<ControlUse> controls;
   // Targets in operand order, preserving positional gate semantics.
   llvm::SmallVector<QubitId> targets;
-  // Unique union of control and target qubits.
-  llvm::DenseSet<QubitId> support;
-  // Target lookup used by overlap and crossover rules.
-  llvm::DenseSet<QubitId> targetQubitIds;
-  // Control lookup and polarity used by controlled-operation rules.
-  llvm::DenseMap<QubitId, bool> controlPolarities;
+  // Unique role and control polarity for each supported qubit.
+  llvm::DenseMap<QubitId, QubitRole> roles;
 };
 
 // Analysis-local Pauli product keyed by qubit rather than IR target order.
@@ -308,24 +305,27 @@ static bool hasOddPauliAnticommutationParity(const PauliAction &lhs,
 // their gate semantics.
 static bool haveDisjointQuantumSupport(const OperationView &lhs,
                                        const OperationView &rhs) {
-  const auto *smaller = &lhs.support;
-  const auto *larger = &rhs.support;
+  const auto *smaller = &lhs.roles;
+  const auto *larger = &rhs.roles;
   if (larger->size() < smaller->size())
     std::swap(smaller, larger);
-  return llvm::none_of(
-      *smaller, [&](QubitId qubitId) { return larger->contains(qubitId); });
+  return llvm::none_of(*smaller, [&](const auto &entry) {
+    return larger->contains(entry.first);
+  });
 }
 
 // Detect a qubit used as a target by one operation and a control by the other.
 static bool hasTargetControlCrossover(const OperationView &lhs,
                                       const OperationView &rhs) {
-  return llvm::any_of(lhs.targetQubitIds,
-                      [&](QubitId qubitId) {
-                        return rhs.controlPolarities.contains(qubitId);
-                      }) ||
-         llvm::any_of(rhs.targetQubitIds, [&](QubitId qubitId) {
-           return lhs.controlPolarities.contains(qubitId);
-         });
+  auto isControl = [](const OperationView &view, QubitId qubitId) {
+    auto role = view.roles.find(qubitId);
+    return role != view.roles.end() && role->second != QubitRole::Target;
+  };
+  return llvm::any_of(
+             lhs.targets,
+             [&](QubitId qubitId) { return isControl(rhs, qubitId); }) ||
+         llvm::any_of(rhs.targets,
+                      [&](QubitId qubitId) { return isControl(lhs, qubitId); });
 }
 
 // Check whether all shared support of a computational-basis-diagonal operation
@@ -338,10 +338,11 @@ static bool diagonalOverlapsOnlyControls(const OperationView &diagonal,
 
   bool hasOverlap = false;
   auto checkQubit = [&](QubitId qubitId) {
-    bool isSharedControl = controlled.controlPolarities.contains(qubitId);
-    bool isSharedTarget = controlled.targetQubitIds.contains(qubitId);
-    hasOverlap |= isSharedControl || isSharedTarget;
-    return !isSharedTarget;
+    auto role = controlled.roles.find(qubitId);
+    if (role == controlled.roles.end())
+      return true;
+    hasOverlap = true;
+    return role->second != QubitRole::Target;
   };
 
   for (ControlUse control : diagonal.controls)
@@ -357,12 +358,14 @@ static bool diagonalOverlapsOnlyControls(const OperationView &diagonal,
 // their target actions are disjoint.
 static bool haveDisjointTargetSupport(const OperationView &lhs,
                                       const OperationView &rhs) {
-  const auto *smaller = &lhs.targetQubitIds;
-  const auto *larger = &rhs.targetQubitIds;
-  if (larger->size() < smaller->size())
+  const auto *smaller = &lhs;
+  const auto *larger = &rhs;
+  if (larger->targets.size() < smaller->targets.size())
     std::swap(smaller, larger);
-  return llvm::none_of(
-      *smaller, [&](QubitId qubitId) { return larger->contains(qubitId); });
+  return llvm::none_of(smaller->targets, [&](QubitId qubitId) {
+    auto role = larger->roles.find(qubitId);
+    return role != larger->roles.end() && role->second == QubitRole::Target;
+  });
 }
 
 // Test target-only commutation after controlled-rule preconditions are met.
@@ -393,13 +396,14 @@ static bool targetActionsCommute(const OperationView &lhs,
 // |0><0| |1><1| = 0, so the control predicates cannot both be satisfied.
 static bool haveMutuallyExclusiveControls(const OperationView &lhs,
                                           const OperationView &rhs) {
-  const auto *smaller = &lhs.controlPolarities;
-  const auto *larger = &rhs.controlPolarities;
-  if (larger->size() < smaller->size())
+  const auto *smaller = &lhs;
+  const auto *larger = &rhs;
+  if (larger->controls.size() < smaller->controls.size())
     std::swap(smaller, larger);
-  for (auto [qubitId, negated] : *smaller) {
-    auto other = larger->find(qubitId);
-    if (other != larger->end() && negated != other->second)
+  for (ControlUse control : smaller->controls) {
+    auto other = larger->roles.find(control.qubitId);
+    if (other != larger->roles.end() && other->second != QubitRole::Target &&
+        control.negated != (other->second == QubitRole::NegativeControl))
       return true;
   }
   return false;
@@ -587,9 +591,7 @@ static std::optional<CommutationReason>
 populateOperationView(OperationView &view,
                       const QubitIdentityAnalysis &qubitIdentity) {
   // A supported operation view may use a qubit in only one control or target
-  // role. Track all resolved IDs here so duplicates are rejected across both
-  // groups.
-  llvm::DenseSet<QubitId> seenQubitIds;
+  // role, so the role index also rejects duplicates across both groups.
   llvm::SmallVector<Value> targets;
 
   if (auto quantumOperator = view.operatorInterface) {
@@ -600,8 +602,8 @@ populateOperationView(OperationView &view,
     auto negatedControls = quantumOperator.getNegatedControls();
     auto controls = quantumOperator.getControls();
 
-    // Preserve control operand order while also building the support and
-    // identity-to-polarity lookup required by controlled-operation rules.
+    // Preserve control operand order while also building the role index
+    // required by controlled-operation rules.
     view.controls.reserve(controls.size());
     for (auto [index, control] : llvm::enumerate(controls)) {
       if (!isa<cudaq::quake::WireType>(control.getType()))
@@ -609,13 +611,13 @@ populateOperationView(OperationView &view,
       auto qubitId = qubitIdentity.getQubitId(control);
       if (!qubitId)
         return CommutationReason::UnmappedQubitId;
-      if (!seenQubitIds.insert(*qubitId).second)
+      bool negated = negatedControls && (*negatedControls)[index];
+      if (!view.roles
+               .try_emplace(*qubitId, negated ? QubitRole::NegativeControl
+                                              : QubitRole::PositiveControl)
+               .second)
         return CommutationReason::DuplicateQubitOperand;
-      view.controls.push_back(
-          {*qubitId, negatedControls && (*negatedControls)[index]});
-      view.support.insert(*qubitId);
-      view.controlPolarities.try_emplace(
-          *qubitId, negatedControls && (*negatedControls)[index]);
+      view.controls.push_back({*qubitId, negated});
     }
     llvm::append_range(targets, quantumOperator.getTargets());
   } else if (auto measurementInstrument =
@@ -644,11 +646,9 @@ populateOperationView(OperationView &view,
     auto qubitId = qubitIdentity.getQubitId(target);
     if (!qubitId)
       return CommutationReason::UnmappedQubitId;
-    if (!seenQubitIds.insert(*qubitId).second)
+    if (!view.roles.try_emplace(*qubitId, QubitRole::Target).second)
       return CommutationReason::DuplicateQubitOperand;
     view.targets.push_back(*qubitId);
-    view.support.insert(*qubitId);
-    view.targetQubitIds.insert(*qubitId);
   }
   return std::nullopt;
 }
