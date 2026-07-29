@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining %s | FileCheck %s --check-prefix=INLINE
 
 // Verify that `@phase_helper` will contain the correct number of entries in the "negated_qubit_controls" vector after specialization with outer applied controls.
 
@@ -30,3 +31,13 @@ func.func @caller(%theta: f64, %outer: !quake.ref, %inner: !quake.ref,
 // CHECK-SAME:      %[[INNER:.*]]: !quake.ref,
 // CHECK-SAME:      %[[ANCHOR:.*]]: !quake.ref) {
 // CHECK: quake.phase (%[[THETA]]) {{\[}}%[[OUTER]], %[[INNER]] neg [false, true]{{\]}} %[[ANCHOR]]
+
+// INLINE-LABEL: func.func @caller(
+// INLINE-SAME: %[[ARG0:[a-zA-Z0-9_]+]]: f64,
+// INLINE-SAME: %[[ARG1:[a-zA-Z0-9_]+]]: !quake.ref,
+// INLINE-SAME: %[[ARG2:[a-zA-Z0-9_]+]]: !quake.ref,
+// INLINE-SAME: %[[ARG3:[a-zA-Z0-9_]+]]: !quake.ref) {
+// INLINE: %[[CONCAT:[a-zA-Z0-9_]+]] = quake.concat %[[ARG1]] : (!quake.ref) -> !quake.veq<1>
+// INLINE: quake.phase (%[[ARG0]]) {{\[}}%[[CONCAT]], %[[ARG2]] neg [false, true]] %[[ARG3]]
+// INLINE: return
+// INLINE: }
