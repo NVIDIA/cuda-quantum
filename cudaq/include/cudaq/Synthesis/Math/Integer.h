@@ -485,7 +485,9 @@ inline Integer operator-(const Integer &lhs, int64_t rhs) {
 }
 inline Integer operator-(int64_t lhs, const Integer &rhs) {
   Integer result(lhs);
-  result -= static_cast<int64_t>(rhs.operator int64_t());
+  // rhs may exceed the int64_t range, so subtract with mpz rather than
+  // narrowing it first.
+  mpz_sub(result.get_mpz_t(), result.get_mpz_t(), rhs.get_mpz_t());
   return result;
 }
 inline Integer operator*(const Integer &lhs, int64_t rhs) {
