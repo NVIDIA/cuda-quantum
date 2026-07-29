@@ -54,8 +54,17 @@ protected:
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
 
+  /// @brief Run the compiled module using either the raw function pointer or
+  /// the JIT engine stored in the compiled module.
   [[nodiscard]] static KernelThunkResultType
-  runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
+  runCompiledModule(const CompiledModule &compiled, KernelArgs args);
+
+  [[nodiscard]] static KernelThunkResultType
+  runJITEngine(const CompiledModule &compiled, KernelArgs args);
+
+  [[nodiscard]] static KernelThunkResultType
+  runRawFnPointer(const FatQuakeModule::FunctionPtrArtifact &rawFn,
+                  KernelArgs args);
 
   /// @brief Re-throw an exception the kernel deferred during execution, if any.
   /// Subclasses must call this immediately after invoking a kernel, from the

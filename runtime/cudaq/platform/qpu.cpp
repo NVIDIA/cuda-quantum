@@ -120,8 +120,15 @@ cudaq::QPU::InKernelLaunchScope::~InKernelLaunchScope() {
 }
 
 cudaq::KernelThunkResultType
-cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
-                                 KernelArgs args) {
+cudaq::QPU::runCompiledModule(const CompiledModule &compiled, KernelArgs args) {
+  auto rawFn = compiled.getFunctionPtr();
+  if (rawFn)
+    return runRawFnPointer(*rawFn, args);
+  return runJITEngine(compiled, args);
+}
+
+cudaq::KernelThunkResultType
+cudaq::QPU::runJITEngine(const CompiledModule &compiled, KernelArgs args) {
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::runJITCompiledModule",
                          compiled.getName());
 
@@ -173,6 +180,22 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   funcPtr();
   rethrowDeferredKernelException();
   return {nullptr, 0};
+}
+
+cudaq::KernelThunkResultType
+cudaq::QPU::runRawFnPointer(const FatQuakeModule::FunctionPtrArtifact &rawFn,
+                            KernelArgs args) {
+  auto packed = args.getPacked();
+  void *argData = packed ? packed->data.data() : nullptr;
+  // Mark the kernel frame so the simulator defers (rather than throws)
+  // exceptions while the JIT'd kernel runs; rethrowDeferredKernelException()
+  // below surfaces any such error from this C++ frame.
+  InKernelLaunchScope kernelFrame;
+  auto result = rawFn.getFn()(argData, /*isRemote=*/false);
+  // Surface any error the kernel deferred rather than threw (see
+  // QPU::rethrowDeferredKernelException).
+  rethrowDeferredKernelException();
+  return result;
 }
 
 std::unique_ptr<cudaq::CompileTarget>

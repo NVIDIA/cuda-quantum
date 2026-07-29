@@ -51,28 +51,14 @@ cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
                                        cudaq::KernelArgs args) {
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::unifiedLaunchModule");
 
-  std::optional<FatQuakeModule::FunctionPtrArtifact> rawFn;
   if (std::holds_alternative<SourceModule>(module)) {
-    rawFn = std::get<SourceModule>(module).getFunctionPtr();
+    auto rawFn = std::get<SourceModule>(module).getFunctionPtr();
     assert(rawFn && "SourceModule must have a valid AOT-compiled thunk");
-  } else {
-    auto &compiled = std::get<CompiledModule>(module);
-    rawFn = compiled.getFunctionPtr();
-    if (!rawFn)
-      return runJITCompiledModule(compiled, args);
+    return runRawFnPointer(*rawFn, args);
   }
 
-  auto packed = args.getPacked();
-  void *argData = packed ? packed->data.data() : nullptr;
-  // Mark the kernel frame so the simulator defers (rather than throws)
-  // exceptions while the JIT'd kernel runs; rethrowDeferredKernelException()
-  // below surfaces any such error from this C++ frame.
-  InKernelLaunchScope kernelFrame;
-  auto result = rawFn->getFn()(argData, /*isRemote=*/false);
-  // Surface any error the kernel deferred rather than threw (see
-  // QPU::rethrowDeferredKernelException).
-  rethrowDeferredKernelException();
-  return result;
+  auto &compiled = std::get<CompiledModule>(module);
+  return runCompiledModule(compiled, args);
 }
 
 cudaq::sample_result
@@ -81,8 +67,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::sample_policy &policy,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
-      policy,
-      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+      policy, [this, &module, &args]() {
+        [[maybe_unused]] auto res = this->runCompiledModule(module, args);
+      });
 }
 
 cudaq::async_sample_result
@@ -99,8 +86,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
-      policy,
-      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+      policy, [this, &module, &args]() {
+        [[maybe_unused]] auto res = this->runCompiledModule(module, args);
+      });
 }
 
 cudaq::run_result
@@ -109,8 +97,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::run_policy &policy,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
-      policy,
-      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+      policy, [this, &module, &args]() {
+        [[maybe_unused]] auto res = this->runCompiledModule(module, args);
+      });
 }
 
 cudaq::async_run_policy::result_type
@@ -127,8 +116,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::msm_size_policy &policy,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
-      policy,
-      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+      policy, [this, &module, &args]() {
+        [[maybe_unused]] auto res = this->runCompiledModule(module, args);
+      });
 }
 
 cudaq::msm_result
@@ -137,8 +127,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::msm_policy &policy,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
-      policy,
-      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+      policy, [this, &module, &args]() {
+        [[maybe_unused]] auto res = this->runCompiledModule(module, args);
+      });
 }
 
 cudaq::async_observe_result
@@ -155,8 +146,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::dem_policy &policy,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
-      policy,
-      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+      policy, [this, &module, &args]() {
+        [[maybe_unused]] auto res = this->runCompiledModule(module, args);
+      });
 }
 
 cudaq::ptsbe::sample_policy::result_type
@@ -165,8 +157,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
   return cudaq::ExecutionManager::with_default_em(
-      policy,
-      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+      policy, [this, &module, &args]() {
+        [[maybe_unused]] auto res = this->runCompiledModule(module, args);
+      });
 }
 
 std::unique_ptr<cudaq::CompileTarget>
