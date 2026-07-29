@@ -33,6 +33,8 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
     CrankNicolsonIntegrator.cpp
     MagnusIntegrator.cpp
     AdaptiveIntegrator.cpp
+    MagnusHighOrderIntegrator.cpp
+    support/matrix_exp.cu
     CuDensityMatExpectation.cpp
     CuDensityMatEvolution.cpp
     CuDensityMatState.cpp
@@ -67,6 +69,8 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
                           cuTensor::cuTensor
                           cuTensorNet::cuTensorNet
                           CUDA::cudart_static
+                          CUDA::cublas
+                          CUDA::cusolver
                       )
   target_link_libraries(${LIBRARY_NAME}
                       PUBLIC

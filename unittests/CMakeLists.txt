@@ -183,6 +183,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
     dynamics/test_CrankNicolsonIntegrator.cpp
     dynamics/test_MagnusIntegrator.cpp
     dynamics/test_AdaptiveIntegrator.cpp
+    dynamics/test_MagnusHighOrderIntegrator.cpp
     dynamics/test_CuDensityMatState.cpp
     dynamics/test_CuDensityMatTimeStepper.cpp
     dynamics/test_CuDensityMatExpectation.cpp

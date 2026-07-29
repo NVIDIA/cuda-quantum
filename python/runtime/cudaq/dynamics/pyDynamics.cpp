@@ -348,4 +348,26 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
       .def("integrate", &cudaq::integrators::dopri5::integrate)
       .def("getState",
            [](cudaq::integrators::dopri5 &self) { return self.getState(); });
+
+  // High-order commutator-free Magnus integrator (CF4) with propagator cache.
+  nanobind::class_<cudaq::integrators::magnus_cf4>(integratorsSubmodule,
+                                                   "magnus_cf4")
+      .def(nanobind::init<std::optional<double>, std::size_t>(),
+           nanobind::kw_only(),
+           nanobind::arg("max_step_size") = nanobind::none(),
+           nanobind::arg("cache_capacity") =
+               cudaq::integrators::magnus_cf4::default_cache_capacity)
+      .def("setState",
+           [](cudaq::integrators::magnus_cf4 &self, cudaq::state &state,
+              double t) { self.setState(state, t); })
+      .def("setSystem",
+           [](cudaq::integrators::magnus_cf4 &self,
+              cudaq::SystemDynamics system, cudaq::schedule schedule) {
+             cudaq::integrator_helper::init_system_dynamics(self, system,
+                                                            schedule);
+           })
+      .def("integrate", &cudaq::integrators::magnus_cf4::integrate)
+      .def("getState", [](cudaq::integrators::magnus_cf4 &self) {
+        return self.getState();
+      });
 }

@@ -214,3 +214,77 @@ class DoPri5Integrator(BaseIntegrator[State]):
 
     def integrate(self, t):
         self.integrator.integrate(t)
+
+
+class MagnusCF4Integrator(BaseIntegrator[State]):
+    """High-order commutator-free Magnus integrator (CF4).
+
+    Exposes the native ``magnus_cf4`` integrator. For closed-system
+    density-matrix evolution it forms exact unitary propagators via a GPU matrix
+    exponential and reuses cached propagators across identical piecewise-constant
+    time slices. For open systems (with collapse operators) or state-vector
+    evolution it transparently falls back to the ``magnus_expansion`` integrator.
+
+    Options: ``max_step_size`` (recommended for time-dependent drives) and
+    ``cache_capacity`` (number of distinct propagators to cache).
+    """
+    max_step_size = None
+    cache_capacity = 32
+
+    def __init__(self, **kwargs):
+        if not has_cupy:
+            raise ImportError('CuPy is required to use integrators.')
+        super().__init__(**kwargs)
+        self.integrator = _get_bindings().integrators.magnus_cf4(
+            max_step_size=self.max_step_size,
+            cache_capacity=self.cache_capacity)
+
+    def is_native(self):
+        return True
+
+    def support_distributed_state(self):
+        return True
+
+    def __post_init__(self):
+        if "max_step_size" in self.integrator_options:
+            self.max_step_size = self.integrator_options["max_step_size"]
+        if "cache_capacity" in self.integrator_options:
+            self.cache_capacity = self.integrator_options["cache_capacity"]
+            if self.cache_capacity < 1:
+                raise ValueError("'cache_capacity' must be a positive number")
+
+    def set_state(self, state, t):
+        self.integrator.setState(state, t)
+
+    def get_state(self):
+        return self.integrator.getState()
+
+    def set_system(self,
+                   dimensions: Mapping[int, int],
+                   schedule: Schedule,
+                   hamiltonian: Operator | SuperOperator | Sequence[Operator] |
+                   Sequence[SuperOperator],
+                   collapse_operators: Sequence[Operator] |
+                   Sequence[Sequence[Operator]] = []):
+        bindings = _get_bindings()
+        system_ = bindings.SystemDynamics()
+        system_.modeExtents = [dimensions[d] for d in range(len(dimensions))]
+        if not isinstance(hamiltonian, Sequence):
+            hamiltonian = [hamiltonian]
+            if len(collapse_operators) > 0:
+                collapse_operators = [
+                    MatrixOperator(c_op) for c_op in collapse_operators
+                ]
+                collapse_operators = [collapse_operators]
+
+        if isinstance(hamiltonian[0], SuperOperator):
+            system_.superOp = hamiltonian
+        else:
+            system_.hamiltonian = hamiltonian
+            system_.collapseOps = collapse_operators
+        schedule_ = bindings.Schedule(schedule._steps,
+                                      list(schedule._parameters))
+        self.integrator.setSystem(system_, schedule_)
+
+    def integrate(self, t):
+        self.integrator.integrate(t)

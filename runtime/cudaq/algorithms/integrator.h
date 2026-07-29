@@ -167,5 +167,73 @@ private:
   Stats m_stats;
 };
 
+/// @brief High-order commutator-free Magnus integrator (`magnus_cf4`).
+///
+/// A 4th-order, two-exponential commutator-free Magnus integrator specialised
+/// for the (approximately) piecewise-constant Hamiltonian evolution that arises
+/// in pulse schedules. For each step it materialises the dense Hamiltonian at
+/// the two Gauss-Legendre nodes, forms the exact propagator via a GPU matrix
+/// exponential (scaling-and-squaring Padé[13/13]), and reuses cached
+/// propagators across identical time slices (an LRU propagator cache keyed by a
+/// quantized Hamiltonian signature). Because the propagator is unitary, this
+/// preserves norm/trace exactly and is efficient for repeated PWC segments.
+///
+/// This fast path applies only to *closed* systems evolved as density
+/// matrices. For open systems (non-empty collapse operators / super-operator)
+/// or state-vector evolution, the integrator transparently falls back to
+/// `magnus_expansion` for correctness parity.
+class magnus_cf4 : public cudaq::base_integrator {
+public:
+  /// @brief Default propagator-cache capacity (number of distinct slices).
+  static constexpr std::size_t default_cache_capacity = 32;
+
+  /// @brief Constructor.
+  /// @param max_step_size Optional maximum internal sub-step size. When
+  ///        provided the integrator sub-steps by at most this amount toward
+  ///        each scheduled time point (recommended for time-dependent drives).
+  /// @param cache_capacity Maximum number of cached propagators.
+  explicit magnus_cf4(const std::optional<double> &max_step_size = {},
+                      std::size_t cache_capacity = default_cache_capacity);
+
+  ~magnus_cf4() override;
+
+  /// @brief Integrate toward a specified time point.
+  void integrate(double targetTime) override;
+  /// @brief Set the initial state of the integration.
+  void setState(const cudaq::state &initialState, double t0) override;
+  /// @brief Get the current time and state.
+  std::pair<double, cudaq::state> getState() override;
+  /// @brief Clone the current integrator (fresh cache, same configuration).
+  std::shared_ptr<base_integrator> clone() override;
+
+  /// @brief Propagator-cache statistics for diagnostics and tests.
+  struct Stats {
+    std::size_t cache_hits = 0;
+    std::size_t cache_misses = 0;
+    std::size_t steps = 0;
+    /// @brief Fraction of propagator lookups served from cache (0.0 - 1.0).
+    double hit_rate() const {
+      const std::size_t total = cache_hits + cache_misses;
+      return total > 0 ? static_cast<double>(cache_hits) / total : 0.0;
+    }
+  };
+  /// @brief Return the propagator-cache statistics accrued so far.
+  Stats getStats() const { return m_stats; }
+  /// @brief Reset the propagator-cache statistics.
+  void resetStats() { m_stats = Stats{}; }
+
+private:
+  double m_t;
+  std::shared_ptr<cudaq::state> m_state;
+  std::optional<double> m_dt;
+  std::size_t m_cache_capacity;
+  Stats m_stats;
+
+  // CUDA/cache resources are hidden behind a PImpl so this header stays free of
+  // CUDA includes and is safe to include from CPU-only translation units.
+  struct Impl;
+  std::shared_ptr<Impl> m_impl;
+};
+
 } // namespace integrators
 } // namespace cudaq
