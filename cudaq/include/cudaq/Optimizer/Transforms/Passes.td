@@ -1439,12 +1439,10 @@ def QuakeSimplify : Pass<"quake-simplify"> {
 
     Commutation-aware rewrites are block local and support participating
     operations whose controls and targets are scalar `!quake.wire` values.
-    Other valid control representations conservatively do not match. A direct
-    adjacent rewrite can rely on exact ordered wire threading, distinct logical
-    operands, and the consumer's endpoint algebra. Multi-wire endpoints use
-    lazy block analysis to reject duplicate logical qubit roles. Rewrites that
-    cross another operation require the block-local commutation analysis to
-    prove that the crossed operation commutes with the rewrite anchor.
+    Other valid control representations conservatively do not match. Direct
+    rewrites require exactly threaded, distinct wire operands. A rewrite that
+    crosses another operation requires the block-local analysis to prove
+    commutation.
 
     Among these, a constant-angle rotation that is the identity is erased. The
     angle is first folded into the period after which the rotation is exactly
