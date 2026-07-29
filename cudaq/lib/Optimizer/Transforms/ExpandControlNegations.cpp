@@ -21,9 +21,9 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-/// Replace any operations with negative controls with the same
-/// operation with negative controls and the addition of X operations
-/// on each control qubit before and after the operation.
+/// Replace any operations with negative controls with the same operation with
+/// negative controls and the addition of X operations on each control qubit
+/// before and after the operation.
 template <typename Op>
 class ReplaceNegativeControl : public OpRewritePattern<Op> {
 public:
@@ -36,41 +36,100 @@ public:
     if (!negations.has_value())
       return failure();
 
-    for (auto negationIter : llvm::enumerate(negations.value()))
-      if (negationIter.value())
-        cudaq::quake::XOp::create(
-            rewriter, loc, ValueRange(),
-            ValueRange{op.getControls()[negationIter.index()]});
-
-    if constexpr (std::is_same_v<Op, cudaq::quake::ExpPauliOp>) {
-      // ??? How is this correct? The controls are not changed?!
-      cudaq::quake::ExpPauliOp::create(
-          rewriter, loc, TypeRange{}, op.getIsAdjAttr(), op.getParameters(),
-          op.getControls(), op.getTargets(), op.getNegatedQubitControlsAttr(),
-          op.getPauli(), op.getPauliLiteralAttr());
-    } else if constexpr (std::is_same_v<Op,
-                                        cudaq::quake::CustomUnitaryCallOp>) {
-      // ??? How is this correct? The controls are not changed?!
-      cudaq::quake::CustomUnitaryCallOp::create(
-          rewriter, loc, op.getGeneratorAttr(), op.getIsAdj(),
-          op.getParameters(), op.getControls(), op.getTargets());
-    } else if constexpr (std::is_same_v<
-                             Op, cudaq::quake::CustomUnitaryConstantOp>) {
-      // ??? How is this correct? The controls are not changed?!
-      cudaq::quake::CustomUnitaryConstantOp::create(
-          rewriter, loc, op.getMatrixAttr(), op.getIsAdj(), op.getParameters(),
-          op.getControls(), op.getTargets(), {});
-    } else {
-      Op::create(rewriter, loc, op.getIsAdj(), op.getParameters(),
-                 op.getControls(), op.getTargets());
+    // Process the negated controls, flipping each one to a negated state.
+    auto *ctx = rewriter.getContext();
+    auto ctrlTy = cudaq::quake::ControlType::get(ctx);
+    SmallVector<Value> originalControls{op.getControls().begin(),
+                                        op.getControls().end()};
+    SmallVector<Value> newControls{originalControls.size()};
+    for (auto negationIter : llvm::enumerate(negations.value())) {
+      auto i = negationIter.index();
+      Type ty = originalControls[i].getType();
+      // Is the i-th control is negated?
+      if (ty == ctrlTy) {
+        // We cannot process !quake.control types here. Run the linear-ctrl-form
+        // pass first.
+        return failure();
+      }
+      if (cudaq::quake::isLinearType(ty)) {
+        // Quantum value types are *explicitly* threaded.
+        if (negationIter.value()) {
+          newControls[i] =
+              cudaq::quake::XOp::create(rewriter, loc, TypeRange{ty},
+                                        UnitAttr{}, ValueRange{}, ValueRange{},
+                                        ValueRange{originalControls[i]}, {})
+                  .getResult(0);
+        } else {
+          newControls[i] = originalControls[i];
+        }
+      } else {
+        if (negationIter.value())
+          cudaq::quake::XOp::create(rewriter, loc, ValueRange{},
+                                    ValueRange{originalControls[i]});
+        newControls[i] = originalControls[i];
+      }
     }
 
-    for (auto negationIter : llvm::enumerate(negations.value()))
-      if (negationIter.value())
-        cudaq::quake::XOp::create(
-            rewriter, loc, ValueRange(),
-            ValueRange{op.getControls()[negationIter.index()]});
-    rewriter.eraseOp(op);
+    // Create a new op to erase the negated controls attribute.
+    Op newOp;
+    if constexpr (std::is_same_v<Op, cudaq::quake::ExpPauliOp>) {
+      newOp = cudaq::quake::ExpPauliOp::create(
+          rewriter, loc, op->getResultTypes(), op.getIsAdjAttr(),
+          op.getParameters(), newControls, op.getTargets(),
+          /*negatedControls=*/{}, op.getPauli(), op.getPauliLiteralAttr());
+    } else if constexpr (std::is_same_v<Op,
+                                        cudaq::quake::CustomUnitaryCallOp>) {
+      newOp = cudaq::quake::CustomUnitaryCallOp::create(
+          rewriter, loc, op->getResultTypes(), op.getGeneratorAttr(),
+          op.getIsAdj(), op.getParameters(), newControls, op.getTargets(),
+          /*negatedConstrols=*/{});
+    } else if constexpr (std::is_same_v<
+                             Op, cudaq::quake::CustomUnitaryConstantOp>) {
+      newOp = cudaq::quake::CustomUnitaryConstantOp::create(
+          rewriter, loc, op->getResultTypes(), op.getMatrixAttr(),
+          op.getIsAdj(), op.getParameters(), newControls, op.getTargets(),
+          /*negatedControls=*/{});
+    } else {
+      newOp = Op::create(rewriter, loc, op->getResultTypes(), op.getIsAdj(),
+                         op.getParameters(), newControls, op.getTargets(),
+                         /*negatedControls=*/{});
+    }
+
+    // Process the negated controls, flipping each back to the original state.
+    SmallVector<Value> newResults;
+    SmallVector<Value> newOpResults{newOp.getResults().begin(),
+                                    newOp.getResults().end()};
+    unsigned j = 0;
+    for (auto iter : llvm::enumerate(negations.value())) {
+      auto i = iter.index();
+      Type ty = newControls[i].getType();
+      // Is the i-th control is negated?
+      if (cudaq::quake::isLinearType(ty)) {
+        // Quantum value types are *explicitly* threaded.
+        if (iter.value()) {
+          newResults.push_back(
+              cudaq::quake::XOp::create(
+                  rewriter, loc, TypeRange{ty}, /*is_adj=*/UnitAttr{},
+                  /*params=*/ValueRange{}, /*controls=*/ValueRange{},
+                  ValueRange{newOpResults[j]}, /*negatedControls=*/{})
+                  .getResult(0));
+        } else {
+          newResults.push_back(newOpResults[j]);
+        }
+        ++j;
+      } else {
+        if (iter.value())
+          cudaq::quake::XOp::create(rewriter, loc, ValueRange{},
+                                    ValueRange{originalControls[i]});
+      }
+    }
+
+    // Collect up any target values as apropos.
+    newResults.append(newOp->getResults().begin() + newResults.size(),
+                      newOp->getResults().end());
+
+    // Replace the old op with the new wires as apropos.
+    rewriter.replaceOp(op, newResults);
 
     return success();
   }
