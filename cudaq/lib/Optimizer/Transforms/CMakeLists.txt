@@ -82,6 +82,7 @@ add_cudaq_library(OptTransforms
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyNoPhase.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 

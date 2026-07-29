@@ -101,10 +101,10 @@ createTargetCodegenPipeline(OpPassManager &pm,
   }
 
   cudaq::opt::addPhaseLifecycle(pm);
-
   // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
   // to run this pass again to expand those negations.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
 
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
