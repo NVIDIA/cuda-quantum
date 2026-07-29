@@ -17,36 +17,16 @@ using cudaq::quake::detail::QubitIdentityAnalysis;
 using QubitId = QubitIdentityAnalysis::QubitId;
 using BorrowKey = std::pair<Attribute, std::int32_t>;
 
-// Propagate only an unambiguous one-to-one scalar wire correspondence.
-// Reference, aggregate, and malformed shapes leave their results unmapped.
-static void
-propagateQubitIdsThroughWires(llvm::DenseMap<Value, QubitId> &qubitIds,
-                              ValueRange wireInputs, ValueRange wireResults) {
-  if (wireInputs.size() != wireResults.size() ||
-      llvm::any_of(wireInputs,
-                   [](Value input) {
-                     return !isa<cudaq::quake::WireType>(input.getType());
-                   }) ||
-      llvm::any_of(wireResults, [](Value result) {
-        return !isa<cudaq::quake::WireType>(result.getType());
-      }))
+static void propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
+                              Operation *operation) {
+  auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
+  if (!flow)
     return;
-  for (auto [input, result] : llvm::zip(wireInputs, wireResults)) {
+  for (auto [input, result] : llvm::zip(flow->inputs, flow->results)) {
     auto qubitId = qubitIds.find(input);
     if (qubitId != qubitIds.end())
       qubitIds.try_emplace(result, qubitId->second);
   }
-}
-
-// Thread qubit IDs through an operator only when every control and target is a
-// scalar wire. Mixed and reusable-control forms remain unsupported boundaries.
-static void
-propagateQubitIdsThroughOperator(llvm::DenseMap<Value, QubitId> &qubitIds,
-                                 cudaq::quake::OperatorInterface op) {
-  auto wireInputs = cudaq::quake::getWireOperands(op);
-  if (wireInputs.size() != op.getControls().size() + op.getTargets().size())
-    return;
-  propagateQubitIdsThroughWires(qubitIds, wireInputs, op.getWires());
 }
 
 // Build block-local qubit identities in program order. Block arguments and
@@ -74,18 +54,7 @@ static void buildQubitIdMap(Block &block,
       qubitIds.try_emplace(borrowWire.getResult(), qubitId->second);
       continue;
     }
-    if (auto operatorInterface =
-            dyn_cast<cudaq::quake::OperatorInterface>(operation))
-      propagateQubitIdsThroughOperator(qubitIds, operatorInterface);
-    else if (auto measurementInstrument =
-                 dyn_cast<cudaq::quake::MeasurementInterface>(operation))
-      propagateQubitIdsThroughWires(qubitIds,
-                                    measurementInstrument.getTargets(),
-                                    measurementInstrument.getWires());
-    else if (auto resetChannel = dyn_cast<cudaq::quake::ResetOp>(operation))
-      propagateQubitIdsThroughWires(qubitIds,
-                                    ValueRange{resetChannel.getTargets()},
-                                    resetChannel.getWires());
+    propagateQubitIds(qubitIds, &operation);
   }
 }
 

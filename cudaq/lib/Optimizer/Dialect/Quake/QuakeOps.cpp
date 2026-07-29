@@ -15,6 +15,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLForwardCompat.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -25,6 +26,7 @@
 #include "mlir/IR/TypeUtilities.h"
 #include <cmath>
 #include <limits>
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <unordered_set>
 
 using namespace mlir;
@@ -167,6 +169,38 @@ ValueRange cudaq::quake::getQuantumResults(Operation *op) {
 
 ValueRange cudaq::quake::getQuantumOperands(Operation *op) {
   return getQuantumTypesFromRange(op->getOperands());
+}
+
+std::optional<cudaq::quake::detail::ScalarWireFlow>
+cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
+  if (operation->getNumRegions() != 0 || operation->getNumSuccessors() != 0)
+    return std::nullopt;
+  if (!isMemoryEffectFree(operation))
+    return std::nullopt;
+
+  ScalarWireFlow flow;
+  if (auto quantumOperator = dyn_cast<OperatorInterface>(operation)) {
+    llvm::append_range(flow.inputs, quantumOperator.getControls());
+    llvm::append_range(flow.inputs, quantumOperator.getTargets());
+    llvm::append_range(flow.results, quantumOperator.getWires());
+  } else if (auto measurement = dyn_cast<MeasurementInterface>(operation)) {
+    llvm::append_range(flow.inputs, measurement.getTargets());
+    llvm::append_range(flow.results, measurement.getWires());
+  } else if (auto reset = dyn_cast<ResetOp>(operation)) {
+    flow.inputs.push_back(reset.getTargets());
+    llvm::append_range(flow.results, reset.getWires());
+  } else {
+    return std::nullopt;
+  }
+
+  auto isScalarWire = [](Value value) {
+    return isa<WireType>(value.getType());
+  };
+  if (flow.inputs.size() != flow.results.size() ||
+      !llvm::all_of(flow.inputs, isScalarWire) ||
+      !llvm::all_of(flow.results, isScalarWire))
+    return std::nullopt;
+  return flow;
 }
 
 LogicalResult cudaq::quake::setQuantumOperands(Operation *op,
