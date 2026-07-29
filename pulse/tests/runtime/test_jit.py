@@ -103,6 +103,46 @@ def test_evolve_builds_target_aware_mlir(monkeypatch):
     assert 'qop.integrator = "rk4"' in captured["mlir"]
 
 
+@pytest.mark.parametrize("integrator", ["rk1", "rk2", "rk4", "magnus",
+                                        "crank_nicolson"])
+def test_evolve_emits_selected_integrator(monkeypatch, integrator):
+    """Every supported integrator name lowers to its dialect attribute."""
+    from cudaq_pulse.runtime import evolve as evolve_module
+
+    target = Target(
+        name="test",
+        qubits={
+            0:
+                Qubit(index=0,
+                      frequency_hz=5.0e9,
+                      anharmonicity_hz=-200.0e6,
+                      t1_us=50.0,
+                      t2_star_us=30.0)
+        },
+    )
+    captured = {}
+
+    class Result:
+
+        @staticmethod
+        def to_numpy():
+            return np.eye(2, dtype=np.complex128)
+
+    def fake_run(mlir, *, entry, n_qubits):
+        captured["mlir"] = mlir
+        return [Result()]
+
+    monkeypatch.setattr(evolve_module, "compile_and_run_pulse", fake_run)
+    ir = _jit_test_kernel(pulse.qudit_ref())
+    pulse.evolve(ir,
+                 target=target,
+                 t_start=0.0,
+                 t_end=20.0,
+                 num_steps=100,
+                 integrator=integrator)
+    assert f'qop.integrator = "{integrator}"' in captured["mlir"]
+
+
 def test_evolve_rejects_unimplemented_options():
     target = Target(name="test", qubits={})
     with pytest.raises(ValueError, match="Unknown integrator"):

@@ -86,7 +86,9 @@ CudmStatus cudm_operator_append(CudmHandle handle, CudmOperator op,
                                 CudmOpTerm term, int32_t duality,
                                 double coeff_real, double coeff_imag);
 
-// Time evolution
+// Time evolution.
+// The `integrator` code matches the CuDensityMat dialect IntegratorKind enum:
+//   2 = rk1, 3 = rk2, 4 = rk4, 5 = magnus, 6 = crank_nicolson.
 CudmStatus cudm_evolve_step(CudmHandle handle, CudmOperator op,
                             CudmState state_in, CudmState state_out,
                             CudmWorkspace ws, double t, double dt,

@@ -350,6 +350,19 @@ CudmStatus rhs(HandleData *handle, OperatorData *op, StateData *stateIn,
                    "cudensitymatOperatorComputeAction");
 }
 
+// Pulse callbacks are right-continuous and use half-open intervals. When a
+// stage must sample the right endpoint of the current step, pull the sample
+// just inside the interval so a discontinuity at the next pulse boundary does
+// not bleed the following pulse's coefficients into this step. The next step's
+// first stage still samples the new pulse at the exact boundary.
+double boundarySafeSampleTime(double time, double dt) {
+  const double endpoint = time + dt;
+  const double boundaryEpsilon = std::max(
+      std::abs(dt) * 1.0e-9, std::numeric_limits<double>::epsilon() *
+                                 std::max(1.0, std::abs(endpoint)) * 8.0);
+  return std::max(time, endpoint - boundaryEpsilon);
+}
+
 StateData *allocateLike(HandleData *handle, StateData *prototype) {
   CudmState state = nullptr;
   if (cudm_state_alloc(handle, &state, prototype->modeExtents.data(),
@@ -411,17 +424,12 @@ CudmStatus integrateStep(HandleData *handle, OperatorData *op,
   if (status == CUDM_SUCCESS)
     status =
         accumulate(k3, temporary, deviceFactor, make_cuDoubleComplex(dt, 0.0));
-  // Pulse callbacks are right-continuous and use half-open intervals. Sample
-  // the final RK stage from inside the current interval so a discontinuity at
-  // the next pulse boundary does not shorten this interval by dt / 6. The
-  // following step's k1 still samples the new pulse at the exact boundary.
-  const double endpoint = time + dt;
-  const double boundaryEpsilon = std::max(
-      std::abs(dt) * 1.0e-9, std::numeric_limits<double>::epsilon() *
-                                 std::max(1.0, std::abs(endpoint)) * 8.0);
+  // Sample the final RK stage from inside the current interval so a
+  // discontinuity at the next pulse boundary does not shorten this interval by
+  // dt / 6 (see boundarySafeSampleTime).
   if (status == CUDM_SUCCESS)
     status = rhs(handle, op, temporary, k4, workspace,
-                 std::max(time, endpoint - boundaryEpsilon));
+                 boundarySafeSampleTime(time, dt));
   if (status == CUDM_SUCCESS)
     status = copyState(current, next, deviceFactor);
   if (status == CUDM_SUCCESS)
@@ -436,6 +444,83 @@ CudmStatus integrateStep(HandleData *handle, OperatorData *op,
   if (status == CUDM_SUCCESS)
     status =
         accumulate(k4, next, deviceFactor, make_cuDoubleComplex(dt / 6.0, 0.0));
+  return status;
+}
+
+// Magnus expansion (first-order / midpoint) with a Taylor series for the
+// matrix exponential action. Mirrors cudaq::integrators::magnus_expansion:
+// with the Liouvillian L frozen at the interval midpoint, advance
+//   next = sum_{k=0}^{N} (dt L)^k / k! * current.
+// Each Taylor term reuses the previous one via w_k = L * w_{k-1}, so a single
+// Liouvillian action per term suffices. `result` receives the new state;
+// `w` and `Lw` are scratch buffers.
+CudmStatus integrateStepMagnus(HandleData *handle, OperatorData *op,
+                               StateData *current, StateData *result,
+                               StateData *w, StateData *Lw,
+                               WorkspaceData *workspace, void *deviceFactor,
+                               double time, double dt, int numTaylorTerms) {
+  const double tMid = time + 0.5 * dt;
+  // k = 0 term: result = current; running vector w_0 = current.
+  auto status = copyState(current, result, deviceFactor);
+  if (status == CUDM_SUCCESS)
+    status = copyState(current, w, deviceFactor);
+
+  double coeff = 1.0;
+  for (int k = 1; status == CUDM_SUCCESS && k <= numTaylorTerms; ++k) {
+    status = rhs(handle, op, w, Lw, workspace, tMid);
+    if (status != CUDM_SUCCESS)
+      break;
+    coeff *= dt / static_cast<double>(k);
+    status =
+        accumulate(Lw, result, deviceFactor, make_cuDoubleComplex(coeff, 0.0));
+    // Advance the running vector: w_k <- L * w_{k-1}. Swapping reuses buffers;
+    // the next rhs() zero-initializes its output before accumulating.
+    std::swap(w, Lw);
+  }
+  return status;
+}
+
+// Crank-Nicolson predictor-corrector. Mirrors
+// cudaq::integrators::crank_nicolson:
+//   k1 = L(t) * current
+//   rho_iter = current + dt * k1                       (explicit predictor)
+//   repeat: k2 = L(t + dt) * rho_iter
+//           rho_iter = current + (dt/2) (k1 + k2)       (trapezoidal corrector)
+// The endpoint sample uses boundarySafeSampleTime so pulse discontinuities at
+// the next boundary do not leak into this step. `next` receives the new state.
+CudmStatus integrateStepCrankNicolson(HandleData *handle, OperatorData *op,
+                                      StateData *current, StateData *next,
+                                      StateData *k1, StateData *k2,
+                                      StateData *rhoIter, StateData *rhoNext,
+                                      WorkspaceData *workspace,
+                                      void *deviceFactor, double time, double dt,
+                                      int numCorrectorSteps) {
+  auto status = rhs(handle, op, current, k1, workspace, time);
+  if (status != CUDM_SUCCESS)
+    return status;
+
+  status = copyState(current, rhoIter, deviceFactor);
+  if (status == CUDM_SUCCESS)
+    status =
+        accumulate(k1, rhoIter, deviceFactor, make_cuDoubleComplex(dt, 0.0));
+
+  const double tNext = boundarySafeSampleTime(time, dt);
+  for (int iter = 0; status == CUDM_SUCCESS && iter < numCorrectorSteps;
+       ++iter) {
+    status = rhs(handle, op, rhoIter, k2, workspace, tNext);
+    if (status == CUDM_SUCCESS)
+      status = copyState(current, rhoNext, deviceFactor);
+    if (status == CUDM_SUCCESS)
+      status = accumulate(k1, rhoNext, deviceFactor,
+                          make_cuDoubleComplex(0.5 * dt, 0.0));
+    if (status == CUDM_SUCCESS)
+      status = accumulate(k2, rhoNext, deviceFactor,
+                          make_cuDoubleComplex(0.5 * dt, 0.0));
+    std::swap(rhoIter, rhoNext);
+  }
+
+  if (status == CUDM_SUCCESS)
+    status = copyState(rhoIter, next, deviceFactor);
   return status;
 }
 
@@ -846,11 +931,21 @@ CudmStatus cudm_evolve(CudmHandle handle, CudmOperator op, CudmState stateIn,
                 "cudm_evolve received a null runtime object");
   if (numSteps <= 0 || !(timeEnd > timeStart))
     return fail(CUDM_ERROR_INTERNAL, "invalid evolution interval");
-  // The dialect values 2, 3, and 4 denote RK1, RK2, and RK4. The preview's
-  // former Magnus/Lanczos values were never implemented; fail explicitly.
-  if (integrator < 2 || integrator > 4)
+  // The dialect IntegratorKind values map as: 2=rk1, 3=rk2, 4=rk4,
+  // 5=magnus (Taylor-series midpoint), 6=crank_nicolson (predictor-corrector).
+  // These mirror the mainlined cudaq::integrators algorithms of the same name,
+  // driven here through the cuDensityMat Liouvillian action. Adaptive (dopri5)
+  // and dense-Hamiltonian (magnus_cf4) integrators are only available via the
+  // cudaq.dynamics API; they are not expressible through this operator-action
+  // path and are rejected here.
+  if (integrator < 2 || integrator > 6)
     return fail(CUDM_ERROR_INTERNAL,
-                "only rk1, rk2, and rk4 are implemented by cudm-runtime");
+                "cudm-runtime supports rk1, rk2, rk4, magnus, and "
+                "crank_nicolson integrators");
+
+  // Match the mainlined integrator defaults for parity.
+  constexpr int kMagnusTaylorTerms = 10;
+  constexpr int kCrankNicolsonCorrectorSteps = 2;
 
   auto *owner = static_cast<HandleData *>(handle);
   auto *operatorData = static_cast<OperatorData *>(op);
@@ -889,10 +984,22 @@ CudmStatus cudm_evolve(CudmHandle handle, CudmOperator op, CudmState stateIn,
 
   const double dt = (timeEnd - timeStart) / static_cast<double>(numSteps);
   for (int64_t step = 0; status == CUDM_SUCCESS && step < numSteps; ++step) {
-    status = integrateStep(owner, operatorData, current, next, temporary, k1,
-                           k2, k3, k4, workspaceData, deviceFactor,
-                           timeStart + static_cast<double>(step) * dt, dt,
-                           integrator);
+    const double stepTime = timeStart + static_cast<double>(step) * dt;
+    if (integrator == 5) {
+      // Magnus: next=result, temporary=w, k1=Lw.
+      status = integrateStepMagnus(owner, operatorData, current, next,
+                                   temporary, k1, workspaceData, deviceFactor,
+                                   stepTime, dt, kMagnusTaylorTerms);
+    } else if (integrator == 6) {
+      // Crank-Nicolson: k1/k2 = Liouvillian actions, k3=rho_iter, k4=rho_next.
+      status = integrateStepCrankNicolson(
+          owner, operatorData, current, next, k1, k2, k3, k4, workspaceData,
+          deviceFactor, stepTime, dt, kCrankNicolsonCorrectorSteps);
+    } else {
+      status = integrateStep(owner, operatorData, current, next, temporary, k1,
+                             k2, k3, k4, workspaceData, deviceFactor, stepTime,
+                             dt, integrator);
+    }
     std::swap(current, next);
   }
   if (status == CUDM_SUCCESS)

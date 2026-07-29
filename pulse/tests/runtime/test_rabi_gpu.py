@@ -99,3 +99,49 @@ def test_rabi_gpu_execution():
     assert state.shape == (2,)
     assert np.vdot(state, state).real == pytest.approx(1.0, abs=1.0e-6)
     assert abs(state[1])**2 > 0.999
+
+
+@gpu
+@requires_gpu
+@pytest.mark.parametrize("integrator", ["rk4", "magnus", "crank_nicolson"])
+def test_rabi_gpu_integrator_parity(integrator):
+    """All cuDensityMat integrators drive the same pi-pulse to |1>.
+
+    Exercises the magnus (Taylor-series midpoint) and crank_nicolson
+    (predictor-corrector) paths added to cudm-runtime alongside rk4, and
+    confirms they agree on a closed-system Rabi flip while preserving norm.
+    """
+
+    target = Target(
+        name="unitary-rabi-parity",
+        qubits={
+            0:
+                Qubit(
+                    index=0,
+                    frequency_hz=5.0e9,
+                    anharmonicity_hz=-200.0e6,
+                    t1_us=0.0,
+                    t2_star_us=0.0,
+                    drive_params={"amplitude_scale_rad_per_ns": 1.0},
+                )
+        },
+    )
+
+    @pulse.kernel
+    def rabi(q0):
+        d0, t0 = get_drive_line(q0)
+        wf = square(40, math.pi / 20.0)
+        drive(d0, wf, t0)
+
+    ir = rabi(pulse.qudit_ref())
+    result = pulse.evolve(ir,
+                          target=target,
+                          t_start=0.0,
+                          t_end=20.0,
+                          num_steps=200,
+                          integrator=integrator)
+
+    state = result.final_state
+    assert state.shape == (2,)
+    assert np.vdot(state, state).real == pytest.approx(1.0, abs=1.0e-6)
+    assert abs(state[1])**2 > 0.999

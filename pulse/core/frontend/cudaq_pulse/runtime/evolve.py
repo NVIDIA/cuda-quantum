@@ -27,6 +27,8 @@ _VALID_INTEGRATORS = frozenset({
     "rk1",
     "rk2",
     "rk4",
+    "magnus",
+    "crank_nicolson",
 })
 
 
@@ -72,7 +74,12 @@ def evolve(
     num_steps:
         Number of integration time steps.
     integrator:
-        Explicit Runge-Kutta strategy: ``"rk1"``, ``"rk2"``, or ``"rk4"``.
+        Time-integration strategy for the cuDensityMat runtime. One of the
+        explicit Runge-Kutta schemes ``"rk1"``, ``"rk2"``, ``"rk4"``, the
+        ``"magnus"`` Taylor-series midpoint expansion, or the
+        ``"crank_nicolson"`` predictor-corrector method. The adaptive
+        ``dopri5`` and dense-Hamiltonian ``magnus_cf4`` integrators are
+        available through the ``cudaq.dynamics`` API only.
     clock_ghz:
         Pulse virtual-clock rate in GHz when converting a traced kernel IR.
     observables:

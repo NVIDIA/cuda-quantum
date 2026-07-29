@@ -95,7 +95,9 @@ def CUDM_IntegratorKind : I32EnumAttr<"IntegratorKind",
     [
       I32EnumAttrCase<"RungeKutta1", 2, "rk1">,
       I32EnumAttrCase<"RungeKutta2", 3, "rk2">,
-      I32EnumAttrCase<"RungeKutta4", 4, "rk4">
+      I32EnumAttrCase<"RungeKutta4", 4, "rk4">,
+      I32EnumAttrCase<"Magnus", 5, "magnus">,
+      I32EnumAttrCase<"CrankNicolson", 6, "crank_nicolson">
     ]> {
   let cppNamespace = "::cudm";
   let genSpecializedAttr = 0;
