@@ -74,6 +74,9 @@ void addDecomposition(mlir::OpPassManager &pm,
 ///
 /// Opt-in only. This helper is not added to default target pipelines.
 void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
+/// Append the common pipeline that expands, normalizes, and lowers
+/// `quake.phase` operations before final code generation.
+void addPhaseLifecycle(mlir::OpPassManager &pm);
 
 void registerAOTPipelines();
 void registerJITPipelines();

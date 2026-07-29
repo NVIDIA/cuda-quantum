@@ -1,0 +1,28 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir --emit-llvm=false %s | FileCheck %s
+
+// The phase begins uncontrolled inside the helper. Apply specialization adds
+// the outer control, after which the late phase lifecycle must lower it to R1.
+func.func private @phase_helper(%theta: f64, %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: llvm.func @phase_lifecycle(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK-SAME: %[[OUTER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
+// CHECK: llvm.call @__quantum__qis__r1(%[[THETA]], %[[OUTER]])
+// CHECK-NOT: quake.phase
+func.func @phase_lifecycle(%theta: f64, %outer: !quake.ref,
+                           %anchor: !quake.ref) {
+  quake.apply @phase_helper [%outer] %theta, %anchor
+      : (!quake.ref, f64, !quake.ref) -> ()
+  return
+}
