@@ -512,7 +512,7 @@ public:
       }
     }
 
-    // Rewrite the back-to-back S gates.
+    // The uncontrolled Y-S-X product equals S up to global phase.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n'
                             << prev0 << '\n'
                             << prev << '\n');

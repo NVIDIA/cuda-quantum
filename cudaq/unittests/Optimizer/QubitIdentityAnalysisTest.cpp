@@ -178,3 +178,40 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
   EXPECT_FALSE(analysis.getQubitId(call.getResult(0)));
   EXPECT_FALSE(analysis.getQubitId(unwrapped.getResult()));
 }
+
+TEST(QubitIdentityAnalysisTest, PreservesKnownLanesAcrossUnknownWireOperands) {
+  // The call-produced target has no local identity. It must not prevent the
+  // independent control identity from propagating through the same operation.
+  MLIRContext context;
+  context.loadDialect<func::FuncDialect>();
+  context.loadDialect<cudaq::cc::CCDialect>();
+  context.loadDialect<cudaq::quake::QuakeDialect>();
+  auto module = parseSourceString<ModuleOp>(R"mlir(
+    module {
+      func.func private @wire_source() -> !quake.wire
+      func.func @partial_identity() {
+        %known = quake.null_wire
+        %unknown = func.call @wire_source() : () -> !quake.wire
+        %results:2 = quake.x [%known] %unknown
+            : (!quake.wire, !quake.wire)
+              -> (!quake.wire, !quake.wire)
+        quake.sink %results#0 : !quake.wire
+        quake.sink %results#1 : !quake.wire
+        return
+      }
+    }
+  )mlir",
+                                            &context);
+
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(succeeded(verify(*module)));
+  auto function = module->lookupSymbol<func::FuncOp>("partial_identity");
+  ASSERT_TRUE(function);
+  auto x = *function.front().getOps<cudaq::quake::XOp>().begin();
+
+  QubitIdentityAnalysis analysis(function.front());
+  EXPECT_EQ(analysis.getQubitId(x.getControls().front()),
+            analysis.getQubitId(x.getWires().front()));
+  EXPECT_FALSE(analysis.getQubitId(x.getTargets().front()));
+  EXPECT_FALSE(analysis.getQubitId(x.getWires().back()));
+}

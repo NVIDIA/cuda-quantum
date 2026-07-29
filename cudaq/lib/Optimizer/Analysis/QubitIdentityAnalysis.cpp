@@ -18,11 +18,22 @@ using cudaq::quake::detail::QubitIdentityAnalysis;
 using QubitId = QubitIdentityAnalysis::QubitId;
 using BorrowKey = std::pair<Attribute, std::int32_t>;
 
-// Propagate only an unambiguous one-to-one scalar wire correspondence.
-// Reference, aggregate, and malformed shapes leave their results unmapped.
-static bool
-propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
-                  const cudaq::quake::detail::ScalarWireFlow &flow) {
+// Initial construction preserves every identity it can prove independently.
+// An unknown input leaves only its corresponding result unidentified.
+static void
+propagateKnownQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
+                       const cudaq::quake::detail::ScalarWireFlow &flow) {
+  for (auto [input, result] : llvm::zip(flow.inputs, flow.results)) {
+    auto qubitId = qubitIds.find(input);
+    if (qubitId != qubitIds.end())
+      qubitIds.try_emplace(result, qubitId->second);
+  }
+}
+
+// Incremental maintenance is atomic: every result identity must be known before
+// the live analysis can accept an inserted operation.
+static bool registerQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
+                             const cudaq::quake::detail::ScalarWireFlow &flow) {
   llvm::SmallVector<QubitId> inputIds;
   inputIds.reserve(flow.inputs.size());
   for (Value input : flow.inputs) {
@@ -33,10 +44,12 @@ propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
   }
 
   for (auto [result, qubitId] : llvm::zip(flow.results, inputIds)) {
-    auto [entry, inserted] = qubitIds.try_emplace(result, qubitId);
-    if (!inserted && entry->second != qubitId)
+    auto entry = qubitIds.find(result);
+    if (entry != qubitIds.end() && entry->second != qubitId)
       return false;
   }
+  for (auto [result, qubitId] : llvm::zip(flow.results, inputIds))
+    qubitIds.try_emplace(result, qubitId);
   return true;
 }
 
@@ -66,7 +79,7 @@ static void buildQubitIdMap(Block &block,
       continue;
     }
     if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
-      (void)propagateQubitIds(qubitIds, *flow);
+      propagateKnownQubitIds(qubitIds, *flow);
   }
 }
 
@@ -97,7 +110,7 @@ bool QubitIdentityAnalysis::haveSameOrderedQubitIdentities(
 
 bool QubitIdentityAnalysis::registerOperation(Operation &operation) {
   if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
-    return propagateQubitIds(qubitIds, *flow);
+    return registerQubitIds(qubitIds, *flow);
 
   bool hasQuantumValue =
       llvm::any_of(operation.getOperandTypes(), cudaq::quake::isQuantumType) ||
