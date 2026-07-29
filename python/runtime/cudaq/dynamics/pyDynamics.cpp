@@ -336,9 +336,8 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
            nanobind::arg("atol") = cudaq::integrators::dopri5::default_atol,
            nanobind::arg("dt_initial") = 0.01, nanobind::arg("dt_min") = 1e-6,
            nanobind::arg("dt_max") = 1.0)
-      .def("setState",
-           [](cudaq::integrators::dopri5 &self, cudaq::state &state,
-              double t) { self.setState(state, t); })
+      .def("setState", [](cudaq::integrators::dopri5 &self, cudaq::state &state,
+                          double t) { self.setState(state, t); })
       .def("setSystem",
            [](cudaq::integrators::dopri5 &self, cudaq::SystemDynamics system,
               cudaq::schedule schedule) {

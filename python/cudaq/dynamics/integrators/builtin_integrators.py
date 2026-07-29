@@ -36,6 +36,34 @@ def _get_bindings():
     return _bindings
 
 
+def _build_system_and_schedule(dimensions: Mapping[int,
+                                                   int], schedule: Schedule,
+                               hamiltonian, collapse_operators):
+    """Build native ``SystemDynamics`` and ``Schedule`` objects from Python inputs.
+
+    Shared by the native adaptive integrators (``dopri5``, ``magnus_cf4``) so the
+    conversion logic lives in one place.
+    """
+    bindings = _get_bindings()
+    system_ = bindings.SystemDynamics()
+    system_.modeExtents = [dimensions[d] for d in range(len(dimensions))]
+    if not isinstance(hamiltonian, Sequence):
+        hamiltonian = [hamiltonian]
+        if len(collapse_operators) > 0:
+            collapse_operators = [
+                MatrixOperator(c_op) for c_op in collapse_operators
+            ]
+            collapse_operators = [collapse_operators]
+
+    if isinstance(hamiltonian[0], SuperOperator):
+        system_.superOp = hamiltonian
+    else:
+        system_.hamiltonian = hamiltonian
+        system_.collapseOps = collapse_operators
+    schedule_ = bindings.Schedule(schedule._steps, list(schedule._parameters))
+    return system_, schedule_
+
+
 class cuDensityMatTimeStepper(BaseTimeStepper[State]):
     # Thin wrapper around the `TimeStepper` C++ bindings
     def __init__(self, schedule, ham, collapsed_ops, dims, is_master_equation):
@@ -192,24 +220,9 @@ class DoPri5Integrator(BaseIntegrator[State]):
                    Sequence[SuperOperator],
                    collapse_operators: Sequence[Operator] |
                    Sequence[Sequence[Operator]] = []):
-        bindings = _get_bindings()
-        system_ = bindings.SystemDynamics()
-        system_.modeExtents = [dimensions[d] for d in range(len(dimensions))]
-        if not isinstance(hamiltonian, Sequence):
-            hamiltonian = [hamiltonian]
-            if len(collapse_operators) > 0:
-                collapse_operators = [
-                    MatrixOperator(c_op) for c_op in collapse_operators
-                ]
-                collapse_operators = [collapse_operators]
-
-        if isinstance(hamiltonian[0], SuperOperator):
-            system_.superOp = hamiltonian
-        else:
-            system_.hamiltonian = hamiltonian
-            system_.collapseOps = collapse_operators
-        schedule_ = bindings.Schedule(schedule._steps,
-                                      list(schedule._parameters))
+        system_, schedule_ = _build_system_and_schedule(dimensions, schedule,
+                                                        hamiltonian,
+                                                        collapse_operators)
         self.integrator.setSystem(system_, schedule_)
 
     def integrate(self, t):
@@ -266,24 +279,9 @@ class MagnusCF4Integrator(BaseIntegrator[State]):
                    Sequence[SuperOperator],
                    collapse_operators: Sequence[Operator] |
                    Sequence[Sequence[Operator]] = []):
-        bindings = _get_bindings()
-        system_ = bindings.SystemDynamics()
-        system_.modeExtents = [dimensions[d] for d in range(len(dimensions))]
-        if not isinstance(hamiltonian, Sequence):
-            hamiltonian = [hamiltonian]
-            if len(collapse_operators) > 0:
-                collapse_operators = [
-                    MatrixOperator(c_op) for c_op in collapse_operators
-                ]
-                collapse_operators = [collapse_operators]
-
-        if isinstance(hamiltonian[0], SuperOperator):
-            system_.superOp = hamiltonian
-        else:
-            system_.hamiltonian = hamiltonian
-            system_.collapseOps = collapse_operators
-        schedule_ = bindings.Schedule(schedule._steps,
-                                      list(schedule._parameters))
+        system_, schedule_ = _build_system_and_schedule(dimensions, schedule,
+                                                        hamiltonian,
+                                                        collapse_operators)
         self.integrator.setSystem(system_, schedule_)
 
     def integrate(self, t):

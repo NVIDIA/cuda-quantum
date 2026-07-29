@@ -9,10 +9,10 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
+#include "test_Mocks.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "test_Mocks.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>
@@ -29,16 +29,15 @@ protected:
 
   // Build a single-qubit density-matrix state initialized to |psi><psi| where
   // psi is the given (normalized) state vector.
-  cudaq::state makeDensityMatrixState(
-      const std::vector<std::complex<double>> &stateVec,
-      const std::vector<int64_t> &dims) {
+  cudaq::state
+  makeDensityMatrixState(const std::vector<std::complex<double>> &stateVec,
+                         const std::vector<int64_t> &dims) {
     auto sv = cudaq::state::from_data(stateVec);
     auto *svCudm = dynamic_cast<CuDensityMatState *>(
         cudaq::state_helper::getSimulationState(&sv));
     EXPECT_NE(svCudm, nullptr);
     svCudm->initialize_cudm(handle_, dims, /*batchSize=*/1);
-    auto dm =
-        std::make_unique<CuDensityMatState>(svCudm->to_density_matrix());
+    auto dm = std::make_unique<CuDensityMatState>(svCudm->to_density_matrix());
     dm->initialize_cudm(handle_, dims, /*batchSize=*/1);
     return cudaq::state(dm.release());
   }
@@ -87,7 +86,8 @@ TEST_F(MagnusHighOrderIntegratorTest, RabiOscillationDensityMatrix) {
   // rho is column-major 2x2: rho[0]=rho00, rho[3]=rho11.
   const double pop0 = rho[0].real();
   const double pop1 = rho[3].real();
-  const double expectedPop0 = std::cos(omega * tFinal) * std::cos(omega * tFinal);
+  const double expectedPop0 =
+      std::cos(omega * tFinal) * std::cos(omega * tFinal);
   EXPECT_NEAR(pop0 + pop1, 1.0, 1e-4) << "Trace should be preserved";
   EXPECT_NEAR(pop0, expectedPop0, 1e-3);
 
@@ -179,7 +179,7 @@ TEST_F(MagnusHighOrderIntegratorTest, CloneReproducesTrajectory) {
 TEST(MagnusHighOrderIntegratorEvolve, T1DecayFallback) {
   const cudaq::dimension_map dims = {{0, 2}};
   cudaq::product_op<cudaq::matrix_handler> ham_t =
-      0.0 * cudaq::matrix_handler::number(0);
+      0.0 * cudaq::sum_op<cudaq::matrix_handler>::number(0);
   cudaq::sum_op<cudaq::matrix_handler> hamiltonian(ham_t);
 
   constexpr int numSteps = 11;
@@ -199,7 +199,7 @@ TEST(MagnusHighOrderIntegratorEvolve, T1DecayFallback) {
   cudaq::sum_op<cudaq::matrix_handler> collapseOp(collapseOp_t);
 
   cudaq::product_op<cudaq::matrix_handler> occ_t =
-      cudaq::matrix_handler::number(0);
+      cudaq::sum_op<cudaq::matrix_handler>::number(0);
   cudaq::sum_op<cudaq::matrix_handler> occ(occ_t);
 
   cudaq::evolve_result result = cudaq::detail::evolveSingle(

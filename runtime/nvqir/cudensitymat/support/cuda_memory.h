@@ -19,8 +19,8 @@
 #include "cuda_check.h"
 
 #include <algorithm>
-#include <cublas_v2.h>
 #include <cuComplex.h>
+#include <cublas_v2.h>
 #include <cusolverDn.h>
 #include <stdexcept>
 #include <string>

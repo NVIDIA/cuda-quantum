@@ -10,11 +10,11 @@
 #include "CuDensityMatIntegratorBase.h"
 #include "CuDensityMatState.h"
 #include "CuDensityMatUtils.h"
-#include "cudaq/algorithms/integrator.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "support/cuda_memory.h"
 #include "support/matrix_exp.h"
 #include "support/propagator_cache.h"
+#include "cudaq/algorithms/integrator.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include <cmath>
 #include <complex>
@@ -69,7 +69,7 @@ std::size_t hashMatrixBuffer(const std::vector<std::complex<double>> &buf) {
 /// @brief Hidden CUDA/cache state for `magnus_cf4`.
 struct magnus_cf4::Impl {
   cudaq::pulse::PropagatorLRUCache cache;
-  cudaq::pulse::CudaComplexMemory dH;       // Scaled Hamiltonian / scratch.
+  cudaq::pulse::CudaComplexMemory dH;        // Scaled Hamiltonian / scratch.
   cudaq::pulse::CudaComplexMemory applyWork; // Workspace for U rho U^dagger.
   void *expWorkspace = nullptr;
   std::size_t expWorkspaceBytes = 0;

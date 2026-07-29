@@ -31,7 +31,7 @@ using cudmIntHelp = CuDensityMatIntegratorHelper;
 
 namespace {
 // Butcher tableau (nodes).
-constexpr std::array<double, 7> kNodes = {0.0, 0.2,       0.3, 0.8,
+constexpr std::array<double, 7> kNodes = {0.0,       0.2, 0.3, 0.8,
                                           8.0 / 9.0, 1.0, 1.0};
 
 // Lower-triangular a_{ij} coefficients.
@@ -48,10 +48,9 @@ constexpr std::array<std::array<double, 6>, 7> kA = {
       11.0 / 84.0}}};
 
 // 5th-order solution weights.
-constexpr std::array<double, 7> kB5 = {35.0 / 384.0,     0.0,
-                                       500.0 / 1113.0,   125.0 / 192.0,
-                                       -2187.0 / 6784.0, 11.0 / 84.0,
-                                       0.0};
+constexpr std::array<double, 7> kB5 = {
+    35.0 / 384.0, 0.0, 500.0 / 1113.0, 125.0 / 192.0, -2187.0 / 6784.0,
+    11.0 / 84.0,  0.0};
 
 // Embedded 4th-order solution weights.
 constexpr std::array<double, 7> kB4 = {5179.0 / 57600.0,    0.0,
@@ -115,9 +114,8 @@ dopri5::dopri5(double rtol, double atol, double dt_initial, double dt_min,
 }
 
 std::shared_ptr<base_integrator> dopri5::clone() {
-  auto cloned =
-      std::make_shared<cudaq::integrators::dopri5>(m_rtol, m_atol, m_dt,
-                                                   m_dt_min, m_dt_max);
+  auto cloned = std::make_shared<cudaq::integrators::dopri5>(
+      m_rtol, m_atol, m_dt, m_dt_min, m_dt_max);
   cloned->m_t = this->m_t;
   cloned->m_state = this->m_state;
   cloned->m_system = this->m_system;
@@ -156,9 +154,11 @@ void dopri5::integrate(double targetTime) {
     // y + dt * sum_{i<j} a[j][i] k_i, sampled at time t + c[j] dt.
     std::array<std::shared_ptr<cudaq::state>, 7> kStates;
     auto evalStage = [&](int j, CuDensityMatState &stageInput) {
-      auto params = cudmIntHelp::scheduleParamsAt(m_schedule, m_t + kNodes[j] * dt);
+      auto params =
+          cudmIntHelp::scheduleParamsAt(m_schedule, m_t + kNodes[j] * dt);
       cudaq::state stageState(CuDensityMatState::clone(stageInput).release());
-      auto result = m_stepper->compute(stageState, m_t + kNodes[j] * dt, params);
+      auto result =
+          m_stepper->compute(stageState, m_t + kNodes[j] * dt, params);
       kStates[j] = std::make_shared<cudaq::state>(std::move(result));
     };
 
@@ -197,9 +197,8 @@ void dopri5::integrate(double targetTime) {
       ++m_stats.accepted_steps;
       m_stats.min_dt_used = std::min(m_stats.min_dt_used, dt);
       m_stats.max_dt_used = std::max(m_stats.max_dt_used, dt);
-      m_stats.avg_dt =
-          (m_stats.avg_dt * (m_stats.accepted_steps - 1) + dt) /
-          m_stats.accepted_steps;
+      m_stats.avg_dt = (m_stats.avg_dt * (m_stats.accepted_steps - 1) + dt) /
+                       m_stats.accepted_steps;
     } else {
       m_dt = dtNext;
       ++m_stats.rejected_steps;

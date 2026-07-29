@@ -10,13 +10,12 @@
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
+#include "test_Mocks.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "test_Mocks.h"
 #include <cmath>
 #include <gtest/gtest.h>
-#include <iostream>
 
 using namespace cudaq;
 
@@ -76,7 +75,8 @@ TEST_F(AdaptiveIntegratorTest, Initialization) {
   EXPECT_NO_THROW(cudaq::integrators::dopri5 d3(1e-6, 1e-8, 0.05, 1e-7, 0.5));
   EXPECT_THROW(cudaq::integrators::dopri5 bad(-1.0, 1e-8),
                std::invalid_argument);
-  EXPECT_THROW(cudaq::integrators::dopri5 bad(1e-6, 0.0), std::invalid_argument);
+  EXPECT_THROW(cudaq::integrators::dopri5 bad(1e-6, 0.0),
+               std::invalid_argument);
   EXPECT_THROW(cudaq::integrators::dopri5 bad(1e-6, 1e-8, 0.01, 1.0, 0.1),
                std::invalid_argument);
 }
@@ -103,13 +103,11 @@ TEST_F(AdaptiveIntegratorTest, AdaptiveStatsSanity) {
       static_cast<double>(stats.accepted_steps + stats.rejected_steps);
   const double rejectionRate =
       totalSteps > 0 ? stats.rejected_steps / totalSteps : 0.0;
-  std::cout << "dopri5 stats: accepted=" << stats.accepted_steps
-            << " rejected=" << stats.rejected_steps
-            << " rejectionRate=" << rejectionRate
-            << " min_dt=" << stats.min_dt_used << " avg_dt=" << stats.avg_dt
-            << " max_dt=" << stats.max_dt_used << "\n";
   EXPECT_LT(rejectionRate, 0.2)
-      << "Adaptive step rejection rate should be modest for smooth dynamics";
+      << "Adaptive step rejection rate should be modest for smooth dynamics "
+      << "(accepted=" << stats.accepted_steps
+      << " rejected=" << stats.rejected_steps << " min_dt=" << stats.min_dt_used
+      << " avg_dt=" << stats.avg_dt << " max_dt=" << stats.max_dt_used << ")";
 }
 
 TEST_F(AdaptiveIntegratorTest, MatchesRungeKutta4) {
@@ -194,7 +192,7 @@ TEST(AdaptiveIntegratorEvolve, T1Decay) {
   const cudaq::dimension_map dims = {{0, 2}};
   // No coherent drive: pure relaxation.
   cudaq::product_op<cudaq::matrix_handler> ham_t =
-      0.0 * cudaq::matrix_handler::number(0);
+      0.0 * cudaq::sum_op<cudaq::matrix_handler>::number(0);
   cudaq::sum_op<cudaq::matrix_handler> hamiltonian(ham_t);
 
   constexpr int numSteps = 11;
@@ -215,7 +213,7 @@ TEST(AdaptiveIntegratorEvolve, T1Decay) {
   cudaq::sum_op<cudaq::matrix_handler> collapseOp(collapseOp_t);
 
   cudaq::product_op<cudaq::matrix_handler> occ_t =
-      cudaq::matrix_handler::number(0);
+      cudaq::sum_op<cudaq::matrix_handler>::number(0);
   cudaq::sum_op<cudaq::matrix_handler> occ(occ_t);
 
   cudaq::evolve_result result = cudaq::detail::evolveSingle(

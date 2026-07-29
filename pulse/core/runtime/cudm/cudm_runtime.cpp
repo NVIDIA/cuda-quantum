@@ -493,8 +493,8 @@ CudmStatus integrateStepCrankNicolson(HandleData *handle, OperatorData *op,
                                       StateData *k1, StateData *k2,
                                       StateData *rhoIter, StateData *rhoNext,
                                       WorkspaceData *workspace,
-                                      void *deviceFactor, double time, double dt,
-                                      int numCorrectorSteps) {
+                                      void *deviceFactor, double time,
+                                      double dt, int numCorrectorSteps) {
   auto status = rhs(handle, op, current, k1, workspace, time);
   if (status != CUDM_SUCCESS)
     return status;
@@ -783,12 +783,14 @@ CudmStatus cudm_elementary_op_create(CudmHandle handle,
         cudaMemcpy(data->tensorData, tensorData, bytes, cudaMemcpyHostToDevice),
         "cudaMemcpy(elementary tensor)");
   if (status == CUDM_SUCCESS)
-    status = checkCudm(cudensitymatCreateElementaryOperator(
-                           data->owner->native, numModes, modeExtents,
-                           CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
-                           toCudaDataType(dataType), data->tensorData,
-                           cudensitymatTensorCallbackNone, &data->native),
-                       "cudensitymatCreateElementaryOperator");
+    status =
+        checkCudm(cudensitymatCreateElementaryOperator(
+                      data->owner->native, numModes, modeExtents,
+                      CUDENSITYMAT_OPERATOR_SPARSITY_NONE, 0, nullptr,
+                      toCudaDataType(dataType), data->tensorData,
+                      cudensitymatTensorCallbackNone,
+                      cudensitymatTensorGradientCallbackNone, &data->native),
+                  "cudensitymatCreateElementaryOperator");
   if (status != CUDM_SUCCESS) {
     if (data->tensorData)
       cudaFree(data->tensorData);
@@ -876,7 +878,7 @@ CudmStatus cudm_op_term_append(CudmHandle handle, CudmOpTerm term,
                     owner->native, termData->native, numElementaryOps,
                     nativeOps.data(), modesActedOn, duality,
                     make_cuDoubleComplex(coefficientReal, coefficientImag),
-                    wrappedCallback),
+                    wrappedCallback, cudensitymatScalarGradientCallbackNone),
                 "cudensitymatOperatorTermAppendElementaryProduct");
   if (status == CUDM_SUCCESS && callbackSlot)
     termData->callbackSlots.push_back(*callbackSlot);
@@ -910,7 +912,8 @@ CudmStatus cudm_operator_append(CudmHandle handle, CudmOperator op,
   return checkCudm(cudensitymatOperatorAppendTerm(
                        owner->native, opData->native, termData->native, duality,
                        make_cuDoubleComplex(coefficientReal, coefficientImag),
-                       cudensitymatScalarCallbackNone),
+                       cudensitymatScalarCallbackNone,
+                       cudensitymatScalarGradientCallbackNone),
                    "cudensitymatOperatorAppendTerm");
 }
 
