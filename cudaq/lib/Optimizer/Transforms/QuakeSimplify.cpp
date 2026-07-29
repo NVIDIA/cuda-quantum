@@ -52,6 +52,17 @@ haveSameControlArityAndPolarity(cudaq::quake::OperatorInterface lhs,
   return true;
 }
 
+template <typename QOP>
+static QOP
+getSameActionEndpoint(QOP anchor, Operation *candidate,
+                      cudaq::opt::CommutationAwareRewriteMatcher &matcher) {
+  auto endpoint = dyn_cast<QOP>(candidate);
+  if (!endpoint || !haveSameControlArityAndPolarity(anchor, endpoint) ||
+      !matcher.haveSameOrderedQuantumOperands(anchor, endpoint))
+    return {};
+  return endpoint;
+}
+
 // Splice both endpoints out of their wires. Each result denotes the same qubit
 // as the operand it came from, so forwarding an operation's own wire operands
 // to its own results is right whichever order it names those qubits in. The
@@ -64,22 +75,14 @@ static void cancelPair(QOP anchor, QOP endpoint, PatternRewriter &rewriter) {
   rewriter.replaceOp(anchor, getWireOperands(anchor));
 }
 
-// Cancel `anchor` against the nearest endpoint that inverts it. The caller
-// decides what counts as an inverse, including which operand orders it accepts,
-// because that is where a gate family's algebra lives. `isInverse` receives the
-// anchor and the candidate endpoint, in that order.
-template <typename QOP, typename IsInverse>
+// Cancel `anchor` against the nearest endpoint accepted by its gate family.
+template <typename QOP, typename IsEndpoint>
 static LogicalResult
 cancelTransparentPair(QOP anchor,
                       cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                      PatternRewriter &rewriter, IsInverse isInverse) {
+                      PatternRewriter &rewriter, IsEndpoint isEndpoint) {
   auto match = matcher.findNearest(
-      anchor, cudaq::opt::CommutationSearchDirection::Forward,
-      [&](Operation *candidate) {
-        auto endpoint = dyn_cast<QOP>(candidate);
-        return endpoint && haveSameControlArityAndPolarity(anchor, endpoint) &&
-               isInverse(anchor, endpoint);
-      });
+      anchor, cudaq::opt::CommutationSearchDirection::Forward, isEndpoint);
   if (!match)
     return failure();
 
@@ -97,8 +100,9 @@ public:
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
     return cancelTransparentPair(
-        qop, matcher, rewriter, [&](QOP anchor, QOP endpoint) {
-          return matcher.haveSameOrderedQuantumOperands(anchor, endpoint);
+        qop, matcher, rewriter, [&](Operation *candidate) {
+          return static_cast<bool>(
+              getSameActionEndpoint(qop, candidate, matcher));
         });
   }
 
@@ -136,10 +140,11 @@ public:
   LogicalResult matchAndRewrite(cudaq::quake::SwapOp qop,
                                 PatternRewriter &rewriter) const override {
     return cancelTransparentPair(
-        qop, matcher, rewriter,
-        [&](cudaq::quake::SwapOp anchor, cudaq::quake::SwapOp endpoint) {
-          return matcher.haveSameOrderedQuantumOperands(anchor, endpoint) ||
-                 hasTransposedTargetsOnAnchorWires(anchor, endpoint);
+        qop, matcher, rewriter, [&](Operation *candidate) {
+          auto endpoint = dyn_cast<cudaq::quake::SwapOp>(candidate);
+          return endpoint && haveSameControlArityAndPolarity(qop, endpoint) &&
+                 (matcher.haveSameOrderedQuantumOperands(qop, endpoint) ||
+                  hasTransposedTargetsOnAnchorWires(qop, endpoint));
         });
   }
 
@@ -157,9 +162,9 @@ public:
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
     return cancelTransparentPair(
-        qop, matcher, rewriter, [&](QOP anchor, QOP endpoint) {
-          return anchor.isAdj() != endpoint.isAdj() &&
-                 matcher.haveSameOrderedQuantumOperands(anchor, endpoint);
+        qop, matcher, rewriter, [&](Operation *candidate) {
+          auto endpoint = getSameActionEndpoint(qop, candidate, matcher);
+          return endpoint && qop.isAdj() != endpoint.isAdj();
         });
   }
 
@@ -225,6 +230,22 @@ static bool haveExactValue(Value lhs, Value rhs) {
          lhsConstant == rhsConstant;
 }
 
+static Value createCombinedRotationAngle(PatternRewriter &rewriter,
+                                         Location location, Value anchorAngle,
+                                         bool anchorIsAdjoint,
+                                         Value endpointAngle,
+                                         bool endpointIsAdjoint) {
+  Type angleType = endpointAngle.getType();
+  if (endpointIsAdjoint)
+    endpointAngle =
+        arith::NegFOp::create(rewriter, location, angleType, endpointAngle);
+  if (anchorIsAdjoint)
+    anchorAngle =
+        arith::NegFOp::create(rewriter, location, angleType, anchorAngle);
+  return arith::AddFOp::create(rewriter, location, angleType, endpointAngle,
+                               anchorAngle);
+}
+
 // Let P(phi) = cos(phi) X + sin(phi) Y. Then
 //   PhasedRx(theta, phi) = exp(-i theta P(phi) / 2),
 //   PhasedRx(a, phi) PhasedRx(b, phi) = PhasedRx(a + b, phi),
@@ -258,10 +279,8 @@ public:
     auto match = matcher.findNearest(
         anchor, cudaq::opt::CommutationSearchDirection::Forward,
         [&](Operation *candidate) {
-          auto endpoint = dyn_cast<cudaq::quake::PhasedRxOp>(candidate);
-          return endpoint &&
-                 haveSameControlArityAndPolarity(anchor, endpoint) &&
-                 matcher.haveSameOrderedQuantumOperands(anchor, endpoint);
+          return static_cast<bool>(
+              getSameActionEndpoint(anchor, candidate, matcher));
         });
     if (!match)
       return failure();
@@ -285,15 +304,9 @@ public:
     {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPoint(endpoint);
-      Type thetaType = endpointTheta.getType();
-      if (endpoint.isAdj())
-        endpointTheta = arith::NegFOp::create(rewriter, endpoint.getLoc(),
-                                              thetaType, endpointTheta);
-      if (anchor.isAdj())
-        anchorTheta = arith::NegFOp::create(rewriter, endpoint.getLoc(),
-                                            thetaType, anchorTheta);
-      Value combinedTheta = arith::AddFOp::create(
-          rewriter, endpoint.getLoc(), thetaType, endpointTheta, anchorTheta);
+      Value combinedTheta = createCombinedRotationAngle(
+          rewriter, endpoint.getLoc(), anchorTheta, anchor.isAdj(),
+          endpointTheta, endpoint.isAdj());
 
       LLVM_DEBUG(llvm::dbgs() << "combined: " << anchor << '\n'
                               << endpoint << '\n');
@@ -339,9 +352,8 @@ public:
     auto match = matcher.findNearest(
         anchor, cudaq::opt::CommutationSearchDirection::Forward,
         [&](Operation *candidate) {
-          auto endpoint = dyn_cast<QOP>(candidate);
-          if (!endpoint || !haveSameControlArityAndPolarity(anchor, endpoint) ||
-              !matcher.haveSameOrderedQuantumOperands(anchor, endpoint))
+          auto endpoint = getSameActionEndpoint(anchor, candidate, matcher);
+          if (!endpoint)
             return false;
           auto endpointParameters = endpoint.getParameters();
           return endpointParameters.size() == 1 &&
@@ -361,15 +373,9 @@ public:
     {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPoint(endpoint);
-      Type angleType = endpointAngle.getType();
-      if (endpoint.isAdj())
-        endpointAngle = arith::NegFOp::create(rewriter, endpoint.getLoc(),
-                                              angleType, endpointAngle);
-      if (anchor.isAdj())
-        anchorAngle = arith::NegFOp::create(rewriter, endpoint.getLoc(),
-                                            angleType, anchorAngle);
-      Value combinedAngle = arith::AddFOp::create(
-          rewriter, endpoint.getLoc(), angleType, endpointAngle, anchorAngle);
+      Value combinedAngle = createCombinedRotationAngle(
+          rewriter, endpoint.getLoc(), anchorAngle, anchor.isAdj(),
+          endpointAngle, endpoint.isAdj());
 
       LLVM_DEBUG(llvm::dbgs() << "combined: " << anchor << '\n'
                               << endpoint << '\n');
@@ -401,10 +407,8 @@ public:
     auto match = matcher.findNearest(
         anchor, cudaq::opt::CommutationSearchDirection::Forward,
         [&](Operation *candidate) {
-          auto endpoint = dyn_cast<SourceOp>(candidate);
-          return endpoint &&
-                 haveSameControlArityAndPolarity(anchor, endpoint) &&
-                 matcher.haveSameOrderedQuantumOperands(anchor, endpoint);
+          return static_cast<bool>(
+              getSameActionEndpoint(anchor, candidate, matcher));
         });
     if (!match)
       return failure();
