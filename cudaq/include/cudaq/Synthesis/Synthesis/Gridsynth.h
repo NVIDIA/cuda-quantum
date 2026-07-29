@@ -41,12 +41,13 @@ inline constexpr int32_t DEFAULT_FACTORING_TIMEOUT_MS = 50;
 /// Core grid-synthesis search.
 ///
 /// Runs Algorithm 7.6 until it produces a DOmegaUnitary approximating
-/// R_z(theta) to within `epsilon`. Returns failure() if the epsilon region
-/// is degenerate or the search exhausts its budgets without finding a valid
-/// solution.
+/// R_z(theta) to within `epsilon` in the operator norm. Returns failure() if
+/// `theta` is not finite, if `epsilon` is not finite and strictly positive,
+/// if the epsilon region is degenerate, or if the search exhausts its budgets
+/// without finding a valid solution.
 ///
 /// @param theta                  Target rotation angle.
-/// @param epsilon                Approximation precision.
+/// @param epsilon                Approximation precision, must be finite > 0.
 /// @param diophantine_timeout_ms Per-candidate Diophantine budget.
 /// @param factoring_timeout_ms   Per-attempt integer-factoring budget.
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(

@@ -18,7 +18,10 @@
 #include "Math/Geometry/UnitDisk.h"
 #include "Math/Grid/Tdgp.h"
 #include "cudaq/Synthesis/Math/Real.h"
+#include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
+
+#include <optional>
 
 #define DEBUG_TYPE "cudaq-synth"
 
@@ -36,7 +39,7 @@ namespace {
 /// For a target rotation R_z(theta) and precision epsilon > 0, R_epsilon is
 /// the lens-shaped region
 ///
-///   R_epsilon = { u in closed unit disk | dot(u, z) >= sqrt(1 - epsilon^2/4) }
+///   R_epsilon = { u in closed unit disk | dot(u, z) >= 1 - epsilon^2/2 }
 ///
 /// where z = (cos(-theta/2), sin(-theta/2)) is the point on the unit circle
 /// corresponding to the target rotation. The dot-product condition is
@@ -49,7 +52,7 @@ namespace {
 /// the exact region is what the TDGP filter ultimately checks.
 class EpsilonRegion : public ConvexSet {
 private:
-  // Half-plane threshold d = sqrt(1 - epsilon^2/4); the membership test is
+  // Half-plane threshold d = 1 - epsilon^2/2; the membership test is
   // dot(u, z) >= d.
   Real dot_threshold;
 
@@ -72,13 +75,13 @@ private:
   };
 
   /// Precompute the three scalars that depend on (theta, epsilon):
-  ///   dot_threshold = sqrt(1 - epsilon^2/4) = cos(arcsin(epsilon/2))
+  ///   dot_threshold = 1 - epsilon^2/2   (equation (13))
   ///   z             = (cos(-theta/2), sin(-theta/2))
   /// Uses mpfr_sin_cos to get both trig values from a single argument.
   static Precomputed compute_precomputed(const Real &theta,
                                          const Real &epsilon) {
     Precomputed pre;
-    pre.dot_threshold = sqrt(1 - ((epsilon * epsilon) / 4));
+    pre.dot_threshold = 1 - ((epsilon * epsilon) / 2);
 
     Real half_angle = -theta / 2;
     mpfr_sin_cos(pre.z_y.get_mpfr(), pre.z_x.get_mpfr(), half_angle.get_mpfr(),
@@ -86,22 +89,34 @@ private:
     return pre;
   }
 
-  /// Build the enclosing ellipse from the rotation D1 by -theta/2, an
-  /// anisotropic scaling D2 = diag(64/epsilon^4, 4/epsilon^2) chosen to fit
-  /// the lens, and the rotation D3 by +theta/2 back. The resulting quadratic
-  /// form coefficients are:
+  /// Build the ellipse that circumscribes R_epsilon.
   ///
-  ///   A x^2 + 2B xy + C y^2 + Dx x + Dy y <= 1
+  /// In the frame where z points along +x, R_epsilon is the circular segment
+  /// cut off by the line x = d (with d = dot_threshold). It spans
+  /// x in [d, 1] and |y| <= sqrt(1 - d^2). The ellipse centered at (d, 0)
+  /// with semi-axes
   ///
-  /// Returns failure() if Ellipse::create rejects the parameters; this
-  /// should not happen for epsilon > 0.
+  ///   along z:          1 - d              = epsilon^2/2
+  ///   perpendicular:    sqrt(1 - d^2)      = epsilon * sqrt(1 - epsilon^2/4)
+  ///
+  /// contains that segment and touches it at (1, 0) and at (d, +/-sqrt(1-d^2)),
+  /// so it is the tightest ellipse of this family. Writing x = d + t*(1-d) with
+  /// t in [0, 1], membership reduces to t <= 1, which is exactly the segment's
+  /// x-range. Hence the containment is exact rather than asymptotic.
+  ///
+  /// Ellipse stores { (u - p)^T D (u - p) <= 1 }, so we pass the center
+  /// p = d*z and D = lambda_x * z z^T + lambda_y * z_perp z_perp^T with
+  /// lambda = 1/semi-axis^2, rotated back into the original frame.
+  ///
+  /// Returns failure() if Ellipse::create rejects the parameters. Callers
+  /// reach this only for 0 < epsilon < |1 - e^{i*pi/8}|, where d > 0.92 and
+  /// the matrix is comfortably positive definite.
   static llvm::FailureOr<Ellipse>
   make_bounding_ellipse(const Real &z_x, const Real &z_y,
-                        const Real &dot_threshold, const Real &epsilon) {
-    Real inv_eps2 = 1 / (epsilon * epsilon);
-    Real inv_eps4 = inv_eps2 * inv_eps2;
-    Real lambda_x = 64 * inv_eps4;       // D2(0, 0)
-    const Real &lambda_y = 4 * inv_eps2; // D2(1, 1)
+                        const Real &dot_threshold) {
+    Real one_minus_d = 1 - dot_threshold;
+    Real lambda_x = 1 / (one_minus_d * one_minus_d);
+    Real lambda_y = 1 / (one_minus_d * (1 + dot_threshold));
 
     Real A = lambda_x * z_x * z_x + lambda_y * z_y * z_y;
     Real B = (lambda_x - lambda_y) * z_x * z_y;
@@ -120,7 +135,7 @@ public:
                                                const Real &epsilon) {
     Precomputed pre = compute_precomputed(theta, epsilon);
     llvm::FailureOr<Ellipse> ell_or =
-        make_bounding_ellipse(pre.z_x, pre.z_y, pre.dot_threshold, epsilon);
+        make_bounding_ellipse(pre.z_x, pre.z_y, pre.dot_threshold);
     if (llvm::failed(ell_or))
       return llvm::failure();
     return EpsilonRegion(std::move(pre.dot_threshold), std::move(pre.z_x),
@@ -213,6 +228,46 @@ public:
   }
 };
 
+//===----------------------------------------------------------------------===//
+// Zero-T shortcut
+//===----------------------------------------------------------------------===//
+
+/// The nearest zero-T (Clifford) approximation of R_z(theta), or nullopt if
+/// it is not within epsilon.
+///
+/// Every Clifford+T unitary with denominator exponent k = 0 has (z, w) equal
+/// to (unit, 0) or (0, unit): |z|^2 + |w|^2 = 1 with both terms totally
+/// non-negative in Z[sqrt(2)], whose smallest positive such element is
+/// 2 - sqrt(2) > 1/2, forces one of them to vanish. The off-diagonal family
+/// is at operator-norm distance >= 1 from any R_z, so the best zero-T
+/// candidate is diagonal:
+///
+///   diag(omega^-m, omega^m) = R_z(m*pi/2)
+///
+/// and the error is minimized by m = round(theta / (pi/2)), giving
+/// ||R_z(theta) - R_z(m*pi/2)|| = 2*|sin((theta - m*pi/2)/4)| <= 2*sin(pi/16).
+///
+/// Ross & Selinger Lemma 7.2 is the corresponding existence statement: a
+/// zero-T solution always exists once epsilon >= |1 - e^{i*pi/8}|
+/// = 2*sin(pi/16) ~= 0.39018. We test the candidate's actual error instead of
+/// that threshold, so the shortcut also fires for the (T-optimal) tighter
+/// cases where theta happens to sit near a multiple of pi/2.
+std::optional<DOmegaUnitary> nearest_zero_t_unitary(const Real &theta,
+                                                    const Real &epsilon) {
+  Integer m = round_to_integer(theta / (Real::pi() / 2));
+
+  // R_z has period 4*pi, so only m mod 8 matters for omega^m. Reducing before
+  // narrowing as theta may be arbitrarily large.
+  int32_t m_mod8 = static_cast<int32_t>(m % Integer(8));
+  int32_t exponent = (-m_mod8) & 0b111;
+
+  DOmegaUnitary candidate(mul_by_omega_power(DOmega::from_int(1), exponent),
+                          DOmega::from_int(0), 0);
+  if (rz_approximation_error(candidate, theta) <= epsilon)
+    return candidate;
+  return std::nullopt;
+}
+
 } // namespace
 
 namespace cudaq::synth {
@@ -232,6 +287,24 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                   << diophantine_timeout_ms << "ms" << "\n";
              cudaq::synth::dbgs()
              << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n");
+
+  // Reject NaN / infinity / non-positive inputs here.
+  if (!theta.is_finite()) {
+    CUDAQ_SYNTH_CLOSE_FAILURE("theta must be finite");
+    return llvm::failure();
+  }
+  if (!epsilon.is_finite() || !(epsilon > 0)) {
+    CUDAQ_SYNTH_CLOSE_FAILURE("epsilon must be finite and strictly positive");
+    return llvm::failure();
+  }
+
+  // Loose tolerances admit a zero-T answer. Taking it here also keeps the
+  // epsilon-region construction below confined to epsilon < 2*sin(pi/16).
+  if (std::optional<DOmegaUnitary> clifford =
+          nearest_zero_t_unitary(theta, epsilon)) {
+    CUDAQ_SYNTH_CLOSE_SUCCESS("zero-T Clifford within epsilon");
+    return *clifford;
+  }
 
   // Step 0: build the epsilon-region and the closed-unit-disk constraint
   // applied to the sqrt(2)-conjugate (the latter is needed because
