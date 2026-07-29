@@ -190,6 +190,9 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());
   pm.addPass(createSymbolDCEPass());
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
@@ -204,4 +207,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
+  // Generic phase lowering can introduce R1/Rz after IQM native-gate
+  // decomposition, so reject residual bookkeeping instead of lowering it.
+  pm.addPass(createVerifyNoPhase());
 }

@@ -17,6 +17,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
@@ -710,6 +711,10 @@ struct WireSetToProfileQIRPostPass
 
 void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
                                                 StringRef profile) {
+  cudaq::opt::addPhaseLifecycle(pm);
+  // ExpandControlNegations does not preserve wire results. LowerPhase directly
+  // threads the supported scalar-negative wire case without that pass.
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep());
   WireSetToProfileQIROptions wopt;
   if (!profile.empty())
