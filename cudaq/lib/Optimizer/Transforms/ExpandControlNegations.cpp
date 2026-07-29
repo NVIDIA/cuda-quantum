@@ -45,7 +45,7 @@ public:
     for (auto negationIter : llvm::enumerate(negations.value())) {
       auto i = negationIter.index();
       Type ty = originalControls[i].getType();
-      // Is the i-th control is negated?
+      // Is the i-th control negated?
       if (ty == ctrlTy) {
         // We cannot process !quake.control types here. Run the linear-ctrl-form
         // pass first.
@@ -103,7 +103,7 @@ public:
     for (auto iter : llvm::enumerate(negations.value())) {
       auto i = iter.index();
       Type ty = newControls[i].getType();
-      // Is the i-th control is negated?
+      // Is the i-th control negated?
       if (cudaq::quake::isLinearType(ty)) {
         // Quantum value types are *explicitly* threaded.
         if (iter.value()) {
