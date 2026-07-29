@@ -95,6 +95,10 @@ def test_8qubit_single_qubit_excitation():
     """A pi pulse on q0 excites it within the full 256-dimensional register."""
     target = _ladder_8q_target()
 
+    # The simulated register is sized by the qudits the kernel *allocates*
+    # (its 8 arguments), not by the ones it drives. So q0 alone gets a pi
+    # pulse while q1..q7 idle in |0>, and the full 8-qubit (256-dim) register
+    # still evolves.
     @pulse.kernel
     def excite_q0(q0, q1, q2, q3, q4, q5, q6, q7):
         d0, t0 = get_drive_line(q0)

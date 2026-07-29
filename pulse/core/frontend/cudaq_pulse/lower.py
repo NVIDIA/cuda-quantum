@@ -281,10 +281,24 @@ def _to_program(
                 attrs=dict(kop.attrs),
             ))
 
+    # Allocation-driven register sizing: the simulated Hilbert space is
+    # defined by the qudits the kernel allocates (``qudit_arg`` /
+    # ``qudit_alloc``), not merely the ones it drives. Allocated-but-idle
+    # qudits stay in |0>, so the returned state has a predictable shape:
+    # N allocated qudits => 2**N register. Touched frequencies still take
+    # precedence (they may have been retuned via set_frequency lowering).
+    program_freqs: dict[int, float] = {}
+    for qidx in sorted(set(qref_to_qubit.values())):
+        if qidx in freq_hz:
+            program_freqs[qidx] = freq_hz[qidx]
+    program_freqs.update(collected_freqs)
+    if not program_freqs:
+        program_freqs = dict(freq_hz)
+
     return Program(
         name=ir.name,
         clock_ghz=clock_ghz,
         ops=ops,
         values=values,
-        qubit_freq_hz=collected_freqs or dict(freq_hz),
+        qubit_freq_hz=program_freqs,
     )
