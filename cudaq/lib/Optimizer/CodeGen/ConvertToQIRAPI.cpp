@@ -1695,11 +1695,12 @@ struct CustomUnitaryCallOpTrap
   LogicalResult
   matchAndRewrite(cudaq::quake::CustomUnitaryCallOp custom, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    custom.emitError(
-        "custom operation was not lowered to a constant unitary matrix. Code "
-        "generation requires a constant matrix from the array-conversion / "
-        "get-concrete-matrix pipeline (skipped by nvq++ "
-        "'-fno-array-conversion', or failed to materialize a constant)");
+    if (reported.insert(custom.getGenerator().getRootReference()).second)
+      custom.emitError(
+          "custom operation was not lowered to a constant unitary matrix. Code "
+          "generation requires a constant matrix from the array-conversion / "
+          "get-concrete-matrix pipeline (skipped by nvq++ "
+          "'-fno-array-conversion', or failed to materialize a constant)");
     auto loc = custom.getLoc();
     Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
     func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
@@ -1710,6 +1711,8 @@ struct CustomUnitaryCallOpTrap
     rewriter.replaceOp(custom, values);
     return success();
   }
+
+  mutable llvm::SmallDenseSet<StringAttr> reported;
 };
 
 struct CallByRefOpRewrite
