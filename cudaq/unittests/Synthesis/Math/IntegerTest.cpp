@@ -370,6 +370,31 @@ TEST(CompoundAssignLLTest, ModSignFollowsDividend) {
 }
 
 // ============================================================
+// Mixed int64_t / Integer arithmetic
+// ============================================================
+
+// Regression: the int64_t - Integer overload used to narrow its
+// arbitrary-precision right operand to int64_t before subtracting, so
+// 1 - 2^100 wrapped to 1 instead of the exact value.
+TEST(MixedArithTest, Int64MinusLargeInteger) {
+  Integer big = Integer(1) << 100;
+  EXPECT_EQ((1 - big).to_string(), "-1267650600228229401496703205375");
+  EXPECT_EQ((0 - big).to_string(), "-1267650600228229401496703205376");
+  EXPECT_EQ((1 - -big).to_string(), "1267650600228229401496703205377");
+}
+
+// The mixed overloads must agree with the all-Integer form for operands that
+// do fit in an int64_t.
+TEST(MixedArithTest, Int64MinusSmallIntegerMatchesExact) {
+  for (int64_t lhs : {-7, 0, 3, 100}) {
+    for (int rhs : {-5, 0, 2, 41}) {
+      EXPECT_EQ(ll(lhs - Integer(rhs)), static_cast<long long>(lhs - rhs))
+          << "lhs=" << lhs << " rhs=" << rhs;
+    }
+  }
+}
+
+// ============================================================
 // Bitwise shifts
 // ============================================================
 

@@ -27,6 +27,7 @@ add_synthesis_test(synthesis_real_test          Math/RealTest.cpp)
 add_synthesis_test(synthesis_odgp_test          Math/Grid/OdgpTest.cpp)
 add_synthesis_test(synthesis_zsqrt2_test        Math/Ring/Zsqrt2Test.cpp)
 add_synthesis_test(synthesis_stepper_test       Support/StepperTest.cpp)
+add_synthesis_test(synthesis_clifford_test      Circuit/CliffordTest.cpp)
 add_synthesis_test(synthesis_gridsynth_test     Synthesis/GridsynthTest.cpp)
 
 add_custom_target(check-cudaq-synth-unittests
@@ -40,6 +41,7 @@ add_custom_target(check-cudaq-synth-unittests
     synthesis_odgp_test
     synthesis_zsqrt2_test
     synthesis_stepper_test
+    synthesis_clifford_test
     synthesis_gridsynth_test
   COMMENT "Running all cudaq-synth unit tests"
 )

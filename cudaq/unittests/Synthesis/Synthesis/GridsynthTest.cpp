@@ -204,4 +204,102 @@ TEST(GridsynthErrorFuncTest, ErrorForSynthesizedCircuit) {
   EXPECT_GE(err, Real(0.0));
 }
 
+// Regression: the error metric used to return sqrt(|det(E)|), the geometric
+// mean of the two singular values. That vanishes whenever E is singular, so
+// T at theta = 0 reported 0 instead of its true distance
+// ‖I - T‖ = |1 - e^{iπ/4}| = 2·sin(π/8) ≈ 0.7653668647301795.
+TEST(GridsynthErrorFuncTest, SingularDifferenceUsesSpectralNorm) {
+  Real err(cudaq::synth::rz_gate_sequence_error("0", std::string("T")));
+  EXPECT_LT(abs(err - Real("0.76536686473017954345691996806")), Real("1e-25"))
+      << "got " << err.to_string();
+}
+
+// The identity is exactly R_z(0), and S·W^7 is exactly R_z(π/2): both are
+// zero-T Cliffords whose error must come out as (near) zero rather than
+// merely small.
+TEST(GridsynthErrorFuncTest, ExactCliffordRotationsHaveZeroError) {
+  EXPECT_EQ(Real(cudaq::synth::rz_gate_sequence_error("0", Circuit{})),
+            Real(0.0));
+
+  // π/2 to well past double precision.
+  Real err(cudaq::synth::rz_gate_sequence_error(
+      "1.5707963267948966192313216916397514420985846996875529104874722961",
+      std::string("SWWWWWWW")));
+  EXPECT_LT(err, Real("1e-60")) << "got " << err.to_string();
+}
+
+// ============================================================
+// Zero-T shortcut and epsilon validation
+// ============================================================
+
+// Regression: ‖R_z(0.5) - I‖ = 2·sin(0.5/4) ≈ 0.24935, so no gates at all
+// already meet a tolerance of 0.3. The epsilon-region used to be built from
+// the threshold sqrt(1 - ε²/4) rather than the Ross–Selinger 1 - ε²/2, which
+// searched a strictly smaller region and returned a four-T circuit here.
+TEST(GridsynthZeroTTest, LooseEpsilonNeedsNoGates) {
+  struct Case {
+    const char *epsilon;
+  };
+  // 0.3 is below the Lemma 7.2 threshold and exercises the corrected region;
+  // 0.39018.. is the threshold itself; 2 and 3 are degenerate tolerances
+  // (‖U - V‖ <= 2 for any two unitaries).
+  for (const char *epsilon : {"0.25", "0.3", "0.39018", "0.5", "1", "2", "3"}) {
+    llvm::FailureOr<Circuit> result =
+        cudaq::synth::gridsynth(Real("0.5"), Real(epsilon));
+    ASSERT_TRUE(llvm::succeeded(result)) << "epsilon=" << epsilon;
+    EXPECT_EQ(result->t_count(), 0)
+        << "epsilon=" << epsilon << " circuit=" << *result;
+    EXPECT_EQ(result->to_string(), "I") << "epsilon=" << epsilon;
+  }
+}
+
+// Just below the achievable error the shortcut must not fire, and the grid
+// search has to do real work.
+TEST(GridsynthZeroTTest, EpsilonJustBelowCliffordErrorNeedsTGates) {
+  // ‖R_z(0.5) - I‖ ≈ 0.2493494667704553799.
+  llvm::FailureOr<Circuit> result =
+      cudaq::synth::gridsynth(Real("0.5"), Real("0.249"));
+  ASSERT_TRUE(llvm::succeeded(result));
+  EXPECT_GT(result->t_count(), 0) << "circuit=" << *result;
+  EXPECT_LE(Real(cudaq::synth::rz_gate_sequence_error("0.5", *result)),
+            Real("0.249"));
+}
+
+// Angles sitting on a multiple of π/2 are exactly Clifford, so the shortcut
+// fires at any tolerance -- including very tight ones.
+TEST(GridsynthZeroTTest, QuarterTurnsAreZeroTAtTightEpsilon) {
+  const char *quarter_turns[] = {
+      "0", "1.5707963267948966192313216916397514420985846996875529104874722961",
+      "3.1415926535897932384626433832795028841971693993751058209749445923",
+      "-1.5707963267948966192313216916397514420985846996875529104874722961"};
+  for (const char *theta : quarter_turns) {
+    llvm::FailureOr<Circuit> result =
+        cudaq::synth::gridsynth(Real(theta), Real("1e-30"));
+    ASSERT_TRUE(llvm::succeeded(result)) << "theta=" << theta;
+    EXPECT_EQ(result->t_count(), 0)
+        << "theta=" << theta << " circuit=" << *result;
+    EXPECT_LE(Real(cudaq::synth::rz_gate_sequence_error(theta, *result)),
+              Real("1e-30"))
+        << "theta=" << theta;
+  }
+}
+
+// A NaN threshold silently rejects every grid candidate, so an unvalidated
+// non-finite epsilon spins the k-loop forever. These must fail fast instead.
+TEST(GridsynthValidationTest, RejectsInvalidEpsilon) {
+  for (const char *epsilon : {"0", "-0", "-1e-6", "-1", "nan", "inf", "-inf"}) {
+    EXPECT_TRUE(llvm::failed(
+        cudaq::synth::gridsynth(Real("0.5"), Real(std::string(epsilon)))))
+        << "epsilon=" << epsilon << " should be rejected";
+  }
+}
+
+TEST(GridsynthValidationTest, RejectsNonFiniteTheta) {
+  for (const char *theta : {"nan", "inf", "-inf"}) {
+    EXPECT_TRUE(llvm::failed(
+        cudaq::synth::gridsynth(Real(std::string(theta)), Real("1e-6"))))
+        << "theta=" << theta << " should be rejected";
+  }
+}
+
 } // namespace
