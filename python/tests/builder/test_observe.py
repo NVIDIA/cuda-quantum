@@ -73,10 +73,6 @@ def test_observe_result():
     observe_result.dump()
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
 @skipIfValueSemantics
 @pytest.mark.parametrize("want_state, want_expectation",
                          [["0", 1.0], ["1", -1.0]])

@@ -23,7 +23,7 @@ def make_bell_builder():
 
 #@skipIfValueSemantics
 def test_translate_builder_qir():
-    return
+    return # remove this return when fixed
     kernel = make_bell_builder()
     qir = cudaq.translate(kernel, format="qir")
     assert "@__quantum__rt__qubit_allocate_array(i64 2)" in qir
