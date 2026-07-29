@@ -19,8 +19,7 @@ func.func @expand_gate(%theta: f64, %control: !quake.ref,
   return
 }
 
-// CHECK-LABEL: func.func @expand_gate(
-// CHECK: quake.x %[[CONTROL:.*]]
+// CHECK: quake.x %[[CONTROL:[a-zA-Z0-9_.$-]+]]
 // CHECK-NEXT: quake.r1 {{.*}}[%[[CONTROL]]] {{.*}}
 // CHECK-NEXT: quake.x %[[CONTROL]]
 
@@ -32,6 +31,6 @@ func.func @defer_phase(%theta: f64, %control: !quake.ref,
 }
 
 // CHECK-LABEL: func.func @defer_phase(
-// CHECK: quake.phase
+// CHECK-NEXT: quake.phase
 // CHECK-SAME: neg [true]
-// CHECK-NOT: quake.x
+// CHECK-NEXT: return
