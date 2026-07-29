@@ -201,6 +201,12 @@ void cudaq::opt::registerFaultTolerantTargetPipeline() {
         cudaq::opt::addCliffordTSynthesis(pm, options.epsilon,
                                           options.failOnControlledRotation);
       });
+void cudaq::opt::addPhaseLifecycle(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(mlir::createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
 }
 
 static void
