@@ -274,11 +274,13 @@ option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
 
-# Sub-projects that can be enabled independently, in the style of
-# LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
+# Stable sub-projects that can be enabled independently, in the style of
+# LLVM_ENABLE_PROJECTS. Research previews are accepted by the same selector
+# but intentionally kept out of CUDAQ_ALL_PROJECTS.
 set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
+set(CUDAQ_RESEARCH_PROJECTS "pulse")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
-    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
+    "Semicolon-separated list of CUDA-Q sub-projects to build. Stable projects: ${CUDAQ_ALL_PROJECTS}. Research-preview projects: ${CUDAQ_RESEARCH_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
 
 # Back-compat: if CUDAQ_ENABLE_PROJECTS wasn't given, derive it from the
 # legacy per-project flags so existing build scripts keep working, and warn
@@ -305,10 +307,12 @@ if(NOT CUDAQ_ENABLE_PROJECTS)
 endif()
 
 foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
-  if(NOT _proj IN_LIST CUDAQ_ALL_PROJECTS)
+  if(NOT _proj IN_LIST CUDAQ_ALL_PROJECTS AND
+     NOT _proj IN_LIST CUDAQ_RESEARCH_PROJECTS)
     message(FATAL_ERROR
       "Unknown project '${_proj}' in CUDAQ_ENABLE_PROJECTS. "
-      "Valid: ${CUDAQ_ALL_PROJECTS}.")
+      "Stable projects: ${CUDAQ_ALL_PROJECTS}. "
+      "Research-preview projects: ${CUDAQ_RESEARCH_PROJECTS}.")
   endif()
 endforeach()
 
@@ -322,9 +326,14 @@ if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   endforeach()
 endif()
 
+set(_cudaq_runtime_enabled FALSE)
+if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  set(_cudaq_runtime_enabled TRUE)
+endif()
+
 # Map CUDAQ_ENABLE_PROJECTS onto the legacy per-project flags so the rest of
 # this file and sub-CMakes keep working unchanged.
-if(NOT "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+if(NOT _cudaq_runtime_enabled)
   set(CUDAQ_DISABLE_RUNTIME ON CACHE BOOL "" FORCE)
 endif()
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
@@ -701,10 +710,10 @@ execute_process(COMMAND git rev-parse --verify HEAD
 configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
                "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp" @ONLY)
 
-# Check optional dependencies
+# Check optional runtime dependencies
 # ==============================================================================
 
-if (CUDAQ_ENABLE_ENSMALLEN)
+if (_cudaq_runtime_enabled AND CUDAQ_ENABLE_ENSMALLEN)
   if (DEFINED ENV{BLAS_INSTALL_PREFIX})
     find_library(BLAS_LIBRARIES blas
       HINTS "$ENV{BLAS_INSTALL_PREFIX}" "$ENV{BLAS_INSTALL_PREFIX}/lib")
@@ -717,8 +726,8 @@ if (CUDAQ_ENABLE_ENSMALLEN)
   endif()
 endif()
 
-find_package(OpenSSL)
-if (CUDAQ_ENABLE_REST)
+if (_cudaq_runtime_enabled AND CUDAQ_ENABLE_REST)
+  find_package(OpenSSL)
   if (NOT OPENSSL_FOUND)
     message(WARNING "OpenSSL not found — disabling REST. "
       "OpenSSL is required when CUDAQ_ENABLE_REST is enabled (the default). "
@@ -728,7 +737,7 @@ if (CUDAQ_ENABLE_REST)
   endif()
 endif()
 
-if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+if (NOT CUDAQ_SKIP_MPI AND _cudaq_runtime_enabled)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
     message(STATUS "MPI CXX Found: ${MPIEXEC}")
@@ -843,8 +852,9 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
-# cuQuantum / cuTensor component discovery
-if (CUDA_FOUND)
+# cuQuantum / cuTensor components used by the CUDA-Q runtime. Research
+# projects discover their own optional GPU dependencies in their subdirectory.
+if(CUDA_FOUND AND _cudaq_runtime_enabled)
   find_package(cuStateVec)
   find_package(cuTensor)
   find_package(cuTensorNet)
@@ -922,10 +932,12 @@ endif()
 if("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(realtime)
 endif()
-if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+if(_cudaq_runtime_enabled)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(utils)
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(utils)
+endif()
 
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(Python 3 COMPONENTS Interpreter Development)
@@ -943,6 +955,10 @@ if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(nanobind CONFIG REQUIRED)
 
   add_subdirectory(python)
+endif()
+
+if("pulse" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(pulse)
 endif()
 
 # Add any external projects requested via CUDAQ_EXTERNAL_PROJECTS. Each entry's
@@ -968,7 +984,9 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
 
-if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
+if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND
+   ("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS OR
+    _cudaq_runtime_enabled))
   include(CheckCXXCompilerFlag)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)

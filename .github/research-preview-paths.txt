@@ -1,0 +1,4 @@
+# Repository-relative path prefixes for research preview packages.
+# Add each preview here only after it has dedicated, scoped CI coverage.
+# Changes to this registry always run the full stable CUDA-Q CI suite.
+pulse/

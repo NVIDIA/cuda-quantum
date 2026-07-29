@@ -1,0 +1,182 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: Pulse research preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "pull-request/[0-9]+"
+    paths:
+      - pulse/**
+      - CMakeLists.txt
+      - .github/workflows/pulse.yml
+  pull_request:
+    paths:
+      - pulse/**
+      - CMakeLists.txt
+      - .github/workflows/pulse.yml
+  merge_group:
+    types:
+      - checks_requested
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Check for pulse changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      pulse: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Check out changed-path action
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions/check-changed-paths
+
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            pulse/
+            CMakeLists.txt
+            .github/workflows/pulse.yml
+
+  quality:
+    name: Check pulse license headers
+    needs: changes
+    if: needs.changes.outputs.pulse == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out CUDA-Q
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Check pulse license headers
+        run: |
+          find pulse -name CMakeLists.txt -exec cp '{}' '{}.tmp' \;
+          trap 'find pulse -name CMakeLists.txt.tmp -delete' EXIT
+          go install github.com/apache/skywalking-eyes/cmd/license-eye@latest
+          "${GOPATH:-$HOME/go}/bin/license-eye" header check pulse
+
+  test-and-docs:
+    name: Build, test, and generate docs
+    needs: changes
+    if: needs.changes.outputs.pulse == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      # This CUDA-Q development image contains the pinned LLVM/MLIR toolchain
+      # at LLVM_INSTALL_PREFIX; the pulse job never builds LLVM from source.
+      image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+
+    steps:
+      - name: Check out CUDA-Q
+        uses: actions/checkout@v6
+
+      - name: Initialize source dependencies
+        run: git -c submodule.tpls/llvm.update=none submodule update --init --recursive
+
+      - name: Install pulse test dependencies
+        run: |
+          python3 -m pip install --no-cache-dir --break-system-packages \
+            hypothesis \
+            lit \
+            "myst-parser>=3.0" \
+            nvidia-sphinx-theme==0.0.8 \
+            numpy==1.26.4 \
+            pytest==9.0.3 \
+            "sphinx>=8.1,<8.3"
+
+      - name: Configure pulse
+        run: |
+          cmake -S . -B build-pulse -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCUDAQ_BUILD_TESTS=ON \
+            -DCUDAQ_ENABLE_PROJECTS=pulse \
+            -DCUDAQ_PULSE_BUILD_DOCS=ON \
+            -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
+            -DPython_EXECUTABLE=/usr/bin/python3
+
+      - name: Build, test, and generate docs
+        run: |
+          cmake --build build-pulse --parallel 2 \
+            --target check-pulse pulse-docs
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: cudaq-pulse-docs
+          path: build-pulse/pulse/docs/html
+          if-no-files-found: error
+
+  gpu-validation:
+    name: Run pulse numerical validation on GPU
+    needs: changes
+    # Pull-request events contain untrusted fork code and cannot use NVIDIA's
+    # self-hosted runners. The copy-pr-bot's trusted pull-request/* push, merge
+    # queue, main push, and manual dispatch paths run this trusted GPU job.
+    if: needs.changes.outputs.pulse == 'true' && github.event_name != 'pull_request'
+    runs-on: linux-amd64-gpu-a100-latest-1
+    timeout-minutes: 30
+    container:
+      # The development image supplies the pinned LLVM/MLIR toolchain,
+      # CUDA Toolkit, and cuDensityMat SDK; LLVM is never built in this job.
+      image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+
+    steps:
+      - name: Check out CUDA-Q
+        uses: actions/checkout@v6
+
+      - name: Initialize source dependencies
+        run: git -c submodule.tpls/llvm.update=none submodule update --init --recursive
+
+      - name: Install pulse test dependencies
+        run: |
+          python3 -m pip install --no-cache-dir --break-system-packages \
+            hypothesis \
+            lit \
+            numpy==1.26.4 \
+            pytest==9.0.3
+
+      - name: Locate cuDensityMat
+        run: |
+          echo "CUDENSITYMAT_ROOT=$(python3 -c 'import pathlib, cuquantum; print(pathlib.Path(cuquantum.__file__).parent)')" >> "$GITHUB_ENV"
+
+      - name: Configure pulse GPU validation
+        run: |
+          cmake -S . -B build-pulse-gpu -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCUDAQ_BUILD_TESTS=ON \
+            -DCUDAQ_ENABLE_PROJECTS=pulse \
+            -DCUDENSITYMAT_ROOT="$CUDENSITYMAT_ROOT" \
+            -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
+            -DPython_EXECUTABLE=/usr/bin/python3
+
+      - name: Build and run numerical GPU tests
+        run: |
+          cmake --build build-pulse-gpu --parallel 2 \
+            --target check-pulse-gpu

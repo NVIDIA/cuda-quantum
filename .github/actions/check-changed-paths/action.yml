@@ -8,8 +8,22 @@ description: |
   Requires `gh` and a token with contents:read and pull-requests:read.
 inputs:
   paths:
-    description: Newline-separated list of path prefixes to match against changed files.
-    required: true
+    description: >-
+      Newline-separated list of path prefixes to match against changed files.
+      An empty list matches every path.
+    required: false
+    default: ''
+  paths-ignore:
+    description: >-
+      Newline-separated list of path prefixes to exclude before matching.
+    required: false
+    default: ''
+  paths-ignore-file:
+    description: >-
+      Repository-relative file containing additional path prefixes to exclude,
+      one per line. Blank lines and lines beginning with # are ignored.
+    required: false
+    default: ''
   token:
     description: Token used for GitHub API queries.
     required: false
@@ -27,9 +41,12 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.token }}
         PATH_PREFIXES: ${{ inputs.paths }}
+        PATH_IGNORES: ${{ inputs.paths-ignore }}
+        PATH_IGNORES_FILE: ${{ inputs.paths-ignore-file }}
         EVENT_NAME: ${{ github.event_name }}
         REF_NAME: ${{ github.ref_name }}
         REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
         MERGE_GROUP_BASE: ${{ github.event.merge_group.base_sha }}
         MERGE_GROUP_HEAD: ${{ github.event.merge_group.head_sha }}
       run: |
@@ -51,6 +68,14 @@ runs:
               matched=true
             fi
             ;;
+          pull_request|pull_request_target)
+            if files=$(gh api --paginate "repos/${REPO}/pulls/${PR_NUMBER}/files?per_page=100" --jq '.[].filename'); then
+              # The API stops listing files at 3000; treat that as truncated.
+              if [ "$(grep -c . <<< "$files")" -ge 3000 ]; then matched=true; fi
+            else
+              matched=true
+            fi
+            ;;
           merge_group)
             # Diff the merge group against the target branch it was built on.
             if files=$(gh api "repos/${REPO}/compare/${MERGE_GROUP_BASE}...${MERGE_GROUP_HEAD}" --jq '.files[].filename'); then
@@ -68,17 +93,57 @@ runs:
         if [ -z "$matched" ]; then
           matched=false
           readarray -t prefixes <<< "$PATH_PREFIXES"
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            for prefix in "${prefixes[@]}"; do
-              [ -z "$prefix" ] && continue
-              if [[ "$file" == "$prefix"* ]]; then
-                echo "Matched changed file: $file (prefix: $prefix)"
+          readarray -t ignores <<< "$PATH_IGNORES"
+          if [ -n "$PATH_IGNORES_FILE" ]; then
+            if [ -f "$PATH_IGNORES_FILE" ]; then
+              file_ignores=()
+              readarray -t file_ignores < <(
+                sed -e 's/#.*$//' \
+                    -e 's/^[[:space:]]*//' \
+                    -e 's/[[:space:]]*$//' \
+                    -e '/^$/d' \
+                    "$PATH_IGNORES_FILE"
+              )
+              ignores+=("${file_ignores[@]}")
+            else
+              echo "::warning::Path-ignore file not found: $PATH_IGNORES_FILE; running full CI"
+              matched=true
+            fi
+          fi
+          if [ "$matched" != true ]; then
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              if [ -n "$PATH_IGNORES_FILE" ] &&
+                 [ "$file" = "$PATH_IGNORES_FILE" ]; then
+                echo "Matched path-ignore registry change: $file"
                 matched=true
-                break 2
+                break
               fi
-            done
-          done <<< "$files"
+              ignored=false
+              for prefix in "${ignores[@]}"; do
+                [ -z "$prefix" ] && continue
+                if [[ "$file" == "$prefix"* ]]; then
+                  ignored=true
+                  break
+                fi
+              done
+              $ignored && continue
+
+              # With no positive prefixes, match every path not excluded above.
+              if [ -z "$PATH_PREFIXES" ]; then
+                matched=true
+                break
+              fi
+              for prefix in "${prefixes[@]}"; do
+                [ -z "$prefix" ] && continue
+                if [[ "$file" == "$prefix"* ]]; then
+                  echo "Matched changed file: $file (prefix: $prefix)"
+                  matched=true
+                  break 2
+                fi
+              done
+            done <<< "$files"
+          fi
         fi
         echo "matched=$matched" >> "$GITHUB_OUTPUT"
         echo "check-changed-paths: event=$EVENT_NAME matched=$matched"
