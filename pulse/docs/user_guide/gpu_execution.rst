@@ -125,8 +125,28 @@ To execute on a GPU (requires cuDensityMat runtime):
    )
    print(result.final_state)
 
-``t_start`` and ``t_end`` are in nanoseconds. Supported integrators are
-``rk1``, ``rk2``, and ``rk4``.
+``t_start`` and ``t_end`` are in nanoseconds. The ``integrator`` argument
+selects the time-evolution scheme used by the cuDensityMat runtime path:
+
+- ``rk1``, ``rk2``, ``rk4`` -- fixed-step explicit Runge-Kutta methods.
+- ``magnus`` -- a fixed-step Magnus expansion evaluated as a truncated Taylor
+  series of the propagator; preserves structure well for smoothly varying
+  drives.
+- ``crank_nicolson`` -- a fixed-step implicit predictor-corrector scheme that
+  is more stable for stiff dynamics.
+
+All five schemes reuse the same boundary-safe sampling that keeps piecewise
+constant pulse segments from being sampled across a discontinuity.
+
+.. note::
+
+   The adaptive ``dopri5`` (Dormand-Prince RK5(4)) and the high-order
+   commutator-free ``magnus_cf4`` integrators are available through the
+   mainlined ``cudaq.dynamics`` evolution API, not through this pulse
+   frontend path. ``magnus_cf4`` requires a densely materialized Hamiltonian
+   and ``dopri5`` requires adaptive error control with device readbacks;
+   neither maps onto the pulse runtime's C ABI, which drives cuDensityMat
+   through Liouvillian actions.
 
 Requirements:
 
@@ -162,12 +182,15 @@ waveforms and ``custom_samples`` are supported. The callback runtime currently
 supports at most 128 drive operations per compiled module.
 
 CMake registers link/descriptor smoke checks and numerical GPU tests for
-single-qubit drives, T1 decay, two-qubit coupling, and the public compile/JIT
-path. It enables the numerical tests only when ``nvidia-smi`` reports a GPU
-and the CUDA runtime can access at least one device. Otherwise the
-``check-pulse-gpu`` target reports them disabled and retains the CPU-safe SDK
-linkage check when cuDensityMat is installed. These tests provide research
-regression coverage; they do not establish production numerical accuracy.
+single-qubit drives, T1 decay, idle evolution, two-qubit coupling, frame and
+I/Q modulation, an eight-qubit ladder register, closed-system physics
+validation, quantum-algorithm building blocks, integrator parity across
+``rk4``/``magnus``/``crank_nicolson``, and the public compile/JIT path. It
+enables the numerical tests only when ``nvidia-smi`` reports a GPU and the
+CUDA runtime can access at least one device. Otherwise the ``check-pulse-gpu``
+target reports them disabled and retains the CPU-safe SDK linkage check when
+cuDensityMat is installed. These tests provide research regression coverage;
+they do not establish production numerical accuracy.
 
 The ``run()`` method and returned state representation are experimental and
 will evolve with the lowering and runtime implementation.
