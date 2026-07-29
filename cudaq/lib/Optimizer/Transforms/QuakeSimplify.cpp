@@ -246,13 +246,8 @@ static Value createCombinedRotationAngle(PatternRewriter &rewriter,
                                anchorAngle);
 }
 
-// Let P(phi) = cos(phi) X + sin(phi) Y. Then
-//   PhasedRx(theta, phi) = exp(-i theta P(phi) / 2),
-//   PhasedRx(a, phi) PhasedRx(b, phi) = PhasedRx(a + b, phi),
-//   PhasedRx(theta, phi)^dagger = PhasedRx(-theta, phi), and
-//   PhasedRx(0, phi) = I.
-// The fold therefore requires the same phi and controlled action, preserves
-// phi, and combines only signed theta.
+// `phased_rx` folds only rotations with the same axis. Combine signed theta
+// and preserve phi.
 class PhasedRxCombine : public OpRewritePattern<cudaq::quake::PhasedRxOp> {
 public:
   PhasedRxCombine(MLIRContext *context,
@@ -333,7 +328,8 @@ public:
   RotationCombine(MLIRContext *context,
                   cudaq::opt::CommutationAwareRewriteMatcher &matcher,
                   double threshold)
-      : OpRewritePattern<QOP>(context), matcher(matcher), threshold(threshold) {}
+      : OpRewritePattern<QOP>(context), matcher(matcher), threshold(threshold) {
+  }
 
   LogicalResult matchAndRewrite(QOP anchor,
                                 PatternRewriter &rewriter) const override {
