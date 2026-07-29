@@ -8,19 +8,24 @@
 
 #pragma once
 
-#include "common/CompileOptions.h"
-#include "cudaq/algorithms/dem/policy.h"
-#include "cudaq/algorithms/msm/policy.h"
-#include "cudaq/algorithms/observe/policy.h"
-#include "cudaq/algorithms/run/policy.h"
-#include "cudaq/algorithms/sample/policy.h"
-#include "cudaq/ptsbe/policy.h"
+#include <cstddef>
+#include <functional>
 
 namespace cudaq {
 
-/// @brief Fallback policy tag used when no specific policy matches.
-struct other_policies {
-  friend CompileOptions get_compile_options_impl(const other_policies &policy);
-};
+/// Combine \p val into an existing hash \p seed (boost-style).
+template <typename T>
+inline void hashCombine(std::size_t &seed, const T &val) {
+  std::hash<T> hasher;
+  seed ^= hasher(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+/// Hash an arbitrary list of values into a single seed.
+template <typename... Args>
+inline std::size_t hashVal(const Args &...args) {
+  std::size_t seed = 0;
+  (hashCombine(seed, args), ...);
+  return seed;
+}
 
 } // namespace cudaq

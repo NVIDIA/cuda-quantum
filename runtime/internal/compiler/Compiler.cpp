@@ -122,9 +122,10 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
   return std::make_pair(m_module.release().getAsOpaquePointer(), context);
 }
 
-cudaq_internal::compiler::Compiler::Compiler(cudaq::CompileTarget target_)
-    : target(std::move(target_)) {
-  emulate = target.emulate;
+cudaq_internal::compiler::Compiler::Compiler(cudaq::CompileTarget target_,
+                                             cudaq::CompileOptions options_)
+    : target(std::move(target_)), options(std::move(options_)) {
+  emulate = options.emulate;
 
   cudaq_internal::compiler::initializeMLIR();
 
@@ -300,7 +301,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName) {
-  if (target.pipelineConfig.skipTargetLoweringPipeline) {
+  if (options.skipTargetLoweringPipeline || target.pipelineConfig.empty()) {
     return {false, ""};
   }
   auto passPipelineConfig = getPassPipeline(target);
@@ -400,16 +401,22 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 
   bool hasConditionalsOnMeasRes = hasConditionalsOnMeasureResults(moduleOp);
 
-  // Populate conditional measurement flag in the context.
-  if (hasConditionalsOnMeasRes && !target.supportConditionalsOnMeasureResults) {
-    throw std::runtime_error(
-        "`cudaq::sample` and `cudaq::sample_async` no longer support "
-        "kernels "
-        "that branch on measurement results. Kernel '" +
-        kernelName +
-        "' uses conditional feedback. Use `cudaq::run` or "
-        "`cudaq::run_async` "
-        "instead. See CUDA-Q documentation for migration guide.");
+  // Throw an error if unsupported conditionals have been detected.
+  if (hasConditionalsOnMeasRes) {
+    if (options.failOnConditionalsOnMeasureResults) {
+      CUDAQ_ERROR("`cudaq::sample` and `cudaq::sample_async` no longer support "
+                  "kernels "
+                  "that branch on measurement results. Kernel '" +
+                  kernelName +
+                  "' uses conditional feedback. Use `cudaq::run` or "
+                  "`cudaq::run_async` "
+                  "instead. See CUDA-Q documentation for migration guide.");
+    } else if (!target.supportConditionalsOnMeasureResults) {
+      CUDAQ_ERROR(
+          "Kernel '" + kernelName +
+          "' uses conditional feedback on measurement results, but the target "
+          "does not support it.");
+    }
   }
 
   auto [combineMeasurements, passPipeline] =
@@ -419,18 +426,18 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
-  if (target.emitResourceCounts) {
+  if (options.emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (succeeded(result))
       resourceCounts = std::move(*result);
   }
 
   std::vector<std::size_t> mapping_reorder_idx;
-  if (target.storeReorderIdx)
+  if (options.storeReorderIdx)
     mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
 
   // Warn if kernel has named measurement registers (sub-registers).
-  if (target.warnNamedMeasurements) {
+  if (options.warnNamedMeasurements) {
     auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
     if (funcOp) {
@@ -503,7 +510,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  bool needJit = emulate || target.emitResourceCounts || target.emitJit;
+  bool needJit = emulate || options.emitResourceCounts || options.emitJit;
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
@@ -528,7 +535,7 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 
     std::string codeStr;
     nlohmann::json j;
-    if (target.emitTargetCode) {
+    if (options.emitTargetCode) {
       // Get the code gen translation
       auto translation =
           cudaq_internal::compiler::getTranslation(codegenTranslation);
@@ -698,8 +705,8 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
 }
 
 cudaq::CompiledModule cudaq_internal::compiler::compileModule(
-    cudaq::CompileTarget target, const cudaq::SourceModule &src,
-    cudaq::KernelArgs args, bool isEntryPoint) {
+    cudaq::CompileTarget target, cudaq::CompileOptions options,
+    const cudaq::SourceModule &src, cudaq::KernelArgs args, bool isEntryPoint) {
   if (!target.overrideAOTCompilation && src.getFunctionPtr()) {
     // We are allowed to use the AOT-compiled module as-is, so nothing to do.
     CUDAQ_INFO("No JIT compilation required. Using AOT-compiled module as-is.");
@@ -715,7 +722,7 @@ cudaq::CompiledModule cudaq_internal::compiler::compileModule(
   assert(mlirArt.has_value() &&
          "Compiler::compileModule requires an MLIR artifact");
 
-  Compiler compiler(std::move(target));
+  Compiler compiler(std::move(target), std::move(options));
   auto compiled =
       compiler.runPassPipeline(kernelName, mlirArt->getOpaqueModulePtr(), args,
                                isEntryPoint, mlirArt->getContext());

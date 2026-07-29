@@ -92,7 +92,7 @@ void quantum_platform::reset_noise(std::size_t qpu_id) {
   set_noise(nullptr, qpu_id);
 }
 
-static cudaq::CompileTarget getDefaultPythonCompileTargetImpl() {
+cudaq::CompileTarget createDefaultCompileTarget() {
   auto *platform = getQuantumPlatformInternal();
 
   const bool enablePythonCodegenDump =
@@ -101,14 +101,14 @@ static cudaq::CompileTarget getDefaultPythonCompileTargetImpl() {
     CUDAQ_WARN("CUDAQ_PYTHON_CODEGEN_DUMP is no longer supported. Use "
                "CUDAQ_MLIR_PRINT_EACH_PASS=argsynth instead.");
   }
-  cudaq::CompileTarget ct;
   auto *rt = platform->get_runtime_target();
-  if (!rt) {
-    ct.pipelineConfig.skipTargetLoweringPipeline = true;
-  } else {
-    ct = cudaq::CompileTarget(rt->config, rt->runtimeConfig,
-                              platform->is_emulated());
+  cudaq::config::TargetConfig targetConfig;
+  std::map<std::string, std::string> runtimeConfig;
+  if (rt) {
+    targetConfig = rt->config;
+    runtimeConfig = rt->runtimeConfig;
   }
+  cudaq::CompileTarget ct(targetConfig, runtimeConfig, platform->is_emulated());
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
 
@@ -117,38 +117,7 @@ static cudaq::CompileTarget getDefaultPythonCompileTargetImpl() {
   ct.supportDeviceCalls = true;
   ct.argumentSynthChangeSemantics = false;
   ct.pipelineConfig.codegenTranslation = "qir:";
-  ct.emitJit = true;
-  return ct;
-}
-
-cudaq::CompileTarget getDefaultCompileTarget(const sample_policy &) {
-  auto ct = getDefaultPythonCompileTargetImpl();
   ct.overrideAOTCompilation = false;
-  return ct;
-}
-cudaq::CompileTarget getDefaultCompileTarget(const observe_policy &) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  return ct;
-}
-cudaq::CompileTarget getDefaultCompileTarget(const run_policy &) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  return ct;
-}
-cudaq::CompileTarget getDefaultCompileTarget(const dem_policy &) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  ct.emitJit = true;
-  ct.emitTargetCode = false;
-  ct.pipelineConfig.skipTargetLoweringPipeline = true;
-  return ct;
-}
-cudaq::CompileTarget getDefaultCompileTarget(const other_policies &,
-                                             ExecutionContext *context) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  ct.emitResourceCounts = context && context->name == "resource-count";
   return ct;
 }
 
