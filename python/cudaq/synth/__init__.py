@@ -7,8 +7,9 @@
 # ============================================================================ #
 
 from ._cudaq_synth import gridsynth as _gridsynth
+from ._cudaq_synth import rz_error as _rz_error
 
-__all__ = ["CliffordTSequence", "gridsynth"]
+__all__ = ["CliffordTSequence", "gridsynth", "rz_error"]
 
 
 class CliffordTSequence:
@@ -130,10 +131,41 @@ def gridsynth(theta,
 
     Raises:
         ValueError: if theta or epsilon is a string that does not parse
-            as a number, if theta is not finite, if epsilon <= 0, or if
-            synthesis fails (degenerate epsilon region or search space
-            exhausted).
+            as a number, if theta is not finite, if epsilon is not finite
+            and strictly positive, or if synthesis fails (degenerate
+            epsilon region or search space exhausted).
     """
     return CliffordTSequence(
         _gridsynth(theta, epsilon, diophantine_timeout_ms,
                    factoring_timeout_ms))
+
+
+def rz_error(theta, sequence) -> float:
+    """Operator-norm distance between R_z(theta) and a Clifford+T sequence.
+
+    Reconstructs the exact unitary U denoted by `sequence` and returns
+    ``||R_z(theta) - U||``, the spectral norm (largest singular value) of
+    the difference. This is the same norm :func:`gridsynth` measures its
+    `epsilon` argument in, so the achieved error of a synthesized sequence
+    can be checked directly::
+
+        seq = cudaq.synth.gridsynth(theta, epsilon)
+        assert cudaq.synth.rz_error(theta, seq) <= epsilon
+
+    Args:
+        theta: Target rotation angle (float, or decimal `str` for
+            arbitrary precision).
+        sequence: A :class:`CliffordTSequence`, or a gate string over
+            {H, S, T, X, W} in matrix-multiplication order. The identity
+            sentinel ``"I"`` is accepted anywhere and contributes no gate.
+
+    Returns:
+        The approximation error as a `float`. It is computed at full
+        internal precision and rounded toward zero on conversion.
+
+    Raises:
+        ValueError: if theta is a string that does not parse as a number,
+            if theta is not finite, or if `sequence` contains a character
+            outside {H, S, T, X, W, I}.
+    """
+    return _rz_error(theta, str(sequence))

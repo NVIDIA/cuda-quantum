@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Math/Real.h"
+#include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 #include "llvm/Support/LogicalResult.h"
 
@@ -46,8 +48,8 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
 
   if (!thetaReal.is_finite())
     throw nanobind::value_error("theta must be finite");
-  if (!(epsilonReal > 0))
-    throw nanobind::value_error("epsilon must be strictly positive");
+  if (!epsilonReal.is_finite() || !(epsilonReal > 0))
+    throw nanobind::value_error("epsilon must be finite and strictly positive");
 
   llvm::FailureOr<cudaq::synth::Circuit> result = llvm::failure();
   {
@@ -60,6 +62,25 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
         "gridsynth: failed to synthesize a Clifford+T approximation "
         "(degenerate epsilon region or search exhausted)");
   return result->to_string();
+}
+
+double rzErrorBinding(RealArg theta, const std::string &gates) {
+  cudaq::synth::Real thetaReal = toReal(theta, "theta");
+  if (!thetaReal.is_finite())
+    throw nanobind::value_error("theta must be finite");
+
+  llvm::FailureOr<cudaq::synth::Circuit> circuit =
+      cudaq::synth::Circuit::from_string(gates);
+  if (llvm::failed(circuit))
+    throw nanobind::value_error(
+        ("rz_error: invalid gate string '" + gates +
+         "'; expected only H, S, T, X, W, or the identity sentinel I")
+            .c_str());
+
+  cudaq::synth::Real error = cudaq::synth::rz_approximation_error(
+      cudaq::synth::DOmegaUnitary::from_gates(*circuit), thetaReal);
+
+  return mpfr_get_d(error.get_mpfr(), MPFR_RNDZ);
 }
 
 } // namespace
@@ -109,7 +130,37 @@ Returns:
 
 Raises:
     ValueError: if theta or epsilon is a string that does not parse as a
-        number, if theta is not finite, if epsilon <= 0, or if synthesis
-        fails (degenerate epsilon region or search space exhausted).
+        number, if theta is not finite, if epsilon is not finite and
+        strictly positive, or if synthesis fails (degenerate epsilon region
+        or search space exhausted).
+)doc");
+
+  m.def(
+      "rz_error", &rzErrorBinding, nanobind::arg("theta"),
+      nanobind::arg("gates"),
+      R"doc(Operator-norm distance between R_z(theta) and a Clifford+T gate string.
+
+Reconstructs the exact unitary U denoted by `gates` over D[omega] and returns
+||R_z(theta) - U||, the spectral norm (largest singular value) of the
+difference. This is the same norm the epsilon argument of gridsynth is
+measured in (Ross & Selinger, arXiv:1403.2975, section 7.1, equation (13)),
+so a synthesized sequence always satisfies
+rz_error(theta, gridsynth(theta, epsilon)) <= epsilon.
+
+Args:
+    theta: Target rotation angle (float, or decimal str for arbitrary
+        precision).
+    gates: Gate string over {H, S, T, X, W}, in matrix-multiplication order.
+        The identity sentinel 'I' is accepted anywhere and contributes no
+        gate.
+
+Returns:
+    The approximation error as a float. The value is computed at full
+    MPFR precision and rounded toward zero on the way out to a double.
+
+Raises:
+    ValueError: if theta is a string that does not parse as a number, if
+        theta is not finite, or if gates contains a character outside
+        {H, S, T, X, W, I}.
 )doc");
 }
