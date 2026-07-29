@@ -1853,6 +1853,15 @@ def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
   ];
 }
 
+def VerifyNoPhase : Pass<"verify-no-phase", "mlir::ModuleOp"> {
+  let summary =
+      "Verify that phase bookkeeping was eliminated before code generation";
+  let description = [{
+    Emits an error if any `quake.phase` operation survives to the final
+    code-generation boundary.
+  }];
+}
+
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
   let summary = "Remove stores that are overridden by subsequent store";
   let description = [{
