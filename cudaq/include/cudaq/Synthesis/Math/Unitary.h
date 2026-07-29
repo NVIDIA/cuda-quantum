@@ -228,14 +228,22 @@ inline DOmegaUnitary to_lde(const DOmegaUnitary &u) {
 // Approximation-error metrics
 //===----------------------------------------------------------------------===//
 
-/// Operator-norm proxy for |R_z(theta) - U|.
+/// Operator norm (spectral norm) ||R_z(theta) - U||.
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, equation (13).
 ///
 /// Builds E = U - R_z(theta) entry by entry from the complex matrix of u
-/// (via `to_complex_matrix`) and returns `sqrt`(|`det`(E)|). For small epsilon
-/// the two singular values of E are approximately equal, so this proxy is
-/// accurate in the regime the synthesizer targets.
+/// (via `to_complex_matrix`) and returns `sqrt`(lambda_max(E^dagger E)).
+/// Because E is 2x2 the largest eigenvalue of E^dagger E has a closed form
+/// in terms of the two invariants
+///
+///   tr(E^dagger E) = ||E||_F^2   (sum of squared entry moduli)
+///   `det`(E^dagger E) = |`det`(E)|^2
+///
+/// namely lambda_max = (tr + `sqrt`(tr^2 - 4*`det`)) / 2. Note that
+/// `sqrt`(|`det`(E)|) alone is not the spectral norm. It is the geometric
+/// mean of the two singular values, which collapses to zero as soon as E is
+/// singular (e.g. U = T, theta = 0, where the true error is 2*sin(pi/8)).
 inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
   Real half = theta / Real(2.0);
   Real c = cos(half);
@@ -260,7 +268,19 @@ inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
   Real det_re = (e00r * e11r - e00i * e11i) - (e01r * e10r - e01i * e10i);
   Real det_im = (e00r * e11i + e00i * e11r) - (e01r * e10i + e01i * e10r);
 
-  return sqrt(sqrt(det_re * det_re + det_im * det_im));
+  // tr(E^dagger E) and `det`(E^dagger E) = |`det`(E)|^2.
+  Real trace = e00r * e00r + e00i * e00i + e01r * e01r + e01i * e01i +
+               e10r * e10r + e10i * e10i + e11r * e11r + e11i * e11i;
+  Real det_sq = det_re * det_re + det_im * det_im;
+
+  // lambda_max = (tr + sqrt(tr^2 - 4*det)) / 2. The discriminant is
+  // (sigma_max^2 - sigma_min^2)^2 >= 0 mathematically. Clamp it so MPFR
+  // rounding on a near-degenerate E cannot produce sqrt of a tiny negative.
+  Real discriminant = trace * trace - 4 * det_sq;
+  if (discriminant < 0)
+    discriminant = Real(0.0);
+
+  return sqrt((trace + sqrt(discriminant)) / 2);
 }
 
 /// Convenience wrapper: compute |R_z(theta) - U| for a circuit already
