@@ -2029,11 +2029,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         specialized and passed to algorithms written in C++ that call
         back to these Python kernels in a functional composition.
 
-    [[cachedCompiledModule]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.cachedCompiledModule "Permalink to this definition"){.headerlink}
-
-    :   Return the kernel's CompiledModule cache slot, creating an empty
-        one on first access.
-
     [[captured_variables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.captured_variables "Permalink to this definition"){.headerlink}
 
     :   The list of variables captured by the kernel.
@@ -2041,6 +2036,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     [[compile]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.compile "Permalink to this definition"){.headerlink}
 
     :   Compile the Python AST to portable Quake.
+
+    [[compiledModuleCache]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.compiledModuleCache "Permalink to this definition"){.headerlink}
+
+    :   Return this kernel's shared compiled-module cache, creating an
+        empty one on first access.
 
     [[enable_return_to_log]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.enable_return_to_log "Permalink to this definition"){.headerlink}
 
