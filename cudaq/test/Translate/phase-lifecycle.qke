@@ -36,7 +36,7 @@ func.func @phase_lifecycle(%theta: f64, %outer: !quake.ref,
 // quake.x %inner
 // ```
 // after `r1` with negative control is emitted during phase lifecycle pass.
-// Then the `ExpandControlNegations` pass should expand the negative control 
+// Then the `ExpandControlNegations` pass should expand the negative control
 //on the R1 to X-R1-X.
 func.func private @negative_phase_helper(
     %theta: f64, %inner: !quake.ref, %anchor: !quake.ref) {

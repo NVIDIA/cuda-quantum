@@ -6,8 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// Verify that `ExpandControlNegations` pass expands negated controls for 
-// gates with negative controls specified in the pass, e.g., R1. 
+// Verify that `ExpandControlNegations` pass expands negated controls for
+// gates with negative controls specified in the pass, e.g., R1.
 // Allow `quake.phase` ops to survive the pass.
 
 // RUN: cudaq-opt --expand-control-negations %s | FileCheck %s
@@ -19,6 +19,7 @@ func.func @expand_gate(%theta: f64, %control: !quake.ref,
   return
 }
 
+// CHECK-LABEL: func.func @expand_gate(
 // CHECK: quake.x %[[CONTROL:[a-zA-Z0-9_.$-]+]]
 // CHECK-NEXT: quake.r1 {{.*}}[%[[CONTROL]]] {{.*}}
 // CHECK-NEXT: quake.x %[[CONTROL]]
