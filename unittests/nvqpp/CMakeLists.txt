@@ -403,7 +403,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
       if (MPI_CXX_FOUND)
         add_executable(test_dynamics_mpi_batching mqpu/dynamics_mpi_batching_tester.cpp)
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_dynamics_mpi_batching PRIVATE -Wl,--no-as-needed)
+          target_link_options(test_dynamics_mpi_batching PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
         endif()
         target_compile_definitions(test_dynamics_mpi_batching PRIVATE -DCUDAQ_ANALOG_TARGET)
         target_link_libraries(test_dynamics_mpi_batching
@@ -470,6 +470,7 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-operator
     cudaq-chemistry
     cudaq-pyscf
+    cudaq-builder
     gtest_main)
   cudaq_gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)

@@ -70,7 +70,8 @@ constexpr bool any_float = std::disjunction_v<
 template <typename T, typename... Q>
   requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...> &&
            TARGET_OK_FOR_APPLY_NOISE)
-void apply_noise(const std::vector<double> &params, Q &&...args) {
+__attribute__((noinline)) void apply_noise(const std::vector<double> &params,
+                                           Q &&...args) {
   auto &platform = get_platform();
   const auto *noiseModel = platform.get_noise();
 
@@ -121,7 +122,7 @@ constexpr bool any_vector_of_float = std::disjunction_v<std::is_same<
 template <typename T, typename... Args>
   requires(std::derived_from<T, cudaq::kraus_channel> &&
            !any_vector_of_float<Args...> && TARGET_OK_FOR_APPLY_NOISE)
-void apply_noise(Args &&...args) {
+__attribute__((noinline)) void apply_noise(Args &&...args) {
   constexpr auto ctor_arity = count_leading_floats<0, Args...>();
   constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
 
