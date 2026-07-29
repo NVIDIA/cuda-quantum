@@ -212,9 +212,9 @@ func.func @incompletely_aligned_endpoint() {
 // CHECK:         quake.sink %[[X1]]#1
 // CHECK:         quake.sink %[[H]]
 
-// Exact def-use threading does not make a repeated logical qubit a supported
-// control-target pair. The analysis must reject the duplicate roles before a
-// direct cancellation can return two aliases of the original wire.
+// These adjacent X operations thread both SSA results exactly, but the first X
+// assigns the same logical qubit to its control and target. Exact threading must
+// not make that unsupported operand assignment a valid inverse pair.
 func.func @duplicate_qubit_roles(%q: !quake.wire) {
   %x0:2 = quake.x [%q] %q : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %x1:2 = quake.x [%x0#0] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)

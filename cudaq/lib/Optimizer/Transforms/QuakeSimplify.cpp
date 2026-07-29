@@ -380,7 +380,8 @@ public:
   RotationCombine(MLIRContext *context,
                   cudaq::opt::CommutationAwareRewriteMatcher &matcher,
                   double threshold)
-      : OpRewritePattern<QOP>(context), matcher(matcher), threshold(threshold) {}
+      : OpRewritePattern<QOP>(context), matcher(matcher), threshold(threshold) {
+  }
 
   LogicalResult matchAndRewrite(QOP anchor,
                                 PatternRewriter &rewriter) const override {
