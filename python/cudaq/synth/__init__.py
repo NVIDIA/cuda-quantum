@@ -149,8 +149,8 @@ def rz_error(theta, sequence) -> float:
     `epsilon` argument in, so the achieved error of a synthesized sequence
     can be checked directly::
 
-        seq = cudaq.synth.gridsynth(theta, epsilon)
-        assert cudaq.synth.rz_error(theta, seq) <= epsilon
+        `seq = cudaq.synth.gridsynth(theta, epsilon)`
+        `assert cudaq.synth.rz_error(theta, seq) <= epsilon`
 
     Args:
         theta: Target rotation angle (float, or decimal `str` for

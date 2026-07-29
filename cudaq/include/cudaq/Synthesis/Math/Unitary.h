@@ -235,9 +235,9 @@ inline DOmegaUnitary to_lde(const DOmegaUnitary &u) {
 /// Builds E = U - R_z(theta) entry by entry from the complex matrix of u
 /// (via `to_complex_matrix`) and returns `sqrt`(lambda_max(E^dagger E)).
 /// Because E is 2x2 the largest eigenvalue of E^dagger E has a closed form
-/// in terms of the two invariants
+/// in terms of the two `invariants`
 ///
-///   tr(E^dagger E) = ||E||_F^2   (sum of squared entry moduli)
+///   tr(E^dagger E) = ||E||_F^2   (sum of squared entry `moduli`)
 ///   `det`(E^dagger E) = |`det`(E)|^2
 ///
 /// namely lambda_max = (tr + `sqrt`(tr^2 - 4*`det`)) / 2. Note that
