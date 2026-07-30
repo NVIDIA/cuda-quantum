@@ -36,8 +36,12 @@ if (NOT APPLE)
   target_link_options(${LIBRARY_NAME} PRIVATE -Wl,--exclude-libs,ALL)
 endif()
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-ensmallen-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-ensmallen-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 install(EXPORT cudaq-ensmallen-targets
         FILE CUDAQEnsmallenTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
