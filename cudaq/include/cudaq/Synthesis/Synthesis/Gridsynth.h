@@ -36,6 +36,20 @@ inline constexpr int32_t DEFAULT_DIOPHANTINE_TIMEOUT_MS = 200;
 /// enclosing candidate to be skipped.
 inline constexpr int32_t DEFAULT_FACTORING_TIMEOUT_MS = 50;
 
+/// Largest denominator exponent k that `gridsynth_unitary` will scan before
+/// giving up, as a function of the requested precision.
+///
+/// Ross & Selinger bound the T-count by 4*log2(1/epsilon) + K (Theorem 8.5),
+/// and Lemma 7.3 ties the T-count to the denominator exponent as 2k-2 or 2k,
+/// so a solution is expected by k ~ 2*log2(1/epsilon). Scanning well past that
+/// means the search is not converging -- the grid only gets denser as k grows,
+/// so the cause is the Diophantine solver starving on its timeouts, not a
+/// shortage of candidates. Bounding k turns that into a reported failure the
+/// caller can retry with larger budgets, instead of an unbounded loop.
+///
+/// Exposed for testing; `epsilon` must be finite and strictly positive.
+int64_t max_denominator_exponent(const Real &epsilon);
+
 } // namespace details
 
 /// Core grid-synthesis search.

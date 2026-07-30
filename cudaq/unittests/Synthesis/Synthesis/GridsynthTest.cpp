@@ -303,6 +303,49 @@ TEST(GridsynthValidationTest, RejectsNonFiniteTheta) {
 }
 
 // ============================================================
+// Search bound
+// ============================================================
+
+// The k-loop terminates because it is bounded by max_denominator_exponent.
+// The bound has to sit above the k a real solution needs (or synthesis would
+// fail on valid input) while staying finite for every admissible epsilon.
+TEST(GridsynthBoundTest, ExceedsTheExpectedDenominatorExponent) {
+  // Lemma 7.3: T-count is 2k-2 or 2k, so a solution is expected by
+  // k ~ 2*log2(1/epsilon). The bound must leave headroom above that.
+  for (const char *epsilon : {"1e-4", "1e-6", "1e-10", "1e-15", "1e-25"}) {
+    const double expected_k = 2.0 * std::log2(1.0 / std::stod(epsilon));
+    EXPECT_GT(cudaq::synth::details::max_denominator_exponent(
+                  Real(std::string(epsilon))),
+              static_cast<int64_t>(expected_k))
+        << "bound too tight for epsilon=" << epsilon;
+  }
+}
+
+// A loose epsilon drives log2(1/epsilon) to zero or negative; the bound must
+// stay positive so the k-loop still runs its first iterations.
+TEST(GridsynthBoundTest, StaysPositiveForLooseEpsilon) {
+  for (const char *epsilon : {"0.5", "1", "10", "1e6"})
+    EXPECT_GT(cudaq::synth::details::max_denominator_exponent(
+                  Real(std::string(epsilon))),
+              0)
+        << "epsilon=" << epsilon;
+}
+
+// Epsilon far below the double range is the reason the bound reads the MPFR
+// exponent instead of converting to a double: std::log2 of a flushed-to-zero
+// epsilon would be infinite, and the k-loop would be unbounded again.
+TEST(GridsynthBoundTest, FiniteAndMonotonicBelowTheDoubleRange) {
+  const int64_t k_1e400 =
+      cudaq::synth::details::max_denominator_exponent(Real("1e-400"));
+  const int64_t k_1e4000 =
+      cudaq::synth::details::max_denominator_exponent(Real("1e-4000"));
+
+  EXPECT_GT(k_1e400, 2 * 400);
+  EXPECT_LT(k_1e400, 2 * 400 * 4);
+  EXPECT_GT(k_1e4000, k_1e400);
+}
+
+// ============================================================
 // Working-precision changes
 // ============================================================
 

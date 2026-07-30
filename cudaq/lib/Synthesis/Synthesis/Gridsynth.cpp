@@ -21,6 +21,8 @@
 #include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <optional>
 
 #define DEBUG_TYPE "cudaq-synth"
@@ -275,6 +277,27 @@ std::optional<DOmegaUnitary> nearest_zero_t_unitary(const Real &theta,
 namespace cudaq::synth {
 
 //===----------------------------------------------------------------------===//
+// Search bound
+//===----------------------------------------------------------------------===//
+
+int64_t details::max_denominator_exponent(const Real &epsilon) {
+  // Slack above the expected k, leaving generous room for the probabilistic
+  // tail of the Diophantine step before the search is called off.
+  constexpr int64_t kSlack = 30;
+
+  // log2(1/epsilon) is read off the MPFR exponent rather than computed: for
+  // epsilon = m * 2^e with 0.5 <= m < 1, floor(log2(epsilon)) is e - 1. That
+  // stays exact for arbitrarily small epsilon, where converting to a double
+  // first would flush to zero and hand back an unusable bound.
+  const mpfr_exp_t e = mpfr_get_exp(epsilon.get_mpfr());
+  const int64_t log2_inv_epsilon = 1 - static_cast<int64_t>(e);
+
+  // A loose epsilon (>= 1) makes log2(1/epsilon) negative; the slack alone is
+  // the floor there.
+  return std::max<int64_t>(0, 2 * log2_inv_epsilon) + kSlack;
+}
+
+//===----------------------------------------------------------------------===//
 // gridsynth_unitary
 //===----------------------------------------------------------------------===//
 
@@ -371,8 +394,11 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   // (Definition 5.20). The T-count of the final circuit is 2k-2 or 2k
   // (Lemma 7.3), so scanning k from 0 upwards finds the T-optimal
   // approximation.
+  const int64_t k_max = details::max_denominator_exponent(epsilon);
+  LLVM_DEBUG(cudaq::synth::dbgs() << "k_max=" << k_max << '\n');
+
   Integer k = 0;
-  while (true) {
+  for (; k <= k_max; k++) {
     CUDAQ_SYNTH_FENCE();
     CUDAQ_SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
 
@@ -437,8 +463,14 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
     // points or every candidate timed out / proved unsolvable). Move to the
     // next k, accepting a larger T-count budget.
     CUDAQ_SYNTH_CLOSE_FAILURE("no candidates");
-    k++;
   }
+
+  // Past k_max the answer would exceed the Ross & Selinger T-count bound by a
+  // wide margin, so the search is not converging: the Diophantine solver is
+  // starving on its timeouts rather than closing in. Report that instead of
+  // scanning k forever..
+  CUDAQ_SYNTH_CLOSE_FAILURE("k exceeded k_max without a solution");
+  return llvm::failure();
 }
 
 //===----------------------------------------------------------------------===//
