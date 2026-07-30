@@ -93,9 +93,9 @@ public:
   /// The destructor
   virtual ~QPU() = default;
 
-  /// Stop the execution queue and join its thread. The queue object is kept so
-  /// that later enqueues fail (throw an exception) rather than dereference
-  /// null.
+  /// Stop the execution queue and join its thread.
+  // The queue object is kept so that later enqueues fail (throw an exception)
+  // rather than dereference null.
   void shutdown() {
     if (execution_queue)
       execution_queue->shutdown();
