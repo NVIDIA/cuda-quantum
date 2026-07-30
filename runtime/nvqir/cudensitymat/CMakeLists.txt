@@ -46,6 +46,20 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
   )
 
   message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
+
+  # The high-order Magnus integrator (magnus_cf4) computes a dense matrix
+  # exponential on the GPU via cuBLAS + cuSOLVER. Both ship with the CUDA
+  # Toolkit, but some minimal/runtime-only toolkit layouts omit the cuSOLVER
+  # dev component, which otherwise surfaces as a cryptic "target CUDA::cusolver
+  # not found" at generate time. Fail early with an actionable message.
+  if(NOT TARGET CUDA::cusolver)
+    message(FATAL_ERROR
+      "CUDA::cusolver was not found. The dynamics backend's high-order Magnus "
+      "integrator (magnus_cf4) requires cuSOLVER, which is part of a complete "
+      "CUDA Toolkit. Install the matching cuSOLVER dev component (for example "
+      "libcusolver-dev-<cuda-version>) and reconfigure.")
+  endif()
+
   target_include_directories(${LIBRARY_NAME}
     PRIVATE 
       . .. 
