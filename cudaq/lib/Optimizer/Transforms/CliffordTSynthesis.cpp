@@ -15,7 +15,6 @@
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -339,20 +338,12 @@ public:
       return;
     }
 
-    // Working precision (in bits) for the MPFR-backed reals gridsynth uses.
-    // Representing a target of accuracy epsilon needs about log2(1/epsilon)
-    // significant bits. The 4x factor supplies guard bits so rounding in
-    // gridsynth's iterative arithmetic (candidate enumeration, Diophantine
-    // solving) stays well below the epsilon budget, and the +64 / max(64, ...)
-    // floor guarantees a sane minimum even for loose epsilon. This is an
-    // empirical heuristic.
-    auto prec = static_cast<mpfr_prec_t>(
-        std::max<double>(64.0, std::ceil(-std::log2(epsilon) * 4.0 + 64.0)));
-    const mpfr_prec_t savedPrecision =
-        cudaq::synth::Real::get_default_precision();
-    llvm::scope_exit precisionRestore(
-        [&] { cudaq::synth::Real::set_default_precision(savedPrecision); });
-    cudaq::synth::Real::set_default_precision(prec);
+    // Raise the working precision of the MPFR-backed reals to match epsilon.
+    // Every Real that gridsynth sees is constructed after this point (in
+    // getOrCreateRzHelper), so they all pick up the new precision.
+    cudaq::synth::ScopedDefaultPrecision precision(
+        cudaq::synth::details::required_precision(
+            cudaq::synth::Real(epsilon.getValue())));
 
     RotationOptions opts{
         epsilon,    diophantineTimeoutMs,      factoringTimeoutMs,

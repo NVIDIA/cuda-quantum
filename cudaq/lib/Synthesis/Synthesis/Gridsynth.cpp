@@ -297,6 +297,21 @@ int64_t details::max_denominator_exponent(const Real &epsilon) {
   return std::max<int64_t>(0, 2 * log2_inv_epsilon) + kSlack;
 }
 
+mpfr_prec_t details::required_precision(const Real &epsilon) {
+  constexpr mpfr_prec_t kFloor = 64;
+  constexpr mpfr_prec_t kGuardFactor = 4;
+
+  // Same exponent-based log2(1/epsilon) as max_denominator_exponent, so an
+  // epsilon below the double range yields a large precision rather than an
+  // infinity that would be undefined to convert.
+  const mpfr_exp_t e = mpfr_get_exp(epsilon.get_mpfr());
+  const int64_t log2_inv_epsilon = 1 - static_cast<int64_t>(e);
+
+  return std::max<mpfr_prec_t>(
+      kFloor,
+      kGuardFactor * static_cast<mpfr_prec_t>(log2_inv_epsilon) + kFloor);
+}
+
 //===----------------------------------------------------------------------===//
 // gridsynth_unitary
 //===----------------------------------------------------------------------===//

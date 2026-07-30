@@ -345,6 +345,33 @@ TEST(GridsynthBoundTest, FiniteAndMonotonicBelowTheDoubleRange) {
   EXPECT_GT(k_1e4000, k_1e400);
 }
 
+// Every entry point that takes an epsilon derives its working precision from
+// this, so it has to clear log2(1/epsilon) by a healthy guard margin: running
+// with barely enough bits is what stops the search converging.
+TEST(GridsynthPrecisionTest, RequiredPrecisionExceedsTheBitsEpsilonNeeds) {
+  for (const char *epsilon : {"1e-4", "1e-10", "1e-25", "1e-40"}) {
+    const double needed = std::log2(1.0 / std::stod(epsilon));
+    EXPECT_GT(
+        cudaq::synth::details::required_precision(Real(std::string(epsilon))),
+        static_cast<mpfr_prec_t>(2 * needed))
+        << "too few guard bits for epsilon=" << epsilon;
+  }
+}
+
+// Loose epsilon still gets a usable floor rather than a tiny (or negative)
+// precision, and epsilon below the double range stays finite -- the reason
+// this reads the MPFR exponent instead of calling std::log2 on a double.
+TEST(GridsynthPrecisionTest, RequiredPrecisionIsBoundedAtBothExtremes) {
+  for (const char *epsilon : {"0.5", "1", "10"})
+    EXPECT_GE(
+        cudaq::synth::details::required_precision(Real(std::string(epsilon))),
+        64)
+        << "epsilon=" << epsilon;
+
+  EXPECT_GT(cudaq::synth::details::required_precision(Real("1e-400")),
+            cudaq::synth::details::required_precision(Real("1e-40")));
+}
+
 // ============================================================
 // Working-precision changes
 // ============================================================

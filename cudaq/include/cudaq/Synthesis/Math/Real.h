@@ -454,6 +454,34 @@ public:
 // `Real::default_precision_` is defined in Math/Real.cpp.
 
 //===----------------------------------------------------------------------===//
+// ScopedDefaultPrecision
+//===----------------------------------------------------------------------===//
+
+/// Raises `Real`'s default precision for the duration of a scope and restores
+/// the previous value on exit.
+///
+/// The default precision is global, so a routine that needs more working
+/// precision than its caller has to put it back afterwards; leaving it raised
+/// would silently slow down (and leaving it lowered would silently degrade)
+/// everything that runs later. Note that only `Real`s constructed inside the
+/// scope pick up the new precision.
+class ScopedDefaultPrecision {
+public:
+  explicit ScopedDefaultPrecision(mpfr_prec_t prec)
+      : saved_(Real::get_default_precision()) {
+    Real::set_default_precision(prec);
+  }
+
+  ScopedDefaultPrecision(const ScopedDefaultPrecision &) = delete;
+  ScopedDefaultPrecision &operator=(const ScopedDefaultPrecision &) = delete;
+
+  ~ScopedDefaultPrecision() { Real::set_default_precision(saved_); }
+
+private:
+  mpfr_prec_t saved_;
+};
+
+//===----------------------------------------------------------------------===//
 // PrecisionCachedReal
 //===----------------------------------------------------------------------===//
 

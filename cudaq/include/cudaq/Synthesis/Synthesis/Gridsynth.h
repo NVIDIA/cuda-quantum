@@ -50,6 +50,18 @@ inline constexpr int32_t DEFAULT_FACTORING_TIMEOUT_MS = 50;
 /// Exposed for testing; `epsilon` must be finite and strictly positive.
 int64_t max_denominator_exponent(const Real &epsilon);
 
+/// Working precision, in bits, that the MPFR-backed reals need for a synthesis
+/// run targeting `epsilon`.
+///
+/// Representing a target of accuracy epsilon takes about log2(1/epsilon)
+/// significant bits. The 4x factor supplies guard bits so that rounding in
+/// gridsynth's iterative arithmetic (candidate enumeration, Diophantine
+/// solving) stays well below the epsilon budget, and the +64 floor keeps a
+/// sane minimum for loose epsilon. This is an empirical heuristic.
+///
+/// `epsilon` must be finite and strictly positive.
+mpfr_prec_t required_precision(const Real &epsilon);
+
 } // namespace details
 
 /// Core grid-synthesis search.

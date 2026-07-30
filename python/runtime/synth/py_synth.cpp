@@ -43,13 +43,23 @@ cudaq::synth::Real toReal(const RealArg &arg, const char *name) {
 std::string gridsynthBinding(RealArg theta, RealArg epsilon,
                              int diophantine_timeout_ms,
                              int factoring_timeout_ms) {
+  // Parse epsilon once at the stock precision, which is ample to read off its
+  // magnitude, and validate before deriving anything from it.
+  cudaq::synth::Real epsilonProbe = toReal(epsilon, "epsilon");
+  if (!epsilonProbe.is_finite() || !(epsilonProbe > 0))
+    throw nanobind::value_error("epsilon must be finite and strictly positive");
+
+  // Raise the working precision to match the requested epsilon, then re-parse
+  // both inputs so they are materialized at that precision: a Real built
+  // beforehand keeps the old precision and would cap the whole run.
+  cudaq::synth::ScopedDefaultPrecision precision(
+      cudaq::synth::details::required_precision(epsilonProbe));
+
   cudaq::synth::Real thetaReal = toReal(theta, "theta");
   cudaq::synth::Real epsilonReal = toReal(epsilon, "epsilon");
 
   if (!thetaReal.is_finite())
     throw nanobind::value_error("theta must be finite");
-  if (!epsilonReal.is_finite() || !(epsilonReal > 0))
-    throw nanobind::value_error("epsilon must be finite and strictly positive");
 
   llvm::FailureOr<cudaq::synth::Circuit> result = llvm::failure();
   {

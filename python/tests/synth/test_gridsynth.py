@@ -54,6 +54,22 @@ def test_gridsynth_accepts_string_inputs():
     assert _is_valid_gate_string(str(seq))
 
 
+@pytest.mark.parametrize("epsilon", ["1e-20", "1e-30", "1e-40"])
+def test_gridsynth_honors_epsilon_below_the_default_precision(epsilon):
+    """The binding must raise the MPFR working precision to match epsilon.
+
+    At the stock precision an epsilon this tight cannot be represented with
+    enough guard bits, and the search stops converging: before this was
+    handled, 1e-40 ran until it hit the k-search bound instead of returning a
+    sequence. Passing theta as a string keeps the target itself exact, so any
+    error above epsilon comes from the synthesis, not the input.
+    """
+    theta = "0.5"
+    seq = synth.gridsynth(theta, epsilon)
+    assert _is_valid_gate_string(str(seq))
+    assert synth.rz_error(theta, seq) <= float(epsilon)
+
+
 def test_gridsynth_rejects_nonpositive_epsilon():
     with pytest.raises(ValueError):
         synth.gridsynth(1.0, 0.0)
