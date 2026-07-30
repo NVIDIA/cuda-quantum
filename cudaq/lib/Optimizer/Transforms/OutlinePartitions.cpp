@@ -7,15 +7,16 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Analysis/GreedyOpPartitioner.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/IR/Builders.h"
-#include "mlir/IR/IRMapping.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
+#include "mlir/IR/Builders.h"
+#include "mlir/IR/IRMapping.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_OUTLINEPARTITIONS
@@ -157,9 +158,9 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
       });
 
   builder.setInsertionPointAfter(lambda);
-  auto call = cudaq::cc::CallCallableOp::create(
-      builder, loc, TypeRange(outTys), lambda.getResult(),
-      ValueRange(inputList));
+  auto call = cudaq::cc::CallCallableOp::create(builder, loc, TypeRange(outTys),
+                                                lambda.getResult(),
+                                                ValueRange(inputList));
 
   for (auto [i, out] : llvm::enumerate(outputList))
     out.replaceAllUsesWith(call.getResult(i));
@@ -169,27 +170,14 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
   return lambda;
 }
 
-LogicalResult cudaq::opt::outlinePartitions(
-    ArrayRef<SmallVector<Operation *>> partitions) {
+LogicalResult
+cudaq::opt::outlinePartitions(ArrayRef<SmallVector<Operation *>> partitions) {
   auto result = success();
   for (const auto &partition : partitions)
     if (failed(outlinePartition(partition)))
       result = failure();
   return result;
 }
-
-struct OutlinePartitionsAnalysis {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(OutlinePartitionsAnalysis)
-
-  explicit OutlinePartitionsAnalysis(Operation *op) {
-    // TODO: implement partitioning logic
-  }
-
-  ArrayRef<SmallVector<Operation *>> getPartitions() const { return partitions; }
-
-private:
-  SmallVector<SmallVector<Operation *>> partitions;
-};
 
 namespace {
 class OutlinePartitionsPass
@@ -200,9 +188,15 @@ public:
   using Base::Base;
 
   void runOnOperation() override {
-    auto &analysis = getAnalysis<OutlinePartitionsAnalysis>();
-    if (failed(cudaq::opt::outlinePartitions(analysis.getPartitions())))
-      signalPassFailure();
+    Operation *op = getOperation();
+    if (strategy == "greedy") {
+      cudaq::opt::GreedyOpPartitioner analysis(op, maxQubits);
+      if (failed(cudaq::opt::outlinePartitions(analysis.getPartitions())))
+        signalPassFailure();
+      return;
+    }
+    op->emitError("outline-partitions: unknown strategy '") << strategy << "'";
+    signalPassFailure();
   }
 };
 } // namespace

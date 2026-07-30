@@ -8,16 +8,18 @@
 
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Support/LogicalResult.h"
-#include "llvm/ADT/SmallVector.h"
 
-namespace mlir { class Operation; }
+namespace mlir {
+class Operation;
+}
 namespace cudaq::opt {
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
-outlinePartition(llvm::ArrayRef<mlir::Operation *>);
+    outlinePartition(llvm::ArrayRef<mlir::Operation *>);
 mlir::LogicalResult
-outlinePartitions(llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>>);
+    outlinePartitions(llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>>);
 } // namespace cudaq::opt
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -33,11 +35,10 @@ outlinePartitions(llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>>);
 using namespace mlir;
 
 static OwningOpRef<ModuleOp> parse(MLIRContext &ctx, const char *ir) {
-  ctx.loadDialect<arith::ArithDialect, func::FuncDialect,
-                  cudaq::cc::CCDialect, cudaq::quake::QuakeDialect>();
+  ctx.loadDialect<arith::ArithDialect, func::FuncDialect, cudaq::cc::CCDialect,
+                  cudaq::quake::QuakeDialect>();
   return parseSourceString<ModuleOp>(ir, &ctx);
 }
-
 
 // A contiguous run of two gates is outlined into a closure taking the two input
 // wires and returning the two output wires; the original gates are removed.
@@ -174,7 +175,10 @@ TEST(OutlinePartitions, HardcodedAnalysis) {
       if (!partition.empty())
         partitions.push_back(std::move(partition));
     }
-    ArrayRef<SmallVector<Operation *>> getPartitions() const { return partitions; }
+    ArrayRef<SmallVector<Operation *>> getPartitions() const {
+      return partitions;
+    }
+
   private:
     SmallVector<SmallVector<Operation *>> partitions;
   };
@@ -183,13 +187,16 @@ TEST(OutlinePartitions, HardcodedAnalysis) {
   ASSERT_TRUE(funcOp);
 
   HardcodedAnalysis analysis(funcOp.getOperation());
-  ASSERT_TRUE(succeeded(cudaq::opt::outlinePartitions(analysis.getPartitions())));
+  ASSERT_TRUE(
+      succeeded(cudaq::opt::outlinePartitions(analysis.getPartitions())));
   EXPECT_TRUE(succeeded(verify(*mod)));
 
   unsigned lambdas = 0, calls = 0;
   mod->walk([&](Operation *op) {
-    if (isa<cudaq::cc::CreateLambdaOp>(op)) ++lambdas;
-    else if (isa<cudaq::cc::CallCallableOp>(op)) ++calls;
+    if (isa<cudaq::cc::CreateLambdaOp>(op))
+      ++lambdas;
+    else if (isa<cudaq::cc::CallCallableOp>(op))
+      ++calls;
   });
   EXPECT_EQ(lambdas, 1u);
   EXPECT_EQ(calls, 1u);
@@ -221,15 +228,24 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
     explicit ThreePartitionAnalysis(mlir::Operation *op) {
       SmallVector<Operation *> p1, p2, p3;
       op->walk([&](Operation *inner) {
-        if (isa<cudaq::quake::HOp>(inner))      p1.push_back(inner);
-        else if (isa<cudaq::quake::TOp>(inner)) p2.push_back(inner);
-        else if (isa<cudaq::quake::XOp>(inner)) p3.push_back(inner);
+        if (isa<cudaq::quake::HOp>(inner))
+          p1.push_back(inner);
+        else if (isa<cudaq::quake::TOp>(inner))
+          p2.push_back(inner);
+        else if (isa<cudaq::quake::XOp>(inner))
+          p3.push_back(inner);
       });
-      if (!p1.empty()) partitions.push_back(std::move(p1));
-      if (!p2.empty()) partitions.push_back(std::move(p2));
-      if (!p3.empty()) partitions.push_back(std::move(p3));
+      if (!p1.empty())
+        partitions.push_back(std::move(p1));
+      if (!p2.empty())
+        partitions.push_back(std::move(p2));
+      if (!p3.empty())
+        partitions.push_back(std::move(p3));
     }
-    ArrayRef<SmallVector<Operation *>> getPartitions() const { return partitions; }
+    ArrayRef<SmallVector<Operation *>> getPartitions() const {
+      return partitions;
+    }
+
   private:
     SmallVector<SmallVector<Operation *>> partitions;
   };
@@ -239,7 +255,8 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
   ASSERT_TRUE(funcOp);
 
   ThreePartitionAnalysis analysis(funcOp.getOperation());
-  ASSERT_TRUE(succeeded(cudaq::opt::outlinePartitions(analysis.getPartitions())));
+  ASSERT_TRUE(
+      succeeded(cudaq::opt::outlinePartitions(analysis.getPartitions())));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
   // Collect lambdas and calls in block order.
