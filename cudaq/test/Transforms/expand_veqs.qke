@@ -53,3 +53,51 @@ func.func @noreplace() {
 // CHECK:         %[[VAL_3:.*]] = quake.alloca !quake.ref
 // CHECK:         %[[VAL_4:.*]] = quake.alloca !quake.ref
 // CHECK:         quake.x [%[[VAL_3]]] %[[VAL_4]] : (!quake.ref, !quake.ref) -> ()
+
+func.func @negative_vector_control() {
+  %controls = quake.alloca !quake.veq<2>
+  %target = quake.alloca !quake.ref
+  quake.x [%controls neg [true]] %target : (!quake.veq<2>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @negative_vector_control() {
+// CHECK:         %[[CONTROLS:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[TARGET:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[CONTROL_0:.*]] = quake.extract_ref %[[CONTROLS]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT:    %[[CONTROL_1:.*]] = quake.extract_ref %[[CONTROLS]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT:    quake.x [%[[CONTROL_0]], %[[CONTROL_1]] neg [true, true]] %[[TARGET]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+
+func.func @mixed_control_polarities() {
+  %left = quake.alloca !quake.ref
+  %vector = quake.alloca !quake.veq<2>
+  %right = quake.alloca !quake.ref
+  %target = quake.alloca !quake.ref
+  quake.x [%left, %vector, %right neg [true, false, true]] %target : (!quake.ref, !quake.veq<2>, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @mixed_control_polarities() {
+// CHECK:         %[[LEFT:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[VECTOR:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[RIGHT:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[MIXED_TARGET:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[VECTOR_CONTROL_0:.*]] = quake.extract_ref %[[VECTOR]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT:    %[[VECTOR_CONTROL_1:.*]] = quake.extract_ref %[[VECTOR]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT:    quake.x [%[[LEFT]], %[[VECTOR_CONTROL_0]], %[[VECTOR_CONTROL_1]], %[[RIGHT]] neg [true, false, false, true]] %[[MIXED_TARGET]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+
+func.func @preserve_wire_result() {
+  %controls = quake.alloca !quake.veq<2>
+  %target = quake.null_wire
+  %next = quake.x [%controls] %target : (!quake.veq<2>, !quake.wire) -> !quake.wire
+  quake.sink %next : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @preserve_wire_result() {
+// CHECK:         %[[WIRE_CONTROLS:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[WIRE_TARGET:.*]] = quake.null_wire
+// CHECK:         %[[WIRE_CONTROL_0:.*]] = quake.extract_ref %[[WIRE_CONTROLS]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT:    %[[WIRE_CONTROL_1:.*]] = quake.extract_ref %[[WIRE_CONTROLS]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK-NEXT:    %[[NEXT:.*]] = quake.x [%[[WIRE_CONTROL_0]], %[[WIRE_CONTROL_1]]] %[[WIRE_TARGET]] : (!quake.ref, !quake.ref, !quake.wire) -> !quake.wire
+// CHECK-NEXT:    quake.sink %[[NEXT]] : !quake.wire
