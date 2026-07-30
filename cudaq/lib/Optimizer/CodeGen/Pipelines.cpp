@@ -90,6 +90,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
   if (useValueSemantics) {
     pm.addNestedPass<func::FuncOp>(
         cudaq::opt::createFactorQuantumAllocations());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createCableRoughIn());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());

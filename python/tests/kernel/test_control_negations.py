@@ -158,11 +158,6 @@ def test_ctrl_attribute():
     assert counts["10101"] == 1000
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_cudaq_control():
 
     @cudaq.kernel
