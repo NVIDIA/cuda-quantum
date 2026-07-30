@@ -753,6 +753,21 @@ install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
   DESTINATION include/nlohmann)
 
 # Add spdlog
+#
+# CUDA-Q links spdlog privately into its own shared libraries and never
+# installs it. spdlog's SPDLOG_INSTALL defaults to SPDLOG_MASTER_PROJECT, which
+# is OFF when spdlog is pulled in via add_subdirectory. A shared libspdlog.so
+# would therefore exist only in the build tree, leaving the installed CUDA-Q
+# libraries with a DT_NEEDED entry that cannot be resolved. spdlog must be a
+# static.
+#
+# SPDLOG_BUILD_SHARED alone cannot express that. Upstream gates the library
+# type on `if(SPDLOG_BUILD_SHARED OR BUILD_SHARED_LIBS)` (tpls/spdlog/
+# CMakeLists.txt), so the option can only opt in to a shared build, it is
+# not an override, and it cannot opt out of a global BUILD_SHARED_LIBS=ON.
+# Pinning BUILD_SHARED_LIBS across the add_subdirectory is the only way to
+# force the static branch. The user's value is saved and restored so this is
+# scoped to spdlog and does not change how anything else is built.
 set(SPDLOG_BUILD_SHARED OFF)
 set(SPDLOG_FMT_EXTERNAL ON)
 set(SPDLOG_BUILD_PIC ON)
