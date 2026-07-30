@@ -20,6 +20,7 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
+#include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
@@ -69,11 +70,10 @@ getFuncOpAndCheckResult(mlir::ModuleOp mod, const std::string &shortName) {
   return fn;
 }
 
-static detail::RunResultSpan
-pyRunTheKernel(const std::string &name, quantum_platform &platform,
-               mlir::ModuleOp mod, CompiledModule *compiled,
-               std::size_t shots_count, std::size_t qpu_id,
-               OpaqueArguments &opaques) {
+static detail::RunResultSpan pyRunTheKernel(
+    const std::string &name, quantum_platform &platform, mlir::ModuleOp mod,
+    std::shared_ptr<detail::CompiledModuleCache> cache, std::size_t shots_count,
+    std::size_t qpu_id, OpaqueArguments &opaques) {
   if (!name.ends_with(".run"))
     throw std::runtime_error("`cudaq.run` only supports runnable kernels.");
   // Set the `run` attribute on the module to indicate this is a run context
@@ -99,7 +99,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   cudaq::run_result runResult = detail::launchRun(
       [&]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(name, mod, opaques, compiled);
+            clean_launch_module(name, mod, opaques, cache);
       },
       platform, name, shots_count, qpu_id);
 
@@ -116,9 +116,9 @@ pyReadResults(detail::RunResultSpan results, mlir::ModuleOp mod,
 /// @brief Run `cudaq::run` on the provided kernel.
 static std::vector<nanobind::object>
 run_impl(const std::string &shortName, MlirModule module,
-         cudaq::CompiledModule *compiled, std::size_t shots_count,
-         std::optional<noise_model> noise_model, std::size_t qpu_id,
-         nanobind::args runtimeArgs) {
+         std::shared_ptr<detail::CompiledModuleCache> cache,
+         std::size_t shots_count, std::optional<noise_model> noise_model,
+         std::size_t qpu_id, nanobind::args runtimeArgs) {
   if (shots_count == 0)
     return {};
 
@@ -137,8 +137,8 @@ run_impl(const std::string &shortName, MlirModule module,
   detail::RunResultSpan span;
   {
     nanobind::gil_scoped_release release;
-    span = pyRunTheKernel(shortName, platform, mod, compiled, shots_count,
-                          qpu_id, opaques);
+    span = pyRunTheKernel(shortName, platform, mod, std::move(cache),
+                          shots_count, qpu_id, opaques);
   }
   auto results = pyReadResults(span, mod, shortName);
 

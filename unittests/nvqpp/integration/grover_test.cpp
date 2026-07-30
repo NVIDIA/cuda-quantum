@@ -11,8 +11,10 @@
 
 #include <numeric>
 
+#ifndef CUDAQ_BACKEND_STIM
+
 struct reflect_about_uniform {
-  void operator()(cudaq::qview<> q) __qpu__ {
+  __attribute__((noinline)) void operator()(cudaq::qview<> q) __qpu__ {
     auto ctrl_qubits = q.front(q.size() - 1);
     auto &last_qubit = q.back();
 
@@ -42,14 +44,13 @@ struct run_grover {
 };
 
 struct oracle {
-  void operator()(cudaq::qvector<> &q) __qpu__ {
+  __attribute__((noinline)) void operator()(cudaq::qvector<> &q) __qpu__ {
     cz(q[0], q[2]);
     cz(q[1], q[2]);
   }
 };
 
 // Multi-control gates not supported in stim.
-#ifndef CUDAQ_BACKEND_STIM
 
 CUDAQ_TEST(GroverTester, checkNISQ) {
   using namespace cudaq;
