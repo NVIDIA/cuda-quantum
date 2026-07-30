@@ -30,6 +30,7 @@ To run these applications without a local installation, run the `CUDA-Q applicat
    /applications/python/skqd
    /applications/python/entanglement_acc_hamiltonian_simulation
    /applications/python/ptsbe
+   /applications/python/daruan_activation
 
 .. |:spellcheck-enable:| replace:: \
 
@@ -174,6 +175,14 @@ To run these applications without a local installation, run the `CUDA-Q applicat
         <div class="notebook-content">
             Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method for sampling from noisy quantum circuits. Rather than simulating the full density matrix, PTSBE pre-samples unique noise trajectories and batches many shots across them, yielding orders-of-magnitude speedups for large shot counts. Based on the SC25 paper by Patti et al. (https://arxiv.org/abs/2504.16297).
         </div>
+    </div>
+
+    <div class="notebook-entry" data-tags="fundamental,noiseless,cpu,collab">
+        <a href="../applications/python/daruan_activation.html" class="notebook-title">DARUAN Quantum Variational Activation</a>
+        <div class="notebook-content">
+            Learn how to implement DARUAN (DatA Re-Uploading ActivatioN), a single-qubit quantum variational activation function, as a CUDA-Q kernel and train it on a 1D function-fitting task with <code>observe</code>. Based on Jiang et al., arXiv:2509.14026.
+        </div>
+        <img src="../_static/app_title_images/daruan_preview.png" alt="DARUAN activation fit" class="notebook-image">
     </div>
 
     <script>
