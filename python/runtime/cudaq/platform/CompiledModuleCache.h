@@ -29,11 +29,13 @@ namespace cudaq::detail {
 /// keys may compile concurrently. Successful artifacts remain usable through
 /// caller-owned values even after their cache entry is evicted.
 ///
-/// The cache retains up to four lookup-resident values. Eviction is
-/// first-in, first-out: a ready hit deliberately does not refresh insertion
-/// order, keeping the hot path read-only and publication order deterministic
-/// under concurrency. Outstanding compilation attempts are neither counted
-/// toward the ready-entry limit nor evicted.
+/// The cache retains up to four lookup-resident values. This bounds lookup
+/// residency, not the number of temporarily live JIT engines: caller-owned
+/// values may extend engine lifetime after eviction. Eviction is first-in,
+/// first-out: a ready hit deliberately does not refresh insertion order,
+/// keeping the hot path read-only and publication order deterministic under
+/// concurrency. Outstanding compilation attempts are neither counted toward
+/// the ready-entry limit nor evicted.
 ///
 /// Inherits `std::enable_shared_from_this` so the Python binding layer reuses
 /// the native `shared_ptr` control block when a cache crosses the language
@@ -120,6 +122,11 @@ private:
     CompilingEntry(Key compilationKey,
                    std::shared_future<CompiledModule> completion)
         : key(std::move(compilationKey)), completion(std::move(completion)) {}
+
+    CompilingEntry(const CompilingEntry &) = delete;
+    CompilingEntry &operator=(const CompilingEntry &) = delete;
+    CompilingEntry(CompilingEntry &&) = delete;
+    CompilingEntry &operator=(CompilingEntry &&) = delete;
 
     /// Retained independently of the producer's stack frame so callers can
     /// continue matching this attempt while compilation runs without the lock.

@@ -9,6 +9,8 @@
 #include "CompiledModuleCache.h"
 #include <algorithm>
 #include <exception>
+#include <future>
+#include <memory>
 #include <optional>
 #include <type_traits>
 
@@ -55,7 +57,6 @@ CompiledModuleCache::Result CompiledModuleCache::getOrCompile(
       compilingEntries.emplace_back(compilingEntry);
       role = Role::Producer;
     }
-
   } // `cacheMutex` is released here
 
   // Waiting while holding `cacheMutex` would deadlock.
@@ -79,6 +80,9 @@ CompiledModuleCache::Result CompiledModuleCache::getOrCompile(
     // ready entry is also allocated before taking `cacheMutex` so a large
     // module copy cannot extend the critical section.
     completionCopy.emplace(*module);
+    // Use the immutable key snapshot claimed before compilation. The callback
+    // may mutate the caller's original key, but it cannot change this attempt's
+    // identity.
     ready.emplace(ReadyEntry{compilingEntry->key,
                              std::make_unique<const CompiledModule>(*module)});
 
