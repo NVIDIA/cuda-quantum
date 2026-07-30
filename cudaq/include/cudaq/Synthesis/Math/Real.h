@@ -454,6 +454,39 @@ public:
 // `Real::default_precision_` is defined in Math/Real.cpp.
 
 //===----------------------------------------------------------------------===//
+// PrecisionCachedReal
+//===----------------------------------------------------------------------===//
+
+/// Cache for a precision-dependent `Real` constant, meant to be held in a
+/// function-local static.
+///
+/// A constant materialized once on first use is only accurate to the default
+/// precision in force at that moment. `Real::set_default_precision` may raise
+/// the precision afterwards -- `CliffordTSynthesis` derives it from the
+/// requested epsilon, so a single process can synthesize at several
+/// precisions -- and a constant left behind at the old precision would then
+/// silently cap the accuracy of every expression it feeds. `get()`
+/// re-materializes the value whenever the default precision has moved and
+/// hands back the cached one otherwise, so the recompute is paid once per
+/// distinct precision rather than once per call.
+class PrecisionCachedReal {
+public:
+  template <typename ComputeFn>
+  const Real &get(ComputeFn &&compute) {
+    if (precision_ != Real::get_default_precision()) {
+      value_ = compute();
+      precision_ = Real::get_default_precision();
+    }
+    return value_;
+  }
+
+private:
+  Real value_;
+  // 0 is not a legal MPFR precision, so it reliably marks "never computed".
+  mpfr_prec_t precision_ = 0;
+};
+
+//===----------------------------------------------------------------------===//
 // Standard math functions
 //===----------------------------------------------------------------------===//
 

@@ -81,36 +81,41 @@ struct LambdaPowers {
 /// Thread-local memoized table indexed by exponent. The first call eagerly
 /// fills the first ~10 entries (covering the common shallow-rescale case)
 /// and later calls extend on demand.
+///
+/// The `lambda_*_real` projections are only accurate to the default precision
+/// in force when they were materialized, so the table is discarded and
+/// rebuilt whenever `Real::set_default_precision` moves. Otherwise a run at a
+/// tighter epsilon would keep reading the projections computed for an earlier,
+/// looser one. The ZSqrt2 components are exact and precision-independent, but
+/// rebuilding them alongside keeps the entries consistent for one flag.
 const LambdaPowers &get_lambda_powers(const Integer &n) {
   assert(n >= 0 && "get_lambda_powers requires non-negative exponent");
   size_t idx = static_cast<size_t>(n);
   static thread_local std::vector<LambdaPowers> cache;
-  if (cache.empty()) {
-    LambdaPowers base{ZSqrt2{1}, ZSqrt2{1}, ZSqrt2{1}, Real(1.0), Real(1.0)};
-    cache.push_back(base);
-    static const ZSqrt2 LAMBDA_CONJ = ZSqrt2::lambda().conj_sq2();
-    static const ZSqrt2 LAMBDA_INV = *inv(ZSqrt2::lambda());
-    for (int i = 0; i < 8; ++i) {
-      const auto &prev = cache.back();
-      LambdaPowers next{prev.lambda_n * ZSqrt2::lambda(),
-                        prev.lambda_conj_n * LAMBDA_CONJ,
-                        prev.lambda_inv_n * LAMBDA_INV, Real(0.0), Real(0.0)};
-      next.lambda_n_real = to_real(next.lambda_n);
-      next.lambda_conj_n_real = to_real(next.lambda_conj_n);
-      cache.emplace_back(next);
-    }
+  static thread_local mpfr_prec_t cache_precision = 0;
+
+  if (cache_precision != Real::get_default_precision()) {
+    cache.clear();
+    cache_precision = Real::get_default_precision();
   }
-  if (idx >= cache.size()) {
+  if (cache.empty())
+    cache.push_back({ZSqrt2{1}, ZSqrt2{1}, ZSqrt2{1}, Real(1.0), Real(1.0)});
+
+  // Always keep at least the first ~10 entries resident: the shallow-rescale
+  // case needs them and would otherwise pay a reallocation per call.
+  const size_t target = std::max<size_t>(idx, 8);
+  if (cache.size() <= target) {
     static const ZSqrt2 LAMBDA_CONJ = ZSqrt2::lambda().conj_sq2();
     static const ZSqrt2 LAMBDA_INV = *inv(ZSqrt2::lambda());
-    while (cache.size() <= idx) {
+    cache.reserve(target + 1);
+    while (cache.size() <= target) {
       const auto &prev = cache.back();
       LambdaPowers next{prev.lambda_n * ZSqrt2::lambda(),
                         prev.lambda_conj_n * LAMBDA_CONJ,
                         prev.lambda_inv_n * LAMBDA_INV, Real(0.0), Real(0.0)};
       next.lambda_n_real = to_real(next.lambda_n);
       next.lambda_conj_n_real = to_real(next.lambda_conj_n);
-      cache.emplace_back(next);
+      cache.emplace_back(std::move(next));
     }
   }
   return cache[idx];
@@ -179,9 +184,11 @@ OdgpStepper::OdgpStepper(Interval I, Interval J) {
   // Repeatedly multiply cur_I by lambda^n and cur_J by (lambda*)^n until
   // cur_J is narrow enough for direct enumeration. Each iteration shrinks
   // cur_J by lambda^(2n) so the loop terminates quickly.
-  static const Real LAMBDA_REAL = to_real(ZSqrt2::lambda());
+  static PrecisionCachedReal lambda_real_cache;
+  const Real &lambda_real =
+      lambda_real_cache.get([] { return to_real(ZSqrt2::lambda()); });
   while (cur_J.width() > 0) {
-    auto [n, _] = floor_log(cur_J.width(), LAMBDA_REAL);
+    auto [n, _] = floor_log(cur_J.width(), lambda_real);
     if (n <= 0)
       break;
     const auto &powers = get_lambda_powers(n);

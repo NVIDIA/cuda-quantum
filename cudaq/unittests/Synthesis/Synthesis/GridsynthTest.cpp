@@ -302,4 +302,53 @@ TEST(GridsynthValidationTest, RejectsNonFiniteTheta) {
   }
 }
 
+// ============================================================
+// Working-precision changes
+// ============================================================
+
+// Restores the default precision on scope exit so a test that raises it
+// cannot leak the change into the rest of the suite.
+class ScopedPrecision {
+public:
+  explicit ScopedPrecision(mpfr_prec_t prec)
+      : saved_(Real::get_default_precision()) {
+    Real::set_default_precision(prec);
+  }
+  ~ScopedPrecision() { Real::set_default_precision(saved_); }
+
+private:
+  mpfr_prec_t saved_;
+};
+
+// Synthesis caches precision-dependent constants (sqrt(2)/2, the powers of
+// lambda) in function-local statics. A loose-epsilon run materializes them at
+// a low working precision, a later tight-epsilon run must rebuild them rather
+// than silently inheriting that precision as a ceiling on its own accuracy.
+// CliffordTSynthesis derives the precision from epsilon, so a module holding
+// two rotations at different epsilons hits exactly this ordering.
+TEST(GridsynthPrecisionTest, TightEpsilonAfterLooseEpsilonStaysWithinEpsilon) {
+  // Warm every cache at a precision far too low for the tight run below.
+  {
+    ScopedPrecision low(64);
+    ASSERT_TRUE(
+        llvm::succeeded(cudaq::synth::gridsynth(Real("0.5"), Real("1e-3"))));
+  }
+
+  // Same precision CliffordTSynthesis would pick for this epsilon:
+  // max(64, ceil(-log2(eps) * 4 + 64)).
+  const std::string epsilon_str("1e-25");
+  ScopedPrecision high(396);
+
+  const std::string theta_str("0.5");
+  llvm::FailureOr<Circuit> result =
+      cudaq::synth::gridsynth(Real(theta_str), Real(epsilon_str));
+  ASSERT_TRUE(llvm::succeeded(result));
+
+  std::string err_str =
+      cudaq::synth::rz_gate_sequence_error(theta_str, *result);
+  EXPECT_LE(Real(err_str), Real(epsilon_str))
+      << "error " << err_str << " exceeds epsilon " << epsilon_str
+      << " after a lower-precision run poisoned the constant caches";
+}
+
 } // namespace

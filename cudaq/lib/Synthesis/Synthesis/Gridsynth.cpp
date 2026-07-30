@@ -155,7 +155,9 @@ public:
     // Re(u) and Im(u) share the same sqrt(2)^k factor. coords_into computes
     // both from a single inv_scale so pow_sqrt2 runs once instead of twice
     // (as it would via u.real() + u.imag()).
-    static const Real sqrt2_over_2 = sqrt(Real(2)) / 2;
+    static PrecisionCachedReal sqrt2_over_2_cache;
+    const Real &sqrt2_over_2 =
+        sqrt2_over_2_cache.get([] { return Real::sqrt2() / 2; });
     Real inv_scale = 1 / u.scale();
     Real u_real, u_imag;
     coords_into(u, inv_scale, sqrt2_over_2, u_real, u_imag);

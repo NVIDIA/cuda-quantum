@@ -165,9 +165,11 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   }
 
   // Cached log(lambda) for the Sigma / S exponent computations. Function-
-  // local static so it is computed at most once per process and only when
-  // execution actually reaches this point.
-  static const Real lambda_real = to_real(ZSqrt2::lambda());
+  // local static so it is computed at most once per working precision and
+  // only when execution actually reaches this point.
+  static PrecisionCachedReal lambda_real_cache;
+  const Real &lambda_real =
+      lambda_real_cache.get([] { return to_real(ZSqrt2::lambda()); });
 
   // S: extreme pair-bias values. The threshold constants are the
   // floating-point evaluations of the symbolic bounds from sec. A.1.
