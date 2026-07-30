@@ -13,7 +13,6 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Transforms/Passes.h"
-#include <unordered_map>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_PHASEFOLDING
@@ -43,21 +42,24 @@ struct PhaseVariable {
   bool operator==(PhaseVariable other) { return idx == other.idx; }
 };
 
-using PhaseKey = std::pair<llvm::SmallVector<unsigned, 4>, bool>;
+using PhaseKey = std::pair<SmallVector<unsigned, 4>, bool>;
 
-struct PhaseKeyHash {
-  size_t operator()(const PhaseKey &k) const {
+struct PhaseKeyInfo {
+  static PhaseKey getEmptyKey() { return {{unsigned(-1)}, false}; }
+  static PhaseKey getTombstoneKey() { return {{unsigned(-1)}, true}; }
+  static unsigned getHashValue(const PhaseKey &k) {
     auto h = llvm::hash_value(k.second);
     for (auto idx : k.first)
       h = llvm::hash_combine(h, idx);
-    return (size_t)h;
+    return (unsigned)h;
   }
+  static bool isEqual(const PhaseKey &a, const PhaseKey &b) { return a == b; }
 };
 
 /// A `Phase` is an exclusive sum of `PhaseVariable`s plus an inversion flag.
 /// Two rotations on qubits with equal Phases can be merged into one rotation.
 class Phase {
-  llvm::SetVector<PhaseVariable *> vars;
+  SetVector<PhaseVariable *> vars;
   bool isInverted;
 
 public:
@@ -95,21 +97,21 @@ public:
   }
 
   PhaseKey toKey() const {
-    llvm::SmallVector<unsigned, 4> indices;
+    SmallVector<unsigned, 4> indices;
     for (auto *var : vars)
       indices.push_back(var->idx);
-    llvm::sort(indices);
+    sort(indices);
     return {indices, isInverted};
   }
 };
 
 class PhaseStorage {
-  std::unordered_map<PhaseKey, cudaq::quake::RzOp, PhaseKeyHash> phaseToRot;
+  DenseMap<PhaseKey, cudaq::quake::RzOp, PhaseKeyInfo> phaseToRot;
   size_t numCombined = 0;
 
   void combineRotations(cudaq::quake::RzOp old_rzop, cudaq::quake::RzOp rzop) {
-    auto builder = mlir::OpBuilder(rzop);
-    auto new_rot_arg = mlir::arith::AddFOp::create(
+    auto builder = OpBuilder(rzop);
+    auto new_rot_arg = arith::AddFOp::create(
         builder, rzop.getLoc(), old_rzop.getOperand(0), rzop.getOperand(0));
     rzop->setOperand(0, new_rot_arg.getResult());
     // In wire semantics the erased rotation's result must be bypassed first.
@@ -225,7 +227,7 @@ class Netlist {
   SmallPtrSet<Operation *, 8> processed;
 
 public:
-  Netlist(mlir::func::FuncOp func) {
+  Netlist(func::FuncOp func) {
     func.walk([&](Operation *op) {
       if (auto allocaop = dyn_cast<cudaq::quake::AllocaOp>(op)) {
         if (isa<cudaq::quake::RefType>(allocaop.getType()))
@@ -243,7 +245,7 @@ public:
     auto nlindex = netlists.size();
     refop->setAttr(
         "nlindex",
-        mlir::IntegerAttr::get(mlir::IntegerType::get(refop->getContext(), 64),
+        IntegerAttr::get(IntegerType::get(refop->getContext(), 64),
                                nlindex));
     auto nl = SmallVector<Operation *>();
     netlists.push_back(nl);
@@ -628,63 +630,8 @@ protected:
     }
   }
 
-  // void pruneWire(Value wire, SetVector<Operation *> &pruned) {
-  //   if (!wire.hasOneUse())
-  //     return;
-  //   Operation *op = wire.getUses().begin().getUser();
-  //   if (pruned.contains(op))
-  //     return;
-  //   if (termination_points.contains(wire))
-  //     termination_points.remove(wire);
-  //   ops.remove(op);
-  //   pruned.insert(op);
-
-  //   if (isControlledOp(op)) {
-  //     auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
-  //     // Per the phase polynomial paper: pruning along the CNOT's target
-  //     leaves
-  //     // the control wire's phase unaffected, so we need not prune it.
-  //     if (wire == opi.getTarget(0)) {
-  //       pruneWire(getNextResult(wire), pruned);
-  //       if (wire.getDefiningOp() && ops.contains(wire.getDefiningOp()))
-  //         addTerminationPoint(wire);
-  //       else if (termination_points.contains(wire) &&
-  //       isAfterTerminationPoint(wire))
-  //         termination_points.remove(wire);
-  //       return;
-  //     }
-  //   }
-
-  //   for (auto result : op->getResults())
-  //     pruneWire(result, pruned);
-  //   for (auto operand : op->getOperands())
-  //     if (operand.getDefiningOp() && ops.contains(operand.getDefiningOp()))
-  //       addTerminationPoint(operand);
-  //     else if (termination_points.contains(operand) &&
-  //              isAfterTerminationPoint(operand))
-  //       termination_points.remove(operand);
-  // }
-
-  // void pruneSubcircuit() {
-  //   std::vector<Value> sorted;
-  //   SetVector<Operation *> pruned;
-  //   for (auto wire : termination_points)
-  //     if (!isAfterTerminationPoint(wire) && wire.hasOneUse())
-  //       sorted.push_back(wire);
-
-  //   auto cmp = [](Value v1, Value v2) {
-  //     if (v1.getDefiningOp() == v2.getDefiningOp())
-  //       return dyn_cast<OpResult>(v1).getResultNumber() >=
-  //              dyn_cast<OpResult>(v2).getResultNumber();
-  //     return !v1.getDefiningOp()->isBeforeInBlock(v2.getDefiningOp());
-  //   };
-  //   std::sort(sorted.begin(), sorted.end(), cmp);
-  //   for (size_t i = 0; i < sorted.size(); i++)
-  //     pruneWire(sorted[i], pruned);
-  // }
-
 public:
-  Subcircuit(Operation *cnot, llvm::DenseSet<Operation *> &processedOps) {
+  Subcircuit(Operation *cnot, DenseSet<Operation *> &processedOps) {
     calculateInitialSubcircuit(cnot);
     // TODO: there is a performance issue that the current pruning definition
     // will always preference earlier operations, so a large interconnected
@@ -694,7 +641,6 @@ public:
     // prune because we can just assign fresh phase variables for wires after
     // circuit breaking ops. Another possible option is to stop at ops in
     // `processedOps`. This is likely also an issue in the ref semantics form.
-    //{ auto t = parentScope.nest("prune"); pruneSubcircuit(); }
     for (auto *op : ops)
       processedOps.insert(op);
     start = cnot;
@@ -721,7 +667,7 @@ public:
 
   SmallVector<Operation *> getOrderedOps() {
     SmallVector<Operation *> ordered(ops.begin(), ops.end());
-    llvm::sort(ordered, [](Operation *a, Operation *b) {
+    sort(ordered, [](Operation *a, Operation *b) {
       return a->isBeforeInBlock(b);
     });
     return ordered;
@@ -863,7 +809,7 @@ class PhaseFoldingPass
     // during folding are gone from the IR before the next subcircuit is built.
     // TODO: Parallel folding would require tracking which Rz ops have been
     // erased so that subcircuits built concurrently can skip stale references.
-    llvm::DenseSet<Operation *> processedOps;
+    DenseSet<Operation *> processedOps;
     func.walk([&](cudaq::quake::XOp xop) {
       if (!wire::isControlledOp(xop) || processedOps.count(xop))
         return;
