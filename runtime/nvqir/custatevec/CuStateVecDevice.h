@@ -34,8 +34,8 @@ struct DeviceMemoryCapacity {
 DeviceMemoryCapacity queryDeviceMemoryCapacity();
 
 /// Reads `MemAvailable` from `/proc/meminfo` -- the kernel's estimate of memory
-/// usable for new (pageable) allocations, accounting for reclaimable page
-/// cache. Returns nullopt when it cannot be read (e.g., old Linux kernel or
+/// usable for new (`pageable`) allocations, accounting for reclaimable page
+/// cache. Returns `nullopt` when it cannot be read (e.g., old Linux kernel or
 /// non-Linux).
 std::optional<std::size_t> systemMemAvailableBytes();
 
