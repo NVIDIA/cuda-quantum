@@ -35,6 +35,8 @@ configure_file("nvq++.in"
                @ONLY)
 
 install(FILES ${CUDAQ_BINARY_DIR}/cudaq/include/nvqpp_config.h
-        DESTINATION include/nvqpp)
+        DESTINATION include/nvqpp
+        COMPONENT Development)
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
-        DESTINATION bin)
+        DESTINATION bin
+        COMPONENT Nvqpp)
