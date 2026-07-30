@@ -31,8 +31,9 @@ _VALID_DEM_OPTION_KEYS = frozenset({
 #
 # The setup is deferred to first use via _get_dem_result_class() to avoid
 # a circular-import issue: the extension module (which registers DEMResult in
-# cudaq_runtime) may trigger cudaq/__init__.py mid-init, before bindDemFromKernel
-# has run. Accessing cudaq_runtime.DEMResult at module level would fail then.
+# cudaq_runtime) may trigger cudaq/__init__.py mid-init, before
+# `bindDemFromKernel` has run. Accessing `cudaq_runtime.DEMResult` at module
+# level would fail then.
 # ---------------------------------------------------------------------------
 
 _DEMResult = None
