@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/platform/QuantumExecutionQueue.h"
+#include <stdexcept>
 
 namespace cudaq {
 
@@ -14,18 +15,37 @@ QuantumExecutionQueue::QuantumExecutionQueue() : lock() {
   thread = std::thread(&QuantumExecutionQueue::handler, this);
 }
 
-QuantumExecutionQueue::~QuantumExecutionQueue() {
-  std::unique_lock<std::mutex> l(lock);
-  quit = true;
-  cv.notify_all();
-  l.unlock();
-  if (thread.joinable()) {
-    thread.join();
-  }
+QuantumExecutionQueue::~QuantumExecutionQueue() { shutdown(); }
+
+void QuantumExecutionQueue::shutdown() {
+  // call_once guard (rather than a `quit` check): a second caller must block
+  // until the join below completes, not return while it is still in progress.
+  std::call_once(shutdownFlag, [this] {
+    {
+      std::unique_lock<std::mutex> l(lock);
+      quit = true;
+      cv.notify_all();
+    }
+    if (thread.joinable()) {
+      thread.join();
+    }
+
+    // Destroy the discarded tasks now
+    // e.g., Python tasks may capture MLIR modules whose erasure needs a Python
+    // MLIR context.
+    std::queue<QuantumTask> discarded;
+    {
+      std::unique_lock<std::mutex> l(lock);
+      queue.swap(discarded);
+    }
+  });
 }
 
 void QuantumExecutionQueue::enqueue(QuantumTask &t) {
   std::unique_lock<std::mutex> l(lock);
+  if (quit)
+    throw std::runtime_error(
+        "cannot schedule new asynchronous tasks after shutdown");
   queue.push(t);
   cv.notify_one();
   return;

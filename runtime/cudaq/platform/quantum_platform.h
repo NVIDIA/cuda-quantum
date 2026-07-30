@@ -132,6 +132,15 @@ public:
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformQPUs.size(); }
 
+  /// Stop every QPU's execution queue, waiting for tasks already running.
+  // This may be used from a Python shutdown hook so the queues settled/cleared
+  // while the interpreter and the Python-owned MLIRContext are still alive.
+  void shutdown() {
+    for (auto &qpu : platformQPUs)
+      if (qpu)
+        qpu->shutdown();
+  }
+
   QPU &getQPU(std::size_t qpu_id = 0) const {
     validateQpuId(qpu_id);
     return *(platformQPUs[qpu_id].get());
