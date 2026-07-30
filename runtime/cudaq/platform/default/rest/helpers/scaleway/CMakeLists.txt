@@ -38,4 +38,5 @@ target_link_libraries(cudaq-serverhelper-scaleway
     ZLIB::ZLIB
 )
 
-install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib)
+install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib
+        COMPONENT Runtime)

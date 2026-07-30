@@ -82,7 +82,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
                           cuStateVec::cuStateVec
                           CUDA::cudart_static
                           CUDA::cublas)
-  install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+  install(TARGETS ${LIBRARY_NAME} DESTINATION lib COMPONENT Runtime)
 endmacro()
 
 # Generate a cuStateVec plugin source from the CuStateVecCircuitSimulator.cpp.in
