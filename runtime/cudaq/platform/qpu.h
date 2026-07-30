@@ -54,41 +54,6 @@ protected:
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
 
-  /// @brief Run the compiled module using either the raw function pointer or
-  /// the JIT engine stored in the compiled module.
-  [[nodiscard]] static KernelThunkResultType
-  runCompiledModule(const CompiledModule &compiled, KernelArgs args);
-
-  [[nodiscard]] static KernelThunkResultType
-  runJITEngine(const CompiledModule &compiled, KernelArgs args);
-
-  [[nodiscard]] static KernelThunkResultType
-  runRawFnPointer(const FatQuakeModule::FunctionPtrArtifact &rawFn,
-                  KernelArgs args);
-
-  /// @brief Re-throw an exception the kernel deferred during execution, if any.
-  /// Subclasses must call this immediately after invoking a kernel, from the
-  /// C++ frame above the JIT/AOT boundary. It exists because on some platforms
-  /// (macOS arm64) a C++ exception cannot unwind through a JIT-compiled kernel
-  /// frame; the simulator records the error on the execution context instead of
-  /// throwing across that boundary (see
-  /// ExecutionContext::deferredKernelException). No-op when nothing was
-  /// deferred.
-  static void rethrowDeferredKernelException();
-
-  /// @brief RAII marker for the window in which a JIT/AOT-compiled kernel frame
-  /// is executing. While alive it sets `ExecutionContext::inKernelLaunch` on
-  /// the active context, so the simulator defers (rather than throws)
-  /// exceptions that would otherwise have to unwind through the kernel frame.
-  /// Launchers wrap the raw kernel invocation in this scope and call
-  /// rethrowDeferredKernelException() immediately afterwards.
-  struct InKernelLaunchScope {
-    InKernelLaunchScope();
-    ~InKernelLaunchScope();
-    InKernelLaunchScope(const InKernelLaunchScope &) = delete;
-    InKernelLaunchScope &operator=(const InKernelLaunchScope &) = delete;
-  };
-
 public:
   /// The constructor, initializes the execution queue
   QPU() : execution_queue(std::make_unique<QuantumExecutionQueue>()) {}

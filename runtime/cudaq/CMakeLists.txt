@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 add_library(${LIBRARY_NAME}
   SHARED
     cudaq.cpp
+    CompiledModuleExecution.cpp
     realtime.cpp
     target_control.cpp
     algorithms/draw.cpp

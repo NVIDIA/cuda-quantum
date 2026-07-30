@@ -300,7 +300,7 @@ public:
           "detector error model generation.");
 
     return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      [[maybe_unused]] auto kernelResult = runJITEngine(module, args);
+      [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
     });
   }
 

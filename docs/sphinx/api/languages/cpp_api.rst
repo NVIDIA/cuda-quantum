@@ -391,8 +391,6 @@ Platform
 .. doxygenclass:: cudaq::QPU
     :members:
 
-.. doxygenstruct:: cudaq::QPU::InKernelLaunchScope
-
 .. doxygenstruct:: cudaq::other_policies
 
 .. doxygenclass:: cudaq::DefaultQPU
