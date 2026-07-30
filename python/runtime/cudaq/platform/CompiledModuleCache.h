@@ -27,13 +27,13 @@ namespace cudaq::detail {
 /// Calls for the same key share one compilation attempt. One caller produces
 /// the artifact while concurrent callers join that attempt; calls for different
 /// keys may compile concurrently. Successful artifacts remain usable through
-/// shared ownership even after their cache entry is evicted.
+/// caller-owned values even after their cache entry is evicted.
 ///
-/// The cache retains up to four ready artifacts to bound the memory held by JIT
-/// engines. Eviction is first-in, first-out: a ready hit deliberately does not
-/// refresh insertion order, keeping the hot path read-only and publication
-/// order deterministic under concurrency. Outstanding compilation attempts are
-/// neither counted toward the ready-entry limit nor evicted.
+/// The cache retains up to four lookup-resident values. Eviction is
+/// first-in, first-out: a ready hit deliberately does not refresh insertion
+/// order, keeping the hot path read-only and publication order deterministic
+/// under concurrency. Outstanding compilation attempts are neither counted
+/// toward the ready-entry limit nor evicted.
 ///
 /// Inherits `std::enable_shared_from_this` so the Python binding layer reuses
 /// the native `shared_ptr` control block when a cache crosses the language
@@ -55,9 +55,6 @@ public:
     bool operator==(const Key &) const = default;
   };
 
-  /// Immutable compiled module shared by the cache and all callers using it.
-  using SharedCompiledModule = std::shared_ptr<const CompiledModule>;
-
   /// Role this caller played while resolving a `getOrCompile()` request.
   enum class Role {
     /// This caller ran the compilation callback and published its result.
@@ -70,8 +67,8 @@ public:
 
   /// Compiled module returned by `getOrCompile()` and this caller's role.
   struct Result {
-    /// Non-null compiled module owned independently of cache eviction.
-    SharedCompiledModule module;
+    /// Value owned by the caller independently of cache eviction.
+    CompiledModule module;
     Role role;
   };
 
@@ -101,39 +98,34 @@ public:
   /// retry compilation.
   ///
   /// The callback must only create the compiled artifact; callers execute the
-  /// kernel after this function returns. It must return a non-null module —
-  /// a null result is rejected with an exception (observed by all joined
-  /// callers) rather than published. It must not call back into this cache
-  /// for the same key: the nested call would join the caller's own attempt
-  /// and deadlock waiting for it.
+  /// kernel after this function returns. It must not call back into this cache
+  /// for the same key: the nested call would join the caller's own attempt and
+  /// deadlock waiting for it.
   Result getOrCompile(const Key &key,
-                      llvm::function_ref<SharedCompiledModule()> compile);
+                      llvm::function_ref<CompiledModule()> compile);
 
 private:
   /// A successfully published key/module pair. Ready entries are immutable
   /// after insertion and are the only entries subject to FIFO eviction.
   struct ReadyEntry {
     Key key;
-    SharedCompiledModule module;
+    std::unique_ptr<const CompiledModule> module;
   };
 
   /// Completion state shared by every caller participating in one compilation
-  /// attempt. The producer completes the promise once; followers wait on the
-  /// shared future and observe either the same module or the same exception.
+  /// attempt. The producer alone owns and completes the promise; followers wait
+  /// on the shared future and observe either the same value or the same
+  /// exception.
   struct CompilingEntry {
-    /// `std::promise` permits `get_future()` only once, so create the copyable
-    /// `shared_future` before publishing this entry to any follower.
-    explicit CompilingEntry(Key compilationKey)
-        : key(std::move(compilationKey)),
-          completion(promise.get_future().share()) {}
+    CompilingEntry(Key compilationKey,
+                   std::shared_future<CompiledModule> completion)
+        : key(std::move(compilationKey)), completion(std::move(completion)) {}
 
     /// Retained independently of the producer's stack frame so callers can
     /// continue matching this attempt while compilation runs without the lock.
-    Key key;
-    /// Single-producer write end of the completion channel.
-    std::promise<SharedCompiledModule> promise;
+    const Key key;
     /// Multi-follower read end of the completion channel.
-    std::shared_future<SharedCompiledModule> completion;
+    const std::shared_future<CompiledModule> completion;
   };
 
   /// Bound only completed artifacts; compiling entries must remain discoverable

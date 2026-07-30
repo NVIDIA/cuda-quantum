@@ -780,20 +780,19 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   }
 
   cudaq::detail::CompiledModuleCache::Key key{name, targetHash, programDigest};
-  auto result = cache->getOrCompile(
-      key, [&]() -> cudaq::detail::CompiledModuleCache::SharedCompiledModule {
-        // This callback runs for exactly one caller of this key. Followers
-        // wait for its result instead of repeating the compilation.
-        CUDAQ_INFO("Compiling module {}", name);
+  auto result = cache->getOrCompile(key, [&]() {
+    // This callback runs for exactly one caller of this key. Followers wait
+    // for its result instead of repeating the compilation.
+    CUDAQ_INFO("Compiling module {}", name);
 
-        // Reuse the fingerprint's resolved clone when we have one. Otherwise
-        // clone here — compilation modifies the module and `mod` must remain
-        // pristine for future calls.
-        if (!resolvedModule)
-          resolvedModule = mod.clone();
-        return std::make_shared<cudaq::CompiledModule>(compileModuleImpl(
-            name, resolvedModule.get(), rawArgs, true, std::move(target)));
-      });
+    // Reuse the fingerprint's resolved clone when we have one. Otherwise clone
+    // here — compilation modifies the module and `mod` must remain pristine for
+    // future calls.
+    if (!resolvedModule)
+      resolvedModule = mod.clone();
+    return compileModuleImpl(name, resolvedModule.get(), rawArgs, true,
+                             std::move(target));
+  });
 
   switch (result.role) {
   case cudaq::detail::CompiledModuleCache::Role::Producer:
@@ -812,7 +811,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
 
   // Compilation is shared; execution is not. Every producer, follower, and
   // ready reader launches the immutable artifact for its own runtime arguments.
-  return cudaq::streamlinedLaunchModule(*result.module, rawArgs);
+  return cudaq::streamlinedLaunchModule(result.module, rawArgs);
 }
 
 static bool isCurrentTargetFullQIR() {

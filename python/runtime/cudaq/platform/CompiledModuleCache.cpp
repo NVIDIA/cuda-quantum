@@ -9,13 +9,19 @@
 #include "CompiledModuleCache.h"
 #include <algorithm>
 #include <exception>
-#include <stdexcept>
+#include <optional>
+#include <type_traits>
 
 namespace cudaq::detail {
 
 CompiledModuleCache::Result CompiledModuleCache::getOrCompile(
-    const Key &key, llvm::function_ref<SharedCompiledModule()> compile) {
+    const Key &key, llvm::function_ref<CompiledModule()> compile) {
+  static_assert(std::is_nothrow_move_constructible_v<CompiledModule>);
+  static_assert(std::is_nothrow_move_constructible_v<ReadyEntry>);
+  static_assert(std::is_nothrow_move_assignable_v<ReadyEntry>);
+
   std::shared_ptr<CompilingEntry> compilingEntry;
+  std::optional<std::promise<CompiledModule>> producerPromise;
   Role role;
 
   // Without this lock scope, two callers could both observe "Missing" and
@@ -28,7 +34,7 @@ CompiledModuleCache::Result CompiledModuleCache::getOrCompile(
                      [&](const ReadyEntry &entry) { return entry.key == key; });
     // A ready hit does not change insertion order (eviction is FIFO).
     if (readyIter != readyEntries.end())
-      return {readyIter->module, Role::ReadyReader};
+      return {*readyIter->module, Role::ReadyReader};
 
     auto compilingIter =
         std::find_if(compilingEntries.begin(), compilingEntries.end(),
@@ -42,63 +48,99 @@ CompiledModuleCache::Result CompiledModuleCache::getOrCompile(
     } else {
       // Publish the "Compiling" state before releasing mutex. Every later
       // equivalent caller will therefore become a follower of this attempt.
-      compilingEntry = std::make_shared<CompilingEntry>(key);
+      producerPromise.emplace();
+      auto completion = producerPromise->get_future().share();
+      compilingEntry =
+          std::make_shared<CompilingEntry>(key, std::move(completion));
       compilingEntries.emplace_back(compilingEntry);
       role = Role::Producer;
     }
+
   } // `cacheMutex` is released here
 
   // Waiting while holding `cacheMutex` would deadlock.
   if (role == Role::Follower)
     return {compilingEntry->completion.get(), role};
 
-  SharedCompiledModule module;
+  std::optional<CompiledModule> module;
+  std::optional<CompiledModule> completionCopy;
+  std::optional<ReadyEntry> ready;
   // Written under the lock, destroyed after it: tearing down an evicted JIT
   // artifact can be heavy and must not block callers on unrelated keys.
-  SharedCompiledModule evicted;
+  std::unique_ptr<const CompiledModule> evicted;
+  bool readyPublished = false;
+
   try {
     // Only the producer invokes the callback. It runs without `cacheMutex`, so
     // unrelated keys can compile concurrently.
-    module = compile();
-    // Reject rather than publish a null artifact: every joined caller would
-    // otherwise dereference it far from the failure. The catch path below
-    // makes this attempt retryable.
-    if (!module)
-      throw std::logic_error(
-          "CompiledModuleCache compile callback returned a null module");
+    module.emplace(compile());
+
+    // Stage every potentially throwing value copy before publication. The
+    // ready entry is also allocated before taking `cacheMutex` so a large
+    // module copy cannot extend the critical section.
+    completionCopy.emplace(*module);
+    ready.emplace(ReadyEntry{compilingEntry->key,
+                             std::make_unique<const CompiledModule>(*module)});
 
     // Replace "Compiling" with "Ready" under one lock. No caller can observe a
     // "Missing" gap and incorrectly begin another compilation for this key.
-    std::lock_guard<std::mutex> lock(cacheMutex);
-    // Insert before evicting so an allocation failure preserves every existing
-    // "Ready" entry; the catch path then makes this attempt retryable.
-    // Publish the key snapshot that was claimed before compilation. The
-    // callback is user-supplied and must not be able to change the identity of
-    // this attempt by mutating the caller's original `key` object.
-    readyEntries.emplace_back(compilingEntry->key, module);
-    if (readyEntries.size() > maxReadyEntries) {
-      evicted = std::move(readyEntries.front().module);
-      readyEntries.erase(readyEntries.begin());
+    {
+      std::lock_guard<std::mutex> lock(cacheMutex);
+
+      // Insert before evicting so an allocation failure preserves every
+      // existing "Ready" entry; the catch path then makes this attempt
+      // retryable.
+      readyEntries.emplace_back(std::move(*ready));
+      readyPublished = true;
+
+      if (readyEntries.size() > maxReadyEntries) {
+        evicted = std::move(readyEntries.front().module);
+        readyEntries.erase(readyEntries.begin());
+      }
+
+      // Exactly one in-flight entry must be replaced by this "Ready" entry.
+      if (std::erase(compilingEntries, compilingEntry) != 1)
+        std::terminate();
     }
-    std::erase(compilingEntries, compilingEntry);
   } catch (...) {
+    // Once the "Ready" entry is visible, rolling back only the in-flight state
+    // would corrupt the atomic "Compiling" -> "Ready" transition.
+    if (readyPublished)
+      std::terminate();
+
     auto error = std::current_exception();
     {
       std::lock_guard<std::mutex> lock(cacheMutex);
       // Removing the failed attempt makes a later call for this key eligible
       // to become a new producer.
-      std::erase(compilingEntries, compilingEntry);
+      if (std::erase(compilingEntries, compilingEntry) != 1)
+        std::terminate();
     }
+
     // Fulfill outside `cacheMutex` because making the future ready can wake all
     // followers immediately.
-    compilingEntry->promise.set_exception(error);
+    try {
+      producerPromise->set_exception(error);
+    } catch (...) {
+      std::terminate();
+    }
     std::rethrow_exception(error);
   }
 
-  // "Ready" is already visible before followers wake. New callers can therefore
-  // reuse the module instead of joining a completed attempt.
-  compilingEntry->promise.set_value(module);
-  return {std::move(module), role};
+  // "Ready" is already visible before followers wake. With one valid
+  // producer-owned promise and a nothrow module move, failure here is an
+  // invariant violation; no rollback is valid after publication.
+  try {
+    producerPromise->set_value(std::move(*completionCopy));
+  } catch (...) {
+    std::terminate();
+  }
+
+  // Lookup eviction occurred under the lock, but potentially expensive JIT
+  // teardown does not.
+  evicted.reset();
+
+  return {std::move(*module), role};
 }
 
 } // namespace cudaq::detail
