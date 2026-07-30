@@ -9,13 +9,13 @@
 #pragma once
 
 #include "common/KernelArgs.h"
+#include "cudaq/Support/Tuple.h"
 #include "cudaq/algorithms/policies.h"
 #include <any>
 #include <cstddef>
 #include <stdexcept>
 #include <string>
 #include <tuple>
-#include <type_traits>
 
 namespace cudaq {
 
@@ -29,22 +29,6 @@ using launch_fn_type = Policy::result_type (*)(std::any &impl,
                                                const Policy &policy,
                                                const CompiledModule &module,
                                                KernelArgs args);
-
-/// Compile-time position of type @c T within a @c std::tuple.
-template <typename T, typename Tuple>
-struct find_pos;
-
-template <typename T, typename... Ts>
-struct find_pos<T, std::tuple<T, Ts...>>
-    : std::integral_constant<std::size_t, 0> {};
-
-template <typename T, typename U, typename... Ts>
-struct find_pos<T, std::tuple<U, Ts...>>
-    : std::integral_constant<std::size_t,
-                             1 + find_pos<T, std::tuple<Ts...>>::value> {};
-
-template <typename T, typename Tuple>
-inline constexpr std::size_t find_pos_v = find_pos<T, Tuple>::value;
 
 /// A table of launch function pointers, one per policy in @c Policies.
 ///

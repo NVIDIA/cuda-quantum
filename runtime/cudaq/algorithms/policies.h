@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Support/Tuple.h"
 #include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
@@ -15,7 +16,6 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/ptsbe/policy.h"
 #include <tuple>
-#include <type_traits>
 
 namespace cudaq {
 
@@ -28,19 +28,9 @@ using all_policies =
                async_observe_policy, run_policy, async_run_policy,
                msm_size_policy, msm_policy, dem_policy, ptsbe::sample_policy>;
 
-namespace detail {
-/// True when @c T is one of the types in @c Tuple.
-template <typename T, typename Tuple>
-struct is_in_tuple : std::false_type {};
-
-template <typename T, typename... Ts>
-struct is_in_tuple<T, std::tuple<Ts...>>
-    : std::bool_constant<(std::is_same_v<T, Ts> || ...)> {};
-} // namespace detail
-
 /// @brief Concept satisfied by any type registered in @c all_policies.
 template <typename Policy>
-concept launch_policy = detail::is_in_tuple<Policy, all_policies>::value;
+concept launch_policy = detail::is_in_tuple_v<Policy, all_policies>;
 
 template <launch_policy Policy>
 std::string get_policy_name(const Policy &policy) {
