@@ -21,6 +21,116 @@ _VALID_DEM_OPTION_KEYS = frozenset({
     "return_measurement_matrices",
 })
 
+# ---------------------------------------------------------------------------
+# Attach Python-typed members to DEMResult.
+#
+# DEMResult is the bound C++ cudaq::dem_result. Members that require Python
+# types (scipy matrices) or Python protocols (__str__, __repr__, classmethod)
+# are attached here so that scipy never appears in the C++ binding layer, and
+# DEMResult stays a single type identical in shape to SampleResult.
+#
+# The setup is deferred to first use via _get_dem_result_class() to avoid
+# a circular-import issue: the extension module (which registers DEMResult in
+# cudaq_runtime) may trigger cudaq/__init__.py mid-init, before bindDemFromKernel
+# has run. Accessing cudaq_runtime.DEMResult at module level would fail then.
+# ---------------------------------------------------------------------------
+
+_DEMResult = None
+
+
+def _make_csr(rows, num_cols):
+    import numpy as np
+    import scipy.sparse as sp
+    row_idx = [r for r, ms in enumerate(rows) for _ in ms]
+    col_idx = [m for ms in rows for m in ms]
+    return sp.csr_matrix(
+        (np.ones(len(row_idx), dtype=np.uint8), (row_idx, col_idx)),
+        shape=(len(rows), num_cols),
+    )
+
+
+def _m2d_matrix(self):
+    if not self.matrices_computed:
+        return None
+    return _make_csr(self.m2d, self.num_measurements)
+
+
+def _m2o_matrix(self):
+    if not self.matrices_computed:
+        return None
+    return _make_csr(self.m2o, self.num_measurements)
+
+
+@classmethod
+def _from_matrices(cls,
+                   dem,
+                   m2d_csr,
+                   m2o_csr,
+                   *,
+                   num_detectors=0,
+                   num_observables=0,
+                   num_measurements=0,
+                   annotations=None):
+    """Build a DEMResult from scipy CSR matrices."""
+
+    def _csr_to_rows(mat):
+        mat = mat.tocsr()
+        return [
+            list(mat.indices[mat.indptr[i]:mat.indptr[i + 1]])
+            for i in range(mat.shape[0])
+        ]
+
+    return cls(
+        dem,
+        m2d=_csr_to_rows(m2d_csr),
+        m2o=_csr_to_rows(m2o_csr),
+        num_detectors=num_detectors,
+        num_observables=num_observables,
+        num_measurements=num_measurements,
+        annotations=annotations or {},
+    )
+
+
+def _dem_result_str(self):
+    return self.dem
+
+
+def _dem_result_repr(self):
+    return (f"DEMResult(detectors={self.num_detectors}, "
+            f"observables={self.num_observables}, "
+            f"measurements={self.num_measurements})")
+
+
+def _get_dem_result_class():
+    """Return the DEMResult class, attaching Python-typed members on first call."""
+    global _DEMResult
+    if _DEMResult is not None:
+        return _DEMResult
+    cls = cudaq_runtime.DEMResult
+    cls.m2d_matrix = property(_m2d_matrix,
+                              doc="scipy CSR matrix (num_detectors × "
+                              "num_measurements), or None when matrices "
+                              "were not requested.")
+    cls.m2o_matrix = property(_m2o_matrix,
+                              doc="scipy CSR matrix (num_observables × "
+                              "num_measurements), or None when matrices "
+                              "were not requested.")
+    cls.from_matrices = _from_matrices
+    cls.__str__ = _dem_result_str
+    cls.__repr__ = _dem_result_repr
+    _DEMResult = cls
+    return cls
+
+
+def __getattr__(name):
+    """Lazily resolve DEMResult so it is safe to import at extension-init time."""
+    if name == "DEMResult":
+        return _get_dem_result_class()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+# ---------------------------------------------------------------------------
+
 
 def _detail_check_conditionals_on_measure(kernel):
     if not _kernel_has_conditionals_on_measure(kernel):
@@ -35,51 +145,32 @@ def _detail_check_conditionals_on_measure(kernel):
 def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
-    Runs `kernel` under `dem_policy` with a thread-local Stim analysis
-    scope, then returns Stim's standard `.dem` text via
-    `stim::DetectorErrorModel::str()`. The active CUDA-Q target is
-    unaffected.
+    Returns a :class:`DEMResult` carrying the DEM text, count fields, and
+    (by default) the measurement matrices.
+
+    ``str(result)`` returns the DEM text so existing print calls are unchanged.
+    ``stim.DetectorErrorModel(result.dem)`` replaces the previous
+    ``stim.DetectorErrorModel(result)``.
 
     Args:
-      kernel (:class:`Kernel`): The :class:`Kernel` to analyze.
-      *arguments: Concrete argument values forwarded to the kernel invocation.
-      noise_model (:class:`NoiseModel`, optional): Noise model layered on
-          top of any `apply_noise` ops already present in the kernel.
-      decompose_errors (bool, optional): Decompose hyper-edge error
-          mechanisms into pairs of two-detector edges. Default ``False``.
-      fold_loops (bool, optional): Fold loop bodies in the circuit for a
-          more compact DEM. Default ``False``.
-      allow_gauge_detectors (bool, optional): Allow detectors whose parity
-          is not determined by the circuit. Default ``False``.
-      approximate_disjoint_errors_threshold (float, optional): Threshold
-          for approximating disjoint-error products; set to ``0`` to
-          disable. Default ``0.0``.
-      ignore_decomposition_failures (bool, optional): When decomposition
-          fails for an error mechanism, insert it into the DEM undecomposed
-          (as a hyper-edge) instead of raising an exception. Only relevant
-          when ``decompose_errors`` is ``True``. Default ``False``.
-      block_decomposition_from_introducing_remnant_edges (bool, optional):
-          Prevent the decomposer from introducing remnant edges.
-          Default ``False``.
-      return_measurement_matrices (bool, optional): When True, also return
-          the sparse measurements-to-detectors (m2d) and
-          measurements-to-observables (m2o) matrices alongside the DEM text.
-          Default ``False``.
+      kernel: The kernel to analyze.
+      *arguments: Forwarded to the kernel.
+      noise_model: Optional noise model.
+      decompose_errors (bool): Default ``False``.
+      fold_loops (bool): Default ``False``.
+      allow_gauge_detectors (bool): Default ``False``.
+      approximate_disjoint_errors_threshold (float): Default ``0.0``.
+      ignore_decomposition_failures (bool): Default ``False``.
+      block_decomposition_from_introducing_remnant_edges (bool): Default ``False``.
+      return_measurement_matrices (bool): When ``False``, ``m2d_matrix`` /
+          ``m2o_matrix`` will be ``None``. Default ``True``.
 
     Returns:
-      If `return_measurement_matrices` is False (default): a UTF-8 string in
-      Stim's standard `.dem` file format. Consumers that need a structured DEM
-      can parse it with `stim.DetectorErrorModel(text)`.
-
-      If `return_measurement_matrices` is True: a tuple
-      ``(dem_text, m2d, m2o)`` where both matrices are
-      ``scipy.sparse.csr_matrix`` with binary entries.
-      ``m2d`` has shape ``(num_detectors, num_measurements)``: entry
-      ``m2d[d, m] == 1`` means measurement ``m`` contributes to detector ``d``.
-      ``m2o`` has shape ``(num_observables, num_measurements)``: entry
-      ``m2o[k, m] == 1`` means measurement ``m`` contributes to observable ``k``.
-      Measurement indices are chronological.
+      :class:`DEMResult`
     """
+    # Ensure Python-typed members are attached before the first result arrives.
+    _get_dem_result_class()
+
     _detail_check_conditionals_on_measure(kernel)
 
     unknown = set(dem_kwargs) - _VALID_DEM_OPTION_KEYS
@@ -88,31 +179,12 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
             f"dem_from_kernel: unknown keyword argument(s) {sorted(unknown)}. "
             f"Valid options: {sorted(_VALID_DEM_OPTION_KEYS)}")
 
+    dem_kwargs.setdefault("return_measurement_matrices", True)
+
     if isa_kernel_decorator(kernel):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
     policy = cudaq_runtime.DemPolicy(decorator.uniqName, noise_model,
                                      dem_kwargs)
-    result = cudaq_runtime.launch_dem(policy, lambda: decorator(*args))
-
-    if not policy.return_measurement_matrices:
-        return result
-
-    import numpy as np
-    import scipy.sparse as sp
-
-    # Positional 4-tuple order is the shared contract with `launch_dem`.
-    dem_text, num_measurements, det_rows, obs_rows = result
-
-    def _make_csr(rows, num_cols):
-        row_idx = [r for r, ms in enumerate(rows) for _ in ms]
-        col_idx = [m for ms in rows for m in ms]
-        return sp.csr_matrix(
-            (np.ones(len(row_idx), dtype=np.uint8), (row_idx, col_idx)),
-            shape=(len(rows), num_cols),
-        )
-
-    m2d = _make_csr(det_rows, num_measurements)
-    m2o = _make_csr(obs_rows, num_measurements)
-    return dem_text, m2d, m2o
+    return cudaq_runtime.launch_dem(policy, lambda: decorator(*args))

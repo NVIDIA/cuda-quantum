@@ -6,13 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "py_dem.h"
-#include "common/ExecutionContext.h"
-#include "common/NoiseModel.h"
-#include "cudaq/algorithms/dem.h"
-#include "cudaq/platform.h"
+#include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+
+#include "common/ExecutionContext.h"
+#include "common/NoiseModel.h"
+#include "nlohmann/json.hpp"
+#include "py_dem.h"
+#include "utils/NanobindAdaptors.h"
+#include "cudaq/algorithms/dem.h"
+#include "cudaq/platform.h"
 #include <string>
 
 using namespace cudaq;
@@ -63,18 +67,10 @@ static void construct_dem_policy(dem_policy *self,
   self->options = parseDemOptions(options);
 }
 
-static nanobind::object launch_dem(const dem_policy &policy,
-                                   nanobind::callable callable) {
-  auto result = cudaq::detail::launchDem(policy, cudaq::get_platform(),
-                                         [&]() { callable(); });
-  if (!policy.options.return_measurement_matrices)
-    return nanobind::cast(std::move(result.dem));
-  // Positional 4-tuple contract with `dem.py`: (dem_text, num_measurements,
-  // det_rows, obs_rows).
-  return nanobind::make_tuple(nanobind::cast(std::move(result.dem)),
-                              nanobind::cast(result.m2d.num_measurements),
-                              nanobind::cast(std::move(result.m2d.rows)),
-                              nanobind::cast(std::move(result.m2o.rows)));
+static dem_result launch_dem(const dem_policy &policy,
+                             nanobind::callable callable) {
+  return cudaq::detail::launchDem(policy, cudaq::get_platform(),
+                                  [&]() { callable(); });
 }
 
 void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
@@ -87,6 +83,77 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
       .def_prop_ro("return_measurement_matrices", [](const dem_policy &policy) {
         return policy.options.return_measurement_matrices;
       });
+
+  // Bind dem_result as DEMResult. Python-typed members (scipy matrices,
+  // from_matrices classmethod, __str__/__repr__) are attached from Python in
+  // dem.py so that scipy never appears in the binding layer.
+  nanobind::class_<dem_result>(mod, "DEMResult", nanobind::dynamic_attr())
+      .def(
+          "__init__",
+          [](dem_result *self, const std::string &dem,
+             const std::vector<std::vector<std::size_t>> &m2d,
+             const std::vector<std::vector<std::size_t>> &m2o,
+             std::size_t num_detectors, std::size_t num_observables,
+             std::size_t num_measurements, const nlohmann::json &annotations) {
+            new (self) dem_result();
+            self->dem = dem;
+            self->m2d.rows = m2d;
+            self->m2o.rows = m2o;
+            self->num_detectors = num_detectors;
+            self->num_observables = num_observables;
+            self->num_measurements = num_measurements;
+            self->matrices_computed = !m2d.empty() || !m2o.empty();
+            self->annotations = cudaq_json(annotations);
+          },
+          nanobind::arg("dem"),
+          nanobind::arg("m2d") = std::vector<std::vector<std::size_t>>{},
+          nanobind::arg("m2o") = std::vector<std::vector<std::size_t>>{},
+          nanobind::arg("num_detectors") = std::size_t(0),
+          nanobind::arg("num_observables") = std::size_t(0),
+          nanobind::arg("num_measurements") = std::size_t(0),
+          nanobind::arg("annotations") = nlohmann::json::object(),
+          R"#(Construct a DEMResult.
+
+Args:
+  dem (str): DEM text in Stim's ``.dem`` format.
+  m2d (list[list[int]], optional): Measurement-to-detector row lists.
+  m2o (list[list[int]], optional): Measurement-to-observable row lists.
+  num_detectors (int, optional): Number of detectors.
+  num_observables (int, optional): Number of logical observables.
+  num_measurements (int, optional): Total measurement count.
+  annotations (dict, optional): Endpoint metadata.)#")
+      .def_ro("dem", &dem_result::dem, "DEM text in Stim's ``.dem`` format.")
+      .def_prop_ro(
+          "m2d",
+          [](const dem_result &self)
+              -> const std::vector<std::vector<std::size_t>> & {
+            return self.m2d.rows;
+          },
+          "Measurement-to-detector row lists (neutral C++ form).")
+      .def_prop_ro(
+          "m2o",
+          [](const dem_result &self)
+              -> const std::vector<std::vector<std::size_t>> & {
+            return self.m2o.rows;
+          },
+          "Measurement-to-observable row lists (neutral C++ form).")
+      .def_ro("num_detectors", &dem_result::num_detectors)
+      .def_ro("num_observables", &dem_result::num_observables)
+      .def_ro("num_measurements", &dem_result::num_measurements)
+      .def_ro("matrices_computed", &dem_result::matrices_computed,
+              "True when m2d / m2o were populated.")
+      .def_prop_ro(
+          "annotations",
+          [](dem_result &self) -> nlohmann::json & {
+            auto &j = self.annotations.get();
+            // Default cudaq_json() is null; promote to empty object so the
+            // property always returns a mutable dict, matching SampleResult.
+            if (j.is_null())
+              j = nlohmann::json::object();
+            return j;
+          },
+          "Extensible endpoint metadata dict. Mutate in place: "
+          "``result.annotations['key'] = value``.");
 
   mod.def("launch_dem", launch_dem, "Policy based DEM launch.",
           nanobind::arg("policy"), nanobind::arg("callable"));

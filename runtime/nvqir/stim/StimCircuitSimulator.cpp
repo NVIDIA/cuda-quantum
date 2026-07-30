@@ -223,20 +223,23 @@ protected:
     return result;
   }
 
-  /// @brief Populate the measurement matrices in @p result from
-  /// `recordedCircuit`.
+  /// @brief Populate the measurement matrices in @p result from @p flat.
   /// Rows = detectors/observables, cols = measurements; non-zero entries are 1.
+  ///
+  /// @p flat must be the already-flattened circuit (caller owns flattening so
+  /// compute_stats() is not called a second time here).
+  /// result.num_* and result.m2d/m2o.num_measurements must be pre-filled by
+  /// the caller before this is invoked.
   ///
   /// Duplicate measurement targets within a single DETECTOR or
   /// OBSERVABLE_INCLUDE instruction are collapsed modulo 2 (GF(2) XOR): an
   /// index that appears an even number of times cancels out.
-  void computeMeasurementMatrices(cudaq::dem_result &result) {
-    auto flat = recordedCircuit.flattened();
-    auto stats = flat.compute_stats();
-    result.m2d.num_measurements = stats.num_measurements;
-    result.m2o.num_measurements = stats.num_measurements;
-    result.m2d.rows.resize(stats.num_detectors);
-    result.m2o.rows.resize(stats.num_observables);
+  void computeMeasurementMatrices(cudaq::dem_result &result,
+                                  const stim::Circuit &flat) {
+    result.m2d.num_measurements = result.num_measurements;
+    result.m2o.num_measurements = result.num_measurements;
+    result.m2d.rows.resize(result.num_detectors);
+    result.m2o.rows.resize(result.num_observables);
 
     // XOR-dedup: remove indices that appear an even number of times in @p row.
     auto xorDedup = [](std::vector<std::size_t> &row) {
@@ -318,8 +321,19 @@ protected:
                      options.ignore_decomposition_failures,
                      options.block_decomposition_from_introducing_remnant_edges)
                      .str();
-    if (policy.options.return_measurement_matrices)
-      computeMeasurementMatrices(result);
+
+    // Always populate counts — repr and downstream helpers depend on them even
+    // when the caller opts out of the full matrices.
+    auto flat = recordedCircuit.flattened();
+    auto stats = flat.compute_stats();
+    result.num_detectors = stats.num_detectors;
+    result.num_observables = stats.num_observables;
+    result.num_measurements = stats.num_measurements;
+
+    if (options.return_measurement_matrices) {
+      computeMeasurementMatrices(result, flat);
+      result.matrices_computed = true;
+    }
     return result;
   }
 

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/cudaq_json.h"
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -50,6 +51,19 @@ struct dem_result {
 
   /// @brief The measurement-to-observable sparse matrix.
   M2OSparseMatrix m2o;
+
+  std::size_t num_detectors = 0;
+  std::size_t num_observables = 0;
+  std::size_t num_measurements = 0;
+
+  /// @brief True when m2d / m2o were populated; false when the caller opted
+  /// out via return_measurement_matrices=False. Distinguishes "not computed"
+  /// from "computed but empty (zero-detector circuit)".
+  bool matrices_computed = false;
+
+  /// @brief Extensible endpoint metadata. Empty by default; runtime endpoints
+  /// may attach information the contract does not otherwise model.
+  cudaq_json annotations;
 };
 
 } // namespace cudaq
