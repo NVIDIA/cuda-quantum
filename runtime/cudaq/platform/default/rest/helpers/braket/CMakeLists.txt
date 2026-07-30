@@ -18,4 +18,5 @@ target_link_libraries(cudaq-serverhelper-braket
     fmt::fmt-header-only
     ${AWSSDK_LINK_LIBRARIES})
 
-install(TARGETS cudaq-serverhelper-braket DESTINATION lib)
+install(TARGETS cudaq-serverhelper-braket DESTINATION lib
+        COMPONENT Runtime)
