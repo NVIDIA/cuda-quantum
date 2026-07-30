@@ -128,6 +128,25 @@ except Exception:
     pass
 
 
+def _discover_external_backends() -> None:
+    """Load `cudaq.backends` entry points after runtime symbols are exported."""
+    try:
+        from importlib.metadata import entry_points as _entry_points
+        import traceback as _traceback
+
+        for _ep in _entry_points(group='cudaq.backends'):
+            try:
+                _ep.load()()
+            except Exception:
+                warnings.warn(
+                    f"cudaq.backends entry point {_ep.name!r} failed to load:\n"
+                    f"{_traceback.format_exc()}",
+                    stacklevel=1,
+                )
+    except Exception:
+        pass
+
+
 def _patch_mlir_isinstance() -> None:
     import builtins
 
@@ -246,6 +265,9 @@ reset_target = cudaq_runtime.reset_target
 has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
 get_targets = cudaq_runtime.get_targets
+register_backend_path = cudaq_runtime.register_backend_path
+_discover_external_backends()
+del _discover_external_backends
 set_random_seed = cudaq_runtime.set_random_seed
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus

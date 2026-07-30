@@ -102,9 +102,3 @@ const void *cudaq::SourceModule::getMlirOpaqueModulePtr() const {
     return nullptr;
   return mlirArt->getOpaqueModulePtr();
 }
-
-void cudaq::CompiledModule::setCacheKey(std::size_t targetHash,
-                                        std::size_t moduleHash) {
-  metadata.targetHash = targetHash;
-  metadata.moduleHash = moduleHash;
-}

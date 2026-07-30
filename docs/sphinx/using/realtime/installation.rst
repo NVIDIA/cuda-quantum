@@ -63,7 +63,7 @@ Setup
 
   .. note:: 
 
-    Please make sure to `set up the host system <https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html>`__ and the `set up the HSB FPGA device IP address <https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration>`__.
+    Please make sure to `set up the host system <https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/host-setup>`__ and the `set up the HSB FPGA device IP address <https://docs.nvidia.com/holoscan/sensor-bridge/applications/architecture#datachannel-enumeration-and-ip-address-configuration>`__.
 
 .. tab:: Using Custom Networking Layer
   

@@ -33,6 +33,8 @@ public:
     // so we must track a new list of controls and reconstruct the operands
     // instead of replacing the controls in place.
     SmallVector<Value> newControls;
+    SmallVector<bool> newNegatedControls;
+    auto negatedControls = op.getNegatedQubitControls();
     bool update = false;
 
     // Search through the controls for veqs with known sizes
@@ -58,13 +60,22 @@ public:
           newControls.push_back(ext);
           update = true;
         }
+
+        if (negatedControls)
+          newNegatedControls.append(*size, (*negatedControls)[index]);
       } else {
         newControls.push_back(control);
+        if (negatedControls)
+          newNegatedControls.push_back((*negatedControls)[index]);
       }
     }
 
     if (!update)
       return failure();
+
+    DenseBoolArrayAttr negatedControlsAttr;
+    if (negatedControls)
+      negatedControlsAttr = rewriter.getDenseBoolArrayAttr(newNegatedControls);
 
     // Reconstruct the operation with the new controls
     auto segmentSizes = rewriter.getDenseI32ArrayAttr(
@@ -73,8 +84,8 @@ public:
          static_cast<int32_t>(op.getTargets().size())});
 
     auto newOp = rewriter.replaceOpWithNewOp<OP>(
-        op, op.getIsAdj(), op.getParameters(), newControls, op.getTargets(),
-        op.getNegatedQubitControlsAttr());
+        op, op.getResultTypes(), op.getIsAdjAttr(), op.getParameters(),
+        newControls, op.getTargets(), negatedControlsAttr);
 
     newOp->setAttr("operand_segment_sizes", segmentSizes);
 

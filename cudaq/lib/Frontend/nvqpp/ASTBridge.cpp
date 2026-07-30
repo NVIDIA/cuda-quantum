@@ -13,12 +13,14 @@
 #include "clang/AST/ParentMapContext.h"
 #include "clang/Basic/TargetCXXABI.h"
 #include "clang/Basic/TargetInfo.h"
+#include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/DependencyOutputOptions.h"
 #include "clang/Frontend/TextDiagnosticPrinter.h"
 #include "clang/Frontend/Utils.h"
 #include "clang/Lex/Preprocessor.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/FileSystem.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/IRMapping.h"
 #include <cxxabi.h>
@@ -37,6 +39,50 @@ using namespace mlir;
 // all, which will avoid any/all random crashes in the MLIR printer.
 llvm::cl::opt<unsigned> debugOpNameOnly("lower-ast-values", llvm::cl::init(0));
 
+namespace {
+/// A DependencyFileGenerator that rewrites every recorded prerequisite to its
+/// canonical on-disk path. cudaq-quake runs the frontend through
+/// clang::tooling, which distorts the paths clang would normally emit:
+///   - The main input is mapped to a virtual file named after the (bare) input
+///     spelling, so it is recorded as e.g. "main.cpp" instead of its real path.
+///   - libstdc++ headers are recorded with the search-directory spelling clang
+///     computed in the tooling context, which carries a bogus empty install
+///     prefix, e.g. "/../lib/gcc/.../../../../include/c++/13/cstddef".
+/// Both spellings still resolve on disk (the second via the /lib -> /usr/lib
+/// symlink), but once Ninja textually canonicalizes them they no longer stat,
+/// so every object is treated as perpetually out of date. Resolving each entry
+/// with real_path, and substituting the real main-file path, yields
+/// prerequisites Ninja can match.
+class CanonicalDependencyFileGenerator : public clang::DependencyFileGenerator {
+public:
+  CanonicalDependencyFileGenerator(const clang::DependencyOutputOptions &opts,
+                                   std::string mainFileVirtualName,
+                                   std::string mainFileRealPath)
+      : clang::DependencyFileGenerator(opts),
+        mainFileVirtualName(std::move(mainFileVirtualName)),
+        mainFileRealPath(std::move(mainFileRealPath)) {}
+
+  void maybeAddDependency(llvm::StringRef filename, bool fromModule,
+                          bool isSystem, bool isModuleFile,
+                          bool isMissing) override {
+    llvm::SmallString<256> resolved;
+    if (!mainFileRealPath.empty() && filename == mainFileVirtualName) {
+      resolved.assign(mainFileRealPath);
+    } else if (llvm::sys::fs::real_path(filename, resolved)) {
+      // real_path failed (e.g. a genuinely missing header): keep the original
+      // spelling so an -MP phony target is still emitted for it.
+      resolved.assign(filename);
+    }
+    clang::DependencyFileGenerator::maybeAddDependency(
+        resolved, fromModule, isSystem, isModuleFile, isMissing);
+  }
+
+private:
+  std::string mainFileVirtualName;
+  std::string mainFileRealPath;
+};
+} // namespace
+
 void cudaq::ASTBridgeAction::attachDependencyFileGenerator(
     clang::CompilerInstance &ci) {
   if (dependencyFileOptions.outputFile.empty())
@@ -53,7 +99,15 @@ void cudaq::ASTBridgeAction::attachDependencyFileGenerator(
     depOpts.Targets.push_back(dependencyFileOptions.outputFile);
   else
     depOpts.Targets = dependencyFileOptions.targets;
-  auto gen = std::make_shared<clang::DependencyFileGenerator>(depOpts);
+  // The virtual name clang::tooling mapped the main source to; used to rewrite
+  // that entry to the real path (see CanonicalDependencyFileGenerator).
+  std::string mainFileVirtualName;
+  const auto &inputs = ci.getFrontendOpts().Inputs;
+  if (!inputs.empty() && inputs.front().isFile())
+    mainFileVirtualName = inputs.front().getFile().str();
+  auto gen = std::make_shared<CanonicalDependencyFileGenerator>(
+      depOpts, std::move(mainFileVirtualName),
+      dependencyFileOptions.mainFileRealPath);
   gen->attachToPreprocessor(ci.getPreprocessor());
   ci.addDependencyCollector(gen);
 }

@@ -11,7 +11,7 @@ When building from source, use the matching `fpga/nv_hsb_ip` RTL source from the
 same HSB repository checkout.
 
 More details about how the `Holoscan Sensor Bridge` (`HSB`) IP can be incorporated
-can be found [here](https://docs.nvidia.com/holoscan/sensor-bridge/latest/fpga_index.html)
+can be found [here](https://docs.nvidia.com/holoscan/sensor-bridge/fpga-ip/ip-integration)
 
 Furthermore, for this experiment, we need the Integrated Logic Analyzer (`ILA`)
 to keep the captured measurements. See the "Hololink IP:
@@ -27,7 +27,7 @@ the capabilities required.
 2. Setup the host to run the experiment.
 Mainly the IP address of the NIC needs to be set to `192.168.0.101`.
 More details can be found at the
-*Data Channel Enumeration and IP Address Configuration* section of [this document](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html)
+*Data Channel Enumeration and IP Address Configuration* section of [this document](https://docs.nvidia.com/holoscan/sensor-bridge/applications/architecture#datachannel-enumeration-and-ip-address-configuration)
 3. Download the accompanying software from the [released RFSoC PYNQ source](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/pynq)
 
    Then generate the docker:

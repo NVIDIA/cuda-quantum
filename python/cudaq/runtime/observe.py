@@ -27,12 +27,13 @@ def isValidObserveKernel(kernel):
                                                    decorator.qkeModule)
 
 
-def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
+def __broadcastObserve(kernel, spin_operator, *args, shots_count=-1, qpu_id=0):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
     kernel_name = kernel.name if hasattr(kernel, 'name') else ''
-    ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
+    ctx_shots = shots_count if shots_count > 0 else 0
+    ctx = cudaq_runtime.ExecutionContext('observe', ctx_shots, qpu_id)
     ctx.totalIterations = N
     ctx.setSpinOperator(spin_operator)
     ctx.kernelName = kernel_name
@@ -50,7 +51,7 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
 def observe(kernel,
             spin_operator,
             *args,
-            shots_count=0,
+            shots_count=-1,
             noise_model=None,
             num_trajectories=None,
             execution=None,

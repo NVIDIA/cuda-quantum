@@ -25,6 +25,14 @@ def reset_run_clear():
     cudaq.reset_target()
 
 
+def assert_unbound_once(kernel, source):
+    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)) as error:
+        kernel.compile()
+    message = str(error.value)
+    assert message.count(_UNBOUND_DIAG) == 1
+    assert f"(offending source -> {source}" in message
+
+
 def test_host_construction_raises_runtime_error():
     with pytest.raises(RuntimeError,
                        match="can be used only in CUDA-Q kernels"):
@@ -114,26 +122,21 @@ def test_unbound_handle_in_return_is_diagnosed():
 
     @cudaq.kernel
     def k() -> bool:
-        h = cudaq.measure_handle()
-        return h
+        mh = cudaq.measure_handle()
+        return mh
 
-    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)) as ei:
-        k.compile()
-    assert str(ei.value).count(_UNBOUND_DIAG) == 1, (
-        "unbound-handle diagnostic must fire exactly once (no double-emit "
-        "from a residual outer 'unsupported' branch); got:\n" + str(ei.value))
+    assert_unbound_once(k, "return mh")
 
 
 def test_unbound_handle_in_if_test_is_diagnosed():
 
     @cudaq.kernel
     def k():
-        h = cudaq.measure_handle()
-        if h:
+        mh = cudaq.measure_handle()
+        if mh:
             pass
 
-    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)):
-        k.compile()
+    assert_unbound_once(k, "if mh:")
 
 
 def test_unbound_handle_in_bool_call_is_diagnosed():
@@ -142,20 +145,18 @@ def test_unbound_handle_in_bool_call_is_diagnosed():
     def k() -> bool:
         return bool(cudaq.measure_handle())
 
-    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)):
-        k.compile()
+    assert_unbound_once(k, "bool(cudaq.measure_handle())")
 
 
 def test_unbound_handle_in_while_test_is_diagnosed():
 
     @cudaq.kernel
     def k():
-        h = cudaq.measure_handle()
-        while h:
+        mh = cudaq.measure_handle()
+        while mh:
             pass
 
-    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)):
-        k.compile()
+    assert_unbound_once(k, "while mh:")
 
 
 def test_unbound_handle_in_unary_not_is_diagnosed():
@@ -164,8 +165,7 @@ def test_unbound_handle_in_unary_not_is_diagnosed():
     def k() -> bool:
         return not cudaq.measure_handle()
 
-    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)):
-        k.compile()
+    assert_unbound_once(k, "not cudaq.measure_handle()")
 
 
 def test_unbound_handle_in_boolop_and_is_diagnosed():
@@ -178,8 +178,17 @@ def test_unbound_handle_in_boolop_and_is_diagnosed():
         q = cudaq.qubit()
         return cudaq.measure_handle() and mz(q)
 
-    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)):
-        k.compile()
+    assert_unbound_once(k, "cudaq.measure_handle() and mz(q)")
+
+
+def test_unbound_handle_in_boolop_or_is_diagnosed():
+
+    @cudaq.kernel
+    def k() -> bool:
+        q = cudaq.qubit()
+        return cudaq.measure_handle() or mz(q)
+
+    assert_unbound_once(k, "cudaq.measure_handle() or mz(q)")
 
 
 def test_unbound_handle_in_compare_eq_is_diagnosed():
@@ -189,8 +198,182 @@ def test_unbound_handle_in_compare_eq_is_diagnosed():
         q = cudaq.qubit()
         return cudaq.measure_handle() == mz(q)
 
-    with pytest.raises(RuntimeError, match=re.escape(_UNBOUND_DIAG)):
-        k.compile()
+    assert_unbound_once(k, "cudaq.measure_handle() == mz(q)")
+
+
+def test_unbound_handle_in_arithmetic_is_diagnosed():
+
+    @cudaq.kernel
+    def k() -> int:
+        return cudaq.measure_handle() + 1
+
+    assert_unbound_once(k, "cudaq.measure_handle() + 1")
+
+
+def test_scalar_measurement_results_and_bind_before_use_compile():
+
+    @cudaq.kernel
+    def kx() -> bool:
+        q = cudaq.qubit()
+        return bool(mx(q))
+
+    @cudaq.kernel
+    def ky() -> bool:
+        q = cudaq.qubit()
+        return bool(my(q))
+
+    @cudaq.kernel
+    def kz() -> bool:
+        q = cudaq.qubit()
+        return bool(mz(q))
+
+    @cudaq.kernel
+    def bind_before_use() -> bool:
+        q = cudaq.qubit()
+        mh = cudaq.measure_handle()
+        mh = mz(q)
+        return bool(mh)
+
+    for kernel in (kx, ky, kz, bind_before_use):
+        kernel.compile()
+
+
+def test_scalar_measure_handle_reassignment_to_default_is_diagnosed():
+
+    @cudaq.kernel
+    def k() -> bool:
+        q = cudaq.qubit()
+        mh = mz(q)
+        unused = bool(mh)
+        mh = cudaq.measure_handle()
+        return bool(mh)
+
+    assert_unbound_once(k, "bool(mh)")
+
+
+def test_scalar_measure_handle_use_before_bind_is_diagnosed():
+
+    @cudaq.kernel
+    def k() -> bool:
+        q = cudaq.qubit()
+        mh = cudaq.measure_handle()
+        use_before_bind = bool(mh)
+        mh = mz(q)
+        return use_before_bind
+
+    assert_unbound_once(k, "bool(mh)")
+
+
+def test_scalar_measure_handle_cache_is_per_alloca():
+
+    @cudaq.kernel
+    def k() -> bool:
+        q = cudaq.qubit()
+        bound_mh = mz(q)
+        unused = bool(bound_mh)
+        unbound_mh = cudaq.measure_handle()
+        return bool(unbound_mh)
+
+    assert_unbound_once(k, "bool(unbound_mh)")
+
+
+def test_scalar_measure_handle_uncertain_provenance_compiles():
+
+    @cudaq.kernel
+    def one_branch(condition: bool) -> bool:
+        q = cudaq.qubit()
+        mh = cudaq.measure_handle()
+        if condition:
+            mh = mz(q)
+        return bool(mh)
+
+    @cudaq.kernel
+    def both_branches(condition: bool) -> bool:
+        q = cudaq.qubit()
+        mh = cudaq.measure_handle()
+        if condition:
+            mh = mx(q)
+        else:
+            mh = my(q)
+        return bool(mh)
+
+    @cudaq.kernel
+    def loop_carried(count: int) -> bool:
+        q = cudaq.qubit()
+        mh = cudaq.measure_handle()
+        for _ in range(count):
+            mh = mz(q)
+        return bool(mh)
+
+    @cudaq.kernel
+    def alias_branch(condition: bool) -> bool:
+        q = cudaq.qubit()
+        mh = cudaq.measure_handle()
+        mh_alias = mh
+        if condition:
+            mh_alias = mz(q)
+        return bool(mh)
+
+    for kernel in (one_branch, both_branches, loop_carried, alias_branch):
+        kernel.compile()
+
+
+def test_scalar_measure_handle_function_values_compile():
+
+    @cudaq.kernel
+    def produce_mh(q: cudaq.qubit) -> cudaq.measure_handle:
+        return mz(q)
+
+    @cudaq.kernel
+    def consume_mh(q: cudaq.qubit, mh: cudaq.measure_handle) -> bool:
+        return bool(mh)
+
+    @cudaq.kernel
+    def call_result() -> bool:
+        q = cudaq.qubit()
+        mh = produce_mh(q)
+        return bool(mh)
+
+    consume_mh.compile()
+    call_result.compile()
+
+
+def test_repeated_bound_handle_coercions_scan_once(monkeypatch):
+    from cudaq.kernel.ast_bridge import PyASTBridge
+
+    scan_name = "_PyASTBridge__scanMeasureHandleAllocaStores"
+    lookup_name = "_PyASTBridge__isProvablyUnboundHandleSource"
+    original_scan = getattr(PyASTBridge, scan_name)
+    original_lookup = getattr(PyASTBridge, lookup_name)
+    calls = {"lookup": 0, "scan": 0}
+
+    def counting_scan(self, storage):
+        calls["scan"] += 1
+        return original_scan(self, storage)
+
+    def counting_lookup(self, value):
+        calls["lookup"] += 1
+        return original_lookup(self, value)
+
+    monkeypatch.setattr(PyASTBridge, scan_name, counting_scan)
+    monkeypatch.setattr(PyASTBridge, lookup_name, counting_lookup)
+
+    @cudaq.kernel
+    def k():
+        q = cudaq.qubit()
+        mh = mz(q)
+        mh_alias = mh
+        value_0 = bool(mh)
+        value_1 = bool(mh_alias)
+        value_2 = bool(mh)
+        value_3 = bool(mh_alias)
+        value_4 = bool(mh)
+        value_5 = bool(mh_alias)
+        value_6 = bool(mh)
+        value_7 = bool(mh_alias)
+
+    k.compile()
+    assert calls == {"lookup": 8, "scan": 1}
 
 
 # ---------------------------------------------------------------------------

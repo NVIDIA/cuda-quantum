@@ -58,6 +58,10 @@ void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
 }
 
+void ExecutionManager::configureExecutionContext(const run_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
 void ExecutionManager::configureExecutionContext(
     const msm_size_policy &policy) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
@@ -85,6 +89,7 @@ void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
           ctx.result = r.raw_data();
           ctx.expectationValue = r.expectation();
         },
+        [&](run_result &&r) {},
         [&](msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
         [&](msm_result &&r) {
           ctx.result = std::move(r.samples);
