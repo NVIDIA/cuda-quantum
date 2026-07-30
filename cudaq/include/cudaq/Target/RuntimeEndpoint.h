@@ -51,8 +51,8 @@ struct RuntimeEndpoint {
   detail::launch_fn_type<dem_policy> dem = nullptr;
   detail::launch_fn_type<ptsbe::sample_policy> ptsbe_sample = nullptr;
 
-  /// Store any RuntimeEndpoint state here. Will be passed to each launch
-  /// invocation.
+  /// Store any RuntimeEndpoint state here. Passed by mutable reference to each
+  /// launch invocation.
   std::any impl;
 
   template <typename Policy>
@@ -61,7 +61,7 @@ struct RuntimeEndpoint {
                                             KernelArgs args) {
     auto fn = this->*detail::runtime_endpoint_fn<Policy>::member;
     if (!fn) {
-      throw std::runtime_error(std::string("Unsupported policy: ") +
+      throw std::runtime_error(std::string("Unsupported policy: '") +
                                get_policy_name(policy) + "'");
     }
     return fn(impl, policy, module, args);

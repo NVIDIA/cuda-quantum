@@ -294,13 +294,30 @@ quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
   return qpu->unifiedLaunchModule(module, args);
 }
 
-RuntimeEndpoint quantum_platform::getRuntimeEndpoint(std::size_t qpuId) const {
+void quantum_platform::ensureRuntimeEndpointExists(std::size_t qpuId,
+                                                   bool allowNullopt) {
   validateQpuId(qpuId);
-  if (qpuId < runtimeEndpoints.size()) {
-    return runtimeEndpoints[qpuId];
+  std::scoped_lock lock(runtimeEndpointsMutex);
+  if (runtimeEndpoints.size() <= qpuId)
+    runtimeEndpoints.resize(platformQPUs.size());
+  if (!allowNullopt && !runtimeEndpoints[qpuId].has_value()) {
+    runtimeEndpoints[qpuId] = RuntimeEndpoint::wrapQPU(*platformQPUs[qpuId]);
   }
-  // Fallback: create a RuntimeEndpoint from the current QPU.
-  return RuntimeEndpoint::wrapQPU(*platformQPUs[qpuId]);
+}
+
+void quantum_platform::setCompileTarget(std::optional<CompileTarget> target) {
+  compileTarget = std::move(target);
+}
+
+RuntimeEndpoint &quantum_platform::getRuntimeEndpoint(std::size_t qpuId) {
+  ensureRuntimeEndpointExists(qpuId);
+  return *runtimeEndpoints[qpuId];
+}
+
+void quantum_platform::setRuntimeEndpoint(
+    std::optional<RuntimeEndpoint> endpoint, std::size_t qpuId) {
+  ensureRuntimeEndpointExists(qpuId, /*allowNullopt=*/true);
+  runtimeEndpoints[qpuId] = std::move(endpoint);
 }
 
 void quantum_platform::onRandomSeedSet(std::size_t seed) {

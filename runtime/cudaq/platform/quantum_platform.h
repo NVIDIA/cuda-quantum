@@ -25,11 +25,14 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
+#include <deque>
 #include <functional>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace cudaq {
 
@@ -135,8 +138,8 @@ public:
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformQPUs.size(); }
 
-  /// Get the RuntimeEndpoint for the QPU with ID qpuId.
-  RuntimeEndpoint getRuntimeEndpoint(std::size_t qpuId = 0) const;
+  /// Get the RuntimeEndpoint for the QPU with ID @p qpuId.
+  RuntimeEndpoint &getRuntimeEndpoint(std::size_t qpuId = 0);
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
@@ -213,8 +216,6 @@ public:
   getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
     validateQpuId(qpu_id);
     if (compileTarget.has_value()) {
-      // TODO: Check that it's fine to enforce a single `CompileTarget` for all
-      // QPUs on MultiQPU platforms (seems to be the case for now).
       return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
     }
     // Fallback to old behaviour: query the QPU for its compile target.
@@ -227,8 +228,6 @@ public:
                    std::size_t qpu_id = 0) {
     validateQpuId(qpu_id);
     if (compileTarget.has_value()) {
-      // TODO: Check that it's fine to enforce a single `CompileTarget` for all
-      // QPUs on MultiQPU platforms (seems to be the case for now).
       return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
     }
     // Fallback to old behaviour: query the QPU for its compile target.
@@ -258,6 +257,13 @@ protected:
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
 
+  /// Set the compile target for the platform.
+  void setCompileTarget(std::optional<CompileTarget> target);
+
+  /// Set the runtime endpoint for the platform.
+  void setRuntimeEndpoint(std::optional<RuntimeEndpoint> endpoint,
+                          std::size_t qpuId = 0);
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
@@ -275,8 +281,8 @@ protected:
   /// The runtime endpoints for launching kernels on the platform.
   ///
   /// If not set, defaults to creating a RuntimeEndpoint from the respective
-  /// QPU.
-  std::vector<RuntimeEndpoint> runtimeEndpoints;
+  /// QPU. Using a `deque` to keep references to existing elements valid.
+  std::deque<std::optional<RuntimeEndpoint>> runtimeEndpoints;
 
   /// Name of the platform.
   std::string platformName;
@@ -286,6 +292,13 @@ private:
 
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
+
+  // Ensure a runtime endpoint exists for the given QPU ID, or create it. If
+  // @p allowNullopt is true, a slot will be created in `runtimeEndpoints` but
+  // it will be null.
+  void ensureRuntimeEndpointExists(std::size_t qpuId,
+                                   bool allowNullopt = false);
+  std::mutex runtimeEndpointsMutex;
 
   int libraryModeOverride = 0;
 };
