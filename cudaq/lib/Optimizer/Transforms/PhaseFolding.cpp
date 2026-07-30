@@ -245,8 +245,7 @@ public:
     auto nlindex = netlists.size();
     refop->setAttr(
         "nlindex",
-        IntegerAttr::get(IntegerType::get(refop->getContext(), 64),
-                               nlindex));
+        IntegerAttr::get(IntegerType::get(refop->getContext(), 64), nlindex));
     auto nl = SmallVector<Operation *>();
     netlists.push_back(nl);
   }
@@ -623,6 +622,8 @@ protected:
     while (!anchor_points.empty()) {
       auto next = anchor_points.back();
       anchor_points.pop_back();
+      if (seen.contains(next))
+        continue;
       calculateSubcircuitForQubitForward(dyn_cast<OpResult>(next));
       // Remove next from seen for working backwards
       seen.remove(next);
@@ -667,9 +668,8 @@ public:
 
   SmallVector<Operation *> getOrderedOps() {
     SmallVector<Operation *> ordered(ops.begin(), ops.end());
-    sort(ordered, [](Operation *a, Operation *b) {
-      return a->isBeforeInBlock(b);
-    });
+    sort(ordered,
+         [](Operation *a, Operation *b) { return a->isBeforeInBlock(b); });
     return ordered;
   }
 };
