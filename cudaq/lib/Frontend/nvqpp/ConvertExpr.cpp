@@ -2212,7 +2212,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           StringAttr::get(builder.getContext(), genFuncName));
       ValueRange operands(args);
       assert(operands.size() >= 1 && "must be at least 1 operand");
-      if ((operands.size() == 1) &&
+      if ((targetCount == 1) && (operands.size() == 1) &&
           isa<cudaq::quake::VeqType>(operands[0].getType())) {
         auto target = operands[0];
         if (!negations.empty())
@@ -2235,6 +2235,21 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto [targets, ctrls] =
             maybeUnpackOperands(builder, loc, operands.drop_front(paramCount),
                                 isControl, targetCount);
+        bool allQubits = targets.size() == targetCount;
+        for (auto v : targets)
+          allQubits &= isa<cudaq::quake::RefType>(v.getType());
+        if (!allQubits) {
+          // Broadcasting over a qvector is only defined for single-qubit
+          // custom operations.
+          auto &de = mangler->getASTContext().getDiagnostics();
+          auto id = de.getCustomDiagID(
+              clang::DiagnosticsEngine::Error,
+              "custom operation requires %0 individual qubit target(s)");
+          de.Report(x->getBeginLoc(), id) << (unsigned)targetCount;
+          // Returning `false` here would cause the outer `TraverseStmt` to
+          // emit a second, generic "statement not supported" diagnostic.
+          return true;
+        }
         for (auto v : targets)
           if (std::find(negations.begin(), negations.end(), v) !=
               negations.end())
