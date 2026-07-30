@@ -105,7 +105,7 @@ sample_result countingSampleFn(std::any &impl, const sample_policy &,
 
 template <typename Policy>
 void setLaunchFn(RuntimeEndpoint &endpoint, detail::launch_fn_type<Policy> fn) {
-  endpoint.*detail::runtime_endpoint_fn<Policy>::member = fn;
+  endpoint.dispatch.set<Policy>(fn);
 }
 
 template <typename Policy>
@@ -218,17 +218,19 @@ TEST(QuantumPlatformRuntimeEndpointTester, fallsBackToQpuWhenUnset) {
   auto *qpu = std::any_cast<QPU *>(endpoint.impl);
   ASSERT_NE(qpu, nullptr);
   EXPECT_EQ(qpu, platform.getQpu(0));
-  EXPECT_NE(endpoint.sample, nullptr);
+  EXPECT_NE(endpoint.dispatch.get<sample_policy>(), nullptr);
 }
 
 TEST(QuantumPlatformRuntimeEndpointTester, usesPlatformOverrideWhenSet) {
   TestPlatform platform;
-  platform.setRuntimeEndpoint(
-      RuntimeEndpoint{.sample = taggedSampleFn, .impl = 42});
+  RuntimeEndpoint override;
+  override.dispatch.set<sample_policy>(taggedSampleFn);
+  override.impl = 42;
+  platform.setRuntimeEndpoint(std::move(override));
 
   auto &endpoint = platform.getRuntimeEndpoint(/*qpuId=*/0);
   EXPECT_EQ(std::any_cast<int>(endpoint.impl), 42);
-  EXPECT_EQ(endpoint.sample, taggedSampleFn);
+  EXPECT_EQ(endpoint.dispatch.get<sample_policy>(), taggedSampleFn);
 }
 
 TEST(QuantumPlatformRuntimeEndpointTester, returnsPerQpuOverrides) {
@@ -264,8 +266,10 @@ TEST(QuantumPlatformRuntimeEndpointTester, rejectsInvalidQpuId) {
 TEST(QuantumPlatformRuntimeEndpointTester,
      endpointStatePersistsAcrossLaunches) {
   TestPlatform platform;
-  platform.setRuntimeEndpoint(
-      RuntimeEndpoint{.sample = countingSampleFn, .impl = 0});
+  RuntimeEndpoint counting;
+  counting.dispatch.set<sample_policy>(countingSampleFn);
+  counting.impl = 0;
+  platform.setRuntimeEndpoint(std::move(counting));
 
   CompiledModule module;
   (void)platform.getRuntimeEndpoint().launchKernel(sample_policy{}, module, {});

@@ -11,8 +11,11 @@
 #include "common/KernelArgs.h"
 #include "cudaq/algorithms/policies.h"
 #include <any>
+#include <cstddef>
 #include <stdexcept>
 #include <string>
+#include <tuple>
+#include <type_traits>
 
 namespace cudaq {
 
@@ -21,45 +24,87 @@ class CompiledModule;
 
 namespace detail {
 
-// The compile-time map from policy type to function pointer in RuntimeEndpoint.
-template <typename Policy>
-struct runtime_endpoint_fn {
-  static_assert(sizeof(Policy) == 0, "Unsupported policy");
-};
-
-template <typename Policy>
+template <launch_policy Policy>
 using launch_fn_type = Policy::result_type (*)(std::any &impl,
                                                const Policy &policy,
                                                const CompiledModule &module,
                                                KernelArgs args);
 
+/// Compile-time position of type @c T within a @c std::tuple.
+template <typename T, typename Tuple>
+struct find_pos;
+
+template <typename T, typename... Ts>
+struct find_pos<T, std::tuple<T, Ts...>>
+    : std::integral_constant<std::size_t, 0> {};
+
+template <typename T, typename U, typename... Ts>
+struct find_pos<T, std::tuple<U, Ts...>>
+    : std::integral_constant<std::size_t,
+                             1 + find_pos<T, std::tuple<Ts...>>::value> {};
+
+template <typename T, typename Tuple>
+inline constexpr std::size_t find_pos_v = find_pos<T, Tuple>::value;
+
+/// A table of launch function pointers, one per policy in @c Policies.
+///
+/// Given the canonical policy tuple, this holds a heterogeneous tuple of
+/// @c launch_fn_type<Policy> and exposes a type-keyed @c get accessor.
+template <typename Policies>
+class DispatchTable;
+
+template <launch_policy... Ps>
+class DispatchTable<std::tuple<Ps...>> {
+public:
+  DispatchTable() = default;
+
+  /// Build the table by invoking @p factory once per policy. @p factory must be
+  /// a callable with an explicit template parameter:
+  /// ```
+  /// auto table = DispatchTable::create([]<typename Policy> {
+  ///   ... something that returns a launch_fn_type<Policy>
+  /// });
+  /// ```
+  template <typename Factory>
+  static DispatchTable create(Factory factory) {
+    return DispatchTable{table_type{factory.template operator()<Ps>()...}};
+  }
+
+  /// Retrieve the launch function pointer registered for @p Policy.
+  template <launch_policy Policy>
+  launch_fn_type<Policy> get() const {
+    return std::get<find_pos_v<Policy, std::tuple<Ps...>>>(fns);
+  }
+
+  /// Register the launch function pointer for @p Policy.
+  template <launch_policy Policy>
+  void set(launch_fn_type<Policy> fn) {
+    std::get<find_pos_v<Policy, std::tuple<Ps...>>>(fns) = fn;
+  }
+
+private:
+  using table_type = std::tuple<launch_fn_type<Ps>...>;
+
+  explicit DispatchTable(table_type fns) : fns(std::move(fns)) {}
+
+  table_type fns{};
+};
+
 } // namespace detail
 
 struct RuntimeEndpoint {
-  ///////////////////////////
-  /// Function pointers for all supported launch policies.
-  ///////////////////////////
-
-  detail::launch_fn_type<sample_policy> sample = nullptr;
-  detail::launch_fn_type<async_sample_policy> async_sample = nullptr;
-  detail::launch_fn_type<observe_policy> observe = nullptr;
-  detail::launch_fn_type<async_observe_policy> async_observe = nullptr;
-  detail::launch_fn_type<run_policy> run = nullptr;
-  detail::launch_fn_type<async_run_policy> async_run = nullptr;
-  detail::launch_fn_type<msm_size_policy> msm_size = nullptr;
-  detail::launch_fn_type<msm_policy> msm = nullptr;
-  detail::launch_fn_type<dem_policy> dem = nullptr;
-  detail::launch_fn_type<ptsbe::sample_policy> ptsbe_sample = nullptr;
+  /// Launch function pointers for all supported policies, keyed by policy type.
+  detail::DispatchTable<all_policies> dispatch;
 
   /// Store any RuntimeEndpoint state here. Passed by mutable reference to each
   /// launch invocation.
   std::any impl;
 
-  template <typename Policy>
+  template <launch_policy Policy>
   typename Policy::result_type launchKernel(const Policy &policy,
                                             const CompiledModule &module,
                                             KernelArgs args) {
-    auto fn = this->*detail::runtime_endpoint_fn<Policy>::member;
+    auto fn = dispatch.get<Policy>();
     if (!fn) {
       throw std::runtime_error(std::string("Unsupported policy: '") +
                                get_policy_name(policy) + "'");
@@ -70,26 +115,5 @@ struct RuntimeEndpoint {
   /// Create a RuntimeEndpoint from a QPU instance.
   static RuntimeEndpoint wrapQPU(QPU &qpu);
 };
-
-namespace detail {
-#define CUDAQ_RUNTIME_ENDPOINT_FN(Policy, field)                               \
-  template <>                                                                  \
-  struct runtime_endpoint_fn<Policy> {                                         \
-    static constexpr auto member = &RuntimeEndpoint::field;                    \
-  };
-
-CUDAQ_RUNTIME_ENDPOINT_FN(sample_policy, sample)
-CUDAQ_RUNTIME_ENDPOINT_FN(async_sample_policy, async_sample)
-CUDAQ_RUNTIME_ENDPOINT_FN(observe_policy, observe)
-CUDAQ_RUNTIME_ENDPOINT_FN(async_observe_policy, async_observe)
-CUDAQ_RUNTIME_ENDPOINT_FN(run_policy, run)
-CUDAQ_RUNTIME_ENDPOINT_FN(async_run_policy, async_run)
-CUDAQ_RUNTIME_ENDPOINT_FN(msm_size_policy, msm_size)
-CUDAQ_RUNTIME_ENDPOINT_FN(msm_policy, msm)
-CUDAQ_RUNTIME_ENDPOINT_FN(dem_policy, dem)
-CUDAQ_RUNTIME_ENDPOINT_FN(ptsbe::sample_policy, ptsbe_sample)
-
-#undef CUDAQ_RUNTIME_ENDPOINT_FN
-} // namespace detail
 
 } // namespace cudaq

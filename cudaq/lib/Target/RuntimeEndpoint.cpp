@@ -19,19 +19,9 @@ forwardLaunchKernelToQpu(std::any &impl, const Policy &policy,
 }
 
 cudaq::RuntimeEndpoint cudaq::RuntimeEndpoint::wrapQPU(cudaq::QPU &qpu) {
-  return RuntimeEndpoint{
-      .sample = forwardLaunchKernelToQpu<sample_policy>,
-      .async_sample = forwardLaunchKernelToQpu<async_sample_policy>,
-      .observe = forwardLaunchKernelToQpu<observe_policy>,
-      .async_observe = forwardLaunchKernelToQpu<async_observe_policy>,
-      .run = forwardLaunchKernelToQpu<run_policy>,
-      .async_run = forwardLaunchKernelToQpu<async_run_policy>,
-      .msm_size = forwardLaunchKernelToQpu<msm_size_policy>,
-      .msm = forwardLaunchKernelToQpu<msm_policy>,
-      .dem = forwardLaunchKernelToQpu<dem_policy>,
-      .ptsbe_sample = forwardLaunchKernelToQpu<ptsbe::sample_policy>,
-
-      // QPU state
-      .impl = &qpu,
-  };
+  RuntimeEndpoint ep;
+  ep.dispatch = detail::DispatchTable<all_policies>::create(
+      []<typename P>() { return &forwardLaunchKernelToQpu<P>; });
+  ep.impl = &qpu;
+  return ep;
 }
