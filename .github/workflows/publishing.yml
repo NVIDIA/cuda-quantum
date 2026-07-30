@@ -1278,7 +1278,7 @@ jobs:
           bash /tmp/miniconda.sh -b -u -p "$conda_prefix"
           rm -f /tmp/miniconda.sh
           eval "$($conda_prefix/bin/conda shell.bash hook)"
-          retry conda install -y -c conda-forge openmpi">=5.0.7"
+          retry conda install -y -c conda-forge --strict-channel-priority openmpi">=5.0.7"
           chmod -R a+rX "$conda_prefix"
 
       - name: Install and run sanity checks
