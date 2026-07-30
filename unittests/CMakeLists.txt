@@ -248,6 +248,7 @@ target_link_libraries(test_quantum_platform
   PRIVATE
   cudaq
   cudaq-platform-default
+  nvqir
   gtest_main)
 cudaq_gtest_discover_tests(test_quantum_platform DISCOVERY_TIMEOUT 120)
 

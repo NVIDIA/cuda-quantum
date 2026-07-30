@@ -214,7 +214,7 @@ public:
   template <typename Policy>
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
   getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
-    validateQpuId(qpu_id);
+    validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
     if (compileTarget.has_value()) {
       return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
     }
@@ -226,7 +226,7 @@ public:
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
   getCompileTarget(const cudaq::other_policies &policy,
                    std::size_t qpu_id = 0) {
-    validateQpuId(qpu_id);
+    validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
     if (compileTarget.has_value()) {
       return std::make_unique<cudaq::CompileTarget>(compileTarget.value());
     }
@@ -261,8 +261,7 @@ protected:
   void setCompileTarget(std::optional<CompileTarget> target);
 
   /// Set the runtime endpoint for the platform.
-  void setRuntimeEndpoint(std::optional<RuntimeEndpoint> endpoint,
-                          std::size_t qpuId = 0);
+  void setRuntimeEndpoint(RuntimeEndpoint endpoint, std::size_t qpuId = 0);
 
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
@@ -291,13 +290,20 @@ private:
   friend class detail::with_platform_in_library_mode;
 
   // Helper to validate QPU Id
-  void validateQpuId(std::size_t qpuId) const;
+  void validateQpuId(std::size_t qpuId,
+                     bool acceptRuntimeEndpoints = false) const;
 
   // Ensure a runtime endpoint exists for the given QPU ID, or create it. If
   // @p allowNullopt is true, a slot will be created in `runtimeEndpoints` but
   // it will be null.
   void ensureRuntimeEndpointExists(std::size_t qpuId,
                                    bool allowNullopt = false);
+
+  // Helper to check no runtime endpoint was set manually for the given QPU ID
+  // (else throw an error)
+  void disableRuntimeEndpointOverride(std::size_t qpuId,
+                                      std::string what) const;
+
   std::mutex runtimeEndpointsMutex;
 
   int libraryModeOverride = 0;

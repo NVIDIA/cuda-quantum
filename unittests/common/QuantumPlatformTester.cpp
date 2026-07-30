@@ -13,6 +13,7 @@
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policies.h"
+#include "cudaq/algorithms/resource_estimation.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/qpu.h"
@@ -66,6 +67,9 @@ public:
 
 class TestPlatform : public quantum_platform {
 public:
+  using quantum_platform::setCompileTarget;
+  using quantum_platform::setRuntimeEndpoint;
+
   explicit TestPlatform(std::size_t numQpus = 1) {
     for (std::size_t i = 0; i < numQpus; ++i)
       platformQPUs.emplace_back(std::make_unique<CompileTargetTestQPU>());
@@ -122,6 +126,20 @@ void testPolicyDispatch(const Policy &policy) {
   (void)endpoint.launchKernel(policy, module, {});
 
   EXPECT_EQ(std::any_cast<std::string>(endpoint.impl), get_policy_name(policy));
+}
+
+template <typename Fn>
+void expectOverrideDisabled(Fn &&fn, const std::string &what) {
+  try {
+    fn();
+    FAIL() << "expected std::runtime_error for '" << what << "'";
+  } catch (const std::runtime_error &e) {
+    std::string msg = e.what();
+    EXPECT_NE(msg.find(what), std::string::npos) << msg;
+    EXPECT_NE(msg.find("manually setting a runtime endpoint"),
+              std::string::npos)
+        << msg;
+  }
 }
 
 } // namespace
@@ -193,30 +211,6 @@ TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
   EXPECT_TRUE(ct->overrideAOTCompilation);
 }
 
-TEST(QuantumPlatformCompileTargetTester, overrideIsPerQpu) {
-  TestPlatform platform(2);
-  platform.setCompileTarget(makePlatformCompileTarget(), /*qpuId=*/1);
-  sample_policy policy{.kernelName = "test_kernel"};
-
-  // QPU 0 has no override and still falls back to its own compile target.
-  auto ct0 = platform.getCompileTarget(policy, /*qpu_id=*/0);
-  ASSERT_NE(ct0, nullptr);
-  EXPECT_TRUE(ct0->emitJit);
-  EXPECT_FALSE(ct0->fullySpecialize);
-
-  auto ct1 = platform.getCompileTarget(policy, /*qpu_id=*/1);
-  ASSERT_NE(ct1, nullptr);
-  EXPECT_FALSE(ct1->emitJit);
-  EXPECT_TRUE(ct1->fullySpecialize);
-}
-
-TEST(QuantumPlatformCompileTargetTester, rejectsInvalidQpuIdOnOverride) {
-  TestPlatform platform;
-  EXPECT_THROW(platform.setCompileTarget(makePlatformCompileTarget(),
-                                         /*qpuId=*/1),
-               std::invalid_argument);
-}
-
 TEST(QuantumPlatformRuntimeEndpointTester, fallsBackToQpuWhenUnset) {
   TestPlatform platform;
   auto &endpoint = platform.getRuntimeEndpoint(/*qpuId=*/0);
@@ -263,17 +257,6 @@ TEST(QuantumPlatformRuntimeEndpointTester, rejectsInvalidQpuId) {
   EXPECT_THROW(platform.getRuntimeEndpoint(/*qpuId=*/1), std::invalid_argument);
   EXPECT_THROW(platform.setRuntimeEndpoint(RuntimeEndpoint{}, /*qpuId=*/1),
                std::invalid_argument);
-}
-
-TEST(QuantumPlatformRuntimeEndpointTester, clearingOverrideFallsBackToQpu) {
-  TestPlatform platform;
-  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 10});
-  platform.setRuntimeEndpoint(std::nullopt);
-
-  auto &endpoint = platform.getRuntimeEndpoint(/*qpuId=*/0);
-  auto *qpu = std::any_cast<QPU *>(endpoint.impl);
-  ASSERT_NE(qpu, nullptr);
-  EXPECT_EQ(qpu, platform.getQpu(0));
 }
 
 // The platform owns its endpoints and hands them out by reference, so state
@@ -366,4 +349,80 @@ TEST(RuntimeEndpointLaunchKernelTester, dispatchesDemPolicy) {
 
 TEST(RuntimeEndpointLaunchKernelTester, dispatchesPtsbeSamplePolicy) {
   testPolicyDispatch(ptsbe::sample_policy{});
+}
+
+TEST(QuantumPlatformDisableEndpointOverrideTester,
+     noiseModelOpsThrowWhenEndpointSet) {
+  TestPlatform platform;
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
+
+  expectOverrideDisabled([&] { platform.set_noise(nullptr); },
+                         "Using noise models");
+  expectOverrideDisabled([&] { platform.get_noise(); }, "Using noise models");
+  expectOverrideDisabled([&] { platform.reset_noise(); }, "Using noise models");
+}
+
+TEST(QuantumPlatformDisableEndpointOverrideTester,
+     capabilityQueriesThrowWhenEndpointSet) {
+  TestPlatform platform;
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
+
+  expectOverrideDisabled([&] { platform.is_simulator(); }, "is_simulator");
+  expectOverrideDisabled([&] { platform.is_remote(); }, "is_remote");
+  expectOverrideDisabled([&] { platform.is_emulated(); }, "is_emulated");
+  expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
+  expectOverrideDisabled([&] { platform.supports_explicit_measurements(); },
+                         "supports_explicit_measurements");
+  expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
+                         "get_remote_capabilities");
+}
+
+TEST(QuantumPlatformDisableEndpointOverrideTester,
+     resourceCountLaunchThrowsWhenEndpointSet) {
+  TestPlatform platform;
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
+
+  auto kernel = [] {};
+  auto choice = [] { return false; };
+  expectOverrideDisabled(
+      [&] {
+        (void)cudaq::detail::run_estimate_resources(kernel, platform,
+                                                    "test_kernel", choice);
+      },
+      "Policy 'resource-count'");
+}
+
+TEST(QuantumPlatformDisableEndpointOverrideTester,
+     guardSilentWhenNoEndpointOverride) {
+  TestPlatform platform;
+
+  EXPECT_NO_THROW(platform.set_noise(nullptr));
+  EXPECT_TRUE(platform.is_simulator());
+  EXPECT_FALSE(platform.is_remote());
+  EXPECT_EQ(platform.get_num_qubits(), 30u);
+
+  auto kernel = [] {};
+  auto choice = [] { return false; };
+  EXPECT_NO_THROW((void)cudaq::detail::run_estimate_resources(
+      kernel, platform, "test_kernel", choice));
+}
+
+TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {
+  TestPlatform platform(2);
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/1);
+
+  expectOverrideDisabled([&] { platform.is_remote(1); }, "is_remote");
+
+  EXPECT_NO_THROW(platform.is_remote(0));
+  EXPECT_TRUE(platform.is_simulator(0));
+}
+
+TEST(QuantumPlatformDisableEndpointOverrideTester,
+     errorMessageIdentifiesOperation) {
+  TestPlatform platform;
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
+
+  expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
+  expectOverrideDisabled([&] { platform.set_noise(nullptr); },
+                         "Using noise models");
 }
