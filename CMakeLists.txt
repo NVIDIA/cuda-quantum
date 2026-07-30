@@ -754,30 +754,42 @@ install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
 
 # Add spdlog
 #
-# CUDA-Q links spdlog privately into its own shared libraries and never
-# installs it. spdlog's SPDLOG_INSTALL defaults to SPDLOG_MASTER_PROJECT, which
-# is OFF when spdlog is pulled in via add_subdirectory. A shared libspdlog.so
-# would therefore exist only in the build tree, leaving the installed CUDA-Q
-# libraries with a DT_NEEDED entry that cannot be resolved. spdlog must be a
-# static.
+# spdlog is an implementation detail of cudaq-logger: it is linked in PRIVATE
+# and no installed CUDA-Q header includes an spdlog header. Its library type
+# follows BUILD_SHARED_LIBS like everything else, and CUDAQ_SPDLOG_BUILD_SHARED
+# is here for the case where the user wants to decide it independently, e.g. to
+# fold spdlog into the CUDA-Q DSOs while the rest of the build stays shared.
 #
-# SPDLOG_BUILD_SHARED alone cannot express that. Upstream gates the library
-# type on `if(SPDLOG_BUILD_SHARED OR BUILD_SHARED_LIBS)` (tpls/spdlog/
-# CMakeLists.txt), so the option can only opt in to a shared build, it is
-# not an override, and it cannot opt out of a global BUILD_SHARED_LIBS=ON.
-# Pinning BUILD_SHARED_LIBS across the add_subdirectory is the only way to
-# force the static branch. The user's value is saved and restored so this is
-# scoped to spdlog and does not change how anything else is built.
-set(SPDLOG_BUILD_SHARED OFF)
+# A CUDA-Q-specific variable is needed because upstream's SPDLOG_BUILD_SHARED
+# cannot express "static". tpls/spdlog/CMakeLists.txt gates the library type on
+# `if(SPDLOG_BUILD_SHARED OR BUILD_SHARED_LIBS)`, so that option can only opt
+# in to a shared build. Reaching the static branch requires setting
+# BUILD_SHARED_LIBS as well, so CUDAQ_SPDLOG_BUILD_SHARED drives both, and
+# BUILD_SHARED_LIBS is restored right after the add_subdirectory.
+option(CUDAQ_SPDLOG_BUILD_SHARED
+  "Build the bundled spdlog as a shared library. Defaults to BUILD_SHARED_LIBS."
+  ${BUILD_SHARED_LIBS})
+# A shared spdlog is a runtime dependency of the installed cudaq-logger, so it
+# has to be installed next to it; upstream will not do it for us, since
+# SPDLOG_INSTALL defaults to SPDLOG_MASTER_PROJECT, which is OFF under
+# add_subdirectory.
+option(CUDAQ_INSTALL_SPDLOG
+  "Install the bundled spdlog library. Only applies when it is built shared."
+  ON)
+
+set(SPDLOG_BUILD_SHARED ${CUDAQ_SPDLOG_BUILD_SHARED})
 set(SPDLOG_FMT_EXTERNAL ON)
 set(SPDLOG_BUILD_PIC ON)
 set(SPDLOG_SYSTEM_INCLUDES ON)
 set(CUDAQ_SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
-set(BUILD_SHARED_LIBS OFF)
+set(BUILD_SHARED_LIBS ${CUDAQ_SPDLOG_BUILD_SHARED})
 add_subdirectory(tpls/spdlog)
 set(BUILD_SHARED_LIBS ${CUDAQ_SAVED_BUILD_SHARED_LIBS})
 unset(CUDAQ_SAVED_BUILD_SHARED_LIBS)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
+if (CUDAQ_SPDLOG_BUILD_SHARED AND CUDAQ_INSTALL_SPDLOG)
+  install(TARGETS spdlog DESTINATION lib)
+endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   # Look for CURL
