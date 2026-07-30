@@ -25,7 +25,7 @@ namespace nanobind {
 namespace detail {
 
 /// Bidirectional type caster between nlohmann::json and Python objects.
-/// JSON object  <-> dict, array <-> list, string <-> str,
+/// JSON object  <-> dict, array <-> list, string <-> `str`,
 /// integer <-> int, float <-> float, bool <-> bool, null <-> None.
 template <>
 struct type_caster<nlohmann::json> {
