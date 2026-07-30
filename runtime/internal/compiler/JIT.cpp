@@ -41,6 +41,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include <cassert>
 #include <cxxabi.h>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
@@ -283,6 +284,13 @@ public:
     };
   }
 
+  ~Impl() {
+    if (cudaq::CompiledModule::debugMode()) {
+      if (jitEngine) {
+        std::cout << "Destructing ExecutionEngine" << std::endl;
+      }
+    }
+  }
   std::size_t getKey() const {
     return reinterpret_cast<std::size_t>(jitEngine.get());
   }

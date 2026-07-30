@@ -318,6 +318,9 @@ public:
   // `CompiledModuleHelper`.
   CompiledModule() : FatQuakeModule(std::string{}) {}
   explicit CompiledModule(SourceModule src) : FatQuakeModule(std::move(src)) {}
+  ~CompiledModule();
+
+  static bool debugMode();
 };
 
 using AnyModule = std::variant<SourceModule, CompiledModule>;
