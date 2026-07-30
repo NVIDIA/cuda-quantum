@@ -70,14 +70,19 @@ public:
   using quantum_platform::setCompileTarget;
   using quantum_platform::setRuntimeEndpoint;
 
-  explicit TestPlatform(std::size_t numQpus = 1) {
-    for (std::size_t i = 0; i < numQpus; ++i)
-      platformQPUs.emplace_back(std::make_unique<CompileTargetTestQPU>());
-  }
+  explicit TestPlatform(std::size_t numQpus = 1) { resetQpus(numQpus); }
 
   CompileTargetTestQPU *getQpu(std::size_t qpuId) {
-    return static_cast<CompileTargetTestQPU *>(platformQPUs[qpuId].get());
+    return static_cast<CompileTargetTestQPU *>(&getQPU(qpuId));
   }
+
+  void resetQpus(std::size_t numQpus = 1) {
+    clearQPUs();
+    for (std::size_t i = 0; i < numQpus; ++i)
+      addTestQpu();
+  }
+
+  void addTestQpu() { addQPU(std::make_unique<CompileTargetTestQPU>()); }
 };
 
 CompileTarget makePlatformCompileTarget() {
@@ -285,6 +290,59 @@ TEST(QuantumPlatformRuntimeEndpointTester, fallbackEndpointIsStable) {
   auto *first = &platform.getRuntimeEndpoint(/*qpuId=*/0);
   auto *second = &platform.getRuntimeEndpoint(/*qpuId=*/0);
   EXPECT_EQ(first, second);
+}
+
+// Changing the target destroys the platform's QPUs and creates new ones. The
+// endpoints wrap the QPUs by reference, so replacing the QPUs must reset them
+// rather than leave a wrapper pointing at a destroyed QPU.
+//
+// A manually set endpoint makes the reset directly observable: its `impl`
+// holds an `int`, so if it survived the reset the `any_cast<QPU *>` below
+// would throw instead of yielding the newly created QPU.
+TEST(QuantumPlatformRuntimeEndpointTester, recreatingQpusResetsEndpoints) {
+  TestPlatform platform;
+  RuntimeEndpoint endpoint;
+  endpoint.dispatch.set<sample_policy>(taggedSampleFn);
+  endpoint.impl = 42;
+  platform.setRuntimeEndpoint(std::move(endpoint));
+  ASSERT_EQ(std::any_cast<int>(platform.getRuntimeEndpoint().impl), 42);
+
+  platform.resetQpus();
+  EXPECT_EQ(std::any_cast<QPU *>(platform.getRuntimeEndpoint().impl),
+            platform.getQpu(0));
+  EXPECT_NE(platform.getRuntimeEndpoint().dispatch.get<sample_policy>(),
+            taggedSampleFn);
+}
+
+// Appending a QPU takes the next free ID, so the endpoints keyed by the
+// existing IDs keep describing the same QPUs and must survive.
+TEST(QuantumPlatformRuntimeEndpointTester, addingAQpuPreservesEndpoints) {
+  TestPlatform platform;
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 42});
+
+  platform.addTestQpu();
+
+  EXPECT_EQ(std::any_cast<int>(platform.getRuntimeEndpoint(0).impl), 42);
+  EXPECT_EQ(std::any_cast<QPU *>(platform.getRuntimeEndpoint(1).impl),
+            platform.getQpu(1));
+}
+
+// After the QPUs are replaced, launches must reach the current QPU.
+TEST(QuantumPlatformRuntimeEndpointTester, launchesReachRecreatedQpu) {
+  TestPlatform platform;
+  CompiledModule module;
+
+  (void)platform.getRuntimeEndpoint(/*qpuId=*/0)
+      .launchKernel(sample_policy{}, module, {});
+  EXPECT_EQ(platform.getQpu(0)->sampleLaunchCount, 1u);
+
+  platform.resetQpus();
+
+  // The replacement QPU has not been launched on yet.
+  ASSERT_EQ(platform.getQpu(0)->sampleLaunchCount, 0u);
+  (void)platform.getRuntimeEndpoint(/*qpuId=*/0)
+      .launchKernel(sample_policy{}, module, {});
+  EXPECT_EQ(platform.getQpu(0)->sampleLaunchCount, 1u);
 }
 
 TEST(RuntimeEndpointWrapQpuTester, forwardsLaunchToQpu) {

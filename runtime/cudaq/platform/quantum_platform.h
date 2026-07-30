@@ -64,7 +64,8 @@ using ObserveTask = std::function<observe_result()>;
 /// query specific information about the targeted QPU(s) (e.g. number
 /// of qubits, qubit connectivity, etc.). This type is meant to
 /// be subclassed for concrete realizations of quantum platforms, which
-/// are intended to populate this platformQPUs member of this base class.
+/// are intended to populate the QPUs of this base class via `addQPU` and
+/// `clearQPUs`.
 class quantum_platform {
 public:
   quantum_platform() = default;
@@ -263,25 +264,25 @@ protected:
   /// Set the runtime endpoint for the platform.
   void setRuntimeEndpoint(RuntimeEndpoint endpoint, std::size_t qpuId = 0);
 
+  /// Append @p qpu to the platform's QPUs.
+  QPU &addQPU(std::unique_ptr<QPU> qpu);
+
+  /// Destroy all of the platform's QPUs and runtime endpoints.
+  void clearQPUs();
+
+  /// Access the QPU with ID @p qpuId.
+  QPU &getQPU(std::size_t qpuId = 0);
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
   /// Code generation configuration
   std::optional<CodeGenConfig> codeGenConfig;
 
-  /// The Platform QPUs, populated by concrete subtypes
-  std::vector<std::unique_ptr<QPU>> platformQPUs;
-
   /// The compile target for the platform.
   ///
   /// If not set, defaults to querying the compile target from the QPUs.
   std::optional<CompileTarget> compileTarget;
-
-  /// The runtime endpoints for launching kernels on the platform.
-  ///
-  /// If not set, defaults to creating a RuntimeEndpoint from the respective
-  /// QPU. Using a `deque` to keep references to existing elements valid.
-  std::deque<std::optional<RuntimeEndpoint>> runtimeEndpoints;
 
   /// Name of the platform.
   std::string platformName;
@@ -303,6 +304,19 @@ private:
   // (else throw an error)
   void disableRuntimeEndpointOverride(std::size_t qpuId,
                                       std::string what) const;
+
+  // Drop every runtime endpoint. Called whenever the QPUs change, since the
+  // endpoints wrapping them would otherwise refer to destroyed QPUs.
+  void resetRuntimeEndpoints();
+
+  /// The Platform QPUs, populated by concrete subtypes via `addQPU`.
+  std::vector<std::unique_ptr<QPU>> platformQPUs;
+
+  /// The runtime endpoints for launching kernels on the platform.
+  ///
+  /// If not set, defaults to creating a RuntimeEndpoint from the respective
+  /// QPU. Using a `deque` to keep references to existing elements valid.
+  std::deque<std::optional<RuntimeEndpoint>> runtimeEndpoints;
 
   std::mutex runtimeEndpointsMutex;
 

@@ -72,7 +72,7 @@ quantum_platform *getQuantumPlatformInternal() {
 
 void quantum_platform::disableRuntimeEndpointOverride(std::size_t qpuId,
                                                       std::string what) const {
-  if (!platformQPUs[qpuId]) {
+  if (qpuId < platformQPUs.size() && !platformQPUs[qpuId]) {
     throw std::runtime_error(
         what + " is not supported when manually setting a runtime endpoint.");
   }
@@ -332,6 +332,30 @@ void quantum_platform::ensureRuntimeEndpointExists(std::size_t qpuId,
   }
 }
 
+void quantum_platform::resetRuntimeEndpoints() {
+  std::scoped_lock lock(runtimeEndpointsMutex);
+  runtimeEndpoints.clear();
+}
+
+QPU &quantum_platform::addQPU(std::unique_ptr<QPU> qpu) {
+  if (!qpu)
+    throw std::invalid_argument("Cannot add a null QPU to the platform.");
+
+  platformQPUs.emplace_back(std::move(qpu));
+  return *platformQPUs.back();
+}
+
+void quantum_platform::clearQPUs() {
+  resetRuntimeEndpoints();
+  platformQPUs.clear();
+}
+
+QPU &quantum_platform::getQPU(std::size_t qpuId) {
+  validateQpuId(qpuId);
+  disableRuntimeEndpointOverride(qpuId, "Accessing the QPU");
+  return *platformQPUs[qpuId];
+}
+
 void quantum_platform::setCompileTarget(std::optional<CompileTarget> target) {
   compileTarget = std::move(target);
 }
@@ -344,14 +368,18 @@ RuntimeEndpoint &quantum_platform::getRuntimeEndpoint(std::size_t qpuId) {
 void quantum_platform::setRuntimeEndpoint(RuntimeEndpoint endpoint,
                                           std::size_t qpuId) {
   ensureRuntimeEndpointExists(qpuId, /*allowNullopt=*/true);
+  std::scoped_lock lock(runtimeEndpointsMutex);
   runtimeEndpoints[qpuId] = std::move(endpoint);
   platformQPUs[qpuId] = nullptr;
 }
 
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
-  for (auto &qpu : platformQPUs)
+  for (auto &qpu : platformQPUs) {
+    if (!qpu)
+      continue;
     qpu->onRandomSeedSet(seed);
+  }
 }
 
 cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
