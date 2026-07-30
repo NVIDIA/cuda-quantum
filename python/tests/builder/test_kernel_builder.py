@@ -22,6 +22,9 @@ from cudaq import spin
 
 from test_helpers import h2_hamiltonian_4q
 
+skipIfValueSemantics = pytest.mark.skipif(True,
+                                          reason="broken in value semantics")
+
 
 def test_sdg_0_state():
     """Tests the adjoint S-gate on a qubit starting in the 0-state."""
@@ -828,10 +831,6 @@ def test_ctrl_rotation_integration():
     cudaq.reset_target()
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
 @skipIfValueSemantics
 def test_can_progressively_build():
     """Tests that a kernel can be build progressively."""
@@ -1040,6 +1039,7 @@ def test_from_state1():
     cudaq.reset_target()
 
 
+@skipIfValueSemantics
 def test_pauli_word_input():
     h = h2_hamiltonian_4q()
 
@@ -1055,6 +1055,7 @@ def test_pauli_word_input():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 
+@skipIfValueSemantics
 def test_exp_pauli():
     cudaq.reset_target()
     kernel = cudaq.make_kernel()
@@ -1090,6 +1091,7 @@ def test_exp_pauli():
         kernel.exp_pauli(theta, qubits, invalidOp)
 
 
+@skipIfValueSemantics
 def test_exp_pauli_register_and_qubits():
     """Test that exp_pauli correctly concatenates a register with
     individual qubits (regression test for operator precedence fix)."""

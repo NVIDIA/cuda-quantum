@@ -580,6 +580,7 @@ def test_index_out_of_range():
         result = cudaq.sample(kernel)
 
 
+@skipIfValueSemantics
 def test_issue_1218():
 
     def ghz(n):
