@@ -23,7 +23,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
 using namespace cudaq;
 
@@ -34,21 +33,20 @@ public:
   /// Number of times `launchKernel(sample_policy)` was called on this QPU.
   std::size_t sampleLaunchCount = 0;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &) override {
-    auto ct = std::make_unique<CompileTarget>();
-    ct->emitJit = true;
-    ct->fullySpecialize = false;
-    ct->overrideAOTCompilation = true;
+  CompileTarget getCompileTarget(const sample_policy &) override {
+    CompileTarget ct;
+    ct.emitJit = true;
+    ct.fullySpecialize = false;
+    ct.overrideAOTCompilation = true;
     return ct;
   }
 
-  std::unique_ptr<CompileTarget> getCompileTarget(const other_policies &,
-                                                  ExecutionContext *) override {
-    auto ct = std::make_unique<CompileTarget>();
-    ct->emitResourceCounts = true;
-    ct->emitJit = false;
-    ct->fullySpecialize = false;
+  CompileTarget getCompileTarget(const other_policies &,
+                                 ExecutionContext *) override {
+    CompileTarget ct;
+    ct.emitResourceCounts = true;
+    ct.emitJit = false;
+    ct.fullySpecialize = false;
     return ct;
   }
 
@@ -155,9 +153,9 @@ TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
 
   auto ct = platform.getCompileTarget(policy);
   ASSERT_NE(ct, nullptr);
-  EXPECT_TRUE(ct->emitJit);
-  EXPECT_FALSE(ct->fullySpecialize);
-  EXPECT_TRUE(ct->overrideAOTCompilation);
+  EXPECT_TRUE(ct.emitJit);
+  EXPECT_FALSE(ct.fullySpecialize);
+  EXPECT_TRUE(ct.overrideAOTCompilation);
 }
 
 TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
@@ -167,10 +165,10 @@ TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
 
   auto ct = platform.getCompileTarget(policy);
   ASSERT_NE(ct, nullptr);
-  EXPECT_FALSE(ct->emitJit);
-  EXPECT_TRUE(ct->fullySpecialize);
-  EXPECT_FALSE(ct->overrideAOTCompilation);
-  EXPECT_TRUE(ct->supportDeviceCalls);
+  EXPECT_FALSE(ct.emitJit);
+  EXPECT_TRUE(ct.fullySpecialize);
+  EXPECT_FALSE(ct.overrideAOTCompilation);
+  EXPECT_TRUE(ct.supportDeviceCalls);
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
@@ -179,8 +177,8 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
 
   auto ct = platform.getCompileTarget(policy);
   ASSERT_NE(ct, nullptr);
-  EXPECT_TRUE(ct->emitResourceCounts);
-  EXPECT_FALSE(ct->emitJit);
+  EXPECT_TRUE(ct.emitResourceCounts);
+  EXPECT_FALSE(ct.emitJit);
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
@@ -190,9 +188,9 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
 
   auto ct = platform.getCompileTarget(policy);
   ASSERT_NE(ct, nullptr);
-  EXPECT_FALSE(ct->emitJit);
-  EXPECT_TRUE(ct->fullySpecialize);
-  EXPECT_FALSE(ct->emitResourceCounts);
+  EXPECT_FALSE(ct.emitJit);
+  EXPECT_TRUE(ct.fullySpecialize);
+  EXPECT_FALSE(ct.emitResourceCounts);
 }
 
 TEST(QuantumPlatformCompileTargetTester, rejectsInvalidQpuId) {
@@ -212,8 +210,8 @@ TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
 
   auto ct = platform.getCompileTarget(policy);
   ASSERT_NE(ct, nullptr);
-  EXPECT_TRUE(ct->emitJit);
-  EXPECT_TRUE(ct->overrideAOTCompilation);
+  EXPECT_TRUE(ct.emitJit);
+  EXPECT_TRUE(ct.overrideAOTCompilation);
 }
 
 TEST(QuantumPlatformRuntimeEndpointTester, fallsBackToQpuWhenUnset) {
