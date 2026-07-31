@@ -23,6 +23,6 @@ include(cudaqMLIR-shlib.cmake)
 
 # Define a static variant of the bundled MLIR library
 cudaq_read_symbol_list(
-  "${CMAKE_CURRENT_SOURCE_DIR}/mlir-libs-allowlist.txt" _cudaq_mlir_static_libs)
+  "${CUDAQ_MLIR_LIBS_ALLOWLIST}" _cudaq_mlir_static_libs)
 add_library(cudaq-mlir-static INTERFACE)
 target_link_libraries(cudaq-mlir-static INTERFACE ${_cudaq_mlir_static_libs})

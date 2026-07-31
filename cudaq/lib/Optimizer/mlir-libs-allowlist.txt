@@ -6,8 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Allowlist of MLIR libraries that cudaqMLIR whole-archives and downstream
-# plugins can link against.
+# The complete list of MLIR/LLVM libraries that cudaqMLIR whole-archives.
+#
+# This is the contract: everything named here is exported by libcudaqMLIR, so
+# CUDA-Q libraries, the Python extensions and downstream plugins resolve it
+# dynamically and must never link the static archive themselves. Adding an entry
+# is an ABI decision -- it grows the exported surface for every consumer.
+#
+# The list is complete on purpose. It used to be a partial seed, topped up at
+# configure time by walking the link interfaces of the Python C-API libraries;
+# what that walk contributed was invisible, moved whenever upstream changed, and
+# could not be inspected by a downstream project. Anything missing here now
+# fails the build via scripts/check_mlir_symbols.sh, which names the symbol.
+#
+# The only entries not listed are the target-specific codegen libraries, which
+# cudaqMLIR-shlib.cmake resolves through llvm_map_components_to_libnames() for
+# "native nativecodegen" because they differ per architecture (LLVMX86* on
+# x86_64, LLVMAArch64* on arm64).
 
 # Core IR + support
 MLIRIR
@@ -79,3 +94,10 @@ MLIRSCFToControlFlow
 MLIRFuncToLLVM
 MLIRMathToFuncs
 MLIRMathToLLVM
+
+# LLVM support libraries. LLVMSupport in particular backs a great deal of what
+# CUDA-Q itself calls -- llvm::SHA256, raw_ostream, StringRef, cl::opt -- and it
+# is not reachable from any of the MLIR entries above as a whole archive.
+LLVMSupport
+LLVMCore
+LLVMOrcJIT

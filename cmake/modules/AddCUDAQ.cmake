@@ -63,10 +63,27 @@ function(add_cudaq_library name)
   add_mlir_library(${ARGV} DISABLE_INSTALL ENABLE_AGGREGATION)
 endfunction()
 
+# The single list of MLIR/LLVM libraries that libcudaqMLIR exports. In-tree it
+# lives in the source tree; installed it sits next to this file in
+# lib/cmake/cudaq. Resolved once, here, because this module has an include
+# guard: registering the configure dependency on every read would add the same
+# file to CMAKE_CONFIGURE_DEPENDS for several directories, and the Ninja
+# generator then emits its edge more than once, which fails the build with
+# "mlir-libs-allowlist.txt is defined as an output multiple times".
+foreach(_candidate
+    "${CMAKE_CURRENT_LIST_DIR}/../../cudaq/lib/Optimizer/mlir-libs-allowlist.txt"
+    "${CMAKE_CURRENT_LIST_DIR}/mlir-libs-allowlist.txt")
+  if(EXISTS "${_candidate}")
+    get_filename_component(CUDAQ_MLIR_LIBS_ALLOWLIST "${_candidate}" ABSOLUTE)
+    set_property(DIRECTORY APPEND PROPERTY
+      CMAKE_CONFIGURE_DEPENDS "${CUDAQ_MLIR_LIBS_ALLOWLIST}")
+    break()
+  endif()
+endforeach()
+
 # Read a newline-separated list file (one entry per line) into ``_out_var``,
 # stripping comments and whitespace.
 function(cudaq_read_symbol_list _file _out_var)
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_file}")
   file(STRINGS "${_file}" _lines)
   set(_entries)
   foreach(_line IN LISTS _lines)
@@ -78,11 +95,8 @@ function(cudaq_read_symbol_list _file _out_var)
   set(${_out_var} "${_entries}" PARENT_SCOPE)
 endfunction()
 
-# MLIR/LLVM libraries already provided by ``libcudaqMLIR.so``.
-#
-# cudaqMLIR-shlib.cmake writes the resolved list to cudaqMLIR-contents.txt (both
-# into the build tree and into lib/cmake/cudaq on install), so this is a lookup
-# of what the library actually contains rather than a re-derivation of it.
+# MLIR/LLVM libraries already provided by ``libcudaqMLIR.so``, i.e. the ones a
+# consumer must resolve dynamically instead of linking the static archive.
 function(_cudaq_read_mlir_provided_libs _out_var)
   set(_provided)
   get_property(_bundle GLOBAL PROPERTY CUDAQ_MLIR_BUNDLE_LIBS)
@@ -90,18 +104,10 @@ function(_cudaq_read_mlir_provided_libs _out_var)
     list(APPEND _provided ${_bundle})
   endif()
 
-  # In-tree the manifest sits in the build tree; installed it sits next to this
-  # file in lib/cmake/cudaq.
-  set(_manifest_candidates
-    "${CMAKE_BINARY_DIR}/lib/cmake/cudaq/cudaqMLIR-contents.txt"
-    "${CMAKE_CURRENT_LIST_DIR}/cudaqMLIR-contents.txt")
-  foreach(_candidate IN LISTS _manifest_candidates)
-    if(EXISTS "${_candidate}")
-      cudaq_read_symbol_list("${_candidate}" _contents)
-      list(APPEND _provided ${_contents})
-      break()
-    endif()
-  endforeach()
+  if(CUDAQ_MLIR_LIBS_ALLOWLIST)
+    cudaq_read_symbol_list("${CUDAQ_MLIR_LIBS_ALLOWLIST}" _allowlist)
+    list(APPEND _provided ${_allowlist})
+  endif()
 
   list(REMOVE_DUPLICATES _provided)
   set(${_out_var} "${_provided}" PARENT_SCOPE)
