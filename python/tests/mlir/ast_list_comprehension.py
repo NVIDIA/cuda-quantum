@@ -10,6 +10,7 @@
 
 from dataclasses import dataclass
 import cudaq
+import math
 
 
 def test_list_comprehension_constant():
@@ -872,6 +873,10 @@ def test_list_comprehension_void():
         [apply_x(r) for r in q1]
         for i in range(3):
             x.ctrl(q1[i], q2[i])
+        #@skipIfValueSemantics
+        # FIXME: next two lines are to workaround a bug
+        ry(12 * np.pi, q1)
+        ry(12 * np.pi, q2)
 
     out = cudaq.sample(kernel2)
     print("out is", out)
