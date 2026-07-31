@@ -9,6 +9,10 @@
 // RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
 // RUN: cudaq-opt --apply-op-specialization --aggressive-inlining %s \
 // RUN:   | FileCheck %s --check-prefix=INLINE
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining \
+// RUN:   --expand-control-veqs --cse --normalize-phase-placement \
+// RUN:   --lower-phase --canonicalize %s \
+// RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 
 func.func private @phase_leaf(%theta: f64, %negative: !quake.ref,
                               %anchor: !quake.ref) {
@@ -99,3 +103,13 @@ func.func @recursive_caller(%theta: f64, %recurse: i1,
 // INLINE: quake.phase {{.*}} neg [false, true]
 // INLINE-LABEL: func.func @recursive_caller(
 // INLINE: call @recursive_phase.ctrl
+
+// Every specialized phase reaches the target-independent LowerPhase fallback.
+// LOWER-LABEL: func.func private @recursive_phase.ctrl(
+// LOWER: quake.r1
+// LOWER: quake.rz
+// LOWER: call @recursive_phase.ctrl
+// LOWER-LABEL: func.func @nested_caller(
+// LOWER: quake.r1
+// LOWER-LABEL: func.func @recursive_caller(
+// LOWER: call @recursive_phase.ctrl
