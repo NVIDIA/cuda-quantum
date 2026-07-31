@@ -1,0 +1,27 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s -verify-diagnostics
+
+func.func private @phase_leaf(%theta: f64, %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func private @phase_wrapper(%theta: f64, %anchor: !quake.ref) {
+  // expected-error@+1 {{Unhandled controlled quantum kernel call}}
+  func.call @phase_leaf(%theta, %anchor) : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @caller(%theta: f64, %control: !quake.ref,
+                  %anchor: !quake.ref) {
+  quake.apply @phase_wrapper [%control] %theta, %anchor
+      : (!quake.ref, f64, !quake.ref) -> ()
+  return
+}
