@@ -419,7 +419,16 @@ private:
     Attribute attr;
     if (!matchPattern(qop.getParameters().front(), m_Constant(&attr)))
       return false;
-    double theta = cast<FloatAttr>(attr).getValueAsDouble();
+
+    // A parameter may use any float type, so widen to double for the test.
+    APFloat angle = cast<FloatAttr>(attr).getValue();
+    bool lostPrecision = false;
+    if (angle.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
+                      &lostPrecision) != APFloat::opOK ||
+        lostPrecision)
+      return false;
+    double theta = angle.convertToDouble();
+
     double period =
         globalPhaseIsFree(qop) ? 2.0 * M_PI : exactIdentityPeriod<QOP>();
 
@@ -429,6 +438,12 @@ private:
     return std::abs(residual) <= threshold;
   }
 
+  // Whether an overall `-1` on the state is unobservable here, which lets the
+  // shorter period be used. The axis rotations (`rx`, `ry`, `rz`, `phased_rx`)
+  // are spinors and return to the identity only after `4*pi`, picking up that
+  // `-1` at `2*pi`; `r1` is `diag(1, exp(i*theta))` and has period `2*pi`
+  // outright. The `-1` is a global phase only when the rotation can never
+  // execute under a control.
   static bool globalPhaseIsFree(QOP qop) {
     if (!qop.getControls().empty())
       return false;

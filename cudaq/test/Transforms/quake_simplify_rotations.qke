@@ -182,3 +182,25 @@ func.func @big(%q: !quake.ref) {
 
 // CHECK-LABEL: func.func @big
 // CHECK:         quake.rz
+
+// The angle may use any float type. A type narrower than f64 widens exactly,
+// so the test sees the same value the original precision holds.
+func.func @zero_angle_f32(%q: !quake.ref) {
+  %a = arith.constant 0.0 : f32
+  quake.rz (%a) %q : (f32, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @zero_angle_f32
+// CHECK-NOT:     quake.rz
+
+// A full turn in f32 is off the exact value by about 1e-7, which is well above
+// the threshold used here, so it survives in both modes.
+func.func @full_turn_f32(%q: !quake.ref) attributes {"cudaq-entrypoint"} {
+  %a = arith.constant 6.28318548 : f32
+  quake.rz (%a) %q : (f32, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @full_turn_f32
+// CHECK:         quake.rz
