@@ -147,7 +147,8 @@ static int32_t saturatingShlToInt32(int32_t base, int32_t shift) {
 // emit a func.call.
 static llvm::FailureOr<mlir::FlatSymbolRefAttr>
 getOrCreateRzHelper(double theta, bool valueSemantics,
-                    const RotationOptions &opts, SynthState &state) {
+                    const RotationOptions &opts, SynthState &state,
+                    PatternRewriter &rewriter) {
   uint64_t bits = llvm::bit_cast<uint64_t>(theta);
   auto key = std::make_pair(bits, valueSemantics ? 1u : 0u);
   auto it = state.cache.find(key);
@@ -189,20 +190,23 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
   Type qubitType = valueSemantics ? Type(cudaq::quake::WireType::get(ctx))
                                   : Type(cudaq::quake::RefType::get(ctx));
 
-  OpBuilder b(ctx);
-  b.setInsertionPointToStart(state.module.getBody());
+  // Building the helper through the rewriter rather than a standalone
+  // OpBuilder. The greedy driver tracks IR changes through the rewriter, so
+  // ops created behind its back are invisible to it.
+  OpBuilder::InsertionGuard guard(rewriter);
+  rewriter.setInsertionPointToStart(state.module.getBody());
   FunctionType fnType = valueSemantics
-                            ? b.getFunctionType({qubitType}, {qubitType})
-                            : b.getFunctionType({qubitType}, {});
-  auto funcOp = func::FuncOp::create(b, loc, name, fnType);
+                            ? rewriter.getFunctionType({qubitType}, {qubitType})
+                            : rewriter.getFunctionType({qubitType}, {});
+  auto funcOp = func::FuncOp::create(rewriter, loc, name, fnType);
   funcOp.setPrivate();
   Block *entry = funcOp.addEntryBlock();
-  b.setInsertionPointToStart(entry);
-  Value out = emitCircuitBody(b, loc, entry->getArgument(0), *circuit);
+  rewriter.setInsertionPointToStart(entry);
+  Value out = emitCircuitBody(rewriter, loc, entry->getArgument(0), *circuit);
   if (valueSemantics)
-    func::ReturnOp::create(b, loc, ValueRange{out});
+    func::ReturnOp::create(rewriter, loc, ValueRange{out});
   else
-    func::ReturnOp::create(b, loc);
+    func::ReturnOp::create(rewriter, loc);
 
   auto symRef = mlir::FlatSymbolRefAttr::get(ctx, funcOp.getNameAttr());
   state.cache.try_emplace(key, symRef);
@@ -292,8 +296,8 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
       break;
     }
 
-    auto symRef =
-        getOrCreateRzHelper(check.theta, valueSemantics, opts, *state);
+    auto symRef = getOrCreateRzHelper(check.theta, valueSemantics, opts, *state,
+                                      rewriter);
     if (llvm::failed(symRef)) {
       op.emitError("clifford-t-synthesis: gridsynth failed for theta=")
           << check.theta << " after " << (opts.retryCount + 1)
