@@ -381,22 +381,30 @@ public:
     if (!func)
       return;
 
+    // Collect CNOTs first to avoid iterator invalidation: combineRotations
+    // erases Rz ops which may be the stored next-pointer in the walk iterator.
+    SmallVector<cudaq::quake::XOp> cnots;
+    func.walk([&](cudaq::quake::XOp xop) {
+      if (wire::isControlledOp(xop))
+        cnots.push_back(xop);
+    });
+
     // Subcircuits are built and folded one at a time so that Rz ops erased
     // during folding are gone from the IR before the next subcircuit is built.
     // TODO: Parallel folding would require tracking which Rz ops have been
     // erased so that subcircuits built concurrently can skip stale references.
     DenseSet<Operation *> processedOps;
-    func.walk([&](cudaq::quake::XOp xop) {
-      if (!wire::isControlledOp(xop) || processedOps.count(xop))
-        return;
+    for (auto xop : cnots) {
+      if (processedOps.count(xop))
+        continue;
       wire::Subcircuit subcircuit(xop, processedOps);
       if (subcircuit.getNumOps() < minimumBlockLength ||
           subcircuit.getRotationWeight() < minimumrzWeight) {
         LLVM_DEBUG(llvm::dbgs() << "Subcircuit below threshold, skipping!\n");
-        return;
+        continue;
       }
       doWirePhaseFolding(&subcircuit);
-    });
+    }
   }
 };
 
