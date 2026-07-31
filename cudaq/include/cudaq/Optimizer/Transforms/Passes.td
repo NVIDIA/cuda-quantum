@@ -1271,10 +1271,9 @@ def QuakeSimplify : Pass<"quake-simplify"> {
 
     Among these, a constant-angle rotation that is the identity is erased. The
     angle is first folded into the period after which the rotation is exactly
-    the identity, so a full turn is pruned just like a zero angle. An
-    uncontrolled rotation in an entry point is additionally pruned when it is
-    the identity only up to global phase, such as `ry(2*pi)`. Non-constant and
-    non-finite angles are left untouched.
+    the identity (`4*pi` for the axis rotations, which are spinors, and
+    `2*pi` for `r1`) so a full turn is pruned just like a zero angle.
+    Non-constant and non-finite angles are left untouched.
 
     By default only exactly-identity rotations are erased, which preserves the
     semantics of the circuit. Setting `threshold` additionally erases rotations

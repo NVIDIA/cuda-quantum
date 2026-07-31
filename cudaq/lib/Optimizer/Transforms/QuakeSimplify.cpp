@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
@@ -287,7 +286,10 @@ public:
   }
 };
 
-// The angle, in radians, after which QOP is exactly the identity operator.
+// The angle, in radians, after which QOP is exactly the identity operator. The
+// axis rotations are spinors: they pick up an overall `-1` at `2*pi` and return
+// to the identity only after `4*pi`. `r1` is `diag(1, exp(i*theta))` and has
+// period `2*pi` outright.
 template <typename QOP>
 constexpr double exactIdentityPeriod() {
   if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>) {
@@ -430,26 +432,13 @@ private:
       return false;
     double theta = angle.convertToDouble();
 
-    double period =
-        globalPhaseIsFree(qop) ? 2.0 * M_PI : exactIdentityPeriod<QOP>();
-
-    double residual = std::remainder(theta, period);
+    // Never the shorter period: the `-1` an axis rotation picks up at `2*pi` is
+    // observable if the rotation runs under a control, and this op may yet be
+    // given one by control synthesis of the function it is in.
+    double residual = std::remainder(theta, exactIdentityPeriod<QOP>());
 
     // The default threshold of 0 admits only an exactly-identity rotation.
     return std::abs(residual) <= threshold;
-  }
-
-  // Whether an overall `-1` on the state is unobservable here, which lets the
-  // shorter period be used. The axis rotations (`rx`, `ry`, `rz`, `phased_rx`)
-  // are spinors and return to the identity only after `4*pi`, picking up that
-  // `-1` at `2*pi`; `r1` is `diag(1, exp(i*theta))` and has period `2*pi`
-  // outright. The `-1` is a global phase only when the rotation can never
-  // execute under a control.
-  static bool globalPhaseIsFree(QOP qop) {
-    if (!qop.getControls().empty())
-      return false;
-    auto func = qop->template getParentOfType<func::FuncOp>();
-    return func && func->hasAttr(cudaq::entryPointAttrName);
   }
 
   double threshold;
