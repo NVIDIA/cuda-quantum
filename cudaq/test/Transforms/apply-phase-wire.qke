@@ -38,6 +38,32 @@ func.func @adjoint_controlled_caller(
   return %0 : !quake.wire
 }
 
+func.func private @wire_parameterized(%theta: f64, %phi: f64,
+                                      %lambda: f64, %wire: !quake.wire)
+    -> !quake.wire {
+  %0 = quake.u3 (%theta, %phi, %lambda) %wire
+      : (f64, f64, f64, !quake.wire) -> !quake.wire
+  %1 = quake.phased_rx (%theta, %phi) %0
+      : (f64, f64, !quake.wire) -> !quake.wire
+  return %1 : !quake.wire
+}
+
+func.func @parameterized_adjoint_caller(%theta: f64, %phi: f64,
+                                        %lambda: f64, %wire: !quake.wire)
+    -> !quake.wire {
+  %0 = quake.apply<adj> @wire_parameterized %theta, %phi, %lambda, %wire
+      : (f64, f64, f64, !quake.wire) -> !quake.wire
+  return %0 : !quake.wire
+}
+
+// Parameter tuples are preserved; the physical gates carry the inverse.
+// CHECK-LABEL: func.func private @wire_parameterized.adj(
+// CHECK-NOT: arith.negf
+// CHECK: %[[PRX:.*]] = quake.phased_rx<adj> ({{.*}}, {{.*}}) %{{.*}} : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK-NOT: arith.negf
+// CHECK: %[[U3:.*]] = quake.u3<adj> ({{.*}}, {{.*}}, {{.*}}) %[[PRX]] : (f64, f64, f64, !quake.wire) -> !quake.wire
+// CHECK: return %[[U3]] : !quake.wire
+
 // CHECK-LABEL: func.func private @wire_phase.adj.ctrl(
 // CHECK: %[[NEG:.*]] = arith.negf
 // CHECK: %[[PHASE:.*]] = quake.phase (%[[NEG]]) [{{.*}}] %{{.*}} : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire

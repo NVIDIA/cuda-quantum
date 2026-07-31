@@ -25,3 +25,22 @@ func.func @caller(%theta: f64, %control: !quake.ref,
       : (!quake.ref, f64, !quake.ref) -> ()
   return
 }
+
+// A locally resolvable no-argument helper can still have quantum effects.
+func.func private @no_arg_quantum_leaf() {
+  %qubit = quake.alloca !quake.ref
+  quake.h %qubit : (!quake.ref) -> ()
+  return
+}
+
+func.func private @no_arg_quantum_wrapper() {
+  // expected-error@+1 {{Unhandled controlled quantum kernel call}}
+  func.call @no_arg_quantum_leaf() : () -> ()
+  return
+}
+
+func.func @no_arg_caller(%control: !quake.ref) {
+  quake.apply @no_arg_quantum_wrapper [%control]
+      : (!quake.ref) -> ()
+  return
+}
