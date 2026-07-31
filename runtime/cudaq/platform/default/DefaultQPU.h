@@ -22,6 +22,9 @@ public:
   void enqueue(QuantumTask &task) override;
   void onRandomSeedSet(std::size_t seed) override;
 
+  // This is the legacy fallback for launch policies that do not support
+  // policy-based overloads yet. To be removed once all policies have been
+  // migrated.
   KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
                                             cudaq::KernelArgs args) override;
 

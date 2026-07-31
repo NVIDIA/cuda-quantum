@@ -40,4 +40,5 @@ if (cuStateVec_FOUND)
   add_target_config(nvidia-mqpu-fp64)
 endif()
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)

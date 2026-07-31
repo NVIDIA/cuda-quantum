@@ -17,6 +17,7 @@
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <exception>
 #include <string>
 
 using namespace cudaq_internal::compiler;
@@ -158,8 +159,11 @@ quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
   auto f = promise.get_future();
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), t = task]() mutable {
-        auto counts = t();
-        p.set_value(counts);
+        try {
+          p.set_value(t());
+        } catch (...) {
+          p.set_exception(std::current_exception());
+        }
       });
 
   platformQPUs[qpu_id]->enqueue(wrapped);
