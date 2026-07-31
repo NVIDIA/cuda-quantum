@@ -33,14 +33,10 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_fancyCno
 // CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_0]])
 // CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_2]])
-// CHECK:         %[[VAL_3:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_4:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_3]], i64 0)
-// CHECK:         store ptr %[[VAL_0]], ptr %[[VAL_4]], align 8
-// CHECK:         %[[VAL_5:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(ptr %[[VAL_3]])
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, i64 %[[VAL_5]], ptr %[[VAL_3]], ptr %[[VAL_1]], ptr %[[VAL_2]])
-// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_0]])
-// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_1]])
-// CHECK:         tail call void @__quantum__rt__qubit_release(ptr %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 2, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_0]], ptr %[[VAL_1]], ptr %[[VAL_2]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_0]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_1]])
+// CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_2]])
 // CHECK:         ret void
 // CHECK:       }
 

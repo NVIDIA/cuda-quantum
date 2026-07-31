@@ -6,7 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -add-dealloc %s | cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-opt -add-dealloc %s | cudaq-translate --convert-to=qir | \
+// RUN:   FileCheck %s
 
 func.func @test_func(%p : i32) {
   %qv = quake.alloca !quake.veq<?>[%p : i32]
@@ -86,7 +87,7 @@ func.func @test_ctrl_swap_complex() {
   return
 }
 
-// CHECK-LABEL: define void @test_ctrl_swap_complex() local_unnamed_addr {
+// CHECK-LABEL: define void @test_ctrl_swap_complex()
 // CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
@@ -94,39 +95,9 @@ func.func @test_ctrl_swap_complex() {
 // CHECK:         %[[VAL_4:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         %[[VAL_6:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
-// CHECK:         %[[VAL_7:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_8:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_7]], i64 0)
-// CHECK:         store ptr %[[VAL_0]], ptr %[[VAL_8]], align 8
-// CHECK:         %[[VAL_9:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_10:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_9]], i64 0)
-// CHECK:         store ptr %[[VAL_1]], ptr %[[VAL_10]], align 8
-// CHECK:         %[[VAL_11:.*]] = tail call ptr @__quantum__rt__array_concatenate(ptr %[[VAL_7]], ptr %[[VAL_9]])
-// CHECK:         %[[VAL_12:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_13:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_12]], i64 0)
-// CHECK:         store ptr %[[VAL_2]], ptr %[[VAL_13]], align 8
-// CHECK:         %[[VAL_14:.*]] = tail call ptr @__quantum__rt__array_concatenate(ptr %[[VAL_11]], ptr %[[VAL_12]])
-// CHECK:         %[[VAL_15:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_16:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_15]], i64 0)
-// CHECK:         store ptr %[[VAL_3]], ptr %[[VAL_16]], align 8
-// CHECK:         %[[VAL_17:.*]] = tail call ptr @__quantum__rt__array_concatenate(ptr %[[VAL_14]], ptr %[[VAL_15]])
-// CHECK:         %[[VAL_18:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_19:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_18]], i64 0)
-// CHECK:         store ptr %[[VAL_4]], ptr %[[VAL_19]], align 8
-// CHECK:         %[[VAL_20:.*]] = tail call ptr @__quantum__rt__array_concatenate(ptr %[[VAL_17]], ptr %[[VAL_18]])
-// CHECK:         %[[VAL_21:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_22:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_21]], i64 0)
-// CHECK:         store ptr %[[VAL_5]], ptr %[[VAL_22]], align 8
-// CHECK:         %[[VAL_23:.*]] = tail call ptr @__quantum__rt__array_concatenate(ptr %[[VAL_20]], ptr %[[VAL_21]])
-// CHECK:         %[[VAL_24:.*]] = tail call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-// CHECK:         %[[VAL_25:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_24]], i64 0)
-// CHECK:         store ptr %[[VAL_6]], ptr %[[VAL_25]], align 8
-// CHECK:         %[[VAL_26:.*]] = tail call ptr @__quantum__rt__array_concatenate(ptr %[[VAL_23]], ptr %[[VAL_24]])
-// CHECK:         %[[VAL_27:.*]] = tail call ptr @__quantum__rt__array_slice(ptr %[[VAL_26]], i32 1, i64 0, i64 1, i64 3)
-// CHECK:         tail call void @__quantum__qis__swap__ctl(ptr %[[VAL_27]], ptr %[[VAL_4]], ptr %[[VAL_5]])
-// CHECK:         %[[VAL_28:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(ptr %[[VAL_27]])
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 2, ptr nonnull @__quantum__qis__swap__ctl, i64 %[[VAL_28]], ptr %[[VAL_27]], ptr %[[VAL_4]], ptr %[[VAL_5]], ptr %[[VAL_6]])
-// CHECK:         %[[VAL_29:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(ptr %[[VAL_27]])
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 2, ptr nonnull @__quantum__qis__swap__ctl, i64 %[[VAL_29]], ptr %[[VAL_27]], ptr %[[VAL_5]], ptr %[[VAL_4]], ptr %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 4, i64 2, ptr nonnull @__quantum__qis__swap__ctl, ptr %[[VAL_0]], ptr %[[VAL_1]], ptr %[[VAL_2]], ptr %[[VAL_3]], ptr %[[VAL_4]], ptr %[[VAL_5]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 5, i64 2, ptr nonnull @__quantum__qis__swap__ctl, ptr %[[VAL_4]], ptr %[[VAL_0]], ptr %[[VAL_1]], ptr %[[VAL_2]], ptr %[[VAL_3]], ptr %[[VAL_5]], ptr %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 5, i64 2, ptr nonnull @__quantum__qis__swap__ctl, ptr %[[VAL_0]], ptr %[[VAL_1]], ptr %[[VAL_2]], ptr %[[VAL_3]], ptr %[[VAL_5]], ptr %[[VAL_4]], ptr %[[VAL_6]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_0]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_1]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_2]])
@@ -135,4 +106,3 @@ func.func @test_ctrl_swap_complex() {
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_5]])
 // CHECK-DAG:     tail call void @__quantum__rt__qubit_release(ptr %[[VAL_6]])
 // CHECK:         ret void
-// CHECK:       }
