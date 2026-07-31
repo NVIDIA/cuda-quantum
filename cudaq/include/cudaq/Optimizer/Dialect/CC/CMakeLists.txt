@@ -12,6 +12,7 @@ add_cudaq_dialect_doc(CCDialect cc)
 
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
         DESTINATION include/cudaq/Optimizer/Dialect/CC
+        COMPONENT Development
         FILES_MATCHING
           PATTERN "*.h.inc"
           PATTERN "*.cpp.inc"
