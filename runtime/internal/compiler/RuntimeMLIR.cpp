@@ -10,6 +10,7 @@
 #include "common/CodeGenConfig.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -765,4 +766,30 @@ void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
   // Compiler::prepareModule.
   if (printEachPass == cudaq::PrintEachPassMode::All)
     pm.enableIRPrinting();
+}
+
+static mlir::LogicalResult defaultRunPassManager(mlir::PassManager &pm,
+                                                 mlir::Operation *op) {
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
+  cudaq_internal::compiler::configurePassManagerFromEnv(pm);
+  return pm.run(op);
+}
+
+static cudaq_internal::compiler::RunPassManagerHook g_runPassManagerHook =
+    &defaultRunPassManager;
+
+void cudaq_internal::compiler::setRunPassManagerHook(RunPassManagerHook hook) {
+  g_runPassManagerHook = hook ? hook : &defaultRunPassManager;
+}
+
+void cudaq_internal::compiler::initializeLangMLIR() {
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  cudaq::registerAllPasses();
+}
+
+mlir::LogicalResult
+cudaq_internal::compiler::runPassManager(mlir::PassManager &pm,
+                                         mlir::Operation *op) {
+  return g_runPassManagerHook(pm, op);
 }

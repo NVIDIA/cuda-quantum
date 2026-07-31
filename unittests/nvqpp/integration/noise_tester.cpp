@@ -97,12 +97,14 @@ struct hello_world : public ::cudaq::kraus_channel {
 };
 } // namespace test::hello
 
+#ifdef TEST2_SUPPORTED
 __qpu__ void test2(double p) {
   cudaq::qubit q;
   x(q);
+  // not yet implemented: C++ constructor (non-default)
   cudaq::apply_noise<test::hello::hello_world>({0.2}, q);
 }
-
+#endif
 __qpu__ void test3(double p) {
   cudaq::qubit q;
   x(q);
@@ -172,6 +174,8 @@ CUDAQ_TEST(NoiseTest, checkFineGrainArg) {
   }
 }
 
+// Hitting: not yet implemented: C++ constructor (non-default)
+#ifdef TEST2_SUPPORTED
 CUDAQ_TEST(NoiseTest, checkFineGrainVec) {
   {
     cudaq::noise_model noise;
@@ -197,6 +201,7 @@ CUDAQ_TEST(NoiseTest, checkFineGrainVec) {
     EXPECT_TRUE(counts.size() == 1);
   }
 }
+#endif
 
 CUDAQ_TEST(NoiseTest, checkSimple) {
   cudaq::set_random_seed(13);

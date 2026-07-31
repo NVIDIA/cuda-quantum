@@ -54,7 +54,7 @@ if(CMAKE_CUDA_COMPILER)
   
   set_target_properties(test_dispatch_kernel PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
+    CUDA_STANDARD 20
   )
   
   target_include_directories(test_dispatch_kernel PRIVATE
@@ -75,7 +75,6 @@ if(CMAKE_CUDA_COMPILER)
     ${CUDADEVRT_LIBRARY}
   )
   
-  add_dependencies(CudaqRealtimeUnitTests test_dispatch_kernel)
   cudaq_gtest_discover_tests(test_dispatch_kernel
     TEST_PREFIX "test_dispatch_kernel."
   )
@@ -86,7 +85,7 @@ if(CMAKE_CUDA_COMPILER)
   add_executable(test_host_dispatcher test_host_dispatcher.cu)
   set_target_properties(test_host_dispatcher PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
+    CUDA_STANDARD 20
   )
   target_include_directories(test_host_dispatcher PRIVATE
     ${CUDAToolkit_INCLUDE_DIRS}
@@ -100,7 +99,6 @@ if(CMAKE_CUDA_COMPILER)
     cudaq-realtime-host-dispatch
     ${CUDADEVRT_LIBRARY}
   )
-  add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
   cudaq_gtest_discover_tests(test_host_dispatcher
     TEST_PREFIX "test_host_dispatcher."
   )
@@ -116,6 +114,10 @@ if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
   add_subdirectory(utils)
   add_subdirectory(bridge_interface/hololink)
 endif()
+
+# UDP bridge provider tests: self-gated on the always-built udp provider
+# target, so they run in CI without any hololink/RDMA setup.
+add_subdirectory(bridge_interface/udp)
 
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
 # Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when

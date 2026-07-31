@@ -114,14 +114,11 @@ if(CUDAQ_REALTIME_STANDALONE_BUILD)
       endif()
     endif()
     CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
-    # Keep realtime CUDA sources on C++17. nvcc's C++20 frontend can hit an
-    # internal compiler error in libstdc++ headers when compiling the standalone
-    # realtime tests, including test_host_dispatcher.cu, on the CI toolchain.
-    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options ${_host_compiler_opts}")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++20 ${CUDA_gencode_flags} --compiler-options ${_host_compiler_opts}")
 
     enable_language(CUDA)
     set(CUDA_FOUND TRUE)
-    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
     message(STATUS "Cuda language found.")
   endif()
@@ -160,27 +157,20 @@ configure_package_config_file(
 install(EXPORT cudaq-realtime-targets
   FILE cudaq-realtime-targets.cmake
   NAMESPACE cudaq::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 if (CUDAQ_REALTIME_BUILD_EXAMPLES)
   message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")
 endif()
 
 if (CUDAQ_REALTIME_BUILD_TESTS)
-  add_custom_target(CudaqRealtimeUnitTests)
   include(CTest)
-
-  add_custom_target(run_tests
-    COMMAND ${CMAKE_COMMAND} -E env 
-            PYTHONPATH="${CUDAQ_INSTALL_DIR}:${CMAKE_BINARY_DIR}/python"
-            ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS CudaqRealtimeUnitTests
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  )
   add_subdirectory(unittests)
 endif()
 

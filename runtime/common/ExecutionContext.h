@@ -157,12 +157,11 @@ public:
   std::exception_ptr deferredKernelException;
 
   /// @brief True while a JIT/AOT-compiled kernel frame is executing on this
-  /// thread (set by the launcher around the kernel invocation; see
-  /// QPU::InKernelLaunchScope). The simulator only defers exceptions into
-  /// `deferredKernelException` while this is set. Outside the kernel frame
-  /// (for example, gate application during sample/observe finalization) there
-  /// is no JIT frame for an exception to unwind through, so it is thrown
-  /// directly, preserving the behavior callers see on all platforms.
+  /// thread. The simulator only defers exceptions into
+  /// `deferredKernelException` while this is set. Outside the kernel frame (for
+  /// example, gate application during sample/observe finalization) there is no
+  /// JIT frame for an exception to unwind through, so it is thrown directly,
+  /// preserving the behavior callers see on all platforms.
   bool inKernelLaunch = false;
 };
 
@@ -189,6 +188,11 @@ bool isLastBatch();
 
 /// @brief Get the ID of the current QPU.
 std::size_t getCurrentQpuId();
+
+/// @brief Re-throw an exception the kernel deferred during execution, if any.
+/// Call immediately after invoking a compiled kernel, from the C++ frame above
+/// the JIT/AOT boundary. No-op when nothing was deferred.
+void rethrowDeferredKernelException();
 
 namespace detail {
 /// Set the execution context for the current thread.

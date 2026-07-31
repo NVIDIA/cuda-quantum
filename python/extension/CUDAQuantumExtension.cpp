@@ -68,7 +68,13 @@ using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
+namespace cudaq_internal::compiler {
+void installPythonMLIRHooks();
+} // namespace cudaq_internal::compiler
+
 NB_MODULE(_quakeDialects, m) {
+  cudaq_internal::compiler::installPythonMLIRHooks();
+
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);

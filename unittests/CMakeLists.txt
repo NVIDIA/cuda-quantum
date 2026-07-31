@@ -227,11 +227,6 @@ add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
 target_link_libraries(test_nvqir_verify
   PRIVATE
     cudaq
-    MLIRIR
-    MLIRMathDialect
-    MLIRParser
-    MLIRSupport
-    MLIROptLib
     cudaq-qir-verifier
     cudaq-platform-default
     gtest_main)
@@ -247,6 +242,7 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
+add_subdirectory(qis)
 add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
