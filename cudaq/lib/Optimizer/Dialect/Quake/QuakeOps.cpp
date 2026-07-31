@@ -496,7 +496,7 @@ void cudaq::quake::ConcatOp::getCanonicalizationPatterns(
 
 LogicalResult cudaq::quake::ConcatOp::verify() {
   if (!getTargets().size())
-    return failure();
+    return emitOpError("must have at least 1 operand");
   bool isUnspecified = false;
   std::size_t size = 0;
   for (auto tq : getTargets()) {
