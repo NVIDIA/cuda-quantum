@@ -55,7 +55,7 @@ int64_t max_denominator_exponent(const Real &epsilon);
 ///
 /// Representing a target of accuracy epsilon takes about log2(1/epsilon)
 /// significant bits. The 4x factor supplies guard bits so that rounding in
-/// gridsynth's iterative arithmetic (candidate enumeration, Diophantine
+/// `gridsynth's` iterative arithmetic (candidate enumeration, Diophantine
 /// solving) stays well below the epsilon budget, and the +64 floor keeps a
 /// sane minimum for loose epsilon. This is an empirical heuristic.
 ///

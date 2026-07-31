@@ -492,7 +492,7 @@ private:
 /// precision in force at that moment. `Real::set_default_precision` may raise
 /// the precision afterwards -- `CliffordTSynthesis` derives it from the
 /// requested epsilon, so a single process can synthesize at several
-/// precisions -- and a constant left behind at the old precision would then
+/// `precisions` -- and a constant left behind at the old precision would then
 /// silently cap the accuracy of every expression it feeds. `get()`
 /// re-materializes the value whenever the default precision has moved and
 /// hands back the cached one otherwise, so the recompute is paid once per
