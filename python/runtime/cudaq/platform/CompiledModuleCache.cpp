@@ -116,6 +116,8 @@ CompiledModuleCache::CompiledModuleCache() {
   if (cudaq::CompiledModule::debugMode()) {
     std::cout << "CompiledModuleCache constructor with maxReadyEntries = "
               << maxReadyEntries << std::endl;
+    std::cout << "Size of CompiledModule: " << sizeof(CompiledModule)
+              << std::endl;
   }
 }
 

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
+#include "Environment.h"
 #include <iostream>
 #include <string_view>
 
@@ -113,6 +114,6 @@ cudaq::CompiledModule::~CompiledModule() {
 
 bool cudaq::CompiledModule::debugMode() {
   static const bool enabled =
-      std::getenv("CUDAQ_DEBUG_COMPILED_MODULE") != nullptr;
+      cudaq::getEnvBool("CUDAQ_DEBUG_COMPILED_MODULE", false);
   return enabled;
 }

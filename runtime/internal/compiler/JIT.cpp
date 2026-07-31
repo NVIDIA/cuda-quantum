@@ -291,6 +291,12 @@ public:
       }
     }
   }
+
+  Impl(const Impl &) = delete;
+  Impl &operator=(const Impl &) = delete;
+  Impl(Impl &&) = default;
+  Impl &operator=(Impl &&) = default;
+
   std::size_t getKey() const {
     return reinterpret_cast<std::size_t>(jitEngine.get());
   }
