@@ -866,29 +866,28 @@ def test_list_comprehension_void():
     def apply_x(q: cudaq.qubit) -> None:
         return x(q)
 
-    #@skipIfValueSemantics
-    #@cudaq.kernel
-    #def kernelz2():
-    #    q1 = cudaq.qvector(3)
-    #    q2 = cudaq.qvector(3)
-    #    [apply_x(r) for r in q1]
-    #    for i in range(3):
-    #        x.ctrl(q1[i], q2[i])
+    @cudaq.kernel
+    def kernelz2():
+        q1 = cudaq.qvector(3)
+        q2 = cudaq.qvector(3)
+        [apply_x(r) for r in q1]
+        for i in range(3):
+            x.ctrl(q1[i], q2[i])
 
-    #out = cudaq.sample(kernelz2)
-    #print("out is", out)
-    #assert (len(out) == 1 and '111111' in out)
+    out = cudaq.sample(kernelz2)
+    print("out is", out)
+    assert (len(out) == 1 and '111111' in out)
     # keep after assert, such that we have no output if assert fails
-    #print(kernelz2)
+    print(kernelz2)
 
 
 # CHECK-LABEL: test_list_comprehension_void:
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelz1
 # CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK: return
-# C HECK-LABEL:   func.func @__nvqpp__mlirgen__kernelz2
-# C HECK-SAME: ) attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# C HECK: return
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelz2
+# CHECK-SAME: ) attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK: return
 
 
 def test_list_comprehension_expressions():
@@ -943,7 +942,7 @@ def test_list_comprehension_expressions():
                 x(qs[idx + len(orig)])
 
     out = cudaq.sample(kernelm3)
-    assert (len(out) == 1 and '101001' in out)
+    assert (len(out) == 1 and '10100100' in out)
     # keep after assert, such that we have no output if assert fails
     print(kernelm3)
 
