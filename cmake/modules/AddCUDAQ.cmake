@@ -79,24 +79,26 @@ function(cudaq_read_symbol_list _file _out_var)
 endfunction()
 
 # MLIR/LLVM libraries already provided by ``libcudaqMLIR.so``.
+#
+# cudaqMLIR-shlib.cmake writes the resolved list to cudaqMLIR-contents.txt (both
+# into the build tree and into lib/cmake/cudaq on install), so this is a lookup
+# of what the library actually contains rather than a re-derivation of it.
 function(_cudaq_read_mlir_provided_libs _out_var)
   set(_provided)
   get_property(_bundle GLOBAL PROPERTY CUDAQ_MLIR_BUNDLE_LIBS)
   if(_bundle)
     list(APPEND _provided ${_bundle})
   endif()
-  get_property(_required GLOBAL PROPERTY CUDAQ_MLIR_REQUIRED_LIBS)
-  if(_required)
-    list(APPEND _provided ${_required})
-  endif()
 
-  set(_allowlist_candidates
-    "${CMAKE_CURRENT_LIST_DIR}/mlir-libs-allowlist.txt"
-    "${CMAKE_CURRENT_LIST_DIR}/../cudaq/lib/Optimizer/mlir-libs-allowlist.txt")
-  foreach(_candidate IN LISTS _allowlist_candidates)
+  # In-tree the manifest sits in the build tree; installed it sits next to this
+  # file in lib/cmake/cudaq.
+  set(_manifest_candidates
+    "${CMAKE_BINARY_DIR}/lib/cmake/cudaq/cudaqMLIR-contents.txt"
+    "${CMAKE_CURRENT_LIST_DIR}/cudaqMLIR-contents.txt")
+  foreach(_candidate IN LISTS _manifest_candidates)
     if(EXISTS "${_candidate}")
-      cudaq_read_symbol_list("${_candidate}" _allowlist)
-      list(APPEND _provided ${_allowlist})
+      cudaq_read_symbol_list("${_candidate}" _contents)
+      list(APPEND _provided ${_contents})
       break()
     endif()
   endforeach()
@@ -105,66 +107,46 @@ function(_cudaq_read_mlir_provided_libs _out_var)
   set(${_out_var} "${_provided}" PARENT_SCOPE)
 endfunction()
 
-# Collect project-owned static libraries to link into a common CAPI shared
-# library. Upstream ``MLIRCAPI*`` shims are embedded as objects only; their
-# transitive deps are skipped. Other embedded CAPI libraries are walked and
-# any link dependency not already shipped in ``libcudaqMLIR.so`` is retained.
-function(_cudaq_collect_embedded_link_libs _out_var _embed_libs _mlir_provided)
-  set(_result)
-  set(_queue)
-  foreach(_capi IN LISTS _embed_libs)
-    if(_capi MATCHES "^MLIRCAPI")
-      continue()
-    endif()
-    list(APPEND _queue ${_capi})
-  endforeach()
+# --------------------------------------------------------------------------- #
+# ``cudaq_check_mlir_symbol_closure(<target>)``
+#
+# Fail the build if ``<target>`` references MLIR/LLVM symbols that libcudaqMLIR
+# does not export. Everything in CUDA-Q resolves MLIR/LLVM dynamically from the
+# single libcudaqMLIR instance, and a gap there is not a link error -- it
+# surfaces as a dlopen/ImportError much later, typically in a wheel-validation
+# job. See scripts/check_mlir_symbols.sh.
+# --------------------------------------------------------------------------- #
 
-  set(_seen)
-  while(_queue)
-    list(POP_FRONT _queue _cur)
-    if(_cur IN_LIST _seen)
-      continue()
-    endif()
-    list(APPEND _seen ${_cur})
+# nm invocations are only exercised on Linux; leave the check opt-in elsewhere.
+if(APPLE)
+  set(_cudaq_symbol_closure_default OFF)
+else()
+  set(_cudaq_symbol_closure_default ON)
+endif()
+option(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE
+  "Fail the build when a library references MLIR/LLVM symbols libcudaqMLIR does not export."
+  ${_cudaq_symbol_closure_default})
 
-    if(NOT TARGET ${_cur})
-      continue()
-    endif()
+# In-tree this module sits in cmake/modules; installed it sits in
+# lib/cmake/cudaq next to a copy of the script.
+foreach(_candidate
+    "${CMAKE_CURRENT_LIST_DIR}/../../scripts/check_mlir_symbols.sh"
+    "${CMAKE_CURRENT_LIST_DIR}/check_mlir_symbols.sh")
+  if(EXISTS "${_candidate}")
+    get_filename_component(CUDAQ_SYMBOL_CHECK_SCRIPT "${_candidate}" ABSOLUTE)
+    break()
+  endif()
+endforeach()
 
-    get_target_property(_link_iface ${_cur} INTERFACE_LINK_LIBRARIES)
-    if(NOT _link_iface OR _link_iface STREQUAL "_link_iface-NOTFOUND")
-      get_target_property(_link_iface ${_cur} LINK_LIBRARIES)
-    endif()
-    if(NOT _link_iface OR _link_iface STREQUAL "_link_iface-NOTFOUND")
-      continue()
-    endif()
-
-    foreach(_dep IN LISTS _link_iface)
-      if(_dep MATCHES "\\$<")
-        continue()
-      endif()
-      if(_dep MATCHES "^MLIRCAPI" OR _dep MATCHES "^LLVM")
-        continue()
-      endif()
-      if(_dep STREQUAL "cudaq::MLIR" OR _dep STREQUAL "cudaq::cudaqMLIR")
-        continue()
-      endif()
-      if(_dep IN_LIST _mlir_provided)
-        continue()
-      endif()
-      if(TARGET ${_dep})
-        get_target_property(_dep_type ${_dep} TYPE)
-        if(_dep_type STREQUAL "INTERFACE_LIBRARY")
-          continue()
-        endif()
-      endif()
-      list(APPEND _result ${_dep})
-      list(APPEND _queue ${_dep})
-    endforeach()
-  endwhile()
-
-  list(REMOVE_DUPLICATES _result)
-  set(${_out_var} "${_result}" PARENT_SCOPE)
+function(cudaq_check_mlir_symbol_closure name)
+  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_SYMBOL_CHECK_SCRIPT)
+    return()
+  endif()
+  add_custom_command(TARGET ${name} POST_BUILD
+    COMMAND bash "${CUDAQ_SYMBOL_CHECK_SCRIPT}"
+            "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>"
+    COMMENT "Checking MLIR/LLVM symbol closure of ${name}"
+    VERBATIM)
 endfunction()
 
 # --------------------------------------------------------------------------- #
@@ -173,12 +155,11 @@ endfunction()
 # Drop-in replacement for MLIR's ``add_mlir_python_common_capi_library``
 # that builds a common CAPI shared library without duplicating upstream MLIR.
 #
-# Embeds the CAPI object files themselves (``obj.<lib>`` from each
-# ``EMBED_CAPI_LINK_LIBS`` entry) and links project-owned transitive static
-# dependencies discovered from non-upstream CAPI libraries. ``libcudaqMLIR.so``
-# is placed first on the link line so upstream MLIR/LLVM archive members are
-# not extracted (their symbols are already defined in the shared library)
-# while project-owned archives (e.g. downstream dialect libraries) are embedded.
+# Identical to upstream except that the static MLIR/LLVM archives already
+# contained in ``libcudaqMLIR`` are excluded from the aggregate and resolved
+# dynamically from it instead, so the C API library holds no second copy of
+# MLIR. Project-owned dependencies (e.g. a downstream project's dialect
+# libraries) are still linked in.
 #
 # Accepts the same keyword arguments as MLIR's version:
 #   ``INSTALL_COMPONENT``, ``INSTALL_DESTINATION``, ``OUTPUT_DIRECTORY``,
@@ -210,39 +191,39 @@ function(add_cudaq_python_common_capi_library name)
     message(FATAL_ERROR "list of C API libraries cannot be empty")
   endif()
 
-  set(_objects)
+  # Check up front: without ENABLE_AGGREGATION there is no obj.<lib> to embed,
+  # and the failure otherwise surfaces as an empty generator expression.
   foreach(_capi_lib IN LISTS _embed_libs)
     if(NOT TARGET obj.${_capi_lib})
       message(FATAL_ERROR "Ensure ${_capi_lib} was registered with ENABLE_AGGREGATION")
     endif()
-    list(APPEND _objects "$<TARGET_OBJECTS:obj.${_capi_lib}>")
   endforeach()
 
   # 3. Create the shared library, with hidden visibility and linking to cudaqMLIR
-  _cudaq_read_mlir_provided_libs(_mlir_provided)
-  _cudaq_collect_embedded_link_libs(_project_link_libs "${_embed_libs}"
-    "${_mlir_provided}")
-  set(_project_link_files)
-  foreach(_lib IN LISTS _project_link_libs)
-    if(NOT TARGET ${_lib})
-      continue()
-    endif()
-    get_target_property(_lib_type ${_lib} TYPE)
-    if(_lib_type STREQUAL "STATIC_LIBRARY" OR _lib_type STREQUAL "SHARED_LIBRARY"
-        OR _lib_type STREQUAL "MODULE_LIBRARY")
-      list(APPEND _project_link_files "$<TARGET_FILE:${_lib}>")
-    endif()
-  endforeach()
+  #
+  # add_mlir_aggregate() embeds obj.<lib> for every EMBED_LIBS entry and links
+  # the dependencies those libraries advertise. Upstream rewrites those
+  # dependency lists into generator expressions that drop any entry named in
+  # the consuming target's MLIR_AGGREGATE_EXCLUDE_LIBS property -- see
+  # get_mlir_filtered_link_libraries() in AddMLIR.cmake. add_mlir_aggregate
+  # seeds that property with the embedded libraries; appending the contents of
+  # libcudaqMLIR afterwards drops every static MLIR/LLVM archive as well,
+  # because those generator expressions are not evaluated until generate time.
+  # What survives is exactly the project-owned dependencies -- e.g. a
+  # downstream project's dialect libraries -- which do have to be linked.
+  #
+  # This also gets us upstream's "LINKER:-z,defs", so an unresolved symbol here
+  # is a link error rather than a dlopen failure at run time.
+  add_mlir_aggregate(${name}
+    SHARED
+    DISABLE_INSTALL
+    EMBED_LIBS ${_embed_libs}
+    PUBLIC_LIBS cudaq::cudaqMLIR)
 
-  add_library(${name} SHARED ${_objects})
-  # libcudaqMLIR must precede the static archives below: archive members are
-  # only extracted for still-undefined symbols, so upstream MLIR/LLVM archives
-  # contribute nothing while project-owned deps (e.g. a downstream project's
-  # dialect libraries) are pulled in.
-  target_link_options(${name} BEFORE PRIVATE "$<TARGET_FILE:cudaq::cudaqMLIR>")
-  # Link archive files directly (not CMake targets) so INTERFACE_LINK_LIBRARIES
-  # from upstream MLIR static targets are not re-exported onto this shared lib.
-  target_link_libraries(${name} PRIVATE cudaq::cudaqMLIR ${_project_link_files})
+  _cudaq_read_mlir_provided_libs(_mlir_provided)
+  set_property(TARGET ${name} APPEND PROPERTY
+    MLIR_AGGREGATE_EXCLUDE_LIBS ${_mlir_provided})
+
   set_target_properties(${name} PROPERTIES
     LINKER_LANGUAGE CXX
     CXX_VISIBILITY_PRESET hidden
@@ -275,6 +256,8 @@ function(add_cudaq_python_common_capi_library name)
     target_link_options(${name} PRIVATE
       "LINKER:--version-script=${_version_script}")
   endif()
+
+  cudaq_check_mlir_symbol_closure(${name})
 
   # 5. RPATH (Python bindings): mlir_python_setup_extension_rpath sets
   # @loader_path / $ORIGIN; also append CUDAQ_LIBRARY_DIR for wheel layouts.
@@ -366,6 +349,8 @@ function(add_cudaq_python_modules name)
     if(CUDAQ_LIBRARY_DIR)
       set_property(TARGET ${_dso} APPEND PROPERTY BUILD_RPATH "${CUDAQ_LIBRARY_DIR}")
     endif()
+
+    cudaq_check_mlir_symbol_closure(${_dso})
   endforeach()
 endfunction()
 
@@ -436,8 +421,13 @@ function(cudaq_add_mlir_extension name)
   endif()
 endfunction()
 
-# Provide canonical CMake imported interface targets for core CUDA-Q MLIR libraries
-add_library(cudaq::MLIR INTERFACE IMPORTED)
-set_target_properties(cudaq::MLIR PROPERTIES
-  INTERFACE_LINK_LIBRARIES cudaq::cudaqMLIR
-)
+# ``cudaq::MLIR`` is the public name downstream projects link against; it is an
+# alias for the ``cudaq::cudaqMLIR`` target, which is what the export set and
+# the in-tree build define. GLOBAL so it is usable from any subdirectory, and
+# guarded so that including this module twice is harmless.
+if(NOT TARGET cudaq::MLIR)
+  add_library(cudaq::MLIR INTERFACE IMPORTED GLOBAL)
+  set_target_properties(cudaq::MLIR PROPERTIES
+    INTERFACE_LINK_LIBRARIES cudaq::cudaqMLIR
+  )
+endif()

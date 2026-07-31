@@ -47,6 +47,16 @@ endif()
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
 
+# Install components
+# ==============================================================================
+# The wheels install a subset of the components rather than the whole tree:
+#   pyproject.toml.cu{12,13} -> {Runtime, CUDAQuantumPythonModules}
+#   pyproject.toml.devel     -> {Development, Nvqpp}
+# Anything that lands in CMake's catch-all "Unspecified" component is therefore
+# silently dropped from *every* wheel. Default to Runtime so that forgetting a
+# COMPONENT ships one extra file rather than producing a broken runtime wheel.
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
+
 # Prevent In-source builds
 # ==============================================================================
 # Using the undocumented `CMAKE_DISABLE_IN_SOURCE_BUILDS` and
@@ -1048,43 +1058,3 @@ if (CUDAQ_EXTERNAL_NVQIR_SIMS)
     add_target_libs_to_wheel(${LIB_SO_OR_CONFIG_FILE})
   endwhile()
 endif()
-
-# Safety net: strip absolute compiler-rt paths from installed CMake exports.
-# Must run after all install(EXPORT) rules (registered last).
-install(CODE [[
-  file(GLOB_RECURSE _cudaq_export_files
-    "${CMAKE_INSTALL_PREFIX}/lib/cmake/*Targets*.cmake")
-  foreach(_export_file IN LISTS _cudaq_export_files)
-    file(READ "${_export_file}" _content)
-    set(_original "${_content}")
-    # Drop absolute libclang_rt*.a entries (optional quotes, optional
-    # surrounding semicolons) from INTERFACE_LINK_LIBRARIES lists.
-    string(REGEX REPLACE
-      ";?/[^;\"]*libclang_rt[^;\"]*\\.a;?"
-      ";"
-      _content
-      "${_content}")
-    string(REGEX REPLACE
-      "\"/[^;\"]*libclang_rt[^;\"]*\\.a\""
-      "\"\""
-      _content
-      "${_content}")
-    string(REGEX REPLACE ";;+" ";" _content "${_content}")
-    string(REGEX REPLACE
-      "INTERFACE_LINK_LIBRARIES \";+"
-      "INTERFACE_LINK_LIBRARIES \""
-      _content
-      "${_content}")
-    string(REGEX REPLACE
-      ";+\""
-      "\""
-      _content
-      "${_content}")
-    if(NOT _content STREQUAL _original)
-      file(WRITE "${_export_file}" "${_content}")
-      message(STATUS
-        "Removed absolute compiler-rt paths from ${_export_file}")
-    endif()
-  endforeach()
-]]
-  COMPONENT Development)

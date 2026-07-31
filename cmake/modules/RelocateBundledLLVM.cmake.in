@@ -1,0 +1,51 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Generated from RelocateBundledLLVM.cmake.in -- do not edit.
+#
+# Run at install time when CUDAQ_BUNDLE_MLIR_INSTALL is on (see
+# BundleMLIRDevel.cmake). The cudaq-devel wheel bundles a *prebuilt* LLVM/MLIR
+# tree that was configured for the absolute prefix it was built in, which does
+# not exist on the machine that installs the wheel. Two files record that
+# prefix; rewrite both.
+
+set(_llvm_build_prefix "@CUDAQ_LLVM_INSTALL_PREFIX@")
+
+# 1. clang.cfg / clang++.cfg
+#
+# clang expands the literal token <CFGDIR> to the directory holding the config
+# file, so a <CFGDIR>-relative tree relocates cleanly. LLVM built by
+# scripts/build_llvm.sh already writes these paths; the prebuilt devdeps images
+# predate that and still carry the build prefix.
+foreach(_cfg IN ITEMS clang.cfg clang++.cfg)
+  set(_cfg_path "${CMAKE_INSTALL_PREFIX}/bin/${_cfg}")
+  if(EXISTS "${_cfg_path}")
+    file(READ "${_cfg_path}" _content)
+    string(REPLACE "${_llvm_build_prefix}" "<CFGDIR>/.." _relocated "${_content}")
+    if(NOT _relocated STREQUAL _content)
+      file(WRITE "${_cfg_path}" "${_relocated}")
+      message(STATUS "Relocated ${_cfg} to <CFGDIR>-relative paths")
+    endif()
+  endif()
+endforeach()
+
+# 2. LLVMConfig.cmake
+#
+# It hardcodes the zlib LLVM was built against as `set(ZLIB_ROOT <path>)` and
+# then calls find_package(ZLIB). That path is not part of the bundled tree, so
+# for a consumer of the wheel the find_package would fail. Drop the pin and let
+# zlib be found the normal way.
+set(_llvm_config "${CMAKE_INSTALL_PREFIX}/lib/cmake/llvm/LLVMConfig.cmake")
+if(EXISTS "${_llvm_config}")
+  file(READ "${_llvm_config}" _content)
+  string(REGEX REPLACE "set\\(ZLIB_ROOT[^)]*\\)" "" _scrubbed "${_content}")
+  if(NOT _scrubbed STREQUAL _content)
+    file(WRITE "${_llvm_config}" "${_scrubbed}")
+    message(STATUS "Dropped build-machine ZLIB_ROOT from bundled LLVMConfig.cmake")
+  endif()
+endif()

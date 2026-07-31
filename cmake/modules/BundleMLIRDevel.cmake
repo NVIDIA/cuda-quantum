@@ -37,45 +37,12 @@ foreach(_dir IN LISTS _cudaq_mlir_devel_dirs)
   endif()
 endforeach()
 
-# Make the bundled LLVM tree relocatable: clang.cfg / LLVMConfig.cmake often
-# contain absolute paths from the machine that built LLVM.
-# Quoted install(CODE) so ${CUDAQ_LLVM_INSTALL_PREFIX} is expanded at
-# configure time into the install script.
-install(CODE "
-  set(_prefix \"\${CMAKE_INSTALL_PREFIX}\")
-  set(_llvm_src_prefix \"${CUDAQ_LLVM_INSTALL_PREFIX}\")
-  foreach(_cfg IN ITEMS clang.cfg clang++.cfg)
-    set(_cfg_path \"\${_prefix}/bin/\${_cfg}\")
-    if(EXISTS \"\${_cfg_path}\")
-      file(READ \"\${_cfg_path}\" _cfg_content)
-      # Prefer CFGDIR-relative paths so the wheel can be installed anywhere.
-      string(REPLACE \"\${_llvm_src_prefix}\" \"<CFGDIR>/..\"
-        _cfg_content \"\${_cfg_content}\")
-      # Also rewrite any other absolute .../lib entries that may remain.
-      string(REGEX REPLACE
-        \"-L\\\"?/[^\\\"\\n]+/lib\\\"?\"
-        \"-L\\\"<CFGDIR>/../lib\\\"\"
-        _cfg_content \"\${_cfg_content}\")
-      string(REGEX REPLACE
-        \"-Wl,-rpath,\\\"?/[^\\\"\\n]+/lib\\\"?\"
-        \"-Wl,-rpath,\\\"<CFGDIR>/../lib\\\"\"
-        _cfg_content \"\${_cfg_content}\")
-      file(WRITE \"\${_cfg_path}\" \"\${_cfg_content}\")
-      message(STATUS \"Relocated \${_cfg} for relocatable devel install\")
-    endif()
-  endforeach()
-
-  set(_llvm_config \"\${_prefix}/lib/cmake/llvm/LLVMConfig.cmake\")
-  if(EXISTS \"\${_llvm_config}\")
-    file(READ \"\${_llvm_config}\" _llvm_config_content)
-    # Drop build-machine ZLIB_ROOT so consumers use a system/find_package zlib.
-    string(REGEX REPLACE
-      \"[ \\t]*set\\\\(ZLIB_ROOT [^)]*\\\\)[ \\t]*\\n?\"
-      \"\"
-      _llvm_config_content
-      \"\${_llvm_config_content}\")
-    file(WRITE \"\${_llvm_config}\" \"\${_llvm_config_content}\")
-    message(STATUS \"Scrubbed ZLIB_ROOT from bundled LLVMConfig.cmake\")
-  endif()
-"
-  COMPONENT Development)
+# Make the bundled LLVM tree relocatable. The rewriting runs at install time and
+# lives in its own script so it reads as ordinary CMake instead of a quoted
+# install(CODE) string with three levels of escaping.
+configure_file(
+  "${CMAKE_CURRENT_LIST_DIR}/RelocateBundledLLVM.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/RelocateBundledLLVM.cmake"
+  @ONLY)
+install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/RelocateBundledLLVM.cmake"
+        COMPONENT Development)

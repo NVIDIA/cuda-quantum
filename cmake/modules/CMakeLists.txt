@@ -90,11 +90,13 @@ install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/NVQIRTargetConfigGen.cmake
         DESTINATION lib/cmake/nvqir
         COMPONENT Development)
 
-# Export CMake modules.
+# Export CMake modules. AddCUDAQ.cmake resolves both the symbol-closure script
+# and cudaqMLIR-contents.txt (installed by cudaqMLIR-shlib.cmake) relative to
+# its own location, so all three have to land in the same directory.
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/AddCUDAQ.cmake
         DESTINATION lib/cmake/cudaq
         COMPONENT Development)
-install(FILES ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/mlir-libs-allowlist.txt
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/check_mlir_symbols.sh
         DESTINATION lib/cmake/cudaq
         COMPONENT Development)
 
