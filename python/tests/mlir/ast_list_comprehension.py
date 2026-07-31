@@ -10,7 +10,6 @@
 
 from dataclasses import dataclass
 import cudaq
-import math
 
 
 def test_list_comprehension_constant():
@@ -1043,98 +1042,97 @@ def test_list_comprehension_qubit_refs():
     # keep after assert, such that we have no output if assert fails
     print(kerneln1)
 
-    #@skipIfValueSemantics
-    #@cudaq.kernel
-    #def kerneln2():
-    #    qs = cudaq.qvector(2)
-    #    x(qs[0])
-    #    x(qs[1])
-    #    target = cudaq.qubit()
-    #    x.ctrl([qs[i] for i in [0, 1]], target)
+    @cudaq.kernel
+    def kerneln2():
+        qs = cudaq.qvector(2)
+        x(qs[0])
+        x(qs[1])
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in [0, 1]], target)
 
-    #out = cudaq.sample(kerneln2)
-    #assert len(out) == 1 and '111' in out
+    out = cudaq.sample(kerneln2)
+    assert len(out) == 1 and '111' in out
     # keep after assert, such that we have no output if assert fails
-    #print(kerneln2)
+    print(kerneln2)
 
-    #@cudaq.kernel
-    #def kerneln3():
-    #    qs = cudaq.qvector(2)
-    #    x(qs[0])
-    #    x(qs[1])
-    #    target = cudaq.qubit()
-    #    x.ctrl([qs[i] for i in range(2)], target)
+    @cudaq.kernel
+    def kerneln3():
+        qs = cudaq.qvector(2)
+        x(qs[0])
+        x(qs[1])
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in range(2)], target)
 
-    #out = cudaq.sample(kerneln3)
-    #assert len(out) == 1 and '111' in out
+    out = cudaq.sample(kerneln3)
+    assert len(out) == 1 and '111' in out
     # keep after assert, such that we have no output if assert fails
-    #print(kerneln3)
+    print(kerneln3)
 
-    #@cudaq.kernel
-    #def kerneln4():
-    #    qs = cudaq.qvector(2)
-    #    x(qs[0])
-    #    x(qs[1])
-    #    target = cudaq.qubit()
-    #    indices = [0, 1]
-    #    x.ctrl([qs[i] for i in indices], target)
+    @cudaq.kernel
+    def kerneln4():
+        qs = cudaq.qvector(2)
+        x(qs[0])
+        x(qs[1])
+        target = cudaq.qubit()
+        indices = [0, 1]
+        x.ctrl([qs[i] for i in indices], target)
 
-    #out = cudaq.sample(kerneln4)
-    #assert len(out) == 1 and '111' in out
+    out = cudaq.sample(kerneln4)
+    assert len(out) == 1 and '111' in out
     # keep after assert, such that we have no output if assert fails
-    #print(kerneln4)
+    print(kerneln4)
 
-    #@cudaq.kernel
-    #def kerneln5():
-    #    qs = cudaq.qvector(4)
-    #    x(qs[0])
-    #    x(qs[1])
-    #    x(qs[2])
-    #    cont = [0, 1, 2]
-    #    x.ctrl([qs[i] for i in cont], qs[3])
+    @cudaq.kernel
+    def kerneln5():
+        qs = cudaq.qvector(4)
+        x(qs[0])
+        x(qs[1])
+        x(qs[2])
+        cont = [0, 1, 2]
+        x.ctrl([qs[i] for i in cont], qs[3])
 
-    #out = cudaq.sample(kerneln5)
-    #assert len(out) == 1 and '1111' in out
+    out = cudaq.sample(kerneln5)
+    assert len(out) == 1 and '1111' in out
     # keep after assert, such that we have no output if assert fails
-    #print(kerneln5)
+    print(kerneln5)
 
-    #@cudaq.kernel
-    #def kerneln6(qs: cudaq.qvector, indices: list[int]):
-    #    target = cudaq.qubit()
-    #    x.ctrl([qs[i] for i in indices], target)
+    @cudaq.kernel
+    def kerneln6(qs: cudaq.qvector, indices: list[int]):
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in indices], target)
 
-    #print(kerneln6)
+    print(kerneln6)
 
 
 # CHECK-LABEL: test_list_comprehension_qubit_refs:
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kerneln1..
 # CHECK-NOT: quake.concat
 # CHECK: return
-# C HECK-LABEL: func.func @__nvqpp__mlirgen__kerneln2..
-# C HECK: quake.extract_ref
-# C HECK: cc.loop
-# C HECK: quake.concat
-# C HECK: return
-# C HECK-LABEL: func.func @__nvqpp__mlirgen__kerneln3..
-# C HECK: quake.extract_ref
-# C HECK: cc.loop
-# C HECK: quake.concat
-# C HECK: return
-# C HECK-LABEL: func.func @__nvqpp__mlirgen__kerneln4..
-# C HECK: quake.extract_ref
-# C HECK: cc.loop
-# C HECK: quake.concat
-# C HECK: return
-# C HECK-LABEL: func.func @__nvqpp__mlirgen__kerneln5..
-# C HECK: quake.extract_ref
-# C HECK: cc.loop
-# C HECK: quake.concat
-# C HECK: return
-# C HECK-LABEL: func.func @__nvqpp__mlirgen__kerneln6..
-# C HECK: cc.stdvec_size
-# C HECK: cc.loop
-# C HECK: quake.concat
-# C HECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kerneln2..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kerneln3..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kerneln4..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kerneln5..
+# CHECK: quake.extract_ref
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kerneln6..
+# CHECK: cc.stdvec_size
+# CHECK: cc.loop
+# CHECK: quake.concat
+# CHECK: return
 
 
 def test_list_comprehension_filter():
@@ -1173,26 +1171,26 @@ def test_list_comprehension_filter():
     assert len(out) == 1 and out[0] == [3, 4, 5, 6]
     print(kernel4)
 
-    #@cudaq.kernel
-    #def kernel5():
-    #    qs = cudaq.qvector(4)
-    #    flips = [qs[i] for i in range(4) if i % 2 == 1]
-    #    x(flips)
+    @cudaq.kernel
+    def kernel5():
+        qs = cudaq.qvector(4)
+        flips = [qs[i] for i in range(4) if i % 2 == 1]
+        x(flips)
 
-    #out = cudaq.sample(kernel5)
-    #assert len(out) == 1 and '0101' in out
-    #print(kernel5)
+    out = cudaq.sample(kernel5)
+    assert len(out) == 1 and '0101' in out
+    print(kernel5)
 
-    #@cudaq.kernel
-    #def kernel6(mask: int):
-    #    qs = cudaq.qvector(4)
-    #    x(qs)
-    #    target = cudaq.qubit()
-    #    x.ctrl([qs[i] for i in range(4) if ((1 << i) & mask) != 0], target)
+    @cudaq.kernel
+    def kernel6(mask: int):
+        qs = cudaq.qvector(4)
+        x(qs)
+        target = cudaq.qubit()
+        x.ctrl([qs[i] for i in range(4) if ((1 << i) & mask) != 0], target)
 
-    #out = cudaq.sample(kernel6, 0b1001)
-    #assert len(out) == 1 and '11111' in out
-    #print(kernel6)
+    out = cudaq.sample(kernel6, 0b1001)
+    assert len(out) == 1 and '11111' in out
+    print(kernel6)
 
 
 # CHECK-LABEL: test_list_comprehension_filter:
@@ -1215,16 +1213,16 @@ def test_list_comprehension_filter():
 # CHECK: cc.if
 # CHECK: cc.stdvec_init
 # CHECK: return
-# C HECK-LABEL: func.func @__nvqpp__mlirgen__kernel5..
-# C HECK: cc.loop
-# C HECK: cc.if
-# C HECK: quake.concat
-# C HECK: return
-# C HECK-LABEL: func.func @__nvqpp__mlirgen__kernel6..
-# C HECK: cc.loop
-# C HECK: cc.if
-# C HECK: quake.concat
-# C HECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel5..
+# CHECK: cc.loop
+# CHECK: cc.if
+# CHECK: quake.concat
+# CHECK: return
+# CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel6..
+# CHECK: cc.loop
+# CHECK: cc.if
+# CHECK: quake.concat
+# CHECK: return
 
 
 def test_list_comprehension_failures():
