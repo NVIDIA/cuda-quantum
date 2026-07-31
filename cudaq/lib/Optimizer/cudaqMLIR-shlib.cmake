@@ -60,28 +60,31 @@ add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 # 2. Pull in the dependencies
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_libs})
 
-# 3. WHOLE_ARCHIVE the allowlisted MLIR libraries and C-API dependencies so their
-# full symbol set is exported for downstream plugins.
+# 3. WHOLE_ARCHIVE the allowlisted MLIR libraries, the C-API dependencies and
+# the LLVM components needed for JITing so their full symbol set is exported for
+# downstream plugins.
+#
+# All three sources feed a single list: whole-archiving the same archive twice
+# would define every one of its symbols twice and fail the link.
 cudaq_read_symbol_list(
   "${CMAKE_CURRENT_SOURCE_DIR}/mlir-libs-allowlist.txt" _cudaq_mlir_whole_archive)
+
+# Recorded in cudaq/lib/Optimizer/CAPI/CMakeLists.txt: everything the embedded
+# Python C-API object files were built against.
 get_property(_cudaq_required_mlir_libs GLOBAL PROPERTY CUDAQ_MLIR_REQUIRED_LIBS)
-message(STATUS "CUDAQ_MLIR_REQUIRED_LIBS: ${_cudaq_required_mlir_libs}")
 list(APPEND _cudaq_mlir_whole_archive ${_cudaq_required_mlir_libs})
+
+llvm_map_components_to_libnames(_cudaq_llvm_native_libs native nativecodegen)
+list(APPEND _cudaq_mlir_whole_archive ${_cudaq_llvm_native_libs})
+
 list(REMOVE_DUPLICATES _cudaq_mlir_whole_archive)
+message(STATUS "${LIBRARY_NAME} whole-archives: ${_cudaq_mlir_whole_archive}")
 foreach(_lib IN LISTS _cudaq_mlir_whole_archive)
   if(TARGET ${_lib})
     target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
   else()
     message(WARNING
       "${LIBRARY_NAME}: MLIR library '${_lib}' not found; skipping whole-archive")
-  endif()
-endforeach()
-
-# 4. Bundle the LLVM native target for JITing, plus LLVMCore.
-llvm_map_components_to_libnames(_cudaq_llvm_native_libs native nativecodegen core)
-foreach(_lib IN LISTS _cudaq_llvm_native_libs)
-  if(TARGET ${_lib})
-    target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
   endif()
 endforeach()
 
