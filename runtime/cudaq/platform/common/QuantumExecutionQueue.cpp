@@ -7,15 +7,24 @@
  ******************************************************************************/
 
 #include "cudaq/platform/QuantumExecutionQueue.h"
+#include "cudaq/platform/qpu_utils.h"
+#include "cudaq/runtime/logger/logger.h"
+#include <sstream>
 #include <stdexcept>
 
 namespace cudaq {
 
 QuantumExecutionQueue::QuantumExecutionQueue() : lock() {
   thread = std::thread(&QuantumExecutionQueue::handler, this);
+  detail::registerExecutionQueue(*this);
 }
 
-QuantumExecutionQueue::~QuantumExecutionQueue() { shutdown(); }
+QuantumExecutionQueue::~QuantumExecutionQueue() {
+  shutdown();
+  // Unconditional, unlike `shutdown()`: a queue already stopped by
+  // `shutdownExecutionQueues()` must still leave the registry when destroyed.
+  detail::unregisterExecutionQueue(*this);
+}
 
 void QuantumExecutionQueue::shutdown() {
   // call_once guard (rather than a `quit` check): a second caller must block
@@ -26,6 +35,9 @@ void QuantumExecutionQueue::shutdown() {
       quit = true;
       cv.notify_all();
     }
+    // Captured before the join, which resets the id to "not a thread".
+    std::ostringstream threadId;
+    threadId << getExecutionThreadId();
     if (thread.joinable()) {
       thread.join();
     }
@@ -38,6 +50,10 @@ void QuantumExecutionQueue::shutdown() {
       std::unique_lock<std::mutex> l(lock);
       queue.swap(discarded);
     }
+    if (!discarded.empty())
+      CUDAQ_WARN("Execution queue on thread {} shut down with {} task(s) still "
+                 "queued; they were discarded.",
+                 threadId.str(), discarded.size());
   });
 }
 

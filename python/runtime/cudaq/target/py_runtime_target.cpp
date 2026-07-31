@@ -10,6 +10,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
 #include <filesystem>
@@ -223,24 +224,14 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       }));
 
   // An async task holds a clone of its kernel's MLIR module and may call back
-  // into Python, but the queues are only joined at static destruction (after
-  // the interpreter and that context are gone). Hence, we register a shutdown
-  // hook to stop the queues before the interpreter is shut down.
-  auto stopQueues = nanobind::cpp_function([]() {
-    // Drop the GIL: a task finishing up may need it.
-    nanobind::gil_scoped_release release;
-    get_platform().shutdown();
-  });
-
-  // `threading._register_atexit` runs during `wait_for_thread_shutdown()`,
-  // ahead of `atexit` callbacks; it is what the standard library's
-  // ThreadPoolExecutor uses to join its workers. Fallback to `atexit.register`
-  // if it is not available.
-  auto threading = nanobind::module_::import_("threading");
-  if (nanobind::hasattr(threading, "_register_atexit"))
-    threading.attr("_register_atexit")(stopQueues);
-  else
-    nanobind::module_::import_("atexit").attr("register")(stopQueues);
+  // into Python, but the queues are only joined at static destruction, after
+  // the interpreter and the global MLIR context are gone.
+  nanobind::module_::import_("atexit").attr("register")(
+      nanobind::cpp_function([]() {
+        // Drop the GIL: a task finishing up may need it.
+        nanobind::gil_scoped_release release;
+        detail::shutdownExecutionQueues();
+      }));
 }
 
 } // namespace cudaq

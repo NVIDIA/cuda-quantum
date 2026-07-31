@@ -7,20 +7,29 @@
 # ============================================================================ #
 """Helper program for `test_async_shutdown.py`.
 
-Launches one asynchronous GHZ job per entry in `QUBIT_COUNTS` and retrieves
-only the first result, leaving the rest outstanding when the interpreter shuts
-down.
+For `run`/`sample`/`observe`, launches one asynchronous GHZ job per entry in
+`QUBIT_COUNTS` and retrieves only the first result, leaving the rest
+outstanding when the interpreter shuts down.
+
+`thread` submits from a non-daemon thread that outlives `main`, and
+`target_swap` leaves jobs outstanding on a platform that is no longer the
+current target.
 
 Run as:
-    async_shutdown_child.py <run|sample|observe>
+    async_shutdown_child.py <run|sample|observe|thread|target_swap>
 """
 
 import sys
+import threading
+import time
 
 import cudaq
 
 # GHZ widths for the queued jobs.
 QUBIT_COUNTS = (2, 4, 8, 16)
+
+# Wider jobs for `target_swap`, which needs them outstanding on a GPU platform.
+TARGET_SWAP_QUBIT_COUNTS = (4, 24, 26, 28)
 
 SHOTS = 20
 
@@ -62,8 +71,40 @@ def launch(api):
     raise ValueError(f"unknown api: {api}")
 
 
+def submit_after_main_returns():
+    """Submit from a non-daemon thread that outlives `main`.
+    """
+
+    def worker():
+        time.sleep(2)
+        cudaq.sample_async(ghz, QUBIT_COUNTS[1], shots_count=SHOTS).get()
+        # Marker for the test to check.
+        print("SUCCESS", flush=True)
+
+    threading.Thread(target=worker).start()
+
+
+def leave_jobs_on_a_swapped_out_platform():
+    """Leave jobs outstanding on a platform that is no longer current.
+    """
+    cudaq.set_target("nvidia", option="mqpu")
+    handles = [
+        cudaq.sample_async(ghz, n, shots_count=SHOTS)
+        for n in TARGET_SWAP_QUBIT_COUNTS
+    ]
+    handles[0].get()
+    # Swap the target then shutdown, leaving the remaining jobs on the previous platform.
+    cudaq.set_target("qpp-cpu")
+
+
 def main():
-    handles = launch(sys.argv[1])
+    test_case = sys.argv[1]
+    if test_case == "thread":
+        return submit_after_main_returns()
+    if test_case == "target_swap":
+        return leave_jobs_on_a_swapped_out_platform()
+
+    handles = launch(test_case)
 
     # Retrieve only the first result. The execution queue is serial FIFO, so
     # the remaining jobs are necessarily still queued or running at this point.

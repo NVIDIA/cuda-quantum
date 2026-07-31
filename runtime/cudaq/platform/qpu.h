@@ -93,14 +93,6 @@ public:
   /// The destructor
   virtual ~QPU() = default;
 
-  /// Stop the execution queue and join its thread.
-  // The queue object is kept so that later enqueues fail (throw an exception)
-  // rather than dereference null.
-  void shutdown() {
-    if (execution_queue)
-      execution_queue->shutdown();
-  }
-
   /// Set the current QPU Id
   void setId(std::size_t _qpuId) { qpu_id = _qpuId; }
 
