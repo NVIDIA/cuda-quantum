@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/KernelArgs.h"
 #include "common/NamedVariantStore.h"
 #include "common/Resources.h"
 #include "common/ThunkInterface.h"
@@ -320,5 +321,21 @@ public:
 };
 
 using AnyModule = std::variant<SourceModule, CompiledModule>;
+
+/// @brief Execute the compiled binary stored in @p module.
+///
+/// Dispatches to `executeFunctionPtrBinary` when an AOT function-pointer
+/// artifact is present, otherwise to `executeJitBinary`.
+[[nodiscard]] KernelThunkResultType
+executeCompiledModule(const CompiledModule &module, KernelArgs args);
+
+/// @brief Execute the JIT-compiled binary artifact stored in @p module.
+[[nodiscard]] KernelThunkResultType
+executeJitBinary(const CompiledModule &module, KernelArgs args);
+
+/// @brief Execute a pre-compiled AOT binary via a function-pointer artifact.
+[[nodiscard]] KernelThunkResultType
+executeFunctionPtrBinary(const FatQuakeModule::FunctionPtrArtifact &artifact,
+                         KernelArgs args);
 
 } // namespace cudaq

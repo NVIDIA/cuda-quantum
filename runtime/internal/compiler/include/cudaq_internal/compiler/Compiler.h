@@ -56,7 +56,7 @@ class Compiler {
   bool emulate = false;
 
   /// @brief The compile target configuration containing the compile options.
-  std::unique_ptr<cudaq::CompileTarget> target;
+  cudaq::CompileTarget target;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
@@ -95,12 +95,12 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  const cudaq::CompileTarget &getTarget() const { return *target; }
+  const cudaq::CompileTarget &getTarget() const { return target; }
 
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
-  Compiler(std::unique_ptr<cudaq::CompileTarget> &&target);
+  Compiler(cudaq::CompileTarget target);
   ~Compiler();
 
   /// @brief Compile the given module and return a `CompiledModule`.
@@ -134,9 +134,9 @@ std::string getPassPipeline(const cudaq::CompileTarget &target);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.
-cudaq::CompiledModule
-compileModule(std::unique_ptr<cudaq::CompileTarget> target,
-              const cudaq::SourceModule &src, cudaq::KernelArgs args,
-              bool isEntryPoint = true);
+cudaq::CompiledModule compileModule(cudaq::CompileTarget target,
+                                    const cudaq::SourceModule &src,
+                                    cudaq::KernelArgs args,
+                                    bool isEntryPoint = true);
 
 } // namespace cudaq_internal::compiler

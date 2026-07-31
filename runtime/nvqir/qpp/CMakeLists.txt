@@ -33,7 +33,8 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES)
 
-  install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+  install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)
 endmacro()
 
 
