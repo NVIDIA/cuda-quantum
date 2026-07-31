@@ -35,7 +35,7 @@ __constant__ std::uint32_t g_dispatch_shared_ring_mode = 0;
 /// (dispatch_kernel_with_graph).  A tail self-relaunch is a fresh kernel
 /// invocation, so a local current_slot would reset to 0 every relaunch (i.e.
 /// every decode/shot) and rescan the ring from the start -- which, against an
-/// open-loop producer like the Hololink RX kernel that fills slots strictly in
+/// open-loop producer like the GpuRoceTransceiver RX kernel that fills slots strictly in
 /// order (window N -> slot N % num_slots), lets the scan grab a slot out of
 /// send order and races the flag-clear against slot reuse (observed as a rare
 /// duplicate-enqueue + dropped-get_corrections).  Holding the cursor here lets
@@ -73,8 +73,8 @@ __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
 /// This kernel does not contain any device-side graph launch code, avoiding
 /// compatibility issues on systems where cudaGraphLaunch is not supported.
 ///
-/// Supports symmetric RX/TX data buffers for Hololink compatibility:
-/// - RX data address comes from rx_flags[slot] (set by Hololink RX kernel)
+/// Supports symmetric RX/TX data buffers for GpuRoceTransceiver compatibility:
+/// - RX data address comes from rx_flags[slot] (set by GpuRoceTransceiver RX kernel)
 /// - TX response is written to tx_data + slot * tx_stride_sz
 /// - tx_flags[slot] is set to the TX slot address
 ///
@@ -334,7 +334,7 @@ __global__ void dispatch_kernel_device_call_only(
           }
         }
         if (rx_value != 0) {
-          // RX data address comes from rx_flags (set by Hololink RX kernel
+          // RX data address comes from rx_flags (set by GpuRoceTransceiver RX kernel
           // or host test harness to the address of the RX data slot)
           void* rx_slot = reinterpret_cast<void*>(rx_value);
           RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
@@ -404,7 +404,7 @@ __global__ void dispatch_kernel_device_call_only(
 /// This kernel includes device-side graph launch code and requires compute capability >= 9.0.
 /// NOTE: Graph launch code is conditionally compiled based on __CUDA_ARCH__.
 ///
-/// Supports symmetric RX/TX data buffers for Hololink compatibility.
+/// Supports symmetric RX/TX data buffers for GpuRoceTransceiver compatibility.
 template <typename KernelType>
 __global__ void dispatch_kernel_with_graph(
     volatile std::uint64_t* rx_flags,
