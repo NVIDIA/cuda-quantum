@@ -96,6 +96,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_utils.cpp
     ../runtime/cudaq/platform/CompiledModuleCache.cpp
     ../runtime/cudaq/platform/ProgramFingerprint.cpp
+    ../runtime/cudaq/platform/PyRuntimeEndpoint.cpp
     ../runtime/cudaq/platform/PythonSignalCheck.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
