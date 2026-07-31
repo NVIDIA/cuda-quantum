@@ -16,8 +16,6 @@ def count_extract_refs(kernel):
     return str(kernel.qkeModule).count("quake.extract_ref")
 
 
-
-
 def test_reuses_repeated_fixed_qrefs_by_vector_identity():
 
     @cudaq.kernel
