@@ -290,10 +290,11 @@ public:
 // The angle, in radians, after which QOP is exactly the identity operator.
 template <typename QOP>
 constexpr double exactIdentityPeriod() {
-  if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>)
+  if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>) {
     return 2.0 * M_PI;
-  else
+  } else {
     return 4.0 * M_PI;
+  }
 }
 
 template <typename QOP>
