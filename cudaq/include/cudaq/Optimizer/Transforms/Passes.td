@@ -1135,21 +1135,14 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
       by replacing the rotation angle of the latter occuring op to the sum of
       the rotation angles of both ops, and removing the prior op.
 
-    Two modes are supported via `use-wire-semantics`:
-    * Reference semantics (default): operates on `!quake.ref` values directly
-      from `quake.alloca`. Uses a netlist to order ops per qubit. The
-      `min-length` and `min-rz-weight` thresholds apply in this mode.
-    * Wire semantics: operates on `!quake.wire` SSA values (run after
-      `mem-to-reg`). Traverses def-use chains directly; no thresholds.
+    Operates on `!quake.wire` SSA values. Traverses def-use chains directly.
   }];
 
   let options = [
     Option<"minimumBlockLength", "min-length", "unsigned", /*default=*/"20",
-    "Minimumn subcircuit length to run phase folding (ref mode only)">,
+    "Minimum subcircuit length to run phase folding">,
     Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"0.2",
-    "Minimumn percentage of rz ops in subcircuit to run phase folding (ref mode only)">,
-    Option<"useWireSemantics", "use-wire-semantics", "bool", /*default=*/"false",
-    "Use wire (value) semantics instead of reference semantics">,
+    "Minimum percentage of rz ops in subcircuit to run phase folding">,
   ];
 
   let dependentDialects = ["cudaq::cc::CCDialect",

@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --phase-folding="use-wire-semantics min-length=0 min-rz-weight=0" %s | FileCheck %s
+// RUN: cudaq-opt --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
 
 // Two rotations that share the same phase term across a pair of CNOTs are
 // merged into a single rotation whose angle is the sum of the two.
