@@ -31,7 +31,8 @@ QUBIT_COUNTS = (2, 4, 8, 16)
 # Wider jobs for `target_swap`, which needs them outstanding on a GPU platform.
 TARGET_SWAP_QUBIT_COUNTS = (4, 24, 26, 28)
 
-SHOTS = 20
+# Increasing shot counts make the later queued jobs progressively harder.
+SHOT_COUNTS = (20, 100, 500, 1000)
 
 
 @cudaq.kernel
@@ -45,29 +46,61 @@ def ghz_measured(num_qubits: int) -> bool:
 
 
 @cudaq.kernel
-def ghz(num_qubits: int):
-    """GHZ state, for `sample_async` and `observe_async`.
-    """
-    q = cudaq.qvector(num_qubits)
+def ghz_core(q: cudaq.qview):
+    """Prepare a GHZ state on the supplied qubits."""
     h(q[0])
-    for i in range(num_qubits - 1):
+    for i in range(q.size() - 1):
         x.ctrl(q[i], q[i + 1])
+
+
+@cudaq.kernel
+def ghz(num_qubits: int):
+    """GHZ state for `observe_async`."""
+    q = cudaq.qvector(num_qubits)
+    ghz_core(q)
+
+
+@cudaq.kernel
+def ghz_explicit_measurements(num_qubits: int):
+    """Explicitly measured GHZ state for `sample_async`."""
+    q = cudaq.qvector(num_qubits)
+    ghz_core(q)
+    mz(q)
+
+
+def all_pauli_hamiltonian(num_qubits):
+    """Return the sum of X, Y, and Z terms on every qubit."""
+    hamiltonian = cudaq.SpinOperator.empty()
+    for i in range(num_qubits):
+        hamiltonian += cudaq.spin.x(i)
+        hamiltonian += cudaq.spin.y(i)
+        hamiltonian += cudaq.spin.z(i)
+    return hamiltonian
 
 
 def launch(api):
     """Enqueue one job per qubit count and return the handles."""
     if api == "run":
         return [
-            cudaq.run_async(ghz_measured, n, shots_count=SHOTS)
-            for n in QUBIT_COUNTS
+            cudaq.run_async(ghz_measured, n, shots_count=shots)
+            for n, shots in zip(QUBIT_COUNTS, SHOT_COUNTS)
         ]
     if api == "sample":
         return [
-            cudaq.sample_async(ghz, n, shots_count=SHOTS) for n in QUBIT_COUNTS
+            cudaq.sample_async(ghz_explicit_measurements,
+                               n,
+                               shots_count=shots,
+                               explicit_measurements=True)
+            for n, shots in zip(QUBIT_COUNTS, SHOT_COUNTS)
         ]
     if api == "observe":
-        hamiltonian = cudaq.spin.z(0)
-        return [cudaq.observe_async(ghz, hamiltonian, n) for n in QUBIT_COUNTS]
+        return [
+            cudaq.observe_async(ghz,
+                                all_pauli_hamiltonian(n),
+                                n,
+                                shots_count=shots)
+            for n, shots in zip(QUBIT_COUNTS, SHOT_COUNTS)
+        ]
     raise ValueError(f"unknown api: {api}")
 
 
@@ -77,7 +110,8 @@ def submit_after_main_returns():
 
     def worker():
         time.sleep(2)
-        cudaq.sample_async(ghz, QUBIT_COUNTS[1], shots_count=SHOTS).get()
+        cudaq.sample_async(ghz, QUBIT_COUNTS[1],
+                           shots_count=SHOT_COUNTS[1]).get()
         # Marker for the test to check.
         print("SUCCESS", flush=True)
 
@@ -89,25 +123,28 @@ def leave_jobs_on_a_swapped_out_platform():
     """
     cudaq.set_target("nvidia", option="mqpu")
     handles = [
-        cudaq.sample_async(ghz, n, shots_count=SHOTS)
-        for n in TARGET_SWAP_QUBIT_COUNTS
+        cudaq.sample_async(ghz, n, shots_count=shots)
+        for n, shots in zip(TARGET_SWAP_QUBIT_COUNTS, SHOT_COUNTS)
     ]
     handles[0].get()
-    # Swap the target then shutdown, leaving the remaining jobs on the previous platform.
+    # Swap targets after retrieving the first result, leaving the remaining
+    # jobs pending in the previous platform's queue.
     cudaq.set_target("qpp-cpu")
 
 
 def main():
     test_case = sys.argv[1]
-    if test_case == "thread":
-        return submit_after_main_returns()
     if test_case == "target_swap":
         return leave_jobs_on_a_swapped_out_platform()
 
+    cudaq.set_target("qpp-cpu")
+    if test_case == "thread":
+        return submit_after_main_returns()
+
     handles = launch(test_case)
 
-    # Retrieve only the first result. The execution queue is serial FIFO, so
-    # the remaining jobs are necessarily still queued or running at this point.
+    # Retrieve only the first result, leaving the harder jobs queued or running
+    # when main returns.
     handles[0].get()
 
 
