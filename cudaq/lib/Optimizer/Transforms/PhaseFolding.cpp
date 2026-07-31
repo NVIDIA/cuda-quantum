@@ -171,7 +171,12 @@ static OpResult getNextResult(Value v) {
 
 // AXIS-SPECIFIC: could allow controlled y and z here
 static bool isControlledOp(Operation *op) {
-  return isa<cudaq::quake::XOp>(op) && op->getNumOperands() == 2;
+  if (!isa<cudaq::quake::XOp>(op) || op->getNumOperands() != 2)
+    return false;
+  for (auto operand : cudaq::quake::getQuantumOperands(op))
+    if (!isa<cudaq::quake::WireType>(operand.getType()))
+      return false;
+  return true;
 }
 
 static bool isTerminationPoint(Operation *op) {
@@ -191,7 +196,8 @@ static bool isTerminationPoint(Operation *op) {
     return true;
   // TODO: support other qubit types (ref, veq) in phase folding
   for (auto operand : cudaq::quake::getQuantumOperands(op))
-    if (!isa<cudaq::quake::WireType>(operand.getType()))
+    if (cudaq::quake::isQuantumType(operand.getType()) &&
+        !isa<cudaq::quake::WireType>(operand.getType()))
       return true;
   return false;
 }
