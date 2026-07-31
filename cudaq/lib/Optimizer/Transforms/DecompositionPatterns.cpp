@@ -1385,6 +1385,14 @@ struct CRxToCX
     qRewriter.create<cudaq::quake::RzOp>(loc, /*isAdj*/ negControl, negPI_2,
                                          noControls, target);
 
+    // This residue is a scalar over the complete two-qubit unitary, not a
+    // phase conditioned on the source Rx control.
+    Value phase =
+        createConstant(loc, negControl ? M_PI_4 : -M_PI_4, angleType, rewriter);
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
+
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
     return success();
@@ -1878,15 +1886,32 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
     Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::RzOp>(loc, lam, controls, target);
-    qRewriter.create<cudaq::quake::RxOp>(loc, pi_2, controls, target);
-    qRewriter.create<cudaq::quake::RzOp>(loc, theta, controls, target);
-    qRewriter.create<cudaq::quake::RxOp>(loc, negPi_2, controls, target);
-    qRewriter.create<cudaq::quake::RzOp>(loc, phi, controls, target);
+    SmallVector<Value> targets{target};
+    auto negatedControls = op.getNegatedQubitControlsAttr();
+    cudaq::opt::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{lam}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{pi_2}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{theta}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{negPi_2}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{phi}, controls, targets,
+        negatedControls);
 
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
+    Value phase = arith::AddFOp::create(rewriter, loc, phi, lam);
+    phase = createDivF(loc, phase, 2.0, rewriter);
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, controls, negatedControls, targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(op, cudaq::opt::getWireValues(controls, targets));
     return success();
   }
 };
