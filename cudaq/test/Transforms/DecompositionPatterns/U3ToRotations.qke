@@ -7,14 +7,18 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --decomposition=enable-patterns=U3ToRotations %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | CircuitCheck %s
 // RUN: cudaq-opt --memtoreg --decomposition=enable-patterns=U3ToRotations %s | FileCheck %s
-// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=U3ToRotations})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=U3ToRotations})' %s | CircuitCheck %s
 
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 // The FileCheck part of this test only cares about the sequence of operations.
 // Correcteness is checked by CircuitCheck.
 
 // CHECK-LABEL: func.func @test
+// LOWER-LABEL: func.func @test
+// LOWER: quake.rz
 func.func @test(%qubit: !quake.ref) {
   %cst = arith.constant 3.141592653589793 : f64
   %cst_0 = arith.constant 1.57079632679489660 : f64
@@ -25,6 +29,7 @@ func.func @test(%qubit: !quake.ref) {
   // CHECK-NEXT: quake.rz
   // CHECK-NEXT: quake.rx
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   return
 }
 
@@ -39,5 +44,30 @@ func.func @adj(%qubit: !quake.ref) {
   // CHECK-NEXT: quake.rz
   // CHECK-NEXT: quake.rx
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
+  return
+}
+
+// CHECK-LABEL: func.func @controlled
+func.func @controlled(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 7.850000e-01 : f64
+  %phi = arith.constant 1.230000e-01 : f64
+  %lambda = arith.constant 4.560000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) [%control] %target
+      : (f64, f64, f64, !quake.ref, !quake.ref) -> ()
+  // CHECK: quake.rz
+  // CHECK: quake.phase
+  return
+}
+
+// CHECK-LABEL: func.func @negative_controlled
+func.func @negative_controlled(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 6.540000e-01 : f64
+  %phi = arith.constant 3.210000e-01 : f64
+  %lambda = arith.constant 9.870000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) [%control neg [true]] %target
+      : (f64, f64, f64, !quake.ref, !quake.ref) -> ()
+  // CHECK: quake.rz
+  // CHECK: quake.phase
   return
 }
