@@ -61,7 +61,7 @@ set (NLOPT_SOURCES
   src/algs/cobyla/cobyla.c src/algs/cobyla/cobyla.h
   src/algs/neldermead/nldrmd.c src/algs/neldermead/neldermead.h src/algs/neldermead/sbplx.c
   src/api/general.c src/api/options.c src/api/optimize.c src/api/deprecated.c src/api/nlopt-internal.h src/api/nlopt.h 
-  ${CMAKE_CURRENT_SOURCE_DIR}/nlopt.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/nlopt.h
   src/util/mt19937ar.c src/util/sobolseq.c src/util/soboldata.h src/util/timer.c src/util/stop.c src/util/nlopt-util.h src/util/redblack.c src/util/redblack.h src/util/qsort_r.c src/util/rescale.c
 )
 

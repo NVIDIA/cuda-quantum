@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// CpuRoceTransceiver implementation.  See roce_transceiver.hpp for the
+// CpuRoceTransceiver implementation.  See roce_transceiver.h for the
 // design overview and ring/wire protocol description.
 
-#include "cudaq/realtime/cpu_transport/roce_transceiver.hpp"
+#include "cudaq/realtime/cpu_transport/roce_transceiver.h"
 
 #include <arpa/inet.h>
 #include <infiniband/verbs.h>

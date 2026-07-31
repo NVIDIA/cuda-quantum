@@ -13,7 +13,7 @@
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 
-#include "cudaq/realtime/cpu_transport/roce_transceiver.hpp"
+#include "cudaq/realtime/cpu_transport/roce_transceiver.h"
 
 #include <cstdio>
 #include <exception>
