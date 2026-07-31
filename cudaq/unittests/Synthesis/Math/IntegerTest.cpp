@@ -10,6 +10,9 @@
 
 #include "cudaq/Synthesis/Math/Integer.h"
 
+#include <limits>
+#include <string>
+
 namespace {
 
 using cudaq::synth::Integer;
@@ -369,6 +372,34 @@ TEST(CompoundAssignLLTest, ModSignFollowsDividend) {
   EXPECT_EQ(ll(x), -2LL);
 }
 
+// Regression: the int64_t compound assignments took |rhs| as `-rhs`, which
+// overflows at INT64_MIN (UB — in practice `-rhs` stays negative, so the cast
+// to unsigned long fed GMP a value it then treated as positive). The magnitude
+// is now computed in the unsigned domain.
+TEST(CompoundAssignLLTest, Int64MinRhs) {
+  constexpr int64_t kMin = std::numeric_limits<int64_t>::min();
+  const std::string kMinStr = "-9223372036854775808";
+  const std::string kMagStr = "9223372036854775808";
+
+  Integer add(0);
+  add += kMin;
+  EXPECT_EQ(add.to_string(), kMinStr);
+
+  Integer sub(0);
+  sub -= kMin;
+  EXPECT_EQ(sub.to_string(), kMagStr);
+
+  // 2^64 / -2^63 == -2, exactly representable either way.
+  Integer div = Integer(1) << 64;
+  div /= kMin;
+  EXPECT_EQ(ll(div), -2LL);
+
+  // |dividend| < |divisor|, so the remainder is the dividend unchanged.
+  Integer mod(12345);
+  mod %= kMin;
+  EXPECT_EQ(ll(mod), 12345LL);
+}
+
 // ============================================================
 // Mixed int64_t / Integer arithmetic
 // ============================================================
@@ -412,6 +443,15 @@ TEST(ShiftTest, RightShiftNegative) {
   // mpz_tdiv_q_2exp truncates toward zero: -7 >> 1 = -3 (not -4)
   EXPECT_EQ(ll(Integer(-7) >> 1), -3LL);
   EXPECT_EQ(ll(Integer(-8) >> 1), -4LL);
+}
+
+// The int64_t << Integer overload reads the full shift count instead of
+// narrowing it to int32_t. A count that actually exceeds int32_t is not
+// testable here (it would allocate gigabytes), so this pins the routing.
+TEST(ShiftTest, LeftShiftByIntegerCount) {
+  EXPECT_EQ(ll(int64_t{1} << Integer(3)), 8LL);
+  EXPECT_EQ((int64_t{1} << Integer(100)).to_string(),
+            "1267650600228229401496703205376");
 }
 
 TEST(ShiftTest, LeftThenRight) {

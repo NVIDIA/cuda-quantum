@@ -48,6 +48,13 @@ class Integer {
 private:
   mpz_t value_;
 
+  // |rhs| in the unsigned type GMP's `_ui` entry points take. Negating in the
+  // unsigned domain is well defined at INT64_MIN, where `-rhs` would overflow.
+  static unsigned long magnitude(int64_t rhs) {
+    auto u = static_cast<unsigned long>(rhs);
+    return rhs < 0 ? 0UL - u : u;
+  }
+
 public:
   //===--------------------------------------------------------------------===//
   // Construction
@@ -189,17 +196,17 @@ public:
   // temporary Integer.
   Integer &operator+=(int64_t rhs) {
     if (rhs >= 0)
-      mpz_add_ui(value_, value_, static_cast<unsigned long>(rhs));
+      mpz_add_ui(value_, value_, magnitude(rhs));
     else
-      mpz_sub_ui(value_, value_, static_cast<unsigned long>(-rhs));
+      mpz_sub_ui(value_, value_, magnitude(rhs));
     return *this;
   }
 
   Integer &operator-=(int64_t rhs) {
     if (rhs >= 0)
-      mpz_sub_ui(value_, value_, static_cast<unsigned long>(rhs));
+      mpz_sub_ui(value_, value_, magnitude(rhs));
     else
-      mpz_add_ui(value_, value_, static_cast<unsigned long>(-rhs));
+      mpz_add_ui(value_, value_, magnitude(rhs));
     return *this;
   }
 
@@ -211,8 +218,7 @@ public:
   Integer &operator/=(int64_t rhs) {
     assert(rhs != 0 && "Integer::operator/=: division by zero");
     bool neg = rhs < 0;
-    unsigned long mag = static_cast<unsigned long>(neg ? -rhs : rhs);
-    mpz_tdiv_q_ui(value_, value_, mag);
+    mpz_tdiv_q_ui(value_, value_, magnitude(rhs));
     if (neg)
       mpz_neg(value_, value_);
     return *this;
@@ -222,11 +228,9 @@ public:
     assert(rhs != 0 && "Integer::operator%=: modulo by zero");
     // C++ semantics: the remainder takes the sign of the dividend, so the
     // sign of `rhs` is irrelevant once we pass the absolute value to GMP.
-    bool neg = rhs < 0;
-    unsigned long mag = static_cast<unsigned long>(neg ? -rhs : rhs);
     mpz_t r;
     mpz_init(r);
-    mpz_tdiv_r_ui(r, value_, mag);
+    mpz_tdiv_r_ui(r, value_, magnitude(rhs));
     mpz_set(value_, r);
     mpz_clear(r);
     return *this;
@@ -523,7 +527,9 @@ inline Integer operator%(int64_t lhs, const Integer &rhs) {
 }
 inline Integer operator<<(int64_t lhs, const Integer &rhs) {
   Integer temp(lhs);
-  return temp << static_cast<int32_t>(rhs); // potential narrowing
+  // Defer to the Integer-shift overload: casting the count to int32_t would
+  // silently wrap a shift wider than 2^31.
+  return temp << rhs;
 }
 
 //===----------------------------------------------------------------------===//
