@@ -15,6 +15,7 @@
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -51,6 +52,10 @@ struct SynthState {
   // collide.
   // Note: DenseMapInfo has no hash for `bool`, hence the unsigned tag.
   llvm::DenseMap<std::pair<uint64_t, unsigned>, mlir::FlatSymbolRefAttr> cache;
+  // Angles (theta bits) gridsynth already failed on, so a failure costs the
+  // retry ladder once rather than once per site. Not keyed on the form: only
+  // theta and epsilon reach gridsynth.
+  llvm::DenseSet<uint64_t> failedAngles;
   uint64_t hits = 0;
 };
 
@@ -153,6 +158,13 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
     return it->second;
   }
 
+  if (state.failedAngles.contains(bits)) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "clifford-t-synthesis: skipping known-failed theta=" << theta
+               << '\n');
+    return llvm::failure();
+  }
+
   cudaq::synth::Real thetaReal(theta);
   cudaq::synth::Real epsilonReal(opts.epsilon);
   llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
@@ -164,8 +176,10 @@ getOrCreateRzHelper(double theta, bool valueSemantics,
     if (llvm::succeeded(circuit))
       break;
   }
-  if (llvm::failed(circuit))
+  if (llvm::failed(circuit)) {
+    state.failedAngles.insert(bits);
     return llvm::failure();
+  }
 
   MLIRContext *ctx = state.module.getContext();
   std::string name =
@@ -285,6 +299,11 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
           << check.theta << " after " << (opts.retryCount + 1)
           << " attempts; raise --diophantine-timeout-ms or "
              "--factoring-timeout-ms";
+      // The pattern returns failure() so the op is left alone, but the greedy
+      // driver treats "no pattern applied" as a normal outcome. Record the
+      // error so the pass itself fails instead of reporting success with an
+      // unsynthesized rotation still in the IR.
+      *hadHardError = true;
       return failure();
     }
 
