@@ -420,7 +420,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
 
   expectOverrideDisabled([&] { platform.set_noise(nullptr); },
                          "Using noise models");
-  expectOverrideDisabled([&] { platform.get_noise(); }, "Using noise models");
   expectOverrideDisabled([&] { platform.reset_noise(); }, "Using noise models");
 }
 
@@ -430,13 +429,23 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
   expectOverrideDisabled([&] { platform.is_simulator(); }, "is_simulator");
-  expectOverrideDisabled([&] { platform.is_remote(); }, "is_remote");
-  expectOverrideDisabled([&] { platform.is_emulated(); }, "is_emulated");
   expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
-  expectOverrideDisabled([&] { platform.supports_explicit_measurements(); },
-                         "supports_explicit_measurements");
   expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
                          "get_remote_capabilities");
+}
+
+// The launch preamble queries these on every kernel run, so they must not
+// throw when an endpoint override is set. Instead they warn and report safe
+// defaults, since there is no backing QPU to forward to.
+TEST(QuantumPlatformDisableEndpointOverrideTester,
+     capabilityQueriesReturnDefaultsWhenEndpointSet) {
+  TestPlatform platform;
+  platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
+
+  EXPECT_FALSE(platform.is_remote());
+  EXPECT_FALSE(platform.is_emulated());
+  EXPECT_FALSE(platform.supports_explicit_measurements());
+  EXPECT_EQ(platform.get_noise(), nullptr);
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,
@@ -473,9 +482,9 @@ TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {
   TestPlatform platform(2);
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/1);
 
-  expectOverrideDisabled([&] { platform.is_remote(1); }, "is_remote");
+  expectOverrideDisabled([&] { platform.is_simulator(1); }, "is_simulator");
 
-  EXPECT_NO_THROW(platform.is_remote(0));
+  EXPECT_NO_THROW(platform.is_simulator(0));
   EXPECT_TRUE(platform.is_simulator(0));
 }
 
