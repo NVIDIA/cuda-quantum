@@ -204,3 +204,14 @@ func.func @full_turn_f32(%q: !quake.ref) attributes {"cudaq-entrypoint"} {
 
 // CHECK-LABEL: func.func @full_turn_f32
 // CHECK:         quake.rz
+
+// An angle wider than f64 is left alone. Rounding it could turn a tiny
+// nonzero angle into a zero one.
+func.func @wide_float(%q: !quake.ref) attributes {"cudaq-entrypoint"} {
+  %a = arith.constant 0x00000000000000000000000000000001 : f128
+  quake.rz (%a) %q : (f128, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @wide_float
+// CHECK:         quake.rz
