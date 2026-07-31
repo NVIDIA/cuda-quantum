@@ -37,13 +37,12 @@ public:
   }
 
   using BaseRemoteRESTQPU::getCompileTarget;
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy) override {
+  CompileTarget getCompileTarget(const observe_policy &policy) override {
     auto target = BaseRemoteRESTQPU::getCompileTarget(policy);
     // This target handles observable evaluation server-side.
     // We don't want to split up the circuit into several ansatz
     // sub circuit.
-    target->pauliTermSplitObservable = std::nullopt;
+    target.pauliTermSplitObservable = std::nullopt;
     return target;
   }
 

@@ -24,10 +24,9 @@
 
 #ifndef CUDAQ_DISABLE_JIT_COMPILER
 namespace cudaq_internal::compiler {
-cudaq::CompiledModule
-compileModule(std::unique_ptr<cudaq::CompileTarget> target,
-              const cudaq::SourceModule &src, cudaq::KernelArgs args,
-              bool isEntryPoint);
+cudaq::CompiledModule compileModule(cudaq::CompileTarget target,
+                                    const cudaq::SourceModule &src,
+                                    cudaq::KernelArgs args, bool isEntryPoint);
 } // namespace cudaq_internal::compiler
 #endif
 
@@ -73,7 +72,7 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
-      std::unique_ptr<cudaq::CompileTarget> target;
+      cudaq::CompileTarget target;
       if constexpr (requires { policy.inner; }) {
         target = cudaq::get_compile_target(policy.inner);
       } else {
