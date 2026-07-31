@@ -142,6 +142,9 @@ public:
   /// Get the RuntimeEndpoint for the QPU with ID @p qpuId.
   RuntimeEndpoint &getRuntimeEndpoint(std::size_t qpuId = 0);
 
+  /// Set the runtime endpoint for the QPU with ID @p qpuId.
+  void setRuntimeEndpoint(RuntimeEndpoint endpoint, std::size_t qpuId = 0);
+
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
 
@@ -261,9 +264,6 @@ protected:
   /// Set the compile target for the platform.
   void setCompileTarget(std::optional<CompileTarget> target);
 
-  /// Set the runtime endpoint for the platform.
-  void setRuntimeEndpoint(RuntimeEndpoint endpoint, std::size_t qpuId = 0);
-
   /// Append @p qpu to the platform's QPUs.
   QPU &addQPU(std::unique_ptr<QPU> qpu);
 
@@ -304,6 +304,11 @@ private:
   // (else throw an error)
   void disableRuntimeEndpointOverride(std::size_t qpuId,
                                       std::string what) const;
+
+  // Return true if a runtime endpoint has been manually set for @p qpuId,
+  // meaning the backing QPU has been discarded and QPU-level queries cannot be
+  // forwarded.
+  bool hasRuntimeEndpointOverride(std::size_t qpuId) const;
 
   // Drop every runtime endpoint. Called whenever the QPUs change, since the
   // endpoints wrapping them would otherwise refer to destroyed QPUs.
