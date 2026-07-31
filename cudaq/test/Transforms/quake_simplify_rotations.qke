@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --quake-simplify %s | \
+// RUN: cudaq-opt --quake-simplify='threshold=0' %s | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,EXACT
-// RUN: cudaq-opt --quake-simplify='threshold=1e-12' %s | \
+// RUN: cudaq-opt --quake-simplify %s | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,APPROX
 
 // A zero-angle rotation is erased. In memory semantics the op produces no
@@ -131,9 +131,8 @@ func.func @dynamic(%q: !quake.ref, %a: f64) {
 // CHECK-LABEL: func.func @dynamic
 // CHECK:         quake.rz
 
-// A small but nonzero angle is not the identity, so by default it survives:
-// erasing it approximates the circuit. It is only erased once the caller opts
-// in by setting a threshold above it.
+// A small but nonzero angle is below the default threshold, so it is erased.
+// At a threshold of 0 only bit-exact identities go.
 func.func @tiny(%q: !quake.ref) {
   %a = arith.constant 1.0e-15 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
@@ -144,8 +143,8 @@ func.func @tiny(%q: !quake.ref) {
 // EXACT:         quake.rz
 // APPROX-NOT:    quake.rz
 
-// One ulp under two full turns folds to a small negative residual, and is
-// erased under the same opt-in threshold.
+// One ulp under two full turns folds to a small negative residual, which the
+// default threshold treats as the identity. This is the case it exists for.
 func.func @near_two_full_turns(%q: !quake.ref) {
   %a = arith.constant 12.56637061435917 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
@@ -156,7 +155,7 @@ func.func @near_two_full_turns(%q: !quake.ref) {
 // EXACT:         quake.rz
 // APPROX-NOT:    quake.rz
 
-// An angle above the threshold is untouched even in the approximate mode.
+// An angle above the threshold is untouched in either mode.
 func.func @big(%q: !quake.ref) {
   %a = arith.constant 0.5 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
@@ -188,8 +187,8 @@ func.func @full_turn_f32(%q: !quake.ref) {
 // CHECK-LABEL: func.func @full_turn_f32
 // CHECK:         quake.r1
 
-// An angle wider than f64 is left alone. Rounding it could turn a tiny
-// nonzero angle into a zero one.
+// An angle wider than f64 is left alone rather than rounded: at a threshold of
+// 0 the rounding itself could manufacture an identity out of a nonzero angle.
 func.func @wide_float(%q: !quake.ref) {
   %a = arith.constant 0x00000000000000000000000000000001 : f128
   quake.rz (%a) %q : (f128, !quake.ref) -> ()

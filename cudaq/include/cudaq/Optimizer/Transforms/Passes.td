@@ -1275,16 +1275,13 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     `2*pi` for `r1`) so a full turn is pruned just like a zero angle.
     Non-constant and non-finite angles are left untouched.
 
-    By default only exactly-identity rotations are erased, which preserves the
-    semantics of the circuit. Setting `threshold` additionally erases rotations
-    whose folded angle is merely small. That is an approximation with an error
-    of roughly the angle per gate, so it is opt-in.
+    A rotation is erased when its folded angle has magnitude at or below
+    `threshold`.
   }];
   let options = [
-    Option<"threshold", "threshold", "double", /*default=*/"0.0",
-      "Also erase (treat as identity) rotations whose angle, folded into its "
-      "identity period, has magnitude at or below this value. The default of "
-      "0 erases only exactly-identity rotations.">,
+    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
+      "Erase (treat as identity) rotations whose angle, folded into its "
+      "identity period, has magnitude at or below this value.">,
   ];
 }
 

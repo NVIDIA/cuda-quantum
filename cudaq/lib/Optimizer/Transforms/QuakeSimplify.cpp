@@ -437,7 +437,7 @@ private:
     // given one by control synthesis of the function it is in.
     double residual = std::remainder(theta, exactIdentityPeriod<QOP>());
 
-    // The default threshold of 0 admits only an exactly-identity rotation.
+    // At its default the threshold admits only representation error.
     return std::abs(residual) <= threshold;
   }
 
