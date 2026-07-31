@@ -54,7 +54,7 @@ int main() {
   platform.setRuntimeEndpoint(std::move(ep));
   // Installing the endpoint discards the backing QPU, so the platform installs
   // a default compile target and warns about it.
-  // CHECK: defaulting the compile target to a local simulator configuration
+  // CHECK: Overriding compile target with default
 
   (void)cudaq::sample(10, bell);
   // CHECK: [sample] kernel={{.*}}

@@ -393,7 +393,7 @@ void quantum_platform::setRuntimeEndpoint(RuntimeEndpoint endpoint,
   ensureRuntimeEndpointExists(qpuId, /*allowNullopt=*/true);
 
   if (!compileTarget.has_value()) {
-    CUDAQ_WARN("Overriding compile target to default (local simulator)");
+    CUDAQ_WARN("Overriding compile target with default (local simulator)");
     compileTarget = getDefaultPythonCompileTargetImpl(this);
   }
 

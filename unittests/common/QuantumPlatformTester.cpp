@@ -152,7 +152,6 @@ TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
   sample_policy policy{.kernelName = "test_kernel"};
 
   auto ct = platform.getCompileTarget(policy);
-  ASSERT_NE(ct, nullptr);
   EXPECT_TRUE(ct.emitJit);
   EXPECT_FALSE(ct.fullySpecialize);
   EXPECT_TRUE(ct.overrideAOTCompilation);
@@ -164,7 +163,6 @@ TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
   sample_policy policy{.kernelName = "test_kernel"};
 
   auto ct = platform.getCompileTarget(policy);
-  ASSERT_NE(ct, nullptr);
   EXPECT_FALSE(ct.emitJit);
   EXPECT_TRUE(ct.fullySpecialize);
   EXPECT_FALSE(ct.overrideAOTCompilation);
@@ -176,7 +174,6 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
   other_policies policy;
 
   auto ct = platform.getCompileTarget(policy);
-  ASSERT_NE(ct, nullptr);
   EXPECT_TRUE(ct.emitResourceCounts);
   EXPECT_FALSE(ct.emitJit);
 }
@@ -187,7 +184,6 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
   other_policies policy;
 
   auto ct = platform.getCompileTarget(policy);
-  ASSERT_NE(ct, nullptr);
   EXPECT_FALSE(ct.emitJit);
   EXPECT_TRUE(ct.fullySpecialize);
   EXPECT_FALSE(ct.emitResourceCounts);
@@ -209,7 +205,6 @@ TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
   platform.setCompileTarget(std::nullopt);
 
   auto ct = platform.getCompileTarget(policy);
-  ASSERT_NE(ct, nullptr);
   EXPECT_TRUE(ct.emitJit);
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
