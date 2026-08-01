@@ -1,0 +1,19 @@
+{
+    "reportUndefinedVariable": "warning",
+    "pythonVersion": "3.10",
+    "pythonPlatform": "Linux",
+    "executionEnvironments": [
+        {
+            "root": "core/frontend"
+        },
+        {
+            "root": "examples"
+        },
+        {
+            "root": "tests"
+        },
+        {
+            "root": "benchmarks"
+        }
+    ]
+}

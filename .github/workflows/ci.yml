@@ -29,8 +29,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Check for stable CUDA-Q changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      stable: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout changed-path action
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/actions/check-changed-paths
+            .github/research-preview-paths.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths-ignore-file: .github/research-preview-paths.txt
+
   metadata:
     name: Retrieve PR info
+    needs: changes
+    if: needs.changes.outputs.stable == 'true'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -368,6 +393,7 @@ jobs:
       contents: read
       actions: read
     needs:
+      - changes
       - metadata
       - devdeps
       - wheeldeps
@@ -386,7 +412,9 @@ jobs:
     # concurrency rule). Otherwise the "fail on cancelled needs" check below
     # would surface a phantom `CI Summary failed` on the PR rollup for a run
     # that was actually preempted, not broken.
-    if: ${{ !cancelled() }}
+    if: >-
+      ${{ !cancelled() && (needs.changes.result != 'success' ||
+          needs.changes.outputs.stable == 'true') }}
     env:
       GH_TOKEN: ${{ github.token }}
       NEEDS_JSON: ${{ toJSON(needs) }}
@@ -673,9 +701,18 @@ jobs:
   clean_up:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
-    needs: [metadata, config_devdeps, config_wheeldeps, config_source_build, build_and_test, docker_image, wheeldeps, python_wheels]
+    needs:
+      - changes
+      - metadata
+      - config_devdeps
+      - config_wheeldeps
+      - config_source_build
+      - build_and_test
+      - docker_image
+      - wheeldeps
+      - python_wheels
     # We need to clean up even if the workflow is cancelled or fails.
-    if: always()
+    if: always() && needs.changes.outputs.stable == 'true'
 
     steps:
       - name: Save cache keys and metadata
