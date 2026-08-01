@@ -458,6 +458,33 @@ public:
 // Pass
 // ============================================================================
 
+/// Phase-polynomial rotation merging pass.
+///
+/// Expected input: wire-semantics IR (`!quake.wire` SSA values) where each
+/// qubit is represented as a separate wire definition. Run
+/// `factor-quantum-alloc` followed by `memtoreg{quantum=1}` before this pass
+/// to split veq allocations into individual wires and convert to wire form.
+/// Ops with non-wire quantum operands (`!quake.ref`, `!quake.veq`) are
+/// treated as subcircuit termination points and are left unmodified.
+///
+/// A subcircuit is a maximal region anchored on a single-control-X (CNOT)
+/// gate and bounded by termination points. The following op classes are
+/// allowed inside a subcircuit:
+///   - Single-qubit NOT (quake.x, uncontrolled): inverts a wire's phase.
+///   - CNOT (quake.x, single control): XORs control phase into target phase.
+///   - Swap (quake.swap): exchanges the phases of two wires.
+///   - Z-axis rotations (quake.rz, quake.s, quake.t, quake.z, and their
+///     adjoints), uncontrolled: rotation candidates for merging.
+/// All other ops (H, Y, Rx, Ry, R1, ...) terminate the subcircuit.
+///
+/// When two Z-axis rotations share the same phase their combined angle is
+/// checked (mod 2*pi) against named gate thresholds (epsilon = 1e-9):
+///   0        -> identity; both ops removed
+///   +/-pi/4  -> quake.t / quake.t<adj>
+///   +/-pi/2  -> quake.s / quake.s<adj>
+///   pi       -> quake.z
+///   other    -> quake.rz with the raw summed constant, or an arith.addf of
+///               the two angle values when either input angle is non-constant.
 class PhaseFoldingPass
     : public cudaq::opt::impl::PhaseFoldingBase<PhaseFoldingPass> {
   using PhaseFoldingBase::PhaseFoldingBase;
