@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -25,10 +26,13 @@ using namespace mlir;
 
 // AXIS-SPECIFIC: Defines which operations break a circuit into subcircuits
 #define CIRCUIT_BREAKERS(MACRO)                                                \
-  MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp),                \
-      MACRO(PhasedRxOp), MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
+  MACRO(YOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp), MACRO(PhasedRxOp),       \
+      MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
+#define Z_AXIS_ROTATIONS(MACRO)                                                \
+  MACRO(RzOp), MACRO(SOp), MACRO(TOp), MACRO(ZOp)
 #define RAW(X) cudaq::quake::X
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
+#define RAW_Z_AXIS_ROTATIONS Z_AXIS_ROTATIONS(RAW)
 
 namespace {
 
@@ -106,32 +110,140 @@ public:
 };
 
 class PhaseStorage {
-  DenseMap<PhaseKey, cudaq::quake::RzOp, PhaseKeyInfo> phaseToRot;
+  DenseMap<PhaseKey, cudaq::quake::OperatorInterface, PhaseKeyInfo> phaseToRot;
   size_t numCombined = 0;
 
-  void combineRotations(cudaq::quake::RzOp old_rzop, cudaq::quake::RzOp rzop) {
-    auto builder = OpBuilder(rzop);
-    auto new_rot_arg = arith::AddFOp::create(
-        builder, rzop.getLoc(), old_rzop.getOperand(0), rzop.getOperand(0));
-    rzop->setOperand(0, new_rot_arg.getResult());
-    if (old_rzop->getNumResults() > 0 &&
-        isa<cudaq::quake::WireType>(old_rzop.getResult(0).getType()))
-      old_rzop.getResult(0).replaceAllUsesWith(old_rzop.getOperand(1));
-    old_rzop.erase();
+  static constexpr double kEpsilon = 1e-9;
+
+  std::optional<double> getRotAngle(cudaq::quake::OperatorInterface rot) {
+    auto *op = rot.getOperation();
+    if (isa<cudaq::quake::ZOp>(op))
+      return M_PI;
+    if (isa<cudaq::quake::SOp>(op))
+      return rot.isAdj() ? -M_PI_2 : M_PI_2;
+    if (isa<cudaq::quake::TOp>(op))
+      return rot.isAdj() ? -M_PI_4 : M_PI_4;
+    if (isa<cudaq::quake::RzOp>(op))
+      if (auto c = dyn_cast_or_null<arith::ConstantFloatOp>(
+              op->getOperand(0).getDefiningOp()))
+        return c.value().convertToDouble();
+    return std::nullopt;
+  }
+
+  Value getRotAngleValue(OpBuilder &builder,
+                         cudaq::quake::OperatorInterface rot) {
+    auto *op = rot.getOperation();
+    if (isa<cudaq::quake::RzOp>(op))
+      return op->getOperand(0);
+    double angle;
+    if (isa<cudaq::quake::ZOp>(op))
+      angle = M_PI;
+    else if (isa<cudaq::quake::SOp>(op))
+      angle = rot.isAdj() ? -M_PI_2 : M_PI_2;
+    else
+      angle = rot.isAdj() ? -M_PI_4 : M_PI_4;
+    return cudaq::opt::factory::createF64Constant(op->getLoc(), builder, angle);
+  }
+
+  static double normalizeAngle(double a) {
+    a = std::fmod(a, 2 * M_PI);
+    if (a > M_PI)
+      a -= 2 * M_PI;
+    if (a <= -M_PI)
+      a += 2 * M_PI;
+    return a;
+  }
+
+  // Combine rot1 (stored) and rot2 (new, the surviving position).
+  // rot2's wire input (= rot1's output) is used for the new op.
+  // rot1 is bypassed (its output replaced by its own input), then erased.
+  // Returns the new combined op, or nullptr if they cancel to identity.
+  Operation *combineRotations(cudaq::quake::OperatorInterface rot1,
+                              cudaq::quake::OperatorInterface rot2) {
+    auto *op1 = rot1.getOperation();
+    auto *op2 = rot2.getOperation();
+    OpBuilder builder(op2);
+    auto loc = op2->getLoc();
+    auto *ctx = op2->getContext();
+    auto wireTy = cudaq::quake::WireType::get(ctx);
+    Value wireIn = rot2.getTarget(0);    // rot1's result (B)
+    Value prevIn = rot1.getTarget(0);   // rot1's input (A)
     numCombined++;
+
+    // Erase op2, replace rot1's output with its input (bypasses rot1), erase op1.
+    // newOp (if any) was created with wireIn; after the replaceAllUsesWith below
+    // its wire input becomes prevIn.
+    auto finalize = [&](Operation *newOp) -> Operation * {
+      // For identity (newOp=null): bypass op2 by forwarding wireIn to op2's
+      // users, then bypass op1 by forwarding prevIn to op1's users.
+      // For a new op: the new op takes wireIn as its wire input; bypass op1.
+      op2->getResult(0).replaceAllUsesWith(newOp ? newOp->getResult(0)
+                                                 : wireIn);
+      op2->erase();
+      op1->getResult(0).replaceAllUsesWith(prevIn);
+      op1->erase();
+      return newOp;
+    };
+
+    auto a1 = getRotAngle(rot1);
+    auto a2 = getRotAngle(rot2);
+    if (a1 && a2) {
+      double sum = *a1 + *a2;
+      double normalized = normalizeAngle(sum);
+      if (std::abs(normalized) < kEpsilon)
+        return finalize(nullptr);
+      if (std::abs(normalized - M_PI_4) < kEpsilon)
+        return finalize(cudaq::quake::TOp::create(builder, loc,
+            TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      if (std::abs(normalized + M_PI_4) < kEpsilon)
+        return finalize(cudaq::quake::TOp::create(builder, loc,
+            TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      if (std::abs(normalized - M_PI_2) < kEpsilon)
+        return finalize(cudaq::quake::SOp::create(builder, loc,
+            TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      if (std::abs(normalized + M_PI_2) < kEpsilon)
+        return finalize(cudaq::quake::SOp::create(builder, loc,
+            TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      if (std::abs(std::abs(normalized) - M_PI) < kEpsilon)
+        return finalize(cudaq::quake::ZOp::create(builder, loc,
+            TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      // No named gate match — use raw sum
+      auto angleVal = cudaq::opt::factory::createF64Constant(loc, builder, sum);
+      return finalize(cudaq::quake::RzOp::create(builder, loc,
+          TypeRange{wireTy}, false, ValueRange{angleVal}, ValueRange{},
+          ValueRange{wireIn}, {}));
+    }
+
+    // Non-constant angles: combine via arith::AddFOp, produce Rz
+    Value angle1 = getRotAngleValue(builder, rot1);
+    Value angle2 = getRotAngleValue(builder, rot2);
+    auto sumAngle = arith::AddFOp::create(builder, loc, angle1, angle2);
+    return finalize(cudaq::quake::RzOp::create(builder, loc, TypeRange{wireTy},
+        false, ValueRange{sumAngle.getResult()}, ValueRange{},
+        ValueRange{wireIn}, {}));
   }
 
 public:
-  bool addOrCombineRotationForPhase(cudaq::quake::RzOp op, Phase phase) {
+  // Returns the stored or combined op (nullptr if identity cancellation).
+  Operation *addOrCombineRotationForPhase(cudaq::quake::OperatorInterface rot,
+                                          Phase phase) {
     auto key = phase.toKey();
     auto it = phaseToRot.find(key);
     if (it != phaseToRot.end()) {
-      combineRotations(it->second, op);
-      it->second = op;
-      return true;
+      auto *newOp = combineRotations(it->second, rot);
+      if (newOp)
+        it->second = cast<cudaq::quake::OperatorInterface>(newOp);
+      else
+        phaseToRot.erase(it);
+      return newOp;
     }
-    phaseToRot[key] = op;
-    return false;
+    phaseToRot[key] = rot;
+    return rot.getOperation();
   }
 
   size_t getNumCombined() { return numCombined; }
@@ -171,7 +283,10 @@ static OpResult getNextResult(Value v) {
 
 // AXIS-SPECIFIC: could allow controlled y and z here
 static bool isControlledOp(Operation *op) {
-  if (!isa<cudaq::quake::XOp>(op) || op->getNumOperands() != 2)
+  if (!isa<cudaq::quake::XOp>(op))
+    return false;
+  auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
+  if (!opi || opi.getControls().size() != 1)
     return false;
   for (auto operand : cudaq::quake::getQuantumOperands(op))
     if (!isa<cudaq::quake::WireType>(operand.getType()))
@@ -191,8 +306,10 @@ static bool isTerminationPoint(Operation *op) {
   auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
   if (!opi)
     return true;
-  // Only allow single control
+  // Only allow single control (for CNOT/NOT); Z-rotations must be uncontrolled
   if (opi.getControls().size() > 1)
+    return true;
+  if (isa<RAW_Z_AXIS_ROTATIONS>(op) && !opi.getControls().empty())
     return true;
   // TODO: support other qubit types (ref, veq) in phase folding
   for (auto operand : cudaq::quake::getQuantumOperands(op))
@@ -320,11 +437,11 @@ public:
   float getRotationWeight() {
     if (ops.empty())
       return 0.0f;
-    size_t rzCount = 0;
+    size_t rotCount = 0;
     for (auto *op : ops)
-      if (isa<cudaq::quake::RzOp>(op))
-        rzCount++;
-    return (float)rzCount / (float)ops.size();
+      if (isa<RAW_Z_AXIS_ROTATIONS>(op))
+        rotCount++;
+    return (float)rotCount / (float)ops.size();
   }
 
   SmallVector<Operation *> getOrderedOps() {
@@ -368,10 +485,12 @@ class PhaseFoldingPass
         auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
         wirePhase[op->getResult(0)] =
             Phase::invert(wirePhase[opi.getTarget(0)]);
-      } else if (auto rzop = dyn_cast<cudaq::quake::RzOp>(op)) {
-        Phase p = wirePhase[op->getOperand(1)]; // operand 0 is the angle
-        store.addOrCombineRotationForPhase(rzop, p);
-        wirePhase[op->getResult(0)] = p;
+      } else if (isa<RAW_Z_AXIS_ROTATIONS>(op)) {
+        auto opi = cast<cudaq::quake::OperatorInterface>(op);
+        Phase p = wirePhase[opi.getTarget(0)];
+        auto *newOp = store.addOrCombineRotationForPhase(opi, p);
+        if (newOp)
+          wirePhase[newOp->getResult(0)] = p;
       } else if (auto swap = dyn_cast<cudaq::quake::SwapOp>(op)) {
         Phase p0 = wirePhase[swap.getTarget(0)];
         Phase p1 = wirePhase[swap.getTarget(1)];

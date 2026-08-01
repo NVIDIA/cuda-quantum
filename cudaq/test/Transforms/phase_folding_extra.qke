@@ -48,22 +48,20 @@ func.func private @not_inversion() {
 }
 
 // CHECK-LABEL: func.func private @not_inversion() {
-// CHECK:         %[[CST:.*]] = arith.constant 1.000000e+00 : f64
 // CHECK:         %[[CST_0:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK:         %[[CST_1:.*]] = arith.constant 3.000000e+00 : f64
-// CHECK:         %[[CST_2:.*]] = arith.constant 4.000000e+00 : f64
 // CHECK:         %[[W0:.*]] = quake.null_wire
 // CHECK:         %[[W1:.*]] = quake.null_wire
 // CHECK:         %[[X0:.*]] = quake.x %[[W0]] :
-// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[X0]]] %[[W1]] :
-// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0] %[[CX0]]#1 :
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[X0]]{{\]}} %[[W1]] :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[CX0]]#1 :
 // CHECK:         %[[X1:.*]] = quake.x %[[CX1]]#0 :
 // CHECK:         %[[RZ0:.*]] = quake.rz (%[[CST_0]]) %[[CX1]]#1 :
-// CHECK:         %[[CX2:.*]]:2 = quake.x {{\[}}%[[X1]]] %[[RZ0]] :
+// CHECK:         %[[CX2:.*]]:2 = quake.x {{\[}}%[[X1]]{{\]}} %[[RZ0]] :
 // CHECK:         %[[RZ1:.*]] = quake.rz (%[[CST_1]]) %[[CX2]]#1 :
 // CHECK:         %[[X2:.*]] = quake.x %[[RZ1]] :
-// CHECK:         %[[SUM:.*]] = arith.addf %[[CST]], %[[CST_2]] : f64
-// CHECK:         %[[RZ2:.*]] = quake.rz (%[[SUM]]) %[[X2]] :
+// CHECK:         %[[MERGED:.*]] = arith.constant 5.000000e+00 : f64
+// CHECK:         quake.rz (%[[MERGED]]) %[[X2]] :
 // CHECK:         return
 // CHECK:       }
 
