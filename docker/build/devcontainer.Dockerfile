@@ -162,6 +162,12 @@ RUN echo "$OPENMPI_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconf
 # Set some configurations in the form of environment variables.
 
 ENV OMPI_MCA_pml=ucx
+# Default shared-memory single-copy to CMA (avoids xpmem/knem device warnings
+# when those nodes are not mounted). Open MPI 4 uses btl_vader; Open MPI 5
+# uses the smsc framework (btl_sm is a 5.0.x alias for vader).
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=cma
+ENV OMPI_MCA_btl_sm_single_copy_mechanism=cma
+ENV OMPI_MCA_smsc=cma
 
 # Install CUDA
 
