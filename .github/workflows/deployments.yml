@@ -819,7 +819,6 @@ jobs:
             echo "cuda-quantum-devdeps-image: ${devdeps_reference}"
             echo "platforms: ${platforms}"
             echo "cuda-version: ${cuda}"
-            cat .github/workflows/config/gitlab_commits.txt
           } | tee "$info_file"
           echo "Created $info_file"
 
