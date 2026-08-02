@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// @file hololink_fpga_emulator.cpp
-/// @brief Software FPGA emulator for Hololink RPC testing.
+/// @file hsb_fpga_emulator.cpp
+/// @brief Software FPGA emulator for HSB RPC testing.
 ///
 /// Emulates the FPGA's role in the RPC pipeline:
-///   1. Hololink UDP control plane server (register read/write)
+///   1. HSB UDP control plane server (register read/write)
 ///   2. Playback BRAM (receives payloads from playback tool)
 ///   3. RDMA transmit (sends RPC requests to bridge)
 ///   4. RDMA receive (receives RPC responses from bridge)
@@ -18,8 +18,8 @@
 ///
 /// Three-tool workflow:
 ///   1. Start this emulator (prints QP number)
-///   2. Start hololink_mock_decoder_bridge with --remote-qp=<emulator_qp>
-///   3. Start hololink_fpga_syndrome_playback --control-port=<port>
+///   2. Start hsb_mock_decoder_bridge with --remote-qp=<emulator_qp>
+///   3. Start hsb_fpga_syndrome_playback --control-port=<port>
 ///      with bridge's QP/RKEY/buffer-addr
 ///
 /// The playback tool drives the emulator via UDP just as it would a real FPGA.
@@ -53,7 +53,7 @@ static std::atomic<bool> g_shutdown{false};
 static void signal_handler(int) { g_shutdown = true; }
 
 //==============================================================================
-// Hololink Protocol Constants
+// HSB Protocol Constants
 //==============================================================================
 
 static constexpr uint8_t WR_DWORD = 0x04;
@@ -395,19 +395,19 @@ struct RdmaTargetConfig {
   uint32_t page_msb = 0;
 
   // Track whether key fields were explicitly set (buffer_addr=0 is valid
-  // when Hololink uses IOVA with dmabuf).
+  // when HSB uses IOVA with dmabuf).
   bool qp_set = false;
   bool rkey_set = false;
 
   void update_addr() {
-    // Hololink encodes: PAGE_LSB = addr >> 7, PAGE_MSB = addr >> 32
+    // HSB encodes: PAGE_LSB = addr >> 7, PAGE_MSB = addr >> 32
     // Reconstruct: addr = (MSB << 32) | (LSB << 7)
     buffer_addr = (static_cast<uint64_t>(page_msb) << 32) |
                   (static_cast<uint64_t>(page_lsb) << 7);
   }
 
   bool is_complete() const {
-    // buffer_addr=0 is valid (Hololink IOVA/dmabuf), so we only check
+    // buffer_addr=0 is valid (HSB IOVA/dmabuf), so we only check
     // that QP and RKEY were explicitly set.
     return qp_set && rkey_set;
   }
@@ -879,7 +879,7 @@ int main(int argc, char *argv[]) {
   try {
     auto args = parse_args(argc, argv);
 
-    std::cout << "=== Hololink FPGA Emulator ===" << std::endl;
+    std::cout << "=== HSB FPGA Emulator ===" << std::endl;
     std::cout << "IB Device: " << args.device << std::endl;
     std::cout << "Control port: " << args.control_port << std::endl;
     std::cout << "VP address: 0x" << std::hex << args.vp_address << std::dec

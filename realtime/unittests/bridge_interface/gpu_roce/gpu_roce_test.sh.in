@@ -7,10 +7,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 #
-# hololink_test.sh
+# gpu_roce_test.sh
 #
-# Orchestration script for end-to-end Hololink RPC dispatch testing.
-# Tests libcudaq-realtime dispatch kernel over Hololink RDMA with a
+# Orchestration script for end-to-end GPU RoCE RPC dispatch testing.
+# Tests libcudaq-realtime dispatch kernel over GPU RoCE RDMA with a
 # simple increment RPC handler (no QEC or decoder dependency).
 #
 
@@ -119,9 +119,9 @@ cleanup_pids() {
 do_run() {
     IB_DEVICE=$(detect_ib_device)
   
-    local bridge_bin="@CMAKE_CURRENT_BINARY_DIR@/hololink_app"
-    local emulator_bin="@HOLOLINK_EMULATOR_BIN@"
-    local playback_bin="@HOLOLINK_PLAYBACK_BIN@"
+    local bridge_bin="@CMAKE_CURRENT_BINARY_DIR@/gpu_roce_app"
+    local emulator_bin="@HSB_EMULATOR_BIN@"
+    local playback_bin="@HSB_PLAYBACK_BIN@"
     
 
     PIDS=()
@@ -224,7 +224,7 @@ do_run() {
 # Main
 # ============================================================================
 
-echo "=== Hololink Generic RPC Test ==="
+echo "=== GPU RoCE Generic RPC Test ==="
 echo "Mode: emulated"
 
 do_run

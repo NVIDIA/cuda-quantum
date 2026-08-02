@@ -32,5 +32,3 @@ Click on the links below for each category to learn more about the backends it c
    :maxdepth: 2
 
         Cloud  <cloud.rst>
-
-

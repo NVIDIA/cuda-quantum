@@ -223,69 +223,62 @@ public:
   }
 
   using QPU::getCompileTarget;
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const other_policies &, ExecutionContext *ctx) override {
+  CompileTarget getCompileTarget(const other_policies &,
+                                 ExecutionContext *ctx) override {
     if (!ctx)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
     if (ctx && ctx->name == "resource-count")
-      target->emitResourceCounts = true;
+      target.emitResourceCounts = true;
 
     return target;
   }
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &policy) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->supportConditionalsOnMeasureResults = !emulate;
-    target->pipelineConfig.addMeasurements = true;
-    target->storeReorderIdx = true;
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
+  CompileTarget getCompileTarget(const sample_policy &policy) override {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.supportConditionalsOnMeasureResults = !emulate;
+    target.pipelineConfig.addMeasurements = true;
+    target.storeReorderIdx = true;
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
     return target;
   }
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->overrideAOTCompilation = true;
-    target->pauliTermSplitObservable = policy.spin;
-    target->pipelineConfig.replaceStateWithKernel = true;
+  CompileTarget getCompileTarget(const observe_policy &policy) override {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.overrideAOTCompilation = true;
+    target.pauliTermSplitObservable = policy.spin;
+    target.pipelineConfig.replaceStateWithKernel = true;
     return target;
   }
 
-  std::unique_ptr<CompileTarget> getCompileTarget(const run_policy &) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
+  CompileTarget getCompileTarget(const run_policy &) override {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
     return target;
   }
 
   /// Build a local JIT artifact for DEM analysis. No provider target code is
   /// emitted or submitted while this policy is active.
-  std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
+  CompileTarget getCompileTarget(const dem_policy &) override {
     // Skip pipeline substitutions: this path never builds the lowering pipeline
     // and should not trigger server-helper side effects (e.g. IQM arch fetch).
-    auto target =
-        std::make_unique<CompileTarget>(targetConfig, backendConfig, emulate);
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
-    target->emitJit = true;
-    target->emitTargetCode = false;
-    target->pipelineConfig.skipTargetLoweringPipeline = true;
+    CompileTarget target(targetConfig, backendConfig, emulate);
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
+    target.emitJit = true;
+    target.emitTargetCode = false;
+    target.pipelineConfig.skipTargetLoweringPipeline = true;
     return target;
   }
 

@@ -6,14 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-/// @file hololink_bridge.cpp
-/// @brief Generic Hololink bridge tool for testing libcudaq-realtime dispatch.
+/// @file gpu_roce_bridge.cpp
+/// @brief Generic GpuRoceTransceiver bridge tool for testing libcudaq-realtime
+/// dispatch.
 ///
 /// Registers a simple increment RPC handler (adds 1 to each byte) and wires
-/// it through the Hololink GPU-RoCE Transceiver.  No QEC or decoder dependency.
+/// it through the GpuRoceTransceiver (GPU RoCE transceiver).  No QEC or decoder
+/// dependency.
 ///
 /// Usage:
-///   ./hololink_app \
+///   ./gpu_roce_app \
 ///       --device=mlx5_1 \
 ///       --peer-ip=10.0.0.2 \
 ///       --remote-qp=0x2 \
@@ -21,7 +23,7 @@
 ///       --timeout=60
 
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
-#include "cudaq/realtime/daemon/bridge/hololink/hololink_doca_transport_ctx.h"
+#include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include <atomic>
@@ -60,8 +62,9 @@ struct DispatchConfig {
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
-  // Forward mode: use Hololink's built-in forward kernel (echo) instead of
-  // separate RX + dispatch + TX kernels.  Useful for baseline latency testing.
+  // Forward mode: use GpuRoceTransceiver's built-in forward kernel (echo)
+  // instead of separate RX + dispatch + TX kernels.  Useful for baseline
+  // latency testing.
   bool forward = false;
 
   // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
@@ -129,7 +132,8 @@ int main(int argc, char *argv[]) {
       std::cout
           << "Usage: " << argv[0] << " [options]\n"
           << "\n"
-          << "Generic Hololink bridge for testing libcudaq-realtime dispatch.\n"
+          << "Generic GpuRoceTransceiver bridge for testing libcudaq-realtime "
+             "dispatch.\n"
           << "Registers increment handler (adds 1 to each byte of the RPC "
              "payload).\n"
           << "\n"
@@ -146,7 +150,8 @@ int main(int argc, char *argv[]) {
           << "  --exchange-qp         Enable QP exchange protocol\n"
           << "  --exchange-port=N     TCP port for QP exchange (default: "
              "12345)\n"
-          << "  --forward             Use Hololink forward kernel (echo) "
+          << "  --forward             Use GpuRoceTransceiver forward kernel "
+             "(echo) "
              "instead of dispatch\n"
           << "  --unified             Use unified dispatch kernel (RX + "
              "dispatch + TX in one kernel)\n";
@@ -158,7 +163,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, bridge_signal_handler);
     signal(SIGTERM, bridge_signal_handler);
     auto &g_shutdown = bridge_shutdown_flag();
-    std::cout << "=== Hololink Generic Bridge ===" << std::endl;
+    std::cout << "=== GpuRoceTransceiver Generic Bridge ===" << std::endl;
     // Allocate control variables (shutdown flag)
     void *tmp_shutdown = nullptr;
     BRIDGE_CUDA_CHECK(
@@ -183,11 +188,11 @@ int main(int argc, char *argv[]) {
     DispatchConfig config;
     parse_bridge_args(argc, argv, config);
     //============================================================================
-    // Set up the Hololink bridge
+    // Set up the GpuRoceTransceiver bridge
     //============================================================================
     cudaq_realtime_bridge_handle_t bridge_handle = nullptr;
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_create(
-        &bridge_handle, CUDAQ_PROVIDER_HOLOLINK, argc, argv));
+        &bridge_handle, CUDAQ_PROVIDER_GPU_ROCE, argc, argv));
     std::cout << "Bridge created successfully. Connecting..." << std::endl;
 
     if (!config.forward) {
@@ -304,8 +309,8 @@ int main(int argc, char *argv[]) {
                 << std::endl;
     }
 
-    // Launch Hololink kernels and run
-    std::cout << "\n[5/5] Launching Hololink kernels...\n";
+    // Launch GpuRoceTransceiver kernels and run
+    std::cout << "\n[5/5] Launching GpuRoceTransceiver kernels...\n";
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_launch(bridge_handle));
     //============================================================================
     // Main run loop

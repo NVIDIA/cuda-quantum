@@ -69,21 +69,16 @@ public:
                KernelArgs args) override;
 
   using QPU::getCompileTarget;
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &policy) override;
+  CompileTarget getCompileTarget(const sample_policy &policy) override;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy) override;
+  CompileTarget getCompileTarget(const observe_policy &policy) override;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const run_policy &policy) override;
+  CompileTarget getCompileTarget(const run_policy &policy) override;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const dem_policy &policy) override;
+  CompileTarget getCompileTarget(const dem_policy &policy) override;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const other_policies &policy,
-                   ExecutionContext *context) override;
+  CompileTarget getCompileTarget(const other_policies &policy,
+                                 ExecutionContext *context) override;
 
   void configureExecutionContext(ExecutionContext &context) const override;
   void beginExecution() override;

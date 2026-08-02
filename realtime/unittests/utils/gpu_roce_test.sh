@@ -7,10 +7,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.    #
 # ============================================================================#
 #
-# hololink_test.sh
+# gpu_roce_test.sh
 #
-# Orchestration script for end-to-end Hololink RPC dispatch testing.
-# Tests libcudaq-realtime dispatch kernel over Hololink RDMA with a
+# Orchestration script for end-to-end GPU RoCE RPC dispatch testing.
+# Tests libcudaq-realtime dispatch kernel over GPU RoCE RDMA with a
 # simple increment RPC handler (no QEC or decoder dependency).
 #
 # Modes:
@@ -24,13 +24,13 @@
 #
 # Examples:
 #   # Full emulated test: build, configure network, run
-#   ./hololink_test.sh --emulate --build --setup-network
+#   ./gpu_roce_test.sh --emulate --build --setup-network
 #
 #   # Just run with real FPGA (tools already built, network already set up)
-#   ./hololink_test.sh --fpga-ip 192.168.0.2
+#   ./gpu_roce_test.sh --fpga-ip 192.168.0.2
 #
 #   # Build only
-#   ./hololink_test.sh --build --no-run
+#   ./gpu_roce_test.sh --build --no-run
 #
 set -euo pipefail
 
@@ -45,7 +45,7 @@ DO_RUN=true
 VERIFY=true
 
 # Directory defaults
-HOLOLINK_DIR="/workspaces/hololink"
+HSB_DIR="/workspaces/hololink"
 CUDA_QUANTUM_DIR="/workspaces/cuda-quantum"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR=""
@@ -77,7 +77,7 @@ JOBS=$(nproc 2>/dev/null || echo 8)
 
 print_usage() {
     cat <<'EOF'
-Usage: hololink_test.sh [options]
+Usage: gpu_roce_test.sh [options]
 
 Modes:
   --emulate              Use FPGA emulator (3-tool mode, no FPGA needed)
@@ -89,7 +89,7 @@ Actions:
   --no-run               Skip running the test (useful with --build)
 
 Build options:
-  --hololink-dir DIR     Hololink source directory
+  --hsb-dir DIR     HSB source directory
                          (default: /workspaces/hololink)
   --cuda-quantum-dir DIR cuda-quantum source directory
                          (default: /workspaces/cuda-quantum)
@@ -123,7 +123,7 @@ while [[ $# -gt 0 ]]; do
         --setup-network)    DO_SETUP_NETWORK=true ;;
         --no-run)           DO_RUN=false ;;
         --no-verify)        VERIFY=false ;;
-        --hololink-dir)     HOLOLINK_DIR="$2"; shift ;;
+        --hsb-dir)     HSB_DIR="$2"; shift ;;
         --cuda-quantum-dir) CUDA_QUANTUM_DIR="$2"; shift ;;
         --bin-dir)          BIN_DIR="$2"; shift ;;
         --jobs)             JOBS="$2"; shift ;;
@@ -202,7 +202,7 @@ do_build() {
 
     local realtime_dir="$CUDA_QUANTUM_DIR/realtime"
     local realtime_build="$realtime_dir/build"
-    local hololink_build="$HOLOLINK_DIR/build"
+    local hsb_build="$HSB_DIR/build"
 
     # Detect target arch
     local arch
@@ -229,9 +229,9 @@ do_build() {
         echo "  CUDA arch: $cuda_arch"
     fi
 
-    # Build hololink (only the two libraries we need)
-    echo "--- Building hololink ($target_arch) ---"
-    cmake -G Ninja -S "$HOLOLINK_DIR" -B "$hololink_build" \
+    # Build HSB (only the two libraries we need)
+    echo "--- Building HSB ($target_arch) ---"
+    cmake -G Ninja -S "$HSB_DIR" -B "$hsb_build" \
         -DCMAKE_BUILD_TYPE=Release \
         $cuda_arch_flag \
         -DTARGET_ARCH="$target_arch" \
@@ -241,19 +241,19 @@ do_build() {
         -DHOLOLINK_BUILD_TOOLS=OFF \
         -DHOLOLINK_BUILD_EXAMPLES=OFF \
         -DHOLOLINK_BUILD_EMULATOR=OFF
-    cmake --build "$hololink_build" -j"$JOBS" \
+    cmake --build "$hsb_build" -j"$JOBS" \
         --target roce_receiver gpu_roce_transceiver hololink_core
 
-    # Build cuda-quantum/realtime with hololink tools enabled
+    # Build cuda-quantum/realtime with HSB tools enabled
     echo "--- Building cuda-quantum/realtime ---"
     cmake -G Ninja -S "$realtime_dir" -B "$realtime_build" \
         -DCMAKE_BUILD_TYPE=Release \
         $cuda_arch_flag \
-        -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON \
-        -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HOLOLINK_DIR" \
-        -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$hololink_build"
+        -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON \
+        -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR="$HSB_DIR" \
+        -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR="$hsb_build"
     cmake --build "$realtime_build" -j"$JOBS" \
-        --target hololink_bridge hololink_fpga_emulator hololink_fpga_playback
+        --target gpu_roce_bridge hsb_fpga_emulator hsb_fpga_playback
 
     echo "=== Build complete ==="
 }
@@ -383,13 +383,13 @@ do_run() {
     local utils_dir="$build_dir/unittests/utils"
 
     if [ -n "$BIN_DIR" ]; then
-        local bridge_bin="$BIN_DIR/hololink_bridge"
-        local emulator_bin="$BIN_DIR/hololink_fpga_emulator"
-        local playback_bin="$BIN_DIR/hololink_fpga_playback"
+        local bridge_bin="$BIN_DIR/gpu_roce_bridge"
+        local emulator_bin="$BIN_DIR/hsb_fpga_emulator"
+        local playback_bin="$BIN_DIR/hsb_fpga_playback"
     else
-        local bridge_bin="$utils_dir/hololink_bridge"
-        local emulator_bin="$utils_dir/hololink_fpga_emulator"
-        local playback_bin="$utils_dir/hololink_fpga_playback"
+        local bridge_bin="$utils_dir/gpu_roce_bridge"
+        local emulator_bin="$utils_dir/hsb_fpga_emulator"
+        local playback_bin="$utils_dir/hsb_fpga_playback"
     fi
 
     # Verify binaries exist
@@ -502,7 +502,7 @@ do_run() {
     # Start playback
     echo "--- Starting playback ---"
     local playback_args=(
-        --hololink="$FPGA_TARGET_IP"
+        --hsb-ip="$FPGA_TARGET_IP"
         --bridge-qp="0x$BRIDGE_QP"
         --bridge-rkey="$BRIDGE_RKEY"
         --bridge-buffer="0x$BRIDGE_BUFFER"
@@ -544,7 +544,7 @@ do_run() {
 # Main
 # ============================================================================
 
-echo "=== Hololink Generic RPC Test ==="
+echo "=== GPU RoCE Generic RPC Test ==="
 echo "Mode: $(if $EMULATE; then echo "emulated"; else echo "FPGA"; fi)"
 
 if [ -n "$BIN_DIR" ]; then

@@ -18,11 +18,11 @@ if [[ ":$LD_LIBRARY_PATH:" != *":$install_dir/lib:"* ]]; then
 fi
 
 bin_dir="$install_dir/bin"
-# Call the `hololink_test.sh` script to validate the installation, forward all the command line arguments to it.
-bash "$install_dir/utils/hololink_test.sh" "$@" --bin-dir "$bin_dir"
+# Call the `gpu_roce_test.sh` script to validate the installation, forward all the command line arguments to it.
+bash "$install_dir/utils/gpu_roce_test.sh" "$@" --bin-dir "$bin_dir"
 
-# Check the status of the hololink test script to determine if the validation was successful.
+# Check the status of the gpu_roce test script to determine if the validation was successful.
 if [[ $? -ne 0 ]]; then
-  echo "Failed to validate hololink test application. Please refer to the documentation for troubleshooting." >&2
+  echo "Failed to validate gpu_roce test application. Please refer to the documentation for troubleshooting." >&2
   exit 1
 fi

@@ -6,29 +6,29 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.   #
 # ============================================================================ #
 
-# Hololink bridge implementation
+# GPU RoCE (GpuRoceTransceiver) bridge implementation
 # ==============================================================================
-# These targets are gated by CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS and require
-# a pre-built hololink (holoscan-sensor-bridge) with DOCA support.
+# These targets are gated by CUDAQ_REALTIME_ENABLE_HSB_TOOLS and require
+# a pre-built holoscan-sensor-bridge (HSB) with DOCA support.
 
 
 if (NOT HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR)
   message(FATAL_ERROR
-    "HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR must be set when building hololink tools.")
+    "HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR must be set when building HSB tools.")
 endif()
 if (NOT HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR)
   message(FATAL_ERROR
-    "HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR must be set when building hololink tools.")
+    "HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR must be set when building HSB tools.")
 endif()
 
 find_package(Threads REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 
 # --------------------------------------------------------------------------- #
-# Find Hololink core library
+# Find HSB core library
 # --------------------------------------------------------------------------- #
 
-find_library(HOLOLINK_CORE_LIB
+find_library(HSB_CORE_LIB
   NAMES hololink_core
   PATHS
     "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}"
@@ -36,7 +36,7 @@ find_library(HOLOLINK_CORE_LIB
     "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}/lib"
   NO_DEFAULT_PATH)
 
-if (NOT HOLOLINK_CORE_LIB)
+if (NOT HSB_CORE_LIB)
   message(FATAL_ERROR
     "Could not find hololink_core library under ${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}.")
 endif()
@@ -56,14 +56,14 @@ find_library(GPU_ROCE_TRANSCEIVER_LIB
 if (NOT GPU_ROCE_TRANSCEIVER_LIB)
   message(WARNING
     "Could not find gpu_roce_transceiver library. "
-    "hololink_bridge will not be built.")
+    "gpu_roce_bridge will not be built.")
 endif()
 
 # --------------------------------------------------------------------------- #
-# Find transitive Hololink libraries
+# Find transitive HSB libraries
 # --------------------------------------------------------------------------- #
 
-find_library(HOLOLINK_COMMON_LIB
+find_library(HSB_COMMON_LIB
   NAMES hololink
   PATHS
     "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}"
@@ -119,7 +119,7 @@ find_library(DOCA_COMMON_LIB doca_common
 find_package(holoscan QUIET)
 
 # --------------------------------------------------------------------------- #
-# Find fmt (transitive dependency of hololink logging)
+# Find fmt (transitive dependency of HSB logging)
 # --------------------------------------------------------------------------- #
 
 find_path(FMT_INCLUDE_DIR
@@ -129,14 +129,14 @@ find_path(FMT_INCLUDE_DIR
   NO_DEFAULT_PATH)
 
 # =========================================================================== #
-# hololink_bridge library
+# gpu_roce_bridge library
 # =========================================================================== #
 
 if (GPU_ROCE_TRANSCEIVER_LIB AND
     DOCA_INCLUDE_DIR AND DOCA_VERBS_LIB AND DOCA_COMMON_LIB AND
     DOCA_GPUNETIO_LIB)
 
-  message(STATUS "Building hololink_bridge interface library with the following dependencies:")
+  message(STATUS "Building gpu_roce_bridge interface library with the following dependencies:")
   message(STATUS "  GPU RoCE Transceiver: ${GPU_ROCE_TRANSCEIVER_LIB}")
 
   find_path(DOCA_GPU_INCLUDE_DIR doca_gpunetio_dev_verbs_common.cuh
@@ -148,17 +148,17 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     REQUIRED
   )
 
-  # Library implementing the hololink bridge interface (includes unified kernel)
-  add_library(cudaq-realtime-bridge-hololink SHARED
+  # Library implementing the gpu_roce bridge interface (includes unified kernel)
+  add_library(cudaq-realtime-bridge-gpu-roce SHARED
     bridge_impl.cpp
-    hololink_wrapper.cpp
+    gpu_roce_wrapper.cpp
     unified_dispatch_kernel.cu)
 
-  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
+  set_target_properties(cudaq-realtime-bridge-gpu-roce PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON)
 
-  target_include_directories(cudaq-realtime-bridge-hololink
+  target_include_directories(cudaq-realtime-bridge-gpu-roce
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}
       ${CUDAQ_REALTIME_INCLUDE_DIR}
@@ -168,12 +168,12 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       ${DOCA_GPU_INCLUDE_DIR}
       ${FMT_INCLUDE_DIR})
 
-  target_link_libraries(cudaq-realtime-bridge-hololink
+  target_link_libraries(cudaq-realtime-bridge-gpu-roce
     PRIVATE
       ${GPU_ROCE_TRANSCEIVER_LIB}
       ${BASE_RECEIVER_OP_LIB}
-      ${HOLOLINK_CORE_LIB}
-      ${HOLOLINK_COMMON_LIB}
+      ${HSB_CORE_LIB}
+      ${HSB_COMMON_LIB}
       cudaq-realtime
       CUDA::cudart
       CUDA::cuda_driver
@@ -185,28 +185,28 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       Threads::Threads
       ${CMAKE_DL_LIBS})
 
-  target_link_options(cudaq-realtime-bridge-hololink PRIVATE
+  target_link_options(cudaq-realtime-bridge-gpu-roce PRIVATE
     "LINKER:--allow-multiple-definition")
 
   if (holoscan_FOUND)
-    target_link_libraries(cudaq-realtime-bridge-hololink PRIVATE holoscan::core)
+    target_link_libraries(cudaq-realtime-bridge-gpu-roce PRIVATE holoscan::core)
   endif()
 
   # Set RPATH for shared libraries
-  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
+  set_target_properties(cudaq-realtime-bridge-gpu-roce PROPERTIES
     BUILD_RPATH "${DOCA_LIB_DIR}"
     INSTALL_RPATH "${DOCA_LIB_DIR}")
   # Build output directory (/lib)
-  set_target_properties(cudaq-realtime-bridge-hololink PROPERTIES
+  set_target_properties(cudaq-realtime-bridge-gpu-roce PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-  install(TARGETS cudaq-realtime-bridge-hololink DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  install(TARGETS cudaq-realtime-bridge-gpu-roce DESTINATION ${CMAKE_INSTALL_LIBDIR})
 else()
   if (NOT GPU_ROCE_TRANSCEIVER_LIB)
     message(WARNING "gpu_roce_transceiver library not found. "
-                    "hololink_bridge will not be built.")
+                    "gpu_roce_bridge will not be built.")
   endif()
   if (NOT DOCA_INCLUDE_DIR OR NOT DOCA_VERBS_LIB)
     message(WARNING "DOCA libraries not found. "
-                    "hololink_bridge requires DOCA.")
+                    "gpu_roce_bridge requires DOCA.")
   endif()
 endif()
