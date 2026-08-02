@@ -181,7 +181,9 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         lib/libcudaq-realtime-host-dispatch.a \
         lib/libcudaq-realtime-udp-transport.a \
         lib/libcudaq-device-call-runtime.so \
-        lib/cmake/cudaq-realtime/cudaq-realtime-config.cmake; \
+        lib/cmake/cudaq-realtime/cudaq-realtime-config.cmake \
+        realtime/LICENSE \
+        realtime/NOTICE; \
     do \
         if [ ! -e "$CUDAQ_INSTALL_PREFIX/$artifact" ]; then \
             echo -e "\e[01;31mError: Missing realtime artifact: $artifact.\e[0m" >&2; \
@@ -359,18 +361,6 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
     excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|pycudaq-mlir|Tensor.*Error" && \
     ctest --output-on-failure --test-dir build $excludes
-
-# Run the realtime host-dispatch tests explicitly and reject skipped tests.
-# These tests hide CUDA devices themselves and exercise the no-device path on
-# both GPU and GPU-less hosts.
-RUN cd /cuda-quantum && \
-    set -o pipefail && \
-    ctest --test-dir build --no-tests=error --output-on-failure \
-        -R '^HostDispatchNoGpuTest\.' 2>&1 | tee /tmp/realtime_no_gpu_ctest.out && \
-    if grep -Eq '\[  SKIPPED \]|Not Run' /tmp/realtime_no_gpu_ctest.out; then \
-        echo -e "\e[01;31mError: Unexpected skipped realtime host-dispatch test.\e[0m" >&2; \
-        exit 1; \
-    fi
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \

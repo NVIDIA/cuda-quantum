@@ -68,7 +68,6 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       LLVMSupport
       CUDA::cudart_static
       dl)
-  add_dependencies(cudaq-device-call-runtime cudaq-realtime)
   target_link_options(cudaq-device-call-runtime PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   # The transport archives are implementation details of this runtime's
   # channels.  Do NOT re-export their symbols: a bridge provider .so (e.g.

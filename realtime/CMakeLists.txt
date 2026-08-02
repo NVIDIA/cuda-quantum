@@ -178,5 +178,11 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
 endif()
 
 
-# Install the LICENSE and NOTICE files
-install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+# Standalone realtime saves the legal files at its install prefix. Integrated
+# CUDA-Q builds keep them in a dedicated subdirectory so they do not replace
+# the main CUDA-Q files.
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+else()
+  install(FILES LICENSE NOTICE DESTINATION realtime)
+endif()
