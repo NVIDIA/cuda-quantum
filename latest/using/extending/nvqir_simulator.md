@@ -871,7 +871,8 @@ latest
             Measurement](../realtime/installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](../realtime/host.html){.reference .internal}
-        -   [What is HSB?](../realtime/host.html#what-is-hsb){.reference
+        -   [What is the
+            GpuRoceTransceiver?](../realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
             Mechanisms](../realtime/host.html#transport-mechanisms){.reference
@@ -879,8 +880,8 @@ latest
             -   [Supported Transport
                 Options](../realtime/host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](../realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](../realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](../realtime/host.html#data-flow-summary){.reference
@@ -903,7 +904,7 @@ latest
                 Extensions](../realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](../realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](../realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](../realtime/host.html#what-this-api-does-in-one-paragraph){.reference
@@ -983,11 +984,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](../realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](../realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](../realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](../realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](../realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](../realtime/host.html#troubleshooting){.reference
             .internal}
@@ -1224,55 +1225,115 @@ latest
             toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
 -   [Extending](extending.html){.reference .internal}
-    -   [Add a new Hardware Backend](backend.html){.reference .internal}
-        -   [Overview](backend.html#overview){.reference .internal}
-        -   [Server Helper
-            Implementation](backend.html#server-helper-implementation){.reference
-            .internal}
-            -   [Directory
-                Structure](backend.html#directory-structure){.reference
+    -   [Compiler development](compiler/index.html){.reference
+        .internal}
+        -   [Compiler IR](compiler/cudaq_ir.html){.reference .internal}
+            -   [CUDA-Q
+                dialects](compiler/cudaq_ir.html#cuda-q-dialects){.reference
                 .internal}
+            -   [Source and
+                tests](compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](compiler/pass_plugins.html){.reference .internal}
+    -   [Add a hardware backend](backend.html){.reference .internal}
+        -   [Plugin Directory
+            Structure](backend.html#plugin-directory-structure){.reference
+            .internal}
+        -   [REST-Style Backends (Server
+            Helper)](backend.html#rest-style-backends-server-helper){.reference
+            .internal}
             -   [Server Helper
                 Class](backend.html#server-helper-class){.reference
                 .internal}
-            -   [[`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](backend.html#cmakelists-txt){.reference
+            -   [Target YAML
+                Configuration](backend.html#target-yaml-configuration){.reference
                 .internal}
-        -   [Target
-            Configuration](backend.html#target-configuration){.reference
+            -   [CMake Build
+                File](backend.html#cmake-build-file){.reference
+                .internal}
+        -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
+            .notranslate}]{.pre}](backend.html#auxiliary-files-and-plugin-root){.reference
             .internal}
-            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](backend.html#update-parent-cmakelists-txt){.reference
-                .internal}
-        -   [Testing](backend.html#testing){.reference .internal}
-            -   [Unit Tests](backend.html#unit-tests){.reference
-                .internal}
-            -   [Mock Server](backend.html#mock-server){.reference
-                .internal}
-            -   [Python Tests](backend.html#python-tests){.reference
-                .internal}
-            -   [Integration
-                Tests](backend.html#integration-tests){.reference
-                .internal}
-        -   [Documentation](backend.html#documentation){.reference
+        -   [Testing Your
+            Backend](backend.html#testing-your-backend){.reference
             .internal}
         -   [Example Usage](backend.html#example-usage){.reference
             .internal}
-        -   [Code Review](backend.html#code-review){.reference
+        -   [Next Steps](backend.html#next-steps){.reference .internal}
+    -   [Package & distribute a backend
+        plugin](packaging.html){.reference .internal}
+        -   [Plugin Package
+            Layout](packaging.html#plugin-package-layout){.reference
             .internal}
-        -   [Maintaining a
-            Backend](backend.html#maintaining-a-backend){.reference
+        -   [Target YAML Reference (Plugin
+            Fields)](packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
-        -   [Conclusion](backend.html#conclusion){.reference .internal}
-    -   [Create a new NVQIR Simulator](#){.current .reference .internal}
+            -   [[`%PLUGIN_ROOT%`{.docutils .literal
+                .notranslate}]{.pre}](packaging.html#plugin-root){.reference
+                .internal}
+            -   [[`target-arguments`{.docutils .literal
+                .notranslate}]{.pre}](packaging.html#target-arguments){.reference
+                .internal}
+        -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
+            .notranslate}]{.pre}](packaging.html#building-with-cudaq-external-projects){.reference
+            .internal}
+        -   [Python
+            Packaging](packaging.html#python-packaging){.reference
+            .internal}
+            -   [[`pyproject.toml`{.docutils .literal
+                .notranslate}]{.pre}](packaging.html#pyproject-toml){.reference
+                .internal}
+            -   [[`__init__.py`{.docutils .literal
+                .notranslate}]{.pre}](packaging.html#init-py){.reference
+                .internal}
+            -   [[`__main__.py`{.docutils .literal .notranslate}]{.pre}
+                ([`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre}
+                hook)](packaging.html#main-py-install-nvqpp-hook){.reference
+                .internal}
+        -   [Installing the Plugin for End
+            Users](packaging.html#installing-the-plugin-for-end-users){.reference
+            .internal}
+            -   [[`pip`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`install`{.docutils .literal
+                .notranslate}]{.pre} (Python --- zero
+                config)](packaging.html#pip-install-python-zero-config){.reference
+                .internal}
+            -   [[`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre} (make visible to [`nvq++`{.docutils
+                .literal
+                .notranslate}]{.pre})](packaging.html#install-nvqpp-make-visible-to-nvq){.reference
+                .internal}
+            -   [[`cudaq-install-plugin`{.docutils .literal
+                .notranslate}]{.pre} (C++-only
+                workflows)](packaging.html#cudaq-install-plugin-c-only-workflows){.reference
+                .internal}
+        -   [Discovery
+            Mechanics](packaging.html#discovery-mechanics){.reference
+            .internal}
+            -   [[`nvq++`{.docutils .literal .notranslate}]{.pre} target
+                resolution](packaging.html#nvq-target-resolution){.reference
+                .internal}
+            -   [Python target
+                resolution](packaging.html#python-target-resolution){.reference
+                .internal}
+            -   [Environment
+                variables](packaging.html#environment-variables){.reference
+                .internal}
+        -   [Reference
+            Plugins](packaging.html#reference-plugins){.reference
+            .internal}
+        -   [Quick-Start
+            Checklist](packaging.html#quick-start-checklist){.reference
+            .internal}
+    -   [Create an NVQIR simulator](#){.current .reference .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
             action](#let-s-see-this-in-action){.reference .internal}
-    -   [Working with CUDA-Q IR](cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for CUDA-Q](mlir_pass.html){.reference
-        .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -1836,10 +1897,10 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backend.html "Extending CUDA-Q with a new Hardware Backend"){.btn
+Previous](packaging.html "Package & Distribute a Backend Plugin"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](cudaq_ir.html "Working with the CUDA-Q IR"){.btn
+aria-hidden="true"}](../../specification/index.html "Specifications"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1893,7 +1954,7 @@ overall evolution are left as tasks for [`CircuitSimulatorBase`{.code
 simulation subtypes can be found in
 [`runtime/nvqir/qpp/QppCircuitSimulator.cpp`{.code .docutils .literal
 .notranslate}]{.pre} or
-[`runtime/nvqir/custatevec/CuStateVecCircuitSimulator.cpp`{.code
+[`runtime/nvqir/custatevec/CuStateVecCircuitSimulatorEx.h`{.code
 .docutils .literal .notranslate}]{.pre}. The
 [`QppCircuitSimulator`{.code .docutils .literal .notranslate}]{.pre}
 models the state vector using the
@@ -2078,10 +2139,10 @@ backend simulator with the following:
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backend.html "Extending CUDA-Q with a new Hardware Backend"){.btn
+Previous](packaging.html "Package & Distribute a Backend Plugin"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](cudaq_ir.html "Working with the CUDA-Q IR"){.btn
+aria-hidden="true"}](../../specification/index.html "Specifications"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

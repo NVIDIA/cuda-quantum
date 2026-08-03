@@ -63,7 +63,7 @@ Setup
 
   .. note:: 
 
-    Please make sure to `set up the host system <https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html>`__ and the `set up the HSB FPGA device IP address <https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration>`__.
+    Please make sure to `set up the host system <https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/host-setup>`__ and the `set up the HSB FPGA device IP address <https://docs.nvidia.com/holoscan/sensor-bridge/applications/architecture#datachannel-enumeration-and-ip-address-configuration>`__.
 
 .. tab:: Using Custom Networking Layer
   
@@ -136,4 +136,4 @@ The validation includes checking the data correctness and measuring the round-tr
   To measure latency with a custom networking implementation, implement a stimulus (data generation) tool that sends data to CUDA-Q Realtime according to the custom networking protocol.
   
   For example, in the HSB-based implementation, we use the `ptp_timestamp` field in the `RPCHeader` / `RPCResponse` (see the message protocol documentation) to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA) stores the 'send' timestamp in the `RPCHeader` (incoming message), which will be echoed by the GPU in the outgoing `RPCResponse` after processing it (e.g., with the RPC handler). Using the Integrated Logic Analyzer timestamp when the FPGA receives the response from the GPU, we can compute the round-trip latency.
-  `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hololink_fpga_playback.cpp>`__ contains an example of such a data generation tool.
+  `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hsb_fpga_playback.cpp>`__ contains an example of such a data generation tool.

@@ -888,8 +888,8 @@ latest
             Measurement](../../using/realtime/installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](../../using/realtime/host.html){.reference .internal}
-        -   [What is
-            HSB?](../../using/realtime/host.html#what-is-hsb){.reference
+        -   [What is the
+            GpuRoceTransceiver?](../../using/realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
             Mechanisms](../../using/realtime/host.html#transport-mechanisms){.reference
@@ -897,8 +897,8 @@ latest
             -   [Supported Transport
                 Options](../../using/realtime/host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](../../using/realtime/host.html#data-flow-summary){.reference
@@ -921,7 +921,7 @@ latest
                 Extensions](../../using/realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](../../using/realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](../../using/realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](../../using/realtime/host.html#what-this-api-does-in-one-paragraph){.reference
@@ -1002,11 +1002,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](../../using/realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](../../using/realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](../../using/realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](../../using/realtime/host.html#troubleshooting){.reference
             .internal}
@@ -1253,58 +1253,121 @@ latest
             .internal}
 -   [Extending](../../using/extending/extending.html){.reference
     .internal}
-    -   [Add a new Hardware
-        Backend](../../using/extending/backend.html){.reference
+    -   [Compiler
+        development](../../using/extending/compiler/index.html){.reference
         .internal}
-        -   [Overview](../../using/extending/backend.html#overview){.reference
+        -   [Compiler
+            IR](../../using/extending/compiler/cudaq_ir.html){.reference
             .internal}
-        -   [Server Helper
-            Implementation](../../using/extending/backend.html#server-helper-implementation){.reference
-            .internal}
-            -   [Directory
-                Structure](../../using/extending/backend.html#directory-structure){.reference
+            -   [CUDA-Q
+                dialects](../../using/extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
                 .internal}
+            -   [Source and
+                tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](../../using/extending/compiler/pass_plugins.html){.reference
+            .internal}
+    -   [Add a hardware
+        backend](../../using/extending/backend.html){.reference
+        .internal}
+        -   [Plugin Directory
+            Structure](../../using/extending/backend.html#plugin-directory-structure){.reference
+            .internal}
+        -   [REST-Style Backends (Server
+            Helper)](../../using/extending/backend.html#rest-style-backends-server-helper){.reference
+            .internal}
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [[`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [Target YAML
+                Configuration](../../using/extending/backend.html#target-yaml-configuration){.reference
                 .internal}
-        -   [Target
-            Configuration](../../using/extending/backend.html#target-configuration){.reference
+            -   [CMake Build
+                File](../../using/extending/backend.html#cmake-build-file){.reference
+                .internal}
+        -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
+            .notranslate}]{.pre}](../../using/extending/backend.html#auxiliary-files-and-plugin-root){.reference
             .internal}
-            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
-                .internal}
-        -   [Testing](../../using/extending/backend.html#testing){.reference
-            .internal}
-            -   [Unit
-                Tests](../../using/extending/backend.html#unit-tests){.reference
-                .internal}
-            -   [Mock
-                Server](../../using/extending/backend.html#mock-server){.reference
-                .internal}
-            -   [Python
-                Tests](../../using/extending/backend.html#python-tests){.reference
-                .internal}
-            -   [Integration
-                Tests](../../using/extending/backend.html#integration-tests){.reference
-                .internal}
-        -   [Documentation](../../using/extending/backend.html#documentation){.reference
+        -   [Testing Your
+            Backend](../../using/extending/backend.html#testing-your-backend){.reference
             .internal}
         -   [Example
             Usage](../../using/extending/backend.html#example-usage){.reference
             .internal}
-        -   [Code
-            Review](../../using/extending/backend.html#code-review){.reference
+        -   [Next
+            Steps](../../using/extending/backend.html#next-steps){.reference
             .internal}
-        -   [Maintaining a
-            Backend](../../using/extending/backend.html#maintaining-a-backend){.reference
+    -   [Package & distribute a backend
+        plugin](../../using/extending/packaging.html){.reference
+        .internal}
+        -   [Plugin Package
+            Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
-        -   [Conclusion](../../using/extending/backend.html#conclusion){.reference
+        -   [Target YAML Reference (Plugin
+            Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
-    -   [Create a new NVQIR
-        Simulator](../../using/extending/nvqir_simulator.html){.reference
+            -   [[`%PLUGIN_ROOT%`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#plugin-root){.reference
+                .internal}
+            -   [[`target-arguments`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#target-arguments){.reference
+                .internal}
+        -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
+            .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
+            .internal}
+        -   [Python
+            Packaging](../../using/extending/packaging.html#python-packaging){.reference
+            .internal}
+            -   [[`pyproject.toml`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#pyproject-toml){.reference
+                .internal}
+            -   [[`__init__.py`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#init-py){.reference
+                .internal}
+            -   [[`__main__.py`{.docutils .literal .notranslate}]{.pre}
+                ([`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre}
+                hook)](../../using/extending/packaging.html#main-py-install-nvqpp-hook){.reference
+                .internal}
+        -   [Installing the Plugin for End
+            Users](../../using/extending/packaging.html#installing-the-plugin-for-end-users){.reference
+            .internal}
+            -   [[`pip`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`install`{.docutils .literal
+                .notranslate}]{.pre} (Python --- zero
+                config)](../../using/extending/packaging.html#pip-install-python-zero-config){.reference
+                .internal}
+            -   [[`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre} (make visible to [`nvq++`{.docutils
+                .literal
+                .notranslate}]{.pre})](../../using/extending/packaging.html#install-nvqpp-make-visible-to-nvq){.reference
+                .internal}
+            -   [[`cudaq-install-plugin`{.docutils .literal
+                .notranslate}]{.pre} (C++-only
+                workflows)](../../using/extending/packaging.html#cudaq-install-plugin-c-only-workflows){.reference
+                .internal}
+        -   [Discovery
+            Mechanics](../../using/extending/packaging.html#discovery-mechanics){.reference
+            .internal}
+            -   [[`nvq++`{.docutils .literal .notranslate}]{.pre} target
+                resolution](../../using/extending/packaging.html#nvq-target-resolution){.reference
+                .internal}
+            -   [Python target
+                resolution](../../using/extending/packaging.html#python-target-resolution){.reference
+                .internal}
+            -   [Environment
+                variables](../../using/extending/packaging.html#environment-variables){.reference
+                .internal}
+        -   [Reference
+            Plugins](../../using/extending/packaging.html#reference-plugins){.reference
+            .internal}
+        -   [Quick-Start
+            Checklist](../../using/extending/packaging.html#quick-start-checklist){.reference
+            .internal}
+    -   [Create an NVQIR
+        simulator](../../using/extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
@@ -1312,11 +1375,6 @@ latest
         -   [Let's see this in
             action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q
-        IR](../../using/extending/cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../../using/extending/mlir_pass.html){.reference
-        .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -1981,11 +2039,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         specialized and passed to algorithms written in C++ that call
         back to these Python kernels in a functional composition.
 
-    [[cachedCompiledModule]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.cachedCompiledModule "Permalink to this definition"){.headerlink}
-
-    :   Return the kernel's CompiledModule cache slot, creating an empty
-        one on first access.
-
     [[captured_variables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.captured_variables "Permalink to this definition"){.headerlink}
 
     :   The list of variables captured by the kernel.
@@ -1993,6 +2046,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     [[compile]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.compile "Permalink to this definition"){.headerlink}
 
     :   Compile the Python AST to portable Quake.
+
+    [[compiledModuleCache]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.compiledModuleCache "Permalink to this definition"){.headerlink}
+
+    :   Return this kernel's shared compiled-module cache, creating an
+        empty one on first access.
 
     [[enable_return_to_log]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.enable_return_to_log "Permalink to this definition"){.headerlink}
 
@@ -2333,7 +2391,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[num_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[execution]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[-1]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[num_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[execution]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe "Permalink to this definition"){.headerlink}
 
 :   Compute the expected value of the [`spin_operator`{.code .docutils
     .literal .notranslate}]{.pre} with respect to the [`kernel`{.code
@@ -3803,17 +3861,18 @@ discriminated bits into an integer.)
 
     :   qubit 0 contributes 2\^0 to the statevector index, qubit 1
         contributes 2\^1, and so on. For two qubits, statevector index 1
-        corresponds to the basis state [[\|]{#id3
-        .problematic}](#id2)q_0 q_1\> = [[\|]{#id5
-        .problematic}](#id4)10\> (qubit 0 in [[\|]{#id7
-        .problematic}](#id6)1\>, qubit 1 in [[\|]{#id9
-        .problematic}](#id8)0\>), so a state where qubit 0 equals 1 with
-        probability 1 is the vector {0., 1., 0., 0.}. This convention
-        matches [`cudaq.get_state`{.code .docutils .literal
-        .notranslate}]{.pre}, [`SampleResult`{.code .docutils .literal
-        .notranslate}]{.pre} bitstring keys, and the Pauli word produced
-        by [`get_pauli_word()`{.code .docutils .literal
-        .notranslate}]{.pre}, all of which place qubit 0 as the
+        corresponds to the basis state [`|q_0`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`q_1>`{.docutils .literal .notranslate}]{.pre} =
+        [`|10>`{.docutils .literal .notranslate}]{.pre} (qubit 0 in
+        [`|1>`{.docutils .literal .notranslate}]{.pre}, qubit 1 in
+        [`|0>`{.docutils .literal .notranslate}]{.pre}), so a state
+        where qubit 0 equals 1 with probability 1 is the vector {0., 1.,
+        0., 0.}. This convention matches [`cudaq.get_state`{.code
+        .docutils .literal .notranslate}]{.pre}, [`SampleResult`{.code
+        .docutils .literal .notranslate}]{.pre} bitstring keys, and the
+        Pauli word produced by [`get_pauli_word()`{.code .docutils
+        .literal .notranslate}]{.pre}, all of which place qubit 0 as the
         left-most character. Note that writing the statevector index as
         a binary number (e.g. index 1 as [`01`{.code .docutils .literal
         .notranslate}]{.pre}) places qubit 0 on the right, since it is

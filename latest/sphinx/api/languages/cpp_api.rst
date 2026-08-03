@@ -172,8 +172,6 @@ vector of handles.
 
 .. doxygentypedef:: cudaq::state_data
 
-.. doxygenclass:: cudaq::CusvState
-
 .. doxygenclass:: nvqir::MPSSimulationState
 
 .. doxygenclass:: nvqir::TensorNetSimulationState
@@ -391,13 +389,25 @@ Platform
 .. doxygenclass:: cudaq::QPU
     :members:
 
+.. doxygenstruct:: cudaq::other_policies
+
+.. doxygenclass:: cudaq::DefaultQPU
+
+.. doxygenclass:: cudaq::GPUEmulatedQPU
+
 .. doxygenclass:: cudaq::BaseRemoteRESTQPU
 
-.. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
+.. doxygenclass:: cudaq::RemoteRESTQPU
+
+.. doxygenclass:: cudaq::AnalogRemoteRESTQPU
 
 .. doxygenclass:: cudaq::FermioniqQPU
 
 .. doxygenclass:: cudaq::OrcaRemoteRESTQPU
+
+.. doxygenclass:: cudaq::PasqalRemoteRESTQPU
+
+.. doxygenclass:: cudaq::QuEraRemoteRESTQPU
 
 .. doxygenclass:: cudaq::quantum_platform
     :members:

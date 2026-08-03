@@ -888,8 +888,8 @@ latest
             Measurement](../../using/realtime/installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](../../using/realtime/host.html){.reference .internal}
-        -   [What is
-            HSB?](../../using/realtime/host.html#what-is-hsb){.reference
+        -   [What is the
+            GpuRoceTransceiver?](../../using/realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
             Mechanisms](../../using/realtime/host.html#transport-mechanisms){.reference
@@ -897,8 +897,8 @@ latest
             -   [Supported Transport
                 Options](../../using/realtime/host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](../../using/realtime/host.html#data-flow-summary){.reference
@@ -921,7 +921,7 @@ latest
                 Extensions](../../using/realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](../../using/realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](../../using/realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](../../using/realtime/host.html#what-this-api-does-in-one-paragraph){.reference
@@ -1002,11 +1002,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](../../using/realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](../../using/realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](../../using/realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](../../using/realtime/host.html#troubleshooting){.reference
             .internal}
@@ -1253,58 +1253,121 @@ latest
             .internal}
 -   [Extending](../../using/extending/extending.html){.reference
     .internal}
-    -   [Add a new Hardware
-        Backend](../../using/extending/backend.html){.reference
+    -   [Compiler
+        development](../../using/extending/compiler/index.html){.reference
         .internal}
-        -   [Overview](../../using/extending/backend.html#overview){.reference
+        -   [Compiler
+            IR](../../using/extending/compiler/cudaq_ir.html){.reference
             .internal}
-        -   [Server Helper
-            Implementation](../../using/extending/backend.html#server-helper-implementation){.reference
-            .internal}
-            -   [Directory
-                Structure](../../using/extending/backend.html#directory-structure){.reference
+            -   [CUDA-Q
+                dialects](../../using/extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
                 .internal}
+            -   [Source and
+                tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](../../using/extending/compiler/pass_plugins.html){.reference
+            .internal}
+    -   [Add a hardware
+        backend](../../using/extending/backend.html){.reference
+        .internal}
+        -   [Plugin Directory
+            Structure](../../using/extending/backend.html#plugin-directory-structure){.reference
+            .internal}
+        -   [REST-Style Backends (Server
+            Helper)](../../using/extending/backend.html#rest-style-backends-server-helper){.reference
+            .internal}
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [[`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [Target YAML
+                Configuration](../../using/extending/backend.html#target-yaml-configuration){.reference
                 .internal}
-        -   [Target
-            Configuration](../../using/extending/backend.html#target-configuration){.reference
+            -   [CMake Build
+                File](../../using/extending/backend.html#cmake-build-file){.reference
+                .internal}
+        -   [Auxiliary Files and [`%PLUGIN_ROOT%`{.docutils .literal
+            .notranslate}]{.pre}](../../using/extending/backend.html#auxiliary-files-and-plugin-root){.reference
             .internal}
-            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
-                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
-                .internal}
-        -   [Testing](../../using/extending/backend.html#testing){.reference
-            .internal}
-            -   [Unit
-                Tests](../../using/extending/backend.html#unit-tests){.reference
-                .internal}
-            -   [Mock
-                Server](../../using/extending/backend.html#mock-server){.reference
-                .internal}
-            -   [Python
-                Tests](../../using/extending/backend.html#python-tests){.reference
-                .internal}
-            -   [Integration
-                Tests](../../using/extending/backend.html#integration-tests){.reference
-                .internal}
-        -   [Documentation](../../using/extending/backend.html#documentation){.reference
+        -   [Testing Your
+            Backend](../../using/extending/backend.html#testing-your-backend){.reference
             .internal}
         -   [Example
             Usage](../../using/extending/backend.html#example-usage){.reference
             .internal}
-        -   [Code
-            Review](../../using/extending/backend.html#code-review){.reference
+        -   [Next
+            Steps](../../using/extending/backend.html#next-steps){.reference
             .internal}
-        -   [Maintaining a
-            Backend](../../using/extending/backend.html#maintaining-a-backend){.reference
+    -   [Package & distribute a backend
+        plugin](../../using/extending/packaging.html){.reference
+        .internal}
+        -   [Plugin Package
+            Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
-        -   [Conclusion](../../using/extending/backend.html#conclusion){.reference
+        -   [Target YAML Reference (Plugin
+            Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
-    -   [Create a new NVQIR
-        Simulator](../../using/extending/nvqir_simulator.html){.reference
+            -   [[`%PLUGIN_ROOT%`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#plugin-root){.reference
+                .internal}
+            -   [[`target-arguments`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#target-arguments){.reference
+                .internal}
+        -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
+            .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
+            .internal}
+        -   [Python
+            Packaging](../../using/extending/packaging.html#python-packaging){.reference
+            .internal}
+            -   [[`pyproject.toml`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#pyproject-toml){.reference
+                .internal}
+            -   [[`__init__.py`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/packaging.html#init-py){.reference
+                .internal}
+            -   [[`__main__.py`{.docutils .literal .notranslate}]{.pre}
+                ([`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre}
+                hook)](../../using/extending/packaging.html#main-py-install-nvqpp-hook){.reference
+                .internal}
+        -   [Installing the Plugin for End
+            Users](../../using/extending/packaging.html#installing-the-plugin-for-end-users){.reference
+            .internal}
+            -   [[`pip`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`install`{.docutils .literal
+                .notranslate}]{.pre} (Python --- zero
+                config)](../../using/extending/packaging.html#pip-install-python-zero-config){.reference
+                .internal}
+            -   [[`--install-nvqpp`{.docutils .literal
+                .notranslate}]{.pre} (make visible to [`nvq++`{.docutils
+                .literal
+                .notranslate}]{.pre})](../../using/extending/packaging.html#install-nvqpp-make-visible-to-nvq){.reference
+                .internal}
+            -   [[`cudaq-install-plugin`{.docutils .literal
+                .notranslate}]{.pre} (C++-only
+                workflows)](../../using/extending/packaging.html#cudaq-install-plugin-c-only-workflows){.reference
+                .internal}
+        -   [Discovery
+            Mechanics](../../using/extending/packaging.html#discovery-mechanics){.reference
+            .internal}
+            -   [[`nvq++`{.docutils .literal .notranslate}]{.pre} target
+                resolution](../../using/extending/packaging.html#nvq-target-resolution){.reference
+                .internal}
+            -   [Python target
+                resolution](../../using/extending/packaging.html#python-target-resolution){.reference
+                .internal}
+            -   [Environment
+                variables](../../using/extending/packaging.html#environment-variables){.reference
+                .internal}
+        -   [Reference
+            Plugins](../../using/extending/packaging.html#reference-plugins){.reference
+            .internal}
+        -   [Quick-Start
+            Checklist](../../using/extending/packaging.html#quick-start-checklist){.reference
+            .internal}
+    -   [Create an NVQIR
+        simulator](../../using/extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
@@ -1312,11 +1375,6 @@ latest
         -   [Let's see this in
             action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q
-        IR](../../using/extending/cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../../using/extending/mlir_pass.html){.reference
-        .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -8651,17 +8709,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1a2cbc25e01de0353f7909f3e434cb2065 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[char]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[invocationResultBuffer]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE "Permalink to this definition"){.headerlink}\
-
-    :   A buffer containing the return value of a kernel invocation.
-        Note: this is only needed for invocation not able to return a
-        [[[`sample_result`{.docutils .literal .notranslate}]{.pre}]{.std
-        .std-ref}](#classcudaq_1_1sample__result){.reference .internal}.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1ExecutionContext_1a1d8a8a13f8765a8fce850e1a124a5fbb .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[numberTrajectories]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext18numberTrajectoriesE "Permalink to this definition"){.headerlink}\
 
     :   The number of trajectories to be used for an expectation
@@ -8733,9 +8780,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     []{#classcudaq_1_1ExecutionContext_1a7be42e76958d7d38341d8d4af172ffe7 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[inKernelLaunch]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext14inKernelLaunchE "Permalink to this definition"){.headerlink}\
 
     :   True while a JIT/AOT-compiled kernel frame is executing on this
-        thread (set by the launcher around the kernel invocation; see
-        QPU::InKernelLaunchScope). The simulator only defers exceptions
-        into [`deferredKernelException`{.docutils .literal
+        thread. The simulator only defers exceptions into
+        [`deferredKernelException`{.docutils .literal
         .notranslate}]{.pre} while this is set. Outside the kernel frame
         (for example, gate application during sample/observe
         finalization) there is no JIT frame for an exception to unwind
@@ -9862,10 +9908,9 @@ discriminate a vector of handles.
     GPU device or CPU memory. The primary goal of this type and its
     sub-types is to minimize data transfers for the state.
 
-    Subclassed by [[cudaq::CusvState\< ScalarType \>]{.std
-    .std-ref}](#classcudaq_1_1CusvState){.reference .internal},
-    [[cudaq::QPUState]{.std
+    Subclassed by [[cudaq::QPUState]{.std
     .std-ref}](#classcudaq_1_1QPUState){.reference .internal},
+    cudaq::cusv::CuStateVecSimulationState\< Scalar \>,
     [[nvqir::MPSSimulationState\< ScalarType \>]{.std
     .std-ref}](#classnvqir_1_1MPSSimulationState){.reference .internal},
     [[nvqir::TensorNetSimulationState\< ScalarType \>]{.std
@@ -9942,22 +9987,6 @@ discriminate a vector of handles.
 
 :   state_data is a variant type encoding different forms of user state
     vector data we support.
-
-```{=html}
-<!-- -->
-```
-
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[ScalarType]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#classcudaq_1_1CusvState .target}[[class]{.pre}]{.k}[ ]{.w}[[[CusvState]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[¶](#_CPPv4I0EN5cudaq9CusvStateE "Permalink to this definition"){.headerlink}\
-
-:   [[CusvState]{.std .std-ref}](#classcudaq_1_1CusvState){.reference
-    .internal} provides an implementation of
-    [[[`SimulationState`{.docutils .literal .notranslate}]{.pre}]{.std
-    .std-ref}](#classcudaq_1_1SimulationState){.reference .internal}
-    that encapsulates the state data for the Custatevec Circuit
-    Simulator. It attempts to keep the simulation data on GPU device and
-    care is taken to ensure operations and comparisons with other states
-    operate on compatible floating point element types.
 
 ```{=html}
 <!-- -->
@@ -12861,7 +12890,10 @@ them they are erased before execution.
 
     Subclassed by [[cudaq::BaseRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1BaseRemoteRESTQPU){.reference .internal},
-    cudaq::DefaultQPU, cudaq::GPUEmulatedQPU,
+    [[cudaq::DefaultQPU]{.std
+    .std-ref}](#classcudaq_1_1DefaultQPU){.reference .internal},
+    [[cudaq::GPUEmulatedQPU]{.std
+    .std-ref}](#classcudaq_1_1GPUEmulatedQPU){.reference .internal},
     [[cudaq::OrcaRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1OrcaRemoteRESTQPU){.reference .internal}
 
@@ -13035,13 +13067,15 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1aab2349600fade270b8ef0d51f07e1318 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[CompileTarget]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1QPU_1abe5bda9898c9e96558ad65a9caa48d39 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
 
     :   Get the compile target of the [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
         given policy.
 
-        By default, fall back to other_policies compile target.
+        By default, fall back to [[other_policies]{.std
+        .std-ref}](#structcudaq_1_1other__policies){.reference
+        .internal} compile target.
 
     ```{=html}
     <!-- -->
@@ -13058,13 +13092,59 @@ them they are erased before execution.
 <!-- -->
 ```
 
+[]{#structcudaq_1_1other__policies .target}[[struct]{.pre}]{.k}[ ]{.w}[[[other_policies]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq14other_policiesE "Permalink to this definition"){.headerlink}\
+
+:   Fallback policy tag used when no specific policy matches.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1DefaultQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[DefaultQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq10DefaultQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[DefaultQPU]{.std
+    .std-ref}](#classcudaq_1_1DefaultQPU){.reference .internal} models a
+    simulated [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
+    .internal} by specifically targeting the QIS ExecutionManager.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1GPUEmulatedQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[GPUEmulatedQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq14GPUEmulatedQPUE "Permalink to this definition"){.headerlink}\
+
+:   This [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
+    .internal} implementation enqueues kernel execution tasks and sets
+    the CUDA GPU device that it represents. There is a
+    [[GPUEmulatedQPU]{.std
+    .std-ref}](#classcudaq_1_1GPUEmulatedQPU){.reference .internal} per
+    available GPU.
+
+```{=html}
+<!-- -->
+```
+
 []{#classcudaq_1_1BaseRemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[BaseRemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq17BaseRemoteRESTQPUE "Permalink to this definition"){.headerlink}\
 
 :   Subclassed by [[cudaq::AnalogRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1AnalogRemoteRESTQPU){.reference
     .internal}, [[cudaq::FermioniqQPU]{.std
     .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal},
-    cudaq::RemoteRESTQPU
+    [[cudaq::RemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1RemoteRESTQPU){.reference .internal}
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1RemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[RemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[BaseRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq17BaseRemoteRESTQPUE "cudaq::BaseRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq13RemoteRESTQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[RemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1RemoteRESTQPU){.reference .internal} is a
+    subtype of [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
+    .internal} that enables the execution of CUDA-Q kernels on remotely
+    hosted quantum computing services via a REST Client / Server
+    interaction.
 
 ```{=html}
 <!-- -->
@@ -13078,7 +13158,10 @@ them they are erased before execution.
     .notranslate}]{.pre}. Provides common functionality and
     implementation.
 
-    Subclassed by cudaq::PasqalRemoteRESTQPU, cudaq::QuEraRemoteRESTQPU
+    Subclassed by [[cudaq::PasqalRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1PasqalRemoteRESTQPU){.reference
+    .internal}, [[cudaq::QuEraRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1QuEraRemoteRESTQPU){.reference .internal}
 
 ```{=html}
 <!-- -->
@@ -13106,6 +13189,30 @@ them they are erased before execution.
     Moreover, this [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
     .internal} handles launching kernels under the Execution Context
     that includes sampling via synchronous client invocations.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1PasqalRemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[PasqalRemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[AnalogRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq19AnalogRemoteRESTQPUE "cudaq::AnalogRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq19PasqalRemoteRESTQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[PasqalRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1PasqalRemoteRESTQPU){.reference .internal}
+    is a subtype of [[QPU]{.std
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal} that enables
+    the execution of Analog Hamiltonian Programs via a REST Client.
+
+```{=html}
+<!-- -->
+```
+
+[]{#classcudaq_1_1QuEraRemoteRESTQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[QuEraRemoteRESTQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[AnalogRemoteRESTQPU]{.pre}]{.n}](#_CPPv4N5cudaq19AnalogRemoteRESTQPUE "cudaq::AnalogRemoteRESTQPU"){.reference .internal}[¶](#_CPPv4N5cudaq18QuEraRemoteRESTQPUE "Permalink to this definition"){.headerlink}\
+
+:   The [[QuEraRemoteRESTQPU]{.std
+    .std-ref}](#classcudaq_1_1QuEraRemoteRESTQPU){.reference .internal}
+    is a subtype of [[QPU]{.std
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal} that enables
+    the execution of Analog Hamiltonian Programs via a REST Client.
 
 ```{=html}
 <!-- -->

@@ -569,12 +569,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/realtime/host.html">Host API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#what-is-hsb">What is HSB?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#what-is-the-gpurocetransceiver">What is the GpuRoceTransceiver?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#transport-mechanisms">Transport Mechanisms</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#supported-transport-options">Supported Transport Options</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture">The 3-Kernel Architecture (HSB Example) {#three-kernel-architecture}</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture">The 3-Kernel Architecture (GpuRoceTransceiver Example) {#three-kernel-architecture}</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#data-flow-summary">Data Flow Summary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#why-3-kernels">Why 3 Kernels?</a></li>
 </ul>
@@ -584,7 +584,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#transport-agnostic-design">Transport-Agnostic Design</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#when-to-use-which-mode">When to Use Which Mode</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#host-api-extensions">Host API Extensions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#wiring-example-unified-mode-with-hsb">Wiring Example (Unified Mode with HSB)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver">Wiring Example (Unified Mode with GpuRoceTransceiver)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#what-this-api-does-in-one-paragraph">What This API Does (In One Paragraph)</a></li>
@@ -622,8 +622,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#building-and-sending-an-rpc-message">Building and Sending an RPC Message</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#reading-the-response">Reading the Response</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#schema-driven-argument-parsing">Schema-Driven Argument Parsing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#hsb-3-kernel-workflow-primary">HSB 3-Kernel Workflow (Primary)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#nic-free-testing-no-hsb-no-connectx-7">NIC-Free Testing (No HSB / No ConnectX-7)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary">GpuRoceTransceiver 3-Kernel Workflow (Primary)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7">NIC-Free Testing (No GpuRoceTransceiver / No ConnectX-7)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/realtime/host.html#troubleshooting">Troubleshooting</a></li>
 </ul>
 </li>
@@ -756,39 +756,64 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/extending/extending.html">   Extending</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a new Hardware Backend</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/compiler/index.html">Compiler development</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/cudaq_ir.html">Compiler IR</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/cudaq_ir.html#cuda-q-dialects">CUDA-Q dialects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a hardware backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#plugin-directory-structure">Plugin Directory Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#rest-style-backends-server-helper">REST-Style Backends (Server Helper)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#server-helper-class">Server Helper Class</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#target-yaml-configuration">Target YAML Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#cmake-build-file">CMake Build File</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#target-configuration">Target Configuration</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#testing">Testing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#unit-tests">Unit Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#mock-server">Mock Server</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#python-tests">Python Tests</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/extending/backend.html#integration-tests">Integration Tests</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#auxiliary-files-and-plugin-root">Auxiliary Files and <code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#testing-your-backend">Testing Your Backend</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#example-usage">Example Usage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#code-review">Code Review</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#conclusion">Conclusion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/backend.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#python-packaging">Python Packaging</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#main-py-install-nvqpp-hook"><code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> (<code class="docutils literal notranslate"><span class="pre">--install-nvqpp</span></code> hook)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#installing-the-plugin-for-end-users">Installing the Plugin for End Users</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#pip-install-python-zero-config"><code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code> (Python — zero config)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#install-nvqpp-make-visible-to-nvq"><code class="docutils literal notranslate"><span class="pre">--install-nvqpp</span></code> (make visible to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#cudaq-install-plugin-c-only-workflows"><code class="docutils literal notranslate"><span class="pre">cudaq-install-plugin</span></code> (C++-only workflows)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#discovery-mechanics">Discovery Mechanics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#nvq-target-resolution"><code class="docutils literal notranslate"><span class="pre">nvq++</span></code> target resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#python-target-resolution">Python target resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#environment-variables">Environment variables</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#reference-plugins">Reference Plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#quick-start-checklist">Quick-Start Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/extending/nvqir_simulator.html">Create an NVQIR simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../specification/index.html">   Specifications</a><ul>
@@ -1175,13 +1200,6 @@ kernels in a functional composition.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.cachedCompiledModule">
-<span class="sig-name descname"><span class="pre">cachedCompiledModule</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.cachedCompiledModule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the kernel’s CompiledModule cache slot, creating an empty
-one on first access.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.captured_variables">
 <span class="sig-name descname"><span class="pre">captured_variables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.captured_variables" title="Permalink to this definition">¶</a></dt>
 <dd><p>The list of variables captured by the kernel.</p>
@@ -1191,6 +1209,13 @@ one on first access.</p>
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.compile">
 <span class="sig-name descname"><span class="pre">compile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.compile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compile the Python AST to portable Quake.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.compiledModuleCache">
+<span class="sig-name descname"><span class="pre">compiledModuleCache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.compiledModuleCache" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return this kernel’s shared compiled-module cache, creating an empty
+one on first access.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1438,7 +1463,7 @@ of <code class="code docutils literal notranslate"><span class="pre">kernel</spa
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to the
 <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the input <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> is a list of <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> then
 compute the expected value of every operator in the list and return a list
@@ -2345,7 +2370,7 @@ on multiple degrees of freedom.</p></li>
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.degrees">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">degrees</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.degrees" title="Permalink to this definition">¶</a></dt>
-<dd><p>qubit 0 contributes 2^0 to the statevector index, qubit 1 contributes 2^1, and so on. For two qubits, statevector index 1 corresponds to the basis state <a href="#id2"><span class="problematic" id="id3">|</span></a>q_0 q_1&gt; = <a href="#id4"><span class="problematic" id="id5">|</span></a>10&gt; (qubit 0 in <a href="#id6"><span class="problematic" id="id7">|</span></a>1&gt;, qubit 1 in <a href="#id8"><span class="problematic" id="id9">|</span></a>0&gt;), so a state where qubit 0 equals 1 with probability 1 is the vector {0., 1., 0., 0.}. This convention matches <code class="code docutils literal notranslate"><span class="pre">cudaq.get_state</span></code>, <code class="code docutils literal notranslate"><span class="pre">SampleResult</span></code> bitstring keys, and the Pauli word produced by <code class="code docutils literal notranslate"><span class="pre">get_pauli_word()</span></code>, all of which place qubit 0 as the left-most character. Note that writing the statevector index as a binary number (e.g. index 1 as <code class="code docutils literal notranslate"><span class="pre">01</span></code>) places qubit 0 on the right, since it is the least-significant bit.</p>
+<dd><p>qubit 0 contributes 2^0 to the statevector index, qubit 1 contributes 2^1, and so on. For two qubits, statevector index 1 corresponds to the basis state <code class="docutils literal notranslate"><span class="pre">|q_0</span> <span class="pre">q_1&gt;</span></code> = <code class="docutils literal notranslate"><span class="pre">|10&gt;</span></code> (qubit 0 in <code class="docutils literal notranslate"><span class="pre">|1&gt;</span></code>, qubit 1 in <code class="docutils literal notranslate"><span class="pre">|0&gt;</span></code>), so a state where qubit 0 equals 1 with probability 1 is the vector {0., 1., 0., 0.}. This convention matches <code class="code docutils literal notranslate"><span class="pre">cudaq.get_state</span></code>, <code class="code docutils literal notranslate"><span class="pre">SampleResult</span></code> bitstring keys, and the Pauli word produced by <code class="code docutils literal notranslate"><span class="pre">get_pauli_word()</span></code>, all of which place qubit 0 as the left-most character. Note that writing the statevector index as a binary number (e.g. index 1 as <code class="code docutils literal notranslate"><span class="pre">01</span></code>) places qubit 0 on the right, since it is the least-significant bit.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Returns a vector that lists all degrees of freedom (qubit indices) that the operator targets, from smallest to largest. This ordering reflects the basis ordering of the matrix returned by <code class="code docutils literal notranslate"><span class="pre">to_matrix</span></code></p>
