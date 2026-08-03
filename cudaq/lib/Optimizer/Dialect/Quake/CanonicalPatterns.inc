@@ -713,7 +713,6 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
   }
 };
 
-
 // Forward the argument to a relax_size to the users for all users that are
 // quake operations. All quake ops that take a sized veq argument are
 // polymorphic on all veq types. If the op is not a quake op, then maintain
