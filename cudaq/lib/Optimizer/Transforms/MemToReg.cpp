@@ -425,6 +425,17 @@ public:
     return offset;
   }
 
+  std::optional<SSAReg> hasLiveInToBlock(Block *block, MemRef mr) {
+    assert(block && mr);
+    auto iter = liveInMap.find(block);
+    if (iter == liveInMap.end())
+      return {};
+    for (auto [mrk, val] : iter->second)
+      if (mrk == mr)
+        return {val};
+    return {};
+  }
+
   /// Promote the memory dereference \p memuse to immediately before the parent
   /// operation. This allows uses within the regions of the parent to use the
   /// new dominating dereference. These will be converted to live-in arguments
@@ -1065,27 +1076,59 @@ public:
     // between the blocks in the CFG. If there are defs that are live-out for
     // parent, then they need to be added to each terminator. Update each pred's
     // terminator to pass all the live-in values to a successor.
+    // To maintain SSI properly and form proper sigma nodes, values of linear
+    // type must propagate to each successor block.
     auto liveOutParent = dataFlow.getLiveOutOfParent();
 
-    auto addTerminatorArgument = [&](Operation *term, Block *target,
-                                     Value val) {
+    auto addTerminatorArgument = [&](Operation *term, Block *target, Value val,
+                                     Value liveOut) {
       if (auto branch = dyn_cast<BranchOpInterface>(term)) {
         unsigned numSuccs = branch->getNumSuccessors();
+        // Forward val to the target successor. For SSI (linear) types also
+        // form a sigma node: add a block argument and WrapOp to non-target
+        // successors that lack a lazy mechanism to receive the wire. For SSA
+        // types non-target successors are skipped (handled by the back-edge
+        // or outgoing branch processing via maybeAddLiveInToBlock).
+        const bool isLinear = cudaq::quake::isLinearType(val.getType());
         bool changes = false;
         for (unsigned i = 0; i < numSuccs; ++i) {
-          if (target && branch->getSuccessor(i) != target)
+          Block *succ = branch->getSuccessor(i);
+          if (target && succ == target) {
+            branch.getSuccessorOperands(i).append(val);
+            changes = true;
             continue;
-          branch.getSuccessorOperands(i).append(val);
-          changes = true;
+          }
+          if (!isLinear)
+            continue;
+          // Non-target SSI successor: insert a block argument and WrapOp only
+          // when no lazy path will create them:
+          //   - isExitBlock: the return terminator never processes liveOut, so
+          //     maybeAddLiveInToBlock is never called lazily.
+          //   - hasBinding: a local def causes updateTerminator to use the
+          //     binding value directly, bypassing maybeAddLiveInToBlock and
+          //     leaving the incoming wire without a block argument to land in.
+          // Otherwise the back-edge or a later outgoing branch lazily adds the
+          // block argument, and the target path appends branch operands in the
+          // correct block-argument order when that block is the target.
+          if (liveOut && !dataFlow.hasLiveInToBlock(succ, liveOut) &&
+              (dataFlow.isExitBlock(succ) ||
+               dataFlow.hasBinding(succ, liveOut))) {
+            worklist.push_back(succ);
+            auto sigma = dataFlow.maybeAddLiveInToBlock(succ, liveOut);
+            OpBuilder builder(&succ->front());
+            cudaq::quake::WrapOp::create(builder, term->getLoc(), sigma,
+                                         liveOut);
+          }
         }
         if (changes)
           worklist.push_back(term->getBlock());
-        return;
+      } else {
+        SmallVector<Value> newArgs(term->getOperands());
+        newArgs.push_back(val);
+        term->setOperands(newArgs);
+        worklist.push_back(term->getBlock());
       }
-      SmallVector<Value> newArgs(term->getOperands());
-      newArgs.push_back(val);
-      term->setOperands(newArgs);
-      worklist.push_back(term->getBlock());
+      dataFlow.incBindingsAdded(term, target);
     };
 
     const bool usePromo = neverTakesRegionArguments(parent);
@@ -1107,18 +1150,17 @@ public:
                 builder, term->getLoc(),
                 cudaq::quake::WireType::get(builder.getContext()), liveOut);
           }
-          addTerminatorArgument(term, target, oldVal);
+          addTerminatorArgument(term, target, oldVal, liveOut);
         } else if ((usePromo || (onlyLinear && !isa<cudaq::quake::RefType>(
                                                    liveOut.getType()))) &&
                    dataFlow.isEntryBlock(block)) {
           auto newVal = dataFlow.getPromotedValue(liveOut);
           dataFlow.addBinding(block, liveOut, newVal);
-          addTerminatorArgument(term, target, newVal);
+          addTerminatorArgument(term, target, newVal, liveOut);
         } else {
           auto newArg = dataFlow.maybeAddLiveInToBlock(block, liveOut);
-          addTerminatorArgument(term, target, newArg);
+          addTerminatorArgument(term, target, newArg, liveOut);
         }
-        dataFlow.incBindingsAdded(term, target);
       }
     };
 
