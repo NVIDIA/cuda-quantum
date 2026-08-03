@@ -120,8 +120,7 @@ private:
 
 public:
   /// @brief Language-neutral extension point for backends to attach metadata
-  /// (e.g. shot count, job ID, timing). Use annotations["shots"] to record an
-  /// authoritative shot count that may exceed sum(counts) after filtering.
+  /// (e.g. job ID, timing, shots requested).
   cudaq_json annotations;
 
   /// @brief Default constructor

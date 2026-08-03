@@ -11,12 +11,18 @@ These tests exercise the Python-constructible path (no kernel required):
 counts constructor, annotations, Mapping protocol, counts property, and repr.
 """
 
+import os
+
 import pytest
 
 import cudaq
 
 
 class TestCountsConstructor:
+
+    def test_counts_default_is_empty(self):
+        r = cudaq.SampleResult()
+        assert r.counts == {}
 
     def test_basic_construction(self):
         r = cudaq.SampleResult({"00": 512, "11": 488})
@@ -80,6 +86,17 @@ class TestCountsProperty:
         assert r.counts == {}
 
 
+class TestRepresentation:
+
+    def test_repr_with_counts(self):
+        r = cudaq.SampleResult({"11": 488, "00": 512})
+        assert repr(r) == "SampleResult({'00': 512, '11': 488})"
+
+    def test_repr_with_annotations(self):
+        r = cudaq.SampleResult({"0": 1}, annotations={"shots": 1})
+        assert repr(r) == "SampleResult({'0': 1}, annotations={'shots': 1})"
+
+
 class TestAnnotations:
 
     def test_annotations_attribute_exists(self):
@@ -127,3 +144,9 @@ class TestMappingProtocol:
 
     def test_values(self):
         assert set(self.r.values()) == {512, 488}
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-s"])
