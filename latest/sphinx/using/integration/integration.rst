@@ -8,4 +8,5 @@ Integration with other Software Tools
   Combining CUDA with CUDA-Q <cuda_gpu.rst>
   Integrating with Third-Party Libraries <libraries.rst>
 
-Information about customizing or extending the CUDA-Q toolchain can be found in :doc:`../extending/extending`.
+Information about extending CUDA-Q can be found in
+:doc:`Extending CUDA-Q <../extending/extending>`.

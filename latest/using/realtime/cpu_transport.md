@@ -869,15 +869,17 @@ latest
             Measurement](installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](host.html){.reference .internal}
-        -   [What is HSB?](host.html#what-is-hsb){.reference .internal}
+        -   [What is the
+            GpuRoceTransceiver?](host.html#what-is-the-gpurocetransceiver){.reference
+            .internal}
         -   [Transport
             Mechanisms](host.html#transport-mechanisms){.reference
             .internal}
             -   [Supported Transport
                 Options](host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](host.html#data-flow-summary){.reference
@@ -898,7 +900,7 @@ latest
                 Extensions](host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](host.html#what-this-api-does-in-one-paragraph){.reference
@@ -976,11 +978,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](host.html#troubleshooting){.reference
             .internal}
@@ -1206,8 +1208,23 @@ latest
             toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
 -   [Extending](../extending/extending.html){.reference .internal}
-    -   [Implement a Hardware
-        Backend](../extending/backend.html){.reference .internal}
+    -   [Compiler
+        development](../extending/compiler/index.html){.reference
+        .internal}
+        -   [Compiler
+            IR](../extending/compiler/cudaq_ir.html){.reference
+            .internal}
+            -   [CUDA-Q
+                dialects](../extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
+                .internal}
+            -   [Source and
+                tests](../extending/compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](../extending/compiler/pass_plugins.html){.reference
+            .internal}
+    -   [Add a hardware backend](../extending/backend.html){.reference
+        .internal}
         -   [Plugin Directory
             Structure](../extending/backend.html#plugin-directory-structure){.reference
             .internal}
@@ -1235,8 +1252,8 @@ latest
         -   [Next
             Steps](../extending/backend.html#next-steps){.reference
             .internal}
-    -   [Package & Distribute a Backend
-        Plugin](../extending/packaging.html){.reference .internal}
+    -   [Package & distribute a backend
+        plugin](../extending/packaging.html){.reference .internal}
         -   [Plugin Package
             Layout](../extending/packaging.html#plugin-package-layout){.reference
             .internal}
@@ -1302,8 +1319,8 @@ latest
         -   [Quick-Start
             Checklist](../extending/packaging.html#quick-start-checklist){.reference
             .internal}
-    -   [Create a new NVQIR
-        Simulator](../extending/nvqir_simulator.html){.reference
+    -   [Create an NVQIR
+        simulator](../extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](../extending/nvqir_simulator.html#circuitsimulator){.reference
@@ -1311,10 +1328,6 @@ latest
         -   [Let's see this in
             action](../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q IR](../extending/cudaq_ir.html){.reference
-        .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../extending/mlir_pass.html){.reference .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -1895,14 +1908,14 @@ aria-hidden="true"}](device_call.html "CUDA-Q device_call Channels"){.btn
 
 [`CpuRoceTransceiver`{.docutils .literal .notranslate}]{.pre} is a
 **pure-CPU [`RoCEv2`{.docutils .literal .notranslate}]{.pre} RDMA
-transport** -- no GPU, no DOCA, no Hololink/HSB. It moves RPC messages
-between a quantum control system (FPGA) and a CPU-based decoder entirely
-in host memory at microsecond latency. It is a reference implementation
-of the [`libibverbs`{.docutils .literal .notranslate}]{.pre} transport
-option described in the [[CUDA-Q Realtime Host API]{.std
-.std-doc}](host.html){.reference .internal}: it implements the same
-ring-buffer slot + flag protocol, so it plugs into the realtime
-dispatcher the same way a GPU transport does.
+transport** -- no GPU, no DOCA, no GpuRoceTransceiver/HSB. It moves RPC
+messages between a quantum control system (FPGA) and a CPU-based decoder
+entirely in host memory at microsecond latency. It is a reference
+implementation of the [`libibverbs`{.docutils .literal
+.notranslate}]{.pre} transport option described in the [[CUDA-Q Realtime
+Host API]{.std .std-doc}](host.html){.reference .internal}: it
+implements the same ring-buffer slot + flag protocol, so it plugs into
+the realtime dispatcher the same way a GPU transport does.
 
 It ships as a **separate library**
 ([`cudaq-realtime-cpu-roce-transport`{.docutils .literal

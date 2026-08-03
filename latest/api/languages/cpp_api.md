@@ -888,8 +888,8 @@ latest
             Measurement](../../using/realtime/installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](../../using/realtime/host.html){.reference .internal}
-        -   [What is
-            HSB?](../../using/realtime/host.html#what-is-hsb){.reference
+        -   [What is the
+            GpuRoceTransceiver?](../../using/realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
             Mechanisms](../../using/realtime/host.html#transport-mechanisms){.reference
@@ -897,8 +897,8 @@ latest
             -   [Supported Transport
                 Options](../../using/realtime/host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](../../using/realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](../../using/realtime/host.html#data-flow-summary){.reference
@@ -921,7 +921,7 @@ latest
                 Extensions](../../using/realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](../../using/realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](../../using/realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](../../using/realtime/host.html#what-this-api-does-in-one-paragraph){.reference
@@ -1002,11 +1002,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](../../using/realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](../../using/realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](../../using/realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](../../using/realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](../../using/realtime/host.html#troubleshooting){.reference
             .internal}
@@ -1253,8 +1253,23 @@ latest
             .internal}
 -   [Extending](../../using/extending/extending.html){.reference
     .internal}
-    -   [Implement a Hardware
-        Backend](../../using/extending/backend.html){.reference
+    -   [Compiler
+        development](../../using/extending/compiler/index.html){.reference
+        .internal}
+        -   [Compiler
+            IR](../../using/extending/compiler/cudaq_ir.html){.reference
+            .internal}
+            -   [CUDA-Q
+                dialects](../../using/extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
+                .internal}
+            -   [Source and
+                tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](../../using/extending/compiler/pass_plugins.html){.reference
+            .internal}
+    -   [Add a hardware
+        backend](../../using/extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
             Structure](../../using/extending/backend.html#plugin-directory-structure){.reference
@@ -1283,8 +1298,8 @@ latest
         -   [Next
             Steps](../../using/extending/backend.html#next-steps){.reference
             .internal}
-    -   [Package & Distribute a Backend
-        Plugin](../../using/extending/packaging.html){.reference
+    -   [Package & distribute a backend
+        plugin](../../using/extending/packaging.html){.reference
         .internal}
         -   [Plugin Package
             Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
@@ -1351,8 +1366,8 @@ latest
         -   [Quick-Start
             Checklist](../../using/extending/packaging.html#quick-start-checklist){.reference
             .internal}
-    -   [Create a new NVQIR
-        Simulator](../../using/extending/nvqir_simulator.html){.reference
+    -   [Create an NVQIR
+        simulator](../../using/extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
@@ -1360,11 +1375,6 @@ latest
         -   [Let's see this in
             action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q
-        IR](../../using/extending/cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../../using/extending/mlir_pass.html){.reference
-        .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -8770,10 +8780,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     []{#classcudaq_1_1ExecutionContext_1a7be42e76958d7d38341d8d4af172ffe7 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[inKernelLaunch]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext14inKernelLaunchE "Permalink to this definition"){.headerlink}\
 
     :   True while a JIT/AOT-compiled kernel frame is executing on this
-        thread (set by the launcher around the kernel invocation; see
-        [[QPU::InKernelLaunchScope]{.std
-        .std-ref}](#structcudaq_1_1QPU_1_1InKernelLaunchScope){.reference
-        .internal}). The simulator only defers exceptions into
+        thread. The simulator only defers exceptions into
         [`deferredKernelException`{.docutils .literal
         .notranslate}]{.pre} while this is set. Outside the kernel frame
         (for example, gate application during sample/observe
@@ -9901,10 +9908,9 @@ discriminate a vector of handles.
     GPU device or CPU memory. The primary goal of this type and its
     sub-types is to minimize data transfers for the state.
 
-    Subclassed by [[cudaq::CusvState\< ScalarType \>]{.std
-    .std-ref}](#classcudaq_1_1CusvState){.reference .internal},
-    [[cudaq::QPUState]{.std
+    Subclassed by [[cudaq::QPUState]{.std
     .std-ref}](#classcudaq_1_1QPUState){.reference .internal},
+    cudaq::cusv::CuStateVecSimulationState\< Scalar \>,
     [[nvqir::MPSSimulationState\< ScalarType \>]{.std
     .std-ref}](#classnvqir_1_1MPSSimulationState){.reference .internal},
     [[nvqir::TensorNetSimulationState\< ScalarType \>]{.std
@@ -9981,22 +9987,6 @@ discriminate a vector of handles.
 
 :   state_data is a variant type encoding different forms of user state
     vector data we support.
-
-```{=html}
-<!-- -->
-```
-
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[ScalarType]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#classcudaq_1_1CusvState .target}[[class]{.pre}]{.k}[ ]{.w}[[[CusvState]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[¶](#_CPPv4I0EN5cudaq9CusvStateE "Permalink to this definition"){.headerlink}\
-
-:   [[CusvState]{.std .std-ref}](#classcudaq_1_1CusvState){.reference
-    .internal} provides an implementation of
-    [[[`SimulationState`{.docutils .literal .notranslate}]{.pre}]{.std
-    .std-ref}](#classcudaq_1_1SimulationState){.reference .internal}
-    that encapsulates the state data for the Custatevec Circuit
-    Simulator. It attempts to keep the simulation data on GPU device and
-    care is taken to ensure operations and comparisons with other states
-    operate on compatible floating point element types.
 
 ```{=html}
 <!-- -->
@@ -13077,7 +13067,7 @@ them they are erased before execution.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1aab2349600fade270b8ef0d51f07e1318 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[CompileTarget]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1QPU_1abe5bda9898c9e96558ad65a9caa48d39 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
 
     :   Get the compile target of the [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
@@ -13097,23 +13087,6 @@ them they are erased before execution.
         .internal} that a new random seed value is set. By default do
         nothing, let subclasses override.
     :::
-
-```{=html}
-<!-- -->
-```
-
-[]{#structcudaq_1_1QPU_1_1InKernelLaunchScope .target}[[struct]{.pre}]{.k}[ ]{.w}[[[InKernelLaunchScope]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq3QPU19InKernelLaunchScopeE "Permalink to this definition"){.headerlink}\
-
-:   RAII marker for the window in which a JIT/AOT-compiled kernel frame
-    is executing. While alive it sets
-    [[[`ExecutionContext::inKernelLaunch`{.docutils .literal
-    .notranslate}]{.pre}]{.std
-    .std-ref}](#classcudaq_1_1ExecutionContext_1a7be42e76958d7d38341d8d4af172ffe7){.reference
-    .internal} on the active context, so the simulator defers (rather
-    than throws) exceptions that would otherwise have to unwind through
-    the kernel frame. Launchers wrap the raw kernel invocation in this
-    scope and call rethrowDeferredKernelException() immediately
-    afterwards.
 
 ```{=html}
 <!-- -->

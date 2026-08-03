@@ -854,8 +854,8 @@ latest
             Measurement](../../realtime/installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](../../realtime/host.html){.reference .internal}
-        -   [What is
-            HSB?](../../realtime/host.html#what-is-hsb){.reference
+        -   [What is the
+            GpuRoceTransceiver?](../../realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
             Mechanisms](../../realtime/host.html#transport-mechanisms){.reference
@@ -863,8 +863,8 @@ latest
             -   [Supported Transport
                 Options](../../realtime/host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](../../realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](../../realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](../../realtime/host.html#data-flow-summary){.reference
@@ -887,7 +887,7 @@ latest
                 Extensions](../../realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](../../realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](../../realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](../../realtime/host.html#what-this-api-does-in-one-paragraph){.reference
@@ -968,11 +968,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](../../realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](../../realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](../../realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](../../realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](../../realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](../../realtime/host.html#troubleshooting){.reference
             .internal}
@@ -1212,8 +1212,23 @@ latest
             toolchains](../../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
 -   [Extending](../../extending/extending.html){.reference .internal}
-    -   [Implement a Hardware
-        Backend](../../extending/backend.html){.reference .internal}
+    -   [Compiler
+        development](../../extending/compiler/index.html){.reference
+        .internal}
+        -   [Compiler
+            IR](../../extending/compiler/cudaq_ir.html){.reference
+            .internal}
+            -   [CUDA-Q
+                dialects](../../extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
+                .internal}
+            -   [Source and
+                tests](../../extending/compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](../../extending/compiler/pass_plugins.html){.reference
+            .internal}
+    -   [Add a hardware
+        backend](../../extending/backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](../../extending/backend.html#plugin-directory-structure){.reference
             .internal}
@@ -1241,8 +1256,8 @@ latest
         -   [Next
             Steps](../../extending/backend.html#next-steps){.reference
             .internal}
-    -   [Package & Distribute a Backend
-        Plugin](../../extending/packaging.html){.reference .internal}
+    -   [Package & distribute a backend
+        plugin](../../extending/packaging.html){.reference .internal}
         -   [Plugin Package
             Layout](../../extending/packaging.html#plugin-package-layout){.reference
             .internal}
@@ -1308,8 +1323,8 @@ latest
         -   [Quick-Start
             Checklist](../../extending/packaging.html#quick-start-checklist){.reference
             .internal}
-    -   [Create a new NVQIR
-        Simulator](../../extending/nvqir_simulator.html){.reference
+    -   [Create an NVQIR
+        simulator](../../extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](../../extending/nvqir_simulator.html#circuitsimulator){.reference
@@ -1317,10 +1332,6 @@ latest
         -   [Let's see this in
             action](../../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q
-        IR](../../extending/cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../../extending/mlir_pass.html){.reference .internal}
 -   [Specifications](../../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -1957,12 +1968,13 @@ C++
 ## Single-GPU[¶](#single-gpu "Permalink to this heading"){.headerlink}
 
 []{#default-simulator}[]{#cuquantum-single-gpu}The [`nvidia`{.code
-.docutils .literal .notranslate}]{.pre} backend provides a state vector
-simulator accelerated with - the [`cuStateVec`{.code .docutils .literal
-.notranslate}]{.pre} library. The [cuStateVec
+.docutils .literal .notranslate}]{.pre} backend provides single- and
+multi-GPU state-vector simulators accelerated with the
+[`cuStateVec`{.code .docutils .literal .notranslate}]{.pre} library,
+version 1.14 or newer. The [cuStateVec
 documentation](https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/index.html){.reference
-.external} provides a detailed explanation for how the simulations are
-performed on the GPU.
+.external} provides more information about GPU-accelerated state-vector
+simulation.
 
 The [`nvidia`{.code .docutils .literal .notranslate}]{.pre} target
 supports multiple configurable options including specification of
@@ -2056,36 +2068,36 @@ simulation performance which is discussed in greater detail
 +-------------+--------------------+-----------------------------------+
 | Option      | Value              | Description                       |
 +-------------+--------------------+-----------------------------------+
-| [`C         | positive integer   | The max number of qubits used for |
-| UDAQ_FUSION |                    | gate fusion. The default value    |
-| _MAX_QUBITS |                    | depends on [GPU Compute           |
-| `{.docutils |                    | Capability](https://developer     |
-| .literal    |                    | .nvidia.com/cuda-gpus){.reference |
-| .notransl   |                    | .external} (CC) and the floating  |
-| ate}]{.pre} |                    | point precision selected for the  |
-|             |                    | simulator as specified            |
-|             |                    | [[here]{.std                      |
-|             |                    | .std-ref                          |
-|             |                    | }](#gate-fusion-table){.reference |
-|             |                    | .internal}.                       |
+| [`C         | integer (maximum   | The maximum number of qubits used |
+| UDAQ_FUSION | effective value:   | for dense gate fusion. When       |
+| _MAX_QUBITS | 10)                | unset, [`cuStateVecEx`{.docutils  |
+| `{.docutils |                    | .literal .notranslate}]{.pre}     |
+| .literal    |                    | [automatically selects the fusion |
+| .notransl   |                    | size](https://docs.nvidia.c       |
+| ate}]{.pre} |                    | om/cuda/cuquantum/latest/custatev |
+|             |                    | ec/api-reference/custatevecex/ind |
+|             |                    | ex.html#svupdater-api){.reference |
+|             |                    | .external}. Values greater than   |
+|             |                    | 10 are clamped to 10, while a     |
+|             |                    | non-positive value disables gate  |
+|             |                    | fusion.                           |
 +-------------+--------------------+-----------------------------------+
-| [`CUDA      | integer greater    | The max number of qubits used for |
-| Q_FUSION_DI | than or equal to   | diagonal gate fusion. The default |
-| AGONAL_GATE | -1                 | value is set to [`-1`{.code       |
-| _MAX_QUBITS |                    | .docutils .literal                |
-| `{.docutils |                    | .notranslate}]{.pre} and the      |
-| .literal    |                    | fusion size will be automatically |
-| .notransl   |                    | adjusted for the better           |
-| ate}]{.pre} |                    | performance. If 0, the gate       |
-|             |                    | fusion for diagonal gates is      |
-|             |                    | disabled.                         |
+| [`CUDA      | integer greater    | The maximum number of qubits used |
+| Q_FUSION_DI | than or equal to   | for diagonal gate fusion. When    |
+| AGONAL_GATE | -1 (maximum        | unset or set to -1,               |
+| _MAX_QUBITS | effective value:   | [`cuStateVecEx`{.docutils         |
+| `{.docutils | 20)                | .literal .notranslate}]{.pre}     |
+| .literal    |                    | automatically selects the fusion  |
+| .notransl   |                    | size. Values greater than 20 are  |
+| ate}]{.pre} |                    | clamped to 20, while 0 disables   |
+|             |                    | diagonal gate fusion.             |
 +-------------+--------------------+-----------------------------------+
 | [`CUDAQ_F   | positive integer   | Number of CPU threads used for    |
-| USION_NUM_H |                    | circuit processing. The default   |
-| OST_THREADS |                    | value is [`8`{.code .docutils     |
-| `{.docutils |                    | .literal .notranslate}]{.pre}.    |
-| .literal    |                    |                                   |
-| .notransl   |                    |                                   |
+| USION_NUM_H | (maximum effective | circuit processing. Values        |
+| OST_THREADS | value: 32)         | greater than 32 are clamped to    |
+| `{.docutils |                    | 32. The default value is          |
+| .literal    |                    | [`8`{.code .docutils .literal     |
+| .notransl   |                    | .notranslate}]{.pre}.             |
 | ate}]{.pre} |                    |                                   |
 +-------------+--------------------+-----------------------------------+
 | [`C         | non-negative       | CPU memory size (in GB) allowed   |
@@ -2134,6 +2146,14 @@ simulation performance which is discussed in greater detail
 |             | .no                |                                   |
 |             | translate}]{.pre}) |                                   |
 +-------------+--------------------+-----------------------------------+
+| [`C         | non-negative       | The minimum random-number count   |
+| UDAQ_GPU_RN | integer            | that uses GPU generation. The     |
+| G_THRESHOLD |                    | default is 100,000; 0 selects GPU |
+| `{.docutils |                    | generation for every request.     |
+| .literal    |                    |                                   |
+| .notransl   |                    |                                   |
+| ate}]{.pre} |                    |                                   |
++-------------+--------------------+-----------------------------------+
 | [`CUDAQ_ENA | [`TRUE`{.code      | Enable or disable [CUDA memory    |
 | BLE_MEMPOOL | .docutils .literal | pool](https://de                  |
 | `{.docutils | .n                 | veloper.nvidia.com/blog/using-cud |
@@ -2175,23 +2195,12 @@ future release.
 ::: {.admonition .note}
 Note
 
-In host-device simulation, [`CUDAQ_MAX_CPU_MEMORY_GB`{.code .docutils
-.literal .notranslate}]{.pre} is not 0, the backend automatically
-switching between inner product (default) and operator matrix-based
-methods for expectation calculations ([`cudaq::observe`{.code .docutils
-.literal .notranslate}]{.pre}) depending on whether a clone of the state
-can be allocated or not.
-
-For example, when [`CUDAQ_MAX_GPU_MEMORY_GB`{.code .docutils .literal
-.notranslate}]{.pre} is unconstrained, the quantum state vector would
-consume all device memory before utilizing host memory. Thus, the
-backend would fall back to the operator matrix-based approach as cloning
-the state is not possible. For performance reason, only Pauli operator
-matrices of up to 8 qubits (identity padding not included) are allowed
-in this mode. This constrain can be relaxed by setting the
-[`CUDAQ_MATRIX_EXP_VAL_MAX_SIZE`{.code .docutils .literal
-.notranslate}]{.pre} environment variable. Users would need to take into
-account the full operator matrix size when increasing this setting.
+The [`CUDAQ_MATRIX_EXP_VAL_MAX_SIZE`{.docutils .literal
+.notranslate}]{.pre} environment variable has been removed. The
+[`nvidia`{.docutils .literal .notranslate}]{.pre} state-vector backend
+now evaluates Pauli expectations directly on host-migrated states
+without a dense-matrix fallback, so migrated Pauli terms no longer
+require a separate width limit.
 :::
 :::
 
@@ -2313,24 +2322,17 @@ Single precision simulation:
 ::: {.admonition .note}
 Note
 
-This backend requires an NVIDIA GPU, CUDA runtime libraries, as well as
-an MPI installation. If you do not have these dependencies installed,
-you may encounter either an error stating [`invalid`{.code .docutils
-.literal .notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`simulator`{.code .docutils .literal
+This backend requires an NVIDIA GPU, compatible CUDA runtime libraries,
+[`cuStateVec`{.code .docutils .literal .notranslate}]{.pre} 1.14 or
+newer, and an MPI installation. Missing CUDA or [`cuStateVec`{.code
+.docutils .literal .notranslate}]{.pre} libraries may result in an
+[`invalid`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+.docutils .literal .notranslate}[`simulator`{.code .docutils .literal
 .notranslate}]{.pre}` `{.code .docutils .literal
 .notranslate}[`requested`{.code .docutils .literal .notranslate}]{.pre}
-(missing CUDA libraries), or an error along the lines of [`failed`{.code
-.docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`to`{.code .docutils .literal
-.notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`launch`{.code .docutils .literal
-.notranslate}]{.pre}` `{.code .docutils .literal
-.notranslate}[`kernel`{.code .docutils .literal .notranslate}]{.pre}
-(missing MPI installation). See the section [[Dependencies and
-Compatibility]{.std
+error. See [[Dependencies and Compatibility]{.std
 .std-ref}](../../install/local_installation.html#dependencies-and-compatibility){.reference
-.internal} for more information about how to install dependencies.
+.internal} for installation instructions.
 
 The number of processes and nodes should be always power-of-2.
 
@@ -2357,27 +2359,49 @@ environment variables must be set prior to setting the target or running
 | .notransl   |                    | .literal .notranslate}]{.pre}.    |
 | ate}]{.pre} |                    |                                   |
 +-------------+--------------------+-----------------------------------+
-| [`CUDAQ     | [`AUTO`{.code      | Selecting [`cuStateVec`{.code     |
-| _MGPU_COMM_ | .docutils .literal | .docutils .literal                |
-| PLUGIN_TYPE | .no                | .notranslate}]{.pre}              |
-| `{.docutils | translate}]{.pre}, | [`CommPlugin`{.code .docutils     |
-| .literal    | [`EXTERNAL`{.code  | .literal .notranslate}]{.pre} for |
-| .notransl   | .docutils .literal | inter-process communication. The  |
-| ate}]{.pre} | .no                | default is [`AUTO`{.code          |
-|             | translate}]{.pre}, | .docutils .literal                |
-|             | [`OpenMPI`{.code   | .notranslate}]{.pre}. If          |
-|             | .docutils .literal | [`EXTERNAL`{.code .docutils       |
-|             | .no                | .literal .notranslate}]{.pre} is  |
-|             | translate}]{.pre}, | selected,                         |
-|             | or [`MPICH`{.code  | [`CUDAQ_MGPU_LIB_MPI`{.code       |
-|             | .docutils .literal | .docutils .literal                |
-|             | .n                 | .notranslate}]{.pre} should point |
-|             | otranslate}]{.pre} | to an implementation of           |
-|             |                    | [`cuStateVec`{.code .docutils     |
+| [`CUDAQ     | [`AUTO`{.code      | Select the communicator provider. |
+| _MGPU_COMM_ | .docutils .literal | The default [`AUTO`{.code         |
+| PLUGIN_TYPE | .no                | .docutils .literal                |
+| `{.docutils | translate}]{.pre}, | .notranslate}]{.pre} uses         |
+| .literal    | [`SELF`{.code      | activated CUDA-Q MPI when         |
+| .notransl   | .docutils .literal | available and otherwise detects   |
+| ate}]{.pre} | .no                | OpenMPI or MPICH from             |
+|             | translate}]{.pre}, | [`CUDAQ_MGPU_LIB_MPI`{.code       |
+|             | [`EXTERNAL`{.code  | .docutils .literal                |
+|             | .docutils .literal | .notranslate}]{.pre}.             |
+|             | .no                | [`SELF`{.code .docutils .literal  |
+|             | translate}]{.pre}, | .notranslate}]{.pre} requires and |
+|             | [`OpenMPI`{.code   | uses activated CUDA-Q MPI across  |
+|             | .docutils .literal | all ranks. [`OpenMPI`{.code       |
+|             | .no                | .docutils .literal                |
+|             | translate}]{.pre}, | .notranslate}]{.pre},             |
+|             | or [`MPICH`{.code  | [`MPICH`{.code .docutils .literal |
+|             | .docutils .literal | .notranslate}]{.pre}, and         |
+|             | .n                 | [`EXTERNAL`{.code .docutils       |
+|             | otranslate}]{.pre} | .literal .notranslate}]{.pre}     |
+|             |                    | always use the corresponding      |
+|             |                    | [`cuStateVecEx`{.docutils         |
 |             |                    | .literal .notranslate}]{.pre}     |
-|             |                    | [`CommPlugin`{.code .docutils     |
+|             |                    | provider and bypass CUDA-Q MPI.   |
+|             |                    | If [`EXTERNAL`{.code .docutils    |
+|             |                    | .literal .notranslate}]{.pre} is  |
+|             |                    | selected,                         |
+|             |                    | [`CUDAQ_MGPU_LIB_MPI`{.code       |
+|             |                    | .docutils .literal                |
+|             |                    | .notranslate}]{.pre} must point   |
+|             |                    | to a [`cuStateVecEx`{.docutils    |
 |             |                    | .literal .notranslate}]{.pre}     |
-|             |                    | interface.                        |
+|             |                    | communicator module. Custom       |
+|             |                    | communicators set with            |
+|             |                    | [`cu                              |
+|             |                    | daq::mpi::set_communicator`{.code |
+|             |                    | .docutils .literal                |
+|             |                    | .notranslate}]{.pre} are          |
+|             |                    | supported only by CUDA-Q-backed   |
+|             |                    | [`AUTO`{.code .docutils .literal  |
+|             |                    | .notranslate}]{.pre} and          |
+|             |                    | [`SELF`{.code .docutils .literal  |
+|             |                    | .notranslate}]{.pre}.             |
 +-------------+--------------------+-----------------------------------+
 | [`CUD       | positive integer   | The qubit count threshold where   |
 | AQ_MGPU_NQU |                    | state vector distribution is      |
@@ -2388,24 +2412,26 @@ environment variables must be set prior to setting the target or running
 | ate}]{.pre} |                    | for optimal performance. Default  |
 |             |                    | is 25.                            |
 +-------------+--------------------+-----------------------------------+
-| [`CUDA      | positive integer   | The max number of qubits used for |
-| Q_MGPU_FUSE |                    | gate fusion. The default value    |
-| `{.docutils |                    | depends on [GPU Compute           |
-| .literal    |                    | Capability](https://developer     |
-| .notransl   |                    | .nvidia.com/cuda-gpus){.reference |
-| ate}]{.pre} |                    | .external} (CC) and the floating  |
-|             |                    | point precision selected for the  |
-|             |                    | simulator as specified            |
-|             |                    | [[here]{.std                      |
-|             |                    | .std-ref                          |
-|             |                    | }](#gate-fusion-table){.reference |
-|             |                    | .internal}.                       |
+| [`CUDA      | integer (maximum   | Legacy multi-GPU alias for        |
+| Q_MGPU_FUSE | effective value:   | [`C                               |
+| `{.docutils | 10)                | UDAQ_FUSION_MAX_QUBITS`{.docutils |
+| .literal    |                    | .literal .notranslate}]{.pre}.    |
+| .notransl   |                    | The generic variable takes        |
+| ate}]{.pre} |                    | precedence when both are set.     |
+|             |                    | When neither variable is set,     |
+|             |                    | [`cuStateVecEx`{.docutils         |
+|             |                    | .literal .notranslate}]{.pre}     |
+|             |                    | automatically selects the dense   |
+|             |                    | fusion size. Values greater than  |
+|             |                    | 10 are clamped to 10, while a     |
+|             |                    | non-positive value disables gate  |
+|             |                    | fusion.                           |
 +-------------+--------------------+-----------------------------------+
-| [`CUDA      | positive integer   | Specify the number of GPUs that   |
-| Q_MGPU_P2P_ |                    | can communicate by using          |
-| DEVICE_BITS |                    | GPUDirect P2P. Default value is 0 |
-| `{.docutils |                    | (P2P communication is disabled).  |
-| .literal    |                    |                                   |
+| [`CUDA      | non-negative       | Specify the number of global      |
+| Q_MGPU_P2P_ | integer            | device-index bits that use        |
+| DEVICE_BITS |                    | GPUDirect P2P communication. A    |
+| `{.docutils |                    | value of 0 disables P2P           |
+| .literal    |                    | communication.                    |
 | .notransl   |                    |                                   |
 | ate}]{.pre} |                    |                                   |
 +-------------+--------------------+-----------------------------------+
@@ -2526,41 +2552,6 @@ which is equivalent to the multi-node multi-GPU double-precision option
 and will be removed in a future release.
 :::
 
-[]{#gate-fusion-table}
-
-+-------------+--------------------+-----------------------------------+
-| Compute     | GPU                | Default Gate Fusion Size          |
-| Capability  |                    |                                   |
-+-------------+--------------------+-----------------------------------+
-| 8.0         | NVIDIA A100        | 4 ([`fp32`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre}) or |
-|             |                    | 5 ([`fp64`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre})    |
-+-------------+--------------------+-----------------------------------+
-| 9.0         | NVIDIA H100, H200, | 5 ([`fp32`{.code .docutils        |
-|             | GH200              | .literal .notranslate}]{.pre}) or |
-|             |                    | 6 ([`fp64`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre})    |
-+-------------+--------------------+-----------------------------------+
-| 10.0        | NVIDIA GB200, B200 | 5 ([`fp32`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre}) or |
-|             |                    | 4 ([`fp64`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre})    |
-+-------------+--------------------+-----------------------------------+
-| 10.3        | NVIDIA B300        | 5 ([`fp32`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre}) or |
-|             |                    | 1 ([`fp64`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre})    |
-+-------------+--------------------+-----------------------------------+
-| Others      |                    | 4 ([`fp32`{.code .docutils        |
-|             |                    | .literal .notranslate}]{.pre} and |
-|             |                    | [`fp64`{.code .docutils .literal  |
-|             |                    | .notranslate}]{.pre})             |
-+-------------+--------------------+-----------------------------------+
-
-: [**Default Gate Fusion
-Size**]{.caption-text}[¶](#id3 "Permalink to this table"){.headerlink}
-
 The above configuration options of the [`nvidia`{.code .docutils
 .literal .notranslate}]{.pre} backend can be tuned to reduce your
 simulation runtimes. One of the performance improvements is to fuse
@@ -2570,13 +2561,14 @@ multiple gates together during runtime. For example, [`x(qubit0)`{.code
 matrix operation on the state vector rather than 2 separate 2x2 matrix
 operations on the state vector. This fusion reduces memory bandwidth on
 the GPU because the state vector is transferred into and out of memory
-fewer times. By default, up to 4 gates are fused together for single-GPU
-simulations, and up to 6 gates are fused together for multi-GPU
-simulations. The number of gates fused can **significantly** affect
-performance of some circuits, so users can override the default fusion
-level by setting the setting [`CUDAQ_MGPU_FUSE`{.code .docutils .literal
-.notranslate}]{.pre} environment variable to another integer value as
-shown below.
+fewer times. By default, [`cuStateVecEx`{.docutils .literal
+.notranslate}]{.pre} automatically selects the dense and diagonal fusion
+sizes. The number of gates fused can **significantly** affect
+performance of some circuits, so users can override the dense fusion
+size by setting [`CUDAQ_FUSION_MAX_QUBITS`{.docutils .literal
+.notranslate}]{.pre} as shown below. The legacy
+[`CUDAQ_MGPU_FUSE`{.docutils .literal .notranslate}]{.pre} alias
+continues to be supported for multi-GPU simulations.
 
 ::: {.tab-set .docutils}
 Python
@@ -2584,7 +2576,7 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    CUDAQ_MGPU_FUSE=5 mpiexec -np 2 python3 program.py [...] --target nvidia --target-option mgpu,fp64
+    CUDAQ_FUSION_MAX_QUBITS=5 mpiexec -np 2 python3 program.py [...] --target nvidia --target-option mgpu,fp64
 :::
 :::
 :::
@@ -2595,7 +2587,7 @@ C++
 ::: {.highlight-bash .notranslate}
 ::: highlight
     nvq++ --target nvidia --target-option mgpu,fp64 program.cpp [...] -o program.x
-    CUDAQ_MGPU_FUSE=5 mpiexec -np 2 ./program.x
+    CUDAQ_FUSION_MAX_QUBITS=5 mpiexec -np 2 ./program.x
 :::
 :::
 :::
@@ -2608,10 +2600,280 @@ On multi-node systems without [`MNNVL`{.code .docutils .literal
 .notranslate}]{.pre} support, the [`nvidia`{.code .docutils .literal
 .notranslate}]{.pre} target in [`mgpu`{.code .docutils .literal
 .notranslate}]{.pre} mode may fail to allocate memory. Users can disable
-[`MNNVL`{.code .docutils .literal .notranslate}]{.pre} fabric-based
-memory sharing by setting the environment variable
-[`UBACKEND_USE_FABRIC_HANDLE=0`{.code .docutils .literal
-.notranslate}]{.pre}.
+GPU-fabric P2P memory sharing by setting the environment variable
+[`CUDAQ_GPU_FABRIC=NONE`{.code .docutils .literal .notranslate}]{.pre}.
+:::
+
+::: {#gpu-fabric-and-peer-to-peer-memory-sharing .section}
+[]{#mgpu-gpu-fabric}
+
+### GPU fabric and peer-to-peer memory sharing[¶](#gpu-fabric-and-peer-to-peer-memory-sharing "Permalink to this heading"){.headerlink}
+
+[`CUDAQ_GPU_FABRIC`{.code .docutils .literal .notranslate}]{.pre}, and
+the lower-level [`CUDAQ_MGPU_P2P_DEVICE_BITS`{.code .docutils .literal
+.notranslate}]{.pre} it derives, decide how many global index bits
+travel over GPUDirect P2P instead of the communicator -- equivalently,
+how many ranks form one P2P domain. The [`nvidia`{.code .docutils
+.literal .notranslate}]{.pre} backend maps that choice onto one of the
+[memory sharing
+methods](https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/overview/ex-statevector-distribution.html#memory-sharing-methods){.reference
+.external} of the [`cuStateVec`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`Ex`{.code .docutils .literal .notranslate}]{.pre} API,
+which is what lets the ranks of a domain map each other's sub state
+vector memory:
+
++-----------------+---------------------------+------------------------+
+| Setting         | P2P domain                | Memory sharing method  |
++-----------------+---------------------------+------------------------+
+| [`M             | All ranks of the          | Fabric Handle,         |
+| NNVL`{.docutils | communicator              | requested explicitly   |
+| .literal        |                           |                        |
+| .notr           |                           |                        |
+| anslate}]{.pre} |                           |                        |
++-----------------+---------------------------+------------------------+
+| [               | The ranks that share a    | Auto-detect: Fabric    |
+| `NVL`{.docutils | physical node, or the     | Handle or              |
+| .literal        | given number of ranks     | [`PidFd`{.code         |
+| .notra          |                           | .docutils .literal     |
+| nslate}]{.pre}, |                           | .notranslate}]{.pre},  |
+| or an explicit  |                           | whichever the system   |
+| domain size     |                           | provides               |
++-----------------+---------------------------+------------------------+
+| [`              | No P2P domain; every      | None                   |
+| NONE`{.docutils | transfer goes through the |                        |
+| .literal        | communicator              |                        |
+| .notr           |                           |                        |
+| anslate}]{.pre} |                           |                        |
++-----------------+---------------------------+------------------------+
+
+: [**P2P domain and memory sharing
+method**]{.caption-text}[¶](#id3 "Permalink to this table"){.headerlink}
+
+[`MNNVL`{.code .docutils .literal .notranslate}]{.pre} and [`NVL`{.code
+.docutils .literal .notranslate}]{.pre} differ only in the width of that
+domain. [`MNNVL`{.code .docutils .literal .notranslate}]{.pre} covers
+systems whose NVLink fabric spans nodes, such as [`GB200`{.code
+.docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`NVL36`{.code .docutils .literal .notranslate}]{.pre} and
+[`GB200`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+.docutils .literal .notranslate}[`NVL72`{.code .docutils .literal
+.notranslate}]{.pre}, so the whole communicator becomes a single P2P
+domain. Multi-node NVLink requires Fabric Handle ([Memory Sharing
+Methods](https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/overview/ex-statevector-distribution.html#memory-sharing-methods){.reference
+.external}). [`NVL`{.code .docutils .literal .notranslate}]{.pre}
+confines each domain to one physical node, which matches a node-local
+NVLink or [`NVSwitch`{.code .docutils .literal .notranslate}]{.pre}
+topology; CUDA-Q enforces that by requiring every host to hold the same
+number of ranks and each host's ranks to occupy a contiguous block. A
+node-local domain works with either method, Fabric Handle or
+[`PidFd`{.code .docutils .literal .notranslate}]{.pre}, so [`NVL`{.code
+.docutils .literal .notranslate}]{.pre} utilizes the [`cuStateVec`{.code
+.docutils .literal .notranslate}]{.pre} auto-selection feature.
+
+::: {.admonition .note}
+Note
+
+[`MNNVL`{.code .docutils .literal .notranslate}]{.pre} and [`NVL`{.code
+.docutils .literal .notranslate}]{.pre} size the P2P domain after the
+NVLink topology, so confirm that CUDA reports NVLink P2P between the
+GPUs you intend to place in one domain:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvidia-smi topo -p2p n   # expect OK for every GPU pair in the domain
+    nvidia-smi topo -m       # NV# entries mark the NVLink connections
+:::
+:::
+
+Any pair reporting [`NS`{.code .docutils .literal .notranslate}]{.pre},
+[`CNS`{.code .docutils .literal .notranslate}]{.pre}, [`TNS`{.code
+.docutils .literal .notranslate}]{.pre}, or [`GNS`{.code .docutils
+.literal .notranslate}]{.pre} has no NVLink P2P path. Shrink the domain
+to the GPUs that report [`OK`{.code .docutils .literal
+.notranslate}]{.pre}, or set [`CUDAQ_GPU_FABRIC=NONE`{.code .docutils
+.literal .notranslate}]{.pre} and let the communicator carry those index
+bits.
+:::
+
+Fabric Handle needs the [`IMEX`{.code .docutils .literal
+.notranslate}]{.pre} channels of the NVIDIA driver. Verify they are
+present before relying on it: [`/proc/devices`{.code .docutils .literal
+.notranslate}]{.pre} must list [`nvidia-caps-imex-channels`{.code
+.docutils .literal .notranslate}]{.pre}, and an accessible device node
+must exist under [`/dev/nvidia-caps-imex-channels/`{.code .docutils
+.literal .notranslate}]{.pre} ([`cuMemCreate`{.code .docutils .literal
+.notranslate}]{.pre}, in [CUDA Driver API -- Virtual Memory
+Management](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html){.reference
+.external}):
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    grep nvidia-caps-imex-channels /proc/devices
+    ls /dev/nvidia-caps-imex-channels/
+:::
+:::
+
+Without them, [`CUDAQ_GPU_FABRIC=MNNVL`{.code .docutils .literal
+.notranslate}]{.pre} will abort while creating the state vector with an
+[`invalid`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+.docutils .literal .notranslate}[`configuration`{.code .docutils
+.literal .notranslate}]{.pre} error, and [`CUDAQ_GPU_FABRIC=NVL`{.code
+.docutils .literal .notranslate}]{.pre} may also abort with that same
+message if [`PidFd`{.code .docutils .literal .notranslate}]{.pre} is
+unavailable as well. To get more information, we can raise the
+[`cuStateVec`{.code .docutils .literal .notranslate}]{.pre} log level
+([Useful
+tips](https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/examples.html#useful-tips){.reference
+.external}) to learn which method the backend requested and why it was
+rejected:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    CUSTATEVEC_LOG_LEVEL=1 mpiexec -np 2 ./program.x
+:::
+:::
+
+For example, the log may show [`FABRIC_HANDLE`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`memory`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`sharing`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`method`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`is`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`not`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`available`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`on`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`this`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`system`{.code .docutils .literal .notranslate}]{.pre} for
+[`CUDAQ_GPU_FABRIC=MNNVL`{.code .docutils .literal .notranslate}]{.pre}.
+For [`CUDAQ_GPU_FABRIC=NVL`{.code .docutils .literal
+.notranslate}]{.pre} (with auto-detection), the log may show [`No`{.code
+.docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`memory`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`sharing`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`method`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`is`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`available`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`on`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`this`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`system`{.code .docutils .literal .notranslate}]{.pre}
+when neither method is usable.
+
+::: {#requirements-of-the-pidfd-method .section}
+#### Requirements of the [`PidFd`{.code .docutils .literal .notranslate}]{.pre} method[¶](#requirements-of-the-pidfd-method "Permalink to this heading"){.headerlink}
+
+On systems without Fabric Handle, the [`nvidia`{.code .docutils .literal
+.notranslate}]{.pre} target falls back to [`PidFd`{.code .docutils
+.literal .notranslate}]{.pre} for per-node P2P memory sharing
+([`CUDAQ_GPU_FABRIC=NVL`{.code .docutils .literal .notranslate}]{.pre}).
+[`PidFd`{.code .docutils .literal .notranslate}]{.pre} exports a POSIX
+file descriptor from each rank and imports it into the peer ranks
+through the [`pidfd_open`{.code .docutils .literal .notranslate}]{.pre}
+and [`pidfd_getfd`{.code .docutils .literal .notranslate}]{.pre} Linux
+system calls. Miss any of the following and the [`nvidia`{.code
+.docutils .literal .notranslate}]{.pre} target aborts while creating the
+state vector, with [`No`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`memory`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`sharing`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`method`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`is`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`available`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`on`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`this`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`system`{.code .docutils .literal .notranslate}]{.pre} in
+the [`cuStateVec`{.code .docutils .literal .notranslate}]{.pre} log:
+
+-   **Kernel 5.6 or newer** ([Memory Sharing
+    Methods](https://docs.nvidia.com/cuda/cuquantum/latest/custatevec/overview/ex-statevector-distribution.html#memory-sharing-methods){.reference
+    .external}). This can be checked with [`uname`{.code .docutils
+    .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`-r`{.code .docutils .literal .notranslate}]{.pre}.
+
+-   **One hardware node.** File descriptor sharing crosses processes,
+    not machines, so every rank of a P2P domain must run on the same
+    host. [`CUDAQ_GPU_FABRIC=NVL`{.code .docutils .literal
+    .notranslate}]{.pre} already guarantees that; a manually set
+    [`CUDAQ_MGPU_P2P_DEVICE_BITS`{.code .docutils .literal
+    .notranslate}]{.pre} is not validated against the host layout, so it
+    needs to be set accordingly.
+
+-   **Permission to import the descriptor.** [`pidfd_getfd`{.code
+    .docutils .literal .notranslate}]{.pre} requires
+    [`PTRACE_MODE_ATTACH_REALCREDS`{.code .docutils .literal
+    .notranslate}]{.pre} over the peer process, the same check that
+    governs [`ptrace`{.code .docutils .literal .notranslate}]{.pre}
+    ([pidfd_getfd(2)](https://man7.org/linux/man-pages/man2/pidfd_getfd.2.html){.reference
+    .external}). Containers and some hosts deny it by default, as
+    described below.
+
+The default [`Docker`{.code .docutils .literal .notranslate}]{.pre}
+[`seccomp`{.code .docutils .literal .notranslate}]{.pre} profile allows
+[`pidfd_getfd`{.code .docutils .literal .notranslate}]{.pre} only for
+containers that hold the [`SYS_PTRACE`{.code .docutils .literal
+.notranslate}]{.pre} capability ([default
+profile](https://github.com/moby/profiles/blob/main/seccomp/default.json){.reference
+.external}). Grant it at startup:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    docker run --cap-add SYS_PTRACE ...
+    # or drop the profile entirely
+    docker run --security-opt seccomp=unconfined ...
+:::
+:::
+
+On bare metal, check [`/proc/sys/kernel/yama/ptrace_scope`{.code
+.docutils .literal .notranslate}]{.pre}. At 1 or higher, the
+[`Yama`{.code .docutils .literal .notranslate}]{.pre} module lets a
+process attach only to its own descendants unless the caller holds
+[`SYS_PTRACE`{.code .docutils .literal .notranslate}]{.pre}
+([ptrace(2)](https://man7.org/linux/man-pages/man2/ptrace.2.html){.reference
+.external}). Ranks launched by the same [`mpirun`{.code .docutils
+.literal .notranslate}]{.pre} are siblings, not descendants, so they
+fail that check whenever they run without the capability. Give the ranks
+[`SYS_PTRACE`{.code .docutils .literal .notranslate}]{.pre}, or relax
+the setting:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    cat /proc/sys/kernel/yama/ptrace_scope   # 0 adds no restriction beyond the standard checks
+    sudo sysctl -w kernel.yama.ptrace_scope=0
+:::
+:::
+
+::: {.admonition .note}
+Note
+
+When neither method is available, set [`CUDAQ_GPU_FABRIC=NONE`{.code
+.docutils .literal .notranslate}]{.pre}. That drops the P2P layer, so
+every global index bit is carried by the communicator and the results
+stay correct; the transfers take the MPI path instead of direct
+GPU-to-GPU copies.
+:::
+:::
 :::
 :::
 :::

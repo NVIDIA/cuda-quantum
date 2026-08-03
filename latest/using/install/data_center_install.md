@@ -871,7 +871,8 @@ latest
             Measurement](../realtime/installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](../realtime/host.html){.reference .internal}
-        -   [What is HSB?](../realtime/host.html#what-is-hsb){.reference
+        -   [What is the
+            GpuRoceTransceiver?](../realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
             Mechanisms](../realtime/host.html#transport-mechanisms){.reference
@@ -879,8 +880,8 @@ latest
             -   [Supported Transport
                 Options](../realtime/host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](../realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](../realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](../realtime/host.html#data-flow-summary){.reference
@@ -903,7 +904,7 @@ latest
                 Extensions](../realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](../realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](../realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](../realtime/host.html#what-this-api-does-in-one-paragraph){.reference
@@ -983,11 +984,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](../realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](../realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](../realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](../realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](../realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](../realtime/host.html#troubleshooting){.reference
             .internal}
@@ -1207,8 +1208,23 @@ latest
             toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
 -   [Extending](../extending/extending.html){.reference .internal}
-    -   [Implement a Hardware
-        Backend](../extending/backend.html){.reference .internal}
+    -   [Compiler
+        development](../extending/compiler/index.html){.reference
+        .internal}
+        -   [Compiler
+            IR](../extending/compiler/cudaq_ir.html){.reference
+            .internal}
+            -   [CUDA-Q
+                dialects](../extending/compiler/cudaq_ir.html#cuda-q-dialects){.reference
+                .internal}
+            -   [Source and
+                tests](../extending/compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](../extending/compiler/pass_plugins.html){.reference
+            .internal}
+    -   [Add a hardware backend](../extending/backend.html){.reference
+        .internal}
         -   [Plugin Directory
             Structure](../extending/backend.html#plugin-directory-structure){.reference
             .internal}
@@ -1236,8 +1252,8 @@ latest
         -   [Next
             Steps](../extending/backend.html#next-steps){.reference
             .internal}
-    -   [Package & Distribute a Backend
-        Plugin](../extending/packaging.html){.reference .internal}
+    -   [Package & distribute a backend
+        plugin](../extending/packaging.html){.reference .internal}
         -   [Plugin Package
             Layout](../extending/packaging.html#plugin-package-layout){.reference
             .internal}
@@ -1303,8 +1319,8 @@ latest
         -   [Quick-Start
             Checklist](../extending/packaging.html#quick-start-checklist){.reference
             .internal}
-    -   [Create a new NVQIR
-        Simulator](../extending/nvqir_simulator.html){.reference
+    -   [Create an NVQIR
+        simulator](../extending/nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](../extending/nvqir_simulator.html#circuitsimulator){.reference
@@ -1312,10 +1328,6 @@ latest
         -   [Let's see this in
             action](../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q IR](../extending/cudaq_ir.html){.reference
-        .internal}
-    -   [Create an MLIR Pass for
-        CUDA-Q](../extending/mlir_pass.html){.reference .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
@@ -1941,10 +1953,11 @@ binaries and not part of our open source repository. We are working on
 either open-sourcing these components or making them available as
 separate downloads in the future. Even without these components, almost
 all features of CUDA-Q will be enabled in a source build, though some
-pieces may be less performant. At this time, the [[multi-GPU state
-vector simulator]{.std
+pieces may be less performant. The NVIDIA state-vector simulators,
+including the [[multi-GPU backend]{.std
 .std-ref}](../backends/sims/svsims.html#nvidia-mgpu-backend){.reference
-.internal} backend will not be included if you build CUDA-Q from source.
+.internal}, are built from source when [`cuStateVec`{.code .docutils
+.literal .notranslate}]{.pre} 1.14 or newer is available.
 :::
 
 ::: {#prerequisites .section}
@@ -2192,7 +2205,7 @@ will not work.
 Please follow the instructions in the respective subsection(s) to build
 the necessary components for using CUDA-Q from C++ and/or Python. After
 the build, check that the GPU-accelerated components have been built by
-confirming that the file [`nvidia.config`{.code .docutils .literal
+confirming that the file [`nvidia.yml`{.code .docutils .literal
 .notranslate}]{.pre} exists in the
 [`$CUDAQ_INSTALL_PREFIX/targets`{.code .docutils .literal
 .notranslate}]{.pre} folder. We also recommend checking the build log

@@ -569,12 +569,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../realtime/host.html">Host API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#what-is-hsb">What is HSB?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#what-is-the-gpurocetransceiver">What is the GpuRoceTransceiver?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#transport-mechanisms">Transport Mechanisms</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#supported-transport-options">Supported Transport Options</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture">The 3-Kernel Architecture (HSB Example) {#three-kernel-architecture}</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture">The 3-Kernel Architecture (GpuRoceTransceiver Example) {#three-kernel-architecture}</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#data-flow-summary">Data Flow Summary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#why-3-kernels">Why 3 Kernels?</a></li>
 </ul>
@@ -584,7 +584,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#transport-agnostic-design">Transport-Agnostic Design</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#when-to-use-which-mode">When to Use Which Mode</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#host-api-extensions">Host API Extensions</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#wiring-example-unified-mode-with-hsb">Wiring Example (Unified Mode with HSB)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver">Wiring Example (Unified Mode with GpuRoceTransceiver)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#what-this-api-does-in-one-paragraph">What This API Does (In One Paragraph)</a></li>
@@ -622,8 +622,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#building-and-sending-an-rpc-message">Building and Sending an RPC Message</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#reading-the-response">Reading the Response</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#schema-driven-argument-parsing">Schema-Driven Argument Parsing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#hsb-3-kernel-workflow-primary">HSB 3-Kernel Workflow (Primary)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#nic-free-testing-no-hsb-no-connectx-7">NIC-Free Testing (No HSB / No ConnectX-7)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary">GpuRoceTransceiver 3-Kernel Workflow (Primary)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7">NIC-Free Testing (No GpuRoceTransceiver / No ConnectX-7)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../realtime/host.html#troubleshooting">Troubleshooting</a></li>
 </ul>
 </li>
@@ -756,7 +756,16 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../extending/extending.html">   Extending</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../extending/backend.html">Implement a Hardware Backend</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../extending/compiler/index.html">Compiler development</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/cudaq_ir.html">Compiler IR</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/cudaq_ir.html#cuda-q-dialects">CUDA-Q dialects</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../extending/backend.html">Add a hardware backend</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#plugin-directory-structure">Plugin Directory Structure</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#rest-style-backends-server-helper">REST-Style Backends (Server Helper)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/backend.html#server-helper-class">Server Helper Class</a></li>
@@ -770,7 +779,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../extending/backend.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../extending/packaging.html">Package &amp; Distribute a Backend Plugin</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
@@ -800,13 +809,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#quick-start-checklist">Quick-Start Checklist</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../extending/nvqir_simulator.html">Create an NVQIR simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../extending/cudaq_ir.html">Working with CUDA-Q IR</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../extending/mlir_pass.html">Create an MLIR Pass for CUDA-Q</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../specification/index.html">   Specifications</a><ul>
@@ -1384,8 +1391,8 @@ Any environment variables must be set prior to setting the target or running “
 <td><p>Description</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_BATCH_SIZE</span></code></p></td>
-<td><p>positive integer or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
-<td><p>The number of state vectors in the batched mode. If <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>, the batch size will be calculated based on the available device memory. Default is <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>.</p></td>
+<td><p>positive power of two or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
+<td><p>The number of state vectors in the batched mode. The value must be a power of two. If <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>, the batch size will be calculated based on the available device memory. Default is <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_BATCHED_SIM_MAX_BRANCHES</span></code></p></td>
 <td><p>positive integer</p></td>

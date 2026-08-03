@@ -871,7 +871,8 @@ latest
             Measurement](../realtime/installation.html#latency-measurement){.reference
             .internal}
     -   [Host API](../realtime/host.html){.reference .internal}
-        -   [What is HSB?](../realtime/host.html#what-is-hsb){.reference
+        -   [What is the
+            GpuRoceTransceiver?](../realtime/host.html#what-is-the-gpurocetransceiver){.reference
             .internal}
         -   [Transport
             Mechanisms](../realtime/host.html#transport-mechanisms){.reference
@@ -879,8 +880,8 @@ latest
             -   [Supported Transport
                 Options](../realtime/host.html#supported-transport-options){.reference
                 .internal}
-        -   [The 3-Kernel Architecture (HSB Example)
-            {#three-kernel-architecture}](../realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture){.reference
+        -   [The 3-Kernel Architecture (GpuRoceTransceiver Example)
+            {#three-kernel-architecture}](../realtime/host.html#the-3-kernel-architecture-gpurocetransceiver-example-three-kernel-architecture){.reference
             .internal}
             -   [Data Flow
                 Summary](../realtime/host.html#data-flow-summary){.reference
@@ -903,7 +904,7 @@ latest
                 Extensions](../realtime/host.html#host-api-extensions){.reference
                 .internal}
             -   [Wiring Example (Unified Mode with
-                HSB)](../realtime/host.html#wiring-example-unified-mode-with-hsb){.reference
+                GpuRoceTransceiver)](../realtime/host.html#wiring-example-unified-mode-with-gpurocetransceiver){.reference
                 .internal}
         -   [What This API Does (In One
             Paragraph)](../realtime/host.html#what-this-api-does-in-one-paragraph){.reference
@@ -983,11 +984,11 @@ latest
         -   [Schema-Driven Argument
             Parsing](../realtime/host.html#schema-driven-argument-parsing){.reference
             .internal}
-        -   [HSB 3-Kernel Workflow
-            (Primary)](../realtime/host.html#hsb-3-kernel-workflow-primary){.reference
+        -   [GpuRoceTransceiver 3-Kernel Workflow
+            (Primary)](../realtime/host.html#gpurocetransceiver-3-kernel-workflow-primary){.reference
             .internal}
-        -   [NIC-Free Testing (No HSB / No
-            ConnectX-7)](../realtime/host.html#nic-free-testing-no-hsb-no-connectx-7){.reference
+        -   [NIC-Free Testing (No GpuRoceTransceiver / No
+            ConnectX-7)](../realtime/host.html#nic-free-testing-no-gpurocetransceiver-no-connectx-7){.reference
             .internal}
         -   [Troubleshooting](../realtime/host.html#troubleshooting){.reference
             .internal}
@@ -1224,8 +1225,18 @@ latest
             toolchains](../integration/libraries.html#interfacing-between-binaries-compiled-with-a-different-toolchains){.reference
             .internal}
 -   [Extending](extending.html){.reference .internal}
-    -   [Implement a Hardware Backend](backend.html){.reference
+    -   [Compiler development](compiler/index.html){.reference
         .internal}
+        -   [Compiler IR](compiler/cudaq_ir.html){.reference .internal}
+            -   [CUDA-Q
+                dialects](compiler/cudaq_ir.html#cuda-q-dialects){.reference
+                .internal}
+            -   [Source and
+                tests](compiler/cudaq_ir.html#source-and-tests){.reference
+                .internal}
+        -   [External compiler pass
+            plugins](compiler/pass_plugins.html){.reference .internal}
+    -   [Add a hardware backend](backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](backend.html#plugin-directory-structure){.reference
             .internal}
@@ -1250,7 +1261,7 @@ latest
         -   [Example Usage](backend.html#example-usage){.reference
             .internal}
         -   [Next Steps](backend.html#next-steps){.reference .internal}
-    -   [Package & Distribute a Backend Plugin](#){.current .reference
+    -   [Package & distribute a backend plugin](#){.current .reference
         .internal}
         -   [Plugin Package Layout](#plugin-package-layout){.reference
             .internal}
@@ -1309,7 +1320,7 @@ latest
             .internal}
         -   [Quick-Start Checklist](#quick-start-checklist){.reference
             .internal}
-    -   [Create a new NVQIR Simulator](nvqir_simulator.html){.reference
+    -   [Create an NVQIR simulator](nvqir_simulator.html){.reference
         .internal}
         -   [[`CircuitSimulator`{.code .docutils .literal
             .notranslate}]{.pre}](nvqir_simulator.html#circuitsimulator){.reference
@@ -1317,9 +1328,6 @@ latest
         -   [Let's see this in
             action](nvqir_simulator.html#let-s-see-this-in-action){.reference
             .internal}
-    -   [Working with CUDA-Q IR](cudaq_ir.html){.reference .internal}
-    -   [Create an MLIR Pass for CUDA-Q](mlir_pass.html){.reference
-        .internal}
 -   [Specifications](../../specification/index.html){.reference
     .internal}
     -   [Language
