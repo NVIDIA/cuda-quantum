@@ -20,6 +20,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
@@ -768,7 +769,8 @@ public:
     // 2) Convert load/store memory ops to value form.
     MemoryAnalysis memAnalysis(func);
     SmallPtrSet<Operation *, 4> cleanUps;
-    processOpWithRegions(func, memAnalysis, cleanUps);
+    std::optional<DominanceInfo> domOpt;
+    processOpWithRegions(func, memAnalysis, cleanUps, domOpt);
 
     // 3) Cleanup the dead ops. Make sure to delay erasing wrap ops since they
     // may still have uses.
@@ -801,12 +803,13 @@ public:
   }
 
   void handleSubRegions(Operation *parent, const MemoryAnalysis &memAnalysis,
-                        SmallPtrSetImpl<Operation *> &cleanUps) {
+                        SmallPtrSetImpl<Operation *> &cleanUps,
+                        std::optional<DominanceInfo> &domOpt) {
     for (auto &region : parent->getRegions())
       for (auto &block : region)
         for (auto &op : block)
           if (op.getNumRegions())
-            processOpWithRegions(&op, memAnalysis, cleanUps);
+            processOpWithRegions(&op, memAnalysis, cleanUps, domOpt);
   }
 
   /// Process the operation \p parent, which must contain regions, and derive
@@ -819,7 +822,8 @@ public:
   /// have the exact same signatures regardless of liveness.)
   void processOpWithRegions(Operation *parent,
                             const MemoryAnalysis &memAnalysis,
-                            SmallPtrSetImpl<Operation *> &cleanUps) {
+                            SmallPtrSetImpl<Operation *> &cleanUps,
+                            std::optional<DominanceInfo> &domOpt) {
     ++numProcessOpWithRegionsCalls;
     auto *ctx = &getContext();
     auto wireTy = cudaq::quake::WireType::get(ctx);
@@ -840,7 +844,7 @@ public:
     // 1. If any operations held by the blocks of \p parent contain regions,
     // recursively process those operations. This establishes the value
     // semantics interface for these macro ops.
-    handleSubRegions(parent, memAnalysis, cleanUps);
+    handleSubRegions(parent, memAnalysis, cleanUps, domOpt);
 
     // 2. Traverse each basic block threading the defs to their uses. This will
     // construct the liveIn and liveOut maps for each block. If parent is not a
@@ -1113,11 +1117,17 @@ public:
           if (liveOut && !dataFlow.hasLiveInToBlock(succ, liveOut) &&
               (dataFlow.isExitBlock(succ) ||
                dataFlow.hasBinding(succ, liveOut))) {
-            worklist.push_back(succ);
-            auto sigma = dataFlow.maybeAddLiveInToBlock(succ, liveOut);
-            OpBuilder builder(&succ->front());
-            cudaq::quake::WrapOp::create(builder, term->getLoc(), sigma,
-                                         liveOut);
+            if (!domOpt) {
+              DominanceInfo dom(parent->getParentOfType<func::FuncOp>());
+              domOpt = std::move(dom);
+            }
+            if (domOpt->properlyDominates(liveOut, &succ->front())) {
+              worklist.push_back(succ);
+              auto sigma = dataFlow.maybeAddLiveInToBlock(succ, liveOut);
+              OpBuilder builder(&succ->front());
+              cudaq::quake::WrapOp::create(builder, term->getLoc(), sigma,
+                                           liveOut);
+            }
           }
         }
         if (changes)
