@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s | FileCheck %s --check-prefix=DECOMP
-// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(expand-control-veqs,cse,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 
 func.func @dynamic(%theta: f64, %target: !quake.ref) {
   quake.r1 (%theta) %target : (f64, !quake.ref) -> ()
@@ -66,3 +66,32 @@ func.func @wire(%theta: f64, %control: !quake.wire,
 // LOWER: %[[RZ:.*]]:2 = quake.rz
 // LOWER: %[[R1:.*]] = quake.r1
 // LOWER: return %[[R1]], %[[RZ]]#1
+
+func.func @no_scalar_anchor(%theta: f64, %targets: !quake.veq<2>) {
+  quake.r1 (%theta) %targets : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func @no_scalar_anchor(
+// DECOMP: quake.r1 (%{{.*}}) %{{.*}} : (f64, !quake.veq<2>) -> ()
+// DECOMP-NOT: quake.phase
+// DECOMP: return
+
+// LOWER-LABEL: func.func @no_scalar_anchor(
+// LOWER: quake.r1
+
+func.func @zero_wire(%target: !quake.wire) -> !quake.wire {
+  %zero = arith.constant 0.000000e+00 : f64
+  %next = quake.r1 (%zero) %target
+      : (f64, !quake.wire) -> !quake.wire
+  return %next : !quake.wire
+}
+
+// DECOMP-LABEL: func.func @zero_wire(
+// DECOMP: %[[ZERO:.*]] = arith.constant 0.000000e+00 : f64
+// DECOMP: %[[RZ:.*]] = quake.rz (%[[ZERO]])
+// DECOMP-NOT: quake.phase
+// DECOMP: return %[[RZ]]
+
+// LOWER-LABEL: func.func @zero_wire(
+// LOWER: quake.rz

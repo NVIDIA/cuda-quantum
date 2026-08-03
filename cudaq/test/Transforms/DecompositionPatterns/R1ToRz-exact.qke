@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),verify-no-phase)' %s | CircuitCheck %s --up-to-global-phase
 
 func.func @forward(%target: !quake.ref) {
   %theta = arith.constant 1.234000e+00 : f64
