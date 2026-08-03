@@ -71,8 +71,21 @@ quantum_platform *getQuantumPlatformInternal() {
   return platform;
 }
 
+void quantum_platform::disableRuntimeEndpointOverride(std::size_t qpuId,
+                                                      std::string what) const {
+  if (hasRuntimeEndpointOverride(qpuId)) {
+    throw std::runtime_error(
+        what + " is not supported when manually setting a runtime endpoint.");
+  }
+}
+
+bool quantum_platform::hasRuntimeEndpointOverride(std::size_t qpuId) const {
+  return qpuId < platformQPUs.size() && !platformQPUs[qpuId];
+}
+
 void quantum_platform::set_noise(const noise_model *model, std::size_t qpu_id) {
   validateQpuId(qpu_id);
+  disableRuntimeEndpointOverride(qpu_id, "Using noise models");
   auto &platformQPU = platformQPUs[qpu_id];
   platformQPU->setNoiseModel(model);
 }
@@ -82,18 +95,28 @@ const noise_model *quantum_platform::get_noise(std::size_t qpu_id) {
   if (executionContext != nullptr)
     return executionContext->noiseModel;
 
+  if (hasRuntimeEndpointOverride(qpu_id)) {
+    CUDAQ_WARN(
+        "quantum_platform::get_noise is currently not supported for custom "
+        "runtime endpoints");
+    return nullptr;
+  }
+
   validateQpuId(qpu_id);
   auto &platformQPU = platformQPUs[qpu_id];
   return platformQPU->getNoiseModel();
 }
 
 void quantum_platform::reset_noise(std::size_t qpu_id) {
+  disableRuntimeEndpointOverride(qpu_id, "Using noise models");
   validateQpuId(qpu_id);
   set_noise(nullptr, qpu_id);
 }
 
-static cudaq::CompileTarget getDefaultPythonCompileTargetImpl() {
-  auto *platform = getQuantumPlatformInternal();
+static cudaq::CompileTarget
+getDefaultPythonCompileTargetImpl(quantum_platform *platform = nullptr) {
+  if (!platform)
+    platform = getQuantumPlatformInternal();
 
   const bool enablePythonCodegenDump =
       cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
@@ -175,13 +198,17 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
   platformQPUs[qpu_id]->enqueue(f);
 }
 
-void quantum_platform::validateQpuId(std::size_t qpuId) const {
+void quantum_platform::validateQpuId(std::size_t qpuId,
+                                     bool acceptRuntimeEndpoints) const {
   if (platformQPUs.empty())
     throw std::runtime_error("No QPUs are available for this target.");
-  if (qpuId >= platformQPUs.size()) {
-    throw std::invalid_argument(
-        "Invalid QPU ID: " + std::to_string(qpuId) +
-        ". Number of QPUs: " + std::to_string(platformQPUs.size()));
+  if (qpuId >= platformQPUs.size() &&
+      (!acceptRuntimeEndpoints || qpuId >= runtimeEndpoints.size())) {
+    std::size_t numQpus = platformQPUs.size();
+    if (acceptRuntimeEndpoints)
+      numQpus = std::max(numQpus, runtimeEndpoints.size());
+    throw std::invalid_argument("Invalid QPU ID: " + std::to_string(qpuId) +
+                                ". Number of QPUs: " + std::to_string(numQpus));
   }
 }
 
@@ -211,6 +238,7 @@ void quantum_platform::reset_exec_ctx() {
 // This delegates to the targeted QPU
 void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {
   std::size_t qid = ctx.qpuId;
+  disableRuntimeEndpointOverride(qid, "Policy '" + ctx.name + "'");
   validateQpuId(qid);
   auto &platformQPU = platformQPUs[qid];
   platformQPU->configureExecutionContext(ctx);
@@ -218,6 +246,7 @@ void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {
 
 void quantum_platform::beginExecution() {
   auto qid = cudaq::getCurrentQpuId();
+  disableRuntimeEndpointOverride(qid, "Unsupported policy");
   auto &platformQPU = platformQPUs[qid];
 
   platformQPU->beginExecution();
@@ -225,6 +254,7 @@ void quantum_platform::beginExecution() {
 
 void quantum_platform::endExecution() {
   auto qid = cudaq::getCurrentQpuId();
+  disableRuntimeEndpointOverride(qid, "Unsupported policy");
   auto &platformQPU = platformQPUs[qid];
 
   platformQPU->endExecution();
@@ -233,6 +263,7 @@ void quantum_platform::endExecution() {
 /// Reset the execution context for this platform.
 void quantum_platform::finalizeExecutionContext(ExecutionContext &ctx) const {
   std::size_t qid = ctx.qpuId;
+  disableRuntimeEndpointOverride(qid, "Unsupported policy");
   auto &platformQPU = platformQPUs[qid];
   platformQPU->finalizeExecutionContext(ctx);
 }
@@ -243,26 +274,44 @@ std::optional<QubitConnectivity> quantum_platform::connectivity() {
 
 bool quantum_platform::is_simulator(std::size_t qpu_id) const {
   validateQpuId(qpu_id);
+  disableRuntimeEndpointOverride(qpu_id, "is_simulator");
   return platformQPUs[qpu_id]->isSimulator();
 }
 
 bool quantum_platform::is_remote(std::size_t qpu_id) const {
+  if (hasRuntimeEndpointOverride(qpu_id)) {
+    CUDAQ_WARN(
+        "quantum_platform::is_remote is currently not supported for custom "
+        "runtime endpoints");
+    return false;
+  }
   validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isRemote();
 }
 
 bool quantum_platform::is_emulated(std::size_t qpu_id) const {
+  if (hasRuntimeEndpointOverride(qpu_id)) {
+    CUDAQ_WARN("quantum_platform::is_emulated is currently not supported for "
+               "custom runtime endpoints");
+    return false;
+  }
   validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isEmulated();
 }
 
 std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
   validateQpuId(qpu_id);
+  disableRuntimeEndpointOverride(qpu_id, "get_num_qubits");
   return platformQPUs[qpu_id]->getNumQubits();
 }
 
 bool quantum_platform::supports_explicit_measurements(
     std::size_t qpu_id) const {
+  if (hasRuntimeEndpointOverride(qpu_id)) {
+    CUDAQ_WARN("quantum_platform::supports_explicit_measurements is currently "
+               "not supported for custom runtime endpoints");
+    return false;
+  }
   validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->supportsExplicitMeasurements();
 }
@@ -273,6 +322,7 @@ void quantum_platform::launchVQE(const std::string kernelName,
                                  const int n_params, const std::size_t shots,
                                  std::size_t qpu_id) {
   validateQpuId(qpu_id);
+  disableRuntimeEndpointOverride(qpu_id, "Policy VQE");
   auto &qpu = platformQPUs[qpu_id];
   qpu->launchVQE(kernelName, kernelArgs, gradient, H, optimizer, n_params,
                  shots);
@@ -281,6 +331,7 @@ void quantum_platform::launchVQE(const std::string kernelName,
 RemoteCapabilities
 quantum_platform::get_remote_capabilities(std::size_t qpu_id) const {
   validateQpuId(qpu_id);
+  disableRuntimeEndpointOverride(qpu_id, "get_remote_capabilities");
   return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
 
@@ -288,14 +339,76 @@ KernelThunkResultType
 quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
                                       std::size_t qpu_id) {
   validateQpuId(qpu_id);
+  disableRuntimeEndpointOverride(qpu_id, "Unsupported policy");
   auto &qpu = platformQPUs[qpu_id];
   return qpu->unifiedLaunchModule(module, args);
 }
 
+void quantum_platform::ensureRuntimeEndpointExists(std::size_t qpuId,
+                                                   bool allowNullopt) {
+  validateQpuId(qpuId, /*acceptRuntimeEndpoints=*/true);
+  std::scoped_lock lock(runtimeEndpointsMutex);
+  if (runtimeEndpoints.size() <= qpuId)
+    runtimeEndpoints.resize(platformQPUs.size());
+  if (!allowNullopt && !runtimeEndpoints[qpuId].has_value()) {
+    runtimeEndpoints[qpuId] = RuntimeEndpoint::wrapQPU(*platformQPUs[qpuId]);
+  }
+}
+
+void quantum_platform::resetRuntimeEndpoints() {
+  std::scoped_lock lock(runtimeEndpointsMutex);
+  runtimeEndpoints.clear();
+}
+
+QPU &quantum_platform::addQPU(std::unique_ptr<QPU> qpu) {
+  if (!qpu)
+    throw std::invalid_argument("Cannot add a null QPU to the platform.");
+
+  platformQPUs.emplace_back(std::move(qpu));
+  return *platformQPUs.back();
+}
+
+void quantum_platform::clearQPUs() {
+  resetRuntimeEndpoints();
+  platformQPUs.clear();
+}
+
+QPU &quantum_platform::getQPU(std::size_t qpuId) {
+  validateQpuId(qpuId);
+  disableRuntimeEndpointOverride(qpuId, "Accessing the QPU");
+  return *platformQPUs[qpuId];
+}
+
+void quantum_platform::setCompileTarget(std::optional<CompileTarget> target) {
+  compileTarget = std::move(target);
+}
+
+RuntimeEndpoint &quantum_platform::getRuntimeEndpoint(std::size_t qpuId) {
+  ensureRuntimeEndpointExists(qpuId);
+  return *runtimeEndpoints[qpuId];
+}
+
+void quantum_platform::setRuntimeEndpoint(RuntimeEndpoint endpoint,
+                                          std::size_t qpuId) {
+  ensureRuntimeEndpointExists(qpuId, /*allowNullopt=*/true);
+
+  if (!compileTarget.has_value()) {
+    CUDAQ_WARN("Overriding compile target with default (local simulator)");
+    compileTarget = getDefaultPythonCompileTargetImpl(this);
+  }
+
+  std::scoped_lock lock(runtimeEndpointsMutex);
+  runtimeEndpoints[qpuId] = std::move(endpoint);
+  platformQPUs[qpuId] = nullptr;
+}
+
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
-  for (auto &qpu : platformQPUs)
+  for (auto &qpu : platformQPUs) {
+    if (!qpu)
+      continue;
     qpu->onRandomSeedSet(seed);
+  }
 }
 
 cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
