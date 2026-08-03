@@ -41,6 +41,11 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+# CUDA-Q installers use a single relocatable library tree. Keep every realtime
+# library and its CMake package under that tree on distributions where
+# GNUInstallDirs would otherwise default to lib64.
+set(CMAKE_INSTALL_LIBDIR lib)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # The following must go after `project(...)` 
@@ -175,5 +180,11 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
 endif()
 
 
-# Install the LICENSE and NOTICE files
-install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+# Standalone realtime saves the legal files at its install prefix. Integrated
+# CUDA-Q builds keep them in a dedicated subdirectory so they do not replace
+# the main CUDA-Q files.
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+else()
+  install(FILES LICENSE NOTICE DESTINATION realtime)
+endif()
