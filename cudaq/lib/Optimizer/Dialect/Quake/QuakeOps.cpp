@@ -19,6 +19,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include <limits>
 #include <unordered_set>
 
 using namespace mlir;
@@ -72,21 +73,34 @@ verifyOperator(cudaq::quake::OperatorInterface operatorInterface) {
   return verifyWireResultsAreLinear(operatorInterface.getOperation());
 }
 
+static std::optional<std::size_t> checkedAdd(std::size_t lhs, std::size_t rhs) {
+  if (std::numeric_limits<std::size_t>::max() - lhs < rhs)
+    return std::nullopt;
+  return lhs + rhs;
+}
+
 // Return the total number of target qubits when every target has a known size.
-// Target operand count is insufficient because one fixed-size veq operand may
-// represent multiple qubits. Dynamic veq sizes keep the count unknown.
+// Target operand count is insufficient because one fixed-size aggregate operand
+// may represent multiple qubits. With dynamic sizes, the count is unknown.
+static std::optional<std::size_t> getStaticTargetQubitCount(Value target) {
+  if (auto count = cudaq::quake::getQubitCount(target.getType()))
+    return count;
+  if (auto relaxOp = target.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    return getStaticTargetQubitCount(relaxOp.getInputVec());
+  return std::nullopt;
+}
+
 static std::optional<std::size_t>
 getStaticTargetQubitCount(ValueRange targets) {
   std::size_t count = 0;
   for (Value target : targets) {
-    if (isa<cudaq::quake::WireType, cudaq::quake::RefType>(target.getType())) {
-      ++count;
-      continue;
-    }
-    auto size = cudaq::quake::getVeqSize(target);
-    if (!size)
+    auto targetCount = getStaticTargetQubitCount(target);
+    if (!targetCount)
       return std::nullopt;
-    count += *size;
+    auto updatedCount = checkedAdd(count, *targetCount);
+    if (!updatedCount)
+      return std::nullopt;
+    count = *updatedCount;
   }
   return count;
 }
