@@ -42,7 +42,11 @@ enum DataType {
   FLOAT_32,
   FLOAT_64,
   FLOAT_COMPLEX,
-  DOUBLE_COMPLEX
+  DOUBLE_COMPLEX,
+  UINT_8,
+  UINT_16,
+  UINT_32,
+  UINT_64
 };
 
 /// @brief Type of MPI reduce ops that we support

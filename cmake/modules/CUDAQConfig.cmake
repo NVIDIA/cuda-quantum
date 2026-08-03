@@ -42,9 +42,15 @@ if (CUDAQ_REALTIME_DIR)
 else()
   # Do not use find_dependency here: it inherits find_package(CUDAQ REQUIRED)
   # and would make realtime mandatory for CUDA-Q installs that do not use it.
-  find_package(cudaq-realtime CONFIG QUIET
-    PATHS "${CUDAQ_CMAKE_DIR}/../cudaq-realtime"
-    NO_DEFAULT_PATH)
+  # Preflight the dependency as well: a CUDA-enabled realtime package requires
+  # the CUDA development toolkit, which is intentionally absent from some
+  # supported CUDA-Q runtime installations.
+  find_package(CUDAToolkit QUIET)
+  if (CUDAToolkit_FOUND)
+    find_package(cudaq-realtime CONFIG QUIET
+      PATHS "${CUDAQ_CMAKE_DIR}/../cudaq-realtime"
+      NO_DEFAULT_PATH)
+  endif()
 endif()
 
 get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
@@ -63,30 +69,16 @@ if (NOT CUDAQ_LIBRARY_MODE)
 endif() 
 
 # ---- TARGET EXPORTS ----
-# Prefer cusvsim libraries if they are present
-set (__base_nvtarget_name "custatevec") 
-find_library(CUDAQ_CUSVSIM_PATH NAMES cusvsim-fp32 HINTS ${CUDAQ_LIBRARY_DIR})
-if (CUDAQ_CUSVSIM_PATH)
-  set(__base_nvtarget_name "cusvsim")
-endif() 
-
 # Default Target
 add_library(cudaq::cudaq-default-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-default-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
 # NVIDIA Target
 add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
-
-# NVIDIA Legacy Target
-add_library(cudaq::cudaq-nvidia-legacy-target SHARED IMPORTED)
-set_target_properties(cudaq::cudaq-nvidia-legacy-target PROPERTIES
   IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
@@ -94,36 +86,36 @@ set_target_properties(cudaq::cudaq-nvidia-legacy-target PROPERTIES
 # NVIDIA FP64 Target
 add_library(cudaq::cudaq-nvidia-fp64-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-fp64-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
 # NVIDIA MGPU Target
 add_library(cudaq::cudaq-nvidia-mgpu-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-mgpu-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-nvidia-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-nvidia-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
 # NVIDIA MGPU-FP64 Target
 add_library(cudaq::cudaq-nvidia-mgpu-fp64-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-mgpu-fp64-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-mgpu-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-mgpu-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-nvidia-mgpu${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-nvidia-mgpu${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
 # NVIDIA MQPU Target
 add_library(cudaq::cudaq-nvidia-mqpu-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-mqpu-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-mqpu;cudaq::cudaq-em-default")
 
 # NVIDIA MQPU FP64 Target
 add_library(cudaq::cudaq-nvidia-mqpu-fp64-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-mqpu-fp64-target PROPERTIES
-  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
-  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-mqpu;cudaq::cudaq-em-default")
 
 # QPP CPU Target
