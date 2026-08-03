@@ -380,9 +380,8 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
     Statistic<"numVirtualQubits", "num-virtual-qubits",
               "Number of virtual qubits used">,
     Statistic<"numPhysicalQubits", "num-physical-qubits",
-              "Number of phyiscal qubits used">,
-    Statistic<"numCycles", "num-cycles",
-              "Length of kernel in cycles">,
+              "Number of physical qubits used">,
+    Statistic<"numCycles", "num-cycles", "Length of kernel in cycles">
   ];
 }
 
@@ -1082,6 +1081,12 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
       /*default=*/"true", "Promote classical stack slots to values.">,
     Option<"quantumValues", "quantum", "bool",
       /*default=*/"true", "Promote of quantum values.">
+  ];
+  let statistics = [
+    Statistic<"numProcessOpWithRegionsCalls", "process-op-with-regions-calls",
+      "Number of times processOpWithRegions was called">,
+    Statistic<"numWorklistIterations", "worklist-iterations",
+      "Number of worklist loop iterations in processOpWithRegions">
   ];
 }
 

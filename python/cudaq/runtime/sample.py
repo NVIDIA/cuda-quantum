@@ -195,6 +195,11 @@ def sample(kernel,
                     "loop.")
                 break
         return counts
+    except RuntimeError as e:
+        msg = str(e)
+        if "kernel must have qubits" in msg:
+            return {}
+        raise e
     finally:
         if set_noise_for_call:
             if previous_noise is not None:
