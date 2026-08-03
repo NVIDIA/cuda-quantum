@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Dialect/Traits.h"
 #include "cudaq/Support/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -70,14 +71,14 @@ inline bool isQuantumValueType(mlir::Type ty) {
 /// number of quantum references.
 bool isConstantQuantumRefType(mlir::Type ty);
 
+/// Get the number of qubits represented by \p ty when it is statically known.
+/// \p ty must be a quantum type.
+std::optional<std::size_t> getQubitCount(mlir::Type ty);
+
 /// Get the number of references in \p ty. \p ty must be a reference type.
 std::size_t getAllocationSize(mlir::Type ty);
 
 /// Get the number of wires in \p ty. \p ty must be a value type.
-inline std::size_t getWireCount(mlir::Type ty) {
-  if (isa<cudaq::quake::WireType, cudaq::quake::ControlType>(ty))
-    return 1;
-  return cast<cudaq::quake::CableType>(ty).getSize();
-}
+std::size_t getWireCount(mlir::Type ty);
 
 } // namespace cudaq::quake

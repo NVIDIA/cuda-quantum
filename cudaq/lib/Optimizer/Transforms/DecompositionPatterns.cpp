@@ -9,6 +9,7 @@
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
@@ -419,7 +420,6 @@ struct ExpPauliDecomposition
                                 PatternRewriter &rewriter) const override {
     auto loc = expPauliOp.getLoc();
     auto module = expPauliOp->getParentOfType<ModuleOp>();
-    auto qubits = expPauliOp.getTarget();
     auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
 
@@ -522,14 +522,42 @@ struct ExpPauliDecomposition
           "Pauli word must contain only I, X, Y, or Z");
     const auto &paulis = *maybePaulis;
 
+    // Flatten variadic targets into individual refs before lowering.
+    SmallVector<Value> qubits;
+    auto targets = expPauliOp.getTargets();
+    for (Value target : targets) {
+      auto targetTy = target.getType();
+      if (isa<cudaq::quake::RefType>(targetTy)) {
+        qubits.push_back(target);
+        continue;
+      }
+      if (!isa<cudaq::quake::VeqType>(targetTy))
+        return failure();
+      auto maybeSize = cudaq::quake::getVeqSize(target);
+      if (!maybeSize) {
+        // The Pauli-word length cannot determine boundaries between dynamic
+        // targets.
+        if (targets.size() != 1)
+          return failure();
+        maybeSize = paulis.size();
+      }
+      for (std::size_t i = 0; i < *maybeSize; ++i) {
+        Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
+        qubits.push_back(
+            cudaq::quake::ExtractRefOp::create(rewriter, loc, target, index));
+      }
+    }
+
+    if (qubits.size() != paulis.size())
+      return expPauliOp.emitOpError(
+          "Pauli word length must match target qubit count");
+
     if (expPauliOp.isAdj())
       theta = arith::NegFOp::create(rewriter, loc, theta);
 
     SmallVector<Value> qubitSupport;
     for (auto [i, pauli] : llvm::enumerate(paulis)) {
-      Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
-      Value qubitI =
-          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
+      Value qubitI = qubits[i];
       if (pauli != cudaq::quake::Pauli::I)
         qubitSupport.push_back(qubitI);
 
@@ -572,9 +600,7 @@ struct ExpPauliDecomposition
 
     for (std::size_t i = 0; i < paulis.size(); i++) {
       std::size_t k = paulis.size() - 1 - i;
-      Value index = arith::ConstantIntOp::create(rewriter, loc, k, 64);
-      Value qubitK =
-          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
+      Value qubitK = qubits[k];
 
       if (paulis[k] == cudaq::quake::Pauli::Y) {
         APFloat d(-M_PI_2);
