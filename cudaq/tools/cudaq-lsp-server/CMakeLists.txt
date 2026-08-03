@@ -49,4 +49,4 @@ llvm_update_compile_flags(cudaq-lsp-server)
 
 mlir_check_all_link_libraries(cudaq-lsp-server)
 
-install(TARGETS cudaq-lsp-server DESTINATION bin)
+install(TARGETS cudaq-lsp-server DESTINATION bin COMPONENT Nvqpp)

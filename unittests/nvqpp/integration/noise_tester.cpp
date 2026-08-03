@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 struct xOp {
   void operator()() __qpu__ {
     cudaq::qubit q;
@@ -76,7 +76,8 @@ struct bell_depolarization2_vec {
 };
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
 
 namespace test::hello {
@@ -286,7 +287,8 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping2) {
 }
 #endif
 
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
 CUDAQ_TEST(NoiseTest, checkCNOT) {
@@ -382,7 +384,7 @@ CUDAQ_TEST(NoiseTest, checkExceptions) {
 
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkDepolType) {
   cudaq::set_random_seed(13);
@@ -459,7 +461,7 @@ CUDAQ_TEST(NoiseTest, checkApplySimplePauliErrors) {
 
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
   cudaq::set_random_seed(13);
@@ -552,7 +554,7 @@ CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
 
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkBitFlipType) {
   cudaq::set_random_seed(13);
@@ -572,7 +574,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipType) {
 #if defined(CUDAQ_BACKEND_DM) ||                                               \
     (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
      !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
   cudaq::set_random_seed(13);
@@ -591,7 +593,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimple) {
 #if defined(CUDAQ_BACKEND_DM) ||                                               \
     (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
      !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Same as above but use alternate sample interface that specifies the number of
 // shots and the noise model to use.
 CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
@@ -614,7 +616,7 @@ CUDAQ_TEST(NoiseTest, checkBitFlipTypeSimpleOptions) {
 #if defined(CUDAQ_BACKEND_DM) ||                                               \
     (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
      !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
   cudaq::set_random_seed(13);
@@ -640,7 +642,7 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
 
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkPauli1) {
   cudaq::set_random_seed(13);
@@ -660,7 +662,7 @@ CUDAQ_TEST(NoiseTest, checkPauli1) {
 
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkPauli2) {
   cudaq::set_random_seed(13);
@@ -680,7 +682,7 @@ CUDAQ_TEST(NoiseTest, checkPauli2) {
 
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 template <std::size_t N>
 struct xOpAll {
@@ -694,7 +696,7 @@ struct xOpAll {
 #if defined(CUDAQ_BACKEND_DM) ||                                               \
     (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
      !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
   cudaq::set_random_seed(13);
@@ -714,7 +716,8 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannel) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
 static cudaq::kraus_channel create2pNoiseChannel() {
@@ -798,7 +801,8 @@ struct bellRandom {
 };
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
 CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControl) {
@@ -828,7 +832,8 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControl) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support arbitrary cudaq::kraus_op specification.
 
 CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
@@ -860,7 +865,7 @@ CUDAQ_TEST(NoiseTest, checkAllQubitChannelWithControlPrefix) {
 #if defined(CUDAQ_BACKEND_DM) ||                                               \
     (defined(CUDAQ_BACKEND_STIM) && defined(NDEBUG) &&                         \
      !defined(_GLIBCXX_ASSERTIONS)) ||                                         \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkCallbackChannel) {
   cudaq::set_random_seed(13);
@@ -893,7 +898,8 @@ struct rxOp {
 };
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support rx gate.
 
 CUDAQ_TEST(NoiseTest, checkCallbackChannelWithParams) {
@@ -930,7 +936,8 @@ CUDAQ_TEST(NoiseTest, checkCallbackChannelWithParams) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support custom operations.
 
 CUDAQ_REGISTER_OPERATION(CustomXOp, 1, 0, {0, 1, 1, 0});
@@ -999,7 +1006,7 @@ CUDAQ_TEST(NoiseTest, checkCustomOperation) {
 #endif
 
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
+    defined(CUDAQ_BACKEND_TENSORNET) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 
 CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
   cudaq::set_random_seed(13);
@@ -1040,7 +1047,8 @@ CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
 
 #endif
 
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET) ||           \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 CUDAQ_TEST(NoiseTest, checkObserveHamiltonianWithNoise) {
 
   cudaq::spin_op h =

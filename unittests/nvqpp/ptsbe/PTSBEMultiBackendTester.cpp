@@ -15,6 +15,8 @@
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/PTSBESampleResult.h"
 
+#include <cmath>
+
 using namespace cudaq::ptsbe;
 
 namespace {
@@ -104,4 +106,59 @@ CUDAQ_TEST(PTSBEMultiBackendTest, ImplicitMzPerQubitNoise) {
 
   EXPECT_EQ(result.get_total_shots(), 50u);
   EXPECT_GT(result.count("00"), 40u);
+}
+
+CUDAQ_TEST(PTSBEMultiBackendTest,
+           CustomUnitaryKrausChannelMatchesAnalyticDistribution) {
+  cudaq::kraus_channel channel({cudaq::complex{0.99498743710662, 0.0},
+                                {0.0, 0.0},
+                                {0.0, 0.0},
+                                {0.99498743710662, 0.0}},
+                               {cudaq::complex{0.0, 0.0},
+                                {0.05773502691896258, 0.0},
+                                {0.05773502691896258, 0.0},
+                                {0.0, 0.0}},
+                               {cudaq::complex{0.0, 0.0},
+                                {0.0, -0.05773502691896258},
+                                {0.0, 0.05773502691896258},
+                                {0.0, 0.0}},
+                               {cudaq::complex{0.05773502691896258, 0.0},
+                                {0.0, 0.0},
+                                {0.0, 0.0},
+                                {-0.05773502691896258, 0.0}});
+
+  channel.op_names = {"id", "x", "y", "z"};
+
+  constexpr std::size_t shots = 8192;
+  constexpr double expectedZero = 1.0 / 150.0;
+  const double tolerance =
+      6.0 * std::sqrt(expectedZero * (1.0 - expectedZero) / shots);
+
+  cudaq::set_random_seed(13);
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::x>({0}, channel);
+  const auto result = cudaq::ptsbe::sample(noise, shots, xMzKernel{});
+
+  EXPECT_EQ(result.get_total_shots(), shots);
+  EXPECT_NEAR(result.probability("0"), expectedZero, tolerance);
+  EXPECT_NEAR(result.probability("1"), 1.0 - expectedZero, tolerance);
+}
+
+CUDAQ_TEST(PTSBEMultiBackendTest,
+           BitFlipProbabilitiesMatchAnalyticDistribution) {
+  constexpr std::size_t shots = 8192;
+  for (const double probability : {0.1, 0.5, 0.9}) {
+    const double tolerance =
+        6.0 * std::sqrt(probability * (1.0 - probability) / shots);
+
+    cudaq::set_random_seed(13);
+    cudaq::noise_model noise;
+    noise.add_channel<cudaq::types::x>({0},
+                                       cudaq::bit_flip_channel(probability));
+    const auto result = cudaq::ptsbe::sample(noise, shots, xMzKernel{});
+
+    EXPECT_EQ(result.get_total_shots(), shots);
+    EXPECT_NEAR(result.probability("0"), probability, tolerance);
+    EXPECT_NEAR(result.probability("1"), 1.0 - probability, tolerance);
+  }
 }

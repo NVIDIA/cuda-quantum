@@ -107,16 +107,16 @@ if(CMAKE_CUDA_COMPILER)
 endif()
 
 # ==============================================================================
-# Hololink bridge/emulator/playback tools (optional, not CI)
+# HSB bridge/emulator/playback tools (optional, not CI)
 # ==============================================================================
 
-if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(utils)
-  add_subdirectory(bridge_interface/hololink)
+  add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
 # UDP bridge provider tests: self-gated on the always-built udp provider
-# target, so they run in CI without any hololink/RDMA setup.
+# target, so they run in CI without any HSB/RDMA setup.
 add_subdirectory(bridge_interface/udp)
 
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
