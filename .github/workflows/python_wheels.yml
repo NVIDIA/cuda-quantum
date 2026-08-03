@@ -497,6 +497,7 @@ jobs:
     needs: build_wheel
     if: inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
     runs-on: linux-amd64-gpu-a100-latest-1
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: read
