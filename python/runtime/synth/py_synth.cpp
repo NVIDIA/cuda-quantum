@@ -90,7 +90,9 @@ double rzErrorBinding(RealArg theta, const std::string &gates) {
   cudaq::synth::Real error = cudaq::synth::rz_approximation_error(
       cudaq::synth::DOmegaUnitary::from_gates(*circuit), thetaReal);
 
-  return mpfr_get_d(error.get_mpfr(), MPFR_RNDZ);
+  // Round up so the result never under-reports the true error. Callers use it
+  // in `rz_error(...) <= epsilon` checks.
+  return mpfr_get_d(error.get_mpfr(), MPFR_RNDU);
 }
 
 } // namespace

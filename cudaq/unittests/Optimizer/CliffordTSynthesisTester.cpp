@@ -125,15 +125,12 @@ OwningOpRef<ModuleOp> buildRotationModule(MLIRContext *context, Rot gate,
 }
 
 // Operator-norm proxy distance between two 2x2 unitaries, modulo a global
-// phase. Consistent with cudaq::synth::rz_approximation_error (the metric
-// behind rz_gate_sequence_error). Both compute sqrt(|det(A - B)|), which for
-// 2x2 matrices equals sqrt(sigma_max * sigma_min) and tracks the operator
-// norm in the small-error regime where the two singular values of (A - B)
-// are nearly equal.
-//
-// Phase alignment is required here because CliffordTSynthesis drops the W
-// (global phase) gates emitted by gridsynth, so the reconstructed unitary
-// can differ from the ideal by a global phase even when synthesis succeeds.
+// phase. Computes sqrt(|det(A - B)|), which tracks the operator norm in the
+// small-error regime. This is weaker than the exact spectral norm in
+// cudaq::synth::rz_approximation_error, but it aligns the global phase, which
+// these tests need: CliffordTSynthesis drops the W (global phase) gates
+// emitted by gridsynth, so a successful synthesis can still differ from the
+// ideal by a phase. The epsilon guarantee itself is covered by GridsynthTest.
 double distance(const M2 &A, const M2 &B) {
   const std::complex<double> inner =
       std::conj(A.a) * B.a + std::conj(A.b) * B.b + std::conj(A.c) * B.c +
