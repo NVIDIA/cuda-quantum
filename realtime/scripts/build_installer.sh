@@ -140,8 +140,8 @@ cp "$this_file_dir/demo_docker.sh" "$staging_dir/payload/demo.sh"
 chmod a+x "$staging_dir/payload/demo.sh"
 cp "$this_file_dir/demo.Dockerfile" "$staging_dir/payload/demo.Dockerfile"
 
-# Copy the `unittests/utils`, which contains a reference implementation of the hololink wrapper, 
-# which is used by the install script to verify hololink functionality.
+# Copy the `unittests/utils`, which contains a reference implementation of the gpu_roce wrapper, 
+# which is used by the install script to verify gpu_roce bridge functionality.
 # Also, resolve any symlinks in the utils directory to avoid issues with makeself.
 if [ -d "$this_file_dir/../unittests/utils" ]; then
   mkdir -p "$staging_dir/payload/utils"

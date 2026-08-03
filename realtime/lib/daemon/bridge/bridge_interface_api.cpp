@@ -40,9 +40,9 @@ std::unordered_map<cudaq_realtime_bridge_handle_t,
 // bridge_handle_interface_map) for thread safety.
 std::shared_mutex bridge_interface_mutex;
 
-/// @brief Library name the CUDAQ_PROVIDER_HOLOLINK convenience enum resolves
+/// @brief Library name the CUDAQ_PROVIDER_GPU_ROCE convenience enum resolves
 /// to.  The library must be present at the load path (e.g., LD_LIBRARY_PATH).
-const char *Hololink_Bridge_Lib = "libcudaq-realtime-bridge-hololink.so";
+const char *GpuRoce_Bridge_Lib = "libcudaq-realtime-bridge-gpu-roce.so";
 } // namespace
 
 cudaq_status_t cudaq_bridge_create_from_library(
@@ -126,9 +126,9 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
                     char **argv) {
   // Convenience wrapper: resolve the enum to a library name and defer to the
   // string-keyed path.
-  if (provider == CUDAQ_PROVIDER_HOLOLINK)
+  if (provider == CUDAQ_PROVIDER_GPU_ROCE)
     return cudaq_bridge_create_from_library(out_bridge_handle,
-                                            Hololink_Bridge_Lib, argc, argv);
+                                            GpuRoce_Bridge_Lib, argc, argv);
   if (provider != CUDAQ_PROVIDER_EXTERNAL)
     return CUDAQ_ERR_INVALID_ARG;
   const char *bridgeLibPath = std::getenv("CUDAQ_REALTIME_BRIDGE_LIB");
