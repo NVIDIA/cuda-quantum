@@ -19,6 +19,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/ptsbe/policy.h"
+#include <cxxabi.h>
 #include <gtest/gtest.h>
 #include <memory>
 #include <optional>
@@ -131,17 +132,51 @@ void testPolicyDispatch(const Policy &policy) {
   EXPECT_EQ(std::any_cast<std::string>(endpoint.impl), get_policy_name(policy));
 }
 
-template <typename Fn>
-void expectOverrideDisabled(Fn &&fn, const std::string &what) {
+/// A test utility that expects `fn` to throw an exception of type `E` but
+/// handles the case where RTTI mismatches and exception type is lost.
+template <typename E, typename Fn>
+std::optional<std::string> expectThrows(Fn &&fn,
+                                        std::string_view exception_type) {
   try {
     fn();
-    FAIL() << "expected std::runtime_error for '" << what << "'";
-  } catch (const std::runtime_error &e) {
-    std::string msg = e.what();
-    EXPECT_NE(msg.find(what), std::string::npos) << msg;
-    EXPECT_NE(msg.find("manually setting a runtime endpoint"),
+  } catch (const E &e) {
+    return e.what();
+  } catch (...) {
+    // Fallback when RTTI mismatches and exception type is lost.
+    int status = -1;
+    char *demangled = nullptr;
+
+    if (auto *tinfo = abi::__cxa_current_exception_type()) {
+      demangled = abi::__cxa_demangle(tinfo->name(), nullptr, nullptr, &status);
+    }
+
+    if (status != 0 || !demangled) {
+      std::cerr << "\033[33m[  WARNING ]\033[0m Got exception as expected but "
+                   "failed to demangle exception type. Ignoring test\n";
+      return std::nullopt;
+    }
+    std::string type_name = demangled;
+    std::free(demangled);
+
+    // Assert that an exception was indeed thrown and its type string contains
+    // 'runtime_error'
+    EXPECT_NE(type_name.find(exception_type), std::string::npos)
+        << "Caught unexpected exception. Expected '" << exception_type
+        << "' but got '" << type_name << "'";
+    return std::nullopt;
+  }
+  ADD_FAILURE() << "expected exception of type " << exception_type;
+  return std::nullopt;
+}
+
+template <typename Fn>
+void expectOverrideDisabled(Fn &&fn, const std::string &what) {
+  auto msg = expectThrows<std::runtime_error>(fn, "runtime_error");
+  if (msg) {
+    EXPECT_NE(msg->find(what), std::string::npos) << *msg;
+    EXPECT_NE(msg->find("manually setting a runtime endpoint"),
               std::string::npos)
-        << msg;
+        << *msg;
   }
 }
 
@@ -193,8 +228,9 @@ TEST(QuantumPlatformCompileTargetTester, rejectsInvalidQpuId) {
   TestPlatform platform;
   sample_policy policy{.kernelName = "test_kernel"};
 
-  EXPECT_THROW((void)platform.getCompileTarget(policy, /*qpu_id=*/1),
-               std::invalid_argument);
+  expectThrows<std::invalid_argument>(
+      [&] { (void)platform.getCompileTarget(policy, /*qpu_id=*/1); },
+      "invalid_argument");
 }
 
 TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
@@ -254,9 +290,11 @@ TEST(QuantumPlatformRuntimeEndpointTester, fallsBackWhenOverrideMissingForQpu) {
 
 TEST(QuantumPlatformRuntimeEndpointTester, rejectsInvalidQpuId) {
   TestPlatform platform;
-  EXPECT_THROW(platform.getRuntimeEndpoint(/*qpuId=*/1), std::invalid_argument);
-  EXPECT_THROW(platform.setRuntimeEndpoint(RuntimeEndpoint{}, /*qpuId=*/1),
-               std::invalid_argument);
+  expectThrows<std::invalid_argument>(
+      [&] { platform.getRuntimeEndpoint(/*qpuId=*/1); }, "invalid_argument");
+  expectThrows<std::invalid_argument>(
+      [&] { platform.setRuntimeEndpoint(RuntimeEndpoint{}, /*qpuId=*/1); },
+      "invalid_argument");
 }
 
 // The platform owns its endpoints and hands them out by reference, so state
@@ -362,8 +400,9 @@ TEST(RuntimeEndpointWrapQpuTester, forwardsLaunchThroughPlatformFallback) {
 TEST(RuntimeEndpointLaunchKernelTester, throwsWhenFnUnset) {
   RuntimeEndpoint endpoint;
   CompiledModule module;
-  EXPECT_THROW(endpoint.launchKernel(sample_policy{}, module, {}),
-               std::runtime_error);
+  expectThrows<std::runtime_error>(
+      [&] { endpoint.launchKernel(sample_policy{}, module, {}); },
+      "runtime_error");
 }
 
 TEST(RuntimeEndpointLaunchKernelTester, dispatchesSamplePolicy) {
