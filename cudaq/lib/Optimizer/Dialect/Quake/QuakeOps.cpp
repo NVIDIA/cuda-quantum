@@ -1062,10 +1062,6 @@ void cudaq::quake::R1Op::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({1, 0, 0, std::exp(theta * 1i)});
 }
 
-void cudaq::quake::R1Op::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::R1Op>>(context);
-}
 
 void cudaq::quake::RxOp::getOperatorMatrix(Matrix &matrix) {
   using namespace std::complex_literals;
@@ -1078,10 +1074,6 @@ void cudaq::quake::RxOp::getOperatorMatrix(Matrix &matrix) {
                  -1i * std::sin(theta / 2.), std::cos(theta / 2.)});
 }
 
-void cudaq::quake::RxOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::RxOp>>(context);
-}
 
 void cudaq::quake::RyOp::getOperatorMatrix(Matrix &matrix) {
   // Get parameter
@@ -1096,10 +1088,6 @@ void cudaq::quake::RyOp::getOperatorMatrix(Matrix &matrix) {
                  -std::sin(theta / 2.), std::cos(theta / 2.)});
 }
 
-void cudaq::quake::RyOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::RyOp>>(context);
-}
 
 void cudaq::quake::RzOp::getOperatorMatrix(Matrix &matrix) {
   using namespace std::complex_literals;
@@ -1115,10 +1103,6 @@ void cudaq::quake::RzOp::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({std::exp(-1i * theta / 2.), 0, 0, std::exp(1i * theta / 2.)});
 }
 
-void cudaq::quake::RzOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<MergeRotationPattern<cudaq::quake::RzOp>>(context);
-}
 
 void cudaq::quake::SOp::getOperatorMatrix(Matrix &matrix) {
   using namespace llvm::numbers;
