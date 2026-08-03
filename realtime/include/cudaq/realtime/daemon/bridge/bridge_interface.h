@@ -9,7 +9,8 @@
 #pragma once
 
 /// @file bridge_interface.h
-/// @brief Interface Bindings for transport layer providers (e.g. Hololink).
+/// @brief Interface Bindings for transport layer providers (e.g.
+/// GpuRoceTransceiver).
 ///
 /// Different transport providers can be loaded at runtime via `dlopen`,
 /// allowing for dynamic selection and initialization of the desired transport
@@ -17,8 +18,8 @@
 /// `cudaq_bridge_create_from_library`; loaded libraries are cached per
 /// process keyed by that name, so multiple distinct providers can coexist in
 /// one process.  The enum-based `cudaq_bridge_create` remains as a
-/// convenience wrapper (built-in Hololink name, or the library named by the
-/// CUDAQ_REALTIME_BRIDGE_LIB environment variable).
+/// convenience wrapper (built-in GpuRoceTransceiver name, or the library named
+/// by the CUDAQ_REALTIME_BRIDGE_LIB environment variable).
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 
@@ -31,14 +32,13 @@ extern "C" {
 typedef void *cudaq_realtime_bridge_handle_t;
 
 typedef enum {
-  CUDAQ_PROVIDER_HOLOLINK =
-      0, /// Hololink GPU-RoCE transceiver (built-in provider)
+  CUDAQ_PROVIDER_GPU_ROCE = 0, /// GpuRoceTransceiver (built-in provider)
   CUDAQ_PROVIDER_EXTERNAL = 1, /// Externally managed transport
 
 } cudaq_realtime_transport_provider_t;
 
 typedef enum {
-  RING_BUFFER = 0, // Ring buffer context (for Hololink provider)
+  RING_BUFFER = 0, // Ring buffer context (for GpuRoceTransceiver provider)
   UNIFIED = 1,     /// Unified transport context  for unified dispatch
 } cudaq_realtime_transport_context_t;
 
@@ -136,8 +136,8 @@ cudaq_status_t cudaq_bridge_create_from_library(
 
 /// @brief Create and initialize a transport bridge for the specified provider
 /// enum.  A convenience wrapper over `cudaq_bridge_create_from_library`:
-/// CUDAQ_PROVIDER_HOLOLINK resolves to the bundled Hololink library name, and
-/// CUDAQ_PROVIDER_EXTERNAL resolves to the library named by the
+/// CUDAQ_PROVIDER_GPU_ROCE resolves to the bundled GpuRoceTransceiver library
+/// name, and CUDAQ_PROVIDER_EXTERNAL resolves to the library named by the
 /// CUDAQ_REALTIME_BRIDGE_LIB environment variable.  New callers should prefer
 /// `cudaq_bridge_create_from_library` and pass the library name directly.
 cudaq_status_t
@@ -158,11 +158,11 @@ cudaq_status_t cudaq_bridge_get_transport_context(
 cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge);
 
 /// @brief Launch the transport bridge's main processing loop (e.g. start
-/// Hololink kernels).
+/// GpuRoceTransceiver kernels).
 cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge);
 
-/// @brief Disconnect the transport bridge (e.g. stop Hololink kernels and
-/// disconnect).
+/// @brief Disconnect the transport bridge (e.g. stop GpuRoceTransceiver kernels
+/// and disconnect).
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 
 /// @brief Retrieve the CPU data-plane for the single-thread unified host

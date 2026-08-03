@@ -59,6 +59,7 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <optional>
 
 using namespace mlir;
 
@@ -696,7 +697,7 @@ static std::size_t digestLogValue(const std::array<uint8_t, 32> &digest) {
 }
 
 /// Obtain a fresh `CompileTarget` for the current execution context.
-static std::unique_ptr<cudaq::CompileTarget> getCompileTargetImpl() {
+static cudaq::CompileTarget getCompileTargetImpl() {
   auto *ctx = cudaq::getExecutionContext();
   if (!ctx)
     return cudaq::get_compile_target(cudaq::other_policies{});
@@ -713,11 +714,10 @@ static std::unique_ptr<cudaq::CompileTarget> getCompileTargetImpl() {
 static cudaq::CompiledModule
 compileModuleImpl(const std::string &name, ModuleOp mod,
                   const std::vector<void *> &rawArgs, bool isEntryPoint,
-                  std::unique_ptr<cudaq::CompileTarget> target = nullptr) {
-  if (!target)
-    target = getCompileTargetImpl();
+                  std::optional<cudaq::CompileTarget> target = std::nullopt) {
+  cudaq::CompileTarget compileTarget = target.value_or(getCompileTargetImpl());
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
-  return cudaq_internal::compiler::compileModule(std::move(target), src,
+  return cudaq_internal::compiler::compileModule(std::move(compileTarget), src,
                                                  {rawArgs}, isEntryPoint);
 }
 
@@ -731,13 +731,13 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
                std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
                const std::vector<void *> &rawArgs) {
   auto target = getCompileTargetImpl();
-  auto targetHash = std::hash<cudaq::CompileTarget>{}(*target);
+  auto targetHash = std::hash<cudaq::CompileTarget>{}(target);
 
   // We don't cache kernels that inline all arguments, as any change to the
   // runtime arguments would invalidate the cache. Currently, synthesis is
   // all-or-nothing, but if arg-by-arg synthesis is supported, then that will
   // need to be detected.
-  bool cacheable = cache && !target->fullySpecialize && targetHash != 0;
+  bool cacheable = cache && !target.fullySpecialize && targetHash != 0;
 
   // Normally, we assume that the module IR is constant given the uniqued name.
   // However, kernels with compile-time dependencies — captured kernels or
@@ -761,7 +761,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   mlir::OwningOpRef<ModuleOp> resolvedModule;
   if (cacheable && hasCompileTimeDependencies) {
     if (auto digest = cudaq::detail::createProgramFingerprint(
-            name, mod, rawArgs, *target, resolvedModule))
+            name, mod, rawArgs, target, resolvedModule))
       programDigest = *digest;
     else
       cacheable = false;

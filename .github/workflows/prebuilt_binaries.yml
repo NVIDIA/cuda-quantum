@@ -611,7 +611,6 @@ jobs:
           echo "openmpi-build-cache: ${{ needs.build_openmpi.outputs.build_cache }}" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
           echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
-          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v7

@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
+#include "Environment.h"
+#include <iostream>
 #include <string_view>
 
 cudaq::FatQuakeModule::FatQuakeModule(std::string kernelName)
@@ -101,4 +103,17 @@ const void *cudaq::SourceModule::getMlirOpaqueModulePtr() const {
   if (!mlirArt)
     return nullptr;
   return mlirArt->getOpaqueModulePtr();
+}
+
+cudaq::CompiledModule::~CompiledModule() {
+  if (debugMode()) {
+    // Disable this for now to avoid spamming the console
+    std::cout << "CompiledModule destructor for " << name << std::endl;
+  }
+}
+
+bool cudaq::CompiledModule::debugMode() {
+  static const bool enabled =
+      cudaq::getEnvBool("CUDAQ_DEBUG_COMPILED_MODULE", false);
+  return enabled;
 }

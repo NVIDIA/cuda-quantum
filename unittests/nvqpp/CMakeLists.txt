@@ -127,6 +127,8 @@ create_tests_with_backend(dm "")
 create_tests_with_backend(stim "")
 
 if (cuStateVec_FOUND)
+  add_subdirectory(custatevec)
+
   find_program(NVIDIA_SMI "nvidia-smi")
   if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
     # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.

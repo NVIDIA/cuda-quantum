@@ -41,6 +41,7 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include <cassert>
 #include <cxxabi.h>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
@@ -282,6 +283,19 @@ public:
       funcPtr();
     };
   }
+
+  ~Impl() {
+    if (cudaq::CompiledModule::debugMode()) {
+      if (jitEngine) {
+        std::cout << "Destructing ExecutionEngine" << std::endl;
+      }
+    }
+  }
+
+  Impl(const Impl &) = delete;
+  Impl &operator=(const Impl &) = delete;
+  Impl(Impl &&) = default;
+  Impl &operator=(Impl &&) = default;
 
   std::size_t getKey() const {
     return reinterpret_cast<std::size_t>(jitEngine.get());

@@ -146,8 +146,8 @@ if(CUDA_FOUND)
     COMPONENT realtime-lib
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
-  if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
-    add_subdirectory(bridge/hololink)
+  if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
+    add_subdirectory(bridge/gpu_roce)
   endif()
   # CPU transport bridge providers (thin provider .so's over the
   # cpu_transport ring transceivers; loaded via CUDAQ_REALTIME_BRIDGE_LIB).

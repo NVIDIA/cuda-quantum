@@ -72,8 +72,8 @@ option(CUDAQ_REALTIME_BUILD_TESTS
        ${_cudaq_realtime_build_tests_default})
 option(CUDAQ_REALTIME_BUILD_EXAMPLES
        "Generate build targets for the CUDAQ real-time example programs" ON)
-option(CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS
-       "Build Hololink bridge/emulator/playback tools (requires hololink)."
+option(CUDAQ_REALTIME_ENABLE_HSB_TOOLS
+       "Build HSB bridge/emulator/playback tools (requires the holoscan-sensor-bridge libraries)."
        OFF)
 
 set(_host_compiler_opts_list "")
@@ -162,11 +162,13 @@ configure_package_config_file(
 install(EXPORT cudaq-realtime-targets
   FILE cudaq-realtime-targets.cmake
   NAMESPACE cudaq::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 if (CUDAQ_REALTIME_BUILD_EXAMPLES)
   message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")
