@@ -14,6 +14,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TypeName.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include <optional>
@@ -603,6 +604,16 @@ struct R1ToRz
     SmallVector<Value> controls(r1Op.getControls());
     SmallVector<Value> targets(r1Op.getTargets());
 
+    // PhaseOp requires a scalar anchor. Do not partially rewrite an aggregate
+    // R1 because selecting one arbitrary `veq` element would represent the
+    // wrong phase for the _aggregate_ operation.
+
+    if (targets.empty() || !isa<cudaq::quake::RefType, cudaq::quake::WireType>(
+                               targets.back().getType()))
+      return rewriter.notifyMatchFailure(
+          r1Op,
+          "R1ToRz requires a scalar target to anchor its phase correction");
+
     auto resultTypes =
         cudaq::opt::getWireResultTypes(rewriter, controls, targets);
     auto rz = cudaq::quake::RzOp::create(
@@ -611,9 +622,15 @@ struct R1ToRz
         r1Op.getNegatedQubitControlsAttr());
     cudaq::opt::threadWireResults(rz, controls, targets);
 
-    Value phase = createDivF(location, r1Op.getParameter(), 2.0, rewriter);
-    if (r1Op.isAdj())
-      phase = arith::NegFOp::create(rewriter, location, phase);
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing a `0 / 2` first would hide the zero behind an arith.divf
+    // until a later canonicalization pass.
+    Value phase = r1Op.getParameter();
+    if (!matchPattern(phase, m_AnyZeroFloat())) {
+      phase = createDivF(location, phase, 2.0, rewriter);
+      if (r1Op.isAdj())
+        phase = arith::NegFOp::create(rewriter, location, phase);
+    }
 
     auto correction = cudaq::opt::emitPhaseCorrection(
         rewriter, location, phase, controls, r1Op.getNegatedQubitControlsAttr(),
