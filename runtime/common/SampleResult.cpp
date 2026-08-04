@@ -480,8 +480,6 @@ void sample_result::clear() {
   annotations = nlohmann::json::object();
 }
 
-std::size_t sample_result::get_total_shots() const { return totalShots; }
-
 /// @brief This is a helper function to sort the keys of an unordered map
 /// without making any deep copies.
 template <typename T>

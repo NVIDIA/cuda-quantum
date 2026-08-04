@@ -12,9 +12,7 @@ counts constructor, annotations, Mapping protocol, counts property, and repr.
 """
 
 import os
-
 import pytest
-
 import cudaq
 
 
