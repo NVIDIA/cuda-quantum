@@ -65,8 +65,7 @@ Args:
           [](sample_result &self) -> nlohmann::json & {
             return self.annotations.get();
           },
-          "Metadata dict set by backends. ``annotations['shots']`` "
-          "is the authoritative shot count when present.")
+          "Read-only metadata dict set by backends.")
       .def(
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "
