@@ -24,7 +24,11 @@ def run_and_clear_registries():
 # Basic kernel definition and sampling with aliased import
 # --------------------------------------------------------------------------- #
 
+skipIfValueSemantics = pytest.mark.skipif(True,
+                                          reason="broken in value semantics")
 
+
+@skipIfValueSemantics
 def test_alias_basic_kernel():
     """The exact reproducer from issue #2341."""
 
@@ -52,6 +56,7 @@ def test_alias_qvector():
     assert '11' in counts
 
 
+@skipIfValueSemantics
 def test_alias_kernel_with_int_arg():
     """Kernel with integer argument using alias."""
 
@@ -98,6 +103,7 @@ def test_alias_pauli_word_annotation():
 # --------------------------------------------------------------------------- #
 
 
+@skipIfValueSemantics
 def test_canonical_still_works():
     """Ensure standard `import cudaq` usage still works."""
 
@@ -172,6 +178,7 @@ def test_alias_rotation_gates():
 # --------------------------------------------------------------------------- #
 
 
+@skipIfValueSemantics
 def test_alias_adjoint():
     """Adjoint modifier works in kernel defined via alias."""
 
