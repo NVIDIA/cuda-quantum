@@ -21,7 +21,7 @@ _VALID_DEM_OPTION_KEYS = frozenset({
     "return_measurement_matrices",
 })
 
-# Helpers called from the C++ binding (py_dem.cpp) for scipy interop.
+# Helpers called from the C++ binding (`py_dem.cpp`) for `scipy` interoperability.
 
 
 def _make_csr(rows, num_cols):
