@@ -2385,7 +2385,9 @@ following command to build CUDA-Q:
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v -- -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
+    bash scripts/build_cudaq.sh -t llvm -v -- \
+        "-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime" \
+        -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
     echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
 :::

@@ -13229,7 +13229,9 @@ them they are erased before execution.
     about the targeted QPU(s) (e.g. number of qubits, qubit
     connectivity, etc.). This type is meant to be subclassed for
     concrete realizations of quantum platforms, which are intended to
-    populate this platformQPUs member of this base class.
+    populate the QPUs of this base class via [`addQPU`{.docutils
+    .literal .notranslate}]{.pre} and [`clearQPUs`{.docutils .literal
+    .notranslate}]{.pre}.
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
