@@ -128,13 +128,20 @@ public:
       // Remove the original alloca operation.
       rewriter.eraseOp(allocOp);
     } else {
-      // Uses are more complex so just concat the refs together.
-      SmallVector<Value> theRefs;
-      std::for_each(
-          newAllocs.begin(), newAllocs.end(),
-          [&](cudaq::quake::AllocaOp a) { theRefs.push_back(a.getResult()); });
-      rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(allocOp, veqTy,
-                                                          theRefs);
+      if (newAllocs.empty()) {
+        // The python bridge can generate quake.alloca with size 0, which has no
+        // semantics. Check here rather than propagating the bad IR.
+        return failure();
+      } else {
+        // Uses are more complex so just concat the refs together.
+        SmallVector<Value> theRefs;
+        std::for_each(newAllocs.begin(), newAllocs.end(),
+                      [&](cudaq::quake::AllocaOp a) {
+                        theRefs.push_back(a.getResult());
+                      });
+        rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(allocOp, veqTy,
+                                                            theRefs);
+      }
     }
     return success();
   }
