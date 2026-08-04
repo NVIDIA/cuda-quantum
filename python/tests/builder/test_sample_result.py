@@ -55,6 +55,32 @@ class TestCountsConstructor:
         assert r.annotations["shots"] == 200
         assert r.annotations["tag"] == "test"
 
+    def test_annotations_preserve_embedded_nulls(self):
+        r = cudaq.SampleResult({}, annotations={"key\x00suffix": "a\x00b"})
+        assert r.annotations == {"key\x00suffix": "a\x00b"}
+
+    def test_annotations_merge_with_second_result_precedence(self):
+        r = cudaq.SampleResult({"0": 1},
+                               annotations={
+                                   "shared": "first",
+                                   "first": 1
+                               })
+        r += cudaq.SampleResult({"1": 1},
+                                annotations={
+                                    "shared": "second",
+                                    "second": 2
+                                })
+        assert r.annotations == {
+            "shared": "second",
+            "first": 1,
+            "second": 2,
+        }
+
+    def test_clear_removes_annotations(self):
+        r = cudaq.SampleResult({"0": 1}, annotations={"shots": 1})
+        r.clear()
+        assert r.annotations == {}
+
     def test_empty_counts(self):
         r = cudaq.SampleResult({})
         assert len(r) == 0
