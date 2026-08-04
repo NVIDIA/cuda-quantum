@@ -596,6 +596,7 @@ def test_kernel_error_invalid_initializer_f32():
 # enabled it will DQE the entire circuit. For the interest of these "tests", we
 # disable the optimizer. It would be prudent to write better tests however.
 
+
 def test_kernel_qvector_init_from_param_int():
 
     kernel, n = cudaq.make_kernel(int)
@@ -623,7 +624,6 @@ def test_kernel_qvector_init_from_capture_int():
     assert not '10' in counts
     assert not '01' in counts
     assert '00' in counts
-
 
 
 def test_kernel_qvector_init_from_int():

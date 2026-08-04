@@ -398,8 +398,6 @@ def test_sample_async_params():
         result = cudaq.sample_async(kernel, 0.0, 0.0, qpu_id=12)
 
 
-
-
 def test_sample_marginalize():
     """
     A more thorough test of the functionality of
