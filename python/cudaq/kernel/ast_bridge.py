@@ -6098,6 +6098,8 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
     cudaqAliases = kwargs.get('cudaqAliases', None)
+    disable_quantum_optimization = kwargs.get('disable_quantum_optimization',
+                                              False)
 
     # Build the AOT Quake Module for this kernel. Wrapped in a single span so
     # the tracer can separate Python-AST-to-MLIR construction from the AOT
@@ -6139,6 +6141,9 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     bridge.module.operation.attributes.__setitem__(
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
+    if disable_quantum_optimization:
+        bridge.module.operation.attributes.__setitem__(
+            'quake.noOptimization', UnitAttr.get(context=bridge.ctx))
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with
