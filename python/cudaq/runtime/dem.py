@@ -25,9 +25,8 @@ _VALID_DEM_OPTION_KEYS = frozenset({
 # Attach Python-typed members to DEMResult.
 #
 # DEMResult is the bound C++ cudaq::dem_result. Members that require Python
-# types (scipy matrices) or Python protocols (__str__, __repr__, classmethod)
-# are attached here so that scipy never appears in the C++ binding layer, and
-# DEMResult stays a single type identical in shape to SampleResult.
+# types (scipy matrices) are attached here so that scipy never appears in
+# the C++ binding layer.
 #
 # The setup is deferred to first use via _get_dem_result_class() to avoid
 # a circular-import issue: the extension module (which registers DEMResult in
