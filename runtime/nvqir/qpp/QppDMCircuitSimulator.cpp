@@ -120,7 +120,7 @@ struct QppDmState : public cudaq::SimulationState {
 
       auto *dataPtr =
           reinterpret_cast<void *>(const_cast<complex_matrix &>(cMat).get_data(
-              complex_matrix::order::row_major));
+              complex_matrix::order::column_major));
 
       return std::make_unique<QppDmState>(Eigen::Map<qpp::cmat>(
           reinterpret_cast<std::complex<double> *>(dataPtr), cMat.rows(),
