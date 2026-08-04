@@ -160,5 +160,6 @@ def test_cliffordt_sequence_identity_kernel():
     kernel = cudaq.make_kernel()
     qubit = kernel.qalloc()
     kernel.apply_call(synth.CliffordTSequence("I").to_kernel(), qubit)
+    kernel.mz(qubit)
     counts = cudaq.sample(kernel)
     assert counts["0"] == sum(counts.values())
