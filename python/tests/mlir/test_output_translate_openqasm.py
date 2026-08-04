@@ -116,7 +116,9 @@ def test_openqasm2_gates():
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0[0];
 # CHECK-NEXT: rz(-1.570796e+00) var0[0];
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0[0];
-# CHECK-NEXT: rz(1.570796e+00) var0{{\[[12]\]}};
+# R1ToRz emits Phase(theta / 2). Once controlled, late phase lowering
+# materializes that correction as R1 on the control; OpenQASM 2 spells R1 u1.
+# CHECK-NEXT: u1(1.570796e+00) var0{{\[[12]\]}};
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0[0];
 # CHECK-NEXT: rz(-1.570796e+00) var0[0];
 # CHECK-NEXT: cx var0{{\[[12]\]}}, var0[0];
