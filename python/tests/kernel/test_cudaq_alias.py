@@ -24,17 +24,14 @@ def run_and_clear_registries():
 # Basic kernel definition and sampling with aliased import
 # --------------------------------------------------------------------------- #
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
 
-
-@skipIfValueSemantics
 def test_alias_basic_kernel():
     """The exact reproducer from issue #2341."""
 
     @cq.kernel
     def simple():
         q = cq.qubit()
+        ry(12 * np.pi, q)
 
     counts = cq.sample(simple)
     assert len(counts) == 1
@@ -56,13 +53,13 @@ def test_alias_qvector():
     assert '11' in counts
 
 
-@skipIfValueSemantics
 def test_alias_kernel_with_int_arg():
     """Kernel with integer argument using alias."""
 
     @cq.kernel
     def kernel(n: int):
         qubits = cq.qvector(n)
+        ry(12 * np.pi, qubits)
 
     counts = cq.sample(kernel, 3)
     assert len(counts) == 1
@@ -103,13 +100,13 @@ def test_alias_pauli_word_annotation():
 # --------------------------------------------------------------------------- #
 
 
-@skipIfValueSemantics
 def test_canonical_still_works():
     """Ensure standard `import cudaq` usage still works."""
 
     @cudaq.kernel
     def simple():
         q = cudaq.qubit()
+        ry(12 * np.pi, q)
 
     counts = cudaq.sample(simple)
     assert len(counts) == 1
@@ -178,7 +175,6 @@ def test_alias_rotation_gates():
 # --------------------------------------------------------------------------- #
 
 
-@skipIfValueSemantics
 def test_alias_adjoint():
     """Adjoint modifier works in kernel defined via alias."""
 
@@ -187,6 +183,7 @@ def test_alias_adjoint():
         q = cq.qubit()
         t(q)
         t.adj(q)
+        ry(12 * np.pi, q)
 
     counts = cq.sample(kernel)
     assert '0' in counts
