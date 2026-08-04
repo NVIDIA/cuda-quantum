@@ -24,13 +24,13 @@ _VALID_DEM_OPTION_KEYS = frozenset({
 # ---------------------------------------------------------------------------
 # Attach Python-typed members to DEMResult.
 #
-# DEMResult is the bound C++ cudaq::dem_result. Members that require Python
-# types (scipy matrices) are attached here so that scipy never appears in
+# DEMResult is the bound C++ `cudaq::dem_result`. Members that require Python
+# types (`scipy` matrices) are attached here so that `scipy` never appears in
 # the C++ binding layer.
 #
-# The setup is deferred to first use via _get_dem_result_class() to avoid
+# The setup is deferred to first use via `_get_dem_result_class()` to avoid
 # a circular-import issue: the extension module (which registers DEMResult in
-# cudaq_runtime) may trigger cudaq/__init__.py mid-init, before
+# `cudaq_runtime`) may trigger `cudaq/__init__.py` mid-initialization, before
 # `bindDemFromKernel` has run. Accessing `cudaq_runtime.DEMResult` at module
 # level would fail then.
 # ---------------------------------------------------------------------------
@@ -71,7 +71,7 @@ def _from_matrices(cls,
                    num_observables=0,
                    num_measurements=0,
                    annotations=None):
-    """Build a DEMResult from scipy CSR matrices."""
+    """Build a DEMResult from `scipy` CSR matrices."""
 
     def _csr_to_rows(mat):
         mat = mat.tocsr()
@@ -123,7 +123,7 @@ def _get_dem_result_class():
 
 
 def __getattr__(name):
-    """Lazily resolve DEMResult so it is safe to import at extension-init time."""
+    """Lazily resolve DEMResult so it is safe to import at extension-initialization time."""
     if name == "DEMResult":
         return _get_dem_result_class()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
