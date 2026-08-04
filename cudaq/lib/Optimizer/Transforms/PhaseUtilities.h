@@ -20,10 +20,13 @@
 
 namespace cudaq::opt {
 
-inline llvm::SmallVector<bool>
-getControlPolarities(cudaq::quake::PhaseOp phase) {
-  return getControlPolarities(phase.getControls(),
-                              phase.getNegatedQubitControls());
+template <typename Op>
+inline llvm::SmallVector<bool> getControlPolarities(Op op) {
+  llvm::SmallVector<bool> polarities(op.getControls().size(), false);
+  if (auto negated = op.getNegatedQubitControls())
+    for (auto [index, value] : llvm::enumerate(*negated))
+      polarities[index] = value;
+  return polarities;
 }
 
 inline mlir::DenseBoolArrayAttr
