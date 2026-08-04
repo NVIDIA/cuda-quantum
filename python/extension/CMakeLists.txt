@@ -135,6 +135,9 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     cudaq-python-interop
     cudaq-platform-default
     OptAnalysis
+    # The Clifford tableau oracle (Quake -> stim::Tableau). Kept out of the
+    # cudaqMLIR bundle deliberately, so it is linked here explicitly.
+    OptValidationStim
 )
 
 # MLIR/LLVM is built without RTTI (LLVM_ENABLE_RTTI=OFF). This file subclasses

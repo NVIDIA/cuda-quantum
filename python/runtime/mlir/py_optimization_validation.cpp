@@ -72,6 +72,51 @@ static nb::dict preflight_bounded_unitary(MlirModule module,
   return result;
 }
 
+/// Classify a Quake module against the Clifford (tableau) validation domain.
+static nb::dict preflight_clifford(MlirModule module) {
+  auto status = cudaq::opt::checkCliffordDomain(unwrap(module));
+  nb::dict result;
+  result["supported"] = status.supported;
+  result["max_qubits"] = status.maxQubits;
+  nb::list rejections;
+  for (const auto &r : status.rejections) {
+    nb::dict entry;
+    entry["kind"] = std::string(cudaq::opt::toString(r.kind));
+    entry["kernel"] = r.kernel;
+    entry["detail"] = r.detail;
+    rejections.append(entry);
+  }
+  result["rejections"] = rejections;
+  return result;
+}
+
+/// Compare the stabilizer tableaux of two Clifford modules, at their current
+/// checkpoint.
+static nb::dict compare_tableaux(MlirModule baseline, MlirModule candidate,
+                                 std::optional<std::string> kernelName) {
+  nb::dict result;
+  std::string err;
+  auto baseFunc = findKernel(unwrap(baseline), kernelName, err);
+  if (!baseFunc) {
+    result["computed"] = false;
+    result["error"] = "baseline: " + err;
+    return result;
+  }
+  auto candFunc = findKernel(unwrap(candidate), kernelName, err);
+  if (!candFunc) {
+    result["computed"] = false;
+    result["error"] = "candidate: " + err;
+    return result;
+  }
+
+  auto cmp = cudaq::opt::compareTableaux(baseFunc, candFunc);
+  result["computed"] = cmp.computed;
+  result["equivalent"] = cmp.equivalent;
+  result["error"] = cmp.error;
+  result["kernel"] = baseFunc.getSymName().str();
+  return result;
+}
+
 /// Compare the unitaries of two modules exactly, at their current checkpoint.
 static nb::dict compare_unitaries(MlirModule baseline, MlirModule candidate,
                                   std::optional<std::string> kernelName,
@@ -157,6 +202,15 @@ void cudaq::bindOptimizationValidation(nanobind::module_ &mod) {
       "Compare two Quake modules' unitaries exactly (no simulator). Returns "
       "{computed, strict_equal, equal_up_to_global_phase, phase, "
       "phase_is_zero, error, kernel}.");
+  mod.def("preflight_clifford", &preflight_clifford, nb::arg("module"),
+          "Classify a Quake module against the Clifford (stabilizer-tableau) "
+          "validation domain. There is no qubit bound. Returns {supported, "
+          "max_qubits, rejections[]}.");
+  mod.def("compare_tableaux", &compare_tableaux, nb::arg("baseline"),
+          nb::arg("candidate"), nb::arg("kernel_name").none() = nb::none(),
+          "Compare two Clifford Quake modules by their stabilizer tableaux (no "
+          "simulator, no qubit bound). Equality is up to a global phase. "
+          "Returns {computed, equivalent, error, kernel}.");
   mod.def("count_resources_checkpoint", &count_resources_checkpoint,
           nb::arg("module"),
           "Count resources from a Quake module at its current checkpoint "
