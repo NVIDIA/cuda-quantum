@@ -47,7 +47,7 @@ jobs:
 
     outputs:
       artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
-      cudaq_version: ${{ steps.prereqs.outputs.cudaq_version }}
+      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -83,6 +83,10 @@ jobs:
           key: ${{ inputs.devdeps_cache }}
           fail-on-cache-miss: true
 
+      - name: Compute CUDA-Q version
+        id: version
+        uses: ./.github/actions/compute-cudaq-version
+
       - name: Load prerequisites
         id: prereqs
         run: |
@@ -109,14 +113,7 @@ jobs:
           cache_id=`echo ${{ inputs.python_version }}-$devenv_tag | tr . -`
 
           mkdir -p "/tmp/wheels"
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-          else
-            cudaq_version=0.0.0
-          fi
-        
-          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
           # do not change this prefix without adjusting other workflows
@@ -168,7 +165,7 @@ jobs:
             ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
-            release_version=${{ steps.prereqs.outputs.cudaq_version }}
+            release_version=${{ steps.version.outputs.cudaq_version }}
             python_version=${{ inputs.python_version }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
@@ -184,7 +181,7 @@ jobs:
             -f ./docker/release/cudaq.wheel.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
-            --build-arg release_version=${{ steps.prereqs.outputs.cudaq_version }} \
+            --build-arg release_version=${{ steps.version.outputs.cudaq_version }} \
             --build-arg python_version=${{ inputs.python_version }} \
             --target ccache-export \
             --output type=local,dest=/tmp/ccache-export \
@@ -497,6 +494,7 @@ jobs:
     needs: build_wheel
     if: inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
     runs-on: linux-amd64-gpu-a100-latest-1
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: read
