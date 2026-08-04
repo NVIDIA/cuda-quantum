@@ -87,12 +87,14 @@ private:
       return nanobind::int_(j.get<int64_t>());
     case nlohmann::json::value_t::number_float:
       return nanobind::float_(j.get<double>());
-    case nlohmann::json::value_t::string:
-      return nanobind::str(j.get<std::string>().c_str());
+    case nlohmann::json::value_t::string: {
+      const auto &s = j.get_ref<const std::string &>();
+      return nanobind::str(s.data(), s.size());
+    }
     case nlohmann::json::value_t::object: {
       nanobind::dict d;
       for (auto &[k, v] : j.items())
-        d[nanobind::str(k.c_str())] = json_to_python(v);
+        d[nanobind::str(k.data(), k.size())] = json_to_python(v);
       return d;
     }
     case nlohmann::json::value_t::array: {

@@ -218,7 +218,6 @@ canonicalizer
 canonicalizes
 centroid
 centroids
-classmethod
 codebase
 comparator
 comparators
@@ -253,7 +252,6 @@ deallocations
 decomposer
 decrement
 decrementing
-dem
 dendrogram
 dependence
 dependences
@@ -310,7 +308,6 @@ homogenous
 iff
 increment
 incrementing
-init
 initializer
 initializers
 inlined
@@ -373,7 +370,6 @@ prepend
 preprocessor
 probability
 programmatically
-py
 qBraid
 qaoa
 qbraid
@@ -408,7 +404,6 @@ sandboxed
 scalability
 scalable
 schemas
-scipy
 selectable
 sexualized
 shifter
@@ -418,7 +413,6 @@ splitter
 splitters
 sqale
 statevector
-str
 struct
 structs
 subcircuit
