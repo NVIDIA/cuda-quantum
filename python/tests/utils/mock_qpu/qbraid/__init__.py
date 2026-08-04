@@ -229,6 +229,49 @@ async def resetTestState():
     return {"reset": True}
 
 
+def _paradigm_for_device(device_qrn: str) -> str:
+    """Infer a device paradigm from its QRN for testing.
+
+    Mirrors qBraid's `paradigm` enum (gate_model | analog | annealing | other).
+    Analog/AHS devices (e.g. QuEra Aquila, Pasqal Fresnel) report "analog";
+    everything else defaults to "gate_model".
+    """
+    qrn = device_qrn.lower()
+    if any(tok in qrn for tok in ("quera", "aquila", "pasqal", "fresnel")):
+        return "analog"
+    return "gate_model"
+
+
+# v2 API: GET /devices/{device_qrn}
+@app.get("/devices/{device_qrn}")
+async def getDevice(
+        device_qrn: str = Path(...),
+        x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+):
+    """Retrieve device metadata (v2 API).
+
+    The helper queries this at target-initialization time to confirm the
+    selected device can run gate-based programs before submitting any job.
+    """
+    if x_api_key is None:
+        raise HTTPException(status_code=401, detail="API key is required")
+
+    paradigm = _paradigm_for_device(device_qrn)
+    return {
+        "success": True,
+        "data": {
+            "qrn": device_qrn,
+            "name": device_qrn,
+            "vendor": "qbraid",
+            "deviceType": "SIMULATOR" if "sim" in device_qrn.lower() else "QPU",
+            "paradigm": paradigm,
+            "status": "ONLINE",
+            "numberQubits": 30,
+            "runInputTypes": ["qasm2"],
+        },
+    }
+
+
 # v2 API: GET /jobs/{job_qrn}
 @app.get("/jobs/{job_id}")
 async def getJob(

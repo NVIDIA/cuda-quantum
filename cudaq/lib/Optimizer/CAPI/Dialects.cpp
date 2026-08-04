@@ -7,20 +7,24 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/CAPI/Dialects.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/QEC/QECDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "mlir/InitAllDialects.h"
+#include "cudaq/Optimizer/InitAllDialects.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
+#include "mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h"
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Quake, quake, cudaq::quake::QuakeDialect)
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(QEC, qec, cudaq::qec::QECDialect)
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(CC, cc, cudaq::cc::CCDialect)
 
-extern "C" void cudaqRegisterAllDialects(MlirContext context) {
+extern "C" void cudaqRegisterAllDialects(MlirDialectRegistry registry) {
+  mlir::DialectRegistry *reg = unwrap(registry);
+  cudaq::registerAllDialects(*reg);
+  mlir::func::registerInlinerExtension(*reg);
+  mlir::LLVM::registerInlinerInterface(*reg);
+}
+
+extern "C" void cudaqLoadAllDialects(MlirContext context) {
   mlir::DialectRegistry registry;
-  registry.insert<cudaq::quake::QuakeDialect, cudaq::qec::QECDialect,
-                  cudaq::cc::CCDialect>();
-  mlir::registerAllDialects(registry);
+  cudaqRegisterAllDialects(wrap(&registry));
   auto *mlirContext = unwrap(context);
   mlirContext->appendDialectRegistry(registry);
   mlirContext->loadAllAvailableDialects();

@@ -10,20 +10,20 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/platform/nvqpp_interface.h"
+#include <nanobind/stl/shared_ptr.h>
 
 /// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 /// \p kernel is a kernel decorator object and \p args are the arguments to
 /// launch \p kernel.
-static std::string pyDraw(const std::string &format,
-                          const std::string &shortName, MlirModule mod,
-                          cudaq::CompiledModule *compiled,
-                          nanobind::args runtimeArgs) {
+static std::string
+pyDraw(const std::string &format, const std::string &shortName, MlirModule mod,
+       std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
+       nanobind::args runtimeArgs) {
   if (format != "ascii" && format != "latex")
     throw std::runtime_error("format argument must be \"ascii\" or \"latex\".");
 
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, mod, runtimeArgs,
-                                            compiled);
+    return cudaq::marshal_and_launch_module(shortName, mod, runtimeArgs, cache);
   };
   if (format == "ascii")
     return cudaq::contrib::extractTrace(std::move(f));
@@ -35,9 +35,10 @@ void cudaq::bindPyDraw(nanobind::module_ &mod) {
   mod.def(
       "draw_impl",
       [](const std::string &format, const std::string &shortName,
-         MlirModule mod, cudaq::CompiledModule *compiled,
+         MlirModule mod,
+         std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
          nanobind::args runtimeArgs) {
-        return pyDraw(format, shortName, mod, compiled, runtimeArgs);
+        return pyDraw(format, shortName, mod, std::move(cache), runtimeArgs);
       },
       R"#(
 Return a string representing the drawing of the execution path, in the format

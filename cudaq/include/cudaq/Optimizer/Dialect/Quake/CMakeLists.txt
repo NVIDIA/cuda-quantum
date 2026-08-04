@@ -8,10 +8,11 @@
 
 add_cudaq_dialect(Quake quake)
 add_cudaq_interface(QuakeInterfaces)
-add_cudaq_dialect_doc(QuakeDialect quake)
+add_cudaq_dialect_doc(Quake quake)
 
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
         DESTINATION include/cudaq/Optimizer/Dialect/Quake
+        COMPONENT Development
         FILES_MATCHING
           PATTERN "*.h.inc"
           PATTERN "*.cpp.inc"

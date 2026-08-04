@@ -43,7 +43,6 @@ add_cudaq_library(OptCodeGen
     OptTransformsPassIncGen
     QECDialect
     QuakeDialect
-    cudaq-qir-verifier
     
   LINK_LIBS PUBLIC
     CCDialect
@@ -69,4 +68,9 @@ add_cudaq_library(OptCodeGen
 
     # Translation
     MLIRTargetLLVMIRExport
+
+  LINK_COMPONENTS
+    Passes
 )
+
+register_cudaq_mlir_lib(OptCodeGen)

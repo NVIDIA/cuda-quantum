@@ -92,7 +92,7 @@ jobs:
             echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
       - name: Upload metapackages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.metapackage_build.outputs.artifact_name }}
           path: /tmp/packages/
@@ -121,14 +121,14 @@ jobs:
 
     steps:
       - name: Load metapackages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
           path: /tmp/metapackages/
           merge-multiple: true
 
       - name: Load wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: ${{ inputs.wheel_artifacts }}
           path: /tmp/wheels/
@@ -205,9 +205,9 @@ jobs:
               set -e && check_package=cuda-quantum
             ;; 
             *) 
-              # Skip conflict test entirely on Python 3.{13,12} (cuda-quantum==0.8.0 not available)
-              if [ "${{ matrix.python_version }}" = "3.12" ] || [ "${{ matrix.python_version }}" = "3.13" ]; then
-                echo "::warning::Skipping conflict test on Python 3.{12,13} (cuda-quantum==0.8.0 unavailable)."
+              # Skip conflict test entirely on Python 3.{12,13,14} (cuda-quantum==0.8.0 not available)
+              if [ "${{ matrix.python_version }}" = "3.12" ] || [ "${{ matrix.python_version }}" = "3.13" ] || [ "${{ matrix.python_version }}" = "3.14" ]; then
+                echo "::warning::Skipping conflict test on Python 3.{12,13,14} (cuda-quantum==0.8.0 unavailable)."
                 test_conflicting="<skipped>"
                 check_package=cudaq
               else

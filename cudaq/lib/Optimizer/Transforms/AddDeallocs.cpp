@@ -14,7 +14,7 @@
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_QUAKEADDDEALLOCS
+#define GEN_PASS_DEF_ADDDEALLOCS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -245,8 +245,8 @@ using ScopeDeallocPattern =
 /// This pass should be run <em>after</em> the UnwindLowering pass, which adds
 /// dealloc ops along non-trivial control paths in the presence of global jumps.
 /// DeallocationAnalysis will flag any unwinding jumps as errors.
-class QuakeAddDeallocsPass
-    : public cudaq::opt::impl::QuakeAddDeallocsBase<QuakeAddDeallocsPass> {
+class AddDeallocsPass
+    : public cudaq::opt::impl::AddDeallocsBase<AddDeallocsPass> {
 public:
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();
@@ -283,9 +283,4 @@ public:
     }
   }
 };
-
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createQuakeAddDeallocs() {
-  return std::make_unique<QuakeAddDeallocsPass>();
-}

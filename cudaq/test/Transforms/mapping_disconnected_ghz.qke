@@ -1,0 +1,55 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=auto     search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=auto     search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=greedy   search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=greedy   search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=identity'  %s 2>&1 | FileCheck --check-prefix=IDENTITY %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @ghz_chain() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#1] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#0 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  return
+}
+
+func.func @ghz_star() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @ghz_chain() attributes {mapping_reorder_idx = [0, 1, 2], mapping_v2p = [5, 6, 7]} {
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[5] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[6] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[7] : !quake.wire
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_0]]] %[[BORROW_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#1] %[[BORROW_WIRE_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+// CHECK-LABEL:   func.func @ghz_star() attributes {mapping_reorder_idx = [1, 0, 2], mapping_v2p = [6, 5, 7]} {
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[6] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[5] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[7] : !quake.wire
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_0]]] %[[BORROW_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[X_0]]#0] %[[BORROW_WIRE_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+// IDENTITY: cannot place two-qubit interaction between virtual qubits 0 and 1 on disconnected device topology

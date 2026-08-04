@@ -40,23 +40,93 @@ function(add_cudaq_doc tablegen_file output_path command)
   string(MAKE_C_IDENTIFIER ${output_path} output_id)
   tablegen(MLIR ${output_id}.md ${command} ${ARGN})
   set(GEN_DOC_FILE ${CUDAQ_BINARY_DIR}/docs/${output_path}.md)
+  set(PROCESS_DOC_SCRIPT
+      ${CUDAQ_SOURCE_DIR}/cmake/modules/ProcessMLIRMarkdown.cmake)
   add_custom_command(
     OUTPUT ${GEN_DOC_FILE}
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md
-    ${GEN_DOC_FILE}
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md)
+    COMMAND ${CMAKE_COMMAND}
+      -DINPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md
+      -DOUTPUT_FILE=${GEN_DOC_FILE}
+      -P ${PROCESS_DOC_SCRIPT}
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md ${PROCESS_DOC_SCRIPT}
+    VERBATIM)
   add_custom_target(${output_id}DocGen DEPENDS ${GEN_DOC_FILE})
   add_dependencies(cudaq-doc ${output_id}DocGen)
 endfunction()
 
 function(add_cudaq_dialect_doc dialect dialect_namespace)
-  add_cudaq_doc(${dialect} Dialects/${dialect} -gen-dialect-doc -dialect ${dialect_namespace})
+  add_cudaq_doc(${dialect}Ops Dialects/${dialect}
+                -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
 function(add_cudaq_library name)
-  add_mlir_library(${ARGV} DISABLE_INSTALL)
+  add_mlir_library(${ARGV} DISABLE_INSTALL ENABLE_AGGREGATION)
   add_cudaq_library_install(${name})
+endfunction()
+
+# Build a thin shared C API library.
+#
+# The listed C API libraries are embedded via their object targets without
+# inheriting their static MLIR link interfaces. Their C++ dependencies are
+# recorded in CUDAQ_MLIR_REQUIRED_LIBS for the single cudaqMLIR DSO to provide.
+function(add_cudaq_capi_shared_library name)
+  # 1. Parse arguments
+  if(NOT ARGN)
+    message(FATAL_ERROR "list of C API libraries cannot be empty")
+  endif()
+  if(TARGET ${name})
+    message(FATAL_ERROR "target ${name} already exists")
+  endif()
+
+  # 2. Collect object files from the C API libraries
+  set(_objects)
+  foreach(_capi_lib IN LISTS ARGN)
+    if(NOT TARGET obj.${_capi_lib})
+      message(FATAL_ERROR "Ensure ${_capi_lib} was registered with ENABLE_AGGREGATION")
+    endif()
+    list(APPEND _objects "$<TARGET_OBJECTS:obj.${_capi_lib}>")
+
+    # 3. Record MLIR dependencies of the C API libraries (to be whole-archived into cudaqMLIR)
+    get_target_property(_capi_deps ${_capi_lib}
+      MLIR_AGGREGATE_DEP_LIBS_IMPORTED)
+    foreach(_dep IN LISTS _capi_deps)
+      if(TARGET ${_dep}
+          AND NOT _dep IN_LIST ARGN
+          AND NOT _dep MATCHES "CAPI"
+          AND NOT _dep STREQUAL "cudaqMLIR")
+        set_property(GLOBAL APPEND PROPERTY CUDAQ_MLIR_REQUIRED_LIBS "${_dep}")
+      endif()
+    endforeach()
+  endforeach()
+
+  # 4. Create the shared library, with hidden visibility and linking to cudaqMLIR
+  add_library(${name} SHARED ${_objects})
+  target_link_libraries(${name} PRIVATE cudaqMLIR)
+  set_target_properties(${name} PROPERTIES
+    LINKER_LANGUAGE CXX
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+
+  # 5. Linker options: set RPATH and hide all C++ symbols that would otherwise get
+  # re-exported from cudaqMLIR
+  if(APPLE)
+    set_property(TARGET ${name} PROPERTY INSTALL_RPATH "@loader_path")
+    set(_exports "${CMAKE_CURRENT_BINARY_DIR}/${name}-exported.txt")
+    file(WRITE "${_exports}" "_mlir*\n_cudaq*\n")
+    set_property(TARGET ${name} APPEND PROPERTY LINK_DEPENDS "${_exports}")
+    target_link_options(${name} PRIVATE
+      "LINKER:-exported_symbols_list,${_exports}")
+  else()
+    set_property(TARGET ${name} PROPERTY INSTALL_RPATH "$ORIGIN")
+    set(_version_script "${CMAKE_CURRENT_BINARY_DIR}/${name}.map")
+    file(WRITE "${_version_script}"
+      "{\n  global:\n    mlir*;\n    cudaq*;\n  local:\n    *;\n};\n")
+    set_property(TARGET ${name} APPEND PROPERTY
+      LINK_DEPENDS "${_version_script}")
+    target_link_options(${name} PRIVATE
+      "LINKER:--version-script=${_version_script}")
+  endif()
 endfunction()
 
 # Adds a CUDA Quantum dialect library target for installation. This should normally
@@ -85,4 +155,10 @@ endfunction()
 function(add_target_mapping_arch providerName name)
   install(FILES ${name} DESTINATION targets/mapping/${providerName})
   configure_file(${name} ${CMAKE_BINARY_DIR}/targets/mapping/${providerName}/${name} COPYONLY)
+endfunction()
+
+# Make `target` resolve its transitive CUDA-Q MLIR deps against static
+# MLIR component libraries instead of libcudaqMLIR.so.
+function(cudaq_use_static_mlir target)
+  set_target_properties(${target} PROPERTIES CUDAQ_MLIR_STATIC ON)
 endfunction()

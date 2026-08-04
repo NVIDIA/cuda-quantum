@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.30 FATAL_ERROR)
 
 # Policies
 # ==============================================================================
@@ -72,6 +72,9 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
+# Disable scanning since we have no C++20 modules.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 # Set warnings as errors by default.
 # Individual targets and the command line invocation can override this behavior.
@@ -426,21 +429,19 @@ if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
-  # macOS Two-Level Namespace Workaround:
-  # By default, macOS uses two-level namespace linking where symbols are bound
-  # to the specific library they came from. This causes issues when LLVM/MLIR
-  # static initializers (e.g., PassRegistry, TargetRegistry) are duplicated
-  # across multiple shared libraries - each gets its own isolated copy.
-  #
-  # flat_namespace makes all symbols global, allowing shared libraries to see
-  # each other's registrations. This is not a very graceful fix.
-  # Alternatives might be:
-  # A. Restructuring libraries to avoid multiple symbol definitions
-  #    (but this still might struggle due to how plugin systems are used).
-  # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as
-  #    the first versions of this setting did not appropriately link all libraries to the dylibs.
-  add_link_options("-Wl,-flat_namespace")
-  add_link_options("-Wl,-undefined,dynamic_lookup")
+  # Find path to the compiler-rt library
+  set(_cudaq_builtins "")
+  execute_process(
+    COMMAND ${CMAKE_CXX_COMPILER} --rtlib=compiler-rt --print-libgcc-file-name
+    OUTPUT_VARIABLE _cudaq_builtins
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  if(EXISTS "${_cudaq_builtins}")
+    message(STATUS "Found compiler-rt builtins: ${_cudaq_builtins}")
+    link_libraries("${_cudaq_builtins}")
+  else()
+    message(WARNING "compiler-rt builtins not found, symbol resolution may fail at runtime")
+    add_link_options("LINKER:-undefined,dynamic_lookup")
+  endif()
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
@@ -749,15 +750,47 @@ cmake_policy(POP)
 include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
-  DESTINATION include/nlohmann)
+  DESTINATION include/nlohmann
+  COMPONENT Development)
 
 # Add spdlog
-set(SPDLOG_BUILD_SHARED OFF)
+#
+# spdlog is an implementation detail of cudaq-logger: it is linked in PRIVATE
+# and no installed CUDA-Q header includes an spdlog header. Its library type
+# follows BUILD_SHARED_LIBS like everything else, and CUDAQ_SPDLOG_BUILD_SHARED
+# is here for the case where the user wants to decide it independently, e.g. to
+# fold spdlog into the CUDA-Q DSOs while the rest of the build stays shared.
+#
+# A CUDA-Q-specific variable is needed because upstream's SPDLOG_BUILD_SHARED
+# cannot express "static". tpls/spdlog/CMakeLists.txt gates the library type on
+# `if(SPDLOG_BUILD_SHARED OR BUILD_SHARED_LIBS)`, so that option can only opt
+# in to a shared build. Reaching the static branch requires setting
+# BUILD_SHARED_LIBS as well, so CUDAQ_SPDLOG_BUILD_SHARED drives both, and
+# BUILD_SHARED_LIBS is restored right after the add_subdirectory.
+option(CUDAQ_SPDLOG_BUILD_SHARED
+  "Build the bundled spdlog as a shared library. Defaults to BUILD_SHARED_LIBS."
+  ${BUILD_SHARED_LIBS})
+# A shared spdlog is a runtime dependency of the installed cudaq-logger, so it
+# has to be installed next to it; upstream will not do it for us, since
+# SPDLOG_INSTALL defaults to SPDLOG_MASTER_PROJECT, which is OFF under
+# add_subdirectory.
+option(CUDAQ_INSTALL_SPDLOG
+  "Install the bundled spdlog library. Only applies when it is built shared."
+  ON)
+
+set(SPDLOG_BUILD_SHARED ${CUDAQ_SPDLOG_BUILD_SHARED})
 set(SPDLOG_FMT_EXTERNAL ON)
 set(SPDLOG_BUILD_PIC ON)
 set(SPDLOG_SYSTEM_INCLUDES ON)
+set(CUDAQ_SAVED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS ${CUDAQ_SPDLOG_BUILD_SHARED})
 add_subdirectory(tpls/spdlog)
+set(BUILD_SHARED_LIBS ${CUDAQ_SAVED_BUILD_SHARED_LIBS})
+unset(CUDAQ_SAVED_BUILD_SHARED_LIBS)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
+if (CUDAQ_SPDLOG_BUILD_SHARED AND CUDAQ_INSTALL_SPDLOG)
+  install(TARGETS spdlog DESTINATION lib)
+endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   # Look for CURL
@@ -842,7 +875,7 @@ endif()
 
 # cuQuantum / cuTensor component discovery
 if (CUDA_FOUND)
-  find_package(cuStateVec)
+  find_package(cuStateVec 1.14) # Required for custatevecEx API
   find_package(cuTensor)
   find_package(cuTensorNet)
   find_package(cuDensityMat)
@@ -995,6 +1028,7 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     endif()
   endif()
   include(GoogleTest)
+  include(CUDAQGtestDiscovery)
   include(CTest)
   if (NOT CUDAQ_DISABLE_RUNTIME)
     add_subdirectory(targettests)

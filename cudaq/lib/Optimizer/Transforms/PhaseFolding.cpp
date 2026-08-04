@@ -161,6 +161,86 @@ public:
 /// `quake.ref` types produced directly by `quake.alloca`, to avoid
 /// possible issues with aliasing of `quake.veq`s.
 class Subcircuit {
+public:
+  /// @brief Constructs a subcircuit containing only RZ, NOT, CNOT, and Swap
+  /// gates, using the Netlist representation `netlist`.
+  /// @details A subcircuit is an connected portion of the netlist containing
+  /// only RZ, NOT, CNOT, and Swap gates.
+  ///
+  /// First, we construct an initial subcircuit:
+  /// We start by walking forward and backward along the netlist from the
+  /// initial anchor point, which is at `cnot` along the control qubit, and add
+  /// any allowed gates to the subcircuit. If a CNOT or Swap gate is
+  /// encountered, an anchor point is added at the gate for the other qubit,
+  /// which will later be walked. If a disallowed gate is encountered, we stop
+  /// walking and add a termination point.
+  ///
+  /// Then, we prune the subcircuit, starting at the earlist ending termination
+  /// point (i.e., earliest termination point encountered while walking forward)
+  /// along each qubit, and walk forward, adjusting the termination boundary for
+  /// any connected qubits, and removing gates after the termination
+  /// boundary from the subcircuit.
+  Subcircuit(Operation *cnot, Netlist *netlist)
+      : container(netlist), start(cnot) {
+    assert(isCNOT(cnot));
+    qubits = SmallVector<NetlistWrapper *>(netlist->size(), nullptr);
+    calculateInitialSubcircuit();
+    pruneSubcircuit();
+    for (auto op : ops)
+      netlist->markProcessed(op);
+  }
+
+  ~Subcircuit() {
+    for (auto wrapper : qubits)
+      if (wrapper)
+        delete wrapper;
+  }
+
+  /// @brief Gets the !quake.refs used in the subcircuit
+  SmallVector<Value> getRefs() {
+    SmallVector<Value> refs;
+    for (auto wrapper : qubits)
+      if (wrapper)
+        refs.push_back(wrapper->getDef());
+
+    return refs;
+  }
+
+  /// @brief Gets the number of !quake.refs used in the subcircuit
+  size_t numRefs() {
+    size_t count = 0;
+    for (auto wrapper : qubits)
+      if (wrapper)
+        count++;
+    return count;
+  }
+
+  /// @brief Gets the operations in the subcircuit
+  /// ordered by location in the containing block
+  SmallVector<Operation *> getOrderedOps() {
+    if (ordered_ops.size() == 0 && ops.size() > 0) {
+      ordered_ops = SmallVector<Operation *>(ops.begin(), ops.end());
+      auto less = [&](Operation *a, Operation *b) {
+        return a->isBeforeInBlock(b);
+      };
+      std::sort(ordered_ops.begin(), ordered_ops.end(), less);
+    }
+
+    return ordered_ops;
+  }
+
+  /// @brief Gets the number of RZs in the subcircuit
+  size_t getNumRotations() { return num_rot_gates; }
+
+  /// @returns The percentage of operations in the subcircuit
+  /// that are `quake.rz`s.
+  float getRotationWeight() {
+    return (float)getNumRotations() / (float)getNumOps();
+  }
+
+  /// @brief Gets the number of operations in the subcircuit
+  size_t getNumOps() { return ops.size(); }
+
 protected:
   SmallVector<std::pair<Value, Operation *>> anchor_points;
   Netlist *container = nullptr;
@@ -343,97 +423,17 @@ protected:
       }
     }
   }
-
-public:
-  /// @brief Constructs a subcircuit containing only RZ, NOT, CNOT, and Swap
-  /// gates, using the Netlist representation `netlist`.
-  /// @details A subcircuit is an connected portion of the netlist containing
-  /// only RZ, NOT, CNOT, and Swap gates.
-  ///
-  /// First, we construct an initial subcircuit:
-  /// We start by walking forward and backward along the netlist from the
-  /// initial anchor point, which is at `cnot` along the control qubit, and add
-  /// any allowed gates to the subcircuit. If a CNOT or Swap gate is
-  /// encountered, an anchor point is added at the gate for the other qubit,
-  /// which will later be walked. If a disallowed gate is encountered, we stop
-  /// walking and add a termination point.
-  ///
-  /// Then, we prune the subcircuit, starting at the earlist ending termination
-  /// point (i.e., earliest termination point encountered while walking forward)
-  /// along each qubit, and walk forward, adjusting the termination boundary for
-  /// any connected qubits, and removing gates after the termination
-  /// boundary from the subcircuit.
-  Subcircuit(Operation *cnot, Netlist *netlist)
-      : container(netlist), start(cnot) {
-    assert(isCNOT(cnot));
-    qubits = SmallVector<NetlistWrapper *>(netlist->size(), nullptr);
-    calculateInitialSubcircuit();
-    pruneSubcircuit();
-    for (auto op : ops)
-      netlist->markProcessed(op);
-  }
-
-  ~Subcircuit() {
-    for (auto wrapper : qubits)
-      if (wrapper)
-        delete wrapper;
-  }
-
-  /// @brief Gets the !quake.refs used in the subcircuit
-  SmallVector<Value> getRefs() {
-    SmallVector<Value> refs;
-    for (auto wrapper : qubits)
-      if (wrapper)
-        refs.push_back(wrapper->getDef());
-
-    return refs;
-  }
-
-  /// @brief Gets the number of !quake.refs used in the subcircuit
-  size_t numRefs() {
-    size_t count = 0;
-    for (auto wrapper : qubits)
-      if (wrapper)
-        count++;
-    return count;
-  }
-
-  /// @brief Gets the operations in the subcircuit
-  /// ordered by location in the containing block
-  SmallVector<Operation *> getOrderedOps() {
-    if (ordered_ops.size() == 0 && ops.size() > 0) {
-      ordered_ops = SmallVector<Operation *>(ops.begin(), ops.end());
-      auto less = [&](Operation *a, Operation *b) {
-        return a->isBeforeInBlock(b);
-      };
-      std::sort(ordered_ops.begin(), ordered_ops.end(), less);
-    }
-
-    return ordered_ops;
-  }
-
-  /// @brief Gets the number of RZs in the subcircuit
-  size_t getNumRotations() { return num_rot_gates; }
-
-  /// @returns The percentage of operations in the subcircuit
-  /// that are `quake.rz`s.
-  float getRotationWeight() {
-    return (float)getNumRotations() / (float)getNumOps();
-  }
-
-  /// @brief Gets the number of operations in the subcircuit
-  size_t getNumOps() { return ops.size(); }
 };
 
 struct PhaseVariable {
-public:
+  PhaseVariable(size_t index, Value wire) : idx(index), initial_wire(wire) {}
+
+  bool operator==(PhaseVariable other) { return idx == other.idx; }
+
   size_t idx;
   // Q: do we really need the initial_wire here? I think it's just useful for
   // debugging
   Value initial_wire;
-  PhaseVariable(size_t index, Value wire) : idx(index), initial_wire(wire) {}
-
-  bool operator==(PhaseVariable other) { return idx == other.idx; }
 };
 
 /// A `Phase` is an exclusive sum of all of the `PhaseVariable`s involved in the
@@ -633,20 +633,11 @@ class PhaseFoldingPass
 public:
   void runOnOperation() override {
     auto func = getOperation();
-    mlir::DefaultTimingManager tm;
-    tm.setEnabled(false);
-    auto root = tm.getRootTimer();
-    root.start();
-    auto netlistBuild = root.nest("Building netlist");
-    netlistBuild.start();
     // Get the netlist represention for the qubits in the function,
     // this will walk the whole function once
     auto nl = Netlist(func);
-    netlistBuild.stop();
     SmallVector<Subcircuit *> subcircuits;
 
-    auto subcircuitBuild = root.nest("Building subcircuits");
-    subcircuitBuild.start();
     func.walk([&](cudaq::quake::XOp op) {
       // AXIS-SPECIFIC: controlled not only
       if (!::isCNOT(op) || nl.wasProcessed(op))
@@ -667,27 +658,41 @@ public:
       }
       subcircuits.push_back(subcircuit);
     });
-    subcircuitBuild.stop();
 
     // Performing the actual optimization over subcircuits after collecting them
     // A) allows for eventually parallelizing the optimization, and
     // B) avoids rewriting the AST as it is being walked above, causing an
     // error. This does introduce a requirement that each operation belongs to
     // at most one subcircuit.
-    auto rotationMerging = root.nest("Merging rotations by phase");
-    rotationMerging.start();
     for (auto subcircuit : subcircuits) {
       doPhaseFolding(subcircuit);
       // Clean up
       delete subcircuit;
     }
-    rotationMerging.stop();
-
-    root.stop();
-    tm.setDisplayMode(mlir::DefaultTimingManager::DisplayMode::Tree);
   }
 };
+} // namespace
 
+/// Add a pass pipeline to apply the requisite passes to fully unroll loops.
+/// When converting to a quantum circuit, the static control program is fully
+/// expanded to eliminate control flow. This pipeline will raise an error if any
+/// loop in the module cannot be fully unrolled and signalFailure is set.
+static void createPhaseFoldingPipeline(OpPassManager &pm, unsigned min_length,
+                                       double min_rz_weight) {
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createFactorQuantumAllocations({.enableFailures = true}));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRepairLinearType());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
+  cudaq::opt::PhaseFoldingOptions pfo{min_length, min_rz_weight};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createPhaseFolding(pfo));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRepairLinearType());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
+}
+
+namespace {
 /// Phase folding pass pipeline command-line options.
 struct PhaseFoldingPipelineOptions
     : public PassPipelineOptions<PhaseFoldingPipelineOptions> {
@@ -703,23 +708,6 @@ struct PhaseFoldingPipelineOptions
       llvm::cl::init(0.2)};
 };
 } // namespace
-
-/// Add a pass pipeline to apply the requisite passes to fully unroll loops.
-/// When converting to a quantum circuit, the static control program is fully
-/// expanded to eliminate control flow. This pipeline will raise an error if any
-/// loop in the module cannot be fully unrolled and signalFailure is set.
-static void createPhaseFoldingPipeline(OpPassManager &pm, unsigned min_length,
-                                       double min_rz_weight) {
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createFactorQuantumAllocations({.enableFailures = true}));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
-  cudaq::opt::PhaseFoldingOptions pfo{min_length, min_rz_weight};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createPhaseFolding(pfo));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
-}
 
 void cudaq::opt::registerPhaseFoldingPipeline() {
   PassPipelineRegistration<PhaseFoldingPipelineOptions>(

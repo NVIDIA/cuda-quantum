@@ -23,7 +23,8 @@ set(CUDAQ_DEVICE_CALL_REALTIME_SHIMS
   "cudaq-test-device-call-realtime-scalar-gpu-dispatch|NVQPP/Inputs/device_call_realtime_scalar_shim.cu"
   "cudaq-test-device-call-realtime-scalar-host-dispatch|NVQPP/Inputs/device_call_realtime_scalar_host_dispatch_shim.cu"
   "cudaq-test-device-call-realtime-array-gpu-dispatch|NVQPP/Inputs/device_call_realtime_array_shim.cu"
-  "cudaq-test-device-call-realtime-array-host-dispatch|NVQPP/Inputs/device_call_realtime_array_host_dispatch_shim.cu")
+  "cudaq-test-device-call-realtime-array-host-dispatch|NVQPP/Inputs/device_call_realtime_array_host_dispatch_shim.cu"
+  "cudaq-test-device-call-realtime-bitpacked-native-gpu-dispatch|NVQPP/Inputs/device_call_realtime_bitpacked_native_shim.cu")
 
 set(CUDAQ_DEVICE_CALL_REALTIME_LIBS "")
 foreach(_shim IN LISTS CUDAQ_DEVICE_CALL_REALTIME_SHIMS)

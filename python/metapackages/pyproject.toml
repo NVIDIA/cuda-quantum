@@ -24,6 +24,7 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     "Environment :: GPU :: NVIDIA CUDA",
     "Environment :: GPU :: NVIDIA CUDA :: 11",
     "Environment :: GPU :: NVIDIA CUDA :: 12",
@@ -39,7 +40,7 @@ Repository = "https://github.com/NVIDIA/cuda-quantum"
 Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 
 [project.optional-dependencies]
-chemistry = [ "scipy==1.10.1", "openfermionpyscf==0.5", "h5py==3.12.1"  ]
+chemistry = [ "scipy==1.10.1; python_version < '3.14'", "openfermionpyscf==0.5; python_version < '3.14'", "h5py==3.12.1; python_version < '3.14'"  ]
 visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 
 [build-system]

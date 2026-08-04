@@ -35,6 +35,9 @@ if (CMAKE_COMPILER_IS_GNUCXX
   target_compile_options(gtest PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
 endif()
 include(GoogleTest)
+# Explicit path: standalone realtime builds do not have cmake/modules on
+# CMAKE_MODULE_PATH.
+include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules/CUDAQGtestDiscovery.cmake)
 
 
 add_compile_options(-Wno-attributes)
@@ -51,7 +54,7 @@ if(CMAKE_CUDA_COMPILER)
   
   set_target_properties(test_dispatch_kernel PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
+    CUDA_STANDARD 20
   )
   
   target_include_directories(test_dispatch_kernel PRIVATE
@@ -72,8 +75,7 @@ if(CMAKE_CUDA_COMPILER)
     ${CUDADEVRT_LIBRARY}
   )
   
-  add_dependencies(CudaqRealtimeUnitTests test_dispatch_kernel)
-  gtest_discover_tests(test_dispatch_kernel
+  cudaq_gtest_discover_tests(test_dispatch_kernel
     TEST_PREFIX "test_dispatch_kernel."
   )
   
@@ -83,7 +85,7 @@ if(CMAKE_CUDA_COMPILER)
   add_executable(test_host_dispatcher test_host_dispatcher.cu)
   set_target_properties(test_host_dispatcher PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
+    CUDA_STANDARD 20
   )
   target_include_directories(test_host_dispatcher PRIVATE
     ${CUDAToolkit_INCLUDE_DIRS}
@@ -97,8 +99,7 @@ if(CMAKE_CUDA_COMPILER)
     cudaq-realtime-host-dispatch
     ${CUDADEVRT_LIBRARY}
   )
-  add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
-  gtest_discover_tests(test_host_dispatcher
+  cudaq_gtest_discover_tests(test_host_dispatcher
     TEST_PREFIX "test_host_dispatcher."
   )
   message(STATUS "  - test_host_dispatcher (host dispatcher loop)")
@@ -106,15 +107,19 @@ if(CMAKE_CUDA_COMPILER)
 endif()
 
 # ==============================================================================
-# Hololink bridge/emulator/playback tools (optional, not CI)
+# HSB bridge/emulator/playback tools (optional, not CI)
 # ==============================================================================
 
-if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(utils)
-  add_subdirectory(bridge_interface/hololink)
+  add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
+# UDP bridge provider tests: self-gated on the always-built udp provider
+# target, so they run in CI without any HSB/RDMA setup.
+add_subdirectory(bridge_interface/udp)
+
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
-# Self-gates on TARGET cudaq-realtime-cpu-transport so this is harmless when
+# Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
 # libibverbs is not available.
 add_subdirectory(cpu_transport)

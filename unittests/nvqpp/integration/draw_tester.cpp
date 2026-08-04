@@ -18,7 +18,7 @@ CUDAQ_TEST(DrawTester, checkEmpty) {
   EXPECT_EQ(expected_str, produced_str);
 }
 
-namespace {
+namespace draw_tester {
 __qpu__ void bar(cudaq::qvector<> &q) {
   double pi_d = M_PI;
   float pi_f = M_PI;
@@ -55,7 +55,9 @@ auto kernel = []() __qpu__ {
   cudaq::control(zaz, q[1], q[0]);
   cudaq::adjoint(bar, q);
 };
-} // namespace
+} // namespace draw_tester
+
+using namespace draw_tester;
 
 CUDAQ_TEST(DrawTester, checkOps) {
   // clang-format off
@@ -111,4 +113,22 @@ CUDAQ_TEST(LatexDrawTester, checkOps) {
   std::string produced_str = cudaq::contrib::draw("latex", kernel);
   EXPECT_EQ(expected_str.size(), produced_str.size());
   EXPECT_EQ(expected_str, produced_str);
+}
+
+CUDAQ_TEST(LatexDrawTester, skipsNonGateInstructions) {
+  cudaq::Trace trace;
+  trace.appendInstruction("h", {}, {}, {{2, 0}});
+  trace.appendMeasurement("mz", {{2, 0}});
+  trace.appendInstruction("x", {}, {}, {{2, 0}});
+
+  const std::string expected_str = R"(\documentclass{minimal}
+\usepackage{quantikz}
+\begin{document}
+\begin{quantikz}
+  \lstick{$q_0$} & \gate{H} & \gate{X} & \qw \\
+\end{quantikz}
+\end{document}
+)";
+
+  EXPECT_EQ(expected_str, cudaq::detail::getLaTeXString(trace));
 }

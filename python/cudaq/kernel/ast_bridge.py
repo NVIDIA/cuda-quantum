@@ -35,8 +35,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
-                    recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType)
+                    recover_annotation_of_or_none, recover_value_of_or_none,
+                    cudaq__unique_attr_name, mlirTryCreateStructType)
 
 State = cudaq_runtime.State
 
@@ -173,6 +173,16 @@ class PyScopedSymbolTable(object):
     @property
     def scopeRoot(self):
         return self._scope.root
+
+    def getIfAccessible(self, symbol):
+        """Return the value for an accessible `symbol`, otherwise None."""
+        scope = self._scope
+        while scope:
+            value, valid = scope.tryGet(symbol)
+            if value is not None:
+                return value if valid else None
+            scope = scope.parent
+        return None
 
     def __contains__(self, symbol):
         """Returns True if and only if a symbol with the given name is defined
@@ -404,6 +414,18 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentAssignVariableName = None
         self.walkingReturnNode = False
         self.controlNegations = []
+        # Cache qualified-name and decorator-recovery results, including a
+        # missing decorator, for this bridge. Compilation assumes module and
+        # definition-frame bindings remain stable while translating the kernel
+        # AST. These caches are not shared across kernels.
+        self.qualifiedNameCache = {}
+        self.qualifiedDecoratorCache = {}
+        # Cache only the monotone fact that a scalar handle `alloca` has a
+        # non-`undef` store. The AST bridge appends operations while visiting the
+        # source, and the pass pipeline runs only after the visit completes, so
+        # a witnessed store cannot disappear during this cache's lifetime. Do
+        # not cache the unbound verdict: a later store can change it.
+        self._measureHandleAllocasWithNonUndefStore = set()
         self.pushPointerValue = False
         # Constant ``cudaq.qvector(N)`` sizes for compile-time checks.
         self.staticVeqSizes = {}
@@ -843,10 +865,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def hasTerminator(self, block):
         """Return True if the given Block has a Terminator operation."""
-        if len(block.operations) > 0:
-            return cudaq_runtime.isTerminator(
-                block.operations[len(block.operations) - 1])
-        return False
+        return cudaq_runtime.blockHasTerminator(block)
 
     def isArithmeticType(self, type):
         """Return True if the given type is an integer, float, or complex
@@ -885,11 +904,7 @@ class PyASTBridge(ast.NodeVisitor):
     def __isMeasurementGate(self, id):
         return id in ['mx', 'my', 'mz']
 
-    def __isProvablyUnboundHandleSource(self, value):
-        """Return True if `value` provably comes from a default-constructed
-        `cudaq.measure_handle()` that was never bound by `mz`/`mx`/`my`.
-        """
-
+    def __measureHandleOperationName(self, operation):
         # The MLIR Python bindings return two different wrapper kinds
         # depending on how we reach an op: `Value.owner` and
         # `Value.operands[i].owner` give a raw `mlir.ir.Operation`
@@ -898,30 +913,46 @@ class PyASTBridge(ast.NodeVisitor):
         # `OpView` subclass (e.g. `_LoadOp`) whose op name lives on the
         # `OPERATION_NAME` *class* attribute and *not* on `.name`. This
         # helper handles both shapes uniformly.
-        def _opName(o):
-            n = getattr(o, 'name', None)
-            return n if isinstance(n, str) else getattr(o, 'OPERATION_NAME',
-                                                        None)
+        name = getattr(operation, 'name', None)
+        return (name if isinstance(name, str) else getattr(
+            operation, 'OPERATION_NAME', None))
+
+    def __scanMeasureHandleAllocaStores(self, ptr):
+        """Return whether `ptr` has a store and a non-`undef` store."""
+        sawStore = False
+        for use in ptr.uses:
+            if self.__measureHandleOperationName(use.owner) != 'cc.store':
+                continue
+            sawStore = True
+            stored = use.owner.operands[0]
+            if (not hasattr(stored, 'owner') or
+                    self.__measureHandleOperationName(
+                        stored.owner) != 'cc.undef'):
+                return sawStore, True
+        return sawStore, False
+
+    def __isProvablyUnboundHandleSource(self, value):
+        """Return True if `value` provably comes from a default-constructed
+        `cudaq.measure_handle()` that was never bound by `mz`/`mx`/`my`.
+        """
 
         if not hasattr(value, 'owner'):
             return False
-        defName = _opName(value.owner)
+        defName = self.__measureHandleOperationName(value.owner)
         if defName == 'cc.undef':
             return True
         if defName != 'cc.load':
             return False
         ptr = value.owner.operands[0]
-        if not hasattr(ptr, 'owner') or _opName(ptr.owner) != 'cc.alloca':
+        if (not hasattr(ptr, 'owner') or
+                self.__measureHandleOperationName(ptr.owner) != 'cc.alloca'):
             return False
-        sawStore = False
-        for use in ptr.uses:
-            if _opName(use.owner) != 'cc.store':
-                continue
-            sawStore = True
-            stored = use.owner.operands[0]
-            if not hasattr(stored, 'owner') or _opName(
-                    stored.owner) != 'cc.undef':
-                return False
+        if ptr in self._measureHandleAllocasWithNonUndefStore:
+            return False
+        sawStore, sawNonUndefStore = self.__scanMeasureHandleAllocaStores(ptr)
+        if sawNonUndefStore:
+            self._measureHandleAllocasWithNonUndefStore.add(ptr)
+            return False
         return sawStore
 
     def __discriminateIfMeasureHandle(self, value, node):
@@ -1410,8 +1441,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         whileBlock = Block.create_at_start(loop.whileRegion, argTypes)
         with InsertionPoint(whileBlock):
+            self.symbolTable.beginBlock()
             condVal = evalCond(whileBlock.arguments)
             cc.ConditionOp(condVal, whileBlock.arguments)
+            self.symbolTable.endBlock()
 
         bodyBlock = Block.create_at_start(loop.bodyRegion, argTypes)
         with InsertionPoint(bodyBlock):
@@ -1927,9 +1960,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.debug_msg(lambda: f'Visiting inner FunctionDef {node.name}')
             lambdaFct = self.__createFunctionWithinKernel(
                 node.args.args, node.body)
-            assignNode = ast.Assign()
-            assignNode.targets = [ast.Name(node.name)]
-            assignNode.value = lambdaFct
+            assignNode = ast.Assign(targets=[ast.Name(node.name)],
+                                    value=lambdaFct)
             assignNode.lineno = node.lineno
             self.visit_Assign(assignNode)
             return
@@ -1984,19 +2016,20 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable.beginBlock()
                 # Process function arguments like any other assignments.
                 if node.args.args:
-                    assignNode = ast.Assign()
                     if len(node.args.args) == 1:
-                        assignNode.targets = [ast.Name(node.args.args[0].arg)]
-                        assignNode.value = entry_block.arguments[0]
+                        assignTargets = [ast.Name(node.args.args[0].arg)]
+                        assignValue = entry_block.arguments[0]
                     else:
-                        assignNode.targets = [
+                        assignTargets = [
                             ast.Tuple(
                                 [ast.Name(arg.arg) for arg in node.args.args])
                         ]
-                        assignNode.value = [
+                        assignValue = [
                             entry_block.arguments[idx]
                             for idx in range(len(entry_block.arguments.types))
                         ]
+                    assignNode = ast.Assign(targets=assignTargets,
+                                            value=assignValue)
                     assignNode.lineno = node.lineno
                     self.visit_Assign(assignNode)
 
@@ -2012,6 +2045,10 @@ class PyASTBridge(ast.NodeVisitor):
                 with trace.span("ast_bridge.visit_function_body",
                                 statement_count=len(node.body)):
                     for n in node.body:
+                        # If the previous statement terminated `entry_block`,
+                        # do not lower any subsequent unreachable statements.
+                        if self.hasTerminator(entry_block):
+                            break
                         self.visit(n)
                 # Add the return operation
                 if not self.hasTerminator(entry_block):
@@ -2838,7 +2875,11 @@ class PyASTBridge(ast.NodeVisitor):
             if path:
                 name = f"{path}.{name}"
 
-            decorator = recover_value_of_or_none(name, self.defFrame)
+            if name in self.qualifiedDecoratorCache:
+                decorator = self.qualifiedDecoratorCache[name]
+            else:
+                decorator = recover_value_of_or_none(name, self.defFrame)
+                self.qualifiedDecoratorCache[name] = decorator
             if decorator is None or not isa_kernel_decorator(decorator):
                 return None
 
@@ -2903,6 +2944,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.debug_msg(lambda: f'[(Inline) Visit Name]', value)
                 moduleNames.append(value.id)
                 moduleNames.reverse()
+                qualifiedName = tuple(moduleNames) + (pyVal.attr,)
+                if qualifiedName in self.qualifiedNameCache:
+                    return self.qualifiedNameCache[qualifiedName]
 
                 # Helper method to check that the module `obj`
                 # contains the proper path defined by the submodules
@@ -2925,7 +2969,9 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = module
                             devKey = checkModule(obj, moduleNames)
                             if devKey:
-                                return devKey, pyVal.attr
+                                result = (devKey, pyVal.attr)
+                                self.qualifiedNameCache[qualifiedName] = result
+                                return result
                         except AttributeError:
                             continue
 
@@ -2944,10 +2990,14 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = obj[-1]
                         devKey = checkModule(obj, moduleNames)
                         if devKey:
-                            return devKey, pyVal.attr
+                            result = (devKey, pyVal.attr)
+                            self.qualifiedNameCache[qualifiedName] = result
+                            return result
 
                 # Default return value
-                return '.'.join(moduleNames), pyVal.attr
+                result = ('.'.join(moduleNames), pyVal.attr)
+                self.qualifiedNameCache[qualifiedName] = result
+                return result
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
@@ -3297,11 +3347,28 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id == 'exp_pauli':
-                # Note: C++ also has a constructor that takes an `f64`,
-                # `string`, any any number of qubits. We don't support this
-                # here.
-                theta, target, pauliWord = self.__groupValues(
-                    node.args, [1, 1, 1])
+                if len(node.args) == 3:
+                    # Both supported forms can have three arguments:
+                    #   `exp_pauli(theta, target, pauli_word)`
+                    #   `exp_pauli(theta, pauli_word, qubit)`
+                    # Distinguish them by the second `operand`'s type.
+                    theta, second, third = self.__groupValues(
+                        node.args, [1, 1, 1])
+                    if self.isQuantumType(second.type):
+                        target, pauliWord = second, third
+                    else:
+                        pauliWord = second
+                        targets = [third]
+                        checkControlAndTargetTypes([], targets)
+                        target = quake.ConcatOp(self.getVeqType(),
+                                                targets).result
+                else:
+                    # C++-compatible variadic form:
+                    #   `exp_pauli(theta, pauli_word, qubit, ...)`
+                    theta, pauliWord, targets = self.__groupValues(
+                        node.args, [1, 1, (1, -1)])
+                    checkControlAndTargetTypes([], targets)
+                    target = quake.ConcatOp(self.getVeqType(), targets).result
                 theta = self.changeOperandToType(self.getFloatType(), theta)
                 processQuantumOperation("ExpPauli", [], [target], [], [theta],
                                         broadcast=False,
@@ -4275,11 +4342,10 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitWarning(
                 "produced elements in list comprehension contain None - "
                 "expression will be evaluated but no list is generated", node)
-            forNode = ast.For()
-            forNode.iter = node.generators[0].iter
-            forNode.target = node.generators[0].target
-            forNode.body = [node.elt]
-            forNode.orelse = []
+            forNode = ast.For(target=node.generators[0].target,
+                              iter=node.generators[0].iter,
+                              body=[node.elt],
+                              orelse=[])
             forNode.lineno = node.lineno
             # This loop could be marked as invariant if we didn't use
             # `visit_For`, but that would be premature optimization.
@@ -4883,6 +4949,38 @@ class PyASTBridge(ast.NodeVisitor):
             var = self.popValue()
             self.isSubscriptRoot = subscriptRoot
 
+        if (quake.VeqType.isinstance(var.type) and
+                isinstance(node.slice, ast.Constant) and
+                type(node.slice.value) is int and node.slice.value >= 0):
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "indexing into a qvector does not produce a "
+                    "modifiable value", node)
+
+            # Cache the pure fixed extraction in the scoped symbol table, which
+            # already tracks whether a value's defining block dominates the
+            # current insertion point. The MLIR base value distinguishes
+            # separate allocations/views while allowing source aliases to
+            # share the same reference.
+            cacheKey = ("__cudaq_fixed_qref", var, node.slice.value)
+            cachedRef = self.symbolTable.getIfAccessible(cacheKey)
+            if cachedRef is not None:
+                self.pushValue(cachedRef)
+                return
+
+            ref = quake.ExtractRefOp(self.getRefType(), var,
+                                     node.slice.value).result
+
+            # Preserve the number and timing of diagnostics for a statically
+            # out-of-bounds index by emitting every invalid extraction.
+            staticSize = (quake.VeqType.getSize(var.type)
+                          if quake.VeqType.hasSpecifiedSize(var.type) else None)
+            if staticSize is None or node.slice.value < staticSize:
+                self.symbolTable[cacheKey] = ref
+
+            self.pushValue(ref)
+            return
+
         pushPtr = self.pushPointerValue
         self.pushPointerValue = False
         self.visit(node.slice)
@@ -5119,9 +5217,7 @@ class PyASTBridge(ast.NodeVisitor):
             values = getValues(iterVar)
             # We need to create proper assignments to the loop
             # iteration variable(s) to have consistent behavior.
-            assignNode = ast.Assign()
-            assignNode.targets = [node.target]
-            assignNode.value = values
+            assignNode = ast.Assign(targets=[node.target], value=values)
             assignNode.lineno = node.lineno
             self.visit(assignNode)
             [self.visit(b) for b in stmts]
@@ -5444,7 +5540,22 @@ class PyASTBridge(ast.NodeVisitor):
                 "functions defined within quantum kernels must not contain return statement",
                 node)
 
+        # Keep bare-return (`node.value` is None) lowering consistent with
+        # `QuakeBridgeVisitor::VisitReturnStmt` in the C++ bridge.
         if node.value == None:
+            # Clang verifies C++ return statements against the function
+            # signature before the C++ bridge runs. Python's AST has no
+            # equivalent semantic check, so verify it here.
+            if self.signature.return_type is not None:
+                self.emitFatalError(
+                    "return statement in a value-returning kernel must return a value",
+                    node)
+            if self.symbolTable.scopeDepth > 1:
+                # We are in an inner block, release all MLIR scopes before
+                # returning.
+                cc.UnwindReturnOp([])
+            else:
+                func.ReturnOp([])
             return
 
         self.walkingReturnNode = True
@@ -5920,7 +6031,22 @@ class PyASTBridge(ast.NodeVisitor):
             assert not node.id in self.signature.captured_variable_names()
 
             # Append as a new argument
-            argTy = mlirTypeFromPyType(type(value), self.ctx, argInstance=value)
+            if isinstance(value, list) and len(value) == 0:
+                annotation = recover_annotation_of_or_none(
+                    node.id, self.defFrame)
+                if annotation is None:
+                    self.emitFatalError(
+                        f"Cannot infer the element type of the captured empty "
+                        f"list '{node.id}'. Annotate it at module scope (e.g. "
+                        f"`{node.id}: list[float] = []`) or use a typed numpy "
+                        f"array (e.g. `{node.id} = np.array([], "
+                        f"dtype=np.float64)`) so the type can be recovered.",
+                        node)
+                argTy = mlirTypeFromPyType(annotation, self.ctx)
+            else:
+                argTy = mlirTypeFromPyType(type(value),
+                                           self.ctx,
+                                           argInstance=value)
             mlirVal = cudaq_runtime.appendKernelArgument(
                 self.kernelFuncOp, argTy)
             self.signature.add_variable_capture(node.id, argTy)

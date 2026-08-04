@@ -12,8 +12,8 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
-#include "mlir/Conversion/LLVMCommon/Pattern.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "mlir/Transforms/DialectConversion.h"
 
 using namespace mlir;
 
@@ -23,19 +23,20 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 class CodeGenRAIIPattern
-    : public OpRewritePattern<cudaq::quake::InitializeStateOp> {
+    : public OpConversionPattern<cudaq::quake::InitializeStateOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  using OpConversionPattern::OpConversionPattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::InitializeStateOp init,
-                                PatternRewriter &rewriter) const override {
-    Value mem = init.getTargets();
+  LogicalResult
+  matchAndRewrite(cudaq::quake::InitializeStateOp init, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    Value mem = adaptor.getTargets();
     auto alloc = mem.getDefiningOp<cudaq::quake::AllocaOp>();
     if (!alloc)
       return init.emitOpError("init_state must have alloca as input");
     rewriter.replaceOpWithNewOp<cudaq::codegen::RAIIOp>(
-        init, init.getType(), init.getState(),
-        cast<cudaq::cc::PointerType>(init.getState().getType())
+        init, init.getType(), adaptor.getState(),
+        cast<cudaq::cc::PointerType>(adaptor.getState().getType())
             .getElementType(),
         alloc.getType(), alloc.getSize());
     rewriter.eraseOp(alloc);
@@ -43,19 +44,21 @@ public:
   }
 };
 
-class ExpandComplexCast : public OpRewritePattern<cudaq::cc::CastOp> {
+class ExpandComplexCast : public OpConversionPattern<cudaq::cc::CastOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  using OpConversionPattern::OpConversionPattern;
 
-  LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult
+  matchAndRewrite(cudaq::cc::CastOp castOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
     auto complexTy = dyn_cast<ComplexType>(castOp.getType());
     if (!complexTy)
       return failure();
     auto loc = castOp.getLoc();
-    auto ty = cast<ComplexType>(castOp.getValue().getType()).getElementType();
-    Value rePart = complex::ReOp::create(rewriter, loc, ty, castOp.getValue());
-    Value imPart = complex::ImOp::create(rewriter, loc, ty, castOp.getValue());
+    Value val = adaptor.getValue();
+    auto ty = cast<ComplexType>(val.getType()).getElementType();
+    Value rePart = complex::ReOp::create(rewriter, loc, ty, val);
+    Value imPart = complex::ImOp::create(rewriter, loc, ty, val);
     auto eleTy = complexTy.getElementType();
     auto reCast = cudaq::cc::CastOp::create(rewriter, loc, eleTy, rePart);
     auto imCast = cudaq::cc::CastOp::create(rewriter, loc, eleTy, imPart);
@@ -66,23 +69,24 @@ public:
 };
 
 class CreateStateOpPattern
-    : public OpRewritePattern<cudaq::quake::CreateStateOp> {
+    : public OpConversionPattern<cudaq::quake::CreateStateOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  using OpConversionPattern::OpConversionPattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::CreateStateOp createStateOp,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult
+  matchAndRewrite(cudaq::quake::CreateStateOp createStateOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
     auto module = createStateOp->getParentOfType<ModuleOp>();
     auto loc = createStateOp.getLoc();
-    auto ctx = createStateOp.getContext();
-    auto buffer = createStateOp.getOperand(0);
-    auto size = createStateOp.getOperand(1);
+    auto *ctx = createStateOp.getContext();
+    Value buffer = adaptor.getData();
+    Value size = adaptor.getLength();
 
     auto bufferTy = buffer.getType();
     auto ptrTy = cast<cudaq::cc::PointerType>(bufferTy);
     auto arrTy = dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
     auto eleTy = arrTy ? arrTy.getElementType() : ptrTy.getElementType();
-    auto is64Bit = isa<Float64Type>(eleTy);
+    bool is64Bit = isa<Float64Type>(eleTy);
     bool isComplex = false;
 
     if (auto cTy = dyn_cast<ComplexType>(eleTy)) {
@@ -117,15 +121,16 @@ public:
 };
 
 class DeleteStateOpPattern
-    : public OpRewritePattern<cudaq::quake::DeleteStateOp> {
+    : public OpConversionPattern<cudaq::quake::DeleteStateOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  using OpConversionPattern::OpConversionPattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::DeleteStateOp deleteStateOp,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult
+  matchAndRewrite(cudaq::quake::DeleteStateOp deleteStateOp, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
     auto module = deleteStateOp->getParentOfType<ModuleOp>();
-    auto ctx = deleteStateOp.getContext();
-    auto state = deleteStateOp.getOperand();
+    auto *ctx = deleteStateOp.getContext();
+    Value state = adaptor.getState();
 
     cudaq::IRBuilder irBuilder(ctx);
     auto result = irBuilder.loadIntrinsic(module, cudaq::deleteCudaqState);
@@ -139,16 +144,17 @@ public:
 };
 
 class GetNumberOfQubitsOpPattern
-    : public OpRewritePattern<cudaq::quake::GetNumberOfQubitsOp> {
+    : public OpConversionPattern<cudaq::quake::GetNumberOfQubitsOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
   matchAndRewrite(cudaq::quake::GetNumberOfQubitsOp getNumQubitsOp,
-                  PatternRewriter &rewriter) const override {
+                  OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
     auto module = getNumQubitsOp->getParentOfType<ModuleOp>();
     auto ctx = getNumQubitsOp.getContext();
-    auto state = getNumQubitsOp.getOperand();
+    Value state = adaptor.getState();
 
     cudaq::IRBuilder irBuilder(ctx);
     auto result =
@@ -170,4 +176,16 @@ void cudaq::codegen::populateQuakeToCodegenPatterns(
   patterns
       .insert<CodeGenRAIIPattern, CreateStateOpPattern, DeleteStateOpPattern,
               ExpandComplexCast, GetNumberOfQubitsOpPattern>(ctx);
+}
+
+void cudaq::codegen::setQuakeToCodegenLegality(ConversionTarget &target) {
+  target
+      .addLegalDialect<cudaq::codegen::CodeGenDialect, complex::ComplexDialect,
+                       cudaq::cc::CCDialect, func::FuncDialect>();
+  target.addIllegalOp<cudaq::quake::InitializeStateOp,
+                      cudaq::quake::CreateStateOp, cudaq::quake::DeleteStateOp,
+                      cudaq::quake::GetNumberOfQubitsOp>();
+  target.addDynamicallyLegalOp<cudaq::cc::CastOp>([](cudaq::cc::CastOp castOp) {
+    return !isa<ComplexType>(castOp.getType());
+  });
 }

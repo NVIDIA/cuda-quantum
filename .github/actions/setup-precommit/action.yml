@@ -36,7 +36,7 @@ runs:
   steps:
     # ========== Python & Pre-commit ==========
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
@@ -45,7 +45,7 @@ runs:
       run: pip install pre-commit
 
     - name: Cache pre-commit environments
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.cache/pre-commit
         key: pre-commit-${{ inputs.cache-key-suffix }}-${{ hashFiles('.pre-commit-config.yaml') }}-${{ runner.os }}
@@ -66,13 +66,13 @@ runs:
     # ========== Node.js & npm packages ==========
     - name: Set up Node.js
       if: inputs.install-node == 'true'
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: '20'
 
     - name: Cache npm packages
       if: inputs.install-node == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: ~/.npm
         key: npm-markdown-link-check-${{ runner.os }}
@@ -87,14 +87,14 @@ runs:
     # ========== Go (for license-eye) ==========
     - name: Set up Go
       if: inputs.install-go == 'true'
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
-        go-version: '1.21'
+        go-version: '1.24'
         cache: false
 
     - name: Cache Go modules
       if: inputs.install-go == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/go/pkg/mod

@@ -18,6 +18,7 @@
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <limits>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/shared_ptr.h>
 
 using namespace cudaq;
 
@@ -172,18 +173,18 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 static state get_state_impl(const std::string &shortName, MlirModule mod,
-                            cudaq::CompiledModule *compiled,
+                            std::shared_ptr<detail::CompiledModuleCache> cache,
                             nanobind::args args) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, args, compiled);
+    return marshal_and_launch_module(shortName, mod, args, cache);
   };
   return detail::extractState(std::move(closure));
 }
 
-static std::future<state> get_state_async_impl(const std::string &shortName,
-                                               MlirModule module,
-                                               std::size_t qpu_id,
-                                               nanobind::args args) {
+static std::future<state>
+get_state_async_impl(const std::string &shortName, MlirModule module,
+                     std::shared_ptr<detail::CompiledModuleCache> cache,
+                     std::size_t qpu_id, nanobind::args args) {
   // Launch the asynchronous execution.
   auto mod = unwrap(module);
   std::string kernelName = shortName;
@@ -198,11 +199,11 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
         delete p;
       });
   return detail::runGetStateAsync(
-      detail::make_copyable_function(
-          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
-            [[maybe_unused]] auto result =
-                clean_launch_module(kernelName, *clonedMod, opaques);
-          }),
+      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
+                                      clonedMod, cache]() mutable {
+        [[maybe_unused]] auto result =
+            clean_launch_module(kernelName, *clonedMod, opaques, cache);
+      }),
       platform, qpu_id);
 }
 
@@ -855,7 +856,8 @@ index pair.
   mod.def(
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module,
-          cudaq::CompiledModule *compiled, nanobind::args args) {
+          std::shared_ptr<detail::CompiledModuleCache> cache,
+          nanobind::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
@@ -863,7 +865,7 @@ index pair.
 
         if (is_remote_platform() || is_emulated_platform())
           return pyGetStateQPU(shortName, module, args);
-        return get_state_impl(shortName, module, compiled, args);
+        return get_state_impl(shortName, module, std::move(cache), args);
       },
       "See the python documentation for get_state.");
 
@@ -883,15 +885,16 @@ for more information on this programming pattern.)#")
 
   mod.def(
       "get_state_async_impl",
-      [&](const std::string &shortName, MlirModule module, std::size_t qpu_id,
-          nanobind::args args) {
+      [&](const std::string &shortName, MlirModule module,
+          std::shared_ptr<detail::CompiledModuleCache> cache,
+          std::size_t qpu_id, nanobind::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "orca-photonics" ||
             is_remote_platform() || is_emulated_platform())
           throw std::runtime_error(
               "get_state_async is not supported in this context.");
 
-        return get_state_async_impl(shortName, module, qpu_id, args);
+        return get_state_async_impl(shortName, module, cache, qpu_id, args);
       },
       "See the python documentation for get_state_async.");
 

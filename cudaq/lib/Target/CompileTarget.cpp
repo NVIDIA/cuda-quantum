@@ -9,6 +9,7 @@
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <cctype>
+#include <functional>
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
 static void substitutePipelinePlaceholders(
@@ -44,9 +45,23 @@ static void substitutePipelinePlaceholders(
   }
 }
 
+/// Replace literal placeholder keys in a pipeline stage string.
+static void applyPipelineSubstitutions(
+    std::string &pipeline,
+    const std::map<std::string, std::string> &pipelineSubstitutions) {
+  for (const auto &[key, value] : pipelineSubstitutions) {
+    std::string::size_type pos = 0;
+    while ((pos = pipeline.find(key, pos)) != std::string::npos) {
+      pipeline.replace(pos, key.size(), value);
+      pos += value.size();
+    }
+  }
+}
+
 cudaq::CompileTarget::CompileTarget(
     config::TargetConfig targetConfig,
-    std::map<std::string, std::string> runtimeConfig, bool emulate_)
+    std::map<std::string, std::string> runtimeConfig, bool emulate_,
+    std::map<std::string, std::string> pipelineSubstitutions)
     : emulate(emulate_) {
   if (!targetConfig.BackendConfig.has_value()) {
     pipelineConfig.skipTargetLoweringPipeline = true;
@@ -63,6 +78,7 @@ cudaq::CompileTarget::CompileTarget(
     std::string pipeline = stage;
     if (!pipeline.empty()) {
       substitutePipelinePlaceholders(pipeline, runtimeConfig);
+      applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
       CUDAQ_INFO("{:<27} {}", stageName + ":", pipeline);
     }
     return pipeline;
@@ -96,4 +112,38 @@ cudaq::CompileTarget::CompileTarget(
     pipelineConfig.disableQubitMapping = true;
     CUDAQ_INFO("{:<27} {}\n", "disable_qubit_mapping:", "true");
   }
+}
+
+template <typename T>
+inline void hash_combine(std::size_t &seed, const T &val) {
+  std::hash<T> hasher;
+  seed ^= hasher(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+template <typename... Args>
+inline std::size_t hash_val(const Args &...args) {
+  std::size_t seed = 0;
+  (hash_combine(seed, args), ...);
+  return seed;
+}
+
+std::size_t std::hash<cudaq::CompileTarget>::operator()(
+    const cudaq::CompileTarget &t) const noexcept {
+  std::size_t seed = hash_val(
+      t.pipelineConfig.overridePassPipeline, t.pipelineConfig.highLevelPipeline,
+      t.pipelineConfig.midLevelPipeline, t.pipelineConfig.lowLevelPipeline,
+      t.pipelineConfig.codegenTranslation, t.pipelineConfig.postCodeGenPasses,
+      t.pipelineConfig.skipTargetLoweringPipeline,
+      t.pipelineConfig.disableQubitMapping,
+      t.pipelineConfig.replaceStateWithKernel, t.pipelineConfig.addMeasurements,
+      t.overrideAOTCompilation, t.emulate, t.warnNamedMeasurements,
+      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+      t.storeReorderIdx, t.emitResourceCounts, t.emitJit, t.emitTargetCode,
+      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics);
+
+  // Optional spin observable: include its string representation when present.
+  if (t.pauliTermSplitObservable)
+    hash_combine(seed, t.pauliTermSplitObservable->to_string());
+
+  return seed;
 }

@@ -19,7 +19,7 @@ Risk: Review before execution as proposals could introduce incorrect or misleadi
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [CUDA-Q Documentation](https://nvidia.github.io/cuda-quantum/) <br>
+- [CUDA-Q Documentation](https://nvidia.github.io/cuda-quantum/latest/) <br>
 - [GPU Simulation Backends](https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html) <br>
 
 

@@ -16,6 +16,7 @@
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/ResourceCount.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -23,9 +24,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/ResourceCount.h"
-#include "cudaq/algorithms/observe/policy.h"
-#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ADT/SmallSet.h"
@@ -124,11 +122,9 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
   return std::make_pair(m_module.release().getAsOpaquePointer(), context);
 }
 
-cudaq_internal::compiler::Compiler::Compiler(
-    std::unique_ptr<cudaq::CompileTarget> &&target_)
+cudaq_internal::compiler::Compiler::Compiler(cudaq::CompileTarget target_)
     : target(std::move(target_)) {
-  assert(target && "target cannot be null");
-  emulate = target->emulate;
+  emulate = target.emulate;
 
   cudaq_internal::compiler::initializeMLIR();
 
@@ -171,23 +167,6 @@ void cudaq_internal::compiler::Compiler::applyPipeline(
     throw std::runtime_error("Remote rest platform Quake lowering failed.");
 }
 
-static bool eraseNonCallableArguments(std::span<void *const> &rawArgs,
-                                      std::vector<void *> &closureArgs,
-                                      mlir::func::FuncOp funcOp) {
-  bool isFullySpecialized = true;
-
-  FunctionType fromFuncTy = funcOp.getFunctionType();
-  closureArgs = std::vector(rawArgs.begin(), rawArgs.end());
-  for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
-    if (!isa<cudaq::cc::CallableType>(ty)) {
-      isFullySpecialized = false;
-      closureArgs[i] = nullptr;
-    }
-  }
-  rawArgs = closureArgs;
-  return isFullySpecialized;
-}
-
 std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>
 cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
                                                   mlir::ModuleOp m_module,
@@ -228,18 +207,18 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       // from a kernel and arguments that generated a state argument.
       // Local simulators marshal `i1` vectors as bit-packed `std::vector<bool>`
       // (argsCreator); remote/emulated targets use `std::vector<char>`.
-      const bool boolVecBitPacked = target->isLocalSimulator;
+      const bool boolVecBitPacked = target.isLocalSimulator;
       cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp,
                                                          boolVecBitPacked);
-      // Must stay in scope as `eraseNonCallableArguments` may populate it
+      // Must stay in scope as `retainCallableArguments` may populate it
       std::vector<void *> closureArgs;
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
         // Already fully specialized, nothing to do.
         isFullySpecialized = true;
-      } else if (isEntryPoint && !target->fullySpecialize) {
+      } else if (isEntryPoint && !target.fullySpecialize) {
         // We disable specialization by erasing args that should not be inlined
-        isFullySpecialized =
-            eraseNonCallableArguments(*rawArgs, closureArgs, epFunc);
+        isFullySpecialized = cudaq_internal::compiler::retainCallableArguments(
+            *rawArgs, closureArgs, epFunc);
       }
       argCon.gen(*rawArgs);
 
@@ -263,7 +242,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
                                                    substs.end()};
       pm.addPass(cudaq::opt::createArgumentSynthesisPass(
-          kernelRefs, substRefs, target->argumentSynthChangeSemantics));
+          kernelRefs, substRefs, target.argumentSynthChangeSemantics));
       pm.addNestedPass<mlir::func::FuncOp>(mlir::createCanonicalizerPass());
       pm.addPass(
           cudaq::opt::createLambdaLifting({.constantPropagation = true}));
@@ -276,12 +255,12 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       cudaq::opt::addAggressiveInlining(pm);
 
       // Lower cc.device_calls
-      if (target->supportDeviceCalls) {
+      if (target.supportDeviceCalls) {
         pm.addPass(cudaq::opt::createDistributedDeviceCall());
         pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
       }
 
-      if (target->pipelineConfig.replaceStateWithKernel) {
+      if (target.pipelineConfig.replaceStateWithKernel) {
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createReplaceStateWithKernel());
         cudaq::opt::addAggressiveInlining(pm);
@@ -321,10 +300,10 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName) {
-  if (target->pipelineConfig.skipTargetLoweringPipeline) {
+  if (target.pipelineConfig.skipTargetLoweringPipeline) {
     return {false, ""};
   }
-  auto passPipelineConfig = getPassPipeline(*target);
+  auto passPipelineConfig = getPassPipeline(target);
   auto combineMeasurements =
       passPipelineConfig.find("combine-measurements") != std::string::npos;
   if (emulate && combineMeasurements) {
@@ -365,7 +344,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
-                  clonedModule, target->pipelineConfig.codegenTranslation),
+                  clonedModule, target.pipelineConfig.codegenTranslation,
+                  isEntryPoint),
               resultInfo, isFullySpecialized);
       // The first artifact is the kernel entry point; rename it to the
       // per-module name (relevant for the multi-module observe path where the
@@ -421,8 +401,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   bool hasConditionalsOnMeasRes = hasConditionalsOnMeasureResults(moduleOp);
 
   // Populate conditional measurement flag in the context.
-  if (hasConditionalsOnMeasRes &&
-      !target->supportConditionalsOnMeasureResults) {
+  if (hasConditionalsOnMeasRes && !target.supportConditionalsOnMeasureResults) {
     throw std::runtime_error(
         "`cudaq::sample` and `cudaq::sample_async` no longer support "
         "kernels "
@@ -440,18 +419,18 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
-  if (target->emitResourceCounts) {
+  if (target.emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (succeeded(result))
       resourceCounts = std::move(*result);
   }
 
   std::vector<std::size_t> mapping_reorder_idx;
-  if (target->storeReorderIdx)
+  if (target.storeReorderIdx)
     mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
 
   // Warn if kernel has named measurement registers (sub-registers).
-  if (target->warnNamedMeasurements) {
+  if (target.warnNamedMeasurements) {
     auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
     if (funcOp) {
@@ -474,18 +453,18 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  if (target->pipelineConfig.addMeasurements) {
+  if (target.pipelineConfig.addMeasurements) {
     // No need to add measurements only to remove them eventually
-    if (target->pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
+    if (target.pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
         std::string::npos)
       applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
   }
 
   // Apply observations if necessary
   std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
-  if (target->pauliTermSplitObservable) {
+  if (target.pauliTermSplitObservable) {
     applyPipeline("canonicalize,cse", moduleOp, kernelName);
-    for (const auto &term : *target->pauliTermSplitObservable) {
+    for (const auto &term : *target.pauliTermSplitObservable) {
       if (term.is_identity())
         continue;
 
@@ -524,7 +503,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  bool needJit = emulate || target->emitResourceCounts || target->emitJit;
+  bool needJit = emulate || target.emitResourceCounts || target.emitJit;
   return assembleCompiledModule(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
@@ -536,8 +515,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled) {
-  const auto &codegenTranslation = target->pipelineConfig.codegenTranslation;
-  const auto &postCodeGenPasses = target->pipelineConfig.postCodeGenPasses;
+  const auto &codegenTranslation = target.pipelineConfig.codegenTranslation;
+  const auto &postCodeGenPasses = target.pipelineConfig.postCodeGenPasses;
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
@@ -549,7 +528,7 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 
     std::string codeStr;
     nlohmann::json j;
-    if (target->emitTargetCode) {
+    if (target.emitTargetCode) {
       // Get the code gen translation
       auto translation =
           cudaq_internal::compiler::getTranslation(codegenTranslation);
@@ -719,9 +698,9 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
 }
 
 cudaq::CompiledModule cudaq_internal::compiler::compileModule(
-    std::unique_ptr<cudaq::CompileTarget> target,
-    const cudaq::SourceModule &src, cudaq::KernelArgs args, bool isEntryPoint) {
-  if (!target->overrideAOTCompilation && src.getFunctionPtr()) {
+    cudaq::CompileTarget target, const cudaq::SourceModule &src,
+    cudaq::KernelArgs args, bool isEntryPoint) {
+  if (!target.overrideAOTCompilation && src.getFunctionPtr()) {
     // We are allowed to use the AOT-compiled module as-is, so nothing to do.
     CUDAQ_INFO("No JIT compilation required. Using AOT-compiled module as-is.");
     return cudaq::CompiledModule{src};

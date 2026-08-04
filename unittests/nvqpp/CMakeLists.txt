@@ -115,18 +115,20 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     set(TEST_LABELS "gpu_required")
   endif()
   if ("${TEST_LABELS}" STREQUAL "")
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES PROCESSORS ${TEST_PROCESSORS} DISCOVERY_TIMEOUT 120)
+    cudaq_gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES PROCESSORS ${TEST_PROCESSORS} DISCOVERY_TIMEOUT 120)
   else()
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" PROCESSORS ${TEST_PROCESSORS} RESOURCE_LOCK "gpu" DISCOVERY_TIMEOUT 120)
+    cudaq_gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" PROCESSORS ${TEST_PROCESSORS} RESOURCE_LOCK "gpu" DISCOVERY_TIMEOUT 120)
   endif()
 endmacro()
 
 # We will always have the QPP backend, create a tester for it
-create_tests_with_backend(qpp backends/QPPTester.cpp)
-create_tests_with_backend(dm backends/QPPDMTester.cpp)
-create_tests_with_backend(stim backends/StimTester.cpp)
+create_tests_with_backend(qpp "")
+create_tests_with_backend(dm "")
+create_tests_with_backend(stim "")
 
 if (cuStateVec_FOUND)
+  add_subdirectory(custatevec)
+
   find_program(NVIDIA_SMI "nvidia-smi")
   if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
     # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.
@@ -176,7 +178,7 @@ if (cuStateVec_FOUND)
     cudaq-mlir-runtime
     nvqir-custatevec-fp64
     gtest_main)
-  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+  cudaq_gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 
   # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
   # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
@@ -204,7 +206,7 @@ if (cuStateVec_FOUND)
     nvqir-custatevec-fp32
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
-  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+  cudaq_gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 
   if (MPI_CXX_FOUND)
     # Count the number of GPUs
@@ -246,7 +248,7 @@ if (cuStateVec_FOUND)
       cudaq-mlir-runtime
       nvqir-custatevec-fp64
       gtest_main)
-      gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+      cudaq_gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
   endif()
 endif()
 
@@ -304,7 +306,7 @@ if(TARGET nvqir-tensornet)
     nvqir-tensornet
     gtest_main)
   # Run this test with "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE"
-  gtest_discover_tests(test_tensornet_observe_path_reuse TEST_SUFFIX _PathReuse PROPERTIES ENVIRONMENT "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
+  cudaq_gtest_discover_tests(test_tensornet_observe_path_reuse TEST_SUFFIX _PathReuse PROPERTIES ENVIRONMENT "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 endif()
 
 # build the test qudit execution manager
@@ -321,7 +323,7 @@ target_link_libraries(test_qudit
   cudaq-em-qudit
   nvqir-qpp
   gtest_main)
-gtest_discover_tests(test_qudit PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_qudit PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 # build the test photonics execution manager
 add_executable(test_photonics ${CUDAQ_GTEST_MAIN} photonics/PhotonicsTester.cpp)
@@ -336,33 +338,7 @@ target_link_libraries(test_photonics
   cudaq-em-photonics
   nvqir-qpp
   gtest_main)
-gtest_discover_tests(test_photonics PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
-
-add_executable(test_ptsbe ${CUDAQ_GTEST_MAIN}
-  ptsbe/KrausSelectionTester.cpp
-  ptsbe/KrausTrajectoryTester.cpp
-  ptsbe/ShotAllocationTester.cpp
-  ptsbe/PTSBEInterfaceTester.cpp
-  ptsbe/TraceConversionTester.cpp
-  ptsbe/MergeTasksWithTrajectoryTester.cpp
-  ptsbe/ExecutePTSBETester.cpp
-  ptsbe/PTSSamplingStrategyTester.cpp
-  ptsbe/NoiseExtractorTester.cpp
-  ptsbe/TrajectoryDeduplicationTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_ptsbe PRIVATE -Wl,--no-as-needed)
-endif()
-target_include_directories(test_ptsbe PRIVATE .)
-target_link_libraries(test_ptsbe
-  PRIVATE
-  cudaq
-  cudaq-platform-default
-  cudaq-mlir-runtime
-  nvqir
-  nvqir-qpp
-  fmt::fmt-header-only
-  gtest_main)
-gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_photonics PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)
@@ -423,13 +399,13 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
     execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS)
     # Only add this test if we have more than 1 GPU
     if (${NGPUS} GREATER_EQUAL 2)
-      gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required" RESOURCE_LOCK "gpu")
+      cudaq_gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required" RESOURCE_LOCK "gpu")
 
       # Multi-GPU batching test: this test needs MPI as well
       if (MPI_CXX_FOUND)
         add_executable(test_dynamics_mpi_batching mqpu/dynamics_mpi_batching_tester.cpp)
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_dynamics_mpi_batching PRIVATE -Wl,--no-as-needed)
+          target_link_options(test_dynamics_mpi_batching PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
         endif()
         target_compile_definitions(test_dynamics_mpi_batching PRIVATE -DCUDAQ_ANALOG_TARGET)
         target_link_libraries(test_dynamics_mpi_batching
@@ -496,7 +472,8 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-operator
     cudaq-chemistry
     cudaq-pyscf
+    cudaq-builder
     gtest_main)
-  gtest_discover_tests(test_domains
+  cudaq_gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 endif()

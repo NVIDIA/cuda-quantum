@@ -20,10 +20,10 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Interfaces/ViewLikeInterface.td"
 include "mlir/IR/RegionKindInterface.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
-include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
+include "cudaq/Optimizer/Dialect/Traits.td"
 
 //===----------------------------------------------------------------------===//
 // Base operation definition.
@@ -48,10 +48,10 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     All references are assumed to be initialized to the value `|0>` initially.
     See also the `null_wire` op.
 
-    The `QuakeAddDeallocs` and `UnwindLowering` passes will insert deallocation
-    ops for the scopes in which allocations appear automatically. This is
-    helpful for generating code for targets such as QIR, which require
-    allocation/deallocation pairs.
+    The `AddDeallocs` and `UnwindLowering` passes will insert deallocation ops
+    for the scopes in which allocations appear automatically. This is helpful
+    for generating code for targets such as QIR, which require allocation/
+    deallocation pairs.
 
     Examples:
     ```mlir
@@ -329,7 +329,8 @@ def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "mlir::Value":$lower, "mlir::Value":$upper), [{
       return build($_builder, $_state, veqTy, input, lower, upper,
-        cudaq::quake::SubVeqOp::kDynamicIndex, cudaq::quake::SubVeqOp::kDynamicIndex);
+        cudaq::quake::SubVeqOp::kDynamicIndex,
+        cudaq::quake::SubVeqOp::kDynamicIndex);
     }]>,
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "std::int64_t":$lower, "std::int64_t":$upper), [{
@@ -617,6 +618,33 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
+def quake_WrapNewOp : QuakeOp<"wrap_new"> {
+  let summary = "Wrap a wire value and bind to a fresh, new reference.";
+  let description = [{
+    In some cases, a wire value may appear in the IR without any associated
+    reference, such as from a `quake.null_wire`. This may be problematic if
+    the wire is used in an indirect fashion (as a reference) as there is no
+    obvious reference value to use. This operation allows the wire value to be
+    bound to a fresh, new reference value temporarily. It is expected that this
+    reference will be "reclaimed" by using a `quake.unwrap` operation on said
+    reference in a post-dominant position in the IR.
+
+    Example:
+    ```mlir
+    %10 = quake.null_wire
+    %11 = quake.wrap_new %10 : (!quake.wire) -> !quake.ref
+    call @kernel_taking_ref(%11) : (!quake.ref) -> ()
+    %12 = quake.unwrap %11 : (!quake.ref) -> !quake.wire
+    ```
+  }];
+
+  let arguments = (ins WireType:$wire_value);
+  let results = (outs Arg<RefType,"",[MemAlloc]>);
+  let assemblyFormat = [{
+    $wire_value `:` functional-type(operands, results) attr-dict
+  }];
+}
+
 def quake_CallByRefOp : QuakeOp<"call_by_ref",
     [CallOpInterface, SymbolUserOpInterface]> {
   let summary = "Call a kernel casting wires to refs.";
@@ -750,6 +778,8 @@ def quake_NullCableOp : QuakeOp<"null_cable"> {
   let results = (outs 
     Arg<CableType, "cable created", [MemRead, MemWrite]>:$cableType
   );
+
+  let hasVerifier = 1;
 
   let assemblyFormat = [{
     type($cableType) attr-dict
@@ -1302,7 +1332,8 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
+      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(),
+                                           getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//
@@ -1465,7 +1496,8 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
+      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(),
+                                           getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//
@@ -1567,7 +1599,6 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
      └───────┘
     ```
   }];
-  let hasCanonicalizer = 1;
 }
 
 def RyOp : OneTargetParamOp<"ry", [Rotation]> {
@@ -1586,7 +1617,6 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
      └───────┘
     ```
   }];
-  let hasCanonicalizer = 1;
 }
 
 def RzOp : OneTargetParamOp<"rz", [Rotation]> {
@@ -1605,7 +1635,6 @@ def RzOp : OneTargetParamOp<"rz", [Rotation]> {
      └───────┘
     ```
   }];
-  let hasCanonicalizer = 1;
 }
 
 def SOp : OneTargetOp<"s"> {
@@ -1878,7 +1907,6 @@ def QuakeOp_DeleteStateOp : QuakeOp<"delete_state"> {
   }];
 
   let arguments = (ins PointerOf<[quake_StateType]>:$state);
-  let results = (outs);
   let assemblyFormat = [{
       $state `:` type(operands) attr-dict
   }];

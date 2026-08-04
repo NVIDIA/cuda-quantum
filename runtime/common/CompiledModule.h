@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/KernelArgs.h"
 #include "common/NamedVariantStore.h"
 #include "common/Resources.h"
 #include "common/ThunkInterface.h"
@@ -191,7 +192,6 @@ public:
     std::vector<std::size_t> reorderIdx;
     /// Whether the kernel has conditional feedback on measure results.
     bool hasConditionalsOnMeasureResults = false;
-    // TODO: Add hash of target to check against for cache reusability
   };
 
   // --- Queries ---
@@ -318,8 +318,34 @@ public:
   // `CompiledModuleHelper`.
   CompiledModule() : FatQuakeModule(std::string{}) {}
   explicit CompiledModule(SourceModule src) : FatQuakeModule(std::move(src)) {}
+
+  CompiledModule(const CompiledModule &) = default;
+  CompiledModule &operator=(const CompiledModule &) = default;
+
+  CompiledModule(CompiledModule &&) noexcept = default;
+  CompiledModule &operator=(CompiledModule &&) noexcept = default;
+
+  ~CompiledModule();
+
+  static bool debugMode();
 };
 
 using AnyModule = std::variant<SourceModule, CompiledModule>;
+
+/// @brief Execute the compiled binary stored in @p module.
+///
+/// Dispatches to `executeFunctionPtrBinary` when an AOT function-pointer
+/// artifact is present, otherwise to `executeJitBinary`.
+[[nodiscard]] KernelThunkResultType
+executeCompiledModule(const CompiledModule &module, KernelArgs args);
+
+/// @brief Execute the JIT-compiled binary artifact stored in @p module.
+[[nodiscard]] KernelThunkResultType
+executeJitBinary(const CompiledModule &module, KernelArgs args);
+
+/// @brief Execute a pre-compiled AOT binary via a function-pointer artifact.
+[[nodiscard]] KernelThunkResultType
+executeFunctionPtrBinary(const FatQuakeModule::FunctionPtrArtifact &artifact,
+                         KernelArgs args);
 
 } // namespace cudaq
