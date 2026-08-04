@@ -12,6 +12,7 @@
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
@@ -450,13 +451,16 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
           return WalkResult::interrupt();
         }).wasInterrupted();
 
+  bool disableQuantumOpt = op->hasAttr(cudaq::runtime::disableQuantumOpts);
   std::string profileName;
   if (containsWireSet) {
     profileName = config.profile;
     cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
   } else {
     profileName = qirProfile;
-    cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName,
+                                           /*useValueSemantics=*/
+                                           !disableQuantumOpt);
   }
 
   if (!additionalPasses.empty() &&
