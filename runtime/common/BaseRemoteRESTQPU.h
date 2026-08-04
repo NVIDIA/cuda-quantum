@@ -349,24 +349,8 @@ public:
     // output log.
     assert(codes.size() == 1 && codes[0].jit);
     return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      // Run each shot with the thread-local execution context cleared.
-      // CircuitSimulator::deallocateQubits skips deallocation while an
-      // execution context is set, so if the context stays set across the whole
-      // shot loop the per-shot qubits allocated by the kernel accumulate and
-      // blow up the simulator state (OOM). Clearing it lets each shot fully
-      // deallocate, matching the pre-policy behavior where the shot loop ran on
-      // a separate thread with no execution context.
-      auto *savedContext = cudaq::getExecutionContext();
-      cudaq::detail::resetExecutionContext();
-      cudaq::detail::try_finally(
-          [&] {
-            for (std::size_t shot = 0; shot < policy.shots; shot++)
-              codes[0].jit->run(kernelName);
-          },
-          [&] {
-            if (savedContext)
-              cudaq::detail::setExecutionContext(savedContext);
-          });
+      for (std::size_t shot = 0; shot < policy.shots; shot++)
+        codes[0].jit->run(kernelName);
     });
   }
 

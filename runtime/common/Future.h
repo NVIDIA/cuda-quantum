@@ -27,7 +27,7 @@ namespace detail {
 /// @brief The execution context of a server job.
 // Depending on the type, we may process the return data from the server
 // differently when propagating it back to the runtime.
-enum class ExecutionContextType : int { sample = 1, observe, run };
+enum class ExecutionContextType : int { other = 0, sample = 1, observe, run };
 
 /// @brief The future type models the expected result of a
 /// CUDA-Q kernel execution under a specific execution context.
