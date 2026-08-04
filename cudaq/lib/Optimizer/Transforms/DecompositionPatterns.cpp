@@ -467,6 +467,9 @@ struct R1ToRz
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
+    if (!isEnabled(cudaq::getKnownNumControls(r1Op)))
+      return failure();
+
     Location location = r1Op.getLoc();
     SmallVector<Value> controls(r1Op.getControls());
     SmallVector<Value> targets(r1Op.getTargets());
@@ -509,7 +512,7 @@ struct R1ToRz
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"});
+REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"}, {"r1(n)", "rz(n)"});
 
 // Naive mapping of R1 to U3
 // quake.r1(λ) [control] target
