@@ -112,4 +112,3 @@ if.platform-system = "darwin"
 install.strip = false
 
 [tool.setuptools_scm]
-write_to = "_version.py"

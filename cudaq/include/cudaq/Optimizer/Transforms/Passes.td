@@ -1268,7 +1268,21 @@ def QuakeSimplify : Pass<"quake-simplify"> {
   let description = [{
     This pass performs several simplifications on quake operations. The
     IR is expected to be in value-semantics form.
+
+    Among these, a constant-angle rotation that is the identity is erased. The
+    angle is first folded into the period after which the rotation is exactly
+    the identity (`4*pi` for the axis rotations, which are spinors, and
+    `2*pi` for `r1`) so a full turn is pruned just like a zero angle.
+    Non-constant and non-finite angles are left untouched.
+
+    A rotation is erased when its folded angle has magnitude at or below
+    `threshold`.
   }];
+  let options = [
+    Option<"threshold", "threshold", "double", /*default=*/"1e-12",
+      "Erase (treat as identity) rotations whose angle, folded into its "
+      "identity period, has magnitude at or below this value.">,
+  ];
 }
 
 def QubitResetBeforeReuse :
