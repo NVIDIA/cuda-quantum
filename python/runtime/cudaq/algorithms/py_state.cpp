@@ -388,6 +388,14 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       .value("UNIFORM", InitialState::UNIFORM)
       .export_values();
 
+  nanobind::enum_<SimulationState::Tensor::storage_order>(
+      mod, "TensorStorageOrder",
+      "Enumeration describing the storage order of tensor data.")
+      .value("UNSPECIFIED", SimulationState::Tensor::storage_order::unspecified)
+      .value("ROW_MAJOR", SimulationState::Tensor::storage_order::row_major)
+      .value("COLUMN_MAJOR",
+             SimulationState::Tensor::storage_order::column_major);
+
   nanobind::class_<SimulationState::Tensor>(
       mod, "Tensor",
       "The `Tensor` describes a pointer to simulation data as well as the rank "
@@ -397,6 +405,7 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
              return reinterpret_cast<intptr_t>(tensor.data);
            })
       .def_ro("extents", &SimulationState::Tensor::extents)
+      .def_ro("storage_order", &SimulationState::Tensor::order)
       .def("get_rank", &SimulationState::Tensor::get_rank)
       .def("get_element_size", &SimulationState::Tensor::element_size)
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
@@ -436,6 +445,21 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
             auto precision = self.get_precision();
             std::vector<size_t> shape(stateVector.extents.begin(),
                                       stateVector.extents.end());
+            std::vector<int64_t> strides;
+            const int64_t *stridesPtr = nullptr;
+            if (stateVector.order !=
+                SimulationState::Tensor::storage_order::unspecified) {
+              strides.resize(shape.size(), 1);
+              if (stateVector.order ==
+                  SimulationState::Tensor::storage_order::column_major) {
+                for (std::size_t i = 1; i < shape.size(); ++i)
+                  strides[i] = strides[i - 1] * shape[i - 1];
+              } else {
+                for (std::size_t i = shape.size(); i > 1; --i)
+                  strides[i - 2] = strides[i - 1] * shape[i - 1];
+              }
+              stridesPtr = strides.data();
+            }
 
             if (self.is_on_gpu()) {
               auto numElements = stateVector.get_num_elements();
@@ -452,7 +476,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<float>>(
-                        hostData, shape.size(), shape.data(), owner));
+                        hostData, shape.size(), shape.data(), owner,
+                        stridesPtr));
               } else {
                 auto *hostData = new std::complex<double>[numElements];
                 self.to_host(hostData, numElements);
@@ -465,19 +490,20 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<double>>(
-                        hostData, shape.size(), shape.data(), owner));
+                        hostData, shape.size(), shape.data(), owner,
+                        stridesPtr));
               }
             } else {
               if (precision == SimulationState::precision::fp32) {
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<float>>(
                         stateVector.data, shape.size(), shape.data(),
-                        nanobind::handle()));
+                        nanobind::handle(), stridesPtr));
               } else {
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<double>>(
                         stateVector.data, shape.size(), shape.data(),
-                        nanobind::handle()));
+                        nanobind::handle(), stridesPtr));
               }
             }
           },
