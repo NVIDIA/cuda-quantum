@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-include(GoogleTest)
+include(CUDAQGtestDiscovery)
 
 function(add_synthesis_test target_name source_file)
   add_executable(${target_name} ${source_file})
@@ -16,7 +16,7 @@ function(add_synthesis_test target_name source_file)
   )
   add_dependencies(CudaQUnitTests ${target_name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_UNIT_TEST_TARGETS ${target_name})
-  gtest_discover_tests(${target_name}
+  cudaq_gtest_discover_tests(${target_name}
     PROPERTIES LABELS "cudaq-synth-unittest"
     DISCOVERY_TIMEOUT 120
   )
