@@ -1581,7 +1581,6 @@ def R1Op : OneTargetParamOp<"r1", [Rotation]> {
      └───────┘
     ```
   }];
-  let hasCanonicalizer = 1;
 }
 
 def RxOp : OneTargetParamOp<"rx", [Rotation]> {
@@ -1600,7 +1599,6 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
      └───────┘
     ```
   }];
-  let hasCanonicalizer = 1;
 }
 
 def RyOp : OneTargetParamOp<"ry", [Rotation]> {
@@ -1619,7 +1617,6 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
      └───────┘
     ```
   }];
-  let hasCanonicalizer = 1;
 }
 
 def RzOp : OneTargetParamOp<"rz", [Rotation]> {
@@ -1638,7 +1635,6 @@ def RzOp : OneTargetParamOp<"rz", [Rotation]> {
      └───────┘
     ```
   }];
-  let hasCanonicalizer = 1;
 }
 
 def SOp : OneTargetOp<"s"> {
