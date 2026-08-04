@@ -714,50 +714,6 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
   }
 };
 
-template <typename OP>
-struct MergeRotationPattern : public OpRewritePattern<OP> {
-  using Base = OpRewritePattern<OP>;
-  using Base::Base;
-
-  LogicalResult matchAndRewrite(OP rotate,
-                                PatternRewriter &rewriter) const override {
-    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
-    if (rotate.getTarget(0).getType() != wireTy ||
-        !rotate.getControls().empty() || rotate.getNegatedQubitControls())
-      return failure();
-    auto input = rotate.getTarget(0).template getDefiningOp<OP>();
-    if (!input || !input.getControls().empty() ||
-        input.getNegatedQubitControls())
-      return failure();
-
-    // At this point, we have
-    //   %input  = quake.rotate %angle1, %wire
-    //   %rotate = quake.rotate %angle2, %input
-    // Replace those ops with
-    //   %new    = quake.rotate (%angle1 + %angle2), %wire
-    auto loc = rotate.getLoc();
-    auto angle1 = input.getParameter(0);
-    auto angle2 = rotate.getParameter(0);
-    if (angle1.getType() != angle2.getType())
-      return failure();
-    auto adjAttr = rotate.getIsAdjAttr();
-    auto newAngle = [&]() -> Value {
-      if (input.isAdj() == rotate.isAdj())
-        return arith::AddFOp::create(rewriter, loc, angle1, angle2);
-      // One is adjoint, so it should be subtracted from the other.
-      if (input.isAdj())
-        return arith::SubFOp::create(rewriter, loc, angle2, angle1);
-      adjAttr = input.getIsAdjAttr();
-      return arith::SubFOp::create(rewriter, loc, angle1, angle2);
-    }();
-    rewriter.replaceOpWithNewOp<OP>(rotate, rotate.getResultTypes(), adjAttr,
-                                    ValueRange{newAngle}, ValueRange{},
-                                    ValueRange{input.getTarget(0)},
-                                    rotate.getNegatedQubitControlsAttr());
-    return success();
-  }
-};
-
 // Forward the argument to a relax_size to the users for all users that are
 // quake operations. All quake ops that take a sized veq argument are
 // polymorphic on all veq types. If the op is not a quake op, then maintain
