@@ -818,6 +818,25 @@ def LinearCtrlRelations : Pass<"linear-ctrl-form", "mlir::func::FuncOp"> {
   }];
 }
 
+def LogSampleOutput : Pass<"log-sample-output", "mlir::ModuleOp"> {
+  let summary = "Keep implicit sample outputs live through quantum DQE";
+  let description = [{
+    Insert compiler-only marker calls in the direct quantum-cleanup suffix of
+    each entry-point return block. The calls preserve otherwise-unused sample
+    outputs in both quantum reference and value semantics without retaining
+    allocations cleaned up in an earlier lexical scope or introducing a
+    physical measurement or runtime operation.
+
+    Run this pass after cleanup insertion and before the first DQE.
+    Keep the markers through the final such DQE, then run erase-nop-calls
+    followed by symbol DCE before target lowering. Running DQE after marker
+    erasure can make the implicit sample outputs dead again.
+  }];
+
+  let dependentDialects = ["cudaq::quake::QuakeDialect",
+                           "mlir::func::FuncDialect"];
+}
+
 def LoopNormalize : Pass<"cc-loop-normalize"> {
   let summary = "Normalize classical compute (C++) loops.";
   let description = [{

@@ -434,6 +434,12 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
+    {cudaq::sampleOutputQubitMarker, {}, R"#(
+  func.func private @__nvqpp__log_sample_output(!quake.ref)
+)#"},
+    {cudaq::sampleOutputVeqMarker, {}, R"#(
+  func.func private @__nvqpp__log_sample_output_veq(!quake.veq<?>)
+)#"},
     {cudaq::runtime::cleanupArrays, {}, R"#(
   func.func private @__nvqpp_cleanup_arrays() -> ()
 )#"},

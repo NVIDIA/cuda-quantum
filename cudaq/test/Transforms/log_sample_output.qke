@@ -1,0 +1,274 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --log-sample-output %s | FileCheck --check-prefix=LOG %s
+// RUN: cudaq-opt --log-sample-output --dqe %s | FileCheck --check-prefix=ROOTED %s
+// RUN: cudaq-opt --log-sample-output --canonicalize --cse --factor-quantum-alloc --cable-rough-in --memtoreg --canonicalize --cse --dqe %s | FileCheck --check-prefix=VALUE %s
+// RUN: cudaq-opt --log-sample-output --factor-quantum-alloc --cable-rough-in --memtoreg --dqe --erase-nop-calls --symbol-dce %s | FileCheck --check-prefix=ERASED %s
+// RUN: cudaq-opt --log-sample-output --factor-quantum-alloc --cable-rough-in --memtoreg --dqe --erase-nop-calls --symbol-dce --dqe %s | FileCheck --check-prefix=DROPPED %s
+// RUN: cudaq-opt --log-sample-output --dqe --erase-nop-calls --symbol-dce %s | not grep __nvqpp__log_sample_output
+// RUN: cudaq-opt --log-sample-output --factor-quantum-alloc --cable-rough-in --memtoreg --dqe --erase-nop-calls --symbol-dce %s | not grep __nvqpp__log_sample_output
+// RUN: cudaq-opt --log-sample-output --factor-quantum-alloc --cable-rough-in --memtoreg --dqe --erase-nop-calls --symbol-dce --convert-to-qir-api %s > /dev/null
+
+func.func @reference_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.ref
+  quake.dealloc %0 : !quake.ref
+  return
+}
+
+func.func @reference_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.veq<2>
+  quake.dealloc %0 : !quake.veq<2>
+  return
+}
+
+func.func @reference_unsized_vector(%size: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.veq<?>[%size : i64]
+  quake.dealloc %0 : !quake.veq<?>
+  return
+}
+
+func.func @value_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  quake.sink %0 : !quake.wire
+  return
+}
+
+func.func @value_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_cable<2>
+  quake.sink %0 : !quake.cable<2>
+  return
+}
+
+func.func @early_cleanup() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  cc.scope {
+    %0 = quake.alloca !quake.ref
+    quake.dealloc %0 : !quake.ref
+    cc.continue
+  }
+  %1 = quake.alloca !quake.ref
+  quake.dealloc %1 : !quake.ref
+  return
+}
+
+// This function models a non-sample helper. The pass is explicitly invoked
+// for a sample compilation, but only entry points receive output markers.
+func.func private @not_an_entry_point() {
+  %0 = quake.alloca !quake.ref
+  quake.dealloc %0 : !quake.ref
+  return
+}
+
+// LOG-LABEL:   func.func @reference_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// LOG:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// LOG:           call @__nvqpp__log_sample_output(%[[ALLOCA_0]]) : (!quake.ref) -> ()
+// LOG:           quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// LOG:           return
+// LOG:         }
+
+// LOG-LABEL:   func.func @reference_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// LOG:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// LOG:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[ALLOCA_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// LOG:           call @__nvqpp__log_sample_output_veq(%[[RELAX_SIZE_0]]) : (!quake.veq<?>) -> ()
+// LOG:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<2>
+// LOG:           return
+// LOG:         }
+
+// LOG-LABEL:   func.func @reference_unsized_vector(
+// LOG-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// LOG:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[ARG0]] : i64]
+// LOG:           call @__nvqpp__log_sample_output_veq(%[[ALLOCA_0]]) : (!quake.veq<?>) -> ()
+// LOG:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<?>
+// LOG:           return
+// LOG:         }
+
+// LOG-LABEL:   func.func @value_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// LOG:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// LOG:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output(%[[NULL_WIRE_0]]) : (!quake.wire) -> !quake.wire
+// LOG:           quake.sink %[[CALL_BY_REF_0]] : !quake.wire
+// LOG:           return
+// LOG:         }
+
+// LOG-LABEL:   func.func @value_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// LOG:           %[[NULL_CABLE_0:.*]] = quake.null_cable <2>
+// LOG:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output_veq(%[[NULL_CABLE_0]]) : (!quake.cable<2>) -> !quake.cable<2>
+// LOG:           quake.sink %[[CALL_BY_REF_0]] : !quake.cable<2>
+// LOG:           return
+// LOG:         }
+
+// LOG-LABEL:   func.func @early_cleanup() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// LOG:           cc.scope {
+// LOG:             %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// LOG-NEXT:        quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// LOG:           }
+// LOG:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// LOG:           call @__nvqpp__log_sample_output(%[[ALLOCA_1]]) : (!quake.ref) -> ()
+// LOG:           quake.dealloc %[[ALLOCA_1]] : !quake.ref
+// LOG:           return
+// LOG:         }
+
+// LOG-LABEL:   func.func private @not_an_entry_point() {
+// LOG:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// LOG-NEXT:      quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// LOG:           return
+// LOG:         }
+// LOG:         func.func private @__nvqpp__log_sample_output(!quake.ref)
+// LOG:         func.func private @__nvqpp__log_sample_output_veq(!quake.veq<?>)
+
+// ROOTED-LABEL:   func.func @reference_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ROOTED:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// ROOTED:           call @__nvqpp__log_sample_output(%[[ALLOCA_0]]) : (!quake.ref) -> ()
+// ROOTED:           quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// ROOTED:           return
+// ROOTED:         }
+
+// ROOTED-LABEL:   func.func @reference_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ROOTED:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// ROOTED:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[ALLOCA_0]] : (!quake.veq<2>) -> !quake.veq<?>
+// ROOTED:           call @__nvqpp__log_sample_output_veq(%[[RELAX_SIZE_0]]) : (!quake.veq<?>) -> ()
+// ROOTED:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<2>
+// ROOTED:           return
+// ROOTED:         }
+
+// ROOTED-LABEL:   func.func @reference_unsized_vector(
+// ROOTED-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ROOTED:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[ARG0]] : i64]
+// ROOTED:           call @__nvqpp__log_sample_output_veq(%[[ALLOCA_0]]) : (!quake.veq<?>) -> ()
+// ROOTED:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<?>
+// ROOTED:           return
+// ROOTED:         }
+
+// ROOTED-LABEL:   func.func @value_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ROOTED:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// ROOTED:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output(%[[NULL_WIRE_0]]) : (!quake.wire) -> !quake.wire
+// ROOTED:           quake.sink %[[CALL_BY_REF_0]] : !quake.wire
+// ROOTED:           return
+// ROOTED:         }
+
+// ROOTED-LABEL:   func.func @value_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ROOTED:           %[[NULL_CABLE_0:.*]] = quake.null_cable <2>
+// ROOTED:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output_veq(%[[NULL_CABLE_0]]) : (!quake.cable<2>) -> !quake.cable<2>
+// ROOTED:           quake.sink %[[CALL_BY_REF_0]] : !quake.cable<2>
+// ROOTED:           return
+// ROOTED:         }
+
+// ROOTED-LABEL:   func.func @early_cleanup() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ROOTED:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// ROOTED:           call @__nvqpp__log_sample_output(%[[ALLOCA_0]]) : (!quake.ref) -> ()
+// ROOTED:           quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// ROOTED:           return
+// ROOTED:         }
+
+// ROOTED-LABEL:   func.func private @not_an_entry_point() {
+// ROOTED:           return
+// ROOTED:         }
+// ROOTED:         func.func private @__nvqpp__log_sample_output(!quake.ref)
+// ROOTED:         func.func private @__nvqpp__log_sample_output_veq(!quake.veq<?>)
+
+// VALUE-LABEL:   func.func @reference_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// VALUE:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// VALUE:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output(%[[NULL_WIRE_0]]) : (!quake.wire) -> !quake.wire
+// VALUE:           quake.sink %[[CALL_BY_REF_0]] : !quake.wire
+// VALUE:           return
+// VALUE:         }
+
+// VALUE-LABEL:   func.func @reference_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// VALUE:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// VALUE:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// VALUE:           %[[BUNDLE_CABLE_0:.*]] = quake.bundle_cable %[[NULL_WIRE_0]], %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// VALUE:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output_veq(%[[BUNDLE_CABLE_0]]) : (!quake.cable<2>) -> !quake.cable<2>
+// VALUE:           %[[SPLIT_CABLE_0:.*]]:2 = quake.split_cable %[[CALL_BY_REF_0]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// VALUE:           quake.sink %[[SPLIT_CABLE_0]]#0 : !quake.wire
+// VALUE:           quake.sink %[[SPLIT_CABLE_0]]#1 : !quake.wire
+// VALUE:           return
+// VALUE:         }
+
+// VALUE-LABEL:   func.func @reference_unsized_vector(
+// VALUE-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// VALUE:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[ARG0]] : i64]
+// VALUE:           call @__nvqpp__log_sample_output_veq(%[[ALLOCA_0]]) : (!quake.veq<?>) -> ()
+// VALUE:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<?>
+// VALUE:           return
+// VALUE:         }
+
+// VALUE-LABEL:   func.func @value_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// VALUE:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// VALUE:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output(%[[NULL_WIRE_0]]) : (!quake.wire) -> !quake.wire
+// VALUE:           quake.sink %[[CALL_BY_REF_0]] : !quake.wire
+// VALUE:           return
+// VALUE:         }
+
+// VALUE-LABEL:   func.func @value_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// VALUE:           %[[NULL_CABLE_0:.*]] = quake.null_cable <2>
+// VALUE:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output_veq(%[[NULL_CABLE_0]]) : (!quake.cable<2>) -> !quake.cable<2>
+// VALUE:           quake.sink %[[CALL_BY_REF_0]] : !quake.cable<2>
+// VALUE:           return
+// VALUE:         }
+
+// VALUE-LABEL:   func.func @early_cleanup() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// VALUE:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// VALUE:           %[[CALL_BY_REF_0:.*]] = quake.call_by_ref @__nvqpp__log_sample_output(%[[NULL_WIRE_0]]) : (!quake.wire) -> !quake.wire
+// VALUE:           quake.sink %[[CALL_BY_REF_0]] : !quake.wire
+// VALUE:           return
+// VALUE:         }
+
+// VALUE-LABEL:   func.func private @not_an_entry_point() {
+// VALUE:           return
+// VALUE:         }
+// VALUE:         func.func private @__nvqpp__log_sample_output(!quake.ref)
+// VALUE:         func.func private @__nvqpp__log_sample_output_veq(!quake.veq<?>)
+
+// ERASED-LABEL:   func.func @reference_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ERASED:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// ERASED:           quake.sink %[[NULL_WIRE_0]] : !quake.wire
+// ERASED:           return
+// ERASED:         }
+
+// ERASED-LABEL:   func.func @reference_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ERASED:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// ERASED:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// ERASED:           %[[BUNDLE_CABLE_0:.*]] = quake.bundle_cable %[[NULL_WIRE_0]], %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// ERASED:           %[[SPLIT_CABLE_0:.*]]:2 = quake.split_cable %[[BUNDLE_CABLE_0]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// ERASED:           quake.sink %[[SPLIT_CABLE_0]]#0 : !quake.wire
+// ERASED:           quake.sink %[[SPLIT_CABLE_0]]#1 : !quake.wire
+// ERASED:           return
+// ERASED:         }
+
+// ERASED-LABEL:   func.func @reference_unsized_vector(
+// ERASED-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ERASED:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[ARG0]] : i64]
+// ERASED:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<?>
+// ERASED:           return
+// ERASED:         }
+
+// ERASED-LABEL:   func.func @value_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ERASED:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// ERASED:           quake.sink %[[NULL_WIRE_0]] : !quake.wire
+// ERASED:           return
+// ERASED:         }
+
+// ERASED-LABEL:   func.func @value_vector() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ERASED:           %[[NULL_CABLE_0:.*]] = quake.null_cable <2>
+// ERASED:           quake.sink %[[NULL_CABLE_0]] : !quake.cable<2>
+// ERASED:           return
+// ERASED:         }
+
+// ERASED-LABEL:   func.func @early_cleanup() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// ERASED:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// ERASED:           quake.sink %[[NULL_WIRE_0]] : !quake.wire
+// ERASED:           return
+// ERASED:         }
+
+// DROPPED-LABEL:   func.func @reference_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// DROPPED:           return
+// DROPPED:         }
+
+// DROPPED-LABEL:   func.func @reference_unsized_vector(
+// DROPPED-SAME:      %[[ARG0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// DROPPED:           return
+// DROPPED:         }

@@ -19,6 +19,14 @@ class GlobalOp;
 /// calls will be erased before code gen.
 static constexpr const char stdMoveBuiltin[] = ".std::move";
 
+/// Compiler-only markers that keep implicit sample outputs live until quantum
+/// optimization is complete. These calls are erased before target lowering and
+/// have no runtime implementation.
+static constexpr const char sampleOutputQubitMarker[] =
+    "__nvqpp__log_sample_output";
+static constexpr const char sampleOutputVeqMarker[] =
+    "__nvqpp__log_sample_output_veq";
+
 static constexpr const char llvmMemCopyIntrinsic[] = "llvm.memcpy.p0.p0.i64";
 static constexpr const char llvmMemSetIntrinsic[] = "llvm.memset.p0.i64";
 

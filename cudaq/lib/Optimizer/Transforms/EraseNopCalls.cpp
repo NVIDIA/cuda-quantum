@@ -40,6 +40,41 @@ public:
   }
 };
 
+static bool isSampleOutputMarker(StringRef callee) {
+  return callee == cudaq::sampleOutputQubitMarker ||
+         callee == cudaq::sampleOutputVeqMarker;
+}
+
+class EraseSampleOutputCallPattern : public OpRewritePattern<func::CallOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(func::CallOp call,
+                                PatternRewriter &rewriter) const override {
+    if (!isSampleOutputMarker(call.getCallee()) || call.getNumResults())
+      return failure();
+    rewriter.eraseOp(call);
+    return success();
+  }
+};
+
+class EraseSampleOutputCallByRefPattern
+    : public OpRewritePattern<cudaq::quake::CallByRefOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::CallByRefOp call,
+                                PatternRewriter &rewriter) const override {
+    if (!isSampleOutputMarker(call.getCallee()))
+      return failure();
+    if (call.getNumResults() != call.getNumOperands() ||
+        call.getResultTypes() != call.getOperandTypes())
+      return failure();
+    rewriter.replaceOp(call, call.getOperands());
+    return success();
+  }
+};
+
 class EraseNopCallsPass
     : public cudaq::opt::impl::EraseNopCallsBase<EraseNopCallsPass> {
 public:
@@ -50,7 +85,8 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "Before erasure:\n" << *op << "\n\n");
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<EraseStdMovePattern>(ctx);
+    patterns.insert<EraseSampleOutputCallByRefPattern,
+                    EraseSampleOutputCallPattern, EraseStdMovePattern>(ctx);
     if (failed(applyPatternsGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After erasure:\n" << *op << "\n\n");
