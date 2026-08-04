@@ -84,9 +84,6 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
         return policy.options.return_measurement_matrices;
       });
 
-  // Bind dem_result as DEMResult. Python-typed members (scipy matrices,
-  // from_matrices classmethod, __str__/__repr__) are attached from Python in
-  // dem.py so that scipy never appears in the binding layer.
   nanobind::class_<dem_result>(mod, "DEMResult", nanobind::dynamic_attr())
       .def(
           "__init__",
@@ -153,7 +150,77 @@ Args:
             return j;
           },
           "Extensible endpoint metadata dict. Mutate in place: "
-          "``result.annotations['key'] = value``.");
+          "``result.annotations['key'] = value``.")
+      .def("__str__", [](const dem_result &self) { return self.dem; })
+      .def("__repr__",
+           [](const dem_result &self) {
+             return "DEMResult(detectors=" +
+                    std::to_string(self.num_detectors) +
+                    ", observables=" + std::to_string(self.num_observables) +
+                    ", measurements=" + std::to_string(self.num_measurements) +
+                    ")";
+           })
+      .def_prop_ro(
+          "m2d_matrix",
+          [](const dem_result &self) -> nanobind::object {
+            if (!self.matrices_computed)
+              return nanobind::none();
+            auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
+            return dem_mod.attr("_make_csr")(
+                nanobind::cast(self.m2d.rows),
+                nanobind::cast(self.num_measurements));
+          },
+          "scipy CSR matrix (num_detectors x num_measurements), or None when "
+          "matrices were not requested.")
+      .def_prop_ro(
+          "m2o_matrix",
+          [](const dem_result &self) -> nanobind::object {
+            if (!self.matrices_computed)
+              return nanobind::none();
+            auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
+            return dem_mod.attr("_make_csr")(
+                nanobind::cast(self.m2o.rows),
+                nanobind::cast(self.num_measurements));
+          },
+          "scipy CSR matrix (num_observables x num_measurements), or None "
+          "when matrices were not requested.")
+      .def_static(
+          "from_matrices",
+          [](const std::string &dem, nanobind::object m2d_csr,
+             nanobind::object m2o_csr, std::size_t num_detectors,
+             std::size_t num_observables, std::size_t num_measurements,
+             nanobind::object annotations) -> dem_result {
+            auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
+            auto csr_to_rows = dem_mod.attr("_csr_to_rows");
+            auto m2d_rows =
+                nanobind::cast<std::vector<std::vector<std::size_t>>>(
+                    csr_to_rows(m2d_csr));
+            auto m2o_rows =
+                nanobind::cast<std::vector<std::vector<std::size_t>>>(
+                    csr_to_rows(m2o_csr));
+
+            dem_result result;
+            result.dem = dem;
+            result.m2d.rows = std::move(m2d_rows);
+            result.m2o.rows = std::move(m2o_rows);
+            result.num_detectors = num_detectors;
+            result.num_observables = num_observables;
+            result.num_measurements = num_measurements;
+            result.matrices_computed =
+                !result.m2d.rows.empty() || !result.m2o.rows.empty();
+            if (!annotations.is_none()) {
+              result.annotations =
+                  cudaq_json(nanobind::cast<nlohmann::json>(annotations));
+            }
+            return result;
+          },
+          nanobind::arg("dem"), nanobind::arg("m2d_csr"),
+          nanobind::arg("m2o_csr"),
+          nanobind::arg("num_detectors") = std::size_t(0),
+          nanobind::arg("num_observables") = std::size_t(0),
+          nanobind::arg("num_measurements") = std::size_t(0),
+          nanobind::arg("annotations") = nanobind::none(),
+          "Build a DEMResult from scipy CSR matrices.");
 
   mod.def("launch_dem", launch_dem, "Policy based DEM launch.",
           nanobind::arg("policy"), nanobind::arg("callable"));

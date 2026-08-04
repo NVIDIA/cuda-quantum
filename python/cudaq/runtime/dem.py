@@ -21,21 +21,7 @@ _VALID_DEM_OPTION_KEYS = frozenset({
     "return_measurement_matrices",
 })
 
-# ---------------------------------------------------------------------------
-# Attach Python-typed members to DEMResult.
-#
-# DEMResult is the bound C++ `cudaq::dem_result`. Members that require Python
-# types (`scipy` matrices) are attached here so that `scipy` never appears in
-# the C++ binding layer.
-#
-# The setup is deferred to first use via `_get_dem_result_class()` to avoid
-# a circular-import issue: the extension module (which registers DEMResult in
-# `cudaq_runtime`) may trigger `cudaq/__init__.py` mid-initialization, before
-# `bindDemFromKernel` has run. Accessing `cudaq_runtime.DEMResult` at module
-# level would fail then.
-# ---------------------------------------------------------------------------
-
-_DEMResult = None
+# Helpers called from the C++ binding (py_dem.cpp) for scipy interop.
 
 
 def _make_csr(rows, num_cols):
@@ -49,85 +35,15 @@ def _make_csr(rows, num_cols):
     )
 
 
-def _m2d_matrix(self):
-    if not self.matrices_computed:
-        return None
-    return _make_csr(self.m2d, self.num_measurements)
+def _csr_to_rows(mat):
+    mat = mat.tocsr()
+    return [
+        list(mat.indices[mat.indptr[i]:mat.indptr[i + 1]])
+        for i in range(mat.shape[0])
+    ]
 
 
-def _m2o_matrix(self):
-    if not self.matrices_computed:
-        return None
-    return _make_csr(self.m2o, self.num_measurements)
-
-
-@classmethod
-def _from_matrices(cls,
-                   dem,
-                   m2d_csr,
-                   m2o_csr,
-                   *,
-                   num_detectors=0,
-                   num_observables=0,
-                   num_measurements=0,
-                   annotations=None):
-    """Build a DEMResult from `scipy` CSR matrices."""
-
-    def _csr_to_rows(mat):
-        mat = mat.tocsr()
-        return [
-            list(mat.indices[mat.indptr[i]:mat.indptr[i + 1]])
-            for i in range(mat.shape[0])
-        ]
-
-    return cls(
-        dem,
-        m2d=_csr_to_rows(m2d_csr),
-        m2o=_csr_to_rows(m2o_csr),
-        num_detectors=num_detectors,
-        num_observables=num_observables,
-        num_measurements=num_measurements,
-        annotations=annotations or {},
-    )
-
-
-def _dem_result_str(self):
-    return self.dem
-
-
-def _dem_result_repr(self):
-    return (f"DEMResult(detectors={self.num_detectors}, "
-            f"observables={self.num_observables}, "
-            f"measurements={self.num_measurements})")
-
-
-def _get_dem_result_class():
-    """Return the DEMResult class, attaching Python-typed members on first call."""
-    global _DEMResult
-    if _DEMResult is not None:
-        return _DEMResult
-    cls = cudaq_runtime.DEMResult
-    cls.m2d_matrix = property(_m2d_matrix,
-                              doc="scipy CSR matrix (num_detectors × "
-                              "num_measurements), or None when matrices "
-                              "were not requested.")
-    cls.m2o_matrix = property(_m2o_matrix,
-                              doc="scipy CSR matrix (num_observables × "
-                              "num_measurements), or None when matrices "
-                              "were not requested.")
-    cls.from_matrices = _from_matrices
-    cls.__str__ = _dem_result_str
-    cls.__repr__ = _dem_result_repr
-    _DEMResult = cls
-    return cls
-
-
-def __getattr__(name):
-    """Lazily resolve DEMResult so it is safe to import at extension-initialization time."""
-    if name == "DEMResult":
-        return _get_dem_result_class()
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
+DEMResult = cudaq_runtime.DEMResult
 
 # ---------------------------------------------------------------------------
 
@@ -168,9 +84,6 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
     Returns:
       :class:`DEMResult`
     """
-    # Ensure Python-typed members are attached before the first result arrives.
-    _get_dem_result_class()
-
     _detail_check_conditionals_on_measure(kernel)
 
     unknown = set(dem_kwargs) - _VALID_DEM_OPTION_KEYS
