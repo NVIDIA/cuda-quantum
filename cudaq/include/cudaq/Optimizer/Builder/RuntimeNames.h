@@ -84,4 +84,6 @@ static constexpr const char cleanupArrays[] = "__nvqpp_cleanup_arrays";
 
 static constexpr const char pythonUniqueAttrName[] = "quake.python_uniqued";
 
+static constexpr const char disableQuantumOpts[] = "quake.noOptimization";
+
 } // namespace cudaq::runtime
