@@ -122,13 +122,28 @@ runtime_deps() {
         ldd "$1" 2>/dev/null
     fi
 }
+# Pick the tool used to list dynamic symbols. Minimal runtime containers often
+# ship without binutils' nm, so fall back to readelf/objdump before giving up.
+sym_tool=
+for candidate in nm readelf objdump; do
+    if command -v $candidate >/dev/null 2>&1; then
+        sym_tool=$candidate
+        break
+    fi
+done
 # List the dynamic symbols a binary defines (not the ones it imports).
 defined_dynamic_syms() {
     if $is_darwin; then
         nm -gU "$1" 2>/dev/null
-    else
-        nm -D --defined-only "$1" 2>/dev/null
+        return
     fi
+    case $sym_tool in
+        nm)      nm -D --defined-only "$1" 2>/dev/null ;;
+        # Undefined symbols carry "UND" in the Ndx column resp. "*UND*" in the
+        # section column; everything else is defined by the binary itself.
+        readelf) readelf -W --dyn-syms "$1" 2>/dev/null | grep -v ' UND ' ;;
+        objdump) objdump -T "$1" 2>/dev/null | grep -v '\*UND\*' ;;
+    esac
 }
 # All GMP exports start with __gmp (per-type prefixes __gmpz_, __gmpn_, ...)
 # or gmp_; all MPFR exports start with mpfr_. macOS prepends an underscore.
@@ -146,26 +161,30 @@ else
 fi
 dynamic_ref_found=false
 static_link_found=false
-if command -v nm >/dev/null 2>&1; then
-    for f in $scan_files; do
-        case "$(basename "$f")" in
-            libgmp*|libmpfr*) continue ;;
-        esac
-        if runtime_deps "$f" | grep -qE 'libgmp|libmpfr'; then
-            dynamic_ref_found=true
-        fi
-        if defined_dynamic_syms "$f" | grep -qE " ($sym_pattern)"; then
-            echo "  Found GMP/MPFR symbols statically linked into $f." >&2
-            static_link_found=true
-        fi
-    done
-    $dynamic_ref_found
-    report $? "at least one CUDA-Q binary depends on GMP/MPFR dynamically"
+have_sym_tool=true
+if ! $is_darwin && [ -z "$sym_tool" ]; then
+    have_sym_tool=false
+fi
+for f in $scan_files; do
+    case "$(basename "$f")" in
+        libgmp*|libmpfr*) continue ;;
+    esac
+    if runtime_deps "$f" | grep -qE 'libgmp|libmpfr'; then
+        dynamic_ref_found=true
+    fi
+    if $have_sym_tool && defined_dynamic_syms "$f" | grep -qE " ($sym_pattern)"; then
+        echo "  Found GMP/MPFR symbols statically linked into $f." >&2
+        static_link_found=true
+    fi
+done
+$dynamic_ref_found
+report $? "at least one CUDA-Q binary depends on GMP/MPFR dynamically"
+if $have_sym_tool; then
     ! $static_link_found
     report $? "no CUDA-Q binary contains a statically linked GMP/MPFR copy"
 else
-    echo -e "\e[01;31mError: nm not available; cannot verify dynamic linking.\e[0m" >&2
-    report 1 "dynamic linking verification (nm not available)"
+    echo -e "\e[01;31mError: none of nm, readelf, objdump is available; cannot scan for statically linked GMP/MPFR copies.\e[0m" >&2
+    report 1 "no CUDA-Q binary contains a statically linked GMP/MPFR copy (no symbol listing tool available)"
 fi
 
 echo "Checking that the GMP/MPFR libraries can be replaced..."
@@ -174,6 +193,22 @@ if [ -z "$gmp_libs" ] || [ -z "$mpfr_libs" ]; then
     echo "  Skipping the library replacement checks (no shipped libgmp/libmpfr found)." >&2
     echo "License compliance check finished with $failures failure(s)."
     exit 10
+fi
+# The replacement checks overwrite the shipped libraries in place, so they need
+# write access to them and to their directory (for the system-libgmp step).
+# Without it every replacement silently no-ops and the checks would report
+# failures that say nothing about compliance.
+unwritable=
+for f in $gmp_libs $mpfr_libs; do
+    [ -w "$f" ] || unwritable="$unwritable $f"
+done
+[ -w "$lib_dir" ] || unwritable="$unwritable $lib_dir"
+if [ -n "$unwritable" ]; then
+    echo -e "\e[01;31mError: no write access to$unwritable.\e[0m" >&2
+    echo "  The library replacement checks modify the shipped libraries in place;" >&2
+    echo "  re-run this script with write access to $lib_dir (for example as root)." >&2
+    echo "License compliance check finished with $failures failure(s); library replacement checks not run." >&2
+    exit 11
 fi
 # Run a Clifford+T rotation synthesis, which exercises GMP and MPFR.
 # C++ installations ship cudaq-opt; wheels expose cudaq.synth.gridsynth.
