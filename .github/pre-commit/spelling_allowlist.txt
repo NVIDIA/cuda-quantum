@@ -48,6 +48,7 @@ GPUDirect
 GPUs
 GitHub
 GoogleTest
+GpuRoceTransceiver
 HPC
 HSB
 HTTP

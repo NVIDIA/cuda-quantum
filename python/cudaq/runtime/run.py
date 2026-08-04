@@ -31,9 +31,10 @@ class AsyncRunResult:
         cudaq_async_run_module_cache[self.counter] = mod
 
     def get(self):
-        result = self.impl.get()
-        self.getCalled = True
-        return result
+        try:
+            return self.impl.get()
+        finally:
+            self.getCalled = True
 
     def __del__(self):
         # FIXME: This potentially leaks memory intentionally. It is possible
@@ -118,8 +119,7 @@ Returns:
             raise ValueError("Noise model is not supported on hardware QPU.")
 
     processedArgs, module = decorator.prepare_call(*args)
-    async_results = cudaq_runtime.run_async_impl(decorator.uniqName + ".run",
-                                                 module, shots_count,
-                                                 noise_model, qpu_id,
-                                                 *processedArgs)
+    async_results = cudaq_runtime.run_async_impl(
+        decorator.uniqName + ".run", module, decorator.compiledModuleCache(),
+        shots_count, noise_model, qpu_id, *processedArgs)
     return AsyncRunResult(async_results, module)

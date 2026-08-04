@@ -14,7 +14,7 @@ target_include_directories(cudaq-device-call-runtime-headers INTERFACE
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   target_link_libraries(cudaq-device-call-runtime-headers INTERFACE
-    cudaq::cudaq-realtime)
+    $<BUILD_INTERFACE:cudaq::cudaq-realtime>)
 
   set(CUDAQ_DEVICE_CALL_SOURCES
       DeviceCallDispatch.cpp
@@ -62,7 +62,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       cudaq-device-call-runtime-headers
     PRIVATE
       cudaq-common
-      cudaq::cudaq-realtime
+      "$<BUILD_INTERFACE:$<TARGET_FILE:cudaq::cudaq-realtime>>"
       ${CUDAQ_DEVICE_CALL_CPU_ROCE_LIB}
       ${CUDAQ_DEVICE_CALL_UDP_LIB}
       LLVMSupport

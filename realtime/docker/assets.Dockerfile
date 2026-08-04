@@ -52,7 +52,7 @@ ENV CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 # [<ToolchainConfiguration]
 
 ## [nvComp] 
-# For Hololink
+# For HSB
 RUN dnf -y install nvcomp pkgconfig
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
@@ -97,7 +97,7 @@ RUN cd / && git clone -b ${hsb_version} https://github.com/nvidia-holoscan/holos
 # [CUDAQ Realtime]
 RUN cd /cuda-quantum/realtime && \
     mkdir -p build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/realtime_assets && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/realtime_assets && \
     make -j$(nproc) install
 
 # [Install makeself]

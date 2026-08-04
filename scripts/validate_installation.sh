@@ -280,7 +280,6 @@ do
         get_target_options() {
             case "$1" in
                 nvidia) echo "fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu" ;;
-                nvidia-legacy) echo "fp32 fp64 fp32,mqpu fp64,mqpu" ;;
                 tensornet) echo "fp32 fp64" ;;
                 tensornet-mps) echo "fp32 fp64" ;;
                 *) echo "" ;;

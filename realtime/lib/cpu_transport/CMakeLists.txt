@@ -18,7 +18,7 @@
 #   - cpu_roce_test_daemon (Phase 2, service / bridge stand-in;
 #     tx_mode=kRdmaSend -- Sends responses)
 #
-# Depends only on libibverbs + standard C++; deliberately no DOCA, no Hololink,
+# Depends only on libibverbs + standard C++; deliberately no DOCA, no HSB libraries,
 # no Holoscan, no CUDA at link time so the library is buildable on hosts
 # without GPUs.
 # ==============================================================================
