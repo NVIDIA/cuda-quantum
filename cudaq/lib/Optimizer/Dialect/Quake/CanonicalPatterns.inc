@@ -312,20 +312,21 @@ struct ConcatNoOpPattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
     // or
     // concat ref -> ref
     auto qubitsToConcat = concat.getTargets();
-    if (qubitsToConcat.size() > 1)
+    if (qubitsToConcat.size() != 1)
       return failure();
 
     // We only want to handle veq -> veq here.
-    if (isa<cudaq::quake::RefType>(qubitsToConcat.front().getType())) {
+    auto argTy = qubitsToConcat.front().getType();
+    auto *ctx = rewriter.getContext();
+    auto refTy = cudaq::quake::RefType::get(ctx);
+    if (argTy == refTy)
       return failure();
-    }
 
     // Do not handle anything where we don't know the sizes.
+    auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto retTy = concat.getResult().getType();
-    if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(retTy))
-      if (!veqTy.hasSpecifiedSize())
-        // This could be a folded quake.relax_size op.
-        return failure();
+    if (retTy == unsizedVeqTy || argTy != retTy)
+      return failure();
 
     rewriter.replaceOp(concat, qubitsToConcat);
     return success();

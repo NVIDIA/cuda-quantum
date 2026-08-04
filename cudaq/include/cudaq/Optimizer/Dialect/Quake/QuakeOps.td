@@ -329,7 +329,8 @@ def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "mlir::Value":$lower, "mlir::Value":$upper), [{
       return build($_builder, $_state, veqTy, input, lower, upper,
-        cudaq::quake::SubVeqOp::kDynamicIndex, cudaq::quake::SubVeqOp::kDynamicIndex);
+        cudaq::quake::SubVeqOp::kDynamicIndex,
+        cudaq::quake::SubVeqOp::kDynamicIndex);
     }]>,
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "std::int64_t":$lower, "std::int64_t":$upper), [{

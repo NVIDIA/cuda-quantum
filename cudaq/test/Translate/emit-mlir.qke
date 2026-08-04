@@ -8,7 +8,8 @@
 
 // RUN: cudaq-translate --convert-to=qir --emit-llvm=false %s | FileCheck %s
 
-// Test that the output is MLIR's LLVM-IR dialect and not LLVM IR itself.
+// Test that the output is MLIR's LLVM-IR dialect and not LLVM IR itself. Also
+// that vacuous allocations are erased.
 
 func.func @test_func(%p : i32) {
   %qv = quake.alloca !quake.veq<?>[%p : i32]
@@ -18,15 +19,6 @@ func.func @test_func(%p : i32) {
 }
 
 // CHECK-LABEL:   llvm.func @test_func(
-// CHECK-SAME:          %[[VAL_0:.*]]: i32) {
-// CHECK:           %[[VAL_1:.*]] = llvm.mlir.constant(2 : i64) : i64
-// CHECK:           %[[VAL_2:.*]] = llvm.zext %[[VAL_0]] : i32 to i64
-// CHECK:           %[[VAL_3:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_2]]) : (i64) -> !llvm.ptr
-// CHECK:           %[[VAL_4:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_1]]) : (i64) -> !llvm.ptr
-// CHECK-DAG:       llvm.call @__quantum__rt__qubit_release_array(%[[VAL_4]]) : (!llvm.ptr) -> ()
-// CHECK-DAG:       llvm.call @__quantum__rt__qubit_release_array(%[[VAL_3]]) : (!llvm.ptr) -> ()
-// CHECK:           llvm.return
+// CHECK-SAME:      %[[ARG0:.*]]: i32) {
+// CHECK-NEXT:      llvm.return
 // CHECK:         }
-
-// CHECK:         llvm.func @__quantum__rt__qubit_allocate_array(i64) -> !llvm.ptr attributes {sym_visibility = "private"}
-// CHECK:         llvm.func @__quantum__rt__qubit_release_array(!llvm.ptr) attributes {sym_visibility = "private"}
