@@ -922,7 +922,7 @@ Detailed information about supported drivers for different CUDA versions and be 
 .. _dynamic-linking-gmp-mpfr:
 
 Dynamic linking to GMP and MPFR
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+++++++++++++++++++++++++++++++++++++
 
 CUDA-Q binary distributions include the `GMP <https://gmplib.org/>`__ and
 `MPFR <https://www.mpfr.org/>`__ shared libraries, which are used by the
