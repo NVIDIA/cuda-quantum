@@ -95,6 +95,31 @@ function(cudaq_read_symbol_list _file _out_var)
   set(${_out_var} "${_entries}" PARENT_SCOPE)
 endfunction()
 
+# The complete set of MLIR/LLVM libraries that libcudaqMLIR whole-archives.
+#
+# Both users of the set go through here so they cannot drift: cudaqMLIR-shlib
+# .cmake to decide what to whole-archive, and _cudaq_read_mlir_provided_libs()
+# to decide what a downstream aggregate must NOT link. Drift between them is not
+# a link error -- it puts a second copy of an LLVM library in the process, and
+# surfaces at import time as
+#
+#   CommandLine Error: Option 'enable-branch-hint' registered more than once!
+#
+# because that library's static cl::opt constructors run twice.
+function(cudaq_mlir_bundled_libs _out_var)
+  cudaq_read_symbol_list("${CUDAQ_MLIR_LIBS_ALLOWLIST}" _libs)
+
+  # Target-specific codegen is not in the allowlist because it differs per
+  # architecture: LLVMX86* on x86_64, LLVMAArch64* on arm64.
+  if(COMMAND llvm_map_components_to_libnames)
+    llvm_map_components_to_libnames(_native native nativecodegen)
+    list(APPEND _libs ${_native})
+  endif()
+
+  list(REMOVE_DUPLICATES _libs)
+  set(${_out_var} "${_libs}" PARENT_SCOPE)
+endfunction()
+
 # MLIR/LLVM libraries already provided by ``libcudaqMLIR.so``, i.e. the ones a
 # consumer must resolve dynamically instead of linking the static archive.
 function(_cudaq_read_mlir_provided_libs _out_var)
@@ -105,8 +130,8 @@ function(_cudaq_read_mlir_provided_libs _out_var)
   endif()
 
   if(CUDAQ_MLIR_LIBS_ALLOWLIST)
-    cudaq_read_symbol_list("${CUDAQ_MLIR_LIBS_ALLOWLIST}" _allowlist)
-    list(APPEND _provided ${_allowlist})
+    cudaq_mlir_bundled_libs(_bundled)
+    list(APPEND _provided ${_bundled})
   endif()
 
   list(REMOVE_DUPLICATES _provided)

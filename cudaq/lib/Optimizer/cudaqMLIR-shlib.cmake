@@ -46,19 +46,11 @@ add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 # 2. Pull in the dependencies
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_libs})
 
-# 3. WHOLE_ARCHIVE everything in the allowlist, plus the target-specific codegen
-# libraries, so their full symbol set is exported for downstream plugins.
-#
-# Both feed one list: whole-archiving the same archive twice would define all of
-# its symbols twice and fail the link.
-cudaq_read_symbol_list(
-  "${CUDAQ_MLIR_LIBS_ALLOWLIST}" _cudaq_mlir_whole_archive)
-
-# Not in the allowlist because they differ per architecture.
-llvm_map_components_to_libnames(_cudaq_llvm_native_libs native nativecodegen)
-list(APPEND _cudaq_mlir_whole_archive ${_cudaq_llvm_native_libs})
-
-list(REMOVE_DUPLICATES _cudaq_mlir_whole_archive)
+# 3. WHOLE_ARCHIVE the bundled set -- the allowlist plus the target-specific
+# codegen libraries -- so their full symbol set is exported for downstream
+# plugins. cudaq_mlir_bundled_libs() is the single definition of that set; see
+# the note there on why nothing may re-derive it.
+cudaq_mlir_bundled_libs(_cudaq_mlir_whole_archive)
 
 foreach(_lib IN LISTS _cudaq_mlir_whole_archive)
   if(TARGET ${_lib})
