@@ -25,4 +25,4 @@ add_cudaq_dialect_library(CCDialect
     MLIRIR
 )
 
-register_cudaq_mlir_lib(CCDialect)
+check_registered_mlir_lib(CCDialect)

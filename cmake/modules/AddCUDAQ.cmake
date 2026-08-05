@@ -64,6 +64,79 @@ function(add_cudaq_library name)
   add_cudaq_library_install(${name})
 endfunction()
 
+# Define `CUDAQ_MLIR_BUNDLED_LIBS_PATH`: the file that lists all bundled MLIR libraries. In-tree
+# it lives in the source tree; installed it sits next to this file in lib/cmake/cudaq.
+foreach(_candidate
+  "${CMAKE_CURRENT_LIST_DIR}/../../cudaq/lib/Optimizer/mlir-bundled-libs.txt"
+  "${CMAKE_CURRENT_LIST_DIR}/mlir-bundled-libs.txt")
+  if(EXISTS "${_candidate}")
+    get_filename_component(CUDAQ_MLIR_BUNDLED_LIBS_PATH "${_candidate}" ABSOLUTE)
+    break()
+  endif()
+endforeach()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")
+
+# Read a newline-separated list file (one entry per line) into ``<out_var>``,
+# stripping comments and whitespace.
+function(_cudaq_read_symbol_list _file _out_var)
+  file(STRINGS "${_file}" _lines)
+  set(_entries)
+  foreach(_line IN LISTS _lines)
+    string(STRIP "${_line}" _line)
+    if(NOT (_line STREQUAL "" OR _line MATCHES "^#"))
+      list(APPEND _entries "${_line}")
+    endif()
+  endforeach()
+  set(${_out_var} "${_entries}" PARENT_SCOPE)
+endfunction()
+
+# Define `CUDAQ_MLIR_BUNDLED_LIBS`: the single list of MLIR libraries bundled into
+# libcudaqMLIR.
+if(CUDAQ_MLIR_BUNDLED_LIBS_PATH)
+  _cudaq_read_symbol_list("${CUDAQ_MLIR_BUNDLED_LIBS_PATH}" CUDAQ_MLIR_BUNDLED_LIBS)
+  # Target-specific codegen is not in the list because it differs per
+  # architecture: LLVMX86* on x86_64, LLVMAArch64* on arm64.
+  if(COMMAND llvm_map_components_to_libnames)
+    llvm_map_components_to_libnames(_cudaq_llvm_native_libs native nativecodegen)
+    list(APPEND CUDAQ_MLIR_BUNDLED_LIBS ${_cudaq_llvm_native_libs})
+  endif()
+  list(REMOVE_DUPLICATES CUDAQ_MLIR_BUNDLED_LIBS)
+endif()
+
+# --------------------------------------------------------------------------- #
+# ``cudaq_check_mlir_symbol_closure(<target>)``
+#
+# Fail the build if ``<target>`` references MLIR/LLVM symbols that libcudaqMLIR
+# does not export. Everything in CUDA-Q must resolve MLIR/LLVM dynamically from the
+# single libcudaqMLIR instance. See scripts/check_mlir_symbols.sh.
+# --------------------------------------------------------------------------- #
+
+option(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE
+  "Fail the build when a library references MLIR/LLVM symbols libcudaqMLIR does not export."
+  ON)
+
+# In-tree this module sits in cmake/modules; installed it sits in
+# lib/cmake/cudaq next to a copy of the script.
+foreach(_candidate
+  "${CMAKE_CURRENT_LIST_DIR}/../../scripts/check_mlir_symbols.sh"
+  "${CMAKE_CURRENT_LIST_DIR}/check_mlir_symbols.sh")
+  if(EXISTS "${_candidate}")
+    get_filename_component(CUDAQ_CHECK_SYMBOL_SCRIPT "${_candidate}" ABSOLUTE)
+    break()
+  endif()
+endforeach()
+
+function(cudaq_check_mlir_symbol_closure name)
+  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT)
+    return()
+  endif()
+  add_custom_command(TARGET ${name} POST_BUILD
+    COMMAND bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
+    "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>"
+    COMMENT "Checking MLIR/LLVM symbol closure of ${name}"
+    VERBATIM)
+endfunction()
+
 # Build a thin shared C API library.
 #
 # The listed C API libraries are embedded via their object targets without
@@ -127,6 +200,9 @@ function(add_cudaq_capi_shared_library name)
     target_link_options(${name} PRIVATE
       "LINKER:--version-script=${_version_script}")
   endif()
+
+  # Check for unexpected undefined symbols
+  cudaq_check_mlir_symbol_closure(${name})
 endfunction()
 
 # Adds a CUDA Quantum dialect library target for installation. This should normally
@@ -148,12 +224,14 @@ function(add_cudaq_translation_library name)
 endfunction()
 
 function(add_target_config name)
-  install(FILES ${name}.yml DESTINATION targets)
+  install(FILES ${name}.yml DESTINATION targets COMPONENT Runtime)
   configure_file(${name}.yml ${CMAKE_BINARY_DIR}/targets/${name}.yml COPYONLY)
 endfunction()
 
 function(add_target_mapping_arch providerName name)
-  install(FILES ${name} DESTINATION targets/mapping/${providerName})
+  install(FILES ${name}
+    DESTINATION targets/mapping/${providerName}
+    COMPONENT Runtime)
   configure_file(${name} ${CMAKE_BINARY_DIR}/targets/mapping/${providerName}/${name} COPYONLY)
 endfunction()
 
