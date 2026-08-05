@@ -14,6 +14,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
@@ -176,9 +177,12 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
+               bool useValueSemantics =
+                   !modOp->hasAttr(cudaq::runtime::disableQuantumOpts);
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
-               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue);
+               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,
+                                                      useValueSemantics);
              })
       .Case("openqasm2",
             [&]() {

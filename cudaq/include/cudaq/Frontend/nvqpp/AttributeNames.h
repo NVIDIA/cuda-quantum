@@ -27,4 +27,9 @@ static constexpr const char deviceCallAttrName[] = "cudaq-devicecall";
 static constexpr const char generatorAnnotation[] =
     "user_custom_quantum_operation";
 
+/// Name of the annotation attribute that disables quantum optimizations on a
+/// kernel. Attach via `[[cudaq::disable_quantum_optimization]]`.
+static constexpr const char disableQuantumOptAnnotation[] =
+    "disable_quantum_optimization";
+
 } // namespace cudaq
