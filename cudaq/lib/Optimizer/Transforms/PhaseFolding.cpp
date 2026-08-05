@@ -26,10 +26,9 @@ using namespace mlir;
 
 // AXIS-SPECIFIC: Defines which operations break a circuit into subcircuits
 #define CIRCUIT_BREAKERS(MACRO)                                                \
-  MACRO(YOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp), MACRO(PhasedRxOp),       \
+  MACRO(YOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp), MACRO(PhasedRxOp),         \
       MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
-#define Z_AXIS_ROTATIONS(MACRO)                                                \
-  MACRO(RzOp), MACRO(SOp), MACRO(TOp), MACRO(ZOp)
+#define Z_AXIS_ROTATIONS(MACRO) MACRO(RzOp), MACRO(SOp), MACRO(TOp), MACRO(ZOp)
 #define RAW(X) cudaq::quake::X
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
 #define RAW_Z_AXIS_ROTATIONS Z_AXIS_ROTATIONS(RAW)
@@ -115,11 +114,15 @@ class PhaseStorage {
 
   // Returns the angle of a named Z-axis gate as a multiple of pi/4 (mod 8),
   // or nullopt for quake.rz (angle not statically known as a named gate).
-  static std::optional<int> getQuarterPiUnits(cudaq::quake::OperatorInterface rot) {
+  static std::optional<int>
+  getQuarterPiUnits(cudaq::quake::OperatorInterface rot) {
     auto *op = rot.getOperation();
-    if (isa<cudaq::quake::ZOp>(op)) return 4;
-    if (isa<cudaq::quake::SOp>(op)) return rot.isAdj() ? 6 : 2;
-    if (isa<cudaq::quake::TOp>(op)) return rot.isAdj() ? 7 : 1;
+    if (isa<cudaq::quake::ZOp>(op))
+      return 4;
+    if (isa<cudaq::quake::SOp>(op))
+      return rot.isAdj() ? 6 : 2;
+    if (isa<cudaq::quake::TOp>(op))
+      return rot.isAdj() ? 7 : 1;
     return std::nullopt;
   }
 
@@ -152,8 +155,8 @@ class PhaseStorage {
     auto loc = op2->getLoc();
     auto *ctx = op2->getContext();
     auto wireTy = cudaq::quake::WireType::get(ctx);
-    Value wireIn = rot2.getTarget(0);  // rot1's result (B)
-    Value prevIn = rot1.getTarget(0);  // rot1's input (A)
+    Value wireIn = rot2.getTarget(0); // rot1's result (B)
+    Value prevIn = rot1.getTarget(0); // rot1's input (A)
     numCombined++;
 
     auto finalize = [&](Operation *newOp) -> Operation * {
@@ -172,23 +175,30 @@ class PhaseStorage {
     if (u1 && u2) {
       int combined = ((*u1 + *u2) % 8 + 8) % 8;
       switch (combined) {
-      case 0: return finalize(nullptr);
-      case 1: return finalize(cudaq::quake::TOp::create(builder, loc,
-                  TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
-                  ValueRange{wireIn}, {}));
-      case 2: return finalize(cudaq::quake::SOp::create(builder, loc,
-                  TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
-                  ValueRange{wireIn}, {}));
-      case 4: return finalize(cudaq::quake::ZOp::create(builder, loc,
-                  TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
-                  ValueRange{wireIn}, {}));
-      case 6: return finalize(cudaq::quake::SOp::create(builder, loc,
-                  TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
-                  ValueRange{wireIn}, {}));
-      case 7: return finalize(cudaq::quake::TOp::create(builder, loc,
-                  TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
-                  ValueRange{wireIn}, {}));
-      default: break; // 3 or 5: not a named gate, fall through to addf
+      case 0:
+        return finalize(nullptr);
+      case 1:
+        return finalize(cudaq::quake::TOp::create(
+            builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      case 2:
+        return finalize(cudaq::quake::SOp::create(
+            builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      case 4:
+        return finalize(cudaq::quake::ZOp::create(
+            builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      case 6:
+        return finalize(cudaq::quake::SOp::create(
+            builder, loc, TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      case 7:
+        return finalize(cudaq::quake::TOp::create(
+            builder, loc, TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
+            ValueRange{wireIn}, {}));
+      default:
+        break; // 3 or 5: not a named gate, fall through to addf
       }
     }
 
@@ -196,9 +206,10 @@ class PhaseStorage {
     Value angle1 = getRotAngleValue(builder, rot1);
     Value angle2 = getRotAngleValue(builder, rot2);
     auto sumAngle = arith::AddFOp::create(builder, loc, angle1, angle2);
-    return finalize(cudaq::quake::RzOp::create(builder, loc, TypeRange{wireTy},
-        false, ValueRange{sumAngle.getResult()}, ValueRange{},
-        ValueRange{wireIn}, {}));
+    return finalize(
+        cudaq::quake::RzOp::create(builder, loc, TypeRange{wireTy}, false,
+                                   ValueRange{sumAngle.getResult()},
+                                   ValueRange{}, ValueRange{wireIn}, {}));
   }
 
 public:
