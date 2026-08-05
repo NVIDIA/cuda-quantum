@@ -40,16 +40,16 @@ public:
 
   /// @brief Access the underlying nlohmann::json.
   nlohmann::json &get();
-  /// @brief Access the underlying nlohmann::json (const).
+  /// @brief Access the underlying nlohmann::json (`const`).
   const nlohmann::json &get() const;
 
-  /// @brief Dereference to the underlying nlohmann::json.
+  /// @brief `Dereference` to the underlying nlohmann::json.
   nlohmann::json &operator*();
-  /// @brief Dereference to the underlying nlohmann::json (const).
+  /// @brief `Dereference` to the underlying nlohmann::json (`const`).
   const nlohmann::json &operator*() const;
   /// @brief Arrow access to the underlying nlohmann::json.
   nlohmann::json *operator->();
-  /// @brief Arrow access to the underlying nlohmann::json (const).
+  /// @brief Arrow access to the underlying nlohmann::json (`const`).
   const nlohmann::json *operator->() const;
 
 private:
