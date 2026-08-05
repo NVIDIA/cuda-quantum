@@ -71,7 +71,7 @@ def test_cpp_kernel_from_python_0():
 
     from cudaq_test_cpp_algo import qstd
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def callQftAndAnother():
         q = cudaq.qvector(4)
         qstd.qft(q)
@@ -88,7 +88,7 @@ def test_cpp_kernel_from_python_0():
     # support and test this instead
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(disable_quantum_optimization=True)
         def callQftAndAnother(withAdj: bool):
             q = cudaq.qvector(4)
             qstd.qft(q)
@@ -111,7 +111,7 @@ def test_cpp_kernel_from_python_1():
 
     import cudaq_test_cpp_algo
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def callQftAndAnother():
         q = cudaq.qvector(4)
         cudaq_test_cpp_algo.qstd.qft(q)
@@ -128,7 +128,7 @@ def test_cpp_kernel_from_python_1():
     # support and test this instead
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(disable_quantum_optimization=True)
         def callQftAndAnother(withAdj: bool):
             q = cudaq.qvector(4)
             cudaq_test_cpp_algo.qstd.qft(q)
@@ -206,7 +206,7 @@ def test_cpp_kernel_from_python_4():
     print(qlib.qstd.qft)
     print(qlib.qstd.another)
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def callQftAndAnother():
         q = cudaq.qvector(4)
         qlib.qstd.qft(q)
@@ -391,7 +391,7 @@ def test_cpp_kernel_from_builder_apply_call():
 
     from cudaq_test_cpp_algo import qstd
 
-    @cudaq.kernel(defer_compilation=False)
+    @cudaq.kernel(defer_compilation=False, disable_quantum_optimization=True)
     def cppCaller():
         q = cudaq.qvector(4)
         qstd.qft(q)

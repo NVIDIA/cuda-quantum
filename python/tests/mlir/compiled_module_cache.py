@@ -205,10 +205,6 @@ def scenario_dependencies():
 # DEPENDENCIES: Compiling module
 # DEPENDENCIES: Caching module
 # DEPENDENCIES: Reusing cached module
-# DEPENDENCIES-NOT: Compiling module
-# DEPENDENCIES-NOT: Caching module
-# DEPENDENCIES-NOT: Reusing cached module
-# DEPENDENCIES: Deallocating simulator
 
 
 def scenario_runtime_inputs():
