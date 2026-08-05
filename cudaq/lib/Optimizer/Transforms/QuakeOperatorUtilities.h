@@ -38,6 +38,12 @@ getControlPolarities(mlir::ValueRange controls,
   return polarities;
 }
 
+template <typename Op>
+inline llvm::SmallVector<bool> getControlPolarities(Op op) {
+  return getControlPolarities(op.getControls(),
+                              op.getNegatedQubitControls());
+}
+
 /// Return true when any control vector cannot be expanded into a statically
 /// known number of scalar references.
 inline bool hasUnresolvedControlVeq(mlir::ValueRange controls) {

@@ -20,15 +20,6 @@
 
 namespace cudaq::opt {
 
-template <typename Op>
-inline llvm::SmallVector<bool> getControlPolarities(Op op) {
-  llvm::SmallVector<bool> polarities(op.getControls().size(), false);
-  if (auto negated = op.getNegatedQubitControls())
-    for (auto [index, value] : llvm::enumerate(*negated))
-      polarities[index] = value;
-  return polarities;
-}
-
 inline mlir::DenseBoolArrayAttr
 makeNegatedControlsAttr(mlir::OpBuilder &builder,
                         llvm::ArrayRef<bool> polarities) {
