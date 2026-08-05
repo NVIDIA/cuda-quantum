@@ -18,6 +18,7 @@
 #include "llvm/ADT/StringSet.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/IR/Builders.h"
@@ -36,6 +37,9 @@ class DecompositionPatternsTest : public ::testing::Test {
 protected:
   void SetUp() override {
     context = std::make_unique<MLIRContext>();
+    DialectRegistry registry;
+    func::registerInlinerExtension(registry);
+    context->appendDialectRegistry(registry);
     context->loadDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                          func::FuncDialect, cudaq::quake::QuakeDialect>();
   }
