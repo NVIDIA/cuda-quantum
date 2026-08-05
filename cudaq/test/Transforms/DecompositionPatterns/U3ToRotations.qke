@@ -71,3 +71,17 @@ func.func @negative_controlled(%control: !quake.ref, %target: !quake.ref) {
   // CHECK: quake.phase
   return
 }
+
+// Preserve literal zero phase operands for the shared emission helper.
+func.func @zero_phase(%target: !quake.ref) {
+  %theta = arith.constant 2.500000e-01 : f64
+  %zero = arith.constant 0.000000e+00 : f64
+  quake.u3 (%theta, %zero, %zero) %target
+      : (f64, f64, f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @zero_phase
+// CHECK: quake.rz
+// CHECK-NOT: quake.phase
+// CHECK: return
