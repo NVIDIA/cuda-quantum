@@ -12,13 +12,14 @@
 #include <cudaq.h>
 
 struct Defeatism {
-   void operator()() __disable_quantum_optimization__ __qpu__ {
+  void operator()() __disable_quantum_optimization__ __qpu__ {
     cudaq::qubit q0, q1;
     h(q0);
     h(q0);
   }
 };
 
+// clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__Defeatism()
 // CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 2)
 // CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
