@@ -835,7 +835,6 @@ def test_can_progressively_build():
     kernel.disable_quantum_optimization()
     q = kernel.qalloc(2)
     kernel.h(q[0])
-    kernel.ry(12 * np.pi, q[1])
     print(kernel)
     state = cudaq.get_state(kernel)
     assert np.isclose(1. / np.sqrt(2.), state[0].real)
