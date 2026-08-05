@@ -1,0 +1,52 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
+
+// End-to-end test of the registered `cudaq-fault-tolerant-target` pipeline
+// (UnitarySynthesis -> ApplyOpSpecialization -> ConstantPropagation ->
+// CliffordTSynthesis -> Decomposition to {h,s,t,x,z,cnot}). After the whole
+// pipeline runs, no rotation ops survive anywhere and the body is expressed in
+// the fault-tolerant basis. gridsynth output is stochastic, so we assert only
+// structural invariants.
+
+func.func @kernel() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.h %q : (!quake.ref) -> ()
+  return
+}
+
+// The constant rotation is synthesized into a Clifford+T helper (dozens of T
+// gates) and the kernel calls it. Every gate is in the {h,s,t,x,z,cnot} basis.
+// CHECK-LABEL: func.func private @__cliffordt_rz_
+// CHECK-COUNT-15: quake.t
+
+// CHECK-LABEL: func.func @kernel
+// CHECK:         quake.alloca
+// CHECK:         call @__cliffordt_rz_
+
+// Rx and Ry are reduced to Rz (+ Clifford) by the pipeline's decomposition
+// step before synthesis, so they too end up as Clifford+T with no surviving
+// rotation ops. The kernel is marked as an entry point so the decomposition
+// pass processes it (it only decomposes entry points or functions taking
+// qubit arguments).
+func.func @kernel_rx_ry() attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @kernel_rx_ry
+// CHECK:         quake.alloca
+// CHECK:         call @__cliffordt_rz_

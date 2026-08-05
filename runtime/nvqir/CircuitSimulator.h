@@ -342,18 +342,21 @@ public:
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::sample_policy &policy) {
     configureExecutionContextImpl(policy);
+    executionContextType = cudaq::detail::ExecutionContextType::sample;
     warnAboutNamedMeasurements = true;
   }
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::observe_policy &policy) {
     configureExecutionContextImpl(policy);
+    executionContextType = cudaq::detail::ExecutionContextType::observe;
     policy.canHandleObserve = canHandleObserve();
   }
 
   /// @brief Set the execution context
   virtual void configureExecutionContext(const cudaq::run_policy &policy) {
     configureExecutionContextImpl(policy);
+    executionContextType = cudaq::detail::ExecutionContextType::run;
     // Start each run with a clean output log so results are not accumulated
     // across invocations.
     outputLog.clear();
@@ -368,6 +371,7 @@ public:
   /// @brief Set the execution context
   void configureExecutionContext(const cudaq::ptsbe::sample_policy &policy) {
     noiseModel = nullptr;
+    executionContextType = cudaq::detail::ExecutionContextType::other;
     currentCircuitName = policy.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
@@ -388,6 +392,7 @@ public:
   virtual void configureExecutionContext(cudaq::ExecutionContext &context) {
     context.canHandleObserve = canHandleObserve();
     noiseModel = context.noiseModel;
+    executionContextType = cudaq::detail::ExecutionContextType::other;
     currentCircuitName = context.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
@@ -572,6 +577,18 @@ public:
   /// A string containing the output logging of a kernel launched with
   /// `cudaq::run()`.
   std::string outputLog;
+
+  /// @brief The kind of execution the simulator is currently configured for.
+  /// Driven by the policy passed to `configureExecutionContext`, this replaces
+  /// checks against the execution context name (e.g. name == "run").
+  cudaq::detail::ExecutionContextType executionContextType =
+      cudaq::detail::ExecutionContextType::other;
+
+  /// @brief Return the kind of execution the simulator is currently configured
+  /// for.
+  cudaq::detail::ExecutionContextType getExecutionContextType() const {
+    return executionContextType;
+  }
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -1107,7 +1124,8 @@ public:
 
   void deallocateQubits(const std::vector<std::size_t> &qubits) override {
     auto *ctx = cudaq::getExecutionContext();
-    if (ctx != nullptr && ctx->name != "run") {
+    if (ctx != nullptr &&
+        executionContextType != cudaq::detail::ExecutionContextType::run) {
       // Avoid deallocation as we may need to access the state after the
       // execution has completed.
       // TODO: reduce the cases where this is needed.
@@ -1156,8 +1174,6 @@ protected:
     finalizeExecutionContextImpl();
     // Capture the output log for this run. Do not clear it here: the log is
     // reset at the start of each run in configureExecutionContext(run_policy).
-    // The getAndClearOutputLog helper used by the mock QPUs reads the
-    // simulator's output log *after* finalization.
     return cudaq::run_result{this->outputLog};
   }
 
@@ -1266,6 +1282,7 @@ public:
   void endExecution() override {
     internalResult = {};
     noiseModel = nullptr;
+    executionContextType = cudaq::detail::ExecutionContextType::other;
 
     if (nQubitsAllocated == 0) {
       tracker = {};

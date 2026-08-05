@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=RxToRz,RyToRz},clifford-t-synthesis{epsilon=1e-3})' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
+
+// Rx and Ry are reduced to a Clifford sandwich around an inner Rz by the
+// RxToRz / RyToRz decomposition patterns; clifford-t-synthesis then expands
+// the Rz. The result must contain no surviving
+// rotation ops and a minimum of T gates per function.
+// 15 is a safety floor robust to gridsynth variance.
+// The actual T-count at epsilon=1e-3 is on the order of dozens.
+
+func.func @rx_pi_over_4() attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @ry_pi_over_4() attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func private @__cliffordt_rz_
+// CHECK-COUNT-15: quake.t
+
+// CHECK-LABEL: func.func @rx_pi_over_4
+// CHECK:         quake.alloca
+// CHECK:         quake.h
+// CHECK:         call @__cliffordt_rz_
+// CHECK:         quake.h
+
+// CHECK-LABEL: func.func @ry_pi_over_4
+// CHECK:         quake.alloca
+// CHECK:         call @__cliffordt_rz_
