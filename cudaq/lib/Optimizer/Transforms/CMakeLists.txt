@@ -74,6 +74,7 @@ add_cudaq_library(OptTransforms
   ResetBeforeReuse.cpp
   ResourceCountPreprocess.cpp
   RunSemanticsHackery.cpp
+  SinkMeasurements.cpp
   SROA.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
