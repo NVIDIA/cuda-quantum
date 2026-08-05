@@ -16,6 +16,15 @@
 
 namespace cudaq::opt {
 
+template <typename Op>
+inline llvm::SmallVector<bool> getControlPolarities(Op op) {
+  llvm::SmallVector<bool> polarities(op.getControls().size(), false);
+  if (auto negated = op.getNegatedQubitControls())
+    for (auto [index, value] : llvm::enumerate(*negated))
+      polarities[index] = value;
+  return polarities;
+}
+
 /// Return the wire result types for a Quake operator with the given controls
 /// and targets. Quake orders wire results by controls first, then targets.
 inline llvm::SmallVector<mlir::Type>
