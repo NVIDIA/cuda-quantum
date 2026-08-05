@@ -117,6 +117,13 @@ Common
 .. doxygenstruct:: cudaq::ExecutionResult
     :members:
 
+.. cpp:class:: nlohmann::json
+
+   See the `nlohmann/json documentation <https://json.nlohmann.me/>`_ for the full API.
+
+.. doxygenclass:: cudaq::cudaq_json
+    :members:
+
 .. doxygenclass:: cudaq::sample_result
     :members:
 
