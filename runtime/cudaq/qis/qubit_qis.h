@@ -26,7 +26,7 @@
 #include <stdexcept>
 
 #define __qpu__ __attribute__((annotate("quantum")))
-#define __disable_quantum_optimization__                                        \
+#define __disable_quantum_optimization__                                       \
   __attribute__((annotate("disable_quantum_optimization")))
 
 // This file describes the API for a default qubit logical instruction
