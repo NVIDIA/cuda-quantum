@@ -269,6 +269,29 @@ def test_evolve_density_matrix_complex_input_observable_cudm(order):
     assert np.isclose(expectation_values[0][0].expectation(), -0.5)
 
 
+def test_evolve_density_matrix_numpy_readback_cudm():
+    from cudaq.operators import spin
+
+    initial_state = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    result = cudaq.evolve(
+        spin.x(0),
+        {0: 2},
+        Schedule(np.linspace(0.0, np.pi / 4.0, 101), ["time"]),
+        initial_state,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+    )
+
+    expected = np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=np.complex128)
+    # The default integrator contributes about 1e-2 numerical error, while the
+    # transposed layout differs by O(1).
+    np.testing.assert_allclose(np.array(result.final_state()),
+                               expected,
+                               atol=1e-2)
+
+
 def test_evolve_density_matrix_numpy_layout_cudm():
     from cudaq.operators import spin
 

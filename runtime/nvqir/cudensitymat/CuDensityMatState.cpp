@@ -182,7 +182,9 @@ CuDensityMatState::getTensor(std::size_t tensorIdx) const {
     const std::vector<std::size_t> extents =
         isDensityMatrix ? std::vector<std::size_t>{dim, dim}
                         : std::vector<std::size_t>{dim};
-    return Tensor{devicePtr, extents, precision::fp64};
+    const auto order = isDensityMatrix ? Tensor::storage_order::column_major
+                                       : Tensor::storage_order::unspecified;
+    return Tensor{devicePtr, extents, precision::fp64, order};
   } else {
     // For batched state, always returns the flat buffer.
     return Tensor{devicePtr, {dimension}, precision::fp64};
