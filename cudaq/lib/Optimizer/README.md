@@ -15,9 +15,9 @@ CUDAQ defines as one shared `mondo` library. The goal is twofold:
 ## Build strategy
 
 The `libcudaqMLIR` library is built from the single list in
-[`mlir-bundled-libs.txt`](mlir-bundled-libs.txt) (plus per-arch native
-`codegen` resolved at configure time), available as the CMake variable
-`CUDAQ_MLIR_BUNDLED_LIBS`. Every entry in that list is bundled into
+[`mlir-bundled-libs.txt`](../../../cmake/modules/mlir-bundled-libs.txt) (plus
+per-arch native `codegen` resolved at configure time), available as the CMake
+variable `CUDAQ_MLIR_BUNDLED_LIBS`. Every entry in that list is bundled into
 the shared library:
 
 1. CUDA-Q dialect/transform libraries are bundled as object files (`obj.<lib>`
@@ -39,11 +39,11 @@ In the library's `CMakeLists.txt`:
 ```cmake
 add_cudaq_library(MyNewLib ...)
 
-# Check that the library is listed in mlir-bundled-libs.txt.
+# Check that the library is listed in cmake/modules/mlir-bundled-libs.txt.
 check_registered_mlir_lib(MyNewLib)
 ```
 
-Add `MyNewLib` to `mlir-bundled-libs.txt` under the CUDA-Q section.
+Add `MyNewLib` to `cmake/modules/mlir-bundled-libs.txt` under the CUDA-Q section.
 
 If the library needs additional upstream MLIR symbols, add the corresponding
-`MLIR*` target to the MLIR/LLVM section of the same file.
+`MLIR*` target to the MLIR/LLVM section of that file.

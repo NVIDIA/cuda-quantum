@@ -41,13 +41,13 @@ function(add_cudaq_doc tablegen_file output_path command)
   tablegen(MLIR ${output_id}.md ${command} ${ARGN})
   set(GEN_DOC_FILE ${CUDAQ_BINARY_DIR}/docs/${output_path}.md)
   set(PROCESS_DOC_SCRIPT
-      ${CUDAQ_SOURCE_DIR}/cmake/modules/ProcessMLIRMarkdown.cmake)
+    ${CUDAQ_SOURCE_DIR}/cmake/modules/ProcessMLIRMarkdown.cmake)
   add_custom_command(
     OUTPUT ${GEN_DOC_FILE}
     COMMAND ${CMAKE_COMMAND}
-      -DINPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md
-      -DOUTPUT_FILE=${GEN_DOC_FILE}
-      -P ${PROCESS_DOC_SCRIPT}
+    -DINPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md
+    -DOUTPUT_FILE=${GEN_DOC_FILE}
+    -P ${PROCESS_DOC_SCRIPT}
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${output_id}.md ${PROCESS_DOC_SCRIPT}
     VERBATIM)
   add_custom_target(${output_id}DocGen DEPENDS ${GEN_DOC_FILE})
@@ -56,7 +56,7 @@ endfunction()
 
 function(add_cudaq_dialect_doc dialect dialect_namespace)
   add_cudaq_doc(${dialect}Ops Dialects/${dialect}
-                -gen-dialect-doc -dialect ${dialect_namespace})
+    -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
 function(add_cudaq_library name)
@@ -64,16 +64,9 @@ function(add_cudaq_library name)
   add_cudaq_library_install(${name})
 endfunction()
 
-# Define `CUDAQ_MLIR_BUNDLED_LIBS_PATH`: the file that lists all bundled MLIR libraries. In-tree
-# it lives in the source tree; installed it sits next to this file in lib/cmake/cudaq.
-foreach(_candidate
-  "${CMAKE_CURRENT_LIST_DIR}/../../cudaq/lib/Optimizer/mlir-bundled-libs.txt"
-  "${CMAKE_CURRENT_LIST_DIR}/mlir-bundled-libs.txt")
-  if(EXISTS "${_candidate}")
-    get_filename_component(CUDAQ_MLIR_BUNDLED_LIBS_PATH "${_candidate}" ABSOLUTE)
-    break()
-  endif()
-endforeach()
+# Define `CUDAQ_MLIR_BUNDLED_LIBS_PATH`: the file that lists all bundled MLIR libraries.
+# In-tree and installed it sits next to this file (lib/cmake/cudaq when installed).
+set(CUDAQ_MLIR_BUNDLED_LIBS_PATH "${CMAKE_CURRENT_LIST_DIR}/mlir-bundled-libs.txt")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")
 
 # Read a newline-separated list file (one entry per line) into ``<out_var>``,
@@ -164,9 +157,9 @@ function(add_cudaq_capi_shared_library name)
       MLIR_AGGREGATE_DEP_LIBS_IMPORTED)
     foreach(_dep IN LISTS _capi_deps)
       if(TARGET ${_dep}
-          AND NOT _dep IN_LIST ARGN
-          AND NOT _dep MATCHES "CAPI"
-          AND NOT _dep STREQUAL "cudaqMLIR")
+        AND NOT _dep IN_LIST ARGN
+        AND NOT _dep MATCHES "CAPI"
+        AND NOT _dep STREQUAL "cudaqMLIR")
         set_property(GLOBAL APPEND PROPERTY CUDAQ_MLIR_REQUIRED_LIBS "${_dep}")
       endif()
     endforeach()

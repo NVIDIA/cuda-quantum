@@ -78,7 +78,7 @@ $(basename "$provider") does not export:
 $(echo "$missing" | head -20 | sed 's/^/  /')
 $([ "$count" -gt 20 ] && echo "  ... and $((count - 20)) more")
 
-A library you require may be missing in cudaq/lib/Optimizer/mlir-bundled-libs.txt.
+A library you require may be missing in cmake/modules/mlir-bundled-libs.txt.
 To find that library:
 
   for a in \$LLVM_INSTALL_PREFIX/lib/lib{MLIR,LLVM}*.a; do
