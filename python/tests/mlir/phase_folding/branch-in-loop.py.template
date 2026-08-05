@@ -20,7 +20,7 @@ def assert_states_match(state1, state2, tolerance=1e-7):
 
 
 @cudaq.kernel
-def kernel():
+def kernel(disable_quantum_optimization=True):
     GEN-QALLOC: nqubits=3-5
     for i in range(GEN:<nqubits>):
         GEN-BLOCK
