@@ -113,25 +113,20 @@ class PhaseStorage {
   DenseMap<PhaseKey, cudaq::quake::OperatorInterface, PhaseKeyInfo> phaseToRot;
   size_t numCombined = 0;
 
-  static constexpr double kEpsilon = 1e-9;
-
-  std::optional<double> getRotAngle(cudaq::quake::OperatorInterface rot) {
+  // Returns the angle of a named Z-axis gate as a multiple of pi/4 (mod 8),
+  // or nullopt for quake.rz (angle not statically known as a named gate).
+  static std::optional<int> getQuarterPiUnits(cudaq::quake::OperatorInterface rot) {
     auto *op = rot.getOperation();
-    if (isa<cudaq::quake::ZOp>(op))
-      return M_PI;
-    if (isa<cudaq::quake::SOp>(op))
-      return rot.isAdj() ? -M_PI_2 : M_PI_2;
-    if (isa<cudaq::quake::TOp>(op))
-      return rot.isAdj() ? -M_PI_4 : M_PI_4;
-    if (isa<cudaq::quake::RzOp>(op))
-      if (auto c = dyn_cast_or_null<arith::ConstantFloatOp>(
-              op->getOperand(0).getDefiningOp()))
-        return c.value().convertToDouble();
+    if (isa<cudaq::quake::ZOp>(op)) return 4;
+    if (isa<cudaq::quake::SOp>(op)) return rot.isAdj() ? 6 : 2;
+    if (isa<cudaq::quake::TOp>(op)) return rot.isAdj() ? 7 : 1;
     return std::nullopt;
   }
 
-  Value getRotAngleValue(OpBuilder &builder,
-                         cudaq::quake::OperatorInterface rot) {
+  // Returns the angle of a Z-axis rotation as an MLIR Value, creating a float
+  // constant for named gates (S/T/Z) or reusing the existing operand for Rz.
+  static Value getRotAngleValue(OpBuilder &builder,
+                                cudaq::quake::OperatorInterface rot) {
     auto *op = rot.getOperation();
     if (isa<cudaq::quake::RzOp>(op))
       return op->getOperand(0);
@@ -143,15 +138,6 @@ class PhaseStorage {
     else
       angle = rot.isAdj() ? -M_PI_4 : M_PI_4;
     return cudaq::opt::factory::createF64Constant(op->getLoc(), builder, angle);
-  }
-
-  static double normalizeAngle(double a) {
-    a = std::fmod(a, 2 * M_PI);
-    if (a > M_PI)
-      a -= 2 * M_PI;
-    if (a <= -M_PI)
-      a += 2 * M_PI;
-    return a;
   }
 
   // Combine rot1 (stored) and rot2 (new, the surviving position).
@@ -166,17 +152,11 @@ class PhaseStorage {
     auto loc = op2->getLoc();
     auto *ctx = op2->getContext();
     auto wireTy = cudaq::quake::WireType::get(ctx);
-    Value wireIn = rot2.getTarget(0);    // rot1's result (B)
-    Value prevIn = rot1.getTarget(0);   // rot1's input (A)
+    Value wireIn = rot2.getTarget(0);  // rot1's result (B)
+    Value prevIn = rot1.getTarget(0);  // rot1's input (A)
     numCombined++;
 
-    // Erase op2, replace rot1's output with its input (bypasses rot1), erase op1.
-    // newOp (if any) was created with wireIn; after the replaceAllUsesWith below
-    // its wire input becomes prevIn.
     auto finalize = [&](Operation *newOp) -> Operation * {
-      // For identity (newOp=null): bypass op2 by forwarding wireIn to op2's
-      // users, then bypass op1 by forwarding prevIn to op1's users.
-      // For a new op: the new op takes wireIn as its wire input; bypass op1.
       op2->getResult(0).replaceAllUsesWith(newOp ? newOp->getResult(0)
                                                  : wireIn);
       op2->erase();
@@ -185,41 +165,34 @@ class PhaseStorage {
       return newOp;
     };
 
-    auto a1 = getRotAngle(rot1);
-    auto a2 = getRotAngle(rot2);
-    if (a1 && a2) {
-      double sum = *a1 + *a2;
-      double normalized = normalizeAngle(sum);
-      if (std::abs(normalized) < kEpsilon)
-        return finalize(nullptr);
-      if (std::abs(normalized - M_PI_4) < kEpsilon)
-        return finalize(cudaq::quake::TOp::create(builder, loc,
-            TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
-            ValueRange{wireIn}, {}));
-      if (std::abs(normalized + M_PI_4) < kEpsilon)
-        return finalize(cudaq::quake::TOp::create(builder, loc,
-            TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
-            ValueRange{wireIn}, {}));
-      if (std::abs(normalized - M_PI_2) < kEpsilon)
-        return finalize(cudaq::quake::SOp::create(builder, loc,
-            TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
-            ValueRange{wireIn}, {}));
-      if (std::abs(normalized + M_PI_2) < kEpsilon)
-        return finalize(cudaq::quake::SOp::create(builder, loc,
-            TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
-            ValueRange{wireIn}, {}));
-      if (std::abs(std::abs(normalized) - M_PI) < kEpsilon)
-        return finalize(cudaq::quake::ZOp::create(builder, loc,
-            TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
-            ValueRange{wireIn}, {}));
-      // No named gate match — use raw sum
-      auto angleVal = cudaq::opt::factory::createF64Constant(loc, builder, sum);
-      return finalize(cudaq::quake::RzOp::create(builder, loc,
-          TypeRange{wireTy}, false, ValueRange{angleVal}, ValueRange{},
-          ValueRange{wireIn}, {}));
+    // If both are named gates (S/T/Z), combine via exact integer arithmetic
+    // on quarter-pi units (0..7 mod 8) — no floating-point comparison.
+    auto u1 = getQuarterPiUnits(rot1);
+    auto u2 = getQuarterPiUnits(rot2);
+    if (u1 && u2) {
+      int combined = ((*u1 + *u2) % 8 + 8) % 8;
+      switch (combined) {
+      case 0: return finalize(nullptr);
+      case 1: return finalize(cudaq::quake::TOp::create(builder, loc,
+                  TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+                  ValueRange{wireIn}, {}));
+      case 2: return finalize(cudaq::quake::SOp::create(builder, loc,
+                  TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+                  ValueRange{wireIn}, {}));
+      case 4: return finalize(cudaq::quake::ZOp::create(builder, loc,
+                  TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+                  ValueRange{wireIn}, {}));
+      case 6: return finalize(cudaq::quake::SOp::create(builder, loc,
+                  TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
+                  ValueRange{wireIn}, {}));
+      case 7: return finalize(cudaq::quake::TOp::create(builder, loc,
+                  TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
+                  ValueRange{wireIn}, {}));
+      default: break; // 3 or 5: not a named gate, fall through to addf
+      }
     }
 
-    // Non-constant angles: combine via arith::AddFOp, produce Rz
+    // Rz + anything, or named-gate combo not landing on a named gate: addf
     Value angle1 = getRotAngleValue(builder, rot1);
     Value angle2 = getRotAngleValue(builder, rot2);
     auto sumAngle = arith::AddFOp::create(builder, loc, angle1, angle2);
@@ -307,7 +280,7 @@ static bool isTerminationPoint(Operation *op) {
   if (!opi)
     return true;
   // Only allow single control (for CNOT/NOT); Z-rotations must be uncontrolled
-  if (opi.getControls().size() > 1)
+  if (opi.getControls().size() > 0 && !isa<cudaq::quake::XOp>(op))
     return true;
   if (isa<RAW_Z_AXIS_ROTATIONS>(op) && !opi.getControls().empty())
     return true;

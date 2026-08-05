@@ -170,8 +170,9 @@ func.func @rz_plus_rz_to_s() {
 // CHECK:         %[[RZ0:.*]] = quake.rz (%[[CST]]) %[[CX0]]#1 :
 // CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[RZ0]] :
 // CHECK:         %[[RZ1:.*]] = quake.rz (%[[CST]]) %[[CX1]]#0 :
-// CHECK:         %[[S:.*]] = quake.s %[[CX1]]#1 :
-// CHECK:         quake.x {{\[}}%[[S]]{{\]}} %[[RZ1]] :
+// CHECK:         %[[SUM:.*]] = arith.addf %[[CST]], %[[CST]] : f64
+// CHECK:         %[[RZ2:.*]] = quake.rz (%[[SUM]]) %[[CX1]]#1 :
+// CHECK:         quake.x {{\[}}%[[RZ2]]{{\]}} %[[RZ1]] :
 // CHECK:         return
 // CHECK:       }
 
@@ -196,8 +197,10 @@ func.func @t_plus_s() {
 // CHECK:         %[[T0:.*]] = quake.t %[[CX0]]#1 :
 // CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[T0]] :
 // CHECK:         %[[T1:.*]] = quake.t %[[CX1]]#0 :
-// CHECK:         %[[CST:.*]] = arith.constant 2.3561944901923448 : f64
-// CHECK:         %[[RZ:.*]] = quake.rz (%[[CST]]) %[[CX1]]#1 :
+// CHECK:         %[[CSTA:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK:         %[[CSTB:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:         %[[SUM:.*]] = arith.addf %[[CSTA]], %[[CSTB]] : f64
+// CHECK:         %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[CX1]]#1 :
 // CHECK:         quake.x {{\[}}%[[RZ]]{{\]}} %[[T1]] :
 // CHECK:         return
 // CHECK:       }
