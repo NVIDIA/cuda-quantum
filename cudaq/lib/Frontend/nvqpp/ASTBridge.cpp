@@ -8,6 +8,7 @@
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Frontend/nvqpp/QisBuilder.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "clang/AST/ParentMapContext.h"
@@ -550,16 +551,17 @@ bool QuakeBridgeVisitor::isItaniumCXXABI() {
 namespace cudaq {
 bool ASTBridgeAction::ASTBridgeConsumer::isQuantum(
     const clang::FunctionDecl *decl) {
-  // Quantum kernels are Functions that are annotated with "quantum"
-  if (auto attr = decl->getAttr<clang::AnnotateAttr>())
-    return attr->getAnnotation().str() == cudaq::kernelAnnotation;
+  for (auto *attr : decl->specific_attrs<clang::AnnotateAttr>())
+    if (attr->getAnnotation().str() == cudaq::kernelAnnotation)
+      return true;
   return false;
 }
 
 bool ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
     const clang::FunctionDecl *decl) {
-  if (auto attr = decl->getAttr<clang::AnnotateAttr>())
-    return attr->getAnnotation().str() == cudaq::generatorAnnotation;
+  for (auto *attr : decl->specific_attrs<clang::AnnotateAttr>())
+    if (attr->getAnnotation().str() == cudaq::generatorAnnotation)
+      return true;
   return false;
 }
 
@@ -730,6 +732,14 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
+      // If the kernel is annotated with disable_quantum_optimization, set the
+      // quake.noOptimization attribute on the module so that value semantics
+      // lowering and related quantum optimization passes are skipped.
+      for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
+        if (a->getAnnotation().str() == cudaq::disableQuantumOptAnnotation) {
+          (*module)->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+          break;
+        }
       bool hasDeviceOnlyTypes =
           hasAnyQuakeOrHandleTypes(func.getFunctionType());
       if (hasDeviceOnlyTypes)
