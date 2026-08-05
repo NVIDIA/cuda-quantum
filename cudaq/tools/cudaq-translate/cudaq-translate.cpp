@@ -81,6 +81,12 @@ static llvm::cl::opt<bool> emitLLVM(
                    "translation will terminate with the selected dialect."),
     llvm::cl::init(true));
 
+static llvm::cl::opt<bool> disableQuantumOptimization(
+    "fdisable-quantum-optimization",
+    llvm::cl::desc("Disable value-semantics quantum optimization passes "
+                   "(quake-simplify, dqe) during QIR code generation."),
+    llvm::cl::init(false));
+
 using namespace mlir;
 
 static void checkErrorCode(const std::error_code &ec) {
@@ -178,6 +184,7 @@ int main(int argc, char **argv) {
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                bool useValueSemantics =
+                   !disableQuantumOptimization &&
                    !modOp->hasAttr(cudaq::runtime::disableQuantumOpts);
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
