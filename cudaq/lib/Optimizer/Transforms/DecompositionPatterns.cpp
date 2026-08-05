@@ -611,8 +611,7 @@ struct R1ToRz
     // R1 because selecting one arbitrary `veq` element would represent the
     // wrong phase for the _aggregate_ operation.
 
-    if (targets.empty() || !isa<cudaq::quake::RefType, cudaq::quake::WireType>(
-                               targets.back().getType()))
+    if (targets.empty() || !cudaq::opt::isScalarPhaseAnchor(targets.back()))
       return rewriter.notifyMatchFailure(
           r1Op,
           "R1ToRz requires a scalar target to anchor its phase correction");
@@ -1484,6 +1483,12 @@ struct CRxToCX
 
   LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
+    Value target = op.getTarget();
+    if (!cudaq::opt::isScalarPhaseAnchor(target))
+      return rewriter.notifyMatchFailure(
+          op,
+          "CRxToCX requires a scalar target to anchor its phase correction");
+
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
       return failure();
@@ -1491,8 +1496,8 @@ struct CRxToCX
 
     // Op info
     Location loc = op->getLoc();
-    Value target = op.getTarget();
     auto negControl = false;
+
     auto negatedControls = op.getNegatedQubitControls();
     if (negatedControls)
       negControl = (*negatedControls)[0];
@@ -2006,6 +2011,19 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     Value phi = op.getParameters()[1];
     Value lam = op.getParameters()[2];
 
+    if (!cudaq::opt::isScalarPhaseAnchor(target))
+      return rewriter.notifyMatchFailure(
+          op, "U3ToRotations requires a scalar target to anchor its phase "
+              "correction");
+    if (phi.getType() != lam.getType())
+      return rewriter.notifyMatchFailure(
+          op, "U3ToRotations requires phi and lambda to have the same type");
+
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing 0 + 0 and dividing first would hide it from the helper.
+    const bool hasZeroPhase = matchPattern(phi, m_AnyZeroFloat()) &&
+                              matchPattern(lam, m_AnyZeroFloat());
+
     if (op.isAdj()) {
       theta = arith::NegFOp::create(rewriter, loc, theta);
       // swap the 2nd and 3rd parameter for correctness
@@ -2037,8 +2055,11 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
         rewriter, loc, UnitAttr{}, ValueRange{phi}, controls, targets,
         negatedControls);
 
-    Value phase = arith::AddFOp::create(rewriter, loc, phi, lam);
-    phase = createDivF(loc, phase, 2.0, rewriter);
+    Value phase = op.getParameters()[1];
+    if (!hasZeroPhase) {
+      phase = arith::AddFOp::create(rewriter, loc, phi, lam);
+      phase = createDivF(loc, phase, 2.0, rewriter);
+    }
     auto correction = cudaq::opt::emitPhaseCorrection(
         rewriter, loc, phase, controls, negatedControls, targets.back());
     controls = std::move(correction.controls);

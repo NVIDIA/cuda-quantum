@@ -19,6 +19,12 @@
 
 namespace cudaq::opt {
 
+/// Return whether \p anchor is a scalar value accepted by quake.phase.
+inline bool isScalarPhaseAnchor(mlir::Value anchor) {
+  return mlir::isa<cudaq::quake::RefType, cudaq::quake::WireType>(
+      anchor.getType());
+}
+
 /// Create a Quake gate and update its controls and targets to the latest wire
 /// results. Reference operands are returned unchanged.
 template <typename Op>
