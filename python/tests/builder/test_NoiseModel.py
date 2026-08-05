@@ -766,7 +766,8 @@ def test_depolarization2_standard_formula(target: str):
     cudaq.set_target(target)
     cudaq.set_random_seed(42)
 
-    @cudaq.kernel
+    # x.ctrl gates can be eliminated by optimization
+    @cudaq.kernel(disable_quantum_optimization=True)
     def cnot_echo():
         q = cudaq.qvector(2)
         x.ctrl(q[0], q[1])

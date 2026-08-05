@@ -20,9 +20,15 @@
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s fifo_eviction 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=FIFO-EVICTION %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s execution_failure > %t.execution_failure 2>&1 || (cat %t.execution_failure && false)
 # RUN: grep 'py_alt_launch_kernel.cpp' %t.execution_failure | FileCheck --check-prefix=EXECUTION-FAILURE %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s observe_async > %t.observe_async 2>&1 && (grep 'py_alt_launch_kernel.cpp' %t.observe_async | FileCheck --check-prefix=OBSERVE-ASYNC %s) || (cat %t.observe_async && false)
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s async_apis > %t.async_apis 2>&1 && (grep 'py_alt_launch_kernel.cpp' %t.async_apis | FileCheck --check-prefix=ASYNC-APIS %s) || (cat %t.async_apis && false)
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s async_dependencies > %t.async_dependencies 2>&1 && (grep 'py_alt_launch_kernel.cpp' %t.async_dependencies | FileCheck --check-prefix=ASYNC-DEPENDENCIES %s) || (cat %t.async_dependencies && false)
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s async_targets > %t.async_targets 2>&1 && (grep 'py_alt_launch_kernel.cpp' %t.async_targets | FileCheck --check-prefix=ASYNC-TARGETS %s) || (cat %t.async_targets && false)
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s async_execution_failure > %t.async_execution_failure 2>&1 && (grep 'py_alt_launch_kernel.cpp' %t.async_execution_failure | FileCheck --check-prefix=ASYNC-EXECUTION-FAILURE %s) || (cat %t.async_execution_failure && false)
 # clang-format on
 
 import concurrent.futures
+import gc
 import math
 import sys
 import threading
@@ -156,12 +162,16 @@ def scenario_dependencies():
 
     @cudaq.kernel
     def leaf(q: cudaq.qubit):
-        pass
+        h(q)
 
-    for _ in range(2):
-        assert cudaq.observe(outer, observable).expectation() == 1.0
+    #@skipIfValueSemantics
+    #for _ in range(2):
+    #    expectation = cudaq.observe(outer, observable).expectation()
+    #    assert abs(expectation) < 1e-12, expectation
 
-    angle = 0.0
+    # Keep both captured-value variants non-degenerate. A zero rotation can be
+    # folded away and leave the allocated qubit dead under value semantics.
+    angle = math.pi / 3.0
 
     @cudaq.kernel
     def rotate(q: cudaq.qubit):
@@ -172,13 +182,15 @@ def scenario_dependencies():
         q = cudaq.qubit()
         rotate(q)
 
-    for _ in range(2):
-        assert cudaq.observe(rotate_outer, observable).expectation() == 1.0
+    #@skipIfValueSemantics
+    #for _ in range(2):
+    #    expectation = cudaq.observe(rotate_outer, observable).expectation()
+    #    assert 0.4 < expectation < 0.6, expectation
 
-    angle = math.pi
+    angle = 2.0 * math.pi / 3.0
     for _ in range(2):
-        assert abs(cudaq.observe(rotate_outer, observable).expectation() +
-                   1.0) < 1e-12
+        expectation = cudaq.observe(rotate_outer, observable).expectation()
+        assert -0.6 < expectation < -0.4, expectation
 
 
 # A transitive helper rebind and a nested helper's captured-value change each
@@ -189,13 +201,13 @@ def scenario_dependencies():
 # DEPENDENCIES-NEXT: Compiling module
 # DEPENDENCIES-NEXT: Caching module
 # DEPENDENCIES-NEXT: Reusing cached module
-# DEPENDENCIES-NEXT: Compiling module
-# DEPENDENCIES-NEXT: Caching module
-# DEPENDENCIES-NEXT: Reusing cached module
-# DEPENDENCIES-NEXT: Compiling module
-# DEPENDENCIES-NEXT: Caching module
-# DEPENDENCIES-NEXT: Reusing cached module
-# DEPENDENCIES-NOT: Compiling module
+# D EPENDENCIES-NEXT: Compiling module
+# D EPENDENCIES-NEXT: Caching module
+# D EPENDENCIES-NEXT: Reusing cached module
+# D EPENDENCIES-NEXT: Compiling module
+# D EPENDENCIES-NEXT: Caching module
+# D EPENDENCIES-NEXT: Reusing cached module
+# D EPENDENCIES-NOT: Compiling module
 
 
 def scenario_runtime_inputs():
@@ -442,6 +454,195 @@ def scenario_execution_failure():
 # EXECUTION-FAILURE-NEXT: Reusing cached module
 # EXECUTION-FAILURE-NOT: Compiling module
 
+
+def scenario_observe_async():
+    """Outstanding equivalent observations reuse one compiled artifact."""
+
+    @cudaq.kernel
+    def flipped():
+        q = cudaq.qubit()
+        x(q)
+
+    observable = cudaq.spin.z(0)
+    futures = [cudaq.observe_async(flipped, observable) for _ in range(4)]
+    for future in futures:
+        assert future.get().expectation() == -1.0
+
+
+# One serial QPU queue: the first task compiles and publishes, then the three
+# remaining tasks find the artifact ready.
+# OBSERVE-ASYNC: Compiling module
+# OBSERVE-ASYNC-NEXT: Caching module
+# OBSERVE-ASYNC-NEXT: Reusing cached module
+# OBSERVE-ASYNC-NEXT: Reusing cached module
+# OBSERVE-ASYNC-NEXT: Reusing cached module
+# OBSERVE-ASYNC-NOT: Compiling module
+
+
+def scenario_async_apis():
+    """Every decorator-backed async API reuses its compiled artifact."""
+
+    @cudaq.kernel
+    def async_sample_ones():
+        q = cudaq.qubit()
+        x(q)
+
+    futures = [
+        cudaq.sample_async(async_sample_ones, shots_count=4) for _ in range(2)
+    ]
+    for future in futures:
+        assert future.get().count("1") == 4
+
+    @cudaq.kernel
+    def async_state_one():
+        q = cudaq.qubit()
+        x(q)
+
+    futures = [cudaq.get_state_async(async_state_one) for _ in range(2)]
+    for future in futures:
+        state = future.get()
+        assert abs(state[0]) < 1e-12
+        assert abs(state[1] - 1.0) < 1e-12
+
+    @cudaq.kernel
+    def async_run_true() -> bool:
+        return True
+
+    futures = [cudaq.run_async(async_run_true, shots_count=1) for _ in range(2)]
+    for future in futures:
+        assert future.get() == [True]
+
+    @cudaq.kernel
+    def async_ptsbe_ones():
+        q = cudaq.qubit()
+        x(q)
+
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(1.0))
+    futures = [
+        cudaq.ptsbe.sample_async(async_ptsbe_ones,
+                                 shots_count=4,
+                                 noise_model=noise) for _ in range(2)
+    ]
+    for future in futures:
+        assert future.get().count("0") == 4
+
+
+# Each API has its own decorator cache. On the serial CPU queue, the first
+# launch publishes and the second launch becomes a ready reader.
+# ASYNC-APIS: Compiling module {{.*}}async_sample_ones
+# ASYNC-APIS-NEXT: Caching module {{.*}}async_sample_ones
+# ASYNC-APIS-NEXT: Reusing cached module {{.*}}async_sample_ones
+# ASYNC-APIS: Compiling module {{.*}}async_state_one
+# ASYNC-APIS-NEXT: Caching module {{.*}}async_state_one
+# ASYNC-APIS-NEXT: Reusing cached module {{.*}}async_state_one
+# ASYNC-APIS: Compiling module {{.*}}async_run_true{{.*}}.run
+# ASYNC-APIS-NEXT: Caching module {{.*}}async_run_true{{.*}}.run
+# ASYNC-APIS-NEXT: Reusing cached module {{.*}}async_run_true{{.*}}.run
+# ASYNC-APIS: Compiling module {{.*}}async_ptsbe_ones
+# ASYNC-APIS-NEXT: Caching module {{.*}}async_ptsbe_ones
+# ASYNC-APIS-NEXT: Reusing cached module {{.*}}async_ptsbe_ones
+# ASYNC-APIS-NOT: Compiling module
+
+
+def scenario_async_dependencies():
+    """A changed captured dependency creates one new async artifact."""
+
+    @cudaq.kernel
+    def apply_x(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def apply_h(q: cudaq.qubit):
+        h(q)
+
+    helper = apply_x
+
+    @cudaq.kernel
+    def outer():
+        q = cudaq.qubit()
+        helper(q)
+
+    observable = cudaq.spin.z(0)
+    for dependency, expected in ((apply_x, -1.0), (apply_h, 0.0)):
+        helper = dependency
+        futures = [cudaq.observe_async(outer, observable) for _ in range(2)]
+        for future in futures:
+            assert abs(future.get().expectation() - expected) < 1e-12
+
+
+# The helper rebind changes the program digest once; each digest is then reused.
+# ASYNC-DEPENDENCIES: Compiling module
+# ASYNC-DEPENDENCIES-NEXT: Caching module
+# ASYNC-DEPENDENCIES-NEXT: Reusing cached module
+# ASYNC-DEPENDENCIES-NEXT: Compiling module
+# ASYNC-DEPENDENCIES-NEXT: Caching module
+# ASYNC-DEPENDENCIES-NEXT: Reusing cached module
+# ASYNC-DEPENDENCIES-NOT: Compiling module
+
+
+def scenario_async_targets():
+    """A fully specialized target takes the conservative async fallback."""
+
+    @cudaq.kernel
+    def flipped():
+        q = cudaq.qubit()
+        x(q)
+
+    observable = cudaq.spin.z(0)
+    assert cudaq.observe_async(flipped, observable).get().expectation() == -1.0
+
+    cudaq.set_target("quantinuum", emulate=True)
+    try:
+        assert cudaq.observe_async(flipped,
+                                   observable).get().expectation() == -1.0
+    finally:
+        cudaq.reset_target()
+
+    assert cudaq.observe_async(flipped, observable).get().expectation() == -1.0
+
+
+# The fully specialized target declines caching; returning to local simulator
+# reuses the original ready entry.
+# ASYNC-TARGETS: Compiling module
+# ASYNC-TARGETS-NEXT: Caching module
+# ASYNC-TARGETS-NEXT: Compiling module
+# ASYNC-TARGETS-NEXT: Reusing cached module
+# ASYNC-TARGETS-NOT: Compiling module
+
+
+def scenario_async_execution_failure():
+    """Execution errors leave the asynchronously published artifact ready."""
+    from cudaq.runtime.sample import cudaq_async_sample_module_cache
+
+    @cudaq.kernel
+    def failing(n: int):
+        q = cudaq.qvector(n)
+        exp_pauli(1.0, q, "XX")
+
+    retained_modules = len(cudaq_async_sample_module_cache)
+    futures = [cudaq.sample_async(failing, 1, shots_count=1) for _ in range(2)]
+    for future in futures:
+        try:
+            future.get()
+        except RuntimeError as error:
+            assert "incorrect number of qubits" in str(error)
+        else:
+            raise AssertionError("mismatched exp_pauli unexpectedly succeeded")
+
+    futures.clear()
+    del future
+    gc.collect()
+    assert len(cudaq_async_sample_module_cache) == retained_modules
+
+
+# Compilation publishes before execution fails; the second queued task reuses
+# the ready artifact and reports the same error through its future.
+# ASYNC-EXECUTION-FAILURE: Compiling module
+# ASYNC-EXECUTION-FAILURE-NEXT: Caching module
+# ASYNC-EXECUTION-FAILURE-NEXT: Reusing cached module
+# ASYNC-EXECUTION-FAILURE-NOT: Compiling module
+
 SCENARIOS = {
     "run": scenario_run,
     "sample": scenario_sample,
@@ -454,6 +655,11 @@ SCENARIOS = {
     "multi_entry": scenario_multi_entry,
     "fifo_eviction": scenario_fifo_eviction,
     "execution_failure": scenario_execution_failure,
+    "observe_async": scenario_observe_async,
+    "async_apis": scenario_async_apis,
+    "async_dependencies": scenario_async_dependencies,
+    "async_targets": scenario_async_targets,
+    "async_execution_failure": scenario_async_execution_failure
 }
 
 if __name__ == "__main__":

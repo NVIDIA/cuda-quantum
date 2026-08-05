@@ -21,9 +21,9 @@ func.func @__nvqpp__mlirgen__t1() attributes {"cudaq-kernel"} {
 }
 
 // CHECK-LABEL: define void @__nvqpp__mlirgen__t1()
-// CHECK:         tail call void @__quantum__qis__mz__body(ptr nonnull inttoptr (i64 1 to ptr), ptr null)
+// CHECK:         tail call void @__quantum__qis__mz__body(ptr null, ptr null)
 // CHECK:         tail call void @__quantum__rt__result_record_output(ptr null, ptr nonnull @cstr.72303030303000)
 // CHECK:         ret void
 // CHECK:       }
 
-// CHECK:       = { "output_labeling_schema"="schema_id" "output_names"="{{\[\[\[}}0,[1,\22r00000\22]]]]" "qir_profiles"="base_profile" "requiredQubits"="2" "requiredResults"="1" }
+// CHECK:       = { "output_labeling_schema"="schema_id" "output_names"="{{\[\[\[}}0,[0,\22r00000\22]]]]" "qir_profiles"="base_profile" "requiredQubits"="1" "requiredResults"="1" }

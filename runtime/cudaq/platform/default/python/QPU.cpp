@@ -18,6 +18,7 @@
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -45,9 +46,9 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
 
   auto target =
       getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
-  target->fullySpecialize = true;
+  target.fullySpecialize = true;
   // Translation consumes only the compiled MLIR artifact.
-  target->emitJit = false;
+  target.emitJit = false;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 
   auto rawArgs = args.getArgs();
@@ -65,7 +66,11 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
-  cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
+  bool disableQuantumOpt =
+      compiled_module->hasAttr(cudaq::runtime::disableQuantumOpts);
+  cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
+                                         /*useValueSemantics=*/
+                                         !disableQuantumOpt);
   if (failed(cudaq_internal::compiler::runPassManager(pm, compiled_module)))
     throw std::runtime_error("Pass pipeline failed.");
   if (failed(cudaq::verifier::checkQIRLLVMIRDialect(compiled_module, format)))
@@ -92,9 +97,9 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
 
   auto target =
       getDefaultCompileTarget(other_policies{}, cudaq::getExecutionContext());
-  target->fullySpecialize = true;
+  target.fullySpecialize = true;
   // Translation consumes only the compiled MLIR artifact.
-  target->emitJit = false;
+  target.emitJit = false;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 
   auto rawArgs = args.getArgs();

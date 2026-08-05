@@ -543,41 +543,5 @@ public:
     }
   }
 };
-
-/// Phase folding pass pipeline command-line options.
-struct PhaseFoldingPipelineOptions
-    : public PassPipelineOptions<PhaseFoldingPipelineOptions> {
-  PassOptions::Option<unsigned> minimumBlockLength{
-      *this, "min-length",
-      llvm::cl::desc("Minimum subcircuit length to run phase folding."),
-      llvm::cl::init(20)};
-  PassOptions::Option<double> minimumrzWeight{
-      *this, "min-rz-weight",
-      llvm::cl::desc("Minimum rz percentage to run phase folding."),
-      llvm::cl::init(0.2)};
-};
 } // namespace
 
-static void createPhaseFoldingPipeline(OpPassManager &pm, unsigned min_length,
-                                       double min_rz_weight) {
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createFactorQuantumAllocations({.enableFailures = true}));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
-  cudaq::opt::PhaseFoldingOptions pfo{min_length, min_rz_weight};
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createPhaseFolding(pfo));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
-}
-
-void cudaq::opt::registerPhaseFoldingPipeline() {
-  PassPipelineRegistration<PhaseFoldingPipelineOptions>(
-      "phase-folding-pipeline",
-      "Performs the phase-polynomial based rotation merging optimization.",
-      [](OpPassManager &pm, const PhaseFoldingPipelineOptions &pfpo) {
-        createPhaseFoldingPipeline(pm, pfpo.minimumBlockLength,
-                                   pfpo.minimumrzWeight);
-      });
-}

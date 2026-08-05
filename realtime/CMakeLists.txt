@@ -41,6 +41,11 @@ endif()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+# CUDA-Q installers use a single relocatable library tree. Keep every realtime
+# library and its CMake package under that tree on distributions where
+# GNUInstallDirs would otherwise default to lib64.
+set(CMAKE_INSTALL_LIBDIR lib)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # The following must go after `project(...)` 
@@ -67,8 +72,8 @@ option(CUDAQ_REALTIME_BUILD_TESTS
        ${_cudaq_realtime_build_tests_default})
 option(CUDAQ_REALTIME_BUILD_EXAMPLES
        "Generate build targets for the CUDAQ real-time example programs" ON)
-option(CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS
-       "Build Hololink bridge/emulator/playback tools (requires hololink)."
+option(CUDAQ_REALTIME_ENABLE_HSB_TOOLS
+       "Build HSB bridge/emulator/playback tools (requires the holoscan-sensor-bridge libraries)."
        OFF)
 
 set(_host_compiler_opts_list "")
@@ -157,11 +162,13 @@ configure_package_config_file(
 install(EXPORT cudaq-realtime-targets
   FILE cudaq-realtime-targets.cmake
   NAMESPACE cudaq::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime
+  COMPONENT Development)
 
 if (CUDAQ_REALTIME_BUILD_EXAMPLES)
   message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")
@@ -173,5 +180,11 @@ if (CUDAQ_REALTIME_BUILD_TESTS)
 endif()
 
 
-# Install the LICENSE and NOTICE files
-install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+# Standalone realtime saves the legal files at its install prefix. Integrated
+# CUDA-Q builds keep them in a dedicated subdirectory so they do not replace
+# the main CUDA-Q files.
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_PREFIX})
+else()
+  install(FILES LICENSE NOTICE DESTINATION realtime)
+endif()

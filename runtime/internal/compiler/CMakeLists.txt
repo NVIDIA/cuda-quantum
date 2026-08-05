@@ -51,16 +51,20 @@ target_link_libraries(cudaq-mlir-runtime
 )
 
 install(TARGETS cudaq-mlir-runtime-headers
-        EXPORT cudaq-mlir-runtime-targets)
+        EXPORT cudaq-mlir-runtime-targets
+        COMPONENT Development)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-        DESTINATION include)
+        DESTINATION include
+        COMPONENT Development)
 
 install(TARGETS cudaq-mlir-runtime
         EXPORT cudaq-mlir-runtime-targets
-        DESTINATION lib)
+        DESTINATION lib
+        COMPONENT Runtime)
 
 install(EXPORT cudaq-mlir-runtime-targets
         FILE CUDAQMlirRuntimeTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)

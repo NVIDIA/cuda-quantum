@@ -14,19 +14,25 @@
 #include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "common/RuntimeTarget.h"
+#include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
+#include <deque>
 #include <functional>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace cudaq {
 
@@ -58,7 +64,8 @@ using ObserveTask = std::function<observe_result()>;
 /// query specific information about the targeted QPU(s) (e.g. number
 /// of qubits, qubit connectivity, etc.). This type is meant to
 /// be subclassed for concrete realizations of quantum platforms, which
-/// are intended to populate this platformQPUs member of this base class.
+/// are intended to populate the QPUs of this base class via `addQPU` and
+/// `clearQPUs`.
 class quantum_platform {
 public:
   quantum_platform() = default;
@@ -132,10 +139,13 @@ public:
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformQPUs.size(); }
 
-  QPU &getQPU(std::size_t qpu_id = 0) const {
-    validateQpuId(qpu_id);
-    return *(platformQPUs[qpu_id].get());
-  }
+  /// \cond
+  /// Get the RuntimeEndpoint for the QPU with ID @p qpuId.
+  RuntimeEndpoint &getRuntimeEndpoint(std::size_t qpuId = 0);
+
+  /// Set the runtime endpoint for the QPU with ID @p qpuId.
+  void setRuntimeEndpoint(RuntimeEndpoint endpoint, std::size_t qpuId = 0);
+  /// \endcond
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
@@ -208,18 +218,26 @@ public:
                       std::size_t qpu_id = 0);
 
   template <typename Policy>
-  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
-  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
-    validateQpuId(qpu_id);
+  [[nodiscard]] cudaq::CompileTarget getCompileTarget(const Policy &policy,
+                                                      std::size_t qpu_id = 0) {
+    validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
+    if (compileTarget.has_value()) {
+      return compileTarget.value();
+    }
+    // Fallback to old behaviour: query the QPU for its compile target.
     auto &qpu = platformQPUs[qpu_id];
     return qpu->getCompileTarget(policy);
   }
 
-  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
+  [[nodiscard]] cudaq::CompileTarget
   getCompileTarget(const cudaq::other_policies &policy,
                    std::size_t qpu_id = 0) {
+    validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
+    if (compileTarget.has_value()) {
+      return compileTarget.value();
+    }
+    // Fallback to old behaviour: query the QPU for its compile target.
     auto *ctx = getExecutionContext();
-    validateQpuId(qpu_id);
     auto &qpu = platformQPUs[qpu_id];
     return qpu->getCompileTarget(policy, ctx);
   }
@@ -245,14 +263,28 @@ protected:
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
 
+  /// Set the compile target for the platform.
+  void setCompileTarget(std::optional<CompileTarget> target);
+
+  /// Append @p qpu to the platform's QPUs.
+  QPU &addQPU(std::unique_ptr<QPU> qpu);
+
+  /// Destroy all of the platform's QPUs and runtime endpoints.
+  void clearQPUs();
+
+  /// Access the QPU with ID @p qpuId.
+  QPU &getQPU(std::size_t qpuId = 0);
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
   /// Code generation configuration
   std::optional<CodeGenConfig> codeGenConfig;
 
-  /// The Platform QPUs, populated by concrete subtypes
-  std::vector<std::unique_ptr<QPU>> platformQPUs;
+  /// The compile target for the platform.
+  ///
+  /// If not set, defaults to querying the compile target from the QPUs.
+  std::optional<CompileTarget> compileTarget;
 
   /// Name of the platform.
   std::string platformName;
@@ -261,7 +293,39 @@ private:
   friend class detail::with_platform_in_library_mode;
 
   // Helper to validate QPU Id
-  void validateQpuId(std::size_t qpuId) const;
+  void validateQpuId(std::size_t qpuId,
+                     bool acceptRuntimeEndpoints = false) const;
+
+  // Ensure a runtime endpoint exists for the given QPU ID, or create it. If
+  // @p allowNullopt is true, a slot will be created in `runtimeEndpoints` but
+  // it will be null.
+  void ensureRuntimeEndpointExists(std::size_t qpuId,
+                                   bool allowNullopt = false);
+
+  // Helper to check no runtime endpoint was set manually for the given QPU ID
+  // (else throw an error)
+  void disableRuntimeEndpointOverride(std::size_t qpuId,
+                                      std::string what) const;
+
+  // Return true if a runtime endpoint has been manually set for @p qpuId,
+  // meaning the backing QPU has been discarded and QPU-level queries cannot be
+  // forwarded.
+  bool hasRuntimeEndpointOverride(std::size_t qpuId) const;
+
+  // Drop every runtime endpoint. Called whenever the QPUs change, since the
+  // endpoints wrapping them would otherwise refer to destroyed QPUs.
+  void resetRuntimeEndpoints();
+
+  /// The Platform QPUs, populated by concrete subtypes via `addQPU`.
+  std::vector<std::unique_ptr<QPU>> platformQPUs;
+
+  /// The runtime endpoints for launching kernels on the platform.
+  ///
+  /// If not set, defaults to creating a RuntimeEndpoint from the respective
+  /// QPU. Using a `deque` to keep references to existing elements valid.
+  std::deque<std::optional<RuntimeEndpoint>> runtimeEndpoints;
+
+  std::mutex runtimeEndpointsMutex;
 
   int libraryModeOverride = 0;
 };

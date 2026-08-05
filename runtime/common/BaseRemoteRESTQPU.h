@@ -223,69 +223,62 @@ public:
   }
 
   using QPU::getCompileTarget;
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const other_policies &, ExecutionContext *ctx) override {
+  CompileTarget getCompileTarget(const other_policies &,
+                                 ExecutionContext *ctx) override {
     if (!ctx)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
     if (ctx && ctx->name == "resource-count")
-      target->emitResourceCounts = true;
+      target.emitResourceCounts = true;
 
     return target;
   }
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &policy) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->supportConditionalsOnMeasureResults = !emulate;
-    target->pipelineConfig.addMeasurements = true;
-    target->storeReorderIdx = true;
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
+  CompileTarget getCompileTarget(const sample_policy &policy) override {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.supportConditionalsOnMeasureResults = !emulate;
+    target.pipelineConfig.addMeasurements = true;
+    target.storeReorderIdx = true;
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
     return target;
   }
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->overrideAOTCompilation = true;
-    target->pauliTermSplitObservable = policy.spin;
-    target->pipelineConfig.replaceStateWithKernel = true;
+  CompileTarget getCompileTarget(const observe_policy &policy) override {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.overrideAOTCompilation = true;
+    target.pauliTermSplitObservable = policy.spin;
+    target.pipelineConfig.replaceStateWithKernel = true;
     return target;
   }
 
-  std::unique_ptr<CompileTarget> getCompileTarget(const run_policy &) override {
-    auto target = std::make_unique<CompileTarget>(
-        targetConfig, backendConfig, emulate,
-        serverHelper->getPipelineSubstitutions(platformPath));
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
+  CompileTarget getCompileTarget(const run_policy &) override {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
     return target;
   }
 
   /// Build a local JIT artifact for DEM analysis. No provider target code is
   /// emitted or submitted while this policy is active.
-  std::unique_ptr<CompileTarget> getCompileTarget(const dem_policy &) override {
+  CompileTarget getCompileTarget(const dem_policy &) override {
     // Skip pipeline substitutions: this path never builds the lowering pipeline
     // and should not trigger server-helper side effects (e.g. IQM arch fetch).
-    auto target =
-        std::make_unique<CompileTarget>(targetConfig, backendConfig, emulate);
-    target->pipelineConfig.replaceStateWithKernel = true;
-    target->overrideAOTCompilation = true;
-    target->emitJit = true;
-    target->emitTargetCode = false;
-    target->pipelineConfig.skipTargetLoweringPipeline = true;
+    CompileTarget target(targetConfig, backendConfig, emulate);
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
+    target.emitJit = true;
+    target.emitTargetCode = false;
+    target.pipelineConfig.skipTargetLoweringPipeline = true;
     return target;
   }
 
@@ -300,7 +293,7 @@ public:
           "detector error model generation.");
 
     return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      [[maybe_unused]] auto kernelResult = runJITCompiledModule(module, args);
+      [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
     });
   }
 
@@ -356,24 +349,8 @@ public:
     // output log.
     assert(codes.size() == 1 && codes[0].jit);
     return cudaq::ExecutionManager::with_default_em(policy, [&] {
-      // Run each shot with the thread-local execution context cleared.
-      // CircuitSimulator::deallocateQubits skips deallocation while an
-      // execution context is set, so if the context stays set across the whole
-      // shot loop the per-shot qubits allocated by the kernel accumulate and
-      // blow up the simulator state (OOM). Clearing it lets each shot fully
-      // deallocate, matching the pre-policy behavior where the shot loop ran on
-      // a separate thread with no execution context.
-      auto *savedContext = cudaq::getExecutionContext();
-      cudaq::detail::resetExecutionContext();
-      cudaq::detail::try_finally(
-          [&] {
-            for (std::size_t shot = 0; shot < policy.shots; shot++)
-              codes[0].jit->run(kernelName);
-          },
-          [&] {
-            if (savedContext)
-              cudaq::detail::setExecutionContext(savedContext);
-          });
+      for (std::size_t shot = 0; shot < policy.shots; shot++)
+        codes[0].jit->run(kernelName);
     });
   }
 
