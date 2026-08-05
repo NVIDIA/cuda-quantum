@@ -80,7 +80,8 @@ func.func @no_scalar_anchor(%theta: f64, %targets: !quake.veq<2>) {
 // LOWER-LABEL: func.func @no_scalar_anchor(
 // LOWER: quake.r1
 
-func.func @zero_wire(%target: !quake.wire) -> !quake.wire {
+func.func @zero_wire(%target: !quake.wire) -> !quake.wire
+    attributes {"cudaq-entrypoint"} {
   %zero = arith.constant 0.000000e+00 : f64
   %next = quake.r1 (%zero) %target
       : (f64, !quake.wire) -> !quake.wire
