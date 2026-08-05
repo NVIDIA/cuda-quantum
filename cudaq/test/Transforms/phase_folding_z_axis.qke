@@ -1,0 +1,206 @@
+// ========================================================================== //
+// Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+
+// Phase trace shared by all tests below (A = phase of w0, B = phase of w1):
+//   op(w1)         -> w1 carries B
+//   cx(w0, w1)     -> w1 carries A XOR B,  w0 carries A
+//   op(w1)         -> assigned phase A XOR B  [not merged with first]
+//   cx(w0, w1)     -> w1 carries B,           w0 carries A
+//   op(w0)         -> assigned phase A         [not merged with any above]
+//   op(w1)         -> assigned phase B         [same as first — these two merge]
+//   cx(w1, w0)
+
+// S + S = Z (pi/2 + pi/2 = pi)
+func.func @s_plus_s() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.s %w1 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.s %1#1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.s %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %3#1 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return
+}
+
+// CHECK-LABEL: func.func @s_plus_s() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
+// CHECK:         %[[S0:.*]] = quake.s %[[CX0]]#1 :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[S0]] :
+// CHECK:         %[[S1:.*]] = quake.s %[[CX1]]#0 :
+// CHECK:         %[[Z:.*]] = quake.z %[[CX1]]#1 :
+// CHECK:         quake.x {{\[}}%[[Z]]{{\]}} %[[S1]] :
+// CHECK:         return
+// CHECK:       }
+
+// T + T = S (pi/4 + pi/4 = pi/2)
+func.func @t_plus_t() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.t %w1 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.t %1#1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.t %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.t %3#1 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return
+}
+
+// CHECK-LABEL: func.func @t_plus_t() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
+// CHECK:         %[[T0:.*]] = quake.t %[[CX0]]#1 :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[T0]] :
+// CHECK:         %[[T1:.*]] = quake.t %[[CX1]]#0 :
+// CHECK:         %[[S:.*]] = quake.s %[[CX1]]#1 :
+// CHECK:         quake.x {{\[}}%[[S]]{{\]}} %[[T1]] :
+// CHECK:         return
+// CHECK:       }
+
+// S_adj + S = I (identity, both erased)
+func.func @sadj_plus_s() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.s<adj> %w1 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.s %1#1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.s<adj> %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %3#1 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return
+}
+
+// CHECK-LABEL: func.func @sadj_plus_s() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
+// CHECK:         %[[S0:.*]] = quake.s %[[CX0]]#1 :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[S0]] :
+// CHECK:         %[[SADJ:.*]] = quake.s<adj> %[[CX1]]#0 :
+// CHECK:         quake.x {{\[}}%[[CX1]]#1{{\]}} %[[SADJ]] :
+// CHECK-NOT:     quake.s<adj>
+// CHECK:         return
+// CHECK:       }
+
+// Z + Z = I (identity, both erased)
+func.func @z_plus_z() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.z %w1 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.z %1#1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.z %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.z %3#1 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return
+}
+
+// CHECK-LABEL: func.func @z_plus_z() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
+// CHECK:         %[[Z0:.*]] = quake.z %[[CX0]]#1 :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[Z0]] :
+// CHECK:         %[[Z1:.*]] = quake.z %[[CX1]]#0 :
+// CHECK:         quake.x {{\[}}%[[CX1]]#1{{\]}} %[[Z1]] :
+// CHECK-NOT:     quake.z
+// CHECK:         return
+// CHECK:       }
+
+// S + Z = S_adj (pi/2 + pi = 3*pi/2, normalized to -pi/2)
+func.func @s_plus_z() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.s %w1 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.s %1#1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.s %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.z %3#1 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return
+}
+
+// CHECK-LABEL: func.func @s_plus_z() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
+// CHECK:         %[[S0:.*]] = quake.s %[[CX0]]#1 :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[S0]] :
+// CHECK:         %[[S1:.*]] = quake.s %[[CX1]]#0 :
+// CHECK:         %[[SADJ:.*]] = quake.s<adj> %[[CX1]]#1 :
+// CHECK:         quake.x {{\[}}%[[SADJ]]{{\]}} %[[S1]] :
+// CHECK:         return
+// CHECK:       }
+
+// Rz(pi/4) + Rz(pi/4) = S (constant angles snap to named gate)
+func.func @rz_plus_rz_to_s() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %cst = arith.constant 0.78539816339744828 : f64
+  %0 = quake.rz (%cst) %w1 : (f64, !quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.rz (%cst) %1#1 : (f64, !quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.rz (%cst) %3#0 : (f64, !quake.wire) -> !quake.wire
+  %5 = quake.rz (%cst) %3#1 : (f64, !quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return
+}
+
+// CHECK-LABEL: func.func @rz_plus_rz_to_s() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[CST:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
+// CHECK:         %[[RZ0:.*]] = quake.rz (%[[CST]]) %[[CX0]]#1 :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[RZ0]] :
+// CHECK:         %[[RZ1:.*]] = quake.rz (%[[CST]]) %[[CX1]]#0 :
+// CHECK:         %[[SUM:.*]] = arith.addf %[[CST]], %[[CST]] : f64
+// CHECK:         %[[RZ2:.*]] = quake.rz (%[[SUM]]) %[[CX1]]#1 :
+// CHECK:         quake.x {{\[}}%[[RZ2]]{{\]}} %[[RZ1]] :
+// CHECK:         return
+// CHECK:       }
+
+// T + S = Rz(3*pi/4) (no named gate match, falls back to Rz)
+func.func @t_plus_s() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.t %w1 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2 = quake.t %1#1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.t %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %3#1 : (!quake.wire) -> !quake.wire
+  %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return
+}
+
+// CHECK-LABEL: func.func @t_plus_s() {
+// CHECK:         %[[W0:.*]] = quake.null_wire
+// CHECK:         %[[W1:.*]] = quake.null_wire
+// CHECK:         %[[CX0:.*]]:2 = quake.x {{\[}}%[[W0]]{{\]}} %[[W1]] :
+// CHECK:         %[[T0:.*]] = quake.t %[[CX0]]#1 :
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[T0]] :
+// CHECK:         %[[T1:.*]] = quake.t %[[CX1]]#0 :
+// CHECK:         %[[CSTA:.*]] = arith.constant 0.78539816339744828 : f64
+// CHECK:         %[[CSTB:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK:         %[[SUM:.*]] = arith.addf %[[CSTA]], %[[CSTB]] : f64
+// CHECK:         %[[RZ:.*]] = quake.rz (%[[SUM]]) %[[CX1]]#1 :
+// CHECK:         quake.x {{\[}}%[[RZ]]{{\]}} %[[T1]] :
+// CHECK:         return
+// CHECK:       }
