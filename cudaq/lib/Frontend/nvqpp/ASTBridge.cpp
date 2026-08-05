@@ -738,6 +738,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
         if (a->getAnnotation().str() == cudaq::disableQuantumOptAnnotation) {
           (*module)->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+          func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
           break;
         }
       bool hasDeviceOnlyTypes =
