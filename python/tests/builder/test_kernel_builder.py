@@ -22,9 +22,6 @@ from cudaq import spin
 
 from test_helpers import h2_hamiltonian_4q
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
 
 def test_sdg_0_state():
     """Tests the adjoint S-gate on a qubit starting in the 0-state."""
@@ -831,11 +828,11 @@ def test_ctrl_rotation_integration():
     cudaq.reset_target()
 
 
-@skipIfValueSemantics
 def test_can_progressively_build():
     """Tests that a kernel can be build progressively."""
     cudaq.reset_target()
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     q = kernel.qalloc(2)
     kernel.h(q[0])
     print(kernel)
@@ -1039,11 +1036,11 @@ def test_from_state1():
     cudaq.reset_target()
 
 
-@skipIfValueSemantics
 def test_pauli_word_input():
     h = h2_hamiltonian_4q()
 
     kernel, theta, paulis = cudaq.make_kernel(float, list[cudaq.pauli_word])
+    kernel.disable_quantum_optimization()
     q = kernel.qalloc(4)
     kernel.x(q[0])
     kernel.x(q[1])
@@ -1055,10 +1052,10 @@ def test_pauli_word_input():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 
-@skipIfValueSemantics
 def test_exp_pauli():
     cudaq.reset_target()
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qubits = kernel.qalloc(4)
     kernel.x(qubits[0])
     kernel.x(qubits[1])
@@ -1070,6 +1067,7 @@ def test_exp_pauli():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
     kernel, theta = cudaq.make_kernel(float)
+    kernel.disable_quantum_optimization()
     qubits = kernel.qalloc(4)
     kernel.x(qubits[0])
     kernel.x(qubits[1])
@@ -1078,6 +1076,7 @@ def test_exp_pauli():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
     kernel, theta = cudaq.make_kernel(float)
+    kernel.disable_quantum_optimization()
     qubits = kernel.qalloc(4)
     kernel.x(qubits[0])
     kernel.x(qubits[1])
@@ -1091,7 +1090,6 @@ def test_exp_pauli():
         kernel.exp_pauli(theta, qubits, invalidOp)
 
 
-@skipIfValueSemantics
 def test_exp_pauli_register_and_qubits():
     """Test that exp_pauli correctly concatenates a register with
     individual qubits (regression test for operator precedence fix)."""
@@ -1099,6 +1097,7 @@ def test_exp_pauli_register_and_qubits():
 
     # Case 1: register + individual qubit
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qreg = kernel.qalloc(2)
     q_extra = kernel.qalloc()
     kernel.exp_pauli(1.0, qreg, q_extra, 'XXX')
@@ -1108,6 +1107,7 @@ def test_exp_pauli_register_and_qubits():
 
     # Case 2: register + multiple individual qubits
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qreg = kernel.qalloc(2)
     q0 = kernel.qalloc()
     q1 = kernel.qalloc()
@@ -1118,6 +1118,7 @@ def test_exp_pauli_register_and_qubits():
 
     # Case 3: individual qubits only (no register) should still work
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     q0 = kernel.qalloc()
     q1 = kernel.qalloc()
     kernel.exp_pauli(1.0, q0, q1, 'XX')
@@ -1126,6 +1127,7 @@ def test_exp_pauli_register_and_qubits():
 
     # Case 4: register only (no individual qubits) should still work
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qreg = kernel.qalloc(2)
     kernel.exp_pauli(1.0, qreg, 'XX')
     counts = cudaq.sample(kernel)
@@ -1217,7 +1219,6 @@ def test_call_kernel_expressions():
                       atol=1e-2)
 
 
-@skipIfValueSemantics
 def test_call_kernel_expressions_List():
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -1229,6 +1230,7 @@ def test_call_kernel_expressions_List():
         ry(val[0], qubits[qbit])
 
     ansatz = cudaq.make_kernel()
+    ansatz.disable_quantum_optimization()
     qubits = ansatz.qalloc(2)
     ansatz.x(qubits[0])
     ansatz.apply_call(kernelThatTakesIntAndListFloat, qubits, 1, [.59])
@@ -1265,7 +1267,6 @@ def test_call_kernel_expressions_List():
     cudaq.sample(kernelAndArgs[0], [5.5, 6.5, 7.5])
 
 
-@skipIfValueSemantics
 def test_call_kernel_expressions_list():
 
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
@@ -1277,6 +1278,7 @@ def test_call_kernel_expressions_list():
         ry(val[0], qubits[qbit])
 
     ansatz = cudaq.make_kernel()
+    ansatz.disable_quantum_optimization()
     qubits = ansatz.qalloc(2)
     ansatz.x(qubits[0])
     ansatz.apply_call(kernelThatTakesIntAndListFloat, qubits, 1, [.59])
@@ -1364,11 +1366,10 @@ def test_apply_call_captures_from_definition_scope():
     cudaq.sample(builder, shots_count=3)
 
 
-@skipIfValueSemantics
 def test_sample_with_no_qubits():
     kernel = cudaq.make_kernel()
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(kernel)
+    histogram = cudaq.sample(kernel)
+    assert (not len(histogram))
 
 
 def test_adequate_number_params():
@@ -1386,7 +1387,6 @@ def test_adequate_number_params():
     result = cudaq.observe(kernel, spin.z(0), [2.2, 2.2], 0)
 
 
-@skipIfValueSemantics
 def test_draw():
     print()
     bar, q = cudaq.make_kernel(cudaq.qreg)
@@ -1398,6 +1398,7 @@ def test_draw():
     zaz.sdg(q)
 
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     q = kernel.qalloc(4)
 
     kernel.h(q)
@@ -1453,7 +1454,6 @@ q3 : ┤ h ├──────────────────────
     assert circuit == expected_str
 
 
-@skipIfValueSemantics
 def test_list_subscript():
     kernelAndArgs = cudaq.make_kernel(bool, list[bool], List[int], list[float])
     print(kernelAndArgs[0])
@@ -1549,7 +1549,6 @@ def test_call_invalid_attribute_on_a_kernel():
     assert "not supported on PyKernel" in str(e.value)
 
 
-@skipIfValueSemantics
 def test_repeated_builder_launch_no_segfault():
     """A ``list[bool]`` arg used to corrupt the heap during argument synthesis,
     crashing a repeated ``make_kernel`` + ``sample`` loop at a random iteration.
@@ -1565,6 +1564,7 @@ def test_repeated_builder_launch_no_segfault():
         "cudaq.set_target('qpp-cpu')\n"
         "for _ in range(512):\n"
         "    kernel, *_ = cudaq.make_kernel(bool, list[bool], List[int], list[float])\n"
+        "    kernel.disable_quantum_optimization()\n"
         "    kernel.qalloc(1)\n"
         "    cudaq.sample(kernel, False, [False], [3], [3.5])\n"
         "    cudaq.sample(kernel, False, [], [], [])\n"

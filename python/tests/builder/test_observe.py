@@ -18,17 +18,13 @@ def assert_close(want, got, tolerance=1.e-4) -> bool:
     return abs(want - got) < tolerance
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_observe_result():
     """
     Test the `cudaq.ObserveResult` class to ensure its member
     functions are working as expected.
     """
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qreg = kernel.qalloc(2)
     kernel.x(qreg[0])
     hamiltonian = spin.z(0) + spin.x(1) + spin.y(0)
@@ -73,7 +69,6 @@ def test_observe_result():
     observe_result.dump()
 
 
-@skipIfValueSemantics
 @pytest.mark.parametrize("want_state, want_expectation",
                          [["0", 1.0], ["1", -1.0]])
 @pytest.mark.parametrize("shots_count", [-1, 10])
@@ -87,6 +82,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
     Tests both with and without shots.
     """
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qubit = kernel.qalloc()
 
     if want_state == "0":
@@ -291,7 +287,6 @@ def test_observe_multi_param(angle_0, angle_1, angles, want_state,
         cudaq.observe(kernel, hamiltonian, np.pi, np.pi)
 
 
-@skipIfValueSemantics
 @pytest.mark.parametrize("want_state, want_expectation",
                          [["0", 1.0], ["1", -1.0]])
 @pytest.mark.parametrize("shots_count", [-1, 10])
@@ -305,6 +300,7 @@ def test_observe_async_no_params(want_state, want_expectation, shots_count):
     Tests both with and without shots mode.
     """
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qubit = kernel.qalloc()
 
     if want_state == "0":
@@ -335,7 +331,6 @@ def test_observe_async_no_params(want_state, want_expectation, shots_count):
         future = cudaq.observe_async(kernel, hamiltonian, qpu_id=12)
 
 
-@skipIfValueSemantics
 @pytest.mark.parametrize("angle, want_state, want_expectation",
                          [[np.pi, "1", -2.0], [0.0, "0", 2.0]])
 @pytest.mark.parametrize("shots_count", [-1, 10])
@@ -412,7 +407,6 @@ def test_observe_async_single_param(angle, want_state, want_expectation,
         future = cudaq.observe_async(kernel, hamiltonian, np.pi, qpu_id=12)
 
 
-@skipIfValueSemantics
 @pytest.mark.parametrize(
     "angle_0, angle_1, angles, want_state, want_expectation",
     [[np.pi, np.pi, [np.pi, np.pi], "1", -4.0],
@@ -507,7 +501,6 @@ def test_observe_async_multi_param(angle_0, angle_1, angles, want_state,
                                      qpu_id=12)
 
 
-@skipIfValueSemantics
 @pytest.mark.parametrize("angles, want_state, want_expectation",
                          [[[np.pi, np.pi, np.pi, np.pi], "1", -4.0],
                           [[0.0, 0.0, 0.0, 0.0], "0", 4.0]])
@@ -586,7 +579,6 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
 
 
-@skipIfValueSemantics
 def test_observe_kernel_exception_no_segfault():
     """
     When cudaq.observe is called with list arguments that are
@@ -781,7 +773,6 @@ def test_combine_sweep():
         assert assert_close(expectedEnergy, sum, tolerance=1e-2)
 
 
-@skipIfValueSemantics
 def test_batched_observe_results():
     # Test bug #1396
     # Seed for repeatability
