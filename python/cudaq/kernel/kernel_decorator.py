@@ -125,6 +125,7 @@ class PyKernelDecorator(object):
                  function,
                  verbose=False,
                  defer_compilation=True,
+                 disable_quantum_optimization=False,
                  module=None,
                  kernelName=None,
                  signature=None,
@@ -137,6 +138,7 @@ class PyKernelDecorator(object):
         self.kernelModuleName = None
         self.name = kernelName
         self.verbose = verbose
+        self.disable_quantum_optimization = disable_quantum_optimization
         # Caches the `qkeModule` property once compiled
         self._cached_qkeModule = None
         self.defFrame = _recover_defining_frame()
@@ -286,7 +288,8 @@ class PyKernelDecorator(object):
             location=self.location,
             kernelName=self.name,
             kernelModuleName=self.kernelModuleName,
-            cudaqAliases=getattr(self, 'cudaqAliases', None))
+            cudaqAliases=getattr(self, 'cudaqAliases', None),
+            disable_quantum_optimization=self.disable_quantum_optimization)
 
         # recursively compile any captured kernels if required
         for captured_arg in self.signature.captured_args:

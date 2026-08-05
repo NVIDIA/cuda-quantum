@@ -24,6 +24,7 @@ def test_observe_result():
     functions are working as expected.
     """
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qreg = kernel.qalloc(2)
     kernel.x(qreg[0])
     hamiltonian = spin.z(0) + spin.x(1) + spin.y(0)
@@ -81,6 +82,7 @@ def test_observe_no_params(want_state, want_expectation, shots_count):
     Tests both with and without shots.
     """
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qubit = kernel.qalloc()
 
     if want_state == "0":
@@ -298,6 +300,7 @@ def test_observe_async_no_params(want_state, want_expectation, shots_count):
     Tests both with and without shots mode.
     """
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qubit = kernel.qalloc()
 
     if want_state == "0":

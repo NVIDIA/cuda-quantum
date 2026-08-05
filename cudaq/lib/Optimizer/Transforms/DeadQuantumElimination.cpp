@@ -56,6 +56,10 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::quake::NullWireOp nullWire,
                                 PatternRewriter &rewriter) const override {
+    // FIXME: safety check as MLIR breaks linear type constraints underneath us.
+    if (std::distance(nullWire->getUsers().begin(),
+                      nullWire->getUsers().end()) != 1)
+      return failure();
     // Wires are linear types. There must be exactly 1 use.
     auto sink = dyn_cast<cudaq::quake::SinkOp>(*nullWire->getUsers().begin());
     if (!sink)
