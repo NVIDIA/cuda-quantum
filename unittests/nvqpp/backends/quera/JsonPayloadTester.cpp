@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/AnalogHamiltonian.h"
+#include "cudaq/platform/quera/QuEraServerHelper.h"
 #include <gtest/gtest.h>
 
 namespace {
@@ -460,4 +461,17 @@ CUDAQ_TEST(QueraTester, checkProcessResult) {
     std::cout << pair.first << ": " << pair.second << std::endl;
     EXPECT_EQ(1, pair.second);
   }
+}
+
+// Regression test: a malformed cloud response whose postSequence is shorter
+// than preSequence must not cause a heap out-of-bounds read. processResults
+// should reject it with an exception instead.
+CUDAQ_TEST(QueraTester, checkProcessResultLengthMismatch) {
+  const std::string mismatched = R"(
+    {"measurements":[{"shotMetadata":{"shotStatus":"Success"},
+     "shotResult":{"preSequence":[0,0],"postSequence":[0]}}]})";
+  cudaq::ServerMessage resultsJson = nlohmann::json::parse(mismatched);
+  cudaq::QuEraServerHelper helper;
+  std::string jobId = "";
+  EXPECT_THROW(helper.processResults(resultsJson, jobId), std::runtime_error);
 }
