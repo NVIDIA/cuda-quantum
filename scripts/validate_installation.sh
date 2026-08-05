@@ -19,6 +19,8 @@
 #   and run this script from the home directory.
 #   Check the logged output.
 
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Auto-setup if running from repo root (detected by presence of docs/sphinx/examples)
 # This allows running validation directly from the repo without manual setup.
 if [ -d "docs/sphinx/examples" ]; then
@@ -198,10 +200,29 @@ echo "Testing backends:"
 echo "$requested_backends"
 echo
 
-if $missing_backend || [ "$available_backends" == "" ]; 
+if $missing_backend || [ "$available_backends" == "" ];
 then
     echo "Abort due to missing backend configuration."
-    exit 1 
+    exit 1
+fi
+
+echo "============================="
+echo "==   License Compliance   =="
+echo "============================="
+
+# GMP and MPFR are redistributed with CUDA-Q under the LGPL v3; verify the
+# properties the redistribution relies on (license texts shipped, dynamic
+# linking only, libraries replaceable).
+let "samples+=1"
+if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+    if bash "$this_file_dir/validate_license_compliance.sh"; then
+        let "passed+=1"
+    else
+        let "failed+=1"
+    fi
+else
+    echo -e "\e[01;31mError: validate_license_compliance.sh not found in $this_file_dir.\e[0m" >&2
+    let "failed+=1"
 fi
 
 # Long-running tests

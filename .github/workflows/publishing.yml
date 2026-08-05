@@ -1113,8 +1113,9 @@ jobs:
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           retry apt-get update
+          # binutils (nm) is needed by the license compliance validation.
           retry apt-get install -y --no-install-recommends \
-            wget ca-certificates libc6-dev libopenmpi-dev
+            wget ca-certificates libc6-dev libopenmpi-dev binutils
           distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
           retry wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
@@ -1139,7 +1140,7 @@ jobs:
           # a stale 404 from a CDN mirror doesn't poison the cache for retry #2.
           retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
           retry_dnf install -y --nobest --setopt=install_weak_deps=False \
-            'dnf-command(config-manager)' glibc-devel openssh-clients
+            'dnf-command(config-manager)' glibc-devel openssh-clients binutils
           CUDA_VERSION=${{ matrix.cuda_version }}
           DISTRIBUTION=rhel8
           . scripts/configure_build.sh install-cudart
@@ -1186,6 +1187,7 @@ jobs:
           cp -R docs/sphinx/targets "$workdir/targets"
           rm -rf "$workdir/examples/python" "$workdir/applications/python" "$workdir/targets/python"
           cp scripts/validate_installation.sh "$workdir/"
+          cp scripts/validate_license_compliance.sh "$workdir/"
           chown -R cudaqtest "$workdir"
 
           touch "$GITHUB_STEP_SUMMARY"
@@ -1361,7 +1363,7 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           retry apt-get update
           retry apt-get install -y --no-install-recommends \
-            ca-certificates vim wget unzip openssh-client
+            ca-certificates vim wget unzip openssh-client binutils
           mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
 
           # Extract README from metapackage
@@ -1372,6 +1374,7 @@ jobs:
           # Setup files for validate_pycudaq.sh script
           # Important: Notebooks are *not* validated by validate_pycudaq.sh.
           cp    $GITHUB_WORKSPACE/scripts/validate_pycudaq.sh .
+          cp    $GITHUB_WORKSPACE/scripts/validate_license_compliance.sh .
           cp -r $GITHUB_WORKSPACE/docs/sphinx/examples/python /tmp/examples/
           cp -r $GITHUB_WORKSPACE/docs/sphinx/snippets/python /tmp/snippets/
           cp -r $GITHUB_WORKSPACE/python/tests /tmp/tests/
