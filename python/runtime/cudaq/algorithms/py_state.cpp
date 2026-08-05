@@ -139,13 +139,34 @@ static bool isCContiguous(const std::vector<std::size_t> &shape,
   return true;
 }
 
+static bool isFContiguous(const std::vector<std::size_t> &shape,
+                          const std::vector<ssize_t> &strides,
+                          std::size_t itemsize) {
+  if (shape.size() != strides.size())
+    return false;
+
+  ssize_t expectedStride = static_cast<ssize_t>(itemsize);
+  for (std::size_t i = 0; i < shape.size(); ++i) {
+    if (shape[i] > 1 && strides[i] != expectedStride)
+      return false;
+    expectedStride *= static_cast<ssize_t>(shape[i]);
+  }
+
+  return true;
+}
+
 static bool shouldCanonicalizeCupyArray(const BufferInfo &info,
                                         const std::string &targetName) {
   if (info.shape.empty())
     return false;
 
-  // Only 2D arrays for the dynamics target or non-contiguous 1D arrays
-  // need canonicalization.
+  // TensorStateData expects contiguous column-major storage, so dynamics
+  // complex128 density matrices must be F-contiguous.
+  if (info.shape.size() == 2 && targetName == "dynamics" && info.format == "Zd")
+    return !isFContiguous(info.shape, info.strides, info.itemsize);
+
+  // Preserve the existing host fallback for non-contiguous 1D arrays and
+  // other dynamics density-matrix input types.
   bool needsCanon = (info.shape.size() == 1) ||
                     (info.shape.size() == 2 && targetName == "dynamics");
   return needsCanon && !isCContiguous(info.shape, info.strides, info.itemsize);
@@ -155,6 +176,17 @@ static nanobind::object
 canonicalizeCupyArrayToNumpy(nanobind::handle cupyArray) {
   return nanobind::module_::import_("cupy").attr("asnumpy")(
       nanobind::borrow<nanobind::object>(cupyArray));
+}
+
+static nanobind::object canonicalizeCupyArray(nanobind::handle cupyArray,
+                                              const BufferInfo &info,
+                                              const std::string &targetName) {
+  // Canonicalize the density matrix to column-major storage on the device.
+  if (info.shape.size() == 2 && targetName == "dynamics" && info.format == "Zd")
+    return nanobind::module_::import_("cupy").attr("asfortranarray")(
+        nanobind::borrow<nanobind::object>(cupyArray));
+
+  return canonicalizeCupyArrayToNumpy(cupyArray);
 }
 
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
@@ -318,7 +350,8 @@ static cudaq::state createStateFromPyBuffer(nanobind::object data,
         "`dtype=cudaq.complex()` for precision-agnostic code.");
 
   if (!isHostData && shouldCanonicalizeCupyArray(info, holder.getTarget().name))
-    return createStateFromPyBuffer(canonicalizeCupyArrayToNumpy(data), holder);
+    return createStateFromPyBuffer(
+        canonicalizeCupyArray(data, info, holder.getTarget().name), holder);
 
   if (!isHostData) {
     if (holder.getTarget().name == "dynamics") {

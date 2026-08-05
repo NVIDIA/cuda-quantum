@@ -347,7 +347,7 @@ def test_evolve_density_matrix_cupy_strided_layout_cudm():
     base = cp.array([[1.0 + 0.0j, 2.0 + 0.0j], [3.0 + 0.0j, 4.0 + 0.0j]],
                     dtype=cp.complex128)
     cases = [
-        ("c_order", base, cp.asnumpy(base)),  # Already C-contiguous, no copy
+        ("c_order", base, cp.asnumpy(base)),
         ("fortran_order", cp.asfortranarray(base), cp.asnumpy(base)),
         ("transpose_view", base.T, cp.asnumpy(base.T)),
     ]
@@ -368,9 +368,38 @@ def test_evolve_density_matrix_cupy_strided_layout_cudm():
         np.testing.assert_allclose(final_arr, expected, atol=1e-12)
 
 
+@pytest.mark.parametrize("layout",
+                         ["c_order", "fortran_order", "transpose_view"])
+def test_evolve_density_matrix_cupy_complex_input_observable_cudm(layout):
+    from cudaq.operators import spin
+
+    base = cp.array([[0.5, 0.25j], [-0.25j, 0.5]], dtype=cp.complex128)
+    if layout == "c_order":
+        rho = base
+    elif layout == "fortran_order":
+        rho = cp.asfortranarray(base)
+    else:
+        rho = cp.array(base.T, order="C").T
+
+    initial_state = cudaq.State.from_data(rho)
+    result = cudaq.evolve(
+        0.0 * spin.x(0),
+        {0: 2},
+        Schedule([0.0], ["time"]),
+        initial_state,
+        observables=[spin.y(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+
+    expectation_values = result.expectation_values()
+    assert expectation_values is not None
+    assert np.isclose(expectation_values[0][0].expectation(), -0.5)
+
+
 def test_evolve_density_matrix_cupy_contiguous_no_regression_cudm():
-    """C-contiguous 2D CuPy array should go through the GPU path directly
-    without being copied back to host."""
+    """C-contiguous CuPy input should be canonicalized on the GPU."""
     rho = cp.array([[1.0 + 0.0j, 0.0j], [0.0j, 0.0j]], dtype=cp.complex128)
     assert rho.flags["C_CONTIGUOUS"]
     expected = cp.asnumpy(rho)
