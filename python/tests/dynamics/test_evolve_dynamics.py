@@ -244,6 +244,31 @@ def test_precision_info():
     assert target.get_precision() == cudaq.SimulationPrecision.fp64
 
 
+@pytest.mark.parametrize("order", ["C", "F"])
+def test_evolve_density_matrix_complex_input_observable_cudm(order):
+    from cudaq.operators import spin
+
+    rho = np.array([[0.5, 0.25j], [-0.25j, 0.5]],
+                   dtype=np.complex128,
+                   order=order)
+    initial_state = cudaq.State.from_data(rho)
+
+    result = cudaq.evolve(
+        0.0 * spin.x(0),
+        {0: 2},
+        Schedule([0.0], ["time"]),
+        initial_state,
+        observables=[spin.y(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+
+    expectation_values = result.expectation_values()
+    assert expectation_values is not None
+    assert np.isclose(expectation_values[0][0].expectation(), -0.5)
+
+
 def test_evolve_density_matrix_numpy_layout_cudm():
     from cudaq.operators import spin
 

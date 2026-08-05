@@ -113,7 +113,7 @@ CuDensityMatState::createFromData(const state_data &data) {
           "[CuDensityMatState] Density matrix input must be square.");
     const std::size_t size = cMat.rows() * cMat.cols();
     void *dataPtr = const_cast<cudaq::complex_matrix &>(cMat).get_data(
-        cudaq::complex_matrix::order::row_major);
+        cudaq::complex_matrix::order::column_major);
     std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
         cudaq::dynamics::DeviceAllocator::allocate(
             size * sizeof(std::complex<double>)));
