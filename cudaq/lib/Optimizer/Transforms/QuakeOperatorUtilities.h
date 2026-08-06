@@ -152,5 +152,4 @@ inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
   return op;
 }
 
-
 } // namespace cudaq::opt
