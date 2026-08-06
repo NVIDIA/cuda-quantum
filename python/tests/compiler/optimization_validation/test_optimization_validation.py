@@ -25,6 +25,7 @@ from cudaq._compiler.optimization_validation import (
     ASSURANCE_TIER_EXACT_CLIFFORD_SIM,
     ASSURANCE_TIER_EXACT_UNITARY,
     CLIFFORD_TABLEAU_ORACLE_KIND,
+    DEFAULT_EXACT_QUBIT_BOUND,
     INVARIANT_KINDS,
     ORACLE_ROADMAP,
     CliffordTableauOracle,
@@ -251,6 +252,49 @@ def test_clifford_spec_resolves_to_the_tableau_oracle():
 def test_dense_oracle_does_not_answer_to_the_clifford_kind():
     with pytest.raises(InvalidRequest):
         DenseUnitaryOracle(kind=CLIFFORD_TABLEAU_ORACLE_KIND)
+
+
+# Why the tableau oracle exists: the same input, past the dense qubit bound.
+_BEYOND_DENSE_BOUND_QUBITS = 20
+
+
+def _ghz_input(tmp_path, num_qubits=_BEYOND_DENSE_BOUND_QUBITS, **kwargs):
+    return _write(tmp_path, f"ghz_{num_qubits}.qke",
+                  corpus.clifford_ghz_module_text(num_qubits, **kwargs))
+
+
+def test_dense_oracle_rejects_a_kernel_past_its_qubit_bound(tmp_path):
+    assert _BEYOND_DENSE_BOUND_QUBITS > DEFAULT_EXACT_QUBIT_BOUND
+    result = validate(
+        _request([_ghz_input(tmp_path)],
+                 oracle=OracleSpec(kind="up-to-global-phase"),
+                 metrics=()))
+    assert result.status == ValidationStatus.UNSUPPORTED_DOMAIN
+    assert any("too-many-qubits" in msg for msg in result.cases[0].messages)
+
+
+def test_clifford_tableau_oracle_certifies_past_the_dense_bound(tmp_path):
+    """The same 20-qubit kernel the dense oracle just refused, certified."""
+    result = validate(_clifford_request([_ghz_input(tmp_path)], metrics=()))
+    assert result.status == ValidationStatus.PASSED
+    case = result.cases[0]
+    assert case.assurance_tier == ASSURANCE_TIER_EXACT_CLIFFORD_SIM
+    assert {inv.name: inv for inv in case.invariants}["equivalence"].satisfied
+
+
+def test_clifford_tableau_oracle_is_not_vacuous_past_the_dense_bound(tmp_path):
+    """Reach is worthless if it accepts everything: drop one CX and it fails."""
+    baseline, _ctx = _observed(
+        corpus.clifford_ghz_module_text(_BEYOND_DENSE_BOUND_QUBITS))
+    candidate, _ctx2 = _observed(
+        corpus.clifford_ghz_module_text(
+            _BEYOND_DENSE_BOUND_QUBITS,
+            chain_length=_BEYOND_DENSE_BOUND_QUBITS - 2))
+    result = validate_artifacts(
+        [(str(baseline), str(candidate))],
+        oracle=OracleSpec(kind=CLIFFORD_TABLEAU_ORACLE_KIND))
+    assert result.status == ValidationStatus.INVARIANT_FAILURE
+    assert not result.cases[0].invariants[0].satisfied
 
 
 # Artifact-in: validate already-compiled modules with no pass execution

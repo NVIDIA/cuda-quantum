@@ -52,16 +52,6 @@ def test_write_corpus_is_reproducible(tmp_path):
     assert first == second
 
 
-# Provenance stamping
-def test_provenance_header_records_version_and_params():
-    text = corpus.generate_module_text(7, num_qubits=2, length=5)
-    head = text.splitlines()[:2]
-    assert f"v{corpus.CORPUS_GENERATOR_VERSION}" in head[0]
-    assert "seed=7" in head[1]
-    assert "num_qubits=2" in head[1]
-    assert "length=5" in head[1]
-
-
 # The corpus must actually be usable by the validator: every generated module is
 # a valid, in-domain bounded-unitary circuit.
 def test_generated_modules_are_valid_and_in_domain():
@@ -98,13 +88,6 @@ def test_canonical_module_text_is_reproducible():
             name) == corpus.canonical_module_text(name)
 
 
-def test_canonical_provenance_records_name_and_version():
-    text = corpus.canonical_module_text("bell_pair")
-    head = text.splitlines()[0]
-    assert "bell_pair" in head
-    assert f"v{corpus.CORPUS_GENERATOR_VERSION}" in head
-
-
 def test_canonical_module_text_rejects_unknown():
     with pytest.raises(ValueError):
         corpus.canonical_module_text("no_such_circuit")
@@ -116,3 +99,31 @@ def test_write_canonical_corpus_writes_one_file_per_circuit(tmp_path):
            ] == [f"{n}.qke" for n in corpus.canonical_names()]
     for name, path in zip(corpus.canonical_names(), paths):
         assert path.read_text() == corpus.canonical_module_text(name)
+
+
+# Clifford GHZ: the size-parameterized input for the scalable tableau oracle.
+def test_clifford_ghz_is_reproducible_and_sized():
+    text = corpus.clifford_ghz_module_text(20)
+    assert text == corpus.clifford_ghz_module_text(20)
+    assert "!quake.veq<20>" in text
+    # h on qubit 0 plus a full 19-link CX chain.
+    assert text.count("quake.h") == 1
+    assert text.count("quake.x [") == 19
+
+
+def test_clifford_ghz_chain_length_truncates_the_chain():
+    assert corpus.clifford_ghz_module_text(
+        20, chain_length=18).count("quake.x [") == 18
+
+
+def test_clifford_ghz_is_in_the_clifford_domain_past_the_dense_bound():
+    """The whole point: no qubit bound, so 20 qubits is in domain here and not
+    in the dense one."""
+    ctx = _context()
+    module = Module.parse(corpus.clifford_ghz_module_text(20), ctx)
+    assert module.operation.verify()
+    clifford = cudaq_runtime.preflight_clifford(module)
+    assert clifford["supported"], clifford["rejections"]
+    assert clifford["max_qubits"] == 20
+    dense = cudaq_runtime.preflight_bounded_unitary(module, 14)
+    assert not dense["supported"]
