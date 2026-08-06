@@ -1341,6 +1341,7 @@ REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, {"r1", "phased_rx"});
 // quake.x [control] target
 // quake.ry(θ/2) target
 // quake.rz(-π/2) target
+// quake.phase(-π/4) target // +π/4 for a negative source control
 struct CRxToCXType; // forward declare the pattern type, defined in the macro
                     // below
 struct CRxToCX
@@ -1394,6 +1395,7 @@ struct CRxToCX
     // phase conditioned on the source Rx control.
     Value phase =
         createConstant(loc, negControl ? M_PI_4 : -M_PI_4, angleType, rewriter);
+    // Emit `quake.phase(phase) target`; its empty predicate is deliberate.
     auto correction = cudaq::opt::emitPhaseCorrection(
         rewriter, loc, phase, ValueRange{}, DenseBoolArrayAttr{}, target);
     target = correction.anchor;
