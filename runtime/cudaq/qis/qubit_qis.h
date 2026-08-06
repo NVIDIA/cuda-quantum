@@ -470,7 +470,7 @@ inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
-// Measure all qubits in the range, return vector of 0,1
+// Measure all qubits in the range, return a vector of measurement results.
 template <typename QubitRange>
   requires std::ranges::range<QubitRange>
 std::vector<measure_result> mz(QubitRange &q) {
@@ -481,11 +481,49 @@ std::vector<measure_result> mz(QubitRange &q) {
   return b;
 }
 
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+std::vector<measure_result> mx(QubitRange &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.push_back(mx(qq));
+  }
+  return b;
+}
+
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+std::vector<measure_result> my(QubitRange &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.push_back(my(qq));
+  }
+  return b;
+}
+
 template <std::size_t Levels>
 std::vector<measure_result> mz(const qview<Levels> &q) {
   std::vector<measure_result> b;
   for (auto &qq : q) {
     b.emplace_back(mz(qq));
+  }
+  return b;
+}
+
+template <std::size_t Levels>
+std::vector<measure_result> mx(const qview<Levels> &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.emplace_back(mx(qq));
+  }
+  return b;
+}
+
+template <std::size_t Levels>
+std::vector<measure_result> my(const qview<Levels> &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.emplace_back(my(qq));
   }
   return b;
 }
@@ -510,6 +548,62 @@ template <typename... Qs>
 std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
   std::vector<measure_result> result = {mz(q)};
   auto rest = mz(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_result> mx(qubit &q, Qs &&...qs);
+
+template <typename QubitRange, typename... Qs>
+  requires(std::ranges::range<QubitRange>)
+std::vector<measure_result> mx(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_result> result = mx(qr);
+  auto rest = mx(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_result> mx(qubit &q, Qs &&...qs) {
+  std::vector<measure_result> result = {mx(q)};
+  auto rest = mx(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_result> my(qubit &q, Qs &&...qs);
+
+template <typename QubitRange, typename... Qs>
+  requires(std::ranges::range<QubitRange>)
+std::vector<measure_result> my(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_result> result = my(qr);
+  auto rest = my(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_result> my(qubit &q, Qs &&...qs) {
+  std::vector<measure_result> result = {my(q)};
+  auto rest = my(std::forward<Qs>(qs)...);
   if constexpr (std::is_same_v<decltype(rest), measure_result>) {
     result.push_back(rest);
   } else {
