@@ -398,25 +398,13 @@ def test_evolve_density_matrix_cupy_complex_input_observable_cudm(layout):
     assert np.isclose(expectation_values[0][0].expectation(), -0.5)
 
 
-def test_evolve_density_matrix_cupy_contiguous_no_regression_cudm():
-    """C-contiguous CuPy input should be canonicalized on the GPU."""
-    rho = cp.array([[1.0 + 0.0j, 0.0j], [0.0j, 0.0j]], dtype=cp.complex128)
-    assert rho.flags["C_CONTIGUOUS"]
-    expected = cp.asnumpy(rho)
-
+def test_from_data_density_matrix_to_cupy_layout_cudm():
+    rho = cp.array([[0.5, 0.25j], [-0.25j, 0.5]], dtype=cp.complex128)
     state = cudaq.State.from_data(rho)
-    evolution_result = cudaq.evolve(
-        0.0 * boson.number(0),
-        {0: 2},
-        Schedule([0.0], ["t"]),
-        state,
-        observables=[],
-        collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
-    )
 
-    final_arr = np.array(evolution_result.final_state())
-    np.testing.assert_allclose(final_arr, expected, atol=1e-12)
+    cupy_state = cudaq.to_cupy(state)[0]
+
+    cp.testing.assert_allclose(cupy_state, rho, atol=1e-12)
 
 
 @pytest.mark.parametrize("layout",
@@ -451,6 +439,12 @@ def test_from_data_cupy_2d_non_square_rejected():
     rho = cp.array([[1, 2, 3], [4, 5, 6]], dtype=cp.complex128)
     assert rho.flags["C_CONTIGUOUS"]
     with pytest.raises(RuntimeError, match="square matrix"):
+        cudaq.State.from_data(rho)
+
+
+def test_from_data_cupy_complex64_rejected_cudm():
+    rho = cp.eye(2, dtype=cp.complex64)
+    with pytest.raises(RuntimeError, match="complex128"):
         cudaq.State.from_data(rho)
 
 

@@ -349,6 +349,11 @@ static cudaq::state createStateFromPyBuffer(nanobind::object data,
         "`dtype=numpy.complex128` if simulation is FP64, or "
         "`dtype=cudaq.complex()` for precision-agnostic code.");
 
+  if (!isHostData && holder.getTarget().name == "dynamics" &&
+      info.format != "Zd")
+    throw std::runtime_error(
+        "The dynamics target requires CuPy input with dtype complex128.");
+
   if (!isHostData && shouldCanonicalizeCupyArray(info, holder.getTarget().name))
     return createStateFromPyBuffer(
         canonicalizeCupyArray(data, info, holder.getTarget().name), holder);

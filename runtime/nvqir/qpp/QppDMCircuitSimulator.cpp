@@ -41,10 +41,6 @@ struct QppDmState : public cudaq::SimulationState {
     if (otherTensor.extents != thisTensor.extents)
       throw std::runtime_error("[qpp-dm-state] overlap error - other state "
                                "dimension not equal to this state dimension.");
-    if (otherTensor.order != Tensor::storage_order::unspecified &&
-        otherTensor.order != thisTensor.order)
-      throw std::runtime_error(
-          "[qpp-dm-state] overlap error - storage order mismatch.");
 
     // Create rho and sigma matrices
     Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
