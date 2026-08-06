@@ -180,6 +180,77 @@ TEST_F(TableauBuilderTest, DimensionMismatch) {
   EXPECT_FALSE(result.error.empty());
 }
 
+// A negated control is the control conjugated by X, so `x [neg] q0, q1` must
+// build the same tableau as X(q0); CX(q0, q1); X(q0).
+TEST_F(TableauBuilderTest, NegatedControlConjugatedByX) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy, refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, base.getArgument(0));
+  cudaq::quake::XOp::create(builder, loc, ValueRange{base.getArgument(0)},
+                            ValueRange{base.getArgument(1)});
+  cudaq::quake::XOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy, refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, /*is_adj=*/false, ValueRange{},
+                            ValueRange{cand.getArgument(0)},
+                            ValueRange{cand.getArgument(1)},
+                            builder.getDenseBoolArrayAttr({true}));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareTableaux(base, cand);
+  EXPECT_TRUE(result.computed);
+  EXPECT_TRUE(result.equivalent);
+}
+
+// The negation is not silently dropped: a negated-control CX differs from a
+// plain CX.
+TEST_F(TableauBuilderTest, NegatedControlDiffersFromPlainControl) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy, refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, ValueRange{base.getArgument(0)},
+                            ValueRange{base.getArgument(1)});
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy, refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, /*is_adj=*/false, ValueRange{},
+                            ValueRange{cand.getArgument(0)},
+                            ValueRange{cand.getArgument(1)},
+                            builder.getDenseBoolArrayAttr({true}));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareTableaux(base, cand);
+  EXPECT_TRUE(result.computed);
+  EXPECT_FALSE(result.equivalent);
+}
+
+// An op that touches a qubit but has no tableau encoding (here quake.reset) is
+// reported as a build failure rather than being dropped from the circuit.
+TEST_F(TableauBuilderTest, UnsupportedQuantumOpFailsBuild) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::ResetOp::create(builder, loc, TypeRange{}, cand.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareTableaux(base, cand);
+  EXPECT_FALSE(result.computed);
+  EXPECT_FALSE(result.error.empty());
+}
+
 // Build an n-qubit GHZ-style Clifford circuit (H on qubit 0, then a CX chain)
 // into the given kernel.
 static void buildGhz(func::FuncOp func, OpBuilder &builder, unsigned n,

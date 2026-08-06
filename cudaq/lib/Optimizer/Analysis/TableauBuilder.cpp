@@ -32,6 +32,20 @@ std::optional<double> constantAngle(Value value) {
   return std::nullopt;
 }
 
+/// Does op consume or produce a quantum value?
+bool touchesQuantumValues(Operation *op) {
+  auto isQuantum = [](Value v) { return quake::isQuakeType(v.getType()); };
+  return llvm::any_of(op->getOperands(), isQuantum) ||
+         llvm::any_of(op->getResults(), isQuantum);
+}
+
+/// Ops that neither contribute to the tableau nor change the qubit mapping, so
+/// walking past them is safe.
+bool isIgnorableQuantumOp(Operation *op) {
+  return isa<quake::DeallocOp, quake::ReturnWireOp, quake::SinkOp,
+             quake::WrapOp>(op);
+}
+
 /// Compiles one straight-line Clifford kernel into a stabilizer tableau. The
 /// tableau produced is the inverse of the kernel's operation.
 class TableauBuilder {
@@ -61,6 +75,16 @@ public:
           qubitMap[result] = qubitMap[operand];
         if (failed(emitOperator(optor)))
           return WalkResult::interrupt();
+        return WalkResult::advance();
+      }
+      // Anything else that touches a qubit would be silently dropped from the
+      // tableau, which would make the comparison unsound. The Clifford domain
+      // preflight is expected to have rejected these already, so reaching here
+      // means the two are out of sync.
+      if (touchesQuantumValues(op) && !isIgnorableQuantumOp(op)) {
+        op->emitError("Unsupported operation for Clifford tableau "
+                      "construction.");
+        return WalkResult::interrupt();
       }
       return WalkResult::advance();
     });
@@ -153,11 +177,31 @@ private:
   }
 
   LogicalResult emitOperator(quake::OperatorInterface optor) {
-    Operation *op = optor.getOperation();
     SmallVector<Qubit, 4> controls, targets;
     if (failed(getQubits(optor.getControls(), controls)) ||
         failed(getQubits(optor.getTargets(), targets)))
       return failure();
+
+    SmallVector<Qubit, 4> negated;
+    if (auto flags = optor.getNegatedControls()) {
+      if (flags->size() != controls.size())
+        return failure();
+      for (auto [isNegated, qubit] : llvm::zip(*flags, controls))
+        if (isNegated)
+          negated.push_back(qubit);
+    }
+    for (Qubit q : negated)
+      emit("X", {q});
+    LogicalResult result = emitUnnegatedOperator(optor, controls, targets);
+    for (Qubit q : negated)
+      emit("X", {q});
+    return result;
+  }
+
+  LogicalResult emitUnnegatedOperator(quake::OperatorInterface optor,
+                                      ArrayRef<Qubit> controls,
+                                      ArrayRef<Qubit> targets) {
+    Operation *op = optor.getOperation();
     bool adj = optor.isAdj();
 
     auto emitControlledPauli = [&](const std::string &name) -> LogicalResult {
