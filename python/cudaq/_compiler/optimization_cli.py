@@ -188,8 +188,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "candidate outputs before comparison.")
     parser.add_argument("--oracle",
                         default="strict-unitary",
-                        help="Equivalence oracle: strict-unitary or "
-                        "up-to-global-phase.")
+                        help="Equivalence oracle: strict-unitary, "
+                        "up-to-global-phase, or clifford-tableau (Clifford "
+                        "circuits only, but no qubit bound).")
     parser.add_argument("--metric",
                         action="append",
                         default=[],

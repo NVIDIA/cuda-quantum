@@ -22,9 +22,14 @@ import pytest
 
 from cudaq._compiler import optimization_corpus as corpus
 from cudaq._compiler.optimization_validation import (
+    ASSURANCE_TIER_EXACT_CLIFFORD_SIM,
     ASSURANCE_TIER_EXACT_UNITARY,
+    CLIFFORD_TABLEAU_ORACLE_KIND,
     INVARIANT_KINDS,
     ORACLE_ROADMAP,
+    CliffordTableauOracle,
+    DenseUnitaryOracle,
+    InvalidRequest,
     MetricSpec,
     Oracle,
     OracleDecision,
@@ -34,6 +39,7 @@ from cudaq._compiler.optimization_validation import (
     ValidationRequest,
     ValidationStatus,
     _make_context,
+    _resolve_oracle,
     _run_pipeline,
     capabilities,
     result_to_dict,
@@ -165,6 +171,86 @@ def test_user_oracle_negative_verdict_is_invariant_failure(tmp_path):
     result = validate(
         _request([_good_input(tmp_path)], oracle=oracle, metrics=()))
     assert result.status == ValidationStatus.INVARIANT_FAILURE
+
+
+# Built-in Clifford-tableau oracle: exact, no qubit bound, Clifford-only domain
+_CLIFFORD_KERNEL = """
+func.func @kernel() {
+  %q = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  cc.return
+}
+"""
+
+# The same kernel with one extra X on q1, so it is genuinely inequivalent.
+_CLIFFORD_KERNEL_PERTURBED = _CLIFFORD_KERNEL.replace(
+    "  cc.return", "  quake.x %q1 : (!quake.ref) -> ()\n  cc.return")
+
+
+def _clifford_request(inputs, **kwargs):
+    return _request(inputs,
+                    oracle=OracleSpec(kind=CLIFFORD_TABLEAU_ORACLE_KIND),
+                    **kwargs)
+
+
+def test_clifford_tableau_oracle_certifies_a_clifford_kernel(tmp_path):
+    path = _write(tmp_path, "clifford_mix.qke",
+                  corpus.canonical_module_text("clifford_mix"))
+    result = validate(_clifford_request([path], metrics=()))
+    assert result.status == ValidationStatus.PASSED
+    case = result.cases[0]
+    assert case.assurance_tier == ASSURANCE_TIER_EXACT_CLIFFORD_SIM
+    eq = {inv.name: inv for inv in case.invariants}["equivalence"]
+    assert eq.satisfied
+    # A tableau carries no global phase, so the dense-only evidence fields stay
+    # at their defaults rather than claiming an equality they never checked.
+    assert not case.strict_equal
+    assert not case.equal_up_to_global_phase
+    assert case.phase == 0.0
+
+
+def test_clifford_tableau_oracle_rejects_a_non_clifford_kernel(tmp_path):
+    path = _write(tmp_path, "t_ladder.qke",
+                  corpus.canonical_module_text("t_ladder"))
+    result = validate(_clifford_request([path], metrics=()))
+    assert result.status == ValidationStatus.UNSUPPORTED_DOMAIN
+    case = result.cases[0]
+    assert case.assurance_tier == ASSURANCE_TIER_EXACT_CLIFFORD_SIM
+    assert any("non-clifford-gate" in msg for msg in case.messages)
+    # Fail-closed: an out-of-domain kernel establishes no invariants.
+    assert not case.invariants
+
+
+def test_clifford_tableau_oracle_detects_inequivalence():
+    baseline, _ctx = _observed(_CLIFFORD_KERNEL)
+    candidate, _ctx2 = _observed(_CLIFFORD_KERNEL_PERTURBED)
+    result = validate_artifacts(
+        [(str(baseline), str(candidate))],
+        oracle=OracleSpec(kind=CLIFFORD_TABLEAU_ORACLE_KIND))
+    assert result.status == ValidationStatus.INVARIANT_FAILURE
+    case = result.cases[0]
+    assert case.assurance_tier == ASSURANCE_TIER_EXACT_CLIFFORD_SIM
+    assert not case.invariants[0].satisfied
+
+
+def test_clifford_spec_resolves_to_the_tableau_oracle():
+    resolved = _resolve_oracle(OracleSpec(kind=CLIFFORD_TABLEAU_ORACLE_KIND),
+                               qubit_bound=14)
+    assert isinstance(resolved, CliffordTableauOracle)
+    assert resolved.kind == CLIFFORD_TABLEAU_ORACLE_KIND
+    assert resolved.tier == ASSURANCE_TIER_EXACT_CLIFFORD_SIM
+    # The dense kinds still resolve to the dense oracle.
+    assert isinstance(
+        _resolve_oracle(OracleSpec(kind="strict-unitary"), qubit_bound=14),
+        DenseUnitaryOracle)
+
+
+def test_dense_oracle_does_not_answer_to_the_clifford_kind():
+    with pytest.raises(InvalidRequest):
+        DenseUnitaryOracle(kind=CLIFFORD_TABLEAU_ORACLE_KIND)
 
 
 # Artifact-in: validate already-compiled modules with no pass execution
@@ -370,9 +456,10 @@ def test_aggregate_status_is_worst_case(tmp_path):
 
 
 # Capabilities / oracle-tier contract
-def test_capabilities_accepts_only_exact_tier():
+def test_capabilities_accepts_only_exact_tiers():
     caps = capabilities()
-    assert caps.assurance_tiers == (ASSURANCE_TIER_EXACT_UNITARY,)
+    assert caps.assurance_tiers == (ASSURANCE_TIER_EXACT_UNITARY,
+                                    ASSURANCE_TIER_EXACT_CLIFFORD_SIM)
 
 
 def test_capabilities_advertise_first_class_invariants():
@@ -384,10 +471,13 @@ def test_oracle_roadmap_lists_only_supported_oracles():
     caps = capabilities()
     roadmap = {o.kind: o for o in caps.oracle_roadmap}
     # Every listed oracle is executable, so the roadmap kinds match `oracles`.
-    assert set(roadmap) == set(
-        caps.oracles) == {"strict-unitary", "up-to-global-phase"}
+    assert set(roadmap) == set(caps.oracles) == {
+        "strict-unitary", "up-to-global-phase", CLIFFORD_TABLEAU_ORACLE_KIND
+    }
     for descriptor in caps.oracle_roadmap:
-        assert descriptor.tier == ASSURANCE_TIER_EXACT_UNITARY
+        assert descriptor.tier in caps.assurance_tiers
+    assert roadmap[CLIFFORD_TABLEAU_ORACLE_KIND].tier == (
+        ASSURANCE_TIER_EXACT_CLIFFORD_SIM)
 
 
 def test_oracle_roadmap_serializes():

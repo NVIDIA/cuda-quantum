@@ -21,14 +21,23 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
                                                   cc)
 
 # The assurance tier records what kind of equivalence evidence an oracle
-# produces, independent of the circuit it ran on. Only one tier is executable:
+# produces, independent of the circuit it ran on. Two tiers are executable:
 #
 #   exact-unitary       Full-operator equivalence built directly from the IR
 #                       (dense unitary, up to global phase). Basis- and
 #                       input-independent: checks the whole operator, not one
 #                       input state. Safest, but bounded by the 2^n dense-matrix
 #                       cost (see DEFAULT_EXACT_QUBIT_BOUND).
+#
+#   exact-clifford-sim  Full-operator equivalence via stabilizer tableaux. Also
+#                       exact and input-independent, and it has no qubit bound
+#                       (the tableau is O(n^2)), but it can only represent
+#                       Clifford circuits: a single T or arbitrary-angle
+#                       rotation puts a kernel out of domain. Reach is bought by
+#                       restricting the circuit class, so read a verdict from
+#                       this tier against that class.
 ASSURANCE_TIER_EXACT_UNITARY = "exact-unitary"
+ASSURANCE_TIER_EXACT_CLIFFORD_SIM = "exact-clifford-sim"
 
 DEFAULT_EXACT_QUBIT_BOUND = 14
 
@@ -52,7 +61,12 @@ _SEVERITY = {
     ValidationStatus.INFRASTRUCTURE_FAILURE: 4,
 }
 
-_ORACLE_KINDS = ("strict-unitary", "up-to-global-phase")
+# The kinds `DenseUnitaryOracle` answers to: how strictly it compares the two
+# dense operators.
+_DENSE_ORACLE_KINDS = ("strict-unitary", "up-to-global-phase")
+CLIFFORD_TABLEAU_ORACLE_KIND = "clifford-tableau"
+# Every built-in kind an `OracleSpec` may declare.
+_ORACLE_KINDS = _DENSE_ORACLE_KINDS + (CLIFFORD_TABLEAU_ORACLE_KIND,)
 PREDICATES = ("nonincreasing", "decreasing", "unchanged", "any")
 
 # The first-class boolean `invariants` checked on every in-domain case, reported as
@@ -97,6 +111,13 @@ ORACLE_ROADMAP = (
         note="Unitary equality after dividing out a global phase. Bounded by "
         "the dense 2^n cost.",
     ),
+    OracleDescriptor(
+        kind=CLIFFORD_TABLEAU_ORACLE_KIND,
+        tier=ASSURANCE_TIER_EXACT_CLIFFORD_SIM,
+        method="stabilizer-tableau-from-ir",
+        note="Stabilizer-tableau equality, up to a global phase. No qubit "
+        "bound (O(n^2) tableau), but Clifford circuits only.",
+    ),
 )
 
 
@@ -137,10 +158,13 @@ class PipelineTarget:
 class OracleSpec:
     """Declarative selection of a built-in oracle, and its tolerances.
 
-    This is the config-level way to ask for the built-in
-    :class:`DenseUnitaryOracle`. It is bound to an :class:`Oracle` instance by
-    the runner. To supply your own oracle, pass an :class:`Oracle` instance as
-    the request's ``oracle`` instead.
+    This is the config-level way to ask for a built-in oracle:
+    ``strict-unitary``/``up-to-global-phase`` bind to
+    :class:`DenseUnitaryOracle`, ``clifford-tableau`` to
+    :class:`CliffordTableauOracle` (which ignores the tolerances - it is exact).
+    The runner binds it to an :class:`Oracle` instance. To supply your own
+    oracle, pass an :class:`Oracle` instance as the request's ``oracle``
+    instead.
     """
 
     kind: str = "strict-unitary"
@@ -217,7 +241,7 @@ class DenseUnitaryOracle(Oracle):
                  rtol: float = 1e-5,
                  atol: float = 1e-8,
                  qubit_bound: int = DEFAULT_EXACT_QUBIT_BOUND):
-        if kind not in _ORACLE_KINDS:
+        if kind not in _DENSE_ORACLE_KINDS:
             raise InvalidRequest(f"unknown oracle '{kind}'")
         self.kind = kind
         self.rtol = rtol
@@ -266,6 +290,63 @@ class DenseUnitaryOracle(Oracle):
                 comparison.get("equal_up_to_global_phase", False)),
             phase=float(comparison.get("phase", 0.0)),
             phase_is_zero=bool(comparison.get("phase_is_zero", False)))
+
+
+class CliffordTableauOracle(Oracle):
+    """Built-in exact-Clifford oracle: equivalence past the dense qubit bound.
+
+    Compiles both modules to stabilizer tableaux directly from the IR (no
+    simulator, no target) and compares them. Like the dense oracle this is
+    exact, basis- and input-independent, and up to a global phase, but the
+    tableau is O(n^2) rather than 2^n, so there is deliberately no qubit bound:
+    Clifford kernels of hundreds or thousands of qubits are certifiable.
+
+    The price is domain. A kernel is in domain only if every operation is
+    Clifford (see ``preflight_clifford``); a single T, an arbitrary-angle
+    rotation, a measurement/reset, or a Toffoli-class control puts it out. Out
+    of domain is reported as an unsupported domain, never as a negative verdict.
+    Wraps the ``preflight_clifford`` and ``compare_tableaux`` bindings.
+    """
+
+    kind = CLIFFORD_TABLEAU_ORACLE_KIND
+    tier = ASSURANCE_TIER_EXACT_CLIFFORD_SIM
+
+    def decide(self, baseline: Module, candidate: Module,
+               kernel_name: Optional[str]) -> OracleDecision:
+        base_pf = cudaq_runtime.preflight_clifford(baseline)
+        cand_pf = cudaq_runtime.preflight_clifford(candidate)
+        if not base_pf["supported"] or not cand_pf["supported"]:
+            rejections = tuple({
+                **rej, "side": side
+            }
+                               for side, pf in (("baseline", base_pf),
+                                                ("candidate", cand_pf))
+                               for rej in pf["rejections"])
+            return OracleDecision(supported=False,
+                                  computed=False,
+                                  equivalent=False,
+                                  tier=self.tier,
+                                  detail="unsupported domain",
+                                  rejections=rejections)
+
+        comparison = cudaq_runtime.compare_tableaux(baseline, candidate,
+                                                    kernel_name)
+        computed = bool(comparison["computed"])
+        equivalent = computed and bool(comparison["equivalent"])
+        if not computed:
+            detail = f"comparison failed: {comparison['error']}"
+        elif not equivalent:
+            detail = f"not equivalent under oracle '{self.kind}'"
+        else:
+            detail = f"equivalent under oracle '{self.kind}'"
+        # The unitary-specific evidence fields stay at their defaults: a tableau
+        # carries no global phase, so there is no phase to report and no
+        # strict-vs-up-to-phase distinction to draw.
+        return OracleDecision(supported=True,
+                              computed=computed,
+                              equivalent=equivalent,
+                              tier=self.tier,
+                              detail=detail)
 
 
 @dataclass(frozen=True)
@@ -630,11 +711,15 @@ def _resolve_oracle(oracle: Union[OracleSpec, Oracle],
     """Resolve the request's oracle field to an executable :class:`Oracle`.
 
     An :class:`Oracle` instance is used as-is (user-supplied, the common case). A
-    declarative :class:`OracleSpec` is bound to the built-in
-    :class:`DenseUnitaryOracle` using the request's qubit bound.
+    declarative :class:`OracleSpec` is bound to the built-in oracle that answers
+    to its ``kind``: :class:`CliffordTableauOracle` for ``clifford-tableau``,
+    otherwise :class:`DenseUnitaryOracle` using the request's qubit bound (the
+    tableau oracle has no qubit bound, and no tolerances - it is exact).
     """
     if isinstance(oracle, Oracle):
         return oracle
+    if oracle.kind == CLIFFORD_TABLEAU_ORACLE_KIND:
+        return CliffordTableauOracle()
     return DenseUnitaryOracle(kind=oracle.kind,
                               rtol=oracle.rtol,
                               atol=oracle.atol,
@@ -914,7 +999,8 @@ def capabilities() -> ValidationCapabilities:
                  "depth", "t-count", "gate:<name>"),
         predicates=PREDICATES,
         invariants=INVARIANT_KINDS,
-        assurance_tiers=(ASSURANCE_TIER_EXACT_UNITARY,),
+        assurance_tiers=(ASSURANCE_TIER_EXACT_UNITARY,
+                         ASSURANCE_TIER_EXACT_CLIFFORD_SIM),
         oracle_roadmap=ORACLE_ROADMAP,
     )
 
