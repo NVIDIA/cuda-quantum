@@ -339,12 +339,18 @@ public:
       OP::create(rewriter, loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
                  op.getNegatedQubitControlsAttr());
       SmallVector<Value> unwraps;
-      for (auto t : ctrls)
+      for (auto [original, t] : llvm::zip(op.getControls(), ctrls)) {
+        if (!isa<cudaq::quake::WireType>(original.getType()))
+          continue;
         unwraps.push_back(
             cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
-      for (auto t : targs)
+      }
+      for (auto [original, t] : llvm::zip(op.getTargets(), targs)) {
+        if (!isa<cudaq::quake::WireType>(original.getType()))
+          continue;
         unwraps.push_back(
             cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
+      }
       rewriter.replaceOp(op, unwraps);
     }
     return success();
