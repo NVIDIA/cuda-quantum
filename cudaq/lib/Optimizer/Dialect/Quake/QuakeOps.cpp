@@ -14,8 +14,8 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/STLForwardCompat.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -24,9 +24,9 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <cmath>
 #include <limits>
-#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include <unordered_set>
 
 using namespace mlir;
