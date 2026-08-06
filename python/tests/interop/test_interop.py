@@ -378,7 +378,7 @@ def test_measure_handle_created_before_python_callback_survives():
 
     import cudaq_test_cpp_algo
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def callback(qs: cudaq.qview):
         x(qs)
 
@@ -397,6 +397,7 @@ def test_cpp_kernel_from_builder_apply_call():
         qstd.qft(q)
         h(q)
         qstd.another(q, 2)
+        ry(12 * np.pi, q)
 
     kernel = cudaq.make_kernel()
     kernel.apply_call(cppCaller)
