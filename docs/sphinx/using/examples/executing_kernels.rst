@@ -37,6 +37,12 @@ Quantum states collapse upon measurement and hence need to be sampled many times
 
 Note that there is a subtle difference between how `sample` is executed with the target device set to a simulator or with the target device set to a QPU. In simulation mode, the quantum state is built once and then sampled :math:`s` times where :math:`s` equals the `shots_count`. In hardware execution mode, the quantum state collapses upon measurement and hence needs to be rebuilt over and over again.
 
+When the ``explicit_measurements`` option is not set, ``sample`` reports final
+measurements for the qubits that remain live after the selected target compiles
+the kernel. If your program depends on a stable output bit schema, measure those
+qubits explicitly. See the :ref:`sample specification <cudaq-sample-spec>` for
+details.
+
 There are a number of helpful tools that can be found in the `API docs <https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api>`_ to process the `Sample_Result` object produced by `sample`.
 
 Sample Asynchronous
