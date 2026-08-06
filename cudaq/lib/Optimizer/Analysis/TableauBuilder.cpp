@@ -71,8 +71,15 @@ public:
         return visitUnwrapOp(unwrap);
       if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
         for (auto &&[result, operand] : llvm::zip(
-                 quake::getQuantumResults(op), quake::getQuantumOperands(op)))
-          qubitMap[result] = qubitMap[operand];
+                 quake::getQuantumResults(op), quake::getQuantumOperands(op))) {
+          auto entry = qubitMap.find(operand);
+          if (entry == qubitMap.end()) {
+            op->emitError("Operand has no qubit mapping.");
+            return WalkResult::interrupt();
+          }
+          SmallVector<Qubit, 4> mapped(entry->second);
+          qubitMap[result] = std::move(mapped);
+        }
         if (failed(emitOperator(optor)))
           return WalkResult::interrupt();
         return WalkResult::advance();
@@ -129,7 +136,6 @@ private:
   }
 
   WalkResult visitExtractOp(quake::ExtractRefOp op) {
-    ArrayRef<Qubit> qubits = qubitMap[op.getVeq()];
     std::size_t index = 0;
     if (op.hasConstantIndex())
       index = op.getRawIndex();
@@ -137,15 +143,34 @@ private:
       op.emitError("Failed to get index as an integer.");
       return WalkResult::interrupt();
     }
-    qubitMap.try_emplace(op.getResult()).first->second.push_back(qubits[index]);
+    Qubit qubit = 0;
+    if (failed(lookupQubit(op, op.getVeq(), index, qubit)))
+      return WalkResult::interrupt();
+    qubitMap.try_emplace(op.getResult()).first->second.push_back(qubit);
     return WalkResult::advance();
   }
 
   WalkResult visitUnwrapOp(quake::UnwrapOp op) {
-    ArrayRef<Qubit> qubits = qubitMap[op.getOperand()];
-    qubitMap.try_emplace(op.getResult())
-        .first->second.push_back(qubits.front());
+    Qubit qubit = 0;
+    if (failed(lookupQubit(op, op.getOperand(), 0, qubit)))
+      return WalkResult::interrupt();
+    qubitMap.try_emplace(op.getResult()).first->second.push_back(qubit);
     return WalkResult::advance();
+  }
+
+  LogicalResult lookupQubit(Operation *op, Value value, std::size_t index,
+                            Qubit &qubit) {
+    auto entry = qubitMap.find(value);
+    if (entry == qubitMap.end()) {
+      op->emitError("Value has no qubit mapping.");
+      return failure();
+    }
+    if (index >= entry->second.size()) {
+      op->emitError("Qubit index out of range.");
+      return failure();
+    }
+    qubit = entry->second[index];
+    return mlir::success();
   }
 
   LogicalResult getValueAsInt(Value value, std::size_t &result) {
@@ -160,12 +185,15 @@ private:
 
   LogicalResult getQubits(ValueRange values, SmallVectorImpl<Qubit> &qubits) {
     for (Value value : values) {
+      auto entry = qubitMap.find(value);
+      if (entry == qubitMap.end() || entry->second.empty())
+        return failure();
       if (auto veq = dyn_cast<quake::VeqType>(value.getType())) {
         if (!veq.hasSpecifiedSize())
           return failure();
-        llvm::append_range(qubits, qubitMap[value]);
+        llvm::append_range(qubits, entry->second);
       } else {
-        qubits.push_back(qubitMap[value][0]);
+        qubits.push_back(entry->second[0]);
       }
     }
     return mlir::success();
