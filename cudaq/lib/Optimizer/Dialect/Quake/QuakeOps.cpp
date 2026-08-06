@@ -20,8 +20,8 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
-#include <limits>
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include <limits>
 #include <unordered_set>
 
 using namespace mlir;
