@@ -29,7 +29,8 @@ using namespace mlir;
 namespace {
 class RefPattern : public OpRewritePattern<cudaq::quake::AllocaOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  RefPattern(MLIRContext *ctx, Pass::Statistic &stat)
+      : OpRewritePattern(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
@@ -37,6 +38,7 @@ public:
       return failure();
     if (alloc->use_empty()) {
       rewriter.eraseOp(alloc);
+      ++stat;
       return success();
     }
     // There is exactly 1 use.
@@ -46,13 +48,18 @@ public:
       return failure();
     rewriter.eraseOp(dealloc);
     rewriter.eraseOp(alloc);
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 class WirePattern : public OpRewritePattern<cudaq::quake::NullWireOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  WirePattern(MLIRContext *ctx, Pass::Statistic &stat)
+      : OpRewritePattern(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::NullWireOp nullWire,
                                 PatternRewriter &rewriter) const override {
@@ -66,8 +73,12 @@ public:
       return failure();
     rewriter.eraseOp(sink);
     rewriter.eraseOp(nullWire);
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 class DQEPass : public cudaq::opt::impl::DeadQuantumEliminationBase<DQEPass> {
@@ -79,7 +90,8 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "Before DQE:\n" << *op << '\n');
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<RefPattern, WirePattern>(ctx);
+    patterns.add<RefPattern>(ctx, numRefsEliminated);
+    patterns.add<WirePattern>(ctx, numWiresEliminated);
     if (failed(applyPatternsGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After DQE:\n" << *op << '\n');
