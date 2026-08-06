@@ -44,3 +44,27 @@ func.func @no_arg_caller(%control: !quake.ref) {
       : (!quake.ref) -> ()
   return
 }
+
+// An all-classical wrapper chain can also hide a quantum helper.
+func.func private @transitive_quantum_leaf() {
+  %qubit = quake.alloca !quake.ref
+  quake.h %qubit : (!quake.ref) -> ()
+  return
+}
+
+func.func private @transitive_quantum_middle() {
+  func.call @transitive_quantum_leaf() : () -> ()
+  return
+}
+
+func.func private @transitive_quantum_wrapper() {
+  // expected-error@+1 {{Unhandled controlled quantum kernel call}}
+  func.call @transitive_quantum_middle() : () -> ()
+  return
+}
+
+func.func @transitive_quantum_caller(%control: !quake.ref) {
+  quake.apply @transitive_quantum_wrapper [%control]
+      : (!quake.ref) -> ()
+  return
+}
