@@ -102,7 +102,7 @@ func.func @preserve_wire_result() {
 // CHECK-NEXT:    %[[NEXT:.*]] = quake.x [%[[WIRE_CONTROL_0]], %[[WIRE_CONTROL_1]]] %[[WIRE_TARGET]] : (!quake.ref, !quake.ref, !quake.wire) -> !quake.wire
 // CHECK-NEXT:    quake.sink %[[NEXT]] : !quake.wire
 
-// verify that the controls in `phase` get expanded 
+// verify that the controls in `phase` get expanded
 func.func @phase_vector_control(%theta: f64) {
   %controls = quake.alloca !quake.veq<2>
   %anchor = quake.null_wire
