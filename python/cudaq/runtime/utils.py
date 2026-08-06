@@ -126,7 +126,7 @@ def __createArgumentSet(*args):
             arrayRank = len(arg.shape)
             arrayRanks.append(arrayRank)
             # A later matrix argument may have more rows than the first
-            # argument that defines nArgSets. Do not materialize unused rows.
+            # argument that defines `nArgSets`. Do not materialize unused rows.
             m = arg[:nArgSets] if arrayRank == 2 else arg
             materializedArgs.append(m.tolist())
         else:
