@@ -8,7 +8,7 @@
 
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
-     "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
+     "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported -Wno-deprecated-declarations")
 # clear any flags for static linking, only keeping linker selection flags
 foreach(_flags_var IN ITEMS CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS)
   string(REGEX MATCHALL "-fuse-ld=[^ ]+|-B[^ ]+" _linker_selection "${${_flags_var}}")
