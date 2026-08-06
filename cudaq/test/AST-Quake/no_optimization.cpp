@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt --add-dealloc | \
-// RUN:   cudaq-translate --convert-to=qir:base | FileCheck %s
+// RUN:   cudaq-translate --convert-to=qir-base | FileCheck %s
 
 #include <cudaq.h>
 
