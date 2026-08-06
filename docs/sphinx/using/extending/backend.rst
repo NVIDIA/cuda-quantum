@@ -9,9 +9,12 @@ repository. Plugin authors can distribute these plugins as Python packages so
 that end users of the target can install them into their own CUDA-Q
 environments.
 
-This guide covers the most common backend shape: a **REST-style backend** that
-subclasses ``ServerHelper`` to communicate with a provider's REST API, reusing
-the built-in ``remote_rest`` QPU.
+This guide covers two backend shapes:
+
+1. A **REST-style backend** that subclasses ``ServerHelper`` and reuses the
+   built-in ``remote_rest`` QPU (sample / client-side Pauli-split observe).
+2. A **custom QPU backend** that ships its own ``QPU`` shared library (for
+   example Fermioniq-style server-side ``observe()``).
 
 All backends use the same plugin package layout and distribution mechanism
 described in :doc:`packaging`.
@@ -28,7 +31,8 @@ Every backend plugin follows this layout:
     ├── targets/
     │   └── my-backend.yml       # Target configuration
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so
+    │   ├── libcudaq-serverhelper-my-backend.so   # REST-style (or combined)
+    │   └── libcudaq-my-qpu-qpu.so                # Custom QPU (optional)
     └── data/                    # Optional auxiliary files
         └── topology.txt
 
@@ -36,6 +40,13 @@ The ``targets/`` directory contains one or more YAML target configurations.
 The ``lib/`` directory contains the shared libraries that implement the backend.
 The optional ``data/`` directory holds auxiliary files (device topologies, noise
 models, calibration data, etc.).
+
+When a target is activated, CUDA-Q ``dlopen``\ s:
+
+- every entry in optional YAML ``plugin-libraries``
+- ``libcudaq-serverhelper-<target>.so`` if present
+- ``libcudaq-<platform-qpu>-qpu.so`` if ``platform-qpu`` is set and the file
+  exists (custom QPU plugins)
 
 
 REST-Style Backends (Server Helper)
@@ -212,6 +223,52 @@ For the full list of recognized YAML fields see the mapping traits in
 For a complete working example of a REST-style plugin, see the
 `mock_rest reference plugin <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest>`_.
 
+
+Custom QPU Backends (Server-Side Observe)
+=========================================
+
+Use a custom ``QPU`` subclass when the remote API must receive the **full**
+multi-term observable (for example error-mitigated expectation services). The
+in-tree Fermioniq backend follows this pattern; external plugins can ship the
+same shape without modifying CUDA-Q.
+
+Requirements:
+
+1. Subclass ``BaseRemoteRESTQPU`` (or ``QPU``) and register it with
+   ``CUDAQ_REGISTER_TYPE(cudaq::QPU, MyQPU, my_qpu)``.
+2. Override ``getCompileTarget(observe_policy)`` to set
+   ``pauliTermSplitObservable = std::nullopt`` so CUDA-Q emits one preparation
+   circuit.
+3. In ``launchKernel`` for observe, attach the full ``spin_op`` with
+   ``attachObservableUserData`` (see ``runtime/common/ObservableUserData.h``)
+   and submit through the executor path.
+4. Implement a ``ServerHelper`` (registered under the **target** name) that
+   reads ``user_data["observable"]`` and returns
+   ``sample_result(ExecutionResult(expectation))``.
+5. Ship ``libcudaq-<platform-qpu>-qpu.so`` in the plugin ``lib/`` directory
+   (auto-loaded when the target is activated). Optionally also ship a separate
+   ``libcudaq-serverhelper-<target>.so``, or register both types from the same
+   QPU library.
+
+Target YAML:
+
+.. code-block:: yaml
+
+    name: my_qpu
+    description: "Server-side observe backend."
+    cudaq-version: "@CUDA_QUANTUM_VERSION@"
+    config:
+      platform-qpu: my_qpu
+      link-libs: ["-lcudaq-my_qpu-qpu"]
+      codegen-emission: qasm2
+      library-mode: false
+
+Synchronous ``cudaq.observe`` should route through the async executor and
+``.get()`` so remote create/poll completes (see the
+`mock_observe_qpu <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_observe_qpu>`_
+reference). Custom job life cycles (for example create → estimate → start →
+poll) stay in a vendor ``Executor`` registered under the same target name.
+
 CMake Build File
 ----------------
 
@@ -295,6 +352,7 @@ For REST-style backends, CUDA-Q provides a mock QPU server framework under
 See the reference plugins' ``tests/`` directories for concrete examples:
 
 - `mock_rest/tests/ <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest/tests>`_
+- `mock_observe_qpu/tests/ <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_observe_qpu/tests>`_
 
 
 Example Usage
