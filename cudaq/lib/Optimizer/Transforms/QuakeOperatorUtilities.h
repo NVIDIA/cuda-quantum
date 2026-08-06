@@ -16,21 +16,6 @@
 
 namespace cudaq::opt {
 
-/// Create a Quake gate and update its controls and targets to the latest wire
-/// results. Reference operands are returned unchanged.
-template <typename Op>
-inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
-                              mlir::UnitAttr isAdj, mlir::ValueRange parameters,
-                              llvm::MutableArrayRef<mlir::Value> controls,
-                              llvm::MutableArrayRef<mlir::Value> targets,
-                              mlir::DenseBoolArrayAttr negatedControls = {}) {
-  auto resultTypes = getWireResultTypes(builder, controls, targets);
-  auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
-                       controls, targets, negatedControls);
-  threadWireResults(op, controls, targets);
-  return op;
-}
-
 template <typename Op>
 inline llvm::SmallVector<bool> getControlPolarities(Op op) {
   llvm::SmallVector<bool> polarities(op.getControls().size(), false);
@@ -71,6 +56,21 @@ inline void threadWireResults(Op op,
       target = op.getWires()[result++];
   assert(result == op.getWires().size() &&
          "gate result count does not match its wire operands");
+}
+
+/// Create a Quake gate and update its controls and targets to the latest wire
+/// results. Reference operands are returned unchanged.
+template <typename Op>
+inline Op createAndThreadGate(mlir::OpBuilder &builder, mlir::Location location,
+                              mlir::UnitAttr isAdj, mlir::ValueRange parameters,
+                              llvm::MutableArrayRef<mlir::Value> controls,
+                              llvm::MutableArrayRef<mlir::Value> targets,
+                              mlir::DenseBoolArrayAttr negatedControls = {}) {
+  auto resultTypes = getWireResultTypes(builder, controls, targets);
+  auto op = Op::create(builder, location, resultTypes, isAdj, parameters,
+                       controls, targets, negatedControls);
+  threadWireResults(op, controls, targets);
+  return op;
 }
 
 /// Collect threaded values in Quake's wire-result order.
