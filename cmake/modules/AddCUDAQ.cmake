@@ -85,7 +85,7 @@ endfunction()
 
 # Define `CUDAQ_MLIR_BUNDLED_LIBS`: the single list of MLIR libraries bundled into
 # libcudaqMLIR.
-if(CUDAQ_MLIR_BUNDLED_LIBS_PATH)
+if(EXISTS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")
   _cudaq_read_symbol_list("${CUDAQ_MLIR_BUNDLED_LIBS_PATH}" CUDAQ_MLIR_BUNDLED_LIBS)
   # Target-specific codegen is not in the list because it differs per
   # architecture: LLVMX86* on x86_64, LLVMAArch64* on arm64.
@@ -151,21 +151,9 @@ function(add_cudaq_capi_shared_library name)
       message(FATAL_ERROR "Ensure ${_capi_lib} was registered with ENABLE_AGGREGATION")
     endif()
     list(APPEND _objects "$<TARGET_OBJECTS:obj.${_capi_lib}>")
-
-    # 3. Record MLIR dependencies of the C API libraries (to be whole-archived into cudaqMLIR)
-    get_target_property(_capi_deps ${_capi_lib}
-      MLIR_AGGREGATE_DEP_LIBS_IMPORTED)
-    foreach(_dep IN LISTS _capi_deps)
-      if(TARGET ${_dep}
-        AND NOT _dep IN_LIST ARGN
-        AND NOT _dep MATCHES "CAPI"
-        AND NOT _dep STREQUAL "cudaqMLIR")
-        set_property(GLOBAL APPEND PROPERTY CUDAQ_MLIR_REQUIRED_LIBS "${_dep}")
-      endif()
-    endforeach()
   endforeach()
 
-  # 4. Create the shared library, with hidden visibility and linking to cudaqMLIR
+  # 3. Create the shared library, with hidden visibility and linking to cudaqMLIR
   add_library(${name} SHARED ${_objects})
   target_link_libraries(${name} PRIVATE cudaqMLIR)
   set_target_properties(${name} PROPERTIES
@@ -173,26 +161,6 @@ function(add_cudaq_capi_shared_library name)
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
-
-  # 5. Linker options: set RPATH and hide all C++ symbols that would otherwise get
-  # re-exported from cudaqMLIR
-  if(APPLE)
-    set_property(TARGET ${name} PROPERTY INSTALL_RPATH "@loader_path")
-    set(_exports "${CMAKE_CURRENT_BINARY_DIR}/${name}-exported.txt")
-    file(WRITE "${_exports}" "_mlir*\n_cudaq*\n")
-    set_property(TARGET ${name} APPEND PROPERTY LINK_DEPENDS "${_exports}")
-    target_link_options(${name} PRIVATE
-      "LINKER:-exported_symbols_list,${_exports}")
-  else()
-    set_property(TARGET ${name} PROPERTY INSTALL_RPATH "$ORIGIN")
-    set(_version_script "${CMAKE_CURRENT_BINARY_DIR}/${name}.map")
-    file(WRITE "${_version_script}"
-      "{\n  global:\n    mlir*;\n    cudaq*;\n  local:\n    *;\n};\n")
-    set_property(TARGET ${name} APPEND PROPERTY
-      LINK_DEPENDS "${_version_script}")
-    target_link_options(${name} PRIVATE
-      "LINKER:--version-script=${_version_script}")
-  endif()
 
   # Check for unexpected undefined symbols
   cudaq_check_mlir_symbol_closure(${name})
