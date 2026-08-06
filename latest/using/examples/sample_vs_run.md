@@ -1145,6 +1145,9 @@ latest
         -   [Dependencies and
             Compatibility](../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1210,6 +1213,15 @@ latest
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -1422,6 +1434,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -1971,10 +1986,12 @@ measurements without conditionals, partial qubit measurement,
 mid-circuit measurement for reset patterns, and the
 [`explicit_measurements`{.docutils .literal .notranslate}]{.pre} option
 (which concatenates all measurement results in execution order rather
-than re-measuring at the end of the kernel -- see the [[sample
-specification]{.std
+than re-measuring at the end of the kernel). If your program depends on
+a stable output bit schema, measure the required qubits explicitly
+rather than relying on the default [`__global__`{.docutils .literal
+.notranslate}]{.pre} bit positions. See the [[sample specification]{.std
 .std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
-.internal} for details).
+.internal} for details.
 
 ::: {.tab-set .docutils}
 Python

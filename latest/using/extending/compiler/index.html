@@ -719,7 +719,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +763,12 @@
 <li class="toctree-l4"><a class="reference internal" href="cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../backend.html">Add a hardware backend</a><ul>
@@ -863,6 +871,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -1117,9 +1126,7 @@ pipeline.</p>
 <li><p>Read <a class="reference internal" href="cudaq_ir.html"><span class="doc">CUDA-Q compiler IRs</span></a> to understand the dialects and IR forms that a
 transformation consumes or produces. For Quake’s reference and value models,
 see the <a class="reference internal" href="../../../specification/quake-dialect.html"><span class="doc">Quake semantic specification</span></a>.</p></li>
-<li><p>See <a class="reference internal" href="pass_plugins.html"><span class="doc">Create your own CUDA-Q Compiler Pass</span></a> for the existing external pass plugin interface.</p></li>
-<li><p>The opt-in compiler developer build also provides generated operation and
-type references in the CUDA-Q dialect documentation.</p></li>
+<li><p>See <a class="reference internal" href="pass_plugins.html"><span class="doc">External compiler pass plugins</span></a> for the existing external pass plugin interface.</p></li>
 </ul>
 <p class="rubric">Code organization</p>
 <p>The C++ AST bridge is under <code class="docutils literal notranslate"><span class="pre">cudaq/lib/Frontend/nvqpp</span></code> and is driven by

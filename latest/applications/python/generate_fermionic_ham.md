@@ -1176,6 +1176,9 @@ latest
         -   [Dependencies and
             Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../using/install/local_installation.html#next-steps){.reference
             .internal}
@@ -1245,6 +1248,15 @@ latest
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -1459,6 +1471,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference

@@ -1184,6 +1184,9 @@ latest
         -   [Dependencies and
             Compatibility](../../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1244,6 +1247,15 @@ latest
                 .internal}
         -   [External compiler pass
             plugins](pass_plugins.html){.reference .internal}
+            -   [Implement and register the
+                pass](pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](../backend.html#plugin-directory-structure){.reference
@@ -1452,6 +1464,9 @@ latest
             Introduction](../../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../../api/api.html){.reference .internal}
     -   [C++ API](../../../api/languages/cpp_api.html){.reference
@@ -1911,7 +1926,7 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "Create your own CUDA-Q Compiler Pass"){.btn
+aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2060,7 +2075,7 @@ Textual IR coverage is under [`cudaq/test/Transforms`{.docutils .literal
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "Create your own CUDA-Q Compiler Pass"){.btn
+aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

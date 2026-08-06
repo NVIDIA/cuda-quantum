@@ -1175,6 +1175,9 @@ latest
         -   [Dependencies and
             Compatibility](../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1236,6 +1239,15 @@ latest
                 .internal}
         -   [External compiler pass
             plugins](compiler/pass_plugins.html){.reference .internal}
+            -   [Implement and register the
+                pass](compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](backend.html#plugin-directory-structure){.reference
@@ -1443,6 +1455,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference

@@ -719,7 +719,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -760,7 +763,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -863,6 +871,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -1860,6 +1869,31 @@ On macOS, only ARM64 (Apple silicon) is supported.</p>
 <p>Tegra devices (Jetson) are not supported in CUDA-Q at this time.</p>
 <p>For more information, please refer to <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility">Binary Compatibility documentation</a>.</p>
 </div>
+<section id="dynamic-linking-to-gmp-and-mpfr">
+<span id="dynamic-linking-gmp-mpfr"></span><h3>Dynamic linking to GMP and MPFR<a class="headerlink" href="#dynamic-linking-to-gmp-and-mpfr" title="Permalink to this heading">¶</a></h3>
+<p>CUDA-Q binary distributions include the <a class="reference external" href="https://gmplib.org/">GMP</a> and
+<a class="reference external" href="https://www.mpfr.org/">MPFR</a> shared libraries, which are used by the
+Clifford+T rotation synthesis library. Both libraries are unmodified and are
+licensed under the GNU Lesser General Public License v3. The full license
+texts are included in the <code class="code docutils literal notranslate"><span class="pre">LICENSES</span></code> folder distributed with CUDA-Q, and the
+corresponding copyright notices are listed in the <code class="code docutils literal notranslate"><span class="pre">NOTICE</span></code> file.</p>
+<p>CUDA-Q links to GMP and MPFR exclusively dynamically, and the two libraries
+can be replaced with compatible versions without rebuilding CUDA-Q by
+substituting the shared library files (<code class="code docutils literal notranslate"><span class="pre">libgmp.so*</span></code> and <code class="code docutils literal notranslate"><span class="pre">libmpfr.so*</span></code> on
+Linux, <code class="code docutils literal notranslate"><span class="pre">libgmp*.dylib</span></code> and <code class="code docutils literal notranslate"><span class="pre">libmpfr*.dylib</span></code> on macOS):</p>
+<ul class="simple">
+<li><p>Docker image and installer - the libraries are located in the <code class="code docutils literal notranslate"><span class="pre">lib</span></code>
+folder of the CUDA-Q installation directory, that is
+<code class="code docutils literal notranslate"><span class="pre">${CUDA_QUANTUM_PATH}/lib</span></code>.</p></li>
+<li><p>Python wheels - the libraries are located in the <code class="code docutils literal notranslate"><span class="pre">lib</span></code> folder that is
+installed next to the <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> package in your Python environment’s
+<code class="code docutils literal notranslate"><span class="pre">site-packages</span></code> directory.</p></li>
+</ul>
+<p>Alternatively, when building CUDA-Q from source, you can link against your
+own GMP and MPFR builds instead of the ones built by
+<code class="code docutils literal notranslate"><span class="pre">scripts/install_prerequisites.sh</span></code>. Please see <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a> for more
+information.</p>
+</section>
 </section>
 <section id="next-steps">
 <span id="post-installation"></span><h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>

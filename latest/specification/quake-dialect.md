@@ -1189,6 +1189,9 @@ latest
         -   [Dependencies and
             Compatibility](../using/install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../using/install/local_installation.html#next-steps){.reference
             .internal}
@@ -1257,6 +1260,15 @@ latest
         -   [External compiler pass
             plugins](../using/extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware
         backend](../using/extending/backend.html){.reference .internal}
         -   [Plugin Directory
@@ -1449,6 +1461,9 @@ latest
         -   [General Introduction](#general-introduction){.reference
             .internal}
         -   [Motivation](#motivation){.reference .internal}
+        -   [Calling between reference and value
+            forms](#calling-between-reference-and-value-forms){.reference
+            .internal}
 -   [API Reference](../api/api.html){.reference .internal}
     -   [C++ API](../api/languages/cpp_api.html){.reference .internal}
         -   [Operators](../api/languages/cpp_api.html#operators){.reference
@@ -1933,7 +1948,7 @@ quantum mechanical system such as a spin-1/2 particle.
 
 Conceptually, a *quantum operator* is an effect that might modify the
 state of a subset of qubits. Most often, this effect is unitary
-evolution---in this case, we say that the operator is a *unitary*. The
+evolution. In this case, we say that the operator is a *unitary*. The
 number of target qubits an operator acts upon is an intrinsic property.
 
 A *quantum instruction* is the embodiment of a quantum operator when
@@ -1957,32 +1972,35 @@ side-effects on the value itself and the value cannot be copied.
 Let's see an example to clarify the distinction between the models. Take
 the following Quake implementation of some toy quantum computation:
 
-::: {.highlight-cpp .notranslate}
+::: {.highlight-mlir .notranslate}
 ::: highlight
-    func.func foo(%veq : !quake.veq<2>) {
-        // Boilerplate to extract each qubit from the vector
-        %c0 = arith.constant 0 : index
-        %c1 = arith.constant 1 : index
-        %q0 = quake.extract_ref %veq[%c0] : (!quake.veq<2>, index) -> !quake.ref
-        %q1 = quake.extract_ref %veq[%c1] : (!quake.veq<2>, index) -> !quake.ref
+    func.func @foo(%veq: !quake.veq<2>)
+        -> !cc.stdvec<!quake.measure> {
+      // Boilerplate to extract each qubit from the vector
+      %c0 = arith.constant 0 : index
+      %c1 = arith.constant 1 : index
+      %q0 = quake.extract_ref %veq[%c0]
+          : (!quake.veq<2>, index) -> !quake.ref
+      %q1 = quake.extract_ref %veq[%c1]
+          : (!quake.veq<2>, index) -> !quake.ref
 
-        // We apply some operators to those extracted qubits
-        // ... bunch of operators using %q0 and %q1 ...
-        quake.h %q0 : (!quake.ref) -> ()
+      // We apply an operator to the first extracted qubit
+      quake.h %q0 : (!quake.ref) -> ()
 
-        // We decide to measure the vector
-        %result = quake.mz %veq : (!quake.veq<2>) -> cc.stdvec<i1>
+      // We decide to measure the vector
+      %result = quake.mz %veq
+          : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 
-        // And then apply another Hadamard to %q0
-        quake.h %q0 : (!quake.ref) -> ()
-        // ...
+      // And then apply another Hadamard to %q0
+      quake.h %q0 : (!quake.ref) -> ()
+      return %result : !cc.stdvec<!quake.measure>
     }
 :::
 :::
 
-Now imagine we want to optimize this code by removing pair of adjacent
-adjoint operators, e.g., if we have a pair Hadamard operations next to
-each other on the same qubit---visually:
+Now imagine we want to optimize this code by removing a pair of adjacent
+adjoint operators. For example, consider a pair of Hadamard operations
+next to each other on the same qubit:
 
 ::: {.highlight-text .notranslate}
 ::: highlight
@@ -1992,18 +2010,20 @@ each other on the same qubit---visually:
 :::
 :::
 
-Where [`I`{.docutils .literal .notranslate}]{.pre} is the identity
+Here, [`I`{.docutils .literal .notranslate}]{.pre} is the identity
 operator. Now note that a naive implementation of this optimization for
 Quake would optimize away both [`quake.h`{.docutils .literal
 .notranslate}]{.pre} operators being applied to [`%q0`{.docutils
 .literal .notranslate}]{.pre}. Such an implementation would have missed
 the fact that a measurement is being applied to the vector,
-[`%veq`{.docutils .literal .notranslate}]{.pre}, which contains
-[`%q0`{.docutils .literal .notranslate}]{.pre}.
+[`%veq`{.docutils .literal .notranslate}]{.pre}, which contains the
+qubit referenced by [`%q0`{.docutils .literal .notranslate}]{.pre}.
 
 Of course it is possible to correctly implement this optimization for
 Quake. However such an implementation would be quite error-prone and
 require complex analyses. For this reason, Quake has overloaded gates.
+Reference and value forms can coexist within the same function body and,
+where supported, on a single quantum operation.
 
 In the value model operators consume values and return new values:
 
@@ -2028,42 +2048,26 @@ as:
 
 If we look at the implementation again, we notice that the problem with
 the naive optimization happens because the Hadamard operators are
-implicitly connected by the same value [`%q0`{.docutils .literal
-.notranslate}]{.pre}. In value form, all the gates are explicitly
-connected by distinct values, which eliminates the need to do further
-analysis via implicit side-effects. The following is the implementation
-in value form.
+implicitly connected by the same reference [`%q0`{.docutils .literal
+.notranslate}]{.pre}, while the measurement reaches that reference
+through [`%veq`{.docutils .literal .notranslate}]{.pre}. In value form,
+all the gates are explicitly connected by distinct values, which
+eliminates the need to do further analysis via implicit side-effects.
+The following is the implementation in value form.
 
-::: {.highlight-text .notranslate}
+::: {.highlight-mlir .notranslate}
 ::: highlight
-    func.func @foo(%array : !quake.qvec<2>) {
-        // Boilerplate to extract each qubit
-        %c0 = arith.constant 0 : index
-        %c1 = arith.constant 1 : index
-        %r0 = quake.extract_ref %array[%c0] : (!quake.qvec<2>, index) -> !quake.qref
-        %r1 = quake.extract_ref %array[%c1] : (!quake.qvec<2>, index) -> !quake.qref
-
-        // Unwrap the quantum references to expose the wires.
-        %q0 = quake.unwrap %r0 : (!quake.qref) -> !quake.wire
-        %q1 = quake.unwrap %r1 : (!quake.qref) -> !quake.wire
-
-        // Misc. operators applied
-        %q0_M = quake.h %q0_L : (!quake.wire) -> !quake.wire
-
-        // Re-wrap the wire to its original source
-        quake.wrap %q0_M to %r0 : !quake.wire, !quake.qref
-        quake.wrap %q1_X to %r1 : !quake.wire, !quake.qref
-
-        // Measure the entire vector of quantum references
-        %result = quake.mz %array : (!quake.qvec<2>) -> !cc.stdvec<i1>
-
-        // Unwrap the wire for qubit 0 again
-        %q0_P = quake.unwrap %r0 : (!quake.qref) -> !quake.wire
-        ...
-        %q0_Z = quake.h %q0_Y : (!quake.wire) -> !quake.wire
-        // Re-wrap the wire back to the original reference
-        quake.wrap %q0_Z to %r0 : !quake.wire, !quake.qref
-        return
+    func.func @foo_value(%q0: !quake.wire, %q1: !quake.wire)
+        -> (!cc.stdvec<!quake.measure>, !quake.wire, !quake.wire) {
+      %q0_after_first_h = quake.h %q0
+          : (!quake.wire) -> !quake.wire
+      %result, %after_measurement:2 = quake.mz %q0_after_first_h, %q1
+          : (!quake.wire, !quake.wire)
+            -> (!cc.stdvec<!quake.measure>, !quake.wire, !quake.wire)
+      %q0_after_second_h = quake.h %after_measurement#0
+          : (!quake.wire) -> !quake.wire
+      return %result, %q0_after_second_h, %after_measurement#1
+          : !cc.stdvec<!quake.measure>, !quake.wire, !quake.wire
     }
 :::
 :::
@@ -2071,21 +2075,109 @@ in value form.
 In this code we can more straightforwardly see that the Hadamard
 operators cannot cancel each other. One way of reasoning about this is
 as follows: In value form we need to follow a chain of values to know
-the qubit operators are being applied to, in this example:
+which qubit the operators are being applied to, in this example:
 
 ::: {.highlight-text .notranslate}
 ::: highlight
-    Mmeory                          Value
-        %q0         [%q0_0, %q0_1 ... %q0_L, %q0_M; %q0_P ... %q0_Y, %q0_Z]
+    %q0
+      -> quake.h  -> %q0_after_first_h
+      -> quake.mz -> %after_measurement#0
+      -> quake.h  -> %q0_after_second_h
 :::
 :::
 
-We know that one Hadamard is applied to [`%q0_L`{.docutils .literal
-.notranslate}]{.pre} and generates [`%q0_M`{.docutils .literal
-.notranslate}]{.pre}, and the other is applied [`%q0_Y`{.docutils
-.literal .notranslate}]{.pre} and generates [`%q0_Z`{.docutils .literal
-.notranslate}]{.pre}. Hence, there is no connection between them---which
-means they cannot cancel each other out.
+We know that one Hadamard is applied to [`%q0`{.docutils .literal
+.notranslate}]{.pre} and generates [`%q0_after_first_h`{.docutils
+.literal .notranslate}]{.pre}, the measurement consumes that value and
+generates [`%after_measurement#0`{.docutils .literal
+.notranslate}]{.pre}, and the other Hadamard is applied to
+[`%after_measurement#0`{.docutils .literal .notranslate}]{.pre} and
+generates [`%q0_after_second_h`{.docutils .literal .notranslate}]{.pre}.
+Hence, the measurement lies between them, which means they cannot cancel
+each other out.
+
+The example threads each wire from a function argument through every
+operation that uses it and then to a function result. Region-based
+control-flow operations similarly thread wires through their region
+arguments and return updated wires as operation results. For example, a
+[`cc.if`{.docutils .literal .notranslate}]{.pre} passes [`%q`{.docutils
+.literal .notranslate}]{.pre} into both regions as [`%arg`{.docutils
+.literal .notranslate}]{.pre}, and each region returns the wire produced
+by its gate:
+
+::: {.highlight-mlir .notranslate}
+::: highlight
+    func.func @conditional(%condition: i1, %q: !quake.wire) -> !quake.wire {
+      %updated:1 = cc.if (%condition) ((%arg = %q)) -> (!quake.wire) {
+        %then = quake.h %arg : (!quake.wire) -> !quake.wire
+        cc.continue %then : !quake.wire
+      } else {
+        %else = quake.x %arg : (!quake.wire) -> !quake.wire
+        cc.continue %else : !quake.wire
+      }
+      return %updated#0 : !quake.wire
+    }
+:::
+:::
+
+Only the selected region consumes [`%arg`{.docutils .literal
+.notranslate}]{.pre} at runtime. In a control-flow graph, branches
+instead pass wires as branch operands to successor block arguments. A
+conditional branch may pass the same wire to both successors because
+only the selected path consumes it. Transformations must preserve this
+threading when rewriting control flow.
+
+Value semantics applies when the individual qudits can be represented
+explicitly. Reference semantics remains useful for dynamically sized
+collections and runtime-selected elements. A transformation must account
+for the representation it accepts rather than assume that every program
+can be freely converted between the two forms.
+:::
+
+::: {#calling-between-reference-and-value-forms .section}
+## Calling between reference and value forms[¶](#calling-between-reference-and-value-forms "Permalink to this heading"){.headerlink}
+
+[`quake.unwrap`{.docutils .literal .notranslate}]{.pre} obtains the
+current wire from a [`!quake.ref`{.docutils .literal
+.notranslate}]{.pre}, and [`quake.wrap`{.docutils .literal
+.notranslate}]{.pre} writes the updated wire back to that reference. A
+reference-form function can use these operations when it calls a
+value-form function:
+
+::: {.highlight-mlir .notranslate}
+::: highlight
+    func.func private @value_kernel(!quake.wire) -> !quake.wire
+
+    func.func @call_value_kernel(%q: !quake.ref) {
+      %wire = quake.unwrap %q : (!quake.ref) -> !quake.wire
+      %updated = call @value_kernel(%wire)
+          : (!quake.wire) -> !quake.wire
+      quake.wrap %updated to %q : !quake.wire, !quake.ref
+      return
+    }
+:::
+:::
+
+In the other direction, [`quake.call_by_ref`{.docutils .literal
+.notranslate}]{.pre} lets value-form code call a function whose quantum
+parameters use reference semantics. The operation returns the updated
+wire after the call:
+
+::: {.highlight-mlir .notranslate}
+::: highlight
+    func.func private @reference_kernel(!quake.ref)
+
+    func.func @call_reference_kernel(%q: !quake.wire) -> !quake.wire {
+      %updated = quake.call_by_ref @reference_kernel(%q)
+          : (!quake.wire) -> !quake.wire
+      return %updated : !quake.wire
+    }
+:::
+:::
+
+For a call with ordinary results, [`quake.call_by_ref`{.docutils
+.literal .notranslate}]{.pre} appends each updated wire or cable to the
+result list.
 :::
 :::
 :::

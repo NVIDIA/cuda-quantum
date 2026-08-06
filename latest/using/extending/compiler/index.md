@@ -1184,6 +1184,9 @@ latest
         -   [Dependencies and
             Compatibility](../../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1246,6 +1249,15 @@ latest
                 .internal}
         -   [External compiler pass
             plugins](pass_plugins.html){.reference .internal}
+            -   [Implement and register the
+                pass](pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](../backend.html#plugin-directory-structure){.reference
@@ -1454,6 +1466,9 @@ latest
             Introduction](../../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../../api/api.html){.reference .internal}
     -   [C++ API](../../../api/languages/cpp_api.html){.reference
@@ -1964,12 +1979,9 @@ At a glance
     specification]{.doc}](../../../specification/quake-dialect.html){.reference
     .internal}.
 
--   See [[Create your own CUDA-Q Compiler
-    Pass]{.doc}](pass_plugins.html){.reference .internal} for the
+-   See [[External compiler pass
+    plugins]{.doc}](pass_plugins.html){.reference .internal} for the
     existing external pass plugin interface.
-
--   The opt-in compiler developer build also provides generated
-    operation and type references in the CUDA-Q dialect documentation.
 
 Code organization
 

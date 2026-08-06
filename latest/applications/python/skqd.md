@@ -1173,6 +1173,9 @@ latest
         -   [Dependencies and
             Compatibility](../../using/install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../../using/install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../../using/install/local_installation.html#next-steps){.reference
             .internal}
@@ -1242,6 +1245,15 @@ latest
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../../using/extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -1456,6 +1468,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -2482,7 +2497,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![1bb4fd3529324f3b9995943fb9939ecb](../../_images/speedup.png){.no-scaled-link
+![4538633078ab4b2192d0ca195a39ba58](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2496,9 +2511,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![ad7be0616506478799048b7aa4969ae0](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![ac60dbea6c2d4203997ea07df49e8712](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![bfd1d338c1b44efca5a0d536cf7cd94e](../../_images/efficiency.jpeg){.no-scaled-link
+![f3c05ae005f743b7a09f1af0765e79bf](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

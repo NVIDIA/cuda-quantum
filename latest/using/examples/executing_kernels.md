@@ -1146,6 +1146,9 @@ latest
         -   [Dependencies and
             Compatibility](../install/local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next
             Steps](../install/local_installation.html#next-steps){.reference
             .internal}
@@ -1211,6 +1214,15 @@ latest
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -1423,6 +1435,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -2026,6 +2041,15 @@ simulation mode, the quantum state is built once and then sampled
 .literal .notranslate}]{.pre}. In hardware execution mode, the quantum
 state collapses upon measurement and hence needs to be rebuilt over and
 over again.
+
+When the [`explicit_measurements`{.docutils .literal
+.notranslate}]{.pre} option is not set, [`sample`{.docutils .literal
+.notranslate}]{.pre} reports final measurements for the qubits that
+remain live after the selected target compiles the kernel. If your
+program depends on a stable output bit schema, measure those qubits
+explicitly. See the [[sample specification]{.std
+.std-ref}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec){.reference
+.internal} for details.
 
 There are a number of helpful tools that can be found in the [API
 docs](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api){.reference

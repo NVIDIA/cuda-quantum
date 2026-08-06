@@ -1173,6 +1173,9 @@ latest
         -   [Dependencies and
             Compatibility](local_installation.html#dependencies-and-compatibility){.reference
             .internal}
+            -   [Dynamic linking to GMP and
+                MPFR](local_installation.html#dynamic-linking-to-gmp-and-mpfr){.reference
+                .internal}
         -   [Next Steps](local_installation.html#next-steps){.reference
             .internal}
     -   [Data Center Installation](#){.current .reference .internal}
@@ -1223,6 +1226,15 @@ latest
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
+            -   [Implement and register the
+                pass](../extending/compiler/pass_plugins.html#implement-and-register-the-pass){.reference
+                .internal}
+            -   [Build the
+                plugin](../extending/compiler/pass_plugins.html#build-the-plugin){.reference
+                .internal}
+            -   [Load and test the
+                plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -1435,6 +1447,9 @@ latest
             Introduction](../../specification/quake-dialect.html#general-introduction){.reference
             .internal}
         -   [Motivation](../../specification/quake-dialect.html#motivation){.reference
+            .internal}
+        -   [Calling between reference and value
+            forms](../../specification/quake-dialect.html#calling-between-reference-and-value-forms){.reference
             .internal}
 -   [API Reference](../../api/api.html){.reference .internal}
     -   [C++ API](../../api/languages/cpp_api.html){.reference
@@ -2055,6 +2070,8 @@ proceeding:
     export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/usr/local/llvm}  
     export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
     export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
+    export GMP_INSTALL_PREFIX=${GMP_INSTALL_PREFIX:-/usr/local/gmp}
+    export MPFR_INSTALL_PREFIX=${MPFR_INSTALL_PREFIX:-/usr/local/mpfr}
     export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/local/openssl}
     export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
     export AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-/usr/local/aws}

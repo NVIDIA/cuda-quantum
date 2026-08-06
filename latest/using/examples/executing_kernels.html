@@ -721,7 +721,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#distributed-computing-with-mpi">Distributed Computing with MPI</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#updating-cuda-q">Updating CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#dependencies-and-compatibility">Dependencies and Compatibility</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../install/local_installation.html#dynamic-linking-to-gmp-and-mpfr">Dynamic linking to GMP and MPFR</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#next-steps">Next Steps</a></li>
 </ul>
 </li>
@@ -762,7 +765,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -865,6 +873,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../specification/quake-dialect.html">   Quake Specification</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#general-introduction">General Introduction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#motivation">Motivation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../specification/quake-dialect.html#calling-between-reference-and-value-forms">Calling between reference and value forms</a></li>
 </ul>
 </li>
 </ul>
@@ -1177,6 +1186,11 @@ q1 : ─────┤ x ├
 </pre></div>
 </div>
 <p>Note that there is a subtle difference between how <code class="code docutils literal notranslate"><span class="pre">sample</span></code> is executed with the target device set to a simulator or with the target device set to a QPU. In simulation mode, the quantum state is built once and then sampled <span class="math notranslate nohighlight">\(s\)</span> times where <span class="math notranslate nohighlight">\(s\)</span> equals the <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>. In hardware execution mode, the quantum state collapses upon measurement and hence needs to be rebuilt over and over again.</p>
+<p>When the <code class="docutils literal notranslate"><span class="pre">explicit_measurements</span></code> option is not set, <code class="docutils literal notranslate"><span class="pre">sample</span></code> reports final
+measurements for the qubits that remain live after the selected target compiles
+the kernel. If your program depends on a stable output bit schema, measure those
+qubits explicitly. See the <a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample-spec"><span class="std std-ref">sample specification</span></a> for
+details.</p>
 <p>There are a number of helpful tools that can be found in the <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api">API docs</a> to process the <code class="code docutils literal notranslate"><span class="pre">Sample_Result</span></code> object produced by <code class="code docutils literal notranslate"><span class="pre">sample</span></code>.</p>
 <section id="sample-asynchronous">
 <h3>Sample Asynchronous<a class="headerlink" href="#sample-asynchronous" title="Permalink to this heading">¶</a></h3>
