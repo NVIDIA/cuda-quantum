@@ -82,6 +82,17 @@ func.func @two_full_turns(%q: !quake.ref) {
 // CHECK-NOT:     quake.rz
 // CHECK-NOT:     quake.r1
 
+// Twelve pi is a reserved Ry marker used as a backdoor identity operation.
+// It must survive even though it is also three exact Ry identity periods.
+func.func @backdoor_nop(%q: !quake.ref) {
+  %a = arith.constant 37.69911184307752 : f64
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @backdoor_nop
+// CHECK:         quake.ry
+
 // phased_rx(theta, phi) rotates by theta about the cos(phi)x + sin(phi)y axis,
 // so a zero angle is the identity whatever the axis parameter says.
 func.func @phased_rx_zero_angle(%q: !quake.ref) {
