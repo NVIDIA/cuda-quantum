@@ -238,6 +238,35 @@ static std::string getVariantFunctionName(cudaq::quake::ApplyOp apply,
   return calleeName;
 }
 
+static bool hasQuantumType(Type type) {
+  return cudaq::quake::isQuantumType(type);
+}
+
+/// Check a locally resolvable func.call chain for quantum effects. A plain
+/// type check misses no-argument helper functions, and a non-quantum wrapper
+/// can hide an effectful helper one or more calls deeper.
+static bool hasQuantumCallEffects(func::FuncOp callee, ModuleOp module,
+                                  DenseSet<Operation *> &visited) {
+  if (!visited.insert(callee.getOperation()).second)
+    return false;
+  if (cudaq::opt::hasQuantum(*callee))
+    return true;
+
+  bool hasEffects = false;
+  callee.walk([&](func::CallOp call) {
+    if (hasEffects)
+      return;
+    if (llvm::any_of(call.getOperandTypes(), hasQuantumType) ||
+        llvm::any_of(call.getResultTypes(), hasQuantumType)) {
+      hasEffects = true;
+      return;
+    }
+    if (auto nestedCallee = module.lookupSymbol<func::FuncOp>(call.getCallee()))
+      hasEffects = hasQuantumCallEffects(nestedCallee, module, visited);
+  });
+  return hasEffects;
+}
+
 // Returns true if this region contains unstructured control flow. Branches
 // between basic blocks in a Region are defined to be unstructured. A Region
 // with a single Block which contains cc.scope, cc.loop and cc.if, which
@@ -501,15 +530,14 @@ public:
       if (!callOp)
         return false;
 
-      auto hasQuantumType = [](Type type) {
-        return cudaq::quake::isQuantumType(type);
-      };
       if (llvm::any_of(callOp.getOperandTypes(), hasQuantumType) ||
           llvm::any_of(callOp.getResultTypes(), hasQuantumType))
         return true;
 
-      if (auto callee = module.lookupSymbol<func::FuncOp>(callOp.getCallee()))
-        return cudaq::opt::hasQuantum(*callee);
+      if (auto callee = module.lookupSymbol<func::FuncOp>(callOp.getCallee())) {
+        DenseSet<Operation *> visited;
+        return hasQuantumCallEffects(callee, module, visited);
+      }
       return false;
     };
 
