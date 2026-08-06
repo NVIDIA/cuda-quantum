@@ -1,0 +1,156 @@
+[
+  {
+    "id": "pass-trigger-external-plugin",
+    "question": "Use the CUDA-Q pass-development skill to plan an external pass plugin that experiments with a new qubit-layout analysis before we propose any upstream CUDA-Q API changes.",
+    "expected_skill": "develop-cudaq-pass",
+    "expected_script": null,
+    "should_trigger": true,
+    "ground_truth": "The agent activates develop-cudaq-pass, classifies the work as an external plugin, loads the plugin guidance only because plugin work was requested, keeps the plugin implementation and packaging in the plugin repository, and separates any required CUDA-Q shared API, interface, or IR change into a prerequisite CUDA-Q review unit.",
+    "expected_behavior": [
+      "The agent reads skills/develop-cudaq-pass/SKILL.md before answering.",
+      "The agent classifies the work as an external plugin and loads the plugin workflow rather than treating the pass as built into the CUDA-Q catalog.",
+      "The agent keeps plugin implementation, packaging, and tests in the plugin repository.",
+      "The agent separates any required CUDA-Q API, interface, trait, analysis, or IR semantics change into a prerequisite CUDA-Q review unit.",
+      "The agent does not claim that local plugin implementation establishes CUDA-Q owner review."
+    ]
+  },
+  {
+    "id": "pass-negative-existing-pass",
+    "question": "I have a .qke file and just want to run the existing CUDA-Q phase-folding pass with cudaq-opt. What command should I use?",
+    "expected_skill": null,
+    "expected_script": null,
+    "should_trigger": false,
+    "ground_truth": "The agent answers as a pass invocation question and does not activate develop-cudaq-pass, because the skill is for planning, modifying, hardening, or integrating a pass, not merely invoking an existing pass.",
+    "expected_behavior": [
+      "The agent does not read or activate skills/develop-cudaq-pass/SKILL.md.",
+      "The agent handles the request as a cudaq-opt command or existing-pass usage question.",
+      "The agent does not produce a pass-development implementation brief."
+    ]
+  },
+  {
+    "id": "pass-negative-runtime-optimization",
+    "question": "The nvidia state-vector simulator is slow on my noisy trajectory workload. Help me optimize the runtime backend and GPU memory use.",
+    "expected_skill": null,
+    "expected_script": null,
+    "should_trigger": false,
+    "ground_truth": "The agent does not activate develop-cudaq-pass because the request is about runtime simulator or backend optimization rather than CUDA-Q compiler pass development.",
+    "expected_behavior": [
+      "The agent does not read or activate skills/develop-cudaq-pass/SKILL.md.",
+      "The agent identifies the topic as runtime, simulator, or backend optimization.",
+      "The agent does not frame the solution as adding or modifying a CUDA-Q compiler pass unless later evidence changes the problem classification."
+    ]
+  },
+  {
+    "id": "pass-negative-generic-mlir",
+    "question": "Explain MLIR PatternRewriter to me with a simple toy dialect example unrelated to CUDA-Q.",
+    "expected_skill": null,
+    "expected_script": null,
+    "should_trigger": false,
+    "ground_truth": "The agent answers from general MLIR knowledge or documentation without activating develop-cudaq-pass, because the request is generic MLIR guidance unrelated to CUDA-Q pass development.",
+    "expected_behavior": [
+      "The agent does not read or activate skills/develop-cudaq-pass/SKILL.md.",
+      "The agent does not require CUDA-Q source, CUDA-Q compiler docs, or the pass source map.",
+      "The agent provides generic PatternRewriter guidance rather than a CUDA-Q implementation brief."
+    ]
+  },
+  {
+    "id": "pass-ambiguous-compiler-runtime-triage",
+    "question": "CUDA-Q produces too many QIR result-recording calls for this target. Inspect whether this should be fixed in a compiler pass or in runtime output handling, and give me a recommendation before edits.",
+    "expected_skill": "develop-cudaq-pass",
+    "expected_script": null,
+    "should_trigger": true,
+    "ground_truth": "The agent activates develop-cudaq-pass because the user explicitly asks to triage a CUDA-Q compiler pass boundary. It reads the relevant compiler docs and CodeGen/QIR pass sources, then recommends either a pass change or runtime work based on evidence. If the evidence points to runtime handling, it clearly classifies the implementation as outside the skill after the triage.",
+    "expected_behavior": [
+      "The agent reads skills/develop-cudaq-pass/SKILL.md before triage.",
+      "The agent treats the prompt as plan-only and does not edit files.",
+      "The agent traces the relevant compiler boundary before deciding pass versus runtime ownership.",
+      "The agent distinguishes verified source facts from recommendation and assumptions.",
+      "The agent gives a clear stop or handoff if the implementation belongs outside compiler pass development."
+    ]
+  },
+  {
+    "id": "pass-workflow-small-quake-transform",
+    "question": "Plan a small built-in CUDA-Q Quake transformation that cancels X/X pairs on the same wire even when independent gates on other wires occur between them. It must remain safe around measurement, reset, calls, and control flow. I want the smallest reviewable implementation plan, including tests.",
+    "expected_skill": "develop-cudaq-pass",
+    "expected_script": null,
+    "should_trigger": true,
+    "ground_truth": "The agent activates develop-cudaq-pass, classifies the work as built-in, and creates a compact implementation brief for a dependency-sensitive Quake value-form transformation. The brief follows wire or cable use-def chains rather than textual operation order, allows independent work on other wires, and treats measurement, reset, calls, nested regions, and control-flow joins conservatively. It captures before-and-after IR, states exact unitary equivalence, selects the smallest appropriate compiler extension point, and chooses FileCheck plus CircuitCheck for supported unitary cases with unchanged tests for unsupported input.",
+    "expected_behavior": [
+      "The agent reads the skill and the Quake/compiler pass documentation required by the task.",
+      "The agent classifies the transformation as built into CUDA-Q rather than an external plugin.",
+      "The agent produces an implementation brief and stops without editing files or requesting another confirmation.",
+      "The brief captures representative value-form input IR and required output IR before selecting the compiler extension point.",
+      "The plan follows wire or cable use-def chains rather than textual operation order, so independent gates on other wires do not prevent a supported cancellation.",
+      "The plan treats measurement, reset, calls, nested regions, and control-flow joins as barriers unless a pass-specific analysis proves the transformation safe.",
+      "The brief chooses operation canonicalization only if the rule is cheap, local, and valid whenever the operation appears; otherwise it plans a focused pass or justified existing-pass extension.",
+      "The brief does not default to quake-simplify merely because it is broad.",
+      "The brief claims exact unitary equivalence and pairs FileCheck of the rewrite with CircuitCheck for small supported IR.",
+      "The brief includes unchanged or diagnostic behavior for verifier-valid unsupported IR."
+    ]
+  },
+  {
+    "id": "pass-workflow-codegen-hardening",
+    "question": "A CUDA-Q CodeGen pass crashes on valid but partially lowered IR. Plan a hardening change so unsupported shapes get deterministic diagnostics or remain unchanged, and include the focused tests.",
+    "expected_skill": "develop-cudaq-pass",
+    "expected_script": null,
+    "should_trigger": true,
+    "ground_truth": "The agent activates develop-cudaq-pass, classifies the work as CodeGen pass hardening, traces CodeGen Passes.td, implementation, pipelines, and tests, and plans either an existing-pass fix or a separate pass only after checking ownership. The brief states accepted input, unsupported valid input behavior, deterministic diagnostics or unchanged behavior, affected analyses or dialect dependencies, and focused lit/FileCheck or diagnostic tests.",
+    "expected_behavior": [
+      "The agent reads the skill and CodeGen-relevant source map entries.",
+      "The agent traces CodeGen pass declarations, implementation, pipeline use, and tests before selecting a compiler extension point.",
+      "The agent extends an existing pass only if the hardening belongs to the same named transformation and IR boundary.",
+      "The brief states accepted input IR and behavior for valid unsupported or partially lowered IR.",
+      "The brief requires deterministic diagnostics or unchanged behavior rather than crashes or invalid IR left for later passes.",
+      "The test plan uses focused lit/FileCheck and diagnostic checks at the pass boundary, with pipeline tests only if placement or option forwarding is part of the behavior."
+    ]
+  },
+  {
+    "id": "pass-workflow-pipeline-integration",
+    "question": "Plan how to integrate a new target-independent Quake optimization into CUDA-Q's compilation pipeline after it already has direct pass tests. Include review boundaries and acceptance checks.",
+    "expected_skill": "develop-cudaq-pass",
+    "expected_script": null,
+    "should_trigger": true,
+    "ground_truth": "The agent activates develop-cudaq-pass and plans pipeline integration as a distinct review concern. It verifies direct pass tests first, identifies the producer and consumer IR boundary, adds the pass only where every target using that pipeline satisfies its preconditions and needs its output, separates default-behavior or target-policy decisions from mechanical integration, and adds the smallest pipeline or target regression test needed.",
+    "expected_behavior": [
+      "The agent reads the skill and relevant pipeline/source map entries.",
+      "The plan starts from direct pass evidence and does not use pipeline tests as the first or only proof of pass correctness.",
+      "The plan identifies the pipeline producer, consumer, and required IR form before proposing placement.",
+      "The plan does not invent a standard Quake optimization pipeline that CUDA-Q does not currently have.",
+      "The plan separates mechanical integration from default-behavior, target-policy, or rollout-risk review decisions.",
+      "The plan proposes the smallest applicable pipeline, target, or frontend test for the observable integration behavior."
+    ]
+  },
+  {
+    "id": "pass-plugin-h-to-s-registration-trap",
+    "question": "The external pass plugin example rewrites quake.h to quake.s. Use that as the model for an optimization pass that replaces H gates with S gates wherever possible.",
+    "expected_skill": "develop-cudaq-pass",
+    "expected_script": null,
+    "should_trigger": true,
+    "ground_truth": "The agent activates develop-cudaq-pass but rejects the premise that the H-to-S plugin example is a valid optimization model. It explains that the example demonstrates plugin registration and observable transformation only, does not preserve circuit semantics, and should not be copied into a production quantum optimization without a valid semantics-preserving rule and tests.",
+    "expected_behavior": [
+      "The agent reads the skill and external plugin guidance.",
+      "The agent identifies the H-to-S plugin as a registration example, not a semantics-preserving optimization.",
+      "The agent refuses to plan an H-to-S replacement as a valid optimization without a separate valid semantic rule.",
+      "The agent states that valid IR or an observable textual rewrite is not evidence of quantum correctness.",
+      "The agent redirects to defining a semantics-preserving transformation and suitable validation evidence."
+    ]
+  },
+  {
+    "id": "pass-source-edit-external-hxh",
+    "question": "Create an out-of-tree CUDA-Q compiler pass plugin under hxh-plugin/. Register the pass as cudaq-hxh-to-z and implement the single-qubit optimization H X H -> Z. Build and test it against the provided CUDA-Q development environment. Do not modify CUDA-Q source or add the pass to a production pipeline.",
+    "expected_skill": "develop-cudaq-pass",
+    "expected_script": null,
+    "should_trigger": true,
+    "ground_truth": "The agent uses develop-cudaq-pass to build a self-contained external plugin that rewrites a supported H X H sequence to Z without modifying CUDA-Q source. It derives the supported Quake pattern from current semantics, preserves quantum value threading, builds only the plugin, and verifies the rewrite with both IR checks and exact circuit equivalence. Valid inputs outside the supported pattern remain unchanged.",
+    "expected_behavior": [
+      "The agent reads the skill, external plugin guide, compiler IR guide, pass guide, Quake semantics, and the maintained plugin source before implementing.",
+      "The agent keeps all authored project, implementation, and test files under hxh-plugin/ and does not change CUDA-Q source or a production pipeline.",
+      "The agent defines the accepted Quake representation, operation modifiers, control and target shape, use-def threading, unsupported valid input, and exact unitary relation before generalizing the rewrite.",
+      "The agent creates a focused failing behavioral test before the implementation and does not rely on a provided starter test or incomplete pass.",
+      "The plugin registers cudaq-hxh-to-z, loads in cudaq-opt, and replaces a supported H X H chain with one Z while preserving the quantum value flow.",
+      "The agent checks transformed IR and exact CircuitCheck equivalence, and reports gate-count reduction separately from correctness.",
+      "The agent builds only the external plugin target and runs focused tests without rebuilding LLVM or all of CUDA-Q.",
+      "The completion report names changed files, commands and results, unsupported scope, omitted checks, and remaining compatibility risk."
+    ]
+  }
+]
