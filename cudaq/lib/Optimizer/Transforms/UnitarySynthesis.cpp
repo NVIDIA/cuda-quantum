@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
 #include "common/EigenDense.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -127,17 +128,11 @@ struct OneQubitOpZYZ {
     /// is applied in a kernel that is called with `cudaq::control`, the global
     /// phase will become a local phase and give a wrong result if we don't keep
     /// track of that.
-    /// NOTE: R1-Rz pair results in a half the applied global phase angle,
-    /// hence, we need to multiply the angle by 2
-    auto globalPhase = 2.0 * phase;
-    if (isAboveThreshold(globalPhase)) {
-      auto phaseVal = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, globalPhase, floatTy);
-      Value negPhase = arith::NegFOp::create(rewriter, loc, phaseVal);
-      cudaq::quake::R1Op::create(rewriter, loc, phaseVal, ValueRange{},
-                                 arguments[0]);
-      cudaq::quake::RzOp::create(rewriter, loc, negPhase, ValueRange{},
-                                 arguments[0]);
+    if (isAboveThreshold(2.0 * phase)) {
+      auto phaseValue = cudaq::opt::factory::createFloatConstant(
+          loc, rewriter, phase, floatTy);
+      cudaq::opt::emitPhaseCorrection(rewriter, loc, phaseValue, ValueRange{},
+                                      DenseBoolArrayAttr{}, arguments.back());
     }
     func::ReturnOp::create(rewriter, loc);
     rewriter.restoreInsertionPoint(insPt);
@@ -421,15 +416,12 @@ struct TwoQubitOpKAK {
         rewriter, loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
         ValueRange{}, ValueRange{arguments[0]});
-    auto globalPhase = 2.0 * std::arg(phase);
-    if (isAboveThreshold(globalPhase)) {
-      auto phaseVal = cudaq::opt::factory::createFloatConstant(
-          loc, rewriter, globalPhase, floatTy);
-      Value negPhase = arith::NegFOp::create(rewriter, loc, phaseVal);
-      cudaq::quake::R1Op::create(rewriter, loc, phaseVal, ValueRange{},
-                                 arguments[0]);
-      cudaq::quake::RzOp::create(rewriter, loc, negPhase, ValueRange{},
-                                 arguments[0]);
+    auto phaseAngle = std::arg(phase);
+    if (isAboveThreshold(2.0 * phaseAngle)) {
+      auto phaseValue = cudaq::opt::factory::createFloatConstant(
+          loc, rewriter, phaseAngle, floatTy);
+      cudaq::opt::emitPhaseCorrection(rewriter, loc, phaseValue, ValueRange{},
+                                      DenseBoolArrayAttr{}, arguments.back());
     }
     func::ReturnOp::create(rewriter, loc);
     rewriter.restoreInsertionPoint(insPt);
