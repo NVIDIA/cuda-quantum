@@ -56,6 +56,29 @@ func.func @parameterized_adjoint_caller(%theta: f64, %phi: f64,
   return %0 : !quake.wire
 }
 
+// Exercise the controls-then-targets wire result ordering directly.
+func.func private @wire_predicated_phase(%theta: f64, %control: !quake.wire,
+                                         %anchor: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %next:2 = quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %next#0, %next#1 : !quake.wire, !quake.wire
+}
+
+func.func @wire_predicated_adjoint_caller(%theta: f64, %control: !quake.wire,
+                                          %anchor: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %result:2 = quake.apply<adj> @wire_predicated_phase %theta, %control, %anchor
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %result#0, %result#1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func private @wire_predicated_phase.adj(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[CONTROL:.*]]: !quake.wire, %[[ANCHOR:.*]]: !quake.wire)
+// CHECK: %[[NEG:.*]] = arith.negf %[[THETA]] : f64
+// CHECK: %[[PHASE:.*]]:2 = quake.phase (%[[NEG]]) [%[[CONTROL]]] %[[ANCHOR]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK: return %[[PHASE]]#0, %[[PHASE]]#1 : !quake.wire, !quake.wire
+
 // Parameter tuples are preserved; the physical gates carry the inverse.
 // CHECK-LABEL: func.func private @wire_parameterized.adj(
 // CHECK-NOT: arith.negf
