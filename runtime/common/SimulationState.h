@@ -10,6 +10,7 @@
 
 #include "cudaq/operators/matrix.h"
 #include <algorithm>
+#include <bit>
 #include <bitset>
 #include <complex>
 #include <memory>
@@ -144,12 +145,23 @@ public:
     // Check the precision first. Get the size and
     // data pointer from the input data.
 
+    const auto validateStateVectorSize = [](std::size_t size) {
+      if (size == 0 || !std::has_single_bit(size))
+        throw std::runtime_error(
+            "State vector size must be a power of 2, but is " +
+            std::to_string(size));
+    };
+
     if (getPrecision() == precision::fp32) {
       auto [size, ptr] = getSizeAndPtr<float>(data);
+      if (isArrayLike())
+        validateStateVectorSize(size);
       return createFromSizeAndPtr(size, ptr, data.index());
     }
 
     auto [size, ptr] = getSizeAndPtr(data);
+    if (isArrayLike())
+      validateStateVectorSize(size);
     return createFromSizeAndPtr(size, ptr, data.index());
   }
 
