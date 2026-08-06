@@ -95,6 +95,7 @@ add_cudaq_library(OptTransforms
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
+    MLIRTransforms
     OptimBuilder
     QECDialect
     QuakeDialect
