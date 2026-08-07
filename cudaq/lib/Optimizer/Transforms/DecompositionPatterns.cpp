@@ -76,7 +76,7 @@ inline bool containsControlTypes(cudaq::quake::OperatorInterface op) {
 
 namespace {
 struct ExpPauliTargetPlan {
-  SmallVector<cudaq::opt::StaticQubitTarget> qubits;
+  SmallVector<cudaq::quake::StaticQubitTarget> qubits;
 };
 
 /// Validate and plan every scalar qubit represented by ExpPauli targets.
@@ -89,7 +89,7 @@ planStaticExpPauliTargets(ValueRange targets, std::size_t expectedQubits) {
   for (std::size_t targetIndex = 0; targetIndex < targets.size();
        ++targetIndex) {
     Value target = targets[targetIndex];
-    if (cudaq::opt::isScalarQubitTarget(target)) {
+    if (cudaq::quake::isScalarQubitTarget(target)) {
       plan.qubits.push_back({target, targetIndex, std::nullopt});
       continue;
     }
@@ -290,6 +290,10 @@ struct ExpPauliDecomposition
     if (expPauliOp.getParameters().size() != 1)
       return rewriter.notifyMatchFailure(expPauliOp,
                                          "requires one angle parameter");
+    if (auto negated = expPauliOp.getNegatedQubitControls();
+        negated && negated->size() != expPauliOp.getControls().size())
+      return rewriter.notifyMatchFailure(
+          expPauliOp, "requires one negated-control flag per control operand");
     auto theta = expPauliOp.getParameter();
 
     std::optional<std::string> optPauliWordStr;
@@ -400,15 +404,26 @@ struct ExpPauliDecomposition
     const bool isIdentity =
         llvm::all_of(pauliWordStr, [](char pauli) { return pauli == 'I'; });
     if (isIdentity) {
+      if (cudaq::opt::hasPotentiallyAliasedPhaseControls(
+              expPauliOp.getControls()))
+        return rewriter.notifyMatchFailure(
+            expPauliOp,
+            "requires a control predicate without possible quantum aliasing");
+
       // exp(i theta I) is a phase, not a removable no-op. Choose the final
       // statically identifiable source qubit only after all target validation
       // succeeds, then preserve the source predicate and wire result order.
-      auto anchorPlan =
-          cudaq::opt::findLastStaticQubitTarget(expPauliOp.getTargets());
+      auto anchorPlan = cudaq::quake::findLastStaticQubitTarget(
+          expPauliOp.getTargets(),
+          [&](const cudaq::quake::StaticQubitTarget &target) {
+            return !cudaq::opt::mayPhaseAnchorAliasControl(
+                target, expPauliOp.getControls());
+          });
       if (!anchorPlan)
-        return rewriter.notifyMatchFailure(
-            expPauliOp,
-            "requires a nonempty scalar target to anchor the identity phase");
+        return rewriter.notifyMatchFailure(expPauliOp,
+                                           "requires a nonempty scalar target "
+                                           "outside its control predicate to "
+                                           "anchor the identity phase");
 
       SmallVector<Value> controls(expPauliOp.getControls());
       SmallVector<Value> targets(expPauliOp.getTargets());
@@ -416,8 +431,8 @@ struct ExpPauliDecomposition
       if (expPauliOp.isAdj() && !matchPattern(phase, m_AnyZeroFloat()))
         phase = arith::NegFOp::create(rewriter, loc, phase);
 
-      Value anchor =
-          cudaq::opt::materializeStaticQubitTarget(rewriter, loc, *anchorPlan);
+      Value anchor = cudaq::quake::materializeStaticQubitTarget(rewriter, loc,
+                                                                *anchorPlan);
       auto correction = cudaq::opt::emitPhaseCorrection(
           rewriter, loc, phase, controls,
           expPauliOp.getNegatedQubitControlsAttr(), anchor);
@@ -428,7 +443,7 @@ struct ExpPauliDecomposition
         targets[anchorPlan->sourceIndex] = correction.anchor;
 
       rewriter.replaceOp(expPauliOp,
-                         cudaq::opt::getWireValues(controls, targets));
+                         cudaq::quake::getWireValues(controls, targets));
       return success();
     }
 
@@ -446,6 +461,14 @@ struct ExpPauliDecomposition
           expPauliOp,
           "does not yet support wire non-identity ExpPauli lowering");
 
+    // This basis construction materializes floating constants through the
+    // existing F32/F64 factory path. Retain other AnyFloat forms rather than
+    // creating partial IR or relying on a mismatched APFloat representation.
+    auto angleType = dyn_cast<FloatType>(theta.getType());
+    if (!angleType || (!angleType.isF32() && !angleType.isF64()))
+      return rewriter.notifyMatchFailure(
+          expPauliOp, "does not yet support this non-identity angle type");
+
     Value signedTheta = theta;
     if (expPauliOp.isAdj())
       signedTheta = arith::NegFOp::create(rewriter, loc, signedTheta);
@@ -454,7 +477,7 @@ struct ExpPauliDecomposition
     qubits.reserve(targetPlan->qubits.size());
     for (const auto &qubit : targetPlan->qubits)
       qubits.push_back(
-          cudaq::opt::materializeStaticQubitTarget(rewriter, loc, qubit));
+          cudaq::quake::materializeStaticQubitTarget(rewriter, loc, qubit));
 
     auto maybePaulis = cudaq::quake::symbolizePauliWord(
         StringRef(pauliWordStr).take_front(size));
@@ -544,7 +567,7 @@ struct ExpPauliDecomposition
     // Rz(-2 theta) implements exp(i theta Z) under Quake's Rz convention.
     Value negTwoTheta = arith::MulFOp::create(
         rewriter, loc,
-        createConstant(loc, -2.0, rewriter.getF64Type(), rewriter),
+        createConstant(loc, -2.0, signedTheta.getType(), rewriter),
         signedTheta);
     cudaq::quake::RzOp::create(rewriter, loc, ValueRange{negTwoTheta},
                                ValueRange{}, ValueRange{qubitSupport.back()});

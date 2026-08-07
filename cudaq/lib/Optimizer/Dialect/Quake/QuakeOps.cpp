@@ -1682,14 +1682,8 @@ bool cudaq::quake::isScalarQubitTarget(Value target) {
 
 std::optional<cudaq::quake::StaticQubitTarget>
 cudaq::quake::findLastStaticQubitTarget(ValueRange targets) {
-  for (std::size_t i = targets.size(); i != 0; --i) {
-    Value target = targets[i - 1];
-    if (isScalarQubitTarget(target))
-      return StaticQubitTarget{target, i - 1, std::nullopt};
-    if (auto size = getVeqSize(target); size && *size != 0)
-      return StaticQubitTarget{target, i - 1, *size - 1};
-  }
-  return std::nullopt;
+  return findLastStaticQubitTarget(
+      targets, [](const StaticQubitTarget &) { return true; });
 }
 
 Value cudaq::quake::materializeStaticQubitTarget(
