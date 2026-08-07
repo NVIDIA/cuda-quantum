@@ -126,6 +126,10 @@ public:
   void configureExecutionContext(const msm_policy &policy);
   void configureExecutionContext(const dem_policy &policy);
   void configureExecutionContext(const ptsbe::sample_policy &policy);
+  void configureExecutionContext(const estimate_policy &policy) {
+    throw std::runtime_error(
+        "Resource estimation is not supported in library mode.");
+  }
   void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
@@ -159,6 +163,11 @@ public:
   finalizeExecutionContext(const ptsbe::sample_policy &policy) {
     throw std::runtime_error(
         "PTSBE sampling is not supported by this execution manager.");
+  }
+
+  virtual estimate_result finalizeExecutionContext(const estimate_policy &) {
+    throw std::runtime_error(
+        "Resource estimation is not supported in library mode.");
   }
 
   /// Set up the execution manager for a new execution.
