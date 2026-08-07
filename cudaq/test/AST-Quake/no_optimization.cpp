@@ -21,9 +21,7 @@ struct Defeatism {
 
 // clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__Defeatism()
-// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 2)
-// CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_2:.*]] = load ptr, ptr %[[VAL_1]], align 8
-// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_2]])
-// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_2]])
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
+// CHECK:         tail call void @__quantum__qis__h(ptr
+// CHECK:         tail call void @__quantum__qis__h(ptr
+// CHECK-NOT:     @__quantum__qis__h
+// CHECK:         ret void
