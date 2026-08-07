@@ -10,10 +10,10 @@
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/RuntimeEndpoint.h"
 #include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/algorithms/draw.h"
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policies.h"
-#include "cudaq/algorithms/resource_estimation.h"
 #include "cudaq/algorithms/run/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/qpu.h"
@@ -442,6 +442,10 @@ TEST(RuntimeEndpointLaunchKernelTester, dispatchesPtsbeSamplePolicy) {
   testPolicyDispatch(ptsbe::sample_policy{});
 }
 
+TEST(RuntimeEndpointLaunchKernelTester, dispatchesEstimatePolicy) {
+  testPolicyDispatch(estimate_policy{});
+}
+
 TEST(QuantumPlatformDisableEndpointOverrideTester,
      noiseModelOpsThrowWhenEndpointSet) {
   TestPlatform platform;
@@ -477,19 +481,14 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   EXPECT_EQ(platform.get_noise(), nullptr);
 }
 
-TEST(QuantumPlatformDisableEndpointOverrideTester,
-     resourceCountLaunchThrowsWhenEndpointSet) {
+TEST(QuantumPlatformDisableEndpointOverrideTester, drawThrowsWhenEndpointSet) {
   TestPlatform platform;
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
   auto kernel = [] {};
-  auto choice = [] { return false; };
   expectOverrideDisabled(
-      [&] {
-        (void)cudaq::detail::run_estimate_resources(kernel, platform,
-                                                    "test_kernel", choice);
-      },
-      "Policy 'resource-count'");
+      [&] { (void)cudaq::contrib::traceFromKernel(kernel, platform); },
+      "is_simulator");
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,
@@ -502,9 +501,7 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   EXPECT_EQ(platform.get_num_qubits(), 30u);
 
   auto kernel = [] {};
-  auto choice = [] { return false; };
-  EXPECT_NO_THROW((void)cudaq::detail::run_estimate_resources(
-      kernel, platform, "test_kernel", choice));
+  EXPECT_NO_THROW((void)cudaq::contrib::traceFromKernel(kernel, platform));
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {

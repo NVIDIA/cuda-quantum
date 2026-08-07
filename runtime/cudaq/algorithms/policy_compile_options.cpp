@@ -41,4 +41,11 @@ CompileOptions get_compile_options_impl(const dem_policy &policy) {
   return opts;
 }
 
+CompileOptions get_compile_options_impl(const estimate_policy &policy) {
+  CompileOptions opts;
+  opts.emitResourceCounts = true;
+  opts.emitJit = true;
+  return opts;
+}
+
 } // namespace cudaq

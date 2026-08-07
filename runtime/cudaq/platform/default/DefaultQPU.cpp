@@ -10,6 +10,7 @@
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/Timing.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -145,6 +146,18 @@ cudaq::DefaultQPU::launchKernel(const cudaq::dem_policy &policy,
   });
 }
 
+cudaq::estimate_result
+cudaq::DefaultQPU::launchKernel(const cudaq::estimate_policy &policy,
+                                const cudaq::CompiledModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  // RAII: the scope is released (and the resource-counter state cleared) on
+  // every exit path, including exceptions thrown from the kernel.
+  auto rcScope = nvqir::resource_counter::make_scope(policy.choice);
+  [[maybe_unused]] auto res = executeCompiledModule(module, args);
+  return nvqir::resource_counter::get_counts(rcScope);
+}
+
 cudaq::ptsbe::sample_policy::result_type
 cudaq::DefaultQPU::launchKernel(const cudaq::ptsbe::sample_policy &policy,
                                 const cudaq::CompiledModule &module,
@@ -173,6 +186,11 @@ cudaq::DefaultQPU::getCompileTarget(const run_policy &policy) {
 cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const dem_policy &policy) {
   return createDefaultCompileTarget();
+}
+
+cudaq::CompileTarget
+cudaq::DefaultQPU::getCompileTarget(const estimate_policy &policy) {
+  return getDefaultCompileTarget(policy);
 }
 
 cudaq::CompileTarget
