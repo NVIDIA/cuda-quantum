@@ -19,9 +19,13 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipeline
-  jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
-  # Tell the rest-qpu that we are generating OpenQASM 2.0.
-  codegen-emission: qasm2
+  jit-high-level-pipeline: "func.func(add-measurements),expand-measurements"
+  jit-mid-level-pipeline: "func.func(add-dealloc,expand-control-veqs,combine-quantum-alloc,canonicalize,cc-loop-normalize,cc-loop-unroll{unroll-only-wire-blocking-loops=true},canonicalize,cse,factor-quantum-alloc,dqe,cable-rough-in,canonicalize,memtoreg),canonicalize,cse,add-wireset,func.func(assign-wire-indices),qubit-mapping{device=bypass},decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}"
+  jit-low-level-pipeline: "symbol-dce"
+  # Tell the rest-qpu that the required output format is quake.
+  codegen-emission: nop
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
 
 target-arguments:
   - key: url
@@ -34,9 +38,28 @@ target-arguments:
     type: string
     platform-arg: executor
     help-string: "Specify the executor to run. Default is mock"
+  - key: qubit_mapping_mode
+    required: false
+    platform-arg: qubit_mapping_mode
+    type: string
+    help-string: "'local_file': manually edited file located at <>, 'local_get_latest': use the local SABRE mapping algorithm, get the latest qpu config from the backend, 'backend': assign qubits in the backend, as part of the compilation process. Default is 'local_get_latest'."
   - key: api_key
     required: false
     type: string
     platform-arg: api_key
     help-string: "An API key to access the Qoperator server"
-  
+  - key: api_key_file
+    required: false
+    type: string
+    platform-arg: api_key_file
+    help-string: "Path to a file containing an API key to access the Qoperator server"
+  - key: simulator_duration
+    required: false
+    type: string
+    platform-arg: simulator_duration
+    help-string: "The duration of simulation. Relevant only if the executor is set to 'simulator'."
+  - key: extra-payload-provider
+    required: false
+    type: string
+    platform-arg: extra_payload_provider
+    help-string: "Specify the extra payload provider if any."
