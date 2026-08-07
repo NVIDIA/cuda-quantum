@@ -354,11 +354,12 @@ func.func @cc_op4() {
 
 // See loop.qke for cc.loop, cc.if, cc.condition, cc.continue, cc.break, ...
 
-func.func private @do_nothing() -> ()
+func.func private @do_nothing(!cc.callable<() -> ()>) -> ()
+func.func private @do_nothing1() -> ()
 
 // CHECK-LABEL:   func.func @cc_op5() -> !cc.callable<() -> i32> {
 // CHECK:           %[[VAL_0:.*]] = cc.create_lambda {
-// CHECK:             func.call @do_nothing() : () -> ()
+// CHECK:             func.call @do_nothing1() : () -> ()
 // CHECK:             %[[VAL_1:.*]] = arith.constant 1 : i32
 // CHECK:             cc.return %[[VAL_1]] : i32
 // CHECK:           } : !cc.callable<() -> i32>
@@ -374,7 +375,7 @@ func.func private @do_nothing() -> ()
 
 func.func @cc_op5() -> !cc.callable<() -> i32> {
   %1 = cc.create_lambda {
-    func.call @do_nothing() : () -> ()
+    func.call @do_nothing1() : () -> ()
     %1 = arith.constant 1 : i32
     cc.return %1 : i32
   } : !cc.callable<() -> i32>

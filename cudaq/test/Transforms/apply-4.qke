@@ -1,0 +1,111 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Regression test for a bug where veq type specialization caused type
+// mismatches when creating control variants of functions that have inner calls
+// to other kernels expecting dynamic !quake.veq<?> types.
+//
+// The bug scenario:
+// 1. main_kernel allocates !quake.veq<2> and relaxes it to !quake.veq<?>
+// 2. A controlled apply to thunk_kernel with a constant argument triggers
+// constant propagation which would un-relax the veq type back to !quake.veq<2>
+// 3. The thunk calls inner_kernel which expects !quake.veq<?>
+// 4. When the .ctrl variant is created, the inner call has a type mismatch
+//
+// The fix: Don't specialize (un-relax) veq types when the function has inner
+// func.call operations, since those callees still expect the dynamic type.
+// An alternative fix would be to recursively specialize all callees in the
+// call tree, but that would increase code size.
+
+// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s -o %t && FileCheck %s < %t && FileCheck --check-prefix=APPLY %s < %t
+
+// Inner kernel that expects dynamic veq type
+func.func @inner_kernel(%qubits: !quake.veq<?>, %angle: f64) attributes {"cudaq-kernel"} {
+  %0 = quake.extract_ref %qubits[0] : (!quake.veq<?>) -> !quake.ref
+  quake.rx (%angle) %0 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @inner_kernel(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[ARG1:.*]]: f64) attributes {"cudaq-kernel"} {
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ARG0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.rx (%[[ARG1]]) %[[EXTRACT_REF_0]] : (f64, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// Thunk kernel that calls inner_kernel - will be specialized with constant prop
+func.func @thunk_kernel(%qubits: !quake.veq<?>, %angle: f64) attributes {"cudaq-kernel"} {
+  func.call @inner_kernel(%qubits, %angle) : (!quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @thunk_kernel(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[ARG1:.*]]: f64) attributes {"cudaq-kernel"} {
+// CHECK:           call @inner_kernel(%[[ARG0]], %[[ARG1]]) : (!quake.veq<?>, f64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// Main kernel that uses controlled apply with a constant angle
+func.func @main_kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst = arith.constant 0.1 : f64
+  %ancilla = quake.alloca !quake.ref
+  %qreg = quake.alloca !quake.veq<2>
+  %relaxed = quake.relax_size %qreg : (!quake.veq<2>) -> !quake.veq<?>
+  quake.h %ancilla : (!quake.ref) -> ()
+  // Controlled apply with constant - triggers specialization
+  quake.apply @thunk_kernel [%ancilla] %relaxed, %cst : (!quake.ref, !quake.veq<?>, f64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @main_kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.h %[[ALLOCA_0]] : (!quake.ref) -> ()
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @thunk_kernel.0.ctrl(%[[CONCAT_0]], %[[ALLOCA_1]]) : (!quake.veq<?>, !quake.veq<2>) -> ()
+// CHECK:           return
+// CHECK:         }
+
+//===----------------------------------------------------------------------===//
+
+// APPLY-LABEL:   func.func private @inner_kernel.1.ctrl(
+// APPLY-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// APPLY-SAME:      %[[ARG1:.*]]: !quake.veq<2>) {
+// APPLY:           %[[CONSTANT_0:.*]] = arith.constant 1.000000e-01 : f64
+// APPLY:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[ARG1]] : (!quake.veq<2>) -> !quake.veq<?>
+// APPLY:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[RELAX_SIZE_0]][0] : (!quake.veq<?>) -> !quake.ref
+// APPLY:           quake.rx (%[[CONSTANT_0]]) {{\[}}%[[ARG0]]] %[[EXTRACT_REF_0]] : (f64, !quake.veq<?>, !quake.ref) -> ()
+// APPLY:           return
+// APPLY:         }
+
+// APPLY-LABEL:   func.func private @thunk_kernel.0.ctrl(
+// APPLY-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// APPLY-SAME:      %[[ARG1:.*]]: !quake.veq<2>) {
+// APPLY:           %[[CONCAT_0:.*]] = quake.concat %[[ARG0]] : (!quake.veq<?>) -> !quake.veq<?>
+// APPLY:           call @inner_kernel.1.ctrl(%[[CONCAT_0]], %[[ARG1]]) : (!quake.veq<?>, !quake.veq<2>) -> ()
+// APPLY:           return
+// APPLY:         }
+
+// APPLY-LABEL:   func.func private @thunk_kernel.0(
+// APPLY-SAME:      %[[ARG0:.*]]: !quake.veq<2>) attributes {"cudaq-kernel"} {
+// APPLY:           %[[CONSTANT_0:.*]] = arith.constant 1.000000e-01 : f64
+// APPLY:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[ARG0]] : (!quake.veq<2>) -> !quake.veq<?>
+// APPLY:           call @inner_kernel(%[[RELAX_SIZE_0]], %[[CONSTANT_0]]) : (!quake.veq<?>, f64) -> ()
+// APPLY:           return
+// APPLY:         }
+
+// APPLY-LABEL:   func.func private @inner_kernel.1(
+// APPLY-SAME:      %[[ARG0:.*]]: !quake.veq<2>) attributes {"cudaq-kernel"} {
+// APPLY:           %[[CONSTANT_0:.*]] = arith.constant 1.000000e-01 : f64
+// APPLY:           %[[RELAX_SIZE_0:.*]] = quake.relax_size %[[ARG0]] : (!quake.veq<2>) -> !quake.veq<?>
+// APPLY:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[RELAX_SIZE_0]][0] : (!quake.veq<?>) -> !quake.ref
+// APPLY:           quake.rx (%[[CONSTANT_0]]) %[[EXTRACT_REF_0]] : (f64, !quake.ref) -> ()
+// APPLY:           return
+// APPLY:         }

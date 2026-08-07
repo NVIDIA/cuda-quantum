@@ -87,7 +87,7 @@ public:
         op, op.getResultTypes(), op.getIsAdjAttr(), op.getParameters(),
         newControls, op.getTargets(), negatedControlsAttr);
 
-    newOp->setAttr("operand_segment_sizes", segmentSizes);
+    newOp->setAttr("operandSegmentSizes", segmentSizes);
 
     return success();
   }

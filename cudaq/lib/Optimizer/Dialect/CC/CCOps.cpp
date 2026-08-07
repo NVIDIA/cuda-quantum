@@ -49,6 +49,14 @@ std::optional<APFloat> cudaq::opt::factory::getDoubleIfConstant(Value value) {
   return {};
 }
 
+std::string cudaq::cc::stringOfType(Type ty) {
+  std::string s;
+  llvm::raw_string_ostream os(s);
+  ty.print(os);
+  os.flush();
+  return s;
+}
+
 Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                                    bool useSizeOf) {
   auto createInt = [&](std::int32_t byteWidth) -> Value {
@@ -1338,6 +1346,85 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
   Type valTy = getValue().getType();
   if (!isCompatible(valTy, eleTy))
     return emitOpError("value type does not match selected element");
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// InstantiateCallableOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::cc::InstantiateCallableOp::verify() {
+  auto calleeFunc = dyn_cast_if_present<func::FuncOp>(
+      SymbolTable::lookupNearestSymbolFrom(getOperation(), getCallee()));
+  if (!calleeFunc)
+    return emitOpError("must refer to a valid function");
+  FunctionType calleeFnTy = calleeFunc.getFunctionType();
+  if (!getNoCapture()) {
+    // Unless no capture is set, `callee` must have an argument that is a
+    // callable closure with a conforming type. That argument must be the first
+    // argument with a callable type. (Arguments of other types may be
+    // prepended, most notably an unsized veq.)
+    if (calleeFnTy.getInputs().size() < 1)
+      return emitOpError("callable must have at least 1 argument");
+    CallableType callableTy;
+    for (auto argTy : calleeFnTy.getInputs())
+      if (auto ty = dyn_cast<CallableType>(argTy)) {
+        callableTy = ty;
+        break;
+      }
+    if (!callableTy)
+      return emitOpError(
+          "instantiating a callable requires a closure argument");
+
+    // The first argument has callable type. Make sure the signature is
+    // compatible with our result and the thunk function type modulo the closure
+    // argument.
+    if (callableTy != getSignature().getType())
+      return emitOpError("result type (" + stringOfType(callableTy) +
+                         ") must match closure type (" +
+                         stringOfType(getSignature().getType()) + ")");
+    FunctionType callableFnTy = callableTy.getSignature();
+    if (calleeFnTy.getInputs().size() - 1 != callableFnTy.getInputs().size())
+      return emitOpError("arity must be the same (" +
+                         std::to_string(calleeFnTy.getInputs().size() - 1) +
+                         ", " +
+                         std::to_string(callableFnTy.getInputs().size()) + ")");
+    SmallVector<Type> calleeFnInTys;
+    bool found = false;
+    for (auto ty : calleeFnTy.getInputs()) {
+      if (!found)
+        if (auto callTy = dyn_cast<CallableType>(ty)) {
+          found = true;
+          continue;
+        }
+      calleeFnInTys.push_back(ty);
+    }
+    for (auto [ty1, ty2] : llvm::zip(calleeFnInTys, callableFnTy.getInputs())) {
+      if (ty1 != ty2)
+        return emitOpError("argument types must match (" + stringOfType(ty1) +
+                           ", " + stringOfType(ty2) + ")");
+    }
+    if (calleeFnTy.getResults().size() != callableFnTy.getResults().size())
+      return emitOpError("coarity must be the same (" +
+                         std::to_string(calleeFnTy.getResults().size()) + ", " +
+                         std::to_string(callableFnTy.getResults().size()) +
+                         ")");
+    for (auto [ty1, ty2] :
+         llvm::zip(calleeFnTy.getResults(), callableFnTy.getResults())) {
+      if (ty1 != ty2)
+        return emitOpError("result types must match (" + stringOfType(ty1) +
+                           ", " + stringOfType(ty2) + ")");
+    }
+  } else {
+    // In the degenerate case, we just check that the function being wrapped as
+    // a closure has a compatible function type to the degenerate closure's
+    // callable type, which is the result type of this Op.
+    auto resultFnTy =
+        cast<CallableType>(getSignature().getType()).getSignature();
+    if (calleeFnTy != resultFnTy)
+      return emitOpError("degenerate closure function must have compatible "
+                         "signature with the callable closure result");
+  }
   return success();
 }
 
