@@ -1212,6 +1212,24 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def OutlinePartitions : Pass<"outline-partitions", "mlir::func::FuncOp"> {
+  let summary = "Outline qubit-operation partitions into cc.create_lambda closures.";
+  let description = [{
+    Partitions the qubit operations in a function using a selectable strategy,
+    then outlines each partition into a `cc.create_lambda` / `cc.call_callable`
+    pair. Wire values that cross partition boundaries are threaded through the
+    lambda signatures automatically.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect",
+    "cudaq::quake::QuakeDialect"];
+  let options = [
+    Option<"strategy", "strategy", "std::string", /*default=*/"\"greedy\"",
+      "Partitioning strategy: greedy.">,
+    Option<"maxQubits", "max-qubits", "unsigned", /*default=*/"2",
+      "Maximum qubit wire timelines per partition, passed to the strategy.">,
+  ];
+}
+
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
   let summary = "Perform phase based rotation merging.";
 

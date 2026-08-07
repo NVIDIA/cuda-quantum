@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 add_cudaq_library(OptAnalysis
+  GreedyOpPartitioner.cpp
   UnitaryOpGrouping.cpp
 
   DEPENDS
