@@ -43,6 +43,15 @@ func.func @ordinary_scope_entry_is_transparent(%arg0: !quake.wire) -> !quake.wir
   return %1 : !quake.wire
 }
 
+func.func @ordinary_scope_transposed_swap_is_transparent(%arg0: !quake.wire, %arg1: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %0:2 = quake.swap %arg0, %arg1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %1:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %2:2 = quake.swap %0#1, %0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %2#0, %2#1 : !quake.wire, !quake.wire
+  }
+  return %1#0, %1#1 : !quake.wire, !quake.wire
+}
+
 func.func @nested_atomic_scopes_block(%arg0: !quake.wire) -> !quake.wire {
   %0 = cc.scope -> (!quake.wire) {
     %1 = quake.h %arg0 : (!quake.wire) -> !quake.wire
@@ -176,6 +185,15 @@ func.func @preserve_resets_at_atomic_entry(%arg0: !quake.wire, %arg1: !quake.wir
 // CHECK:             cc.continue %[[ARG0]] : !quake.wire
 // CHECK:           }
 // CHECK:           return %[[SCOPE_0]] : !quake.wire
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @ordinary_scope_transposed_swap_is_transparent(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !quake.wire) -> (!quake.wire, !quake.wire) {
+// CHECK:           %[[SCOPE_0:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT:        cc.continue %[[ARG1]], %[[ARG0]] : !quake.wire, !quake.wire
+// CHECK-NEXT:      }
+// CHECK:           return %[[SCOPE_0]]#0, %[[SCOPE_0]]#1 : !quake.wire, !quake.wire
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @nested_atomic_scopes_block(

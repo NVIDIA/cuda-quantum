@@ -123,6 +123,39 @@ getSameActionEndpoint(QOP anchor, Operation *candidate,
   return endpoint;
 }
 
+// Preserve the adjacent inverse path that predates commutation-aware search.
+// A value defined outside an ordinary single-block cc.scope may be consumed
+// directly inside it, even though the block-local matcher must stop at that
+// boundary. Exact result-to-operand threading proves the ordered qubit roles;
+// shareOptimizationRegion keeps atomic and unsupported boundaries opaque.
+template <typename QOP>
+static QOP getCrossScopePredecessor(QOP endpoint) {
+  auto endpointFlow = cudaq::quake::detail::getScalarWireFlow(endpoint);
+  if (!endpointFlow || endpointFlow->inputs.empty())
+    return {};
+
+  auto predecessor = endpointFlow->inputs.front().template getDefiningOp<QOP>();
+  if (!predecessor || predecessor->getBlock() == endpoint->getBlock() ||
+      shouldSkipRewrite(endpoint, predecessor) ||
+      !haveSameControlArityAndPolarity(predecessor, endpoint))
+    return {};
+
+  return predecessor;
+}
+
+template <typename QOP>
+static QOP getCrossScopeAdjacentPredecessor(QOP endpoint) {
+  auto predecessor = getCrossScopePredecessor(endpoint);
+  if (!predecessor)
+    return {};
+
+  auto endpointFlow = cudaq::quake::detail::getScalarWireFlow(endpoint);
+  auto predecessorFlow = cudaq::quake::detail::getScalarWireFlow(predecessor);
+  if (!endpointFlow || !predecessorFlow ||
+      !llvm::equal(predecessorFlow->results, endpointFlow->inputs))
+    return {};
+  return predecessor;
+}
 // Splice both endpoints out of their wires. Each result denotes the same qubit
 // as the operand it came from, so forwarding an operation's own wire operands
 // to its own results is right whichever order it names those qubits in. The
@@ -150,24 +183,37 @@ cancelTransparentPair(QOP anchor,
   return success();
 }
 
-template <typename QOP>
-class HermitianElimination : public OpRewritePattern<QOP> {
+enum class InversePairKind { SelfInverse, OppositeAdjoints };
+
+template <typename QOP, InversePairKind Kind = InversePairKind::SelfInverse>
+class InverseElimination : public OpRewritePattern<QOP> {
 public:
-  HermitianElimination(MLIRContext *context,
-                       cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                       Pass::Statistic &stat)
+  InverseElimination(MLIRContext *context,
+                     cudaq::opt::CommutationAwareRewriteMatcher &matcher,
+                     Pass::Statistic &stat)
       : OpRewritePattern<QOP>(context), matcher(matcher), stat(stat) {}
 
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
     auto result = cancelTransparentPair(
         qop, matcher, rewriter, [&](Operation *candidate) {
-          return static_cast<bool>(
-              getSameActionEndpoint(qop, candidate, matcher));
+          auto endpoint = getSameActionEndpoint(qop, candidate, matcher);
+          return endpoint && (Kind == InversePairKind::SelfInverse ||
+                              qop.isAdj() != endpoint.isAdj());
         });
-    if (succeeded(result))
+    if (succeeded(result)) {
       ++stat;
-    return result;
+      return success();
+    }
+
+    auto predecessor = getCrossScopeAdjacentPredecessor(qop);
+    if (!predecessor || (Kind == InversePairKind::OppositeAdjoints &&
+                         qop.isAdj() == predecessor.isAdj()))
+      return failure();
+
+    cancelPair(predecessor, qop, rewriter);
+    ++stat;
+    return success();
   }
 
 private:
@@ -195,12 +241,12 @@ static bool hasTransposedTargetsOnAnchorWires(cudaq::quake::SwapOp anchor,
 }
 
 template <>
-class HermitianElimination<cudaq::quake::SwapOp>
+class InverseElimination<cudaq::quake::SwapOp>
     : public OpRewritePattern<cudaq::quake::SwapOp> {
 public:
-  HermitianElimination(MLIRContext *context,
-                       cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                       Pass::Statistic &stat)
+  InverseElimination(MLIRContext *context,
+                     cudaq::opt::CommutationAwareRewriteMatcher &matcher,
+                     Pass::Statistic &stat)
       : OpRewritePattern<cudaq::quake::SwapOp>(context), matcher(matcher),
         stat(stat) {}
 
@@ -213,34 +259,19 @@ public:
                  (matcher.haveSameOrderedQuantumOperands(qop, endpoint) ||
                   hasTransposedTargetsOnAnchorWires(qop, endpoint));
         });
-    if (succeeded(result))
+    if (succeeded(result)) {
       ++stat;
-    return result;
-  }
+      return success();
+    }
 
-private:
-  cudaq::opt::CommutationAwareRewriteMatcher &matcher;
-  Pass::Statistic &stat;
-};
+    auto predecessor = getCrossScopePredecessor(qop);
+    if (!predecessor || (!getCrossScopeAdjacentPredecessor(qop) &&
+                         !hasTransposedTargetsOnAnchorWires(predecessor, qop)))
+      return failure();
 
-template <typename QOP>
-class AdjointElimination : public OpRewritePattern<QOP> {
-public:
-  AdjointElimination(MLIRContext *context,
-                     cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                     Pass::Statistic &stat)
-      : OpRewritePattern<QOP>(context), matcher(matcher), stat(stat) {}
-
-  LogicalResult matchAndRewrite(QOP qop,
-                                PatternRewriter &rewriter) const override {
-    auto result = cancelTransparentPair(
-        qop, matcher, rewriter, [&](Operation *candidate) {
-          auto endpoint = getSameActionEndpoint(qop, candidate, matcher);
-          return endpoint && qop.isAdj() != endpoint.isAdj();
-        });
-    if (succeeded(result))
-      ++stat;
-    return result;
+    cancelPair(predecessor, qop, rewriter);
+    ++stat;
+    return success();
   }
 
 private:
@@ -499,7 +530,7 @@ public:
       return failure();
 
     auto endpoint = cast<SourceOp>(match->endpoint);
-    // Let AdjointElimination own the nearest opposite-adjoint pair.
+    // Let the inverse-elimination pattern own the opposite-adjoint pair.
     if (anchor.isAdj() != endpoint.isAdj())
       return failure();
 
@@ -524,7 +555,7 @@ private:
   Pass::Statistic &stat;
 };
 
-// S = YSX
+// X S Y = -S; X S<adj> Y = S<adj>.
 class ReduceYSX : public OpRewritePattern<cudaq::quake::XOp> {
 public:
   ReduceYSX(MLIRContext *context, Pass::Statistic &stat)
@@ -534,20 +565,20 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
-        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
+        !isa<cudaq::quake::WireType>(targets.front().getType())) {
       LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
       return failure();
     }
-    Value trgt = targets[0];
 
-    auto prev0 = targets[0].template getDefiningOp<cudaq::quake::SOp>();
-    if (!prev0) {
+    auto prev0 = targets.front().template getDefiningOp<cudaq::quake::SOp>();
+    if (!prev0 || !prev0.getControls().empty() ||
+        prev0.getTargets().size() != 1) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be S\n");
       return failure();
     }
     auto prev =
-        prev0.getTargets()[0].template getDefiningOp<cudaq::quake::YOp>();
-    if (!prev) {
+        prev0.getTargets().front().template getDefiningOp<cudaq::quake::YOp>();
+    if (!prev || !prev.getControls().empty() || prev.getTargets().size() != 1) {
       LLVM_DEBUG(llvm::dbgs() << "previous previous operation must be Y\n");
       return failure();
     }
@@ -757,15 +788,17 @@ public:
         ctx, matcher, numDoubleSRewrites);
     patterns.add<DiscretePhaseFold<cudaq::quake::TOp, cudaq::quake::SOp>>(
         ctx, matcher, numDoubleTRewrites);
-    patterns.add<HermitianElimination<cudaq::quake::HOp>,
-                 HermitianElimination<cudaq::quake::SwapOp>,
-                 HermitianElimination<cudaq::quake::XOp>,
-                 HermitianElimination<cudaq::quake::YOp>,
-                 HermitianElimination<cudaq::quake::ZOp>>(
+    patterns.add<InverseElimination<cudaq::quake::HOp>,
+                 InverseElimination<cudaq::quake::SwapOp>,
+                 InverseElimination<cudaq::quake::XOp>,
+                 InverseElimination<cudaq::quake::YOp>,
+                 InverseElimination<cudaq::quake::ZOp>>(
         ctx, matcher, numHermitianEliminations);
-    patterns.add<AdjointElimination<cudaq::quake::SOp>,
-                 AdjointElimination<cudaq::quake::TOp>>(ctx, matcher,
-                                                        numAdjointEliminations);
+    patterns.add<InverseElimination<cudaq::quake::SOp,
+                                    InversePairKind::OppositeAdjoints>,
+                 InverseElimination<cudaq::quake::TOp,
+                                    InversePairKind::OppositeAdjoints>>(
+        ctx, matcher, numAdjointEliminations);
     if (rotationsToCliffordT)
       populateRotationsToCliffordTPatterns(patterns, cliffordTEpsilon,
                                            numCliffordTRotations);
