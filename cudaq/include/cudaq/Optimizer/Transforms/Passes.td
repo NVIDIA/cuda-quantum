@@ -226,6 +226,22 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
                            "quake::QuakeDialect"];
 }
 
+def OptimizeCliffordT
+    : Pass<"optimize-clifford-t", "mlir::ModuleOp"> {
+  let summary = "Optimize exact single-qubit Clifford+T gate chains.";
+  let description = [{
+    Optimizes block-local chains of exact, uncontrolled single-qubit
+    Clifford+T operations on scalar `!quake.wire` values. The pass leaves
+    unsupported operations and wire-flow boundaries unchanged.
+
+    The initial implementation omits scalar W phase factors from emitted
+    Quake operations, so rewrites preserve equivalence modulo global phase.
+    The pass skips the module when a controlled `quake.apply` remains, because
+    an omitted callee phase would become a relative phase under control.
+  }];
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def PruneNegligibleRotations
     : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
   let summary = "Erase constant-angle rotations that are effectively identity.";

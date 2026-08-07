@@ -113,6 +113,11 @@ public:
     return n;
   }
 
+  /// Return the `Matsumoto-Amano` normal form in the same matrix-multiplication
+  /// order as this circuit. The result preserves exact U(2) equality,
+  /// including every scalar W phase, and has minimum T count.
+  Circuit normalized() const;
+
   //===--------------------------------------------------------------------===//
   // Serialization
   //===--------------------------------------------------------------------===//
