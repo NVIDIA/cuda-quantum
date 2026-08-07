@@ -9,7 +9,7 @@ core compiler:
 'driver (nvq++)':
   - changed-files:
     - any-glob-to-any-file:
-      - cudaq/tools/nvqpp/**
+      - cudaq/tools/nvq++/**
 
 c++ bridge:
   - changed-files:
