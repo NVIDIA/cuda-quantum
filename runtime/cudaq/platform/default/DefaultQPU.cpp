@@ -190,7 +190,7 @@ cudaq::DefaultQPU::getCompileTarget(const dem_policy &policy) {
 
 cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const estimate_policy &policy) {
-  return getDefaultCompileTarget(policy);
+  return createDefaultCompileTarget();
 }
 
 cudaq::CompileTarget

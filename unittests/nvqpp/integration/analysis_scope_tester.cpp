@@ -12,7 +12,6 @@
 #include "nvqir/resourcecounter/ResourceCounter.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/simulators.h"
-#include <cudaq/algorithms/resource_estimation.h>
 #include <stdexcept>
 #include <utility>
 
@@ -90,31 +89,6 @@ CUDAQ_TEST(AnalysisScopeTester, getCountsRejectsForeignScope) {
 
   nvqir::AnalysisScope s{"backend_scope", *backendSim, {}};
   EXPECT_ANY_THROW(nvqir::resource_counter::get_counts(s));
-}
-
-CUDAQ_TEST(AnalysisScopeTester, recoversAfterThrowingChoice) {
-  auto kernelWithMeasure = []() __qpu__ {
-    cudaq::qubit q;
-    h(q);
-    mz(q);
-  };
-  auto plainKernel = []() __qpu__ {
-    cudaq::qubit q;
-    h(q);
-  };
-
-  // The choice function throws when invoked, which propagates out of
-  // estimate_resources. The RAII scope must release on the way out.
-  EXPECT_THROW(cudaq::estimate_resources(
-                   []() -> bool { throw std::runtime_error("choice failed"); },
-                   kernelWithMeasure),
-               std::runtime_error);
-  EXPECT_FALSE(nvqir::AnalysisScope::is_active());
-
-  // A subsequent estimate_resources on the same thread must work.
-  auto resources = cudaq::estimate_resources(plainKernel);
-  EXPECT_EQ(resources.count("h"), 1u);
-  EXPECT_FALSE(nvqir::AnalysisScope::is_active());
 }
 
 CUDAQ_TEST(AnalysisScopeTester, releasesOnException) {

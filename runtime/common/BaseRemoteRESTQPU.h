@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
