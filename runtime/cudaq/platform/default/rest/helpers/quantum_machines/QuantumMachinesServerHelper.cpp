@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/ExtraPayloadProvider.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
@@ -23,12 +24,18 @@
 
 using json = nlohmann::json;
 
+namespace {
+constexpr const char *decoderConfigPayloadType = "gpu_decoder_config";
+constexpr const char *decoderConfigJobJsonPath = "/decoder_config";
+} // namespace
+
 namespace cudaq {
 
 /// @brief The QuantumMachinesServerHelper class extends the ServerHelper class
 /// to handle interactions with the Quantum Machines server for submitting and
 /// retrieving quantum computation jobs.
-class QuantumMachinesServerHelper : public ServerHelper {
+class QuantumMachinesServerHelper : public ServerHelper,
+                                    public QirServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api.quantum-machines.com";
   static constexpr const char *DEFAULT_VERSION = "v1.0.0";
   static constexpr const char *DEFAULT_EXECUTOR = "mock";
@@ -63,9 +70,37 @@ public:
         getValueOrDefault(config, "version", DEFAULT_VERSION);
     backendConfig["executor"] =
         getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
+    backendConfig["qubit_mapping_mode"] =
+        getValueOrDefault(config, "qubit_mapping_mode", "local_get_latest");
     // Check for API key in config, then fall back to environment variable
+    // Resolve the API key from either 'api_key' or 'api_key_file'.
     std::string apiKey = getValueOrDefault(config, "api_key", "");
-    if (apiKey.empty()) {
+    std::string apiKeyFile = getValueOrDefault(config, "api_key_file", "");
+
+    if (config.find("simulator_duration") != config.end()) {
+      backendConfig["simulator_duration"] = config.at("simulator_duration");
+    }
+
+    if (!apiKey.empty() && !apiKeyFile.empty()) {
+      CUDAQ_ERROR("Both 'api_key' and 'api_key_file' were provided. "
+                  "Please specify only one.");
+    } else if (!apiKeyFile.empty()) {
+      // Read the key from the file.
+      std::ifstream file(apiKeyFile);
+      if (!file.is_open()) {
+        CUDAQ_ERROR("Could not open api_key_file: " + apiKeyFile);
+      }
+      std::stringstream buffer;
+      buffer << file.rdbuf();
+      apiKey = buffer.str();
+      // Strip surrounding whitespace (e.g. a trailing newline).
+      cudaq::trim(apiKey);
+      // The file has been consumed into 'api_key'. Remove 'api_key_file' so a
+      // subsequent initialize() pass (the platform initializes more than once)
+      // does not see both keys and falsely trip the mutual-exclusivity guard.
+      backendConfig.erase("api_key_file");
+    } else if (apiKey.empty()) {
+      // Neither was provided: fall back to the environment variable.
       char *envApiKey = std::getenv("QUANTUM_MACHINES_API_KEY");
       if (envApiKey)
         apiKey = envApiKey;
@@ -76,6 +111,29 @@ public:
                backendConfig);
   }
 
+  inline std::string kernelExecutionToString(const KernelExecution &ke) {
+    std::ostringstream ss;
+    ss << "KernelExecution {\n";
+    ss << "  name: " << ke.name << "\n";
+    ss << "  code:\n" << ke.code << "\n";
+
+    ss << "  jit: " << (ke.jit.has_value() ? "<present>" : "<none>") << "\n";
+    ss << "  resourceCounts: "
+       << (ke.resourceCounts.has_value() ? "<present>" : "<none>") << "\n";
+
+    ss << "  output_names: " << ke.output_names.get().dump(2) << "\n";
+    ss << "  user_data: " << ke.user_data.get().dump(2) << "\n";
+
+    ss << "  mapping_reorder_idx: [";
+    for (std::size_t i = 0; i < ke.mapping_reorder_idx.size(); ++i)
+      ss << ke.mapping_reorder_idx[i]
+         << (i + 1 < ke.mapping_reorder_idx.size() ? ", " : "");
+    ss << "]\n";
+
+    ss << "}";
+    return ss.str();
+  }
+
   /// @brief Creates a quantum computation job using the provided kernel
   /// executions and returns the corresponding payload.
   // A Server Job Payload consists of a job post URL path, the headers,
@@ -84,12 +142,43 @@ public:
   //    std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
-    CUDAQ_INFO("In createJob. code: {}", circuitCodes[0].code);
+    CUDAQ_INFO("In createJob. code: {}",
+               kernelExecutionToString(circuitCodes[0]));
+    auto *executionContext = cudaq::getExecutionContext();
+    const std::string requestType =
+        executionContext ? executionContext->name : "unknown";
+    const bool isRunRequest = requestType == "run";
     ServerMessage job;
     job["content"] = circuitCodes[0].code;
-    job["source"] = "oq2";
+    job["source"] = "quake";
     job["shots"] = shots;
     job["executor"] = backendConfig["executor"];
+    job["qubit_mapping_mode"] = backendConfig["qubit_mapping_mode"];
+    job["output_format"] = isRunRequest ? "qir-raw" : "histogram";
+    if (backendConfig.find("simulator_duration") != backendConfig.end()) {
+      job["simulator_duration"] =
+          std::stoi(backendConfig["simulator_duration"]);
+    }
+    const auto providerConfig =
+        runtimeTarget.runtimeConfig.find("extra_payload_provider");
+    if (providerConfig != runtimeTarget.runtimeConfig.end()) {
+      cudaq::ExtraPayloadProvider *extraPayloadProvider = nullptr;
+      for (const auto &provider : cudaq::getExtraPayloadProviders()) {
+        if (provider->name() == providerConfig->second) {
+          extraPayloadProvider = provider.get();
+          break;
+        }
+      }
+      if (!extraPayloadProvider)
+        throw std::runtime_error("ExtraPayloadProvider with name " +
+                                 providerConfig->second + " not found.");
+      if (extraPayloadProvider->getPayloadType() != decoderConfigPayloadType)
+        throw std::runtime_error("Invalid extra payload provider type '" +
+                                 extraPayloadProvider->getPayloadType() +
+                                 "'. This is not supported on this target.");
+      job[json::json_pointer(decoderConfigJobJsonPath)] =
+          extraPayloadProvider->getExtraPayload(runtimeTarget);
+    }
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"] + "/v1/execute";
     return std::make_tuple(path, headers, std::vector<ServerMessage>{job});
@@ -101,8 +190,11 @@ public:
     if (!postResponse.contains("id"))
       return "";
 
+    // Extract the job ID from the response
+    std::string id = postResponse.at("id");
+
     // Return the job ID from the response
-    return postResponse.at("id");
+    return id;
   }
 
   /// @brief Constructs the URL for retrieving a job based on the server's
@@ -133,7 +225,7 @@ public:
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override {
     CUDAQ_INFO("Sample results: {}", getJobResponse.dump());
-    auto samplesJson = getJobResponse["samples"];
+    auto samplesJson = getJobResponse["results"];
     cudaq::CountsDictionary counts;
     for (auto &item : samplesJson.items()) {
       std::string bitstring = item.key();
@@ -152,6 +244,63 @@ public:
   nextResultPollingInterval(ServerMessage &postResponse) override {
     CUDAQ_INFO("nextResultPollingInterval");
     return std::chrono::seconds(1);
+  }
+
+  std::string extractOutputLog(ServerMessage &postJobResponse,
+                               std::string &jobId) override {
+    CUDAQ_INFO("extractOutputLog: {}, {}", jobId, postJobResponse.dump());
+    return postJobResponse["results"];
+  }
+
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) override {
+    std::string mappingMode = backendConfig["qubit_mapping_mode"];
+    if (mappingMode == "backend") {
+      CUDAQ_INFO("Backend qubit mapping.");
+      return {};
+    }
+    std::filesystem::path qpuConfigPath =
+        platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
+    std::string machineconfigFilePath = qpuConfigPath.string();
+    if (mappingMode == "local_get_latest") {
+      // If mapping is done locally with the latest qpu config from the backend,
+      // we need to get the latest qpu config file from the backend and provide
+      // that to the mapping pass. Get the latest qpu config file from the
+      // backend and set quantumArchitectureFilePath to its path
+      try {
+        // Create a RestClient and get the latest qpu config from
+        // backendConfig["url"]+"/v1/config/qubits" from the backend Store the
+        // response in a file in the platformPath / "mapping/quantum_machines"
+        // directory, and set quantumArchitectureFilePath to that file path
+        RestClient client;
+        auto headers = getHeaders();
+        auto response = client.getRawText(backendConfig["url"],
+                                          "/v1/config/qubits", headers);
+        std::string qpuConfig = response;
+        CUDAQ_INFO("Updated configuration: {}", qpuConfig);
+        std::filesystem::create_directories(qpuConfigPath.parent_path());
+        std::ofstream outFile(qpuConfigPath);
+        outFile << qpuConfig;
+        outFile.close();
+
+      } catch (const std::exception &e) {
+        throw std::runtime_error(
+            "Failed to get latest qpu config from backend: " +
+            std::string(e.what()));
+      }
+    } else if (mappingMode != "local_file") {
+      throw std::runtime_error(
+          "qubit_mapping_mode: " + mappingMode +
+          " is not supported. Supported modes are 'local-file', "
+          "'local-get-latest', and 'backend'.");
+    }
+    // Adjust the qubit-mapping pipeline to use the selected machine
+    // configuration file.
+    const std::string needle = "qubit-mapping{device=bypass}";
+    const std::string replacement = "qubit-mapping{device=file(" +
+                                    machineconfigFilePath +
+                                    ") placement=greedy}";
+    return {{needle, replacement}};
   }
 };
 
