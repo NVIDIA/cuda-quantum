@@ -51,20 +51,27 @@ The authored
 :doc:`Quake semantic specification <../../../specification/quake-dialect>`
 explains the reference and value models and the reasoning behind them.
 
+.. _quake-optimizer-form:
+
 Quake optimizer form
 ^^^^^^^^^^^^^^^^^^^^
 
-Quake optimizer form is value-semantics IR with explicit wire and cable
-dataflow. For supported IR, ``quake-to-optimizer-form`` splits fixed-size
-allocations, expands vector controls, converts references to values, and
-threads each reused control through the operations that use it. The pipeline
-does not simplify gates or perform other quantum optimizations.
+Quake optimizer form is the form of Quake IR produced by
+``quake-to-optimizer-form`` for quantum optimization. Its ``!quake.wire`` and
+``!quake.cable`` values make dependencies between quantum operations explicit,
+so optimization passes can follow them directly. Write quantum optimization
+passes against optimizer form by default. Use another Quake form only when the
+optimization cannot be expressed in optimizer form.
 
-Dynamic registers, runtime-indexed elements, and other unsupported constructs
-stay in their existing form. Optimizer form is therefore a pipeline boundary,
-not a guarantee that an entire function has been converted.
+The pipeline splits fixed-size allocations, expands vector controls, converts
+references to values, and threads each reused control through the operations
+that use it. It leaves dynamic registers, runtime-indexed elements, and other
+unsupported constructs unchanged, and it does not simplify gates or perform
+other quantum optimizations.
 
 Run the registered pipeline on a Quake module with:
+
+.. :spellcheck-disable:
 
 .. code:: bash
 
@@ -72,28 +79,46 @@ Run the registered pipeline on a Quake module with:
      --pass-pipeline='builtin.module(quake-to-optimizer-form)' \
      input.qke -o -
 
-The regression input provides a small example:
+.. :spellcheck-enable:
+
+For example, start with:
 
 .. literalinclude:: ../../../../../cudaq/test/Transforms/quake_to_optimizer_form.qke
    :language: mlir
    :start-at: func.func private @callee
    :end-at: }
 
-The fixed-size control register and target become three ``!quake.wire``
-values. The controlled ``quake.x`` consumes and returns all three wires. The
-call to the reference-form ``callee`` uses a ``!quake.cable<2>`` boundary, and
-the dynamic function argument remains a ``!quake.veq<?>``. The same regression
-test checks these properties and verifies each pass in the pipeline.
+The command produces:
 
-.. only:: compiler_developer_docs
+.. :spellcheck-disable:
 
-   A pass that requires optimizer form should state that input requirement in
-   its pass description. See :ref:`the compiler pass input and output guidance
-   <compiler-pass-input-output-ir>` for the corresponding implementation and
-   test expectations.
+.. code:: mlir
 
-   See the :doc:`generated Quake dialect documentation
-   </_mdgen/Dialects/Quake>` for operation and type details.
+   module {
+     func.func private @callee(!quake.veq<?>)
+     func.func @optimizer_form(%arg0: !quake.veq<?>) {
+       %0 = quake.null_wire
+       %1 = quake.null_wire
+       %2 = quake.null_wire
+       %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+       %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+       %5:3 = quake.x [%0, %1] %4 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+       %6 = quake.bundle_cable %5#0, %5#1 : (!quake.wire, !quake.wire) -> !quake.cable<2>
+       %7 = quake.call_by_ref @callee(%6) : (!quake.cable<2>) -> !quake.cable<2>
+       %8:2 = quake.split_cable %7 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+       quake.sink %5#2 : !quake.wire
+       quake.sink %8#0 : !quake.wire
+       quake.sink %8#1 : !quake.wire
+       return
+     }
+   }
+
+.. :spellcheck-enable:
+
+The fixed-size allocations become three ``!quake.wire`` values, while the
+dynamic argument remains a ``!quake.veq<?>``. The call crosses into reference
+form through a ``!quake.cable<2>``. Both ``quake.h`` operations remain because
+this pipeline prepares the IR without optimizing it.
 
 CC
 --

@@ -94,15 +94,15 @@ phase, equivalence under a known qubit mapping, or a bounded approximation, it
 should state that explicitly. Passes involving measurement or other
 non-unitary behavior should describe the observable behavior they preserve.
 
-Quantum optimizations that reason about gate order or quantum dependencies
-should use Quake's value form unless the transformation specifically needs
-Quake's reference semantics, for example to reason about allocation, lifetime,
-or aliasing. ``!quake.wire`` and ``!quake.cable`` are linear types, so their
-use-def chains expose how quantum state flows between operations without
-reconstructing aliases between ``!quake.ref`` and ``!quake.veq`` values. The
-:doc:`Quake semantic specification <../../../specification/quake-dialect>`
-explains the reference and value models and the boundaries formed by
-``quake.unwrap`` and ``quake.wrap``.
+Write quantum optimization passes against
+:ref:`Quake optimizer form <quake-optimizer-form>` by default. Use another
+Quake form only when the pass cannot do its work in optimizer form, for example
+when it must reason about allocation, lifetime, or aliasing. ``!quake.wire``
+and ``!quake.cable`` are linear types, so their use-def chains expose
+dependencies between operations without reconstructing aliases between
+``!quake.ref`` and ``!quake.veq`` values. The :doc:`Quake semantic specification
+<../../../specification/quake-dialect>` explains the reference and value models
+and the boundaries formed by ``quake.unwrap`` and ``quake.wrap``.
 
 Quantum optimization passes should use these value chains and Quake operation
 interfaces instead of reconstructing a circuit by scanning operations. They
