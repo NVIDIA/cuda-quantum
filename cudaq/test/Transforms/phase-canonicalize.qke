@@ -1,0 +1,194 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+
+// A zero phase is erased and all wire operands bypass to the same result
+// positions: ordered controls first and the anchor last.
+// CHECK-LABEL: func.func @zero_wire_bypass
+// CHECK: %[[C0:.*]] = quake.null_wire
+// CHECK: %[[C1:.*]] = quake.null_wire
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink %[[C0]] : !quake.wire
+// CHECK: quake.sink %[[C1]] : !quake.wire
+// CHECK: quake.sink %[[ANCHOR]] : !quake.wire
+func.func @zero_wire_bypass() {
+  %zero = arith.constant 0.0 : f64
+  %c0 = quake.null_wire
+  %c1 = quake.null_wire
+  %anchor = quake.null_wire
+  %next:3 = quake.phase (%zero) [%c0, %c1 neg [true, false]] %anchor
+      : (f64, !quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  quake.sink %next#0 : !quake.wire
+  quake.sink %next#1 : !quake.wire
+  quake.sink %next#2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @positive_two_pi_reference
+// CHECK-NOT: quake.phase
+// CHECK: return
+func.func @positive_two_pi_reference(%control: !quake.ref,
+                                     %anchor: !quake.ref) {
+  %two_pi = arith.constant 6.283185307179586 : f64
+  quake.phase (%two_pi) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @negative_two_pi_wire
+// CHECK: %[[CONTROL:.*]] = quake.null_wire
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink %[[CONTROL]] : !quake.wire
+// CHECK: quake.sink %[[ANCHOR]] : !quake.wire
+func.func @negative_two_pi_wire() {
+  %minus_two_pi = arith.constant -6.283185307179586 : f64
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %next:2 = quake.phase (%minus_two_pi) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %next#0 : !quake.wire
+  quake.sink %next#1 : !quake.wire
+  return
+}
+
+// A large value can be an exact multiple of rounded 2pi in its source format
+// while still having a physically significant remainder modulo mathematical
+// 2pi. Such phases must not be erased.
+// CHECK-LABEL: func.func @large_f64_rounded_multiple
+// CHECK: quake.phase
+func.func @large_f64_rounded_multiple(%control: !quake.ref,
+                                      %anchor: !quake.ref) {
+  %angle = arith.constant 28296951008113760.0 : f64
+  quake.phase (%angle) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @large_f32_rounded_multiple
+// CHECK: quake.phase
+func.func @large_f32_rounded_multiple(%control: !quake.ref,
+                                      %anchor: !quake.ref) {
+  %angle = arith.constant 105414360.0 : f32
+  quake.phase (%angle) [%control] %anchor
+      : (f32, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// These smaller f32/f16 cases also have an exact zero remainder against their
+// rounded source-format 2pi values, but retain observable relative phases.
+// CHECK-LABEL: func.func @scaled_f32_rounded_multiple
+// CHECK: quake.phase
+func.func @scaled_f32_rounded_multiple(%control: !quake.ref,
+                                       %anchor: !quake.ref) {
+  %angle = arith.constant 6433.98193359375 : f32
+  quake.phase (%angle) [%control] %anchor
+      : (f32, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @scaled_f16_rounded_multiple
+// CHECK: quake.phase
+func.func @scaled_f16_rounded_multiple(%control: !quake.ref,
+                                       %anchor: !quake.ref) {
+  %angle = arith.constant 100.5 : f16
+  quake.phase (%angle) [%control] %anchor
+      : (f16, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Directly adjacent reference phases with an identical ordered predicate and
+// anchor merge by adding their dynamic angles.
+// CHECK-LABEL: func.func @merge_reference(
+// CHECK-SAME: %[[A:[a-zA-Z0-9_.$-]+]]: f64, %[[B:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROL:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: %[[SUM:.*]] = arith.addf %[[A]], %[[B]] : f64
+// CHECK-NEXT: quake.phase (%[[SUM]]) {{\[}}%[[CONTROL]] neg [true]{{\]}} %[[ANCHOR]]
+// CHECK-NOT: quake.phase
+func.func @merge_reference(%a: f64, %b: f64, %control: !quake.ref,
+                           %anchor: !quake.ref) {
+  quake.phase (%a) [%control neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%b) [%control neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// In wire form, every operand of the second phase is the corresponding result
+// of the first phase. The merged operation starts from the original wires and
+// preserves the positional result mapping.
+// CHECK-LABEL: func.func @merge_wire(
+// CHECK-SAME: %[[A:[a-zA-Z0-9_.$-]+]]: f64, %[[B:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[CONTROL:.*]] = quake.null_wire
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK: %[[SUM:.*]] = arith.addf %[[A]], %[[B]] : f64
+// CHECK-NEXT: %[[PHASE:.*]]:2 = quake.phase (%[[SUM]]) {{\[}}%[[CONTROL]]{{\]}} %[[ANCHOR]]
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink %[[PHASE]]#0 : !quake.wire
+// CHECK: quake.sink %[[PHASE]]#1 : !quake.wire
+func.func @merge_wire(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %first:2 = quake.phase (%a) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %second:2 = quake.phase (%b) [%first#0] %first#1
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %second#0 : !quake.wire
+  quake.sink %second#1 : !quake.wire
+  return
+}
+
+// A polarity mismatch changes the predicate and prevents merging.
+// CHECK-LABEL: func.func @do_not_merge_polarity
+// CHECK-COUNT-2: quake.phase
+func.func @do_not_merge_polarity(%a: f64, %b: f64,
+                                 %control: !quake.ref,
+                                 %anchor: !quake.ref) {
+  quake.phase (%a) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.phase (%b) [%control neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Control order is part of the predicate representation.
+// CHECK-LABEL: func.func @do_not_merge_control_order
+// CHECK-COUNT-2: quake.phase
+func.func @do_not_merge_control_order(%a: f64, %b: f64,
+                                      %c0: !quake.ref, %c1: !quake.ref,
+                                      %anchor: !quake.ref) {
+  quake.phase (%a) [%c0, %c1] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.phase (%b) [%c1, %c0] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A shared threaded control is insufficient when the anchors are unrelated.
+// CHECK-LABEL: func.func @do_not_merge_wire_chain
+// CHECK-COUNT-2: quake.phase
+func.func @do_not_merge_wire_chain(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %first_anchor = quake.null_wire
+  %second_anchor = quake.null_wire
+  %first:2 = quake.phase (%a) [%control] %first_anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %second:2 = quake.phase (%b) [%first#0] %second_anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %first#1 : !quake.wire
+  quake.sink %second#0 : !quake.wire
+  quake.sink %second#1 : !quake.wire
+  return
+}
