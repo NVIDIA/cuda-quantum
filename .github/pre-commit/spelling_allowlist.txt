@@ -7,6 +7,7 @@ Aer
 AlmaLinux
 Anyon
 AquSim
+Arnold
 Asynchronous
 BFGS
 Bloch
@@ -26,6 +27,7 @@ CentOS
 Conda
 ConnectX
 CuPy
+DARUAN
 DCO
 DGX
 DOCA
@@ -70,9 +72,11 @@ Infleqtion
 IonQ
 JIT
 JSON
+Jiang
 Jupyter
 JupyterLab
 Kagome
+Kolmogorov
 Kraus
 Kutta
 LGPL
@@ -93,6 +97,7 @@ Miniconda
 MyST
 NGC
 NIC
+NISQ
 NVIDIA
 NVLink
 NVQIR
@@ -126,6 +131,8 @@ QCaaS
 QEC
 QIR
 QIS
+QKAN
+QKANs
 QOP
 QP
 QPP
@@ -135,6 +142,7 @@ QPU’s
 QPs
 QRMI
 QTX
+QVAF
 QX
 QaaS
 Qiskit
@@ -397,6 +405,7 @@ recv
 reproducibility
 responder
 resultData
+reuploading
 reusability
 ringbuffer
 rkey
@@ -413,6 +422,7 @@ selectable
 sexualized
 shifter
 shifters
+simulable
 sizeof
 splitter
 splitters
