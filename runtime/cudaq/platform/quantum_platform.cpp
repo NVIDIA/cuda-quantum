@@ -358,6 +358,7 @@ void quantum_platform::ensureRuntimeEndpointExists(std::size_t qpuId,
 void quantum_platform::resetRuntimeEndpoints() {
   std::scoped_lock lock(runtimeEndpointsMutex);
   runtimeEndpoints.clear();
+  compileTarget.reset();
 }
 
 QPU &quantum_platform::addQPU(std::unique_ptr<QPU> qpu) {
