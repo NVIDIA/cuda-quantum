@@ -174,6 +174,24 @@ argument is supplied by QRMI at runtime.
       :language: cpp
 
 
+.. _qbraid-examples:
+
+qBraid
+==================================
+
+The following code illustrates how to run kernels on qBraid's backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/qbraid.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/qbraid.cpp
+      :language: cpp
+
+
 .. _quantinuum-examples:
 
 Quantinuum
