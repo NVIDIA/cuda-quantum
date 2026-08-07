@@ -36,8 +36,9 @@ void registerMappingPipeline();
 void registerToCFGPipeline();
 void registerFaultTolerantTargetPipeline();
 
-/// Convert representable quantum IR to Quake value semantics and linearize
-/// reusable controls for downstream optimization and lowering.
+/// Prepare Quake IR for optimization. This converts supported reference-based
+/// IR to explicit wire and cable dataflow, expands vector controls, and threads
+/// reusable controls linearly.
 void addQuakeToOptimizerForm(mlir::OpPassManager &pm);
 void registerQuakeToOptimizerFormPipeline();
 

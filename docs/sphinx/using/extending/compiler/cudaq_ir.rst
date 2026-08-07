@@ -54,21 +54,43 @@ explains the reference and value models and the reasoning behind them.
 Quake optimizer form
 ^^^^^^^^^^^^^^^^^^^^
 
-Quake optimizer form uses value semantics so that quantum state and control
-dependencies are explicit in wire dataflow. The registered
-``quake-to-optimizer-form`` pipeline converts statically representable quantum
-aggregates to wires and cables, expands statically representable vector
-controls, and threads reusable controls linearly through quantum operations.
-It performs structural preparation only. Quantum simplification,
-decomposition, mapping, synthesis, and conversion back to reference semantics
-remain separate pipeline stages.
+Quake optimizer form is value-semantics IR with explicit wire and cable
+dataflow. For supported IR, ``quake-to-optimizer-form`` splits fixed-size
+allocations, expands vector controls, converts references to values, and
+threads each reused control through the operations that use it. The pipeline
+does not simplify gates or perform other quantum optimizations.
 
-This form is a pipeline boundary rather than a whole-function legality class.
-Valid dynamic aggregates and other constructs that the constituent
-transformations do not support remain explicit boundaries for downstream
-consumers to handle or diagnose.
+Dynamic registers, runtime-indexed elements, and other unsupported constructs
+stay in their existing form. Optimizer form is therefore a pipeline boundary,
+not a guarantee that an entire function has been converted.
+
+Run the registered pipeline on a Quake module with:
+
+.. code:: bash
+
+   cudaq-opt \
+     --pass-pipeline='builtin.module(quake-to-optimizer-form)' \
+     input.qke -o -
+
+The regression input provides a small example:
+
+.. literalinclude:: ../../../../../cudaq/test/Transforms/quake_to_optimizer_form.qke
+   :language: mlir
+   :start-at: func.func private @callee
+   :end-at: }
+
+The fixed-size control register and target become three ``!quake.wire``
+values. The controlled ``quake.x`` consumes and returns all three wires. The
+call to the reference-form ``callee`` uses a ``!quake.cable<2>`` boundary, and
+the dynamic function argument remains a ``!quake.veq<?>``. The same regression
+test checks these properties and verifies each pass in the pipeline.
 
 .. only:: compiler_developer_docs
+
+   A pass that requires optimizer form should state that input requirement in
+   its pass description. See :ref:`the compiler pass input and output guidance
+   <compiler-pass-input-output-ir>` for the corresponding implementation and
+   test expectations.
 
    See the :doc:`generated Quake dialect documentation
    </_mdgen/Dialects/Quake>` for operation and type details.

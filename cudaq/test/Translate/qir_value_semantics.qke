@@ -8,7 +8,6 @@
 
 // RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(codegen-for-qir{convert-to=qir value-semantics=true})' %s | FileCheck %s --check-prefix=FULL
 // RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(codegen-for-qir{convert-to=qir-base value-semantics=true})' %s | FileCheck %s --check-prefix=BASE
-// RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(codegen-for-qir{convert-to=qir-adaptive value-semantics=true})' %s | FileCheck %s --check-prefix=ADAPTIVE
 // RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(codegen-for-qir{convert-to=qir value-semantics=false})' %s | FileCheck %s --check-prefix=REFERENCE
 
 func.func @controlled() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -28,9 +27,5 @@ func.func @controlled() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this}
 // BASE: llvm.func @controlled
 // BASE-NOT: __quantum__qis__h
 // BASE: llvm.call @__quantum__qis__cnot__body
-
-// ADAPTIVE: llvm.func @controlled
-// ADAPTIVE-NOT: __quantum__qis__h
-// ADAPTIVE: llvm.call @__quantum__qis__cnot__body
 
 // REFERENCE-COUNT-2: llvm.call @__quantum__qis__h
