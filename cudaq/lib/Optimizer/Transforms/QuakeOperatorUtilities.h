@@ -45,6 +45,41 @@ inline bool isScalarQubitTarget(mlir::Value target) {
       target.getType());
 }
 
+/// Plan a statically selectable scalar target without creating IR.
+inline std::optional<StaticQubitTarget>
+planStaticQubitTarget(mlir::Value target, std::size_t sourceIndex) {
+  if (isScalarQubitTarget(target))
+    return StaticQubitTarget{target, sourceIndex, std::nullopt};
+  if (auto size = cudaq::quake::getVeqSize(target); size && *size != 0)
+    return StaticQubitTarget{target, sourceIndex, *size - 1};
+  return std::nullopt;
+}
+
+/// Plan the last scalar target accepted by \p predicate without creating IR.
+template <typename Predicate>
+inline std::optional<StaticQubitTarget>
+findLastStaticQubitTarget(mlir::ValueRange targets, Predicate predicate) {
+  for (std::size_t i = targets.size(); i != 0; --i) {
+    auto finalTarget = planStaticQubitTarget(targets[i - 1], i - 1);
+    if (!finalTarget)
+      continue;
+    if (!finalTarget->elementIndex) {
+      if (predicate(*finalTarget))
+        return finalTarget;
+      continue;
+    }
+
+    for (std::size_t element = *finalTarget->elementIndex + 1; element != 0;
+         --element) {
+      StaticQubitTarget candidate{finalTarget->source, finalTarget->sourceIndex,
+                                  element - 1};
+      if (predicate(candidate))
+        return candidate;
+    }
+  }
+  return std::nullopt;
+}
+
 /// Plan a deterministic final scalar target without creating IR.
 ///
 /// Scan source targets from right to left. A scalar reference or wire is
@@ -54,14 +89,8 @@ inline bool isScalarQubitTarget(mlir::Value target) {
 /// IR.
 inline std::optional<StaticQubitTarget>
 findLastStaticQubitTarget(mlir::ValueRange targets) {
-  for (std::size_t i = targets.size(); i != 0; --i) {
-    auto target = targets[i - 1];
-    if (isScalarQubitTarget(target))
-      return StaticQubitTarget{target, i - 1, std::nullopt};
-    if (auto size = cudaq::quake::getVeqSize(target); size && *size != 0)
-      return StaticQubitTarget{target, i - 1, *size - 1};
-  }
-  return std::nullopt;
+  return findLastStaticQubitTarget(
+      targets, [](const StaticQubitTarget &) { return true; });
 }
 
 /// Materialize a target selected by findLastStaticQubitTarget.
