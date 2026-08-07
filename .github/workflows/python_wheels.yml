@@ -340,8 +340,14 @@ jobs:
               echo "::error file=python_wheels.yml::python${{ inputs.python_version }} not found in the validation image."
               exit 1
             fi
-            mkdir -p /tmp/pyshim && ln -sf "$python_exe" /tmp/pyshim/python3
+            mkdir -p /tmp/pyshim
+            printf '#!/bin/sh\nexec "%s" "$@"\n' "$python_exe" > /tmp/pyshim/python3
+            chmod +x /tmp/pyshim/python3
             export PATH="/tmp/pyshim:$PATH"
+            if ! python3 -c "import cudaq" > /dev/null 2>&1; then
+              echo "::error file=python_wheels.yml::cudaq is not importable via the python3 used for license validation."
+              exit 1
+            fi
 
             bash /tmp/scripts/validate_license_compliance.sh --wheel
             if [ $? -ne 0 ]; then
