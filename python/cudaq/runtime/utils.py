@@ -115,6 +115,24 @@ def __isBroadcast(kernel, *args):
 
 def __createArgumentSet(*args):
     nArgSets = len(args[0])
+    if nArgSets == 0:
+        return []
+
+    # Materialize array-like arguments once.
+    materializedArgs = []
+    arrayRanks = []
+    for arg in args:
+        if hasattr(arg, "tolist"):
+            arrayRank = len(arg.shape)
+            arrayRanks.append(arrayRank)
+            # A later matrix argument may have more rows than the first
+            # argument that defines `nArgSets`. Do not materialize unused rows.
+            m = arg[:nArgSets] if arrayRank == 2 else arg
+            materializedArgs.append(m.tolist())
+        else:
+            arrayRanks.append(None)
+            materializedArgs.append(arg)
+
     argSet = []
     for j in range(nArgSets):
         currentArgs = [0 for i in range(len(args))]
@@ -123,12 +141,8 @@ def __createArgumentSet(*args):
             if isinstance(arg, list) or isinstance(arg, List):
                 currentArgs[i] = arg[j]
 
-            if hasattr(arg, "tolist"):
-                shape = arg.shape
-                if len(shape) == 2:
-                    currentArgs[i] = arg[j].tolist()
-                else:
-                    currentArgs[i] = arg.tolist()[j]
+            if arrayRanks[i] is not None:
+                currentArgs[i] = materializedArgs[i][j]
 
         argSet.append(tuple(currentArgs))
     return argSet

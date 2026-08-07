@@ -75,7 +75,7 @@ public:
     Role role;
   };
 
-  CompiledModuleCache();
+  CompiledModuleCache() = default;
   ~CompiledModuleCache() = default;
 
   /// A cache has shared identity and must not be copied or relocated. Share it
@@ -138,7 +138,7 @@ private:
 
   /// Bound only completed artifacts; compiling entries must remain discoverable
   /// so a later equivalent caller cannot start duplicate work.
-  std::size_t maxReadyEntries = 4;
+  static constexpr std::size_t maxReadyEntries = 4;
 
   /// One mutex protects both collections, making the Missing -> Compiling and
   /// Compiling -> Ready transitions atomic.
