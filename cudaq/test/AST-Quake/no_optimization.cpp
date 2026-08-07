@@ -21,7 +21,7 @@ struct Defeatism {
 
 // clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__Defeatism()
-// CHECK:         tail call void @__quantum__qis__h(ptr
-// CHECK:         tail call void @__quantum__qis__h(ptr
+// CHECK:         tail call void @__quantum__qis__h
+// CHECK:         tail call void @__quantum__qis__h
 // CHECK-NOT:     @__quantum__qis__h
 // CHECK:         ret void
