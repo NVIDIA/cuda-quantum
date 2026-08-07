@@ -88,6 +88,7 @@ public:
         // Create a new ref.
         auto wrap =
             cudaq::quake::WrapNewOp::create(builder, loc, resTy, result);
+        ++numRepairs;
 
         // Update all the original users with an unwrap of the new ref.
         auto wireTy = cudaq::quake::WireType::get(ctx);

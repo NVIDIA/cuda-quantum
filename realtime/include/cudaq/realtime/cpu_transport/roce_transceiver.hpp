@@ -70,7 +70,7 @@ enum class CpuRoceTxMode {
 
 /// Pure-CPU RDMA RoCEv2 transceiver.  Mirrors the public API surface of
 /// `hololink::operators::GpuRoceTransceiver` (HSB) so consumers like
-/// `hololink_bridge_common.h` can swap the GPU transceiver for this CPU
+/// `gpu_roce_bridge_common.h` can swap the GPU transceiver for this CPU
 /// one with minimal wiring changes.
 ///
 /// Lifecycle:
@@ -213,7 +213,7 @@ public:
   // ===========================================================================
 
   /// Local QP number assigned by ibv_create_qp.  Pass this to the FPGA
-  /// (Phase 1, via hololink_channel->authenticate) or to the peer
+  /// (Phase 1, via hsb_channel->authenticate) or to the peer
   /// (Phase 2, via the daemon-prints-stdout rendezvous).
   std::uint32_t get_qp_number() const;
 
@@ -229,7 +229,7 @@ public:
 
   // ===========================================================================
   // Ring accessors mirroring GpuRoceTransceiver's get_*_ring_* surface
-  // exactly.  Consumers in hololink_bridge_common.h populate cudaq_ringbuffer_t
+  // exactly.  Consumers in gpu_roce_bridge_common.h populate cudaq_ringbuffer_t
   // from these.
   // ===========================================================================
 

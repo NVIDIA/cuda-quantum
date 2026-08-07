@@ -1720,6 +1720,14 @@ class PyKernel(object):
             self._compiled_module_cache = cudaq_runtime.CompiledModuleCache()
         return self._compiled_module_cache
 
+    def disable_quantum_optimization(self):
+        """
+        Mark this kernel so that quantum optimization passes (e.g. value
+        semantics lowering) are skipped during code generation.
+        """
+        self.module.operation.attributes.__setitem__(
+            'quake.noOptimization', UnitAttr.get(context=self.ctx))
+
     @trace.traced
     def compile(self):
         """

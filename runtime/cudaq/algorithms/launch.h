@@ -63,7 +63,7 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
   }
 
   typename Policy::result_type result;
-  auto &qpu = platform.getQPU(qpu_id);
+  auto &qpu = platform.getRuntimeEndpoint(qpu_id);
   ctx.executeKernelApi = [&qpu, &result, &policy](const AnyModule &module,
                                                   const KernelArgs &args) {
     CompiledModule compiled;

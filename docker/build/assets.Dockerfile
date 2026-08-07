@@ -105,6 +105,7 @@ ADD "docs/sphinx/applications" /cuda-quantum/docs/sphinx/applications
 ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "cudaq" /cuda-quantum/cudaq
+ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
@@ -118,6 +119,7 @@ ADD "unittests" /cuda-quantum/unittests
 ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
+ADD "LICENSES" /cuda-quantum/LICENSES
 ADD "NOTICE" /cuda-quantum/NOTICE
 
 ARG release_version=
@@ -155,7 +157,9 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v -- -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
+    bash scripts/build_cudaq.sh -t llvm -v -- \
+        "-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime" \
+        -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
     echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
     ## [<CUDAQuantumCppBuild]
@@ -167,6 +171,36 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         exit 1; \
     fi
 
+# Validate that the realtime integration and its CUDA-Q device-call consumers
+# were built and installed. The GPU test is compile-only in this CPU-runner
+# pipeline; the no-GPU host-dispatch tests run in the cpp_tests stage below.
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    for artifact in \
+        include/cudaq/realtime.h \
+        lib/libcudaq-realtime.so \
+        lib/libcudaq-realtime-dispatch.a \
+        lib/libcudaq-realtime-host-dispatch.a \
+        lib/libcudaq-realtime-udp-transport.a \
+        lib/libcudaq-device-call-runtime.so \
+        lib/cmake/cudaq-realtime/cudaq-realtime-config.cmake \
+        realtime/LICENSE \
+        realtime/NOTICE; \
+    do \
+        if [ ! -e "$CUDAQ_INSTALL_PREFIX/$artifact" ]; then \
+            echo -e "\e[01;31mError: Missing realtime artifact: $artifact.\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done && \
+    for executable in \
+        /cuda-quantum/build/unittests/test_device_call_dispatch \
+        /cuda-quantum/build/unittests/test_host_dispatch_no_gpu; \
+    do \
+        if [ ! -x "$executable" ]; then \
+            echo -e "\e[01;31mError: Missing realtime test executable: $executable.\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done
+
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
     shared_libraries=$(find "${CUDAQ_INSTALL_PREFIX}" -name '*.so') && \
@@ -176,7 +210,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         libname="$(basename "$binary")" && \
         # Linking cublas dynamically necessarily adds a libgcc_s dependency to the GPU-based simulators.
         # The same holds for a range of CUDA libraries, whereas libcudart.so does not have any GCC dependencies.
-        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
+        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
             echo "Skipping validation of $libname."; \
         elif [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
             has_gcc_dependencies=true && \
@@ -201,6 +235,7 @@ ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
+ADD "LICENSES" /cuda-quantum/LICENSES
 ADD "NOTICE" /cuda-quantum/NOTICE
 ADD "CITATION.cff" /cuda-quantum/CITATION.cff
 
@@ -384,4 +419,3 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
         dnf install -y --nobest --setopt=install_weak_deps=False \
             libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \
     fi
-
