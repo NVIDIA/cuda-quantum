@@ -1,0 +1,35 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The conservative module-wide controlled-apply guard remains until the
+// exact-decomposition inventory is complete.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s \
+// RUN:   | FileCheck %s --check-prefix=DECOMP
+
+// Basis conversion retains its explicit diagnostic for the same boundary.
+// RUN: not cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=rz})' %s 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=ERROR
+
+func.func private @phase_producer(%theta: f64, %target: !quake.ref) {
+  quake.r1 (%theta) %target : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @controlled_caller(%theta: f64, %control: !quake.ref,
+                             %target: !quake.ref) {
+  quake.apply @phase_producer [%control] %theta, %target
+      : (!quake.ref, f64, !quake.ref) -> ()
+  return
+}
+
+// DECOMP-LABEL: func.func private @phase_producer
+// DECOMP: quake.r1
+// DECOMP-NOT: quake.rz
+// DECOMP-NOT: quake.phase
+
+// ERROR: error: Basis conversion doesn't work with `quake.apply`
