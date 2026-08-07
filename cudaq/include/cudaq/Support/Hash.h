@@ -11,7 +11,7 @@
 #include <cstddef>
 #include <functional>
 
-namespace cudaq {
+namespace cudaq::detail {
 
 /// Combine \p val into an existing hash \p seed (boost-style).
 template <typename T>
@@ -28,4 +28,4 @@ inline std::size_t hashVal(const Args &...args) {
   return seed;
 }
 
-} // namespace cudaq
+} // namespace cudaq::detail

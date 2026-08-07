@@ -110,7 +110,7 @@ cudaq::CompileTarget::CompileTarget(
 
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
-  std::size_t seed = cudaq::hashVal(
+  std::size_t seed = cudaq::detail::hashVal(
       t.pipelineConfig.overridePassPipeline, t.pipelineConfig.highLevelPipeline,
       t.pipelineConfig.midLevelPipeline, t.pipelineConfig.lowLevelPipeline,
       t.pipelineConfig.codegenTranslation, t.pipelineConfig.postCodeGenPasses,
@@ -122,7 +122,7 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
 
   // Optional spin observable: include its string representation when present.
   if (t.pauliTermSplitObservable)
-    cudaq::hashCombine(seed, t.pauliTermSplitObservable->to_string());
+    cudaq::detail::hashCombine(seed, t.pauliTermSplitObservable->to_string());
 
   return seed;
 }
