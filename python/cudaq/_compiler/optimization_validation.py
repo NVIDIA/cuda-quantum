@@ -29,7 +29,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime,
 #                       input state. Safest, but bounded by the 2^n dense-matrix
 #                       cost (see DEFAULT_EXACT_QUBIT_BOUND).
 #
-#   exact-clifford-sim  Full-operator equivalence via stabilizer tableaux. Also
+#   `exact-clifford-sim`  Full-operator equivalence via stabilizer tableaux. Also
 #                       exact and input-independent, and it has no qubit bound
 #                       (the tableau is O(n^2)), but it can only represent
 #                       Clifford circuits: a single T or arbitrary-angle

@@ -246,7 +246,7 @@ def clifford_ghz_module_text(num_qubits: int,
     tableau can still decide equivalence.
 
     ``chain_length`` truncates the CX chain (default: the full ``n-1`` links),
-    which is how a deliberately inequivalent sibling is built.
+    which is how a deliberately `inequivalent` sibling is built.
     """
     n = max(1, num_qubits)
     links = n - 1 if chain_length is None else max(0, min(chain_length, n - 1))
