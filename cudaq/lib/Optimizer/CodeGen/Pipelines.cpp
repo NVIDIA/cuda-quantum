@@ -88,14 +88,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
                             bool useValueSemantics) {
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createFactorQuantumAllocations());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlVeqs());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createCableRoughIn());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createRepairLinearType());
+    cudaq::opt::addQuakeToOptimizerForm(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }

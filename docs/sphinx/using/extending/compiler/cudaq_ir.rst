@@ -51,6 +51,28 @@ The authored
 :doc:`Quake semantic specification <../../../specification/quake-dialect>`
 explains the reference and value models and the reasoning behind them.
 
+Quake optimizer form
+^^^^^^^^^^^^^^^^^^^^
+
+Quake optimizer form uses value semantics so that quantum state and control
+dependencies are explicit in wire dataflow. The registered
+``quake-to-optimizer-form`` pipeline converts statically representable quantum
+aggregates to wires and cables, expands statically representable vector
+controls, and threads reusable controls linearly through quantum operations.
+It performs structural preparation only. Quantum simplification,
+decomposition, mapping, synthesis, and conversion back to reference semantics
+remain separate pipeline stages.
+
+This form is a pipeline boundary rather than a whole-function legality class.
+Valid dynamic aggregates and other constructs that the constituent
+transformations do not support remain explicit boundaries for downstream
+consumers to handle or diagnose.
+
+.. only:: compiler_developer_docs
+
+   See the :doc:`generated Quake dialect documentation
+   </_mdgen/Dialects/Quake>` for operation and type details.
+
 CC
 --
 

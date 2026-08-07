@@ -80,6 +80,24 @@ struct FaultTolerantTargetPipelineOptions
 };
 } // namespace
 
+void cudaq::opt::addQuakeToOptimizerForm(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(createCableRoughIn());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createRepairLinearType());
+  pm.addNestedPass<func::FuncOp>(createLinearCtrlRelations());
+}
+
+void cudaq::opt::registerQuakeToOptimizerFormPipeline() {
+  PassPipelineRegistration<>(
+      "quake-to-optimizer-form",
+      "Convert representable Quake IR to value semantics for optimization.",
+      addQuakeToOptimizerForm);
+}
+
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
