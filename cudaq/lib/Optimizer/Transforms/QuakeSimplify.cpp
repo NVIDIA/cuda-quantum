@@ -90,20 +90,23 @@ cancelTransparentPair(QOP anchor,
   return success();
 }
 
-template <typename QOP>
-class HermitianElimination : public OpRewritePattern<QOP> {
+enum class InversePairKind { SelfInverse, OppositeAdjoints };
+
+template <typename QOP, InversePairKind Kind = InversePairKind::SelfInverse>
+class InverseElimination : public OpRewritePattern<QOP> {
 public:
-  HermitianElimination(MLIRContext *context,
-                       cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                       Pass::Statistic &stat)
+  InverseElimination(MLIRContext *context,
+                     cudaq::opt::CommutationAwareRewriteMatcher &matcher,
+                     Pass::Statistic &stat)
       : OpRewritePattern<QOP>(context), matcher(matcher), stat(stat) {}
 
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
     auto result = cancelTransparentPair(
         qop, matcher, rewriter, [&](Operation *candidate) {
-          return static_cast<bool>(
-              getSameActionEndpoint(qop, candidate, matcher));
+          auto endpoint = getSameActionEndpoint(qop, candidate, matcher);
+          return endpoint && (Kind == InversePairKind::SelfInverse ||
+                              qop.isAdj() != endpoint.isAdj());
         });
     if (succeeded(result))
       ++stat;
@@ -135,12 +138,12 @@ static bool hasTransposedTargetsOnAnchorWires(cudaq::quake::SwapOp anchor,
 }
 
 template <>
-class HermitianElimination<cudaq::quake::SwapOp>
+class InverseElimination<cudaq::quake::SwapOp>
     : public OpRewritePattern<cudaq::quake::SwapOp> {
 public:
-  HermitianElimination(MLIRContext *context,
-                       cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                       Pass::Statistic &stat)
+  InverseElimination(MLIRContext *context,
+                     cudaq::opt::CommutationAwareRewriteMatcher &matcher,
+                     Pass::Statistic &stat)
       : OpRewritePattern<cudaq::quake::SwapOp>(context), matcher(matcher),
         stat(stat) {}
 
@@ -152,31 +155,6 @@ public:
           return endpoint && haveSameControlArityAndPolarity(qop, endpoint) &&
                  (matcher.haveSameOrderedQuantumOperands(qop, endpoint) ||
                   hasTransposedTargetsOnAnchorWires(qop, endpoint));
-        });
-    if (succeeded(result))
-      ++stat;
-    return result;
-  }
-
-private:
-  cudaq::opt::CommutationAwareRewriteMatcher &matcher;
-  Pass::Statistic &stat;
-};
-
-template <typename QOP>
-class AdjointElimination : public OpRewritePattern<QOP> {
-public:
-  AdjointElimination(MLIRContext *context,
-                     cudaq::opt::CommutationAwareRewriteMatcher &matcher,
-                     Pass::Statistic &stat)
-      : OpRewritePattern<QOP>(context), matcher(matcher), stat(stat) {}
-
-  LogicalResult matchAndRewrite(QOP qop,
-                                PatternRewriter &rewriter) const override {
-    auto result = cancelTransparentPair(
-        qop, matcher, rewriter, [&](Operation *candidate) {
-          auto endpoint = getSameActionEndpoint(qop, candidate, matcher);
-          return endpoint && qop.isAdj() != endpoint.isAdj();
         });
     if (succeeded(result))
       ++stat;
@@ -439,7 +417,7 @@ public:
       return failure();
 
     auto endpoint = cast<SourceOp>(match->endpoint);
-    // Let AdjointElimination own the nearest opposite-adjoint pair.
+    // Let the inverse-elimination pattern own the opposite-adjoint pair.
     if (anchor.isAdj() != endpoint.isAdj())
       return failure();
 
@@ -464,7 +442,7 @@ private:
   Pass::Statistic &stat;
 };
 
-// S = YSX
+// An uncontrolled Y-S-X sequence equals the middle S gate up to global phase.
 class ReduceYSX : public OpRewritePattern<cudaq::quake::XOp> {
 public:
   ReduceYSX(MLIRContext *context, Pass::Statistic &stat)
@@ -472,9 +450,6 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::quake::XOp qop,
                                 PatternRewriter &rewriter) const override {
-    if (qop.getNegatedQubitControls())
-      return failure();
-
     // The uncontrolled rewrite is equal up to global phase. Under control,
     // that phase is relative between control branches and is observable.
     // TODO: Add explicit phase compensation when Quake models global phase.
@@ -483,74 +458,30 @@ public:
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
-        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
+        !isa<cudaq::quake::WireType>(targets.front().getType())) {
       LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
       return failure();
     }
-    Value trgt = targets[0];
 
-    auto prev0 = targets[0].template getDefiningOp<cudaq::quake::SOp>();
-    if (!prev0) {
+    auto prev0 = targets.front().template getDefiningOp<cudaq::quake::SOp>();
+    if (!prev0 || !prev0.getControls().empty() ||
+        prev0.getTargets().size() != 1) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be S\n");
       return failure();
     }
     auto prev =
-        prev0.getTargets()[0].template getDefiningOp<cudaq::quake::YOp>();
-    if (!prev) {
+        prev0.getTargets().front().template getDefiningOp<cudaq::quake::YOp>();
+    if (!prev || !prev.getControls().empty() || prev.getTargets().size() != 1) {
       LLVM_DEBUG(llvm::dbgs() << "previous previous operation must be Y\n");
       return failure();
     }
-    if (prev0.getNegatedQubitControls() || prev.getNegatedQubitControls())
-      return failure();
 
-    // Check target is properly threaded.
-    auto prev0Trgs = prev0.getTargets();
-    auto prevTrgs = prev.getTargets();
-    if (prev0Trgs.size() != 1 || prevTrgs.size() != 1) {
-      LLVM_DEBUG(llvm::dbgs() << "previous operation must have 1 target\n");
-      return failure();
-    }
-    Value prev0Trgt = prev0Trgs[0];
-    Value prevTrgt = prevTrgs[0];
-    auto last0 = prev0.getNumResults() - 1;
-    auto last = prev.getNumResults() - 1;
-    if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
-        !isa<cudaq::quake::WireType>(prev0Trgt.getType()) ||
-        !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
-        trgt != prev0.getResult(last0) || prev0Trgt != prev.getResult(last)) {
-      LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n");
-      return failure();
-    }
-
-    // Check that the controls (if any) are the same qubits.
-    auto controls = qop.getControls();
-    auto prev0Ctls = prev0.getControls();
-    auto prevCtls = prev.getControls();
-    if (controls.size() != prevCtls.size() ||
-        prevCtls.size() != prev0Ctls.size()) {
-      LLVM_DEBUG(llvm::dbgs() << "must have the same number of controls\n");
-      return failure();
-    }
-    for (auto iter :
-         llvm::enumerate(llvm::zip(controls, prev0Ctls, prevCtls))) {
-      auto n = iter.index();
-      auto [c, p0c, pc] = iter.value();
-      if (!isa<cudaq::quake::WireType>(c.getType()) ||
-          !isa<cudaq::quake::WireType>(pc.getType()) ||
-          !isa<cudaq::quake::WireType>(p0c.getType()) ||
-          c != prev0.getResult(n) || p0c != prev.getResult(n)) {
-        LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
-        return failure();
-      }
-    }
-
-    // The uncontrolled Y-S-X product equals S up to global phase.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n'
                             << prev0 << '\n'
                             << prev << '\n');
     rewriter.replaceOpWithNewOp<cudaq::quake::SOp>(
-        qop, qop.getResultTypes(), UnitAttr{}, ValueRange{}, prevCtls, prevTrgs,
-        DenseBoolArrayAttr{});
+        qop, qop.getResultTypes(), prev0.getIsAdjAttr(), ValueRange{},
+        ValueRange{}, prev.getTargets(), DenseBoolArrayAttr{});
     rewriter.eraseOp(prev0);
     rewriter.eraseOp(prev);
     ++stat;
@@ -652,15 +583,17 @@ public:
         ctx, matcher, numDoubleSRewrites);
     patterns.add<DiscretePhaseFold<cudaq::quake::TOp, cudaq::quake::SOp>>(
         ctx, matcher, numDoubleTRewrites);
-    patterns.add<HermitianElimination<cudaq::quake::HOp>,
-                 HermitianElimination<cudaq::quake::SwapOp>,
-                 HermitianElimination<cudaq::quake::XOp>,
-                 HermitianElimination<cudaq::quake::YOp>,
-                 HermitianElimination<cudaq::quake::ZOp>>(
+    patterns.add<InverseElimination<cudaq::quake::HOp>,
+                 InverseElimination<cudaq::quake::SwapOp>,
+                 InverseElimination<cudaq::quake::XOp>,
+                 InverseElimination<cudaq::quake::YOp>,
+                 InverseElimination<cudaq::quake::ZOp>>(
         ctx, matcher, numHermitianEliminations);
-    patterns.add<AdjointElimination<cudaq::quake::SOp>,
-                 AdjointElimination<cudaq::quake::TOp>>(ctx, matcher,
-                                                        numAdjointEliminations);
+    patterns.add<InverseElimination<cudaq::quake::SOp,
+                                    InversePairKind::OppositeAdjoints>,
+                 InverseElimination<cudaq::quake::TOp,
+                                    InversePairKind::OppositeAdjoints>>(
+        ctx, matcher, numAdjointEliminations);
     if (failed(driver.run(op->getRegion(0))))
       signalPassFailure();
   }
