@@ -56,16 +56,35 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
     && make -C contribs/pmi2 install \
     && rm -rf /var/tmp/slurm-21.08.8 /var/tmp/slurm-21.08.8.tar.bz2
 
-# 3 - Install Mellanox OFED version 5.3-1.0.0.1
+# 3 - Install DOCA-OFED 3.1.0 (userspace)
+# Install only the RDMA/IB libraries needed to build UCX/UCC/OpenMPI, plus SHARP,
+# not the full doca-ofed-userspace metapackage (which also pulls in openmpi, hcoll, …).
+# Note: the sharp package Depends on DOCA's ucx; our UCX build below is preferred via
+# ld.so.conf.d / LD_LIBRARY_PATH.
 
-RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
-    && apt-get update -y && apt-get install -y --no-install-recommends \
-        ibverbs-providers ibverbs-utils \
-        libibmad-dev libibmad5 libibumad-dev libibumad3 \
-        libibverbs-dev libibverbs1 \
-        librdmacm-dev librdmacm1 \
-    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+ARG DOCA_VERSION=3.1.0-091000-25.07
+ENV SHARP_INSTALL_PREFIX=/opt/mellanox/sharp
+RUN arch=$([ "$TARGETARCH" = "arm64" ] && echo arm64 || echo amd64) \
+    && doca_deb="doca-host_${DOCA_VERSION}-ubuntu2404_${arch}.deb" \
+    && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/${doca_deb}" \
+    && dpkg -i "/var/tmp/${doca_deb}" \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        libibverbs1 libibverbs-dev ibverbs-providers \
+        librdmacm1 librdmacm-dev \
+        libibumad3 libibumad-dev \
+        libibmad5 libibmad-dev \
+        libxpmem0 libxpmem-dev xpmem knem \
+        sharp \
+    && echo "$SHARP_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+    && rm -f "/var/tmp/${doca_deb}" \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+# Optional runtime diagnostics (ibv_devinfo, rdma_*, ib_write_bw, ofed_info):
+# RUN apt-get update -y \
+#     && apt-get install -y --no-install-recommends \
+#         rdma-core ibverbs-utils rdmacm-utils perftest ofed-scripts \
+#     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 4 - Install GDRCOPY version 2.3.1
 
@@ -77,7 +96,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/NVIDIA/gdrcopy/archive/v${GDRCOPY_VERSION}.tar.gz \
     && tar -x -f /var/tmp/v${GDRCOPY_VERSION}.tar.gz -C /var/tmp -z && cd /var/tmp/gdrcopy-${GDRCOPY_VERSION} \
     && mkdir -p "$GDRCOPY_INSTALL_PREFIX/include" "$GDRCOPY_INSTALL_PREFIX/lib64" \
-    && make PREFIX="$GDRCOPY_INSTALL_PREFIX" lib lib_install \
+    && make prefix="$GDRCOPY_INSTALL_PREFIX" libdir="$GDRCOPY_INSTALL_PREFIX/lib64" lib lib_install \
     && echo "$GDRCOPY_INSTALL_PREFIX/lib64" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
     && rm -rf /var/tmp/gdrcopy-${GDRCOPY_VERSION} /var/tmp/v${GDRCOPY_VERSION}.tar.gz \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
@@ -85,13 +104,14 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
 
-# 5 - Install UCX version v1.19.0
+# 5 - Install UCX version 1.21.0
 
+ENV UCX_VERSION=1.21.0
 ENV UCX_INSTALL_PREFIX=/usr/local/ucx
-RUN mkdir -p /var/tmp && cd /var/tmp \
-    && git clone https://github.com/openucx/ucx.git ucx && cd /var/tmp/ucx \
-    && git checkout v1.19.0 \
-    && ./autogen.sh \
+RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://github.com/openucx/ucx/releases/download/v${UCX_VERSION}/ucx-${UCX_VERSION}.tar.gz" \
+    && tar -x -f /var/tmp/ucx-${UCX_VERSION}.tar.gz -C /var/tmp -z \
+    && cd /var/tmp/ucx-${UCX_VERSION} \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
     &&  CC=gcc CFLAGS="$common_flags" \
         CXX=g++ CXXFLAGS="$common_flags" \
@@ -100,14 +120,53 @@ RUN mkdir -p /var/tmp && cd /var/tmp \
         LDFLAGS=-Wl,--as-needed \
         ./configure --prefix="$UCX_INSTALL_PREFIX" \
             --with-cuda="$CUDA_INSTALL_PREFIX" --with-gdrcopy="$GDRCOPY_INSTALL_PREFIX" \
-            --disable-assertions --disable-backtrace-detail --disable-debug \
+            --with-knem=/opt/knem-1.1.4.90mlnx3 --with-xpmem=/usr/include \
+            --with-devx --with-rdmacm --with-dm \
+            --without-java --enable-devel-headers --enable-shared \
+            --enable-optimizations --enable-cma --enable-mt \
+            --disable-assertions --disable-debug \
             --disable-params-check --disable-static \
             --disable-doxygen-doc --disable-logging \
-            --enable-mt \
+            --with-bfd=no \
     && make -j$(nproc) && make -j$(nproc) install \
-    && rm -rf /var/tmp/ucx
+    && rm -rf /var/tmp/ucx-${UCX_VERSION} /var/tmp/ucx-${UCX_VERSION}.tar.gz
 
-# 6 - Install MUNGE version 0.5.14
+# DOCA's sharp package pulls DOCA's ucx into /usr/lib; listing our prefix in
+# ld.so.conf.d makes the loader prefer this build (those entries precede the
+# default system directories).
+RUN echo "$UCX_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig
+ENV LD_LIBRARY_PATH="$UCX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
+    PATH="$UCX_INSTALL_PREFIX/bin:$PATH"
+
+# 6 - Install UCC version 1.8.0 (latest stable) with UCX + SHARP + CUDA
+
+ENV UCC_VERSION=1.8.0
+ENV UCC_INSTALL_PREFIX=/usr/local/ucc
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+        autoconf automake libtool \
+    && mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp \
+        "https://github.com/openucx/ucc/archive/refs/tags/v${UCC_VERSION}.tar.gz" \
+    && tar -x -f /var/tmp/v${UCC_VERSION}.tar.gz -C /var/tmp -z \
+    && cd /var/tmp/ucc-${UCC_VERSION} \
+    && ./autogen.sh \
+    && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
+    &&  CC=gcc CFLAGS="$common_flags" \
+        CXX=g++ CXXFLAGS="$common_flags" \
+        LDFLAGS=-Wl,--as-needed \
+        ./configure --prefix="$UCC_INSTALL_PREFIX" \
+            --with-ucx="$UCX_INSTALL_PREFIX" \
+            --with-cuda="$CUDA_INSTALL_PREFIX" \
+            --with-sharp="$SHARP_INSTALL_PREFIX" \
+            --enable-optimizations \
+    && make -j$(nproc) && make -j$(nproc) install \
+    && echo "$UCC_INSTALL_PREFIX/lib" >> /etc/ld.so.conf.d/hpccm.conf && ldconfig \
+    && rm -rf /var/tmp/ucc-${UCC_VERSION} /var/tmp/v${UCC_VERSION}.tar.gz \
+    && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV LD_LIBRARY_PATH="$UCC_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
+    PATH="$UCC_INSTALL_PREFIX/bin:$PATH"
+
+# 7 - Install MUNGE version 0.5.14
 
 ENV MUNGE_INSTALL_PREFIX=/usr/local/munge
 RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://github.com/dun/munge/releases/download/munge-0.5.14/munge-0.5.14.tar.xz \
@@ -122,7 +181,7 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
     && make -j$(nproc) && make -j$(nproc) install \
     && rm -rf /var/tmp/munge-0.5.14 /var/tmp/munge-0.5.14.tar.xz
 
-# 7 - Install PMIX version 3.2.3
+# 8 - Install PMIX version 3.2.3
 
 ENV PMIX_INSTALL_PREFIX=/usr/local/pmix
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
@@ -145,7 +204,7 @@ ENV CPATH="$PMIX_INSTALL_PREFIX/include:$CPATH" \
     LD_LIBRARY_PATH="$PMIX_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH" \
     PATH="$PMIX_INSTALL_PREFIX/bin:$PATH"
 
-# 8 - Install OMPI version 4.1.4
+# 9 - Install OMPI version 4.1.4
 
 ENV OPENMPI_INSTALL_PREFIX=/usr/local/openmpi
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
@@ -165,9 +224,12 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
             --enable-mca-no-build=btl-uct --enable-mpi1-compatibility --enable-oshmem \
             --without-verbs \
             --with-cuda="$CUDA_INSTALL_PREFIX" \
+            --with-knem=/opt/knem-1.1.4.90mlnx3 \
+            --with-xpmem=/usr/include \
             --with-slurm --with-pmi="$PMI_INSTALL_PREFIX" \
             --with-pmix="$PMIX_INSTALL_PREFIX" \
             --with-ucx="$UCX_INSTALL_PREFIX" \
+            --with-ucc="$UCC_INSTALL_PREFIX" \
     && make -j$(nproc) && make -j$(nproc) install \
     && rm -rf /var/tmp/ompi \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
