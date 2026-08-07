@@ -190,6 +190,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     -r /cuda-quantum/requirements-dev.txt \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# MQT Core provides the optional QDMI backend's compile-time dependency and
+# the DDSIM QDMI device used by its target tests. 
+# TODO: (flowerthrower) change this to released version once available
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+    "git+https://github.com/munich-quantum-toolkit/core.git@def69f1517602ba802d1401ab97e6fa331e99d2e"
+
 # Install additional tools for CUDA-Q documentation generation.
 COPY --from=prereqs /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"

@@ -14,6 +14,20 @@ llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
 )
 
+# Locate the optional DDSIM QDMI device only for QDMI target tests.
+set(CUDAQ_QDMI_DDSIM_AVAILABLE 0)
+set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY "")
+if (CUDAQ_ENABLE_QDMI_BACKEND)
+  unset(_qdmi_ddsim_device_library)
+  find_library(_qdmi_ddsim_device_library
+    NAMES mqt-core-qdmi-ddsim-device
+    NO_CACHE)
+  if (_qdmi_ddsim_device_library)
+    set(CUDAQ_QDMI_DDSIM_DEVICE_LIBRARY "${_qdmi_ddsim_device_library}")
+    set(CUDAQ_QDMI_DDSIM_AVAILABLE 1)
+  endif()
+endif()
+
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py

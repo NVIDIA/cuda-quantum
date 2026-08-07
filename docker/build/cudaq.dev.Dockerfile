@@ -53,6 +53,7 @@ WORKDIR "$destination"
 # to create the released cuda-quantum image.
 ARG install=
 ARG cudaq_enable_projects=
+ARG enable_qdmi=false
 ARG git_source_sha=xxxxxxxx
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
@@ -75,6 +76,12 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
         cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
+        if [ "$enable_qdmi" = "true" ]; then \
+            cudaq_cmake_args+=( \
+                -DCUDAQ_ENABLE_QDMI_BACKEND=ON \
+                "-DCMAKE_PREFIX_PATH=$(mqt-core-cli --cmake_dir)" \
+            ); \
+        fi; \
         if [ -n "$cudaq_enable_projects" ]; then \
             cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
         fi; \
