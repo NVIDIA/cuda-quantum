@@ -56,6 +56,7 @@ cudaq::CompileTarget getDefaultCompileTarget(const sample_policy &policy);
 cudaq::CompileTarget getDefaultCompileTarget(const observe_policy &policy);
 cudaq::CompileTarget getDefaultCompileTarget(const run_policy &policy);
 cudaq::CompileTarget getDefaultCompileTarget(const dem_policy &policy);
+cudaq::CompileTarget getDefaultCompileTarget(const estimate_policy &policy);
 cudaq::CompileTarget getDefaultCompileTarget(const other_policies &policy,
                                              ExecutionContext *context);
 

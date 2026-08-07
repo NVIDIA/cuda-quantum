@@ -167,11 +167,16 @@ cudaq::CompileTarget getDefaultCompileTarget(const dem_policy &) {
   ct.pipelineConfig.skipTargetLoweringPipeline = true;
   return ct;
 }
-cudaq::CompileTarget getDefaultCompileTarget(const other_policies &,
-                                             ExecutionContext *context) {
+cudaq::CompileTarget getDefaultCompileTarget(const estimate_policy &) {
   auto ct = getDefaultPythonCompileTargetImpl();
   ct.overrideAOTCompilation = false;
-  ct.emitResourceCounts = context && context->name == "resource-count";
+  ct.emitResourceCounts = true;
+  return ct;
+}
+cudaq::CompileTarget getDefaultCompileTarget(const other_policies &,
+                                             ExecutionContext *) {
+  auto ct = getDefaultPythonCompileTargetImpl();
+  ct.overrideAOTCompilation = false;
   return ct;
 }
 

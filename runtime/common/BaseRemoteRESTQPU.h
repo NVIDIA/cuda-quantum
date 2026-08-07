@@ -81,11 +81,12 @@ protected:
   cudaq::config::TargetConfig targetConfig;
 
 public:
-  // This class overrides `launchKernel(dem_policy)` (local DEM generation,
-  // shared by all remote QPUs) but not the `sample`/`observe` overloads (those
-  // are overridden in the leaf QPUs). Re-import QPU's `launchKernel` overloads
-  // so this partial override does not trip nvcc "overloaded virtual function
-  // only partially overridden" error.
+  // This class overrides `launchKernel(dem_policy)` and
+  // `launchKernel(estimate_policy)` (local analyses, shared by all remote
+  // QPUs) but not the `sample`/`observe` overloads (those are overridden in
+  // the leaf QPUs). Re-import QPU's `launchKernel` overloads so this partial
+  // override does not trip nvcc "overloaded virtual function only partially
+  // overridden" error.
   using QPU::launchKernel;
 
   /// @brief The constructor
@@ -138,7 +139,7 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
+    if (nvqir::AnalysisScope::is_active())
       throw std::runtime_error(
           "Illegal use of a resource counter on a remote QPU.");
 
@@ -234,8 +235,6 @@ public:
                          serverHelper->getPipelineSubstitutions(platformPath));
     target.pipelineConfig.replaceStateWithKernel = true;
     target.overrideAOTCompilation = true;
-    if (ctx && ctx->name == "resource-count")
-      target.emitResourceCounts = true;
 
     return target;
   }
@@ -282,6 +281,31 @@ public:
     return target;
   }
 
+  CompileTarget getCompileTarget(const estimate_policy &) override {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
+    target.emitResourceCounts = true;
+    return target;
+  }
+
+  estimate_result launchKernel(const estimate_policy &policy,
+                               const CompiledModule &module,
+                               KernelArgs args) override {
+    CUDAQ_INFO("BaseRemoteRESTQPU::launchKernel {} locally", policy.name);
+    if (!module.getJit())
+      throw std::runtime_error(
+          "Remote QPU could not produce the local JIT artifact required for "
+          "resource estimation.");
+
+    // RAII: the scope is released (and the resource-counter state cleared) on
+    // every exit path, including exceptions thrown from the kernel.
+    auto rcScope = nvqir::resource_counter::make_scope(policy.choice);
+    [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
+    return nvqir::resource_counter::get_counts(rcScope);
+  }
+
   /// Generate the DEM locally while preserving the selected remote target.
   dem_result launchKernel(const dem_policy &policy,
                           const CompiledModule &module,
@@ -312,19 +336,6 @@ public:
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->kernelTrace = std::move(context.kernelTrace);
-      return;
-    }
-
-    if (executionContext->name == "resource-count") {
-      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
-      cudaq::ExecutionContext context("resource-count");
-      context.executionManager = cudaq::getDefaultExecutionManager();
-      context.hasConditionalsOnMeasureResults =
-          codes[0].hasConditionalsOnMeasureResults;
-      nvqir::resource_counter::prepopulate(
-          std::move(codes[0].resourceCounts.value()));
-      cudaq::platform::with_execution_context(
-          context, [&]() { codes[0].jit->run(kernelName); });
       return;
     }
 
