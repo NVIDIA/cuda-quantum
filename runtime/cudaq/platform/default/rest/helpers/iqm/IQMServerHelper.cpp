@@ -342,14 +342,14 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
   // GlobalRegisterName of `sample_results`
   std::vector<ExecutionResult> srs;
 
-  for (auto &counts : postJobResponse.get<std::vector<ServerMessage>>()) {
-    if (!counts.contains("mkeys2qubit")) {
+  for (auto &result : postJobResponse.get<std::vector<ServerMessage>>()) {
+    if (!result.contains("mkeys2qubit")) {
       throw std::runtime_error("mkeys2qubit field missing in results");
     }
     std::map<std::string, std::string> mkeyLoci =
-        counts["mkeys2qubit"].get<std::map<std::string, std::string>>();
-    std::map<std::string, std::size_t, qubitOrder> mxKeys;
-    std::vector<std::size_t> mxOrder;
+        result["mkeys2qubit"].get<std::map<std::string, std::string>>();
+    std::map<std::string, std::size_t, qubitOrder> mKeys;
+    std::vector<std::size_t> mOrder;
     std::size_t i = 0; // bit positions
     bool reorder = false;
 
@@ -357,17 +357,17 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
     // is used to sort the strings in numerical order and then the bitstrings
     // are ordered accordingly. As result the bitstrings are ordered according
     // to the physical qubit numbering.
-    for (std::string key : counts["measurement_keys"]) {
+    for (std::string key : result["measurement_keys"]) {
       // keys must not be empty and declared in the circuit
       if (key.empty() || mkeyLoci.count(key) == 0) {
         throw std::runtime_error("Undeclared measurement key received: " + key);
       }
-      mxKeys[mkeyLoci[key]] = i++;
+      mKeys[mkeyLoci[key]] = i++;
     }
-    mxOrder.reserve(mxKeys.size());
+    mOrder.reserve(mKeys.size());
     i = 0;
-    for (auto [_, idx] : mxKeys) {
-      mxOrder.push_back(idx);
+    for (auto [_, idx] : mKeys) {
+      mOrder.push_back(idx);
       if (!reorder && idx != i++)
         reorder = true;
     }
@@ -377,17 +377,17 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
 
       // get the bits into the order given by the measurement keys
       for (auto [bits, count] :
-           counts["counts"]
+           result["counts"]
                .get<std::unordered_map<std::string, std::size_t>>()) {
-        if (bits.size() != mxOrder.size()) {
+        if (bits.size() != mOrder.size()) {
           throw std::runtime_error("Expected length " +
-                                   std::to_string(mxOrder.size()) +
+                                   std::to_string(mOrder.size()) +
                                    " for bitstring " + bits);
         }
 
         std::string oBits(bits);
         i = 0;
-        for (auto idx : mxOrder) {
+        for (auto idx : mOrder) {
           oBits[i++] = bits[idx];
         }
 
@@ -397,7 +397,7 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
       srs.push_back(ExecutionResult(cntDict));
     } else {
       srs.push_back(ExecutionResult(
-          counts["counts"]
+          result["counts"]
               .get<std::unordered_map<std::string, std::size_t>>()));
     }
   }
