@@ -36,11 +36,11 @@ void registerMappingPipeline();
 void registerToCFGPipeline();
 void registerFaultTolerantTargetPipeline();
 
-/// Prepare Quake IR for optimization. This converts supported reference-based
-/// IR to explicit wire and cable dataflow, expands vector controls, and threads
-/// reusable controls linearly.
-void addQuakeToOptimizerForm(mlir::OpPassManager &pm);
-void registerQuakeToOptimizerFormPipeline();
+/// Convert supported Quake IR to explicit linear values. This splits
+/// fixed-size allocations, expands vector controls, and threads reusable
+/// controls through their uses.
+void addConvertToLinearValues(mlir::OpPassManager &pm);
+void registerConvertToLinearValuesPipeline();
 
 /// This pipeline is run on every kernel decorator immediately after its
 /// definition has been processed by the Python bridge. It converts the

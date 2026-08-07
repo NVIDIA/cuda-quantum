@@ -33,7 +33,7 @@ inline void registerCudaqPassesAndPipelines() {
   opt::registerToCFGPipeline();
   opt::registerFaultTolerantTargetPipeline();
   opt::registerCodegenForQIRPipeline();
-  opt::registerQuakeToOptimizerFormPipeline();
+  opt::registerConvertToLinearValuesPipeline();
 
   // JIT compiler pipelines
   opt::registerJITPipelines();

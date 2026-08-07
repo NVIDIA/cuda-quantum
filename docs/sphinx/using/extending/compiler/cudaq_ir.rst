@@ -51,15 +51,15 @@ The authored
 :doc:`Quake semantic specification <../../../specification/quake-dialect>`
 explains the reference and value models and the reasoning behind them.
 
-.. _quake-optimizer-form:
+.. _quake-linear-values:
 
-Quake optimizer form
-^^^^^^^^^^^^^^^^^^^^
+Linear-value Quake IR
+^^^^^^^^^^^^^^^^^^^^^
 
-The ``quake-to-optimizer-form`` pipeline prepares Quake IR for quantum
-optimization. Its ``!quake.wire`` and ``!quake.cable`` values make dependencies
-between quantum operations explicit, so optimization passes can follow them
-directly.
+The ``convert-to-linear-values`` pipeline converts the parts of Quake IR that
+can be expressed as explicit linear values. Its ``!quake.wire`` and
+``!quake.cable`` values make dependencies between quantum operations explicit,
+so optimization passes can follow them directly.
 
 The pipeline splits fixed-size allocations, expands vector controls, converts
 references to values, and threads each reused control through the operations
@@ -74,14 +74,14 @@ Run the registered pipeline on a Quake module with:
 .. code:: bash
 
    cudaq-opt \
-     --pass-pipeline='builtin.module(quake-to-optimizer-form)' \
+     --pass-pipeline='builtin.module(convert-to-linear-values)' \
      input.qke -o -
 
 .. :spellcheck-enable:
 
 For example, start with:
 
-.. literalinclude:: ../../../../../cudaq/test/Transforms/quake_to_optimizer_form.qke
+.. literalinclude:: ../../../../../cudaq/test/Transforms/convert_to_linear_values.qke
    :language: mlir
    :start-at: func.func private @callee
    :end-at: }
@@ -94,7 +94,7 @@ The command produces:
 
    module {
      func.func private @callee(!quake.veq<?>)
-     func.func @optimizer_form(%arg0: !quake.veq<?>) {
+     func.func @linear_values(%arg0: !quake.veq<?>) {
        %0 = quake.null_wire
        %1 = quake.null_wire
        %2 = quake.null_wire

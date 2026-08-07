@@ -88,7 +88,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
                             bool useValueSemantics) {
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
-    cudaq::opt::addQuakeToOptimizerForm(pm);
+    cudaq::opt::addConvertToLinearValues(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }

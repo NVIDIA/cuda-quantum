@@ -95,8 +95,8 @@ should state that explicitly. Passes involving measurement or other
 non-unitary behavior should describe the observable behavior they preserve.
 
 Write quantum optimization passes against
-:ref:`Quake optimizer form <quake-optimizer-form>` by default. Use another
-Quake form only when the optimization cannot be expressed in optimizer form,
+:ref:`linear-value Quake IR <quake-linear-values>` by default. Use another
+Quake form only when the optimization cannot be expressed with linear values,
 for example when it must reason about allocation, lifetime, or aliasing.
 ``!quake.wire`` and ``!quake.cable`` are linear types, so their use-def chains
 expose dependencies between operations without reconstructing aliases between
