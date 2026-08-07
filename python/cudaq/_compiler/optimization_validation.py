@@ -353,10 +353,11 @@ class CliffordTableauOracle(Oracle):
 class MetricSpec:
     """A declared metric and the predicate its delta must satisfy.
 
-    ``name`` is one of ``operation-count``, ``two-qubit-count``,
-    ``multi-qubit-count``, ``depth``, ``t-count``, or ``gate:<name>``.
-    ``predicate`` is one of ``nonincreasing``, ``decreasing``, ``unchanged``,
-    ``any``.
+    ``name`` is one of ``operation-count``, ``single-qubit-count``,
+    ``two-qubit-count``, ``multi-qubit-count``, ``three-plus-qubit-count``,
+    ``qubit-count``, ``depth``, ``t-count``, ``rotation-count``, or
+    ``gate:<name>``. ``predicate`` is one of ``nonincreasing``, ``decreasing``,
+    ``unchanged``, ``any``.
 
     ``gating`` decides whether a violated predicate fails the case. A gating
     metric (the default) is a hard correctness gate. Violating its predicate is
@@ -528,6 +529,28 @@ def _run_stage(pipeline: str, module: Module, ctx: Context, *, stage: str,
 
 
 # Metrics
+
+# Gates the resource counter names for a parameterized rotation.
+_ROTATION_GATES = frozenset(("rx", "ry", "rz", "r1", "u3", "u2", "crx", "cry",
+                             "crz", "cr1", "rxx", "ryy", "rzz", "phased_rx"))
+
+# The metric names with executable support.
+_METRIC_NAMES = ("operation-count", "single-qubit-count", "two-qubit-count",
+                 "multi-qubit-count", "three-plus-qubit-count", "qubit-count",
+                 "depth", "t-count", "rotation-count")
+_GATE_METRIC_PREFIX = "gate:"
+
+
+def _is_known_metric(name: str) -> bool:
+    return name in _METRIC_NAMES or (name.startswith(_GATE_METRIC_PREFIX) and
+                                     len(name) > len(_GATE_METRIC_PREFIX))
+
+
+def _rotation_count(counts: dict) -> int:
+    return sum(
+        n for gate, n in counts["per_gate"].items() if gate in _ROTATION_GATES)
+
+
 def _metric_value(counts: dict, name: str) -> int:
     if name == "operation-count":
         return counts["gate_count"]
@@ -539,6 +562,14 @@ def _metric_value(counts: dict, name: str) -> int:
         return counts["depth"]
     if name == "t-count":
         return counts["per_gate"].get("t", 0)
+    if name == "qubit-count":
+        return counts["num_qubits"]
+    if name == "single-qubit-count":
+        return counts["gate_count"] - counts["multi_qubit_count"]
+    if name == "three-plus-qubit-count":
+        return counts["multi_qubit_count"] - counts["two_qubit_count"]
+    if name == "rotation-count":
+        return _rotation_count(counts)
     if name.startswith("gate:"):
         return counts["per_gate"].get(name[len("gate:"):], 0)
     raise InvalidRequest(f"unknown metric '{name}'")
@@ -622,6 +653,8 @@ def _validate_request(request: ValidationRequest, ctx: Context) -> None:
     if request.fixed_point_runs < 0:
         raise InvalidRequest("fixed_point_runs must be non-negative")
     for metric in request.metrics:
+        if not _is_known_metric(metric.name):
+            raise InvalidRequest(f"unknown metric '{metric.name}'")
         if metric.predicate not in PREDICATES:
             raise InvalidRequest(
                 f"unknown predicate '{metric.predicate}' for '{metric.name}'")
@@ -995,8 +1028,7 @@ def capabilities() -> ValidationCapabilities:
     """
     return ValidationCapabilities(
         oracles=_ORACLE_KINDS,
-        metrics=("operation-count", "two-qubit-count", "multi-qubit-count",
-                 "depth", "t-count", "gate:<name>"),
+        metrics=_METRIC_NAMES + (f"{_GATE_METRIC_PREFIX}<name>",),
         predicates=PREDICATES,
         invariants=INVARIANT_KINDS,
         assurance_tiers=(ASSURANCE_TIER_EXACT_UNITARY,

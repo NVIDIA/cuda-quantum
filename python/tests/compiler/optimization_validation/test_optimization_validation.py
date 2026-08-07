@@ -425,6 +425,77 @@ def test_gating_metric_violation_fails_the_case(tmp_path):
     assert case.status == ValidationStatus.INVARIANT_FAILURE
 
 
+# Derived metrics.
+_DERIVED_METRICS = ("single-qubit-count", "three-plus-qubit-count",
+                    "qubit-count", "rotation-count")
+
+
+def _metrics_by_name(tmp_path, names):
+    result = validate(
+        _request([_good_input(tmp_path)],
+                 metrics=tuple(MetricSpec(n, "any") for n in names)))
+    case = result.cases[0]
+    assert case.status == ValidationStatus.PASSED
+    return {m.name: m for m in case.metrics}
+
+
+def test_declared_metrics_are_all_measurable(tmp_path):
+    """Every metric capabilities() advertises can actually be counted.
+
+    The loop builds its metric list straight from capabilities(), so a name
+    advertised there but unhandled in _metric_value would fail every run.
+    """
+    names = [n for n in capabilities().metrics if not n.endswith("<name>")]
+    assert set(_DERIVED_METRICS) <= set(names)
+    metrics = _metrics_by_name(tmp_path, names)
+    assert set(metrics) == set(names)
+
+
+def test_arity_metrics_partition_the_operation_count(tmp_path):
+    """single + multi == total, and three-plus is multi minus two."""
+    m = _metrics_by_name(
+        tmp_path, ("operation-count", "single-qubit-count", "two-qubit-count",
+                   "multi-qubit-count", "three-plus-qubit-count"))
+    for side in ("baseline", "candidate"):
+        val = lambda name: getattr(m[name], side)
+        assert val("single-qubit-count") + val("multi-qubit-count") == \
+               val("operation-count")
+        assert val("three-plus-qubit-count") == \
+               val("multi-qubit-count") - val("two-qubit-count")
+
+
+def test_rotation_count_counts_only_rotation_bearing_gates(tmp_path):
+    """rotation-count is bounded by the op count and agrees with per-gate sums.
+
+    It is a name-membership test, so the invariant that matters is that it never
+    exceeds the total and never counts a gate that carries no angle.
+    """
+    names = ("operation-count", "rotation-count", "gate:rz", "gate:h",
+             "gate:cx")
+    m = _metrics_by_name(tmp_path, names)
+    for side in ("baseline", "candidate"):
+        val = lambda name: getattr(m[name], side)
+        assert 0 <= val("rotation-count") <= val("operation-count")
+        # rz carries an angle and is counted; h and cx do not and are not.
+        assert val("rotation-count") >= val("gate:rz")
+        assert val("rotation-count") <= \
+               val("operation-count") - val("gate:h") - val("gate:cx")
+
+
+def test_qubit_count_is_the_allocated_width(tmp_path):
+    m = _metrics_by_name(tmp_path, ("qubit-count", "operation-count"))
+    assert m["qubit-count"].baseline > 0
+    # A pipeline that only canonicalizes cannot widen the register.
+    assert m["qubit-count"].candidate == m["qubit-count"].baseline
+
+
+def test_unknown_metric_is_invalid_request(tmp_path):
+    result = validate(
+        _request([_good_input(tmp_path)],
+                 metrics=(MetricSpec("not-a-metric", "any"),)))
+    assert result.status == ValidationStatus.INVALID_REQUEST
+
+
 def _all_keys(obj):
     """Every mapping key anywhere in a nested dict/list structure."""
     if isinstance(obj, dict):
