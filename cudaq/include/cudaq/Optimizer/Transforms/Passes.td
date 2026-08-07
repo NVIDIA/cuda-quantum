@@ -371,6 +371,13 @@ def DeadQuantumElimination : Pass<"dqe"> {
     Eliminate any clearly dead quantum (`!quake.ref` or `!quake.wire`)
     allocations from the IR. (quantum here means some flavor of qudit.)
   }];
+
+  let statistics = [
+    Statistic<"numRefsEliminated", "refs-eliminated",
+              "Number of dead quantum ref allocations eliminated">,
+    Statistic<"numWiresEliminated", "wires-eliminated",
+              "Number of dead quantum wires eliminated">
+  ];
 }
 
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
@@ -1374,6 +1381,24 @@ def QuakeSimplify : Pass<"quake-simplify"> {
       "Erase (treat as identity) rotations whose angle, folded into its "
       "identity period, has magnitude at or below this value.">,
   ];
+  let statistics = [
+    Statistic<"numHermitianEliminations", "hermitian-eliminations",
+              "Number of back-to-back Hermitian gate pairs eliminated">,
+    Statistic<"numAdjointEliminations", "adjoint-eliminations",
+              "Number of back-to-back adjoint gate pairs eliminated">,
+    Statistic<"numZeroRotationsEliminated", "zero-rotations-eliminated",
+              "Number of identity rotations eliminated">,
+    Statistic<"numRotationsCombined", "rotations-combined",
+              "Number of rotation pairs combined">,
+    Statistic<"numDoubleSRewrites", "double-s-rewrites",
+              "Number of SS -> Z rewrites">,
+    Statistic<"numDoubleTRewrites", "double-t-rewrites",
+              "Number of TT -> S rewrites">,
+    Statistic<"numReduceYSXRewrites", "reduce-ysx-rewrites",
+              "Number of YSX -> S rewrites">,
+    Statistic<"numResetsErased", "resets-erased",
+              "Number of redundant resets erased (double-reset or reset-before-sink)">,
+  ];
 }
 
 def QubitResetBeforeReuse :
@@ -1459,6 +1484,10 @@ def RepairLinearType : Pass<"repair-linear-type", "mlir::func::FuncOp"> {
     value is lifted to a reference type, which is a valid SSA value.
   }];
   let dependentDialects = ["cudaq::quake::QuakeDialect"];
+  let statistics = [
+    Statistic<"numRepairs", "repairs",
+              "Number of linear type violations repaired with wrap/unwrap">,
+  ];
 }
 
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
