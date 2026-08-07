@@ -1,0 +1,31 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: compiler-bench-ftqc-clifford-t
+description: "Post-rotation-synthesis Clifford+T benchmark target for resource counting"
+
+target-arguments:
+  - key: epsilon
+    required: false
+    type: string
+    help-string: "Per-rotation approximation tolerance. Defaults to 1e-10."
+
+config:
+  nvqir-simulation-backend: qpp
+  # Preserve named Clifford operations while reducing rotations and
+  # non-Clifford controlled gates before synthesis. Keep the circuit in value
+  # semantics through post-synthesis simplification.
+  # TODO: Standardize this with compiler-bench-ftqc-logical.yml once we know
+  # what the common pipeline should be.
+  #
+  # Clifford+T synthesis outlines one private helper for each distinct angle.
+  # Inline those helpers and simplify before the resource-counting boundary.
+  #
+  # TODO: Remove fail-on-controlled-rotation after controlled Clifford+T
+  # synthesis preserves the synthesis global phase.
+  jit-mid-level-pipeline: "decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe,memtoreg,quake-simplify,canonicalize,dqe),unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,x(1),y(1),z(1)},clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=%EPSILON:1e-10% fail-on-controlled-rotation=true},inline,func.func(quake-simplify,canonicalize,dqe,regtomem),symbol-dce"

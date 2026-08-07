@@ -210,6 +210,12 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     Option<"onDynamicAngle", "on-dynamic-angle", "std::string",
       /*default=*/"\"error\"",
       "Behavior on non-constant rotation angles: 'error' or 'skip'.">,
+    // TODO: Remove this option once controlled Clifford+T synthesis preserves
+    // the synthesis global phase.
+    Option<"failOnControlledRotation", "fail-on-controlled-rotation", "bool",
+      /*default=*/"false",
+      "Fail instead of preserving a controlled rotation that cannot be "
+      "synthesized without global-phase support.">,
     Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
       "Erase (treat as identity) rotations whose |theta| is below this "
       "threshold, rather than synthesizing a Clifford+T approximation for "
