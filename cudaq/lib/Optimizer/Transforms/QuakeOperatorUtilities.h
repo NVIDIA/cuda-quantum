@@ -28,6 +28,56 @@ struct ExpandedControlVeqs {
   bool didExpand = false;
 };
 
+/// A statically selectable scalar qubit represented by a top-level Quake
+/// target. A vector target records the element that must be extracted; a
+/// scalar reference or wire has no element index.
+struct StaticQubitTarget {
+  mlir::Value source;
+  std::size_t sourceIndex;
+  std::optional<std::size_t> elementIndex;
+};
+
+/// Return whether \p target is a single quantum value rather than an
+/// aggregate vector. This is deliberately not phase-specific: it is useful to
+/// any transform that must select one qubit from a list of Quake targets.
+inline bool isScalarQubitTarget(mlir::Value target) {
+  return mlir::isa<cudaq::quake::RefType, cudaq::quake::WireType>(
+      target.getType());
+}
+
+/// Plan a deterministic final scalar target without creating IR.
+///
+/// Scan source targets from right to left. A scalar reference or wire is
+/// already selectable; a nonempty vector with a statically known size is
+/// represented by its final element. Returning a plan rather than immediately
+/// creating an ExtractRefOp lets callers finish validation before mutating the
+/// IR.
+inline std::optional<StaticQubitTarget>
+findLastStaticQubitTarget(mlir::ValueRange targets) {
+  for (std::size_t i = targets.size(); i != 0; --i) {
+    auto target = targets[i - 1];
+    if (isScalarQubitTarget(target))
+      return StaticQubitTarget{target, i - 1, std::nullopt};
+    if (auto size = cudaq::quake::getVeqSize(target); size && *size != 0)
+      return StaticQubitTarget{target, i - 1, *size - 1};
+  }
+  return std::nullopt;
+}
+
+/// Materialize a target selected by findLastStaticQubitTarget.
+///
+/// Callers must perform every failure-prone validation before invoking this
+/// helper, because the vector case creates an ExtractRefOp.
+inline mlir::Value
+materializeStaticQubitTarget(mlir::OpBuilder &builder, mlir::Location location,
+                             const StaticQubitTarget &target) {
+  if (!target.elementIndex)
+    return target.source;
+  return cudaq::quake::ExtractRefOp::create(builder, location, target.source,
+                                            *target.elementIndex)
+      .getResult();
+}
+
 inline llvm::SmallVector<bool>
 getControlPolarities(mlir::ValueRange controls,
                      std::optional<llvm::ArrayRef<bool>> negatedControls = {}) {
