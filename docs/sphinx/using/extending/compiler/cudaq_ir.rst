@@ -56,16 +56,15 @@ explains the reference and value models and the reasoning behind them.
 Linear-value Quake IR
 ^^^^^^^^^^^^^^^^^^^^^
 
-The ``convert-to-linear-values`` pipeline converts the parts of Quake IR that
-can be expressed as explicit linear values. Its ``!quake.wire`` and
-``!quake.cable`` values make dependencies between quantum operations explicit,
-so optimization passes can follow them directly.
+The ``convert-to-linear-values`` pipeline turns supported Quake references into
+linear values. Each converted qubit becomes a ``!quake.wire`` threaded from one
+operation to the next, making dependencies visible to optimization passes.
 
-The pipeline splits fixed-size allocations, expands vector controls, converts
-references to values, and threads each reused control through the operations
-that use it. It leaves dynamic registers, runtime-indexed elements, and other
-unsupported constructs unchanged, and it does not simplify gates or perform
-other quantum optimizations.
+Where possible, the pipeline splits fixed-size allocations and vector controls
+into individual wires. A ``!quake.cable`` keeps wires grouped and ordered when
+they cross into reference-form code. Dynamic registers, runtime-indexed
+elements, and anything else the pipeline cannot convert stay in reference form.
+This pipeline changes the representation only. It does not simplify gates.
 
 Run the registered pipeline on a Quake module with:
 
