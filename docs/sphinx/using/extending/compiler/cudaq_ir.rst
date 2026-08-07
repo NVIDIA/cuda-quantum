@@ -56,12 +56,10 @@ explains the reference and value models and the reasoning behind them.
 Quake optimizer form
 ^^^^^^^^^^^^^^^^^^^^
 
-Quake optimizer form is the form of Quake IR produced by
-``quake-to-optimizer-form`` for quantum optimization. Its ``!quake.wire`` and
-``!quake.cable`` values make dependencies between quantum operations explicit,
-so optimization passes can follow them directly. Write quantum optimization
-passes against optimizer form by default. Use another Quake form only when the
-optimization cannot be expressed in optimizer form.
+The ``quake-to-optimizer-form`` pipeline prepares Quake IR for quantum
+optimization. Its ``!quake.wire`` and ``!quake.cable`` values make dependencies
+between quantum operations explicit, so optimization passes can follow them
+directly.
 
 The pipeline splits fixed-size allocations, expands vector controls, converts
 references to values, and threads each reused control through the operations
@@ -114,11 +112,6 @@ The command produces:
    }
 
 .. :spellcheck-enable:
-
-The fixed-size allocations become three ``!quake.wire`` values, while the
-dynamic argument remains a ``!quake.veq<?>``. The call crosses into reference
-form through a ``!quake.cable<2>``. Both ``quake.h`` operations remain because
-this pipeline prepares the IR without optimizing it.
 
 CC
 --

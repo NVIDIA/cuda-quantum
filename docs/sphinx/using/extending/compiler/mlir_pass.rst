@@ -96,10 +96,10 @@ non-unitary behavior should describe the observable behavior they preserve.
 
 Write quantum optimization passes against
 :ref:`Quake optimizer form <quake-optimizer-form>` by default. Use another
-Quake form only when the pass cannot do its work in optimizer form, for example
-when it must reason about allocation, lifetime, or aliasing. ``!quake.wire``
-and ``!quake.cable`` are linear types, so their use-def chains expose
-dependencies between operations without reconstructing aliases between
+Quake form only when the optimization cannot be expressed in optimizer form,
+for example when it must reason about allocation, lifetime, or aliasing.
+``!quake.wire`` and ``!quake.cable`` are linear types, so their use-def chains
+expose dependencies between operations without reconstructing aliases between
 ``!quake.ref`` and ``!quake.veq`` values. The :doc:`Quake semantic specification
 <../../../specification/quake-dialect>` explains the reference and value models
 and the boundaries formed by ``quake.unwrap`` and ``quake.wrap``.
