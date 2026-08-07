@@ -21,6 +21,7 @@
 #include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
+#include <cstddef>
 #include <optional>
 
 //===----------------------------------------------------------------------===//
@@ -123,6 +124,28 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
   }
   return std::nullopt;
 }
+
+/// A statically selectable scalar qubit represented by a top-level Quake
+/// target. A vector target records the element that must be extracted; a
+/// scalar reference or wire has no element index.
+struct StaticQubitTarget {
+  mlir::Value source;
+  std::size_t sourceIndex;
+  std::optional<std::size_t> elementIndex;
+};
+
+/// Return whether \p target is a single quantum value rather than an aggregate
+/// vector.
+bool isScalarQubitTarget(mlir::Value target);
+
+/// Plan a deterministic final scalar target without creating IR.
+std::optional<StaticQubitTarget>
+findLastStaticQubitTarget(mlir::ValueRange targets);
+
+/// Materialize a target selected by findLastStaticQubitTarget.
+mlir::Value materializeStaticQubitTarget(mlir::OpBuilder &builder,
+                                         mlir::Location location,
+                                         const StaticQubitTarget &target);
 
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {
