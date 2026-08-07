@@ -173,32 +173,48 @@ class PhaseStorage {
     auto u1 = getQuarterPiUnits(rot1);
     auto u2 = getQuarterPiUnits(rot2);
     if (u1 && u2) {
-      int combined = ((*u1 + *u2) % 8 + 8) % 8;
+      int combined = (*u1 + *u2) & 7;
       switch (combined) {
-      case 0:
+      case 0: // 0 = identity
         return finalize(nullptr);
-      case 1:
+      case 1: // π/4 = T
         return finalize(cudaq::quake::TOp::create(
             builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
             ValueRange{wireIn}, {}));
-      case 2:
+      case 2: // π/2 = S
         return finalize(cudaq::quake::SOp::create(
             builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
             ValueRange{wireIn}, {}));
-      case 4:
+      case 3: { // 3π/4 = S then T
+        Value w = cudaq::quake::SOp::create(builder, loc, TypeRange{wireTy},
+                                            false, ValueRange{}, ValueRange{},
+                                            ValueRange{wireIn}, {})
+                      ->getResult(0);
+        return finalize(cudaq::quake::TOp::create(
+            builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{w}, {}));
+      }
+      case 4: // π = Z
         return finalize(cudaq::quake::ZOp::create(
             builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
             ValueRange{wireIn}, {}));
-      case 6:
+      case 5: { // 5π/4 = Z then T
+        Value w = cudaq::quake::ZOp::create(builder, loc, TypeRange{wireTy},
+                                            false, ValueRange{}, ValueRange{},
+                                            ValueRange{wireIn}, {})
+                      ->getResult(0);
+        return finalize(cudaq::quake::TOp::create(
+            builder, loc, TypeRange{wireTy}, false, ValueRange{}, ValueRange{},
+            ValueRange{w}, {}));
+      }
+      case 6: // 3π/2 = S†
         return finalize(cudaq::quake::SOp::create(
             builder, loc, TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
             ValueRange{wireIn}, {}));
-      case 7:
+      case 7: // 7π/4 = T†
         return finalize(cudaq::quake::TOp::create(
             builder, loc, TypeRange{wireTy}, true, ValueRange{}, ValueRange{},
             ValueRange{wireIn}, {}));
-      default:
-        break; // 3 or 5: not a named gate, fall through to addf
       }
     }
 
