@@ -1,0 +1,39 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Ordinary basis conversion can select the exact ExpPauli decomposition.
+// quake.phase remains legal compiler bookkeeping rather than a named basis
+// target, so this exercises the normal selector without a legacy/exact-only
+// policy path.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=rx,h,x(1),rz})' %s | FileCheck %s
+
+func.func @identity(%theta: f64, %target: !quake.ref) {
+  quake.exp_pauli (%theta) %target to "I" : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @identity(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.ref
+// CHECK: quake.phase (%[[THETA]]) %[[TARGET]] : (f64, !quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
+func.func @nonidentity(%theta: f64, %target: !quake.ref) {
+  quake.exp_pauli (%theta) %target to "X" : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @nonidentity(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGET:.*]]: !quake.ref
+// CHECK: quake.h %[[TARGET]] : (!quake.ref) -> ()
+// CHECK: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f64
+// CHECK: %[[ROTATION:.*]] = arith.mulf %[[NEG_TWO]], %[[THETA]] : f64
+// CHECK: quake.rz (%[[ROTATION]]) %[[TARGET]] : (f64, !quake.ref) -> ()
+// CHECK: quake.h %[[TARGET]] : (!quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
