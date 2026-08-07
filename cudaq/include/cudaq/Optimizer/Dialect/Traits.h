@@ -9,12 +9,6 @@
 #pragma once
 
 #include "mlir/IR/OpImplementation.h"
-#include "mlir/IR/Types.h"
-
-namespace mlir::TypeTrait {
-template <typename ConcreteType>
-class SSIType : public TraitBase<ConcreteType, SSIType> {};
-} // namespace mlir::TypeTrait
 
 namespace cudaq::quake {
 mlir::LogicalResult verifyWireArityAndCoarity(mlir::Operation *op);
