@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Support/Hash.h"
+#include "cudaq/Target/CompileTarget.h"
 #include <cstddef>
 
 namespace cudaq {
@@ -61,6 +62,19 @@ struct CompileOptions {
   /// device.
   bool emulate = false;
 };
+
+/// A temporary function to modify the compile options based on the target.
+///
+/// This is bad! We want these two classes to be separate and remove the
+/// 'entanglement'.
+inline void propagateTargetOptionsToCompileOptions(const CompileTarget &target,
+                                                   CompileOptions &options) {
+  if (target.emulate || target.isLocalSimulator)
+    options.emitJit = true;
+  if (target.emulate)
+    options.emulate = true;
+  options.addMeasurements = target.pipelineConfig.addMeasurements;
+}
 
 } // namespace cudaq
 

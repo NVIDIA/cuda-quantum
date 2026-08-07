@@ -242,7 +242,9 @@ public:
   }
 
   CompileTarget getCompileTarget(const sample_policy &policy) override {
-    return createCompileTarget();
+    auto ct = createCompileTarget();
+    ct.pipelineConfig.addMeasurements = true;
+    return ct;
   }
 
   CompileTarget getCompileTarget(const observe_policy &policy) override {

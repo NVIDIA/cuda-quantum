@@ -84,11 +84,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
         options = cudaq::get_compile_options(policy);
         target = cudaq::get_compile_target(policy);
       }
-      // TODO: these flags should be moved out of the compile target
-      if (target.emulate || target.isLocalSimulator)
-        options.emitJit = true;
-      if (target.emulate)
-        options.emulate = true;
+      // TODO: remove this call by moving flags out of the target
+      cudaq::propagateTargetOptionsToCompileOptions(target, options);
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
                                                          /*isEntryPoint=*/true);

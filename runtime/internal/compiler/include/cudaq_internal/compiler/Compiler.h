@@ -105,7 +105,8 @@ public:
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
-  Compiler(cudaq::CompileTarget target, cudaq::CompileOptions options);
+  Compiler(const cudaq::CompileTarget &target,
+           const cudaq::CompileOptions &options);
   ~Compiler();
 
   /// @brief Compile the given module and return a `CompiledModule`.

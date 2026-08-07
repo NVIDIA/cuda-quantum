@@ -720,11 +720,8 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
     });
   }
 
-  // TODO: these flags should be moved out of the compile target
-  if (target->emulate || target->isLocalSimulator)
-    options.emitJit = true;
-  if (target->emulate)
-    options.emulate = true;
+  // TODO: remove this call by moving flags out of the target
+  cudaq::propagateTargetOptionsToCompileOptions(*target, options);
   return {*std::move(target), std::move(options)};
 }
 

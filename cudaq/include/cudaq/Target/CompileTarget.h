@@ -53,6 +53,9 @@ struct CompileTarget {
     /// to emulate its behavior by inserting the corresponding kernel calls.
     bool replaceStateWithKernel = false;
 
+    /// Whether to run the add-measurements pass.
+    bool addMeasurements = false;
+
     /// Whether the pipeline is empty.
     bool empty() const {
       return overridePassPipeline.empty() && highLevelPipeline.empty() &&

@@ -27,7 +27,9 @@ CompileOptions get_compile_options_impl(const sample_policy &policy) {
   opts.storeReorderIdx = true;
   // `sample` does not support conditionals on measurement results.
   opts.failOnConditionalsOnMeasureResults = true;
-  opts.addMeasurements = true;
+  // TODO: we would like to set this to true, but local simulators currently
+  // don't work with this flag
+  // opts.addMeasurements = true;
   return opts;
 }
 

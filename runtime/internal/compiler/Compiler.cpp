@@ -122,9 +122,9 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
   return std::make_pair(m_module.release().getAsOpaquePointer(), context);
 }
 
-cudaq_internal::compiler::Compiler::Compiler(cudaq::CompileTarget target_,
-                                             cudaq::CompileOptions options_)
-    : target(std::move(target_)), options(std::move(options_)) {
+cudaq_internal::compiler::Compiler::Compiler(
+    const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_)
+    : target(target_), options(options_) {
   emulate = options.emulate;
 
   cudaq_internal::compiler::initializeMLIR();

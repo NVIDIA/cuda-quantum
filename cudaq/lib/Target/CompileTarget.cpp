@@ -115,8 +115,9 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.pipelineConfig.midLevelPipeline, t.pipelineConfig.lowLevelPipeline,
       t.pipelineConfig.codegenTranslation, t.pipelineConfig.postCodeGenPasses,
       t.pipelineConfig.disableQubitMapping,
-      t.pipelineConfig.replaceStateWithKernel, t.overrideAOTCompilation,
-      t.emulate, t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+      t.pipelineConfig.replaceStateWithKernel, t.pipelineConfig.addMeasurements,
+      t.overrideAOTCompilation, t.emulate,
+      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
       t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics);
 
   // Optional spin observable: include its string representation when present.
