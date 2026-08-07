@@ -460,7 +460,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  if (target.pipelineConfig.addMeasurements) {
+  if (options.addMeasurements) {
     // No need to add measurements only to remove them eventually
     if (target.pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
         std::string::npos)
