@@ -22,7 +22,10 @@
 // An alternative fix would be to recursively specialize all callees in the
 // call tree, but that would increase code size.
 
-// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+// RUN: cudaq-opt --aggressive-inlining \
+// RUN:   --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(hw-jit-prep-pipeline)' %s | \
+// RUN:   FileCheck %s --check-prefix=JIT-PREP
 
 module {
   // Inner kernel that expects dynamic veq type
@@ -76,4 +79,11 @@ module {
 // CHECK-LABEL:   func.func private @thunk_kernel.0(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<2>)
 // CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           call @inner_kernel(%[[VAL_2]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.rx (%{{.*}}) %[[VAL_3]] : (f64, !quake.ref) -> ()
+
+// JIT-PREP-LABEL: func.func @main_kernel()
+// JIT-PREP-NOT:   func.call
+// JIT-PREP:       %[[CONTROLS:.*]] = quake.concat %{{.*}} : (!quake.ref) -> !quake.veq<1>
+// JIT-PREP:       quake.rx (%{{.*}}) [%[[CONTROLS]]] %{{.*}} : (f64, !quake.veq<1>, !quake.ref) -> ()
+// JIT-PREP-NOT:   func.call
