@@ -18,6 +18,7 @@
 #include "llvm/ADT/StringSet.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/IR/Builders.h"
@@ -36,6 +37,9 @@ class DecompositionPatternsTest : public ::testing::Test {
 protected:
   void SetUp() override {
     context = std::make_unique<MLIRContext>();
+    DialectRegistry registry;
+    func::registerInlinerExtension(registry);
+    context->appendDialectRegistry(registry);
     context->loadDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                          func::FuncDialect, cudaq::quake::QuakeDialect>();
   }
@@ -212,6 +216,79 @@ ModuleOp createDynamicControlGateModule(MLIRContext *context,
   return module;
 }
 
+// Creates the following module:
+// module {
+//  func.func private @r1_helper(%theta: f64, %anchor: !quake.ref) {
+//    quake.r1 (%theta) %anchor : (f64, !quake.ref) -> ()
+//    return
+//  }
+//
+//  func.func @control_added_later(%theta: f64, %outer: !quake.ref,
+//                                 %anchor: !quake.ref) {
+//    quake.apply @r1_helper [%outer] %theta, %anchor
+//        : (!quake.ref, f64, !quake.ref) -> ()
+//    return
+//  }
+//}
+ModuleOp createR1ControlAddedLaterModule(MLIRContext *context) {
+  OpBuilder builder(context);
+  Location loc = builder.getUnknownLoc();
+
+  auto module = ModuleOp::create(builder, loc);
+  builder.setInsertionPointToEnd(module.getBody());
+
+  Type f64Type = builder.getF64Type();
+  Type refType = cudaq::quake::RefType::get(context);
+
+  // Build:
+  //
+  // func.func private @r1_helper(%theta: f64, %anchor: !quake.ref)
+  auto helperType = builder.getFunctionType({f64Type, refType}, {});
+  auto helper = func::FuncOp::create(builder, loc, "r1_helper", helperType);
+  helper.setPrivate();
+
+  Block *helperEntry = helper.addEntryBlock();
+  builder.setInsertionPointToStart(helperEntry);
+
+  Value helperTheta = helperEntry->getArgument(0);
+  Value helperAnchor = helperEntry->getArgument(1);
+
+  cudaq::quake::R1Op::create(builder, loc,
+                             /*isAdj=*/false, ValueRange{helperTheta},
+                             /*controls=*/ValueRange{}, helperAnchor);
+  func::ReturnOp::create(builder, loc);
+
+  // Build:
+  //
+  // func.func @control_added_later(
+  //     %theta: f64, %outer: !quake.ref, %anchor: !quake.ref)
+  builder.setInsertionPointToEnd(module.getBody());
+
+  auto callerType = builder.getFunctionType({f64Type, refType, refType}, {});
+  auto caller =
+      func::FuncOp::create(builder, loc, "control_added_later", callerType);
+
+  Block *callerEntry = caller.addEntryBlock();
+  builder.setInsertionPointToStart(callerEntry);
+
+  Value callerTheta = callerEntry->getArgument(0);
+  Value outerControl = callerEntry->getArgument(1);
+  Value callerAnchor = callerEntry->getArgument(2);
+
+  auto callee = SymbolRefAttr::get(context, helper.getSymName());
+  SmallVector<Value> actuals{callerTheta, callerAnchor};
+
+  cudaq::quake::ApplyOp::create(builder, loc,
+                                /*retTy=*/TypeRange{}, callee,
+                                /*isAdjoint=*/false,
+                                /*controls=*/ValueRange{outerControl},
+                                /*args=*/actuals);
+
+  func::ReturnOp::create(builder, loc);
+
+  return module;
+}
+
 std::unique_ptr<cudaq::DecompositionPatternType>
 instantiatePatternType(StringRef patternName) {
   for (auto &entry : cudaq::DecompositionPatternTypeRegistry::entries()) {
@@ -234,11 +311,15 @@ LogicalResult applySinglePattern(ModuleOp module, StringRef patternName,
   return applyPatternsGreedily(module, frozenPatterns);
 }
 
-// Helper to collect all gate types in a module
+// Helper to collect physical gate types in a module. PhaseOp is bookkeeping
+// carried through basis conversion, not a target-basis gate.
 llvm::StringSet<> collectGateTypesInModule(ModuleOp module) {
   llvm::StringSet<> gates;
 
   module.walk([&](Operation *op) {
+    if (isa<cudaq::quake::PhaseOp>(op))
+      return;
+
     if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
       std::string gateName = optor->getName().stripDialect().str();
       auto numControls = optor.getControls().size();
@@ -477,17 +558,59 @@ TEST_F(DecompositionPatternsTest, SAndTToR1AcceptDynamicControlsWhenNEnabled) {
   EXPECT_EQ(countOps<cudaq::quake::R1Op>(tModule), 1u);
 }
 
-TEST_F(DecompositionPatternsTest, R1ToRzDoesNotRewriteAdjointR1) {
+TEST_F(DecompositionPatternsTest, R1ToRzRewritesAdjointR1) {
   auto module = createTestModule(context.get(), "r1<adj>");
 
   ASSERT_TRUE(succeeded(applySinglePattern(module, "R1ToRz", {})));
 
-  EXPECT_EQ(countOps<cudaq::quake::R1Op>(module), 1u);
-  EXPECT_EQ(countOps<cudaq::quake::RzOp>(module), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::R1Op>(module), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::RzOp>(module), 1u);
+  EXPECT_EQ(countOps<cudaq::quake::PhaseOp>(module), 1u);
 }
 
-// Test 4: Verify pattern decompositions produce only target gates
-TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
+TEST_F(DecompositionPatternsTest, R1ToRzPhaseSurvivesControlAddedLater) {
+  auto module = createR1ControlAddedLaterModule(context.get());
+
+  PassManager decompositionPm(context.get());
+  cudaq::opt::DecompositionOptions options;
+  options.enabledPatterns = llvm::SmallVector<std::string>{"R1ToRz"};
+  decompositionPm.addPass(cudaq::opt::createDecomposition(options));
+  ASSERT_TRUE(succeeded(decompositionPm.run(module)));
+
+  EXPECT_EQ(countOps<cudaq::quake::R1Op>(module), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::RzOp>(module), 1u);
+  EXPECT_EQ(countOps<cudaq::quake::PhaseOp>(module), 1u);
+
+  PassManager pm(context.get());
+  pm.addPass(cudaq::opt::createApplySpecialization());
+  cudaq::opt::addAggressiveInlining(pm);
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
+
+  ASSERT_TRUE(succeeded(pm.run(module)));
+
+  EXPECT_EQ(countOps<cudaq::quake::ApplyOp>(module), 0u);
+  EXPECT_EQ(countOps<cudaq::quake::PhaseOp>(module), 0u);
+
+  auto caller = module.lookupSymbol<func::FuncOp>("control_added_later");
+  ASSERT_TRUE(caller);
+
+  SmallVector<cudaq::quake::R1Op> corrections;
+  SmallVector<cudaq::quake::RzOp> rotations;
+
+  caller.walk([&](cudaq::quake::R1Op op) { corrections.push_back(op); });
+  caller.walk([&](cudaq::quake::RzOp op) { rotations.push_back(op); });
+
+  ASSERT_EQ(corrections.size(), 1u);
+  EXPECT_TRUE(corrections.front().getControls().empty());
+
+  ASSERT_EQ(rotations.size(), 1u);
+  EXPECT_EQ(rotations.front().getControls().size(), 1u);
+}
+
+// Test 4: Verify pattern decompositions produce only physical target gates
+TEST_F(DecompositionPatternsTest,
+       DecompositionProducesOnlyPhysicalTargetGates) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {

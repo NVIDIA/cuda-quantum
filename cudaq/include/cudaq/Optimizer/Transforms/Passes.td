@@ -417,9 +417,10 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     - `x(n)` — Pauli-X with unbounded controls
     - `x,x(1)` — Both `not` and `cx`
 
-    NOTE: The current implementation is conservative w.r.t global phase, which
-    means no decomposition will take place under the presence of controlled
-    `quake.apply` operations in the module.
+    Every successful decomposition preserves the complete unitary, including
+    any scalar phase represented by compiler bookkeeping. This lets the pass
+    run before a later controlled `quake.apply` specialization; unsupported
+    forms remain unchanged rather than taking an implicit phase-relaxed path.
   }];
   let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
@@ -993,6 +994,18 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
   ];
 }
 
+def LowerPhase : Pass<"lower-phase", "mlir::func::FuncOp"> {
+  let summary = "Lower phase bookkeeping operations to ordinary Quake gates";
+  let description = [{
+    Lowers controlled `quake.phase` operations to exact `quake.r1``quake.rz`
+    gate sequences and erases uncontrolled phases after forwarding their wire
+    results. This pass is intentionally exposed in isolation until the global
+    phase lifecycle is integrated into production pipelines.
+  }];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
+}
+
 def ConvertToCFG : Pass<"convert-to-cfg"> {
   let summary = "Erase CLoop, CIf, etc. ops, replacing them with a CFG.";
   let description = [{
@@ -1197,6 +1210,20 @@ def MultiControlDecomposition :
     to decompose. In such cases, all qubits will be extracted. If the size is
     unknown at compilation-time, the pass leaves the operation as-is.
   }];
+}
+
+def NormalizePhasePlacement :
+    Pass<"normalize-phase-placement", "mlir::func::FuncOp"> {
+  let summary = "Normalize block-local placement of phase corrections";
+  let description = [{
+    Conservatively sinks `quake.phase` operations within safe straight-line
+    portions of a basic block, reconnects value-semantics wire chains, and
+    combines corrections with identical ordered control predicates. Movement
+    stops at control-changing gates, calls, regions, terminators, non-unitary
+    operations, unknown effects, or whenever wire reconnection is ambiguous.
+  }];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
 }
 
 def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
@@ -1800,6 +1827,15 @@ def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
     Option<"hoistOnly", "hoist-only", "bool", /*default=*/"false",
       "Hoist the variables only.">
   ];
+}
+
+def VerifyNoPhase : Pass<"verify-no-phase", "mlir::ModuleOp"> {
+  let summary =
+      "Verify that phase bookkeeping was eliminated before code generation";
+  let description = [{
+    Emits an error if any `quake.phase` operation survives to the final
+    code-generation boundary.
+  }];
 }
 
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {

@@ -7,8 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --quantinuum-gate-set-mapping %s | FileCheck %s
-// RUN: cudaq-opt --quantinuum-gate-set-mapping %s | CircuitCheck %s --up-to-global-phase
-
+// RUN: cudaq-opt --quantinuum-gate-set-mapping %s | CircuitCheck %s
 
 // The FileCheck part of this test only cares about the sequence of operations.
 // Correcteness (unitary matrix) is checked by CircuitCheck.
@@ -17,10 +16,13 @@
 func.func @test_t(%ctrl: !quake.ref, %target: !quake.ref) {
   quake.t [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   // CHECK: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   return
 }
 
@@ -28,10 +30,13 @@ func.func @test_t(%ctrl: !quake.ref, %target: !quake.ref) {
 func.func @t_adj(%ctrl: !quake.ref, %target: !quake.ref) {
   quake.t<adj> [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   // CHECK: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   return
 }
 
@@ -39,10 +44,13 @@ func.func @t_adj(%ctrl: !quake.ref, %target: !quake.ref) {
 func.func @test_s(%ctrl: !quake.ref, %target: !quake.ref) {
   quake.s [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   // CHECK: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   return
 }
 
@@ -50,9 +58,12 @@ func.func @test_s(%ctrl: !quake.ref, %target: !quake.ref) {
 func.func @s_adj(%ctrl: !quake.ref, %target: !quake.ref) {
   quake.s<adj> [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   // CHECK: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   // CHECK-NEXT: quake.x 
   // CHECK-NEXT: quake.rz
+  // CHECK: quake.phase
   return
 }
