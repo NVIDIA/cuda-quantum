@@ -174,7 +174,6 @@ func.func @quantum_ops() {
 cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00
 ,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<8xcomplex<f32>>) : !cc.array<complex<f32> x 8>
 
-
 // CHECK-LABEL:   func.func @quantum_ops() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
@@ -297,6 +296,55 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 // CHECK:           %[[VAL_67:.*]] = quake.create_state %[[VAL_62]], %[[VAL_61]] : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
 // CHECK:           quake.delete_state %[[VAL_67]] : !cc.ptr<!quake.state>
 // CHECK:           return
+// CHECK:         }
+
+func.func @exp_pauli_targets(%dynamic : !quake.veq<?>, %wire : !quake.wire) -> !quake.wire {
+  %theta = arith.constant 1.0 : f64
+
+  // Mixed fixed-size targets.
+  %ref = quake.alloca !quake.ref
+  %vector = quake.alloca !quake.veq<2>
+  quake.exp_pauli (%theta) %ref, %vector to "XYZ" : (f64, !quake.ref, !quake.veq<2>) -> ()
+
+  // A known zero-size target.
+  %empty = quake.alloca !quake.veq<0>
+  quake.exp_pauli (%theta) %empty to "" : (f64, !quake.veq<0>) -> ()
+
+  // Controls do not contribute to the Pauli-word length.
+  %control = quake.alloca !quake.veq<2>
+  quake.exp_pauli (%theta) [%control] %ref to "Z" : (f64, !quake.veq<2>, !quake.ref) -> ()
+
+  // Nested relax_size preserves recoverable cardinality.
+  %fixed = quake.alloca !quake.veq<2>
+  %relaxed0 = quake.relax_size %fixed : (!quake.veq<2>) -> !quake.veq<?>
+  %relaxed1 = quake.relax_size %relaxed0 : (!quake.veq<?>) -> !quake.veq<?>
+  quake.exp_pauli (%theta) %relaxed1 to "XY" : (f64, !quake.veq<?>) -> ()
+
+  // Dynamic cardinality defers the length check.
+  quake.exp_pauli (%theta) %dynamic to "XYZ" : (f64, !quake.veq<?>) -> ()
+
+  // Value-form target.
+  %result = quake.exp_pauli (%theta) %wire to "Y" : (f64, !quake.wire) -> !quake.wire
+  return %result : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @exp_pauli_targets(
+// CHECK-SAME:        %[[DYNAMIC:.*]]: !quake.veq<?>, %[[WIRE:.*]]: !quake.wire) -> !quake.wire {
+// CHECK:           %[[THETA:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK:           %[[REF:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VECTOR:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.exp_pauli (%[[THETA]]) %[[REF]], %[[VECTOR]] to "XYZ" : (f64, !quake.ref, !quake.veq<2>) -> ()
+// CHECK:           %[[EMPTY:.*]] = quake.alloca !quake.veq<0>
+// CHECK:           quake.exp_pauli (%[[THETA]]) %[[EMPTY]] to "" : (f64, !quake.veq<0>) -> ()
+// CHECK:           %[[CONTROL:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.exp_pauli (%[[THETA]]) {{\[}}%[[CONTROL]]] %[[REF]] to "Z" : (f64, !quake.veq<2>, !quake.ref) -> ()
+// CHECK:           %[[FIXED:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[RELAXED_0:.*]] = quake.relax_size %[[FIXED]] : (!quake.veq<2>) -> !quake.veq<?>
+// CHECK:           %[[RELAXED_1:.*]] = quake.relax_size %[[RELAXED_0]] : (!quake.veq<?>) -> !quake.veq<?>
+// CHECK:           quake.exp_pauli (%[[THETA]]) %[[RELAXED_1]] to "XY" : (f64, !quake.veq<?>) -> ()
+// CHECK:           quake.exp_pauli (%[[THETA]]) %[[DYNAMIC]] to "XYZ" : (f64, !quake.veq<?>) -> ()
+// CHECK:           %[[RESULT:.*]] = quake.exp_pauli (%[[THETA]]) %[[WIRE]] to "Y" : (f64, !quake.wire) -> !quake.wire
+// CHECK:           return %[[RESULT]] : !quake.wire
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @quake_op1(

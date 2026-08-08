@@ -19,6 +19,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
+#include <limits>
 #include <unordered_set>
 
 using namespace mlir;
@@ -58,6 +59,50 @@ static LogicalResult verifyWireResultsAreLinear(Operation *op) {
           "wires are a linear type and must have exactly one use");
     }
   return success();
+}
+
+// Verify invariants shared by Quake operators: control polarity metadata must
+// align with control operands, and value-form wire results must remain linear.
+static LogicalResult
+verifyOperator(cudaq::quake::OperatorInterface operatorInterface) {
+  auto controlPolarities = operatorInterface.getNegatedControls();
+  if (controlPolarities &&
+      controlPolarities->size() != operatorInterface.getControls().size())
+    return operatorInterface->emitOpError(
+        "control polarity count must match control operand count");
+  return verifyWireResultsAreLinear(operatorInterface.getOperation());
+}
+
+static std::optional<std::size_t> checkedAdd(std::size_t lhs, std::size_t rhs) {
+  if (std::numeric_limits<std::size_t>::max() - lhs < rhs)
+    return std::nullopt;
+  return lhs + rhs;
+}
+
+// Return the total number of target qubits when every target has a known size.
+// Target operand count is insufficient because one fixed-size aggregate operand
+// may represent multiple qubits. With dynamic sizes, the count is unknown.
+static std::optional<std::size_t> getStaticTargetQubitCount(Value target) {
+  if (auto count = cudaq::quake::getQubitCount(target.getType()))
+    return count;
+  if (auto relaxOp = target.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+    return getStaticTargetQubitCount(relaxOp.getInputVec());
+  return std::nullopt;
+}
+
+static std::optional<std::size_t>
+getStaticTargetQubitCount(ValueRange targets) {
+  std::size_t count = 0;
+  for (Value target : targets) {
+    auto targetCount = getStaticTargetQubitCount(target);
+    if (!targetCount)
+      return std::nullopt;
+    auto updatedCount = checkedAdd(count, *targetCount);
+    if (!updatedCount)
+      return std::nullopt;
+    count = *updatedCount;
+  }
+  return count;
 }
 
 /// When a quake operation is in value form, the number of wire arguments (wire
@@ -562,13 +607,19 @@ LogicalResult cudaq::quake::ExpPauliOp::verify() {
   if (getPauliLiteralAttr()) {
     if (getPauli())
       return emitOpError("cannot have both a literal and a value Pauli word");
+    if (!symbolizePauliWord(*getPauliLiteral()))
+      return emitOpError("literal Pauli word must contain only I, X, Y, or Z");
+    auto targetQubitCount = getStaticTargetQubitCount(getTargets());
+    if (targetQubitCount && getPauliLiteral()->size() != *targetQubitCount)
+      return emitOpError(
+          "literal Pauli word length must match target qubit count");
   } else {
     if (!getPauli())
       return emitOpError("must have either a literal or a value Pauli word");
   }
   if (!(getParameters().empty() || getParameters().size() == 1))
     return emitOpError("can only have 0 or 1 parameter");
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -1194,7 +1245,7 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
   auto fn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this, gen);
   if (!fn)
     return emitOpError("symbol must be a func.func");
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
@@ -1283,7 +1334,7 @@ LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
           "Invalid matrix size, required 2^N * 2^N for N-qubit operation");
   }
 
-  return verifyWireResultsAreLinear(getOperation());
+  return verifyOperator(cast<cudaq::quake::OperatorInterface>(getOperation()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -1402,9 +1453,14 @@ QUANTUM_OPS(INSTANTIATE_CALLBACKS)
     return verifyWireResultsAreLinear(getOperation());                         \
   }
 
-#define VERIFY_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) WIRE_OPS(MACRO)
+#define INSTANTIATE_OPERATOR_VERIFY(Op)                                        \
+  LogicalResult cudaq::quake::Op::verify() {                                   \
+    return verifyOperator(                                                     \
+        cast<cudaq::quake::OperatorInterface>(getOperation()));                \
+  }
 
-VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
+BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_VERIFY)
+WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 
 //===----------------------------------------------------------------------===//
 // Generated logic
