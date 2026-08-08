@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.ir import UnitAttr
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
 
@@ -40,15 +39,6 @@ def get_unitary(kernel, *args):
     else:
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
-    # The unitary is assembled from the trace of the executed kernel, so the
-    # trace has to see every qubit the kernel allocates, in allocation order.
-    # Value-semantics lowering runs dead quantum elimination, which drops
-    # qubits no gate acts on and renumbers the ones that remain. The resulting
-    # matrix would then have the wrong dimension and the wrong qubit ordering.
-    # Opt this launch out of those passes. `prepare_call` handed back a clone,
-    # so the kernel's own module is untouched.
-    module.operation.attributes.__setitem__(
-        'quake.noOptimization', UnitAttr.get(context=module.context))
     return cudaq_runtime.get_unitary_impl(decorator.uniqName, module,
-                                          decorator.unoptimizedModuleCache(),
+                                          decorator.compiledModuleCache(),
                                           *processedArgs)

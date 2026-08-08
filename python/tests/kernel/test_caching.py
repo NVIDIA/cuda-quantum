@@ -25,16 +25,6 @@ def assert_owns_compiled_module_cache(kernel):
     assert second_lookup is first_lookup
 
 
-def assert_owns_unoptimized_module_cache(kernel):
-    """A launch that disables quantum optimization installs one stable cache
-    object on its kernel owner, kept separate from the optimized one."""
-    assert hasattr(kernel, '_unoptimized_module_cache')
-    first_lookup = kernel.unoptimizedModuleCache()
-    second_lookup = kernel.unoptimizedModuleCache()
-    assert first_lookup is kernel._unoptimized_module_cache
-    assert second_lookup is first_lookup
-
-
 # ---------------------------------------------------------------------------
 # Cacheable launch modes — one test per launch path.
 # ---------------------------------------------------------------------------
@@ -110,12 +100,11 @@ def test_cache_mode_get_unitary():
     u1 = cudaq.get_unitary(h_kernel)
     u2 = cudaq.get_unitary(h_kernel)
     np.testing.assert_allclose(u1, u2)
-    # get_unitary launches with `quake.noOptimization`, so it caches under the
-    # unoptimized cache rather than the one shared by ordinary launches.
-    assert_owns_unoptimized_module_cache(h_kernel)
-    assert not hasattr(h_kernel, '_compiled_module_cache')
-    cudaq.sample(h_kernel)
     assert_owns_compiled_module_cache(h_kernel)
+    # get_unitary compiles without value semantics while sample compiles with
+    # them. Both share this one cache; the target hash keys the two artifacts
+    # apart, so neither can stand in for the other regardless of call order.
+    cudaq.sample(h_kernel)
     np.testing.assert_allclose(cudaq.get_unitary(h_kernel), u1)
 
 

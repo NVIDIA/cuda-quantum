@@ -633,18 +633,6 @@ class PyKernelDecorator(object):
             self._compiled_module_cache = cudaq_runtime.CompiledModuleCache()
         return self._compiled_module_cache
 
-    def unoptimizedModuleCache(self):
-        """Return this kernel's compiled-module cache for launches that request
-        `quake.noOptimization`, creating an empty one on first access.
-
-        Kept separate from `compiledModuleCache()`: the cache key does not
-        cover that attribute, so sharing one cache would let an optimized and
-        an unoptimized artifact stand in for each other depending on call
-        order."""
-        if not hasattr(self, '_unoptimized_module_cache'):
-            self._unoptimized_module_cache = cudaq_runtime.CompiledModuleCache()
-        return self._unoptimized_module_cache
-
     def get_none_type(self):
         if self._cached_qkeModule:
             context = self._cached_qkeModule.context
