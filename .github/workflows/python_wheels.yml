@@ -314,6 +314,47 @@ jobs:
               exit 1
             fi
 
+      - name: Validate license compliance
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: wheel_validation:local
+          shell: bash
+          volume: ${{ github.workspace }}/scripts:/tmp/scripts:ro
+          run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+
+            if command -v dnf > /dev/null; then
+              retry dnf install -y --nobest --setopt=install_weak_deps=False binutils
+            elif command -v apt-get > /dev/null; then
+              retry apt-get update && retry apt-get install -y --no-install-recommends binutils
+            elif command -v zypper > /dev/null; then
+              retry zypper --non-interactive install binutils
+            fi
+            if ! command -v nm > /dev/null && ! command -v readelf > /dev/null && ! command -v objdump > /dev/null; then
+              echo "::error file=python_wheels.yml::Failed to install binutils; the scan for statically linked GMP/MPFR copies would silently be skipped."
+              exit 1
+            fi
+
+            python_exe=$(command -v python${{ inputs.python_version }})
+            if [ -z "$python_exe" ]; then
+              echo "::error file=python_wheels.yml::python${{ inputs.python_version }} not found in the validation image."
+              exit 1
+            fi
+            mkdir -p /tmp/pyshim
+            printf '#!/bin/sh\nexec "%s" "$@"\n' "$python_exe" > /tmp/pyshim/python3
+            chmod +x /tmp/pyshim/python3
+            export PATH="/tmp/pyshim:$PATH"
+            if ! python3 -c "import cudaq" > /dev/null 2>&1; then
+              echo "::error file=python_wheels.yml::cudaq is not importable via the python3 used for license validation."
+              exit 1
+            fi
+
+            bash /tmp/scripts/validate_license_compliance.sh --wheel
+            if [ $? -ne 0 ]; then
+              echo "::error file=python_wheels.yml::License compliance validation failed for the built wheel."
+              exit 1
+            fi
+
       - name: Run Python MPI tests
         if: matrix.os_image == 'redhat/ubi9:9.6'
         uses: ./.github/actions/run-in-docker

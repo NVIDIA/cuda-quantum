@@ -37,7 +37,9 @@ template <typename QOP>
 class HermitianElimination : public OpRewritePattern<QOP> {
 public:
   using Base = OpRewritePattern<QOP>;
-  using Base::Base;
+
+  HermitianElimination(MLIRContext *ctx, Pass::Statistic &stat)
+      : Base(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
@@ -106,8 +108,12 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << qop << '\n' << prev << '\n');
     rewriter.replaceOp(qop, newOperands);
     rewriter.eraseOp(prev);
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 template <>
@@ -115,7 +121,9 @@ class HermitianElimination<cudaq::quake::SwapOp>
     : public OpRewritePattern<cudaq::quake::SwapOp> {
 public:
   using Base = OpRewritePattern<cudaq::quake::SwapOp>;
-  using Base::Base;
+
+  HermitianElimination(MLIRContext *ctx, Pass::Statistic &stat)
+      : Base(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::SwapOp qop,
                                 PatternRewriter &rewriter) const override {
@@ -198,15 +206,21 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << qop << '\n' << prev0 << '\n');
     rewriter.replaceOp(qop, newOperands);
     rewriter.eraseOp(prev0);
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 template <typename QOP>
 class AdjointElimination : public OpRewritePattern<QOP> {
 public:
   using Base = OpRewritePattern<QOP>;
-  using Base::Base;
+
+  AdjointElimination(MLIRContext *ctx, Pass::Statistic &stat)
+      : Base(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
@@ -282,30 +296,23 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << qop << '\n' << prev << '\n');
     rewriter.replaceOp(qop, newOperands);
     rewriter.eraseOp(prev);
+    ++stat;
     return success();
   }
-};
 
-// The angle, in radians, after which QOP is exactly the identity operator. The
-// axis rotations are spinors: they pick up an overall `-1` at `2*pi` and return
-// to the identity only after `4*pi`. `r1` is `diag(1, exp(i*theta))` and has
-// period `2*pi` outright.
-template <typename QOP>
-constexpr double exactIdentityPeriod() {
-  if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>) {
-    return 2.0 * M_PI;
-  } else {
-    return 4.0 * M_PI;
-  }
-}
+private:
+  Pass::Statistic &stat;
+};
 
 template <typename QOP>
 class RotationCombine : public OpRewritePattern<QOP> {
 public:
   using Base = OpRewritePattern<QOP>;
 
-  RotationCombine(MLIRContext *ctx, double threshold)
-      : Base(ctx), threshold(threshold) {}
+  RotationCombine(MLIRContext *ctx, double threshold, Pass::Statistic &zeroStat,
+                  Pass::Statistic &combineStat)
+      : Base(ctx), threshold(threshold), zeroStat(zeroStat),
+        combineStat(combineStat) {}
 
   LogicalResult matchAndRewrite(QOP qop,
                                 PatternRewriter &rewriter) const override {
@@ -320,6 +327,7 @@ public:
       filterArgs(newOperands, qop.getTargets());
 
       rewriter.replaceOp(qop, newOperands);
+      ++zeroStat;
       return success();
     }
 
@@ -412,6 +420,7 @@ public:
         DenseBoolArrayAttr{});
     rewriter.eraseOp(prev);
     LLVM_DEBUG(llvm::dbgs() << "into: " << newOp << '\n');
+    ++combineStat;
     return success();
   }
 
@@ -432,23 +441,51 @@ private:
       return false;
     double theta = angle.convertToDouble();
 
+    if (isBackdoorNopGate(theta))
+      return false;
+
     // Never the shorter period: the `-1` an axis rotation picks up at `2*pi` is
     // observable if the rotation runs under a control, and this op may yet be
     // given one by control synthesis of the function it is in.
-    double residual = std::remainder(theta, exactIdentityPeriod<QOP>());
+    double residual = std::remainder(theta, exactIdentityPeriod());
 
     // At its default the threshold admits only representation error.
     return std::abs(residual) <= threshold;
   }
 
+  /// `quake.ry (12 * π) %1` is a special backdoor NOP that is never optimized.
+  /// TODO: Consider if it would be better to add an I (identity) gate to Quake.
+  static bool isBackdoorNopGate(double theta) {
+    if constexpr (std::same_as<QOP, cudaq::quake::RyOp>) {
+      return theta == 12.0 * M_PI;
+    } else {
+      return false;
+    }
+  }
+
+  // The angle, in radians, after which QOP is exactly the identity operator.
+  // The axis rotations are spinors: they pick up an overall `-1` at `2*pi` and
+  // return to the identity only after `4*pi`. `r1` is `diag(1, exp(i*theta))`
+  // and has period `2*pi` outright.
+  static constexpr double exactIdentityPeriod() {
+    if constexpr (std::is_same_v<QOP, cudaq::quake::R1Op>) {
+      return 2.0 * M_PI;
+    } else {
+      return 4.0 * M_PI;
+    }
+  }
+
   double threshold;
+  Pass::Statistic &zeroStat;
+  Pass::Statistic &combineStat;
 };
 
 // Z = SS = S<adj>S<adj>
 // I = SS<adj> = S<adj>S
 class DoubleSOp : public OpRewritePattern<cudaq::quake::SOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  DoubleSOp(MLIRContext *ctx, Pass::Statistic &stat)
+      : OpRewritePattern(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::SOp qop,
                                 PatternRewriter &rewriter) const override {
@@ -531,8 +568,12 @@ public:
         qop, qop.getResultTypes(), UnitAttr{}, ValueRange{}, prevCtls, prevTrgs,
         DenseBoolArrayAttr{});
     rewriter.eraseOp(prev);
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 // S = TT
@@ -540,7 +581,8 @@ public:
 // I = TT<adj> = T<adj>T
 class DoubleTOp : public OpRewritePattern<cudaq::quake::TOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  DoubleTOp(MLIRContext *ctx, Pass::Statistic &stat)
+      : OpRewritePattern(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::TOp qop,
                                 PatternRewriter &rewriter) const override {
@@ -623,14 +665,19 @@ public:
         qop, qop.getResultTypes(), qop.getIsAdjAttr(), ValueRange{}, prevCtls,
         prevTrgs, DenseBoolArrayAttr{});
     rewriter.eraseOp(prev);
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 // S = YSX
 class ReduceYSX : public OpRewritePattern<cudaq::quake::XOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  ReduceYSX(MLIRContext *ctx, Pass::Statistic &stat)
+      : OpRewritePattern(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::XOp qop,
                                 PatternRewriter &rewriter) const override {
@@ -720,15 +767,20 @@ public:
         DenseBoolArrayAttr{});
     rewriter.eraseOp(prev0);
     rewriter.eraseOp(prev);
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 // A reset after a reset or a null_wire can be eliminated as it is redundant.
 // NB: this optimization would not be valid after borrow_wire.
 class EraseDoubleReset : public OpRewritePattern<cudaq::quake::ResetOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  EraseDoubleReset(MLIRContext *ctx, Pass::Statistic &stat)
+      : OpRewritePattern(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::ResetOp reset,
                                 PatternRewriter &rewriter) const override {
@@ -740,6 +792,7 @@ public:
     if (reset0) {
       LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
       rewriter.replaceOp(reset, reset0.getResults());
+      ++stat;
       return success();
     }
     auto nullwire = target.template getDefiningOp<cudaq::quake::NullWireOp>();
@@ -750,15 +803,20 @@ public:
     }
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset << '\n');
     rewriter.replaceOp(reset, nullwire.getResult());
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 // A reset before a sink can be eliminated as the wire is going out of scope.
 // NB: this optimization would not be valid before return_wire.
 class EraseResetSink : public OpRewritePattern<cudaq::quake::SinkOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  EraseResetSink(MLIRContext *ctx, Pass::Statistic &stat)
+      : OpRewritePattern(ctx), stat(stat) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::SinkOp sink,
                                 PatternRewriter &rewriter) const override {
@@ -774,8 +832,12 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "eliminated: " << reset0 << '\n');
     rewriter.replaceOp(reset0, reset0.getTargets());
+    ++stat;
     return success();
   }
+
+private:
+  Pass::Statistic &stat;
 };
 
 namespace {
@@ -790,19 +852,25 @@ public:
     GreedyRewriteConfig config;
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
     RewritePatternSet patterns(ctx);
-    patterns.insert<DoubleSOp, DoubleTOp, EraseDoubleReset, EraseResetSink,
-                    ReduceYSX, HermitianElimination<cudaq::quake::HOp>,
-                    HermitianElimination<cudaq::quake::SwapOp>,
-                    HermitianElimination<cudaq::quake::XOp>,
-                    HermitianElimination<cudaq::quake::YOp>,
-                    HermitianElimination<cudaq::quake::ZOp>,
-                    AdjointElimination<cudaq::quake::SOp>,
-                    AdjointElimination<cudaq::quake::TOp>>(ctx);
-    patterns.insert<RotationCombine<cudaq::quake::R1Op>,
-                    RotationCombine<cudaq::quake::RxOp>,
-                    RotationCombine<cudaq::quake::RyOp>,
-                    RotationCombine<cudaq::quake::RzOp>,
-                    RotationCombine<cudaq::quake::PhasedRxOp>>(ctx, threshold);
+    patterns.add<HermitianElimination<cudaq::quake::HOp>,
+                 HermitianElimination<cudaq::quake::SwapOp>,
+                 HermitianElimination<cudaq::quake::XOp>,
+                 HermitianElimination<cudaq::quake::YOp>,
+                 HermitianElimination<cudaq::quake::ZOp>>(
+        ctx, numHermitianEliminations);
+    patterns.add<AdjointElimination<cudaq::quake::SOp>,
+                 AdjointElimination<cudaq::quake::TOp>>(ctx,
+                                                        numAdjointEliminations);
+    patterns.add<DoubleSOp>(ctx, numDoubleSRewrites);
+    patterns.add<DoubleTOp>(ctx, numDoubleTRewrites);
+    patterns.add<EraseDoubleReset, EraseResetSink>(ctx, numResetsErased);
+    patterns.add<ReduceYSX>(ctx, numReduceYSXRewrites);
+    patterns.add<RotationCombine<cudaq::quake::R1Op>,
+                 RotationCombine<cudaq::quake::RxOp>,
+                 RotationCombine<cudaq::quake::RyOp>,
+                 RotationCombine<cudaq::quake::RzOp>,
+                 RotationCombine<cudaq::quake::PhasedRxOp>>(
+        ctx, threshold, numZeroRotationsEliminated, numRotationsCombined);
     if (failed(applyPatternsGreedily(op, std::move(patterns), config)))
       signalPassFailure();
   }

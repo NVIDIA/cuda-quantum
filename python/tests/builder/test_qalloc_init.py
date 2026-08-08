@@ -592,11 +592,15 @@ def test_kernel_error_invalid_initializer_f32():
 
 
 # qalloc(int)
+# All of the following kernels don't do anything and when the optimizer is
+# enabled it will DQE the entire circuit. For the interest of these "tests", we
+# disable the optimizer. It would be prudent to write better tests however.
 
 
 def test_kernel_qvector_init_from_param_int():
 
     kernel, n = cudaq.make_kernel(int)
+    kernel.disable_quantum_optimization()
     q = kernel.qalloc(n)
 
     counts = cudaq.sample(kernel, 2)
@@ -611,6 +615,7 @@ def test_kernel_qvector_init_from_capture_int():
     n = 2
 
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     q = kernel.qalloc(n)
 
     counts = cudaq.sample(kernel)
@@ -624,6 +629,7 @@ def test_kernel_qvector_init_from_capture_int():
 def test_kernel_qvector_init_from_int():
 
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     q = kernel.qalloc(2)
 
     counts = cudaq.sample(kernel)

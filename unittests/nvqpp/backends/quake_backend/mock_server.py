@@ -10,7 +10,6 @@ import cudaq
 from fastapi import FastAPI, HTTPException, Request
 import uvicorn, uuid, base64, ctypes, sys, re
 from llvmlite import binding as llvm
-from preallocated_qubits_context import PreallocatedQubitsContext
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.ir import Module
 from cudaq.kernel.utils import getMLIRContext
@@ -202,15 +201,11 @@ async def postJob(request: Request):
     engine.run_static_constructors()
     funcPtr = engine.get_function_address(kernelFunctionName)
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
-    # Clear any leftover log from previous jobs
-    cudaq.testing.getAndClearOutputLog()
     qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
 
     shots = payload["shots"]
     for i in range(shots):
-        with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
-            kernel()
-        shot_log = cudaq.testing.getAndClearOutputLog()
+        shot_log = cudaq.testing.runKernel(numQubitsRequired, kernel)
         if i > 0:
             qir_log += "START\n"
         qir_log += shot_log

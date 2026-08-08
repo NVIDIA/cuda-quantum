@@ -271,8 +271,24 @@ del _discover_external_backends
 set_random_seed = cudaq_runtime.set_random_seed
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
-set_noise = cudaq_runtime.set_noise
-unset_noise = cudaq_runtime.unset_noise
+
+
+def set_noise(model):
+    warnings.warn(
+        "set_noise is deprecated; please use launch arguments or launch options.",
+        DeprecationWarning,
+        stacklevel=2)
+    return cudaq_runtime.set_noise(model)
+
+
+def unset_noise():
+    warnings.warn(
+        "unset_noise is deprecated; please use launch arguments or launch options.",
+        DeprecationWarning,
+        stacklevel=2)
+    return cudaq_runtime.unset_noise()
+
+
 register_set_target_callback = cudaq_runtime.register_set_target_callback
 unregister_set_target_callback = cudaq_runtime.unregister_set_target_callback
 

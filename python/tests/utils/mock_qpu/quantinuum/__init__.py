@@ -13,7 +13,6 @@ from typing import Union
 import uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
-from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -220,17 +219,12 @@ async def create_job(job: dict):
     funcPtr = engine.get_function_address(kernelFunctionName)
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
-    # Clear any leftover log from previous jobs
-    cudaq.testing.getAndClearOutputLog()
-
     # Invoke the Kernel
     if is_ng_device:
         qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
 
         for i in range(shots):
-            with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
-                kernel()
-            shot_log = cudaq.testing.getAndClearOutputLog()
+            shot_log = cudaq.testing.runKernel(numQubitsRequired, kernel)
             if i > 0:
                 qir_log += "START\n"
             qir_log += shot_log
@@ -238,9 +232,7 @@ async def create_job(job: dict):
 
         createdJobs[job_id] = (job_name, qir_log)
     else:
-        with PreallocatedQubitsContext(numQubitsRequired, shots) as context:
-            kernel()
-        results = context.result
+        results = cudaq.testing.sampleKernel(numQubitsRequired, shots, kernel)
         results.dump()
         createdJobs[job_id] = (job_name, results)
 

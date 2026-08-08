@@ -106,3 +106,4 @@ endfunction(add_cudaq_unittest)
 
 add_subdirectory(Optimizer)
 add_subdirectory(plugins)
+add_subdirectory(Synthesis)

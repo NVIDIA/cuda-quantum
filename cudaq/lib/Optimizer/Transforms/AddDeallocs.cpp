@@ -22,12 +22,12 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace {
 // Map from quake.alloca -> bool. `true` means there is a deallocation of the
 // alloca already present in the function.
 using DeallocationMap = llvm::DenseMap<Operation *, bool>;
 using RegionOpSet = llvm::DenseSet<Operation *>;
 
+namespace {
 struct DeallocationAnalysisInfo {
   DeallocationAnalysisInfo() = default;
   DeallocationAnalysisInfo(DeallocationMap m, RegionOpSet p)
@@ -94,7 +94,7 @@ private:
     func->walk([this](Operation *o) {
       if (isa<cudaq::cc::UnwindBreakOp, cudaq::cc::UnwindContinueOp,
               cudaq::cc::UnwindReturnOp>(o)) {
-        o->emitError("must run unwind-lowering before add-dealloc.");
+        o->emitWarning("must run unwind-lowering before add-dealloc.");
         hasErrors = true;
       } else if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(o)) {
         auto *op = alloc.getOperation();
@@ -116,7 +116,7 @@ private:
             allocMap.insert(std::make_pair(op, /*deallocated=*/true));
           LLVM_DEBUG(llvm::dbgs() << "found dealloc of alloca: " << op << '\n');
         } else {
-          dealloc->emitError("unable to determine associated allocation.");
+          dealloc->emitWarning("unable to determine associated allocation.");
           hasErrors = true;
         }
       }
@@ -127,8 +127,9 @@ private:
   RegionOpSet parents;
   bool hasErrors = false;
 };
+} // namespace
 
-inline void generateDeallocsForSet(PatternRewriter &rewriter,
+static void generateDeallocsForSet(PatternRewriter &rewriter,
                                    llvm::DenseSet<Operation *> &allocSet) {
   for (Operation *a : allocSet) {
     auto alloc = cast<cudaq::quake::AllocaOp>(a);
@@ -231,6 +232,7 @@ using LambdaDeallocPattern =
 using ScopeDeallocPattern =
     DeallocPattern<cudaq::cc::ScopeOp, cudaq::cc::ContinueOp>;
 
+namespace {
 /// This pass adds quake.dealloc operations to functions and λ expressions to
 /// deallocate any quantum objects as allocated with quake.alloca operations.
 /// Unlike classical objects that are stack allocated, quantum objects must be
@@ -244,7 +246,9 @@ using ScopeDeallocPattern =
 ///
 /// This pass should be run <em>after</em> the UnwindLowering pass, which adds
 /// dealloc ops along non-trivial control paths in the presence of global jumps.
-/// DeallocationAnalysis will flag any unwinding jumps as errors.
+/// DeallocationAnalysis will flag any unwinding jumps as warnings. It is the
+/// sole responsibility of the client that builds the pipeline to get the order
+/// of passes correct.
 class AddDeallocsPass
     : public cudaq::opt::impl::AddDeallocsBase<AddDeallocsPass> {
 public:
@@ -255,8 +259,8 @@ public:
 
     DeallocationAnalysis analysis(funcOp);
     if (analysis.hasFailed()) {
-      funcOp.emitError("error adding deallocations\n");
-      signalPassFailure();
+      funcOp.emitWarning(
+          "adding quake deallocations failed. incorrect pass pipeline?\n");
       return;
     }
 
@@ -277,10 +281,8 @@ public:
                                  cudaq::cc::CreateLambdaOp>(
         [&](Operation *op) { return !allocInfo.needsDeallocations(op); });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
-    if (failed(applyPartialConversion(funcOp, target, std::move(patterns)))) {
-      funcOp.emitError("error adding deallocations\n");
-      signalPassFailure();
-    }
+    if (failed(applyPartialConversion(funcOp, target, std::move(patterns))))
+      funcOp.emitWarning("adding quake deallocations failed.\n");
   }
 };
 } // namespace
