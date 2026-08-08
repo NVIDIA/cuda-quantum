@@ -139,13 +139,34 @@ static bool isCContiguous(const std::vector<std::size_t> &shape,
   return true;
 }
 
+static bool isFContiguous(const std::vector<std::size_t> &shape,
+                          const std::vector<ssize_t> &strides,
+                          std::size_t itemsize) {
+  if (shape.size() != strides.size())
+    return false;
+
+  ssize_t expectedStride = static_cast<ssize_t>(itemsize);
+  for (std::size_t i = 0; i < shape.size(); ++i) {
+    if (shape[i] > 1 && strides[i] != expectedStride)
+      return false;
+    expectedStride *= static_cast<ssize_t>(shape[i]);
+  }
+
+  return true;
+}
+
 static bool shouldCanonicalizeCupyArray(const BufferInfo &info,
                                         const std::string &targetName) {
   if (info.shape.empty())
     return false;
 
-  // Only 2D arrays for the dynamics target or non-contiguous 1D arrays
-  // need canonicalization.
+  // TensorStateData expects contiguous column-major storage, so dynamics
+  // complex128 density matrices must be F-contiguous.
+  if (info.shape.size() == 2 && targetName == "dynamics" && info.format == "Zd")
+    return !isFContiguous(info.shape, info.strides, info.itemsize);
+
+  // Preserve the existing host fallback for non-contiguous 1D arrays and
+  // other dynamics density-matrix input types.
   bool needsCanon = (info.shape.size() == 1) ||
                     (info.shape.size() == 2 && targetName == "dynamics");
   return needsCanon && !isCContiguous(info.shape, info.strides, info.itemsize);
@@ -155,6 +176,17 @@ static nanobind::object
 canonicalizeCupyArrayToNumpy(nanobind::handle cupyArray) {
   return nanobind::module_::import_("cupy").attr("asnumpy")(
       nanobind::borrow<nanobind::object>(cupyArray));
+}
+
+static nanobind::object canonicalizeCupyArray(nanobind::handle cupyArray,
+                                              const BufferInfo &info,
+                                              const std::string &targetName) {
+  // Canonicalize the density matrix to column-major storage on the device.
+  if (info.shape.size() == 2 && targetName == "dynamics" && info.format == "Zd")
+    return nanobind::module_::import_("cupy").attr("asfortranarray")(
+        nanobind::borrow<nanobind::object>(cupyArray));
+
+  return canonicalizeCupyArrayToNumpy(cupyArray);
 }
 
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
@@ -317,8 +349,14 @@ static cudaq::state createStateFromPyBuffer(nanobind::object data,
         "`dtype=numpy.complex128` if simulation is FP64, or "
         "`dtype=cudaq.complex()` for precision-agnostic code.");
 
+  if (!isHostData && holder.getTarget().name == "dynamics" &&
+      info.format != "Zd")
+    throw std::runtime_error(
+        "The dynamics target requires CuPy input with dtype complex128.");
+
   if (!isHostData && shouldCanonicalizeCupyArray(info, holder.getTarget().name))
-    return createStateFromPyBuffer(canonicalizeCupyArrayToNumpy(data), holder);
+    return createStateFromPyBuffer(
+        canonicalizeCupyArray(data, info, holder.getTarget().name), holder);
 
   if (!isHostData) {
     if (holder.getTarget().name == "dynamics") {
@@ -388,6 +426,14 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       .value("UNIFORM", InitialState::UNIFORM)
       .export_values();
 
+  nanobind::enum_<SimulationState::Tensor::storage_order>(
+      mod, "TensorStorageOrder",
+      "Enumeration describing the storage order of tensor data.")
+      .value("UNSPECIFIED", SimulationState::Tensor::storage_order::unspecified)
+      .value("ROW_MAJOR", SimulationState::Tensor::storage_order::row_major)
+      .value("COLUMN_MAJOR",
+             SimulationState::Tensor::storage_order::column_major);
+
   nanobind::class_<SimulationState::Tensor>(
       mod, "Tensor",
       "The `Tensor` describes a pointer to simulation data as well as the rank "
@@ -397,6 +443,7 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
              return reinterpret_cast<intptr_t>(tensor.data);
            })
       .def_ro("extents", &SimulationState::Tensor::extents)
+      .def_ro("storage_order", &SimulationState::Tensor::order)
       .def("get_rank", &SimulationState::Tensor::get_rank)
       .def("get_element_size", &SimulationState::Tensor::element_size)
       .def("get_num_elements", &SimulationState::Tensor::get_num_elements);
@@ -436,6 +483,21 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
             auto precision = self.get_precision();
             std::vector<size_t> shape(stateVector.extents.begin(),
                                       stateVector.extents.end());
+            std::vector<int64_t> strides;
+            const int64_t *stridesPtr = nullptr;
+            if (stateVector.order !=
+                SimulationState::Tensor::storage_order::unspecified) {
+              strides.resize(shape.size(), 1);
+              if (stateVector.order ==
+                  SimulationState::Tensor::storage_order::column_major) {
+                for (std::size_t i = 1; i < shape.size(); ++i)
+                  strides[i] = strides[i - 1] * shape[i - 1];
+              } else {
+                for (std::size_t i = shape.size(); i > 1; --i)
+                  strides[i - 2] = strides[i - 1] * shape[i - 1];
+              }
+              stridesPtr = strides.data();
+            }
 
             if (self.is_on_gpu()) {
               auto numElements = stateVector.get_num_elements();
@@ -452,7 +514,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<float>>(
-                        hostData, shape.size(), shape.data(), owner));
+                        hostData, shape.size(), shape.data(), owner,
+                        stridesPtr));
               } else {
                 auto *hostData = new std::complex<double>[numElements];
                 self.to_host(hostData, numElements);
@@ -465,19 +528,20 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<double>>(
-                        hostData, shape.size(), shape.data(), owner));
+                        hostData, shape.size(), shape.data(), owner,
+                        stridesPtr));
               }
             } else {
               if (precision == SimulationState::precision::fp32) {
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<float>>(
                         stateVector.data, shape.size(), shape.data(),
-                        nanobind::handle()));
+                        nanobind::handle(), stridesPtr));
               } else {
                 return nanobind::cast(
                     nanobind::ndarray<nanobind::numpy, std::complex<double>>(
                         stateVector.data, shape.size(), shape.data(),
-                        nanobind::handle()));
+                        nanobind::handle(), stridesPtr));
               }
             }
           },

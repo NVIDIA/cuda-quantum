@@ -33,16 +33,21 @@ struct QppDmState : public cudaq::SimulationState {
   std::size_t getNumQubits() const override { return std::log2(state.rows()); }
 
   std::complex<double> overlap(const cudaq::SimulationState &other) override {
-    if (other.getNumTensors() != 1 ||
-        (other.getTensor().extents != getTensor().extents))
+    if (other.getNumTensors() != 1)
       throw std::runtime_error("[qpp-dm-state] overlap error - other state "
                                "dimension not equal to this state dimension.");
+    const auto thisTensor = getTensor();
+    const auto otherTensor = other.getTensor();
+    if (otherTensor.extents != thisTensor.extents)
+      throw std::runtime_error("[qpp-dm-state] overlap error - other state "
+                               "dimension not equal to this state dimension.");
+
     // Create rho and sigma matrices
     Eigen::MatrixXcd rho = Eigen::Map<Eigen::MatrixXcd>(
-        state.data(), getTensor().extents[0], getTensor().extents[1]);
+        state.data(), thisTensor.extents[0], thisTensor.extents[1]);
     Eigen::MatrixXcd sigma = Eigen::Map<Eigen::MatrixXcd>(
-        reinterpret_cast<std::complex<double> *>(other.getTensor().data),
-        other.getTensor().extents[0], other.getTensor().extents[1]);
+        reinterpret_cast<std::complex<double> *>(otherTensor.data),
+        otherTensor.extents[0], otherTensor.extents[1]);
 
     return (rho.adjoint() * sigma).trace();
   }
@@ -85,7 +90,7 @@ struct QppDmState : public cudaq::SimulationState {
             const_cast<std::complex<double> *>(state.data())),
         std::vector<std::size_t>{static_cast<std::size_t>(state.rows()),
                                  static_cast<std::size_t>(state.cols())},
-        getPrecision()};
+        getPrecision(), Tensor::storage_order::column_major};
   }
 
   // /// @brief Return all tensors that represent this state
@@ -120,7 +125,7 @@ struct QppDmState : public cudaq::SimulationState {
 
       auto *dataPtr =
           reinterpret_cast<void *>(const_cast<complex_matrix &>(cMat).get_data(
-              complex_matrix::order::row_major));
+              complex_matrix::order::column_major));
 
       return std::make_unique<QppDmState>(Eigen::Map<qpp::cmat>(
           reinterpret_cast<std::complex<double> *>(dataPtr), cMat.rows(),
