@@ -109,11 +109,11 @@
   {
     "id": "cudaq-guide-route-qiskit-001",
     "question": "I have an existing Qiskit circuit and I want to port it to CUDA-Q. Can you help me translate the gates and handle the bit-ordering differences?",
-    "expected_skill": "qiskit-to-cudaq",
+    "expected_skill": "cudaq-importing",
     "expected_script": null,
-    "ground_truth": "The agent recognizes this as a Qiskit-to-CUDA-Q porting task and routes to the qiskit-to-cudaq skill (gate-translation table, bit-ordering vs Qiskit, framework-decoupling patterns) rather than answering solely from the cudaq-guide skill.",
+    "ground_truth": "The agent recognizes this as a Qiskit-to-CUDA-Q porting task and routes to the cudaq-importing skill (gate-translation table, bit-ordering vs Qiskit, framework-decoupling patterns) rather than answering solely from the cudaq-guide skill.",
     "expected_behavior": [
-      "The agent routed the request to the qiskit-to-cudaq skill rather than handling it only via cudaq-guide",
+      "The agent routed the request to the cudaq-importing skill rather than handling it only via cudaq-guide",
       "The agent addressed gate translation and bit-ordering differences between Qiskit and CUDA-Q"
     ]
   },
