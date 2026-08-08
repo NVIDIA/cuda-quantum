@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
@@ -681,14 +682,6 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::quake::XOp qop,
                                 PatternRewriter &rewriter) const override {
-    if (qop.getNegatedQubitControls())
-      return failure();
-
-    // The uncontrolled rewrite is equal up to global phase. Under control,
-    // that phase is relative between control branches and is observable.
-    if (!qop.getControls().empty())
-      return failure();
-
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
         !cudaq::quake::isQuantumValueType(targets[0].getType())) {
@@ -708,8 +701,6 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "previous previous operation must be Y\n");
       return failure();
     }
-    if (prev0.getNegatedQubitControls() || prev.getNegatedQubitControls())
-      return failure();
 
     // Check target is properly threaded.
     auto prev0Trgs = prev0.getTargets();
@@ -739,18 +730,27 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "must have the same number of controls\n");
       return failure();
     }
+    auto polarities = cudaq::opt::getControlPolarities(qop);
+    if (polarities != cudaq::opt::getControlPolarities(prev0) ||
+        polarities != cudaq::opt::getControlPolarities(prev)) {
+      LLVM_DEBUG(llvm::dbgs() << "control polarities must be the same\n");
+      return failure();
+    }
+
     for (auto iter :
          llvm::enumerate(llvm::zip(controls, prev0Ctls, prevCtls))) {
       auto n = iter.index();
       auto [c, p0c, pc] = iter.value();
-      if (isa<cudaq::quake::ControlType>(c.getType()))
+      if (isa<cudaq::quake::ControlType>(c.getType())) {
         if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc ||
             p0c != pc) {
           LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
           return failure();
         }
+        continue;
+      }
       if (!isa<cudaq::quake::WireType>(c.getType()) ||
-          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          !isa<cudaq::quake::WireType>(p0c.getType()) ||
           !isa<cudaq::quake::WireType>(pc.getType()) ||
           c != prev0.getResult(n) || p0c != prev.getResult(n)) {
         LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
@@ -758,13 +758,32 @@ public:
       }
     }
 
-    // Rewrite the back-to-back S gates.
+    // X S Y = -S, while X S^dagger Y = S^dagger exactly.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n'
                             << prev0 << '\n'
                             << prev << '\n');
-    rewriter.replaceOpWithNewOp<cudaq::quake::SOp>(
-        qop, qop.getResultTypes(), UnitAttr{}, ValueRange{}, prevCtls, prevTrgs,
-        DenseBoolArrayAttr{});
+    SmallVector<Value> replacementControls(prevCtls);
+    SmallVector<Value> replacementTargets(prevTrgs);
+    auto replacement = cudaq::quake::SOp::create(
+        rewriter, qop.getLoc(), qop.getResultTypes(), prev0.getIsAdjAttr(),
+        ValueRange{}, replacementControls, replacementTargets,
+        prev.getNegatedQubitControlsAttr());
+    cudaq::opt::threadWireResults(replacement, replacementControls,
+                                  replacementTargets);
+
+    if (!prev0.isAdj()) {
+      Value pi = arith::ConstantFloatOp::create(
+          rewriter, qop.getLoc(), rewriter.getF64Type(),
+          APFloat(3.14159265358979323846));
+      auto correction = cudaq::opt::emitPhaseCorrection(
+          rewriter, qop.getLoc(), pi, replacementControls,
+          prev.getNegatedQubitControlsAttr(), replacementTargets.back());
+      replacementControls = std::move(correction.controls);
+      replacementTargets.back() = correction.anchor;
+    }
+
+    rewriter.replaceOp(qop, cudaq::opt::getWireValues(replacementControls,
+                                                      replacementTargets));
     rewriter.eraseOp(prev0);
     rewriter.eraseOp(prev);
     ++stat;

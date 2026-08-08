@@ -8,6 +8,8 @@
 
 // RUN: cudaq-opt --quake-simplify %s | FileCheck %s
 // RUN: cudaq-opt --quake-simplify %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-simplify,normalize-phase-placement,lower-phase,canonicalize))' %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(quake-simplify,normalize-phase-placement,lower-phase,canonicalize))' %s | CircuitCheck %s
 
 // CircuitCheck intentionally uses strict unitary equivalence in this file to
 // detect both global and relative phase changes. Global-phase-only rewrites
@@ -99,7 +101,7 @@ func.func @combine_sdg_sdg() {
 // CHECK-NEXT:      return
 // CHECK-NEXT:    }
 
-func.func @preserve_controlled_ysx() {
+func.func @track_controlled_ysx() {
   %0 = quake.null_wire
   %1 = quake.null_wire
   %2:2 = quake.y [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
@@ -110,16 +112,47 @@ func.func @preserve_controlled_ysx() {
   return
 }
 
-// CHECK-LABEL:   func.func @preserve_controlled_ysx() {
+// CHECK-LABEL:   func.func @track_controlled_ysx() {
+// CHECK:           %[[PI:.*]] = arith.constant 3.1415926535897931 : f64
 // CHECK:           %[[VAL_0:.*]] = quake.null_wire
 // CHECK-NEXT:      %[[VAL_1:.*]] = quake.null_wire
-// CHECK-NEXT:      %[[VAL_2:.*]]:2 = quake.y {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK-NEXT:      %[[VAL_3:.*]]:2 = quake.s {{\[}}%[[VAL_2]]#0] %[[VAL_2]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK-NEXT:      %[[VAL_4:.*]]:2 = quake.x {{\[}}%[[VAL_3]]#0] %[[VAL_3]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-// CHECK-NEXT:      quake.sink %[[VAL_4]]#0 : !quake.wire
-// CHECK-NEXT:      quake.sink %[[VAL_4]]#1 : !quake.wire
+// CHECK-NEXT:      %[[S:.*]]:2 = quake.s {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NEXT:      %[[PHASE:.*]]:2 = quake.phase (%[[PI]]) {{\[}}%[[S]]#0] %[[S]]#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NEXT:      quake.sink %[[PHASE]]#0 : !quake.wire
+// CHECK-NEXT:      quake.sink %[[PHASE]]#1 : !quake.wire
 // CHECK-NEXT:      return
 // CHECK-NEXT:    }
+
+// LOWER-LABEL:   func.func @track_controlled_ysx() {
+// LOWER:           quake.s
+// LOWER:           quake.r1
+
+// Exercise the interference shape from the phase-tracking design: the outer
+// control is put into and taken out of the X basis around the controlled YSX
+// sequence. CircuitCheck's strict comparison makes a dropped relative pi phase
+// observable in the resulting control unitary.
+func.func @controlled_ysx_interference() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %h0 = quake.h %control : (!quake.wire) -> !quake.wire
+  %y:2 = quake.y [%h0] %target
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %s:2 = quake.s [%y#0] %y#1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x:2 = quake.x [%s#0] %s#1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %h1 = quake.h %x#0 : (!quake.wire) -> !quake.wire
+  quake.sink %h1 : !quake.wire
+  quake.sink %x#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @controlled_ysx_interference() {
+// CHECK:           quake.h
+// CHECK:           quake.s
+// CHECK:           quake.phase
+// CHECK:           quake.h
+// CHECK-NEXT:      quake.sink
 
 func.func @cancel_controlled_t_tdg() {
   %0 = quake.null_wire
@@ -154,5 +187,50 @@ func.func @cancel_controlled_s_sdg() {
 // CHECK-NEXT:      %[[VAL_1:.*]] = quake.null_wire
 // CHECK-NEXT:      quake.sink %[[VAL_0]] : !quake.wire
 // CHECK-NEXT:      quake.sink %[[VAL_1]] : !quake.wire
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+// X S^dagger Y is exactly S^dagger and needs no correction.
+func.func @reduce_ysdgx_exact() {
+  %0 = quake.null_wire
+  %1 = quake.y %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s<adj> %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.x %2 : (!quake.wire) -> !quake.wire
+  quake.sink %3 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @reduce_ysdgx_exact() {
+// CHECK:           %[[Q:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[S:.*]] = quake.s<adj> %[[Q]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      quake.sink %[[S]] : !quake.wire
+// CHECK-NOT:       quake.phase
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+// A negative source predicate must be copied to both the replacement and the
+// phase correction.
+func.func @track_negative_controlled_ysx() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2:2 = quake.y [%0 neg [true]] %1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3:2 = quake.s [%2#0 neg [true]] %2#1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0 neg [true]] %3#1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %4#0 : !quake.wire
+  quake.sink %4#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @track_negative_controlled_ysx() {
+// CHECK:           %[[PI:.*]] = arith.constant 3.1415926535897931 : f64
+// CHECK:           %[[CONTROL:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[TARGET:.*]] = quake.null_wire
+// CHECK-NEXT:      %[[S:.*]]:2 = quake.s {{\[}}%[[CONTROL]] neg [true]{{\]}} %[[TARGET]]
+// CHECK-NEXT:      %[[PHASE:.*]]:2 = quake.phase (%[[PI]]) {{\[}}%[[S]]#0 neg [true]{{\]}} %[[S]]#1
+// CHECK-NEXT:      quake.sink %[[PHASE]]#0 : !quake.wire
+// CHECK-NEXT:      quake.sink %[[PHASE]]#1 : !quake.wire
 // CHECK-NEXT:      return
 // CHECK-NEXT:    }

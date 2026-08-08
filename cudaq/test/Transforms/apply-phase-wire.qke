@@ -1,0 +1,105 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+
+func.func private @wire_phase(%theta: f64, %wire: !quake.wire)
+    -> !quake.wire {
+  %0 = quake.h %wire : (!quake.wire) -> !quake.wire
+  %1 = quake.phase (%theta) %0
+      : (f64, !quake.wire) -> !quake.wire
+  return %1 : !quake.wire
+}
+
+func.func @adjoint_caller(%theta: f64, %wire: !quake.wire)
+    -> !quake.wire {
+  %0 = quake.apply<adj> @wire_phase %theta, %wire
+      : (f64, !quake.wire) -> !quake.wire
+  return %0 : !quake.wire
+}
+
+func.func @controlled_caller(%theta: f64, %control: !quake.ref,
+                             %wire: !quake.wire) -> !quake.wire {
+  %0 = quake.apply @wire_phase [%control] %theta, %wire
+      : (!quake.ref, f64, !quake.wire) -> !quake.wire
+  return %0 : !quake.wire
+}
+
+func.func @adjoint_controlled_caller(
+    %theta: f64, %control0: !quake.ref, %control1: !quake.ref,
+    %wire: !quake.wire) -> !quake.wire {
+  %0 = quake.apply<adj> @wire_phase [%control0, %control1] %theta, %wire
+      : (!quake.ref, !quake.ref, f64, !quake.wire) -> !quake.wire
+  return %0 : !quake.wire
+}
+
+func.func private @wire_parameterized(%theta: f64, %phi: f64,
+                                      %lambda: f64, %wire: !quake.wire)
+    -> !quake.wire {
+  %0 = quake.u3 (%theta, %phi, %lambda) %wire
+      : (f64, f64, f64, !quake.wire) -> !quake.wire
+  %1 = quake.phased_rx (%theta, %phi) %0
+      : (f64, f64, !quake.wire) -> !quake.wire
+  return %1 : !quake.wire
+}
+
+func.func @parameterized_adjoint_caller(%theta: f64, %phi: f64,
+                                        %lambda: f64, %wire: !quake.wire)
+    -> !quake.wire {
+  %0 = quake.apply<adj> @wire_parameterized %theta, %phi, %lambda, %wire
+      : (f64, f64, f64, !quake.wire) -> !quake.wire
+  return %0 : !quake.wire
+}
+
+// Exercise the controls-then-targets wire result ordering directly.
+func.func private @wire_predicated_phase(%theta: f64, %control: !quake.wire,
+                                         %anchor: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %next:2 = quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %next#0, %next#1 : !quake.wire, !quake.wire
+}
+
+func.func @wire_predicated_adjoint_caller(%theta: f64, %control: !quake.wire,
+                                          %anchor: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %result:2 = quake.apply<adj> @wire_predicated_phase %theta, %control, %anchor
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %result#0, %result#1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func private @wire_predicated_phase.adj(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[CONTROL:.*]]: !quake.wire, %[[ANCHOR:.*]]: !quake.wire)
+// CHECK: %[[NEG:.*]] = arith.negf %[[THETA]] : f64
+// CHECK: %[[PHASE:.*]]:2 = quake.phase (%[[NEG]]) [%[[CONTROL]]] %[[ANCHOR]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK: return %[[PHASE]]#0, %[[PHASE]]#1 : !quake.wire, !quake.wire
+
+// Parameter tuples are preserved; the physical gates carry the inverse.
+// CHECK-LABEL: func.func private @wire_parameterized.adj(
+// CHECK-NOT: arith.negf
+// CHECK: %[[PRX:.*]] = quake.phased_rx<adj> ({{.*}}, {{.*}}) %{{.*}} : (f64, f64, !quake.wire) -> !quake.wire
+// CHECK-NOT: arith.negf
+// CHECK: %[[U3:.*]] = quake.u3<adj> ({{.*}}, {{.*}}, {{.*}}) %[[PRX]] : (f64, f64, f64, !quake.wire) -> !quake.wire
+// CHECK: return %[[U3]] : !quake.wire
+
+// CHECK-LABEL: func.func private @wire_phase.adj.ctrl(
+// CHECK: %[[NEG:.*]] = arith.negf
+// CHECK: %[[PHASE:.*]] = quake.phase (%[[NEG]]) [{{.*}}] %{{.*}} : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire
+// CHECK: %[[H:.*]] = quake.h [{{.*}}] %[[PHASE]] : (!quake.veq<?>, !quake.wire) -> !quake.wire
+// CHECK: return %[[H]] : !quake.wire
+
+// CHECK-LABEL: func.func private @wire_phase.adj(
+// CHECK: %[[NEG:.*]] = arith.negf
+// CHECK: %[[PHASE:.*]] = quake.phase (%[[NEG]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// CHECK: %[[H:.*]] = quake.h %[[PHASE]] : (!quake.wire) -> !quake.wire
+// CHECK: return %[[H]] : !quake.wire
+
+// CHECK-LABEL: func.func private @wire_phase.ctrl(
+// CHECK: %[[H:.*]] = quake.h [{{.*}}] %{{.*}} : (!quake.veq<?>, !quake.wire) -> !quake.wire
+// CHECK: %[[PHASE:.*]] = quake.phase ({{.*}}) [{{.*}}] %[[H]] : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire
+// CHECK: return %[[PHASE]] : !quake.wire

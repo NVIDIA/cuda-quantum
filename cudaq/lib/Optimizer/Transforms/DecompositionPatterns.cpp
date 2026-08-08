@@ -8,10 +8,13 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
+#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TypeName.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include <optional>
@@ -53,6 +56,15 @@ inline Value createDivF(Location loc, Value numerator, double denominator,
   return arith::DivFOp::create(rewriter, loc, numerator, denominatorValue);
 }
 
+template <typename Op>
+static LogicalResult requireScalarPhaseAnchor(Op op, Value target,
+                                              PatternRewriter &rewriter) {
+  if (cudaq::opt::isScalarPhaseAnchor(target))
+    return success();
+  return rewriter.notifyMatchFailure(
+      op, "requires a scalar target to anchor its phase correction");
+}
+
 /// @brief Returns true if \p op contains any `ControlType` operands.
 inline bool containsControlTypes(cudaq::quake::OperatorInterface op) {
   return llvm::any_of(op.getControls(), [](const Value &v) {
@@ -61,6 +73,40 @@ inline bool containsControlTypes(cudaq::quake::OperatorInterface op) {
 }
 
 namespace {
+struct ExpPauliTargetPlan {
+  SmallVector<cudaq::opt::StaticQubitTarget> qubits;
+};
+
+/// Validate and plan every scalar qubit represented by ExpPauli targets.
+///
+/// The plan is deliberately IR-free. Callers can therefore reject an unknown,
+/// dynamic, or mismatched target shape before materializing an ExtractRefOp.
+static std::optional<ExpPauliTargetPlan>
+planStaticExpPauliTargets(ValueRange targets, std::size_t expectedQubits) {
+  ExpPauliTargetPlan plan;
+  for (std::size_t targetIndex = 0; targetIndex < targets.size();
+       ++targetIndex) {
+    Value target = targets[targetIndex];
+    if (cudaq::opt::isScalarQubitTarget(target)) {
+      plan.qubits.push_back({target, targetIndex, std::nullopt});
+      continue;
+    }
+
+    auto vectorSize = cudaq::quake::getVeqSize(target);
+    if (!vectorSize || plan.qubits.size() > expectedQubits ||
+        *vectorSize > expectedQubits - plan.qubits.size())
+      return std::nullopt;
+
+    for (std::size_t elementIndex = 0; elementIndex < *vectorSize;
+         ++elementIndex)
+      plan.qubits.push_back({target, targetIndex, elementIndex});
+  }
+
+  if (plan.qubits.size() != expectedQubits)
+    return std::nullopt;
+  return plan;
+}
+
 /// @brief This is a wrapper class for `PatternRewriter::create<>()` for
 /// `QuakeOperator`s. If the controls and targets are `cudaq::quake::WireType`,
 /// then this wrapper class's methods update the controls and targets in the
@@ -379,6 +425,8 @@ struct HToPhasedRx
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
+    if (failed(requireScalarPhaseAnchor(op, target, rewriter)))
+      return failure();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -394,6 +442,10 @@ struct HToPhasedRx
     parameters[1] = zero;
     qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
                                                target);
+
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, pi_2, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -418,12 +470,16 @@ struct ExpPauliDecomposition
                                 PatternRewriter &rewriter) const override {
     auto loc = expPauliOp.getLoc();
     auto module = expPauliOp->getParentOfType<ModuleOp>();
-    auto qubits = expPauliOp.getTarget();
-    auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
 
-    if (expPauliOp.isAdj())
-      theta = arith::NegFOp::create(rewriter, loc, theta);
+    if (expPauliOp.getParameters().size() != 1)
+      return rewriter.notifyMatchFailure(expPauliOp,
+                                         "requires one angle parameter");
+    if (auto negated = expPauliOp.getNegatedQubitControls();
+        negated && negated->size() != expPauliOp.getControls().size())
+      return rewriter.notifyMatchFailure(
+          expPauliOp, "requires one negated-control flag per control operand");
+    auto theta = expPauliOp.getParameter();
 
     std::optional<std::string> optPauliWordStr;
     if (!pauliWord) {
@@ -506,55 +562,137 @@ struct ExpPauliDecomposition
       }
     }
 
-    // Assert that we have a constant known pauli word
-    if (!optPauliWordStr.has_value())
-      return expPauliOp.emitOpError("cannot determine pauli word string");
+    // A successful ExpPauli lowering needs a compile-time Pauli word and a
+    // target shape whose cardinality is known before we create any replacement
+    // IR. A failed match deliberately leaves the source operation untouched.
+    if (!optPauliWordStr)
+      return rewriter.notifyMatchFailure(expPauliOp,
+                                         "requires a compile-time Pauli word");
 
-    auto pauliWordStr = optPauliWordStr.value();
+    StringRef pauliWordStr = *optPauliWordStr;
+    if (pauliWordStr.ends_with('\0'))
+      pauliWordStr = pauliWordStr.drop_back();
 
-    // Remove optional last zero character
-    auto size = pauliWordStr.size();
-    if (size > 0 && pauliWordStr[size - 1] == '\0')
-      size--;
+    if (!llvm::all_of(pauliWordStr, [](char pauli) {
+          return pauli == 'I' || pauli == 'X' || pauli == 'Y' || pauli == 'Z';
+        }))
+      return rewriter.notifyMatchFailure(
+          expPauliOp, "Pauli word must contain only I, X, Y, or Z");
+
+    auto targetPlan =
+        planStaticExpPauliTargets(expPauliOp.getTargets(), pauliWordStr.size());
+    if (!targetPlan)
+      return rewriter.notifyMatchFailure(
+          expPauliOp,
+          "requires statically sized targets matching the Pauli word");
+
+    const bool isIdentity =
+        llvm::all_of(pauliWordStr, [](char pauli) { return pauli == 'I'; });
+    if (isIdentity) {
+      if (cudaq::opt::hasPotentiallyAliasedPhaseControls(
+              expPauliOp.getControls()))
+        return rewriter.notifyMatchFailure(
+            expPauliOp,
+            "requires a control predicate without possible quantum aliasing");
+
+      // exp(i theta I) is a phase, not a removable no-op. Choose the final
+      // statically identifiable source qubit only after all target validation
+      // succeeds, then preserve the source predicate and wire result order.
+      auto anchorPlan = cudaq::opt::findLastStaticQubitTarget(
+          expPauliOp.getTargets(),
+          [&](const cudaq::opt::StaticQubitTarget &target) {
+            return !cudaq::opt::mayPhaseAnchorAliasControl(
+                target, expPauliOp.getControls());
+          });
+      if (!anchorPlan)
+        return rewriter.notifyMatchFailure(expPauliOp,
+                                           "requires a nonempty scalar target "
+                                           "outside its control predicate to "
+                                           "anchor the identity phase");
+
+      SmallVector<Value> controls(expPauliOp.getControls());
+      SmallVector<Value> targets(expPauliOp.getTargets());
+      Value phase = theta;
+      if (expPauliOp.isAdj() && !matchPattern(phase, m_AnyZeroFloat()))
+        phase = arith::NegFOp::create(rewriter, loc, phase);
+
+      Value anchor =
+          cudaq::opt::materializeStaticQubitTarget(rewriter, loc, *anchorPlan);
+      auto correction = cudaq::opt::emitPhaseCorrection(
+          rewriter, loc, phase, controls,
+          expPauliOp.getNegatedQubitControlsAttr(), anchor);
+      controls = std::move(correction.controls);
+      if (!anchorPlan->elementIndex &&
+          isa<cudaq::quake::WireType>(
+              targets[anchorPlan->sourceIndex].getType()))
+        targets[anchorPlan->sourceIndex] = correction.anchor;
+
+      rewriter.replaceOp(expPauliOp,
+                         cudaq::opt::getWireValues(controls, targets));
+      return success();
+    }
+
+    // The existing basis/parity/Rz construction is exact for reference-form,
+    // uncontrolled targets. Until it can thread a full controlled or wire
+    // lowering, decline those forms before creating any replacement IR.
+    if (!expPauliOp.getControls().empty())
+      return rewriter.notifyMatchFailure(
+          expPauliOp,
+          "does not yet support controlled non-identity ExpPauli lowering");
+    if (llvm::any_of(expPauliOp.getTargets(), [](Value target) {
+          return isa<cudaq::quake::WireType>(target.getType());
+        }))
+      return rewriter.notifyMatchFailure(
+          expPauliOp,
+          "does not yet support wire non-identity ExpPauli lowering");
+
+    // This basis construction materializes floating constants through the
+    // existing F32/F64 factory path. Retain other AnyFloat forms rather than
+    // creating partial IR or relying on a mismatched APFloat representation.
+    auto angleType = dyn_cast<FloatType>(theta.getType());
+    if (!angleType || (!angleType.isF32() && !angleType.isF64()))
+      return rewriter.notifyMatchFailure(
+          expPauliOp, "does not yet support this non-identity angle type");
+
+    Value signedTheta = theta;
+    if (expPauliOp.isAdj())
+      signedTheta = arith::NegFOp::create(rewriter, loc, signedTheta);
+
+    SmallVector<Value> qubits;
+    qubits.reserve(targetPlan->qubits.size());
+    for (const auto &qubit : targetPlan->qubits)
+      qubits.push_back(
+          cudaq::opt::materializeStaticQubitTarget(rewriter, loc, qubit));
 
     SmallVector<Value> qubitSupport;
-    for (std::size_t i = 0; i < size; i++) {
-      Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
-      Value qubitI =
-          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
-      if (pauliWordStr[i] != 'I')
+    for (auto [i, pauli] : llvm::enumerate(pauliWordStr)) {
+      Value qubitI = qubits[i];
+      if (pauli != 'I')
         qubitSupport.push_back(qubitI);
 
-      if (pauliWordStr[i] == 'Y') {
+      if (pauli == 'Y') {
         APFloat d(M_PI_2);
         Value param = arith::ConstantFloatOp::create(rewriter, loc,
                                                      rewriter.getF64Type(), d);
         cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
                                    ValueRange{}, ValueRange{qubitI});
-      } else if (pauliWordStr[i] == 'X') {
+      } else if (pauli == 'X') {
         cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitI});
       }
     }
 
-    // If qubitSupport is empty, then we can safely drop the
-    // operation since it will only add a global phase.
-    // FIXME this should be tracked in the IR at some point
-    if (qubitSupport.empty()) {
-      rewriter.eraseOp(expPauliOp);
-      return success();
-    }
-
     std::vector<std::pair<Value, Value>> toReverse;
-    for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
+    for (std::size_t i = 0; i < qubitSupport.size() - 1; ++i) {
       cudaq::quake::XOp::create(rewriter, loc, ValueRange{qubitSupport[i]},
                                 ValueRange{qubitSupport[i + 1]});
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
-    // Note: `Rz(theta)` = `exp(-i*theta/2 Z)`
+    // Rz(-2 theta) implements exp(i theta Z) under Quake's Rz convention.
     Value negTwoTheta = arith::MulFOp::create(
         rewriter, loc,
-        createConstant(loc, -2.0, rewriter.getF64Type(), rewriter), theta);
+        createConstant(loc, -2.0, signedTheta.getType(), rewriter),
+        signedTheta);
     cudaq::quake::RzOp::create(rewriter, loc, ValueRange{negTwoTheta},
                                ValueRange{}, ValueRange{qubitSupport.back()});
 
@@ -562,11 +700,9 @@ struct ExpPauliDecomposition
     for (auto &[i, j] : toReverse)
       cudaq::quake::XOp::create(rewriter, loc, ValueRange{i}, ValueRange{j});
 
-    for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
+    for (std::size_t i = 0; i < pauliWordStr.size(); ++i) {
       std::size_t k = pauliWordStr.size() - 1 - i;
-      Value index = arith::ConstantIntOp::create(rewriter, loc, k, 64);
-      Value qubitK =
-          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
+      Value qubitK = qubits[k];
 
       if (pauliWordStr[k] == 'Y') {
         APFloat d(-M_PI_2);
@@ -587,9 +723,7 @@ struct ExpPauliDecomposition
 REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition,
                                {"exp_pauli", "rx", "h", "x(1)", "rz"});
 
-// Naive mapping of R1 to Rz, ignoring the global phase.
-// This is only expected to work with full inlining and
-// quake apply specialization.
+// Exact mapping of R1 to Rz plus its phase residue.
 struct R1ToRzType; // forward declare the pattern type, defined in the macro
                    // below
 struct R1ToRz
@@ -599,16 +733,51 @@ struct R1ToRz
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
-    if (r1Op.isAdj() || !r1Op.getControls().empty())
+    if (!isEnabled(cudaq::getKnownNumControls(r1Op)))
       return failure();
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
-        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
-        r1Op.getTargets());
+    Location location = r1Op.getLoc();
+    SmallVector<Value> controls(r1Op.getControls());
+    SmallVector<Value> targets(r1Op.getTargets());
+
+    // PhaseOp requires a scalar anchor. Do not partially rewrite an aggregate
+    // R1 because selecting one arbitrary `veq` element would represent the
+    // wrong phase for the _aggregate_ operation.
+
+    if (targets.empty() || !cudaq::opt::isScalarPhaseAnchor(targets.back()))
+      return rewriter.notifyMatchFailure(
+          r1Op,
+          "R1ToRz requires a scalar target to anchor its phase correction");
+
+    auto resultTypes =
+        cudaq::opt::getWireResultTypes(rewriter, controls, targets);
+    auto rz = cudaq::quake::RzOp::create(
+        rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
+        r1Op.getParameters(), controls, targets,
+        r1Op.getNegatedQubitControlsAttr());
+    cudaq::opt::threadWireResults(rz, controls, targets);
+
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing a `0 / 2` first would hide the zero behind an arith.divf
+    // until a later canonicalization pass.
+    Value phase = r1Op.getParameter();
+    if (!matchPattern(phase, m_AnyZeroFloat())) {
+      phase = createDivF(location, phase, 2.0, rewriter);
+      if (r1Op.isAdj())
+        phase = arith::NegFOp::create(rewriter, location, phase);
+    }
+
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, location, phase, controls, r1Op.getNegatedQubitControlsAttr(),
+        targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(r1Op, cudaq::opt::getWireValues(controls, targets));
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"});
+REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"}, {"r1(n)", "rz(n)"});
 
 // Naive mapping of R1 to U3
 // quake.r1(λ) [control] target
@@ -774,6 +943,8 @@ struct SToPhasedRx
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
+    if (failed(requireScalarPhaseAnchor(op, target, rewriter)))
+      return failure();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -795,6 +966,12 @@ struct SToPhasedRx
     parameters[1] = zero;
     qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
                                                target);
+
+    Value phase = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,
+                                 rewriter.getF64Type(), rewriter);
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -867,6 +1044,8 @@ struct TToPhasedRx
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
+    if (failed(requireScalarPhaseAnchor(op, target, rewriter)))
+      return failure();
     Value angle = createConstant(loc, -M_PI_4, rewriter.getF64Type(), rewriter);
     if (op.isAdj())
       angle = arith::NegFOp::create(rewriter, loc, angle);
@@ -889,6 +1068,12 @@ struct TToPhasedRx
     parameters[1] = zero;
     qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
                                                target);
+
+    Value phase = createConstant(loc, op.isAdj() ? -M_PI / 8.0 : M_PI / 8.0,
+                                 rewriter.getF64Type(), rewriter);
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1039,6 +1224,8 @@ struct XToPhasedRx
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
+    if (failed(requireScalarPhaseAnchor(op, target, rewriter)))
+      return failure();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -1049,6 +1236,11 @@ struct XToPhasedRx
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
                                                target);
+
+    Value phase = createConstant(loc, M_PI_2, rewriter.getF64Type(), rewriter);
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1079,6 +1271,8 @@ struct YToPhasedRx
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
+    if (failed(requireScalarPhaseAnchor(op, target, rewriter)))
+      return failure();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -1090,6 +1284,10 @@ struct YToPhasedRx
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
                                                target);
+
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, negPi_2, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1286,6 +1484,8 @@ struct ZToPhasedRx
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
+    if (failed(requireScalarPhaseAnchor(op, target, rewriter)))
+      return failure();
 
     // Necessary/Helpful constants
     SmallVector<Value> noControls;
@@ -1306,6 +1506,10 @@ struct ZToPhasedRx
     parameters[1] = zero;
     qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
                                                target);
+
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, pi_2, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1388,43 +1592,63 @@ struct R1ToPhasedRx
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op op,
                                 PatternRewriter &rewriter) const override {
-    if (!op.getControls().empty())
+    if (!isEnabled(cudaq::getKnownNumControls(op)))
       return failure();
 
-    // Op info
-    Location loc = op->getLoc();
-    Value target = op.getTarget();
+    Location loc = op.getLoc();
+    SmallVector<Value> controls(op.getControls());
+    SmallVector<Value> targets(op.getTargets());
+
+    // PhaseOp requires a scalar anchor. Do not partially rewrite an aggregate
+    // R1 because selecting one arbitrary `veq` element would represent the
+    // wrong phase for the aggregate operation.
+    if (targets.empty() || !cudaq::opt::isScalarPhaseAnchor(targets.back()))
+      return rewriter.notifyMatchFailure(
+          op, "R1ToPhasedRx requires a scalar target to anchor its phase "
+              "correction");
+
     Value angle = op.getParameter();
     if (op.isAdj())
       angle = arith::NegFOp::create(rewriter, loc, angle);
-    Type angleType = op.getParameter().getType();
 
-    // Necessary/Helpful constants
-    SmallVector<Value> noControls;
+    Type angleType = op.getParameter().getType();
     Value zero = createConstant(loc, 0.0, angleType, rewriter);
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
     Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
     Value negAngle = arith::NegFOp::create(rewriter, loc, angle);
+    auto negatedControls = op.getNegatedQubitControlsAttr();
 
-    std::array<Value, 2> parameters = {pi_2, zero};
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
-                                               target);
-    parameters[0] = negAngle;
-    parameters[1] = pi_2;
-    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
-                                               target);
-    parameters[0] = negPi_2;
-    parameters[1] = zero;
-    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
-                                               target);
+    cudaq::opt::createAndThreadGate<cudaq::quake::PhasedRxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{pi_2, zero}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::PhasedRxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{negAngle, pi_2}, controls,
+        targets, negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::PhasedRxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{negPi_2, zero}, controls, targets,
+        negatedControls);
 
-    qRewriter.selectWiresAndReplaceUses(op, target);
-    rewriter.eraseOp(op);
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing a `0 / 2` first would hide the zero behind an arith.divf
+    // until a later canonicalization pass.
+    Value phase = op.getParameter();
+    if (!matchPattern(phase, m_AnyZeroFloat())) {
+      phase = createDivF(loc, phase, 2.0, rewriter);
+      if (op.isAdj())
+        phase = arith::NegFOp::create(rewriter, loc, phase);
+    }
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, controls, negatedControls, targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(op, cudaq::opt::getWireValues(controls, targets));
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, {"r1", "phased_rx"});
+REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, {"r1", "phased_rx"},
+                               {"r1(1)", "phased_rx(1)"},
+                               {"r1(n)", "phased_rx(n)"});
 
 //===----------------------------------------------------------------------===//
 // RxOp decompositions
@@ -1438,6 +1662,7 @@ REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, {"r1", "phased_rx"});
 // quake.x [control] target
 // quake.ry(θ/2) target
 // quake.rz(-π/2) target
+// quake.phase(-π/4) target // +π/4 for a negative source control
 struct CRxToCXType; // forward declare the pattern type, defined in the macro
                     // below
 struct CRxToCX
@@ -1447,6 +1672,12 @@ struct CRxToCX
 
   LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
+    Value target = op.getTarget();
+    if (!cudaq::opt::isScalarPhaseAnchor(target))
+      return rewriter.notifyMatchFailure(
+          op,
+          "CRxToCX requires a scalar target to anchor its phase correction");
+
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
       return failure();
@@ -1454,8 +1685,8 @@ struct CRxToCX
 
     // Op info
     Location loc = op->getLoc();
-    Value target = op.getTarget();
     auto negControl = false;
+
     auto negatedControls = op.getNegatedQubitControls();
     if (negatedControls)
       negControl = (*negatedControls)[0];
@@ -1480,6 +1711,15 @@ struct CRxToCX
                                          noControls, target);
     qRewriter.create<cudaq::quake::RzOp>(loc, /*isAdj*/ negControl, negPI_2,
                                          noControls, target);
+
+    // This residue is a scalar over the complete two-qubit unitary, not a
+    // phase conditioned on the source Rx control.
+    Value phase =
+        createConstant(loc, negControl ? M_PI_4 : -M_PI_4, angleType, rewriter);
+    // Emit `quake.phase(phase) target`; its empty predicate is deliberate.
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, ValueRange{}, DenseBoolArrayAttr{}, target);
+    target = correction.anchor;
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
@@ -1961,6 +2201,19 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     Value phi = op.getParameters()[1];
     Value lam = op.getParameters()[2];
 
+    if (!cudaq::opt::isScalarPhaseAnchor(target))
+      return rewriter.notifyMatchFailure(
+          op, "U3ToRotations requires a scalar target to anchor its phase "
+              "correction");
+    if (phi.getType() != lam.getType())
+      return rewriter.notifyMatchFailure(
+          op, "U3ToRotations requires phi and lambda to have the same type");
+
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing 0 + 0 and dividing first would hide it from the helper.
+    const bool hasZeroPhase = matchPattern(phi, m_AnyZeroFloat()) &&
+                              matchPattern(lam, m_AnyZeroFloat());
+
     if (op.isAdj()) {
       theta = arith::NegFOp::create(rewriter, loc, theta);
       // swap the 2nd and 3rd parameter for correctness
@@ -1974,15 +2227,35 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     Value pi_2 = createConstant(loc, M_PI_2, angleType, rewriter);
     Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::RzOp>(loc, lam, controls, target);
-    qRewriter.create<cudaq::quake::RxOp>(loc, pi_2, controls, target);
-    qRewriter.create<cudaq::quake::RzOp>(loc, theta, controls, target);
-    qRewriter.create<cudaq::quake::RxOp>(loc, negPi_2, controls, target);
-    qRewriter.create<cudaq::quake::RzOp>(loc, phi, controls, target);
+    SmallVector<Value> targets{target};
+    auto negatedControls = op.getNegatedQubitControlsAttr();
+    cudaq::opt::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{lam}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{pi_2}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{theta}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RxOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{negPi_2}, controls, targets,
+        negatedControls);
+    cudaq::opt::createAndThreadGate<cudaq::quake::RzOp>(
+        rewriter, loc, UnitAttr{}, ValueRange{phi}, controls, targets,
+        negatedControls);
 
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
+    Value phase = op.getParameters()[1];
+    if (!hasZeroPhase) {
+      phase = arith::AddFOp::create(rewriter, loc, phi, lam);
+      phase = createDivF(loc, phase, 2.0, rewriter);
+    }
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, loc, phase, controls, negatedControls, targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(op, cudaq::opt::getWireValues(controls, targets));
     return success();
   }
 };

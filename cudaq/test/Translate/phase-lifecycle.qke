@@ -1,0 +1,77 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir --emit-llvm=false %s | FileCheck %s
+
+// The phase begins uncontrolled inside the helper. Apply specialization adds
+// the outer control, after which the late phase lifecycle must lower it to R1.
+func.func private @phase_helper(%theta: f64, %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @phase_lifecycle(%theta: f64, %outer: !quake.ref,
+                           %anchor: !quake.ref) {
+  quake.apply @phase_helper [%outer] %theta, %anchor
+      : (!quake.ref, f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: llvm.func @phase_lifecycle(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK-SAME: %[[OUTER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
+// CHECK: llvm.call @__quantum__qis__r1(%[[THETA]], %[[OUTER]])
+// CHECK-NOT: quake.phase
+
+// handle negative controls on the inner phase
+// should be intermediately translated to
+// ```
+// quake.x %inner
+// quake.r1 (%theta) [%inner] %outer
+// quake.x %inner
+// ```
+// after `r1` with negative control is emitted during phase lifecycle pass.
+// Then the `ExpandControlNegations` pass should expand the negative control
+//on the R1 to X-R1-X.
+func.func private @negative_phase_helper(
+    %theta: f64, %inner: !quake.ref, %anchor: !quake.ref) {
+  quake.phase (%theta) [%inner neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @negative_phase_lifecycle(
+    %theta: f64, %outer: !quake.ref, %inner: !quake.ref,
+    %anchor: !quake.ref) {
+  quake.apply @negative_phase_helper [%outer] %theta, %inner, %anchor
+      : (!quake.ref, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: llvm.func @negative_phase_lifecycle(
+// CHECK-SAME: %[[NEG_THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK-SAME: %[[NEG_OUTER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
+// CHECK-SAME: %[[NEG_INNER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
+
+// Select the controlled R1 implementation.
+// CHECK: %[[R1_CTL:[a-zA-Z0-9_.$-]+]] = llvm.mlir.addressof @__quantum__qis__r1__ctl
+
+// Convert the negative inner control into a positive control.
+// CHECK: llvm.call @__quantum__qis__x(%[[NEG_INNER]])
+
+// CHECK: %[[INNER_CAST:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_INNER]]
+// CHECK: %[[R1_CTL_CAST:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[R1_CTL]]
+// CHECK: %[[OUTER_CAST:[a-zA-Z0-9_.$-]+]] = llvm.bitcast %[[NEG_OUTER]]
+
+// Inner is the control; outer is the R1 target.
+// CHECK: llvm.call @generalizedInvokeWithRotationsControlsTargets({{.*}}%[[R1_CTL_CAST]], %[[NEG_THETA]], %[[INNER_CAST]], %[[OUTER_CAST]])
+
+// Restore the inner qubit.
+// CHECK: llvm.call @__quantum__qis__x(%[[NEG_INNER]])
+// CHECK: llvm.return
+// CHECK-NOT: quake.phase
