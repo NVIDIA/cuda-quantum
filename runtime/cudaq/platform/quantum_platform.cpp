@@ -172,6 +172,7 @@ cudaq::CompileTarget getDefaultCompileTarget(const other_policies &,
   auto ct = getDefaultPythonCompileTargetImpl();
   ct.overrideAOTCompilation = false;
   ct.emitResourceCounts = context && context->name == "resource-count";
+  ct.pipelineConfig.useValueSemantics = !(context && context->name == "tracer");
   return ct;
 }
 

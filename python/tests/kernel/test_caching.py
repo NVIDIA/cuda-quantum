@@ -101,6 +101,11 @@ def test_cache_mode_get_unitary():
     u2 = cudaq.get_unitary(h_kernel)
     np.testing.assert_allclose(u1, u2)
     assert_owns_compiled_module_cache(h_kernel)
+    # get_unitary compiles without value semantics while sample compiles with
+    # them. Both share this one cache; the target hash keys the two artifacts
+    # apart, so neither can stand in for the other regardless of call order.
+    cudaq.sample(h_kernel)
+    np.testing.assert_allclose(cudaq.get_unitary(h_kernel), u1)
 
 
 def test_cache_mode_run():
