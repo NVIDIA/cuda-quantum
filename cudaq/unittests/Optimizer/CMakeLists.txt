@@ -10,6 +10,7 @@ add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
     SOURCES
         HermitianTrait.cpp
         FactoryMergeModuleTest.cpp
+        CommutationAwareRewriteTest.cpp
         DecompositionPatternsTest.cpp
         DecompositionPatternSelectionTest.cpp
         CliffordTSynthesisTester.cpp
@@ -34,12 +35,16 @@ create_cudaq_unittest_check_target("OptimizerUnitTests" "optimizer-unit-tests")
 
 add_cudaq_unittest("AnalysisPassUnitTests" "analysis-passes"
     SOURCES
+        CommutationAnalysisTest.cpp
+        QubitIdentityAnalysisTest.cpp
         UnitaryOpGroupingTest.cpp
     INCLUDES
+        ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Analysis
     LINKED_LIBS
         MLIRArithDialect
         MLIRFuncDialect
         MLIRIR
+        MLIRParser
         QuakeDialect
         CCDialect
         OptAnalysis

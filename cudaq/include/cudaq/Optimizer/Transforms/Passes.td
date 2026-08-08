@@ -1364,8 +1364,15 @@ def QuakePropagateMetadata :
 def QuakeSimplify : Pass<"quake-simplify"> {
   let summary = "Perform simplifications on the quake ops.";
   let description = [{
-    This pass performs several simplifications on quake operations. The
+    This pass performs several simplifications on Quake operations. The
     IR is expected to be in value-semantics form.
+
+    Commutation-aware rewrites are block local and support participating
+    operations whose controls and targets are scalar `!quake.wire` values.
+    Other valid control representations conservatively do not match. Direct
+    rewrites require exactly threaded, distinct wire operands. A rewrite that
+    crosses another operation requires the block-local analysis to prove
+    commutation.
 
     Among these, a constant-angle rotation that is the identity is erased. The
     angle is first folded into the period after which the rotation is exactly

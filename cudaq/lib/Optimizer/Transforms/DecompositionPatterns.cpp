@@ -9,6 +9,8 @@
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TypeName.h"
@@ -418,12 +420,8 @@ struct ExpPauliDecomposition
                                 PatternRewriter &rewriter) const override {
     auto loc = expPauliOp.getLoc();
     auto module = expPauliOp->getParentOfType<ModuleOp>();
-    auto qubits = expPauliOp.getTarget();
     auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
-
-    if (expPauliOp.isAdj())
-      theta = arith::NegFOp::create(rewriter, loc, theta);
 
     std::optional<std::string> optPauliWordStr;
     if (!pauliWord) {
@@ -517,21 +515,80 @@ struct ExpPauliDecomposition
     if (size > 0 && pauliWordStr[size - 1] == '\0')
       size--;
 
+    auto maybePaulis = cudaq::quake::symbolizePauliWord(
+        StringRef(pauliWordStr).take_front(size));
+    if (!maybePaulis)
+      return expPauliOp.emitOpError(
+          "Pauli word must contain only I, X, Y, or Z");
+    const auto &paulis = *maybePaulis;
+
+    // Determine target cardinalities before creating any IR. Pattern failure
+    // must leave the operation unchanged so that the greedy driver can stop
+    // cleanly instead of repeatedly matching a partially rewritten operation.
+    SmallVector<std::size_t> targetSizes;
+    auto targets = expPauliOp.getTargets();
+    std::size_t qubitCount = 0;
+    for (Value target : targets) {
+      auto targetTy = target.getType();
+      if (isa<cudaq::quake::RefType>(targetTy)) {
+        if (qubitCount == paulis.size())
+          return expPauliOp.emitOpError(
+              "Pauli word length must match target qubit count");
+        targetSizes.push_back(1);
+        ++qubitCount;
+        continue;
+      }
+      if (!isa<cudaq::quake::VeqType>(targetTy))
+        return failure();
+      auto maybeSize = cudaq::quake::getVeqSize(target);
+      if (!maybeSize) {
+        // The Pauli-word length cannot determine boundaries between dynamic
+        // targets.
+        if (targets.size() != 1)
+          return failure();
+        maybeSize = paulis.size();
+      }
+      if (*maybeSize > paulis.size() - qubitCount)
+        return expPauliOp.emitOpError(
+            "Pauli word length must match target qubit count");
+      targetSizes.push_back(*maybeSize);
+      qubitCount += *maybeSize;
+    }
+
+    if (qubitCount != paulis.size())
+      return expPauliOp.emitOpError(
+          "Pauli word length must match target qubit count");
+
+    // Flatten variadic targets into individual refs before lowering.
+    SmallVector<Value> qubits;
+    for (auto [target, targetSize] : llvm::zip(targets, targetSizes)) {
+      if (isa<cudaq::quake::RefType>(target.getType())) {
+        qubits.push_back(target);
+        continue;
+      }
+      for (std::size_t i = 0; i < targetSize; ++i) {
+        Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
+        qubits.push_back(
+            cudaq::quake::ExtractRefOp::create(rewriter, loc, target, index));
+      }
+    }
+
+    if (expPauliOp.isAdj())
+      theta = arith::NegFOp::create(rewriter, loc, theta);
+
     SmallVector<Value> qubitSupport;
-    for (std::size_t i = 0; i < size; i++) {
-      Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
-      Value qubitI =
-          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
-      if (pauliWordStr[i] != 'I')
+    for (auto [i, pauli] : llvm::enumerate(paulis)) {
+      Value qubitI = qubits[i];
+      if (pauli != cudaq::quake::Pauli::I)
         qubitSupport.push_back(qubitI);
 
-      if (pauliWordStr[i] == 'Y') {
+      if (pauli == cudaq::quake::Pauli::Y) {
         APFloat d(M_PI_2);
         Value param = arith::ConstantFloatOp::create(rewriter, loc,
                                                      rewriter.getF64Type(), d);
         cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
                                    ValueRange{}, ValueRange{qubitI});
-      } else if (pauliWordStr[i] == 'X') {
+      } else if (pauli == cudaq::quake::Pauli::X) {
         cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitI});
       }
     }
@@ -562,19 +619,17 @@ struct ExpPauliDecomposition
     for (auto &[i, j] : toReverse)
       cudaq::quake::XOp::create(rewriter, loc, ValueRange{i}, ValueRange{j});
 
-    for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
-      std::size_t k = pauliWordStr.size() - 1 - i;
-      Value index = arith::ConstantIntOp::create(rewriter, loc, k, 64);
-      Value qubitK =
-          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
+    for (std::size_t i = 0; i < paulis.size(); i++) {
+      std::size_t k = paulis.size() - 1 - i;
+      Value qubitK = qubits[k];
 
-      if (pauliWordStr[k] == 'Y') {
+      if (paulis[k] == cudaq::quake::Pauli::Y) {
         APFloat d(-M_PI_2);
         Value param = arith::ConstantFloatOp::create(rewriter, loc,
                                                      rewriter.getF64Type(), d);
         cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
                                    ValueRange{}, ValueRange{qubitK});
-      } else if (pauliWordStr[k] == 'X') {
+      } else if (paulis[k] == cudaq::quake::Pauli::X) {
         cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitK});
       }
     }
