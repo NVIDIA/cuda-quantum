@@ -25,6 +25,7 @@
 // RUN:   --apply-op-specialization=constant-prop=1 %s | FileCheck %s
 // RUN: cudaq-opt --pass-pipeline='builtin.module(hw-jit-prep-pipeline)' %s | \
 // RUN:   FileCheck %s --check-prefix=JIT-PREP
+// RUN: cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline)' %s | FileCheck %s --check-prefix=AOT-PREP
 
 module {
   // Inner kernel that expects dynamic veq type
@@ -88,3 +89,9 @@ module {
 // JIT-PREP:       %[[CONTROLS:.*]] = quake.concat %{{.*}} : (!quake.ref) -> !quake.veq<1>
 // JIT-PREP:       quake.rx (%{{.*}}) [%[[CONTROLS]]] %{{.*}} : (f64, !quake.veq<1>, !quake.ref) -> ()
 // JIT-PREP-NOT:   func.call
+
+// AOT-PREP-LABEL: func.func @main_kernel()
+// AOT-PREP-NOT:   func.call
+// AOT-PREP:       %[[CONTROLS:.*]] = quake.concat %{{.*}} : (!quake.ref) -> !quake.veq<1>
+// AOT-PREP:       quake.rx (%{{.*}}) [%[[CONTROLS]]] %{{.*}} : (f64, !quake.veq<1>, !quake.ref) -> ()
+// AOT-PREP-NOT:   func.call

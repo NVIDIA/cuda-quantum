@@ -259,6 +259,10 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // Apply specialization must see the quantum operations directly. Inlining
+  // first prevents quantum func.call operations from being left uncontrolled
+  // in generated control or adjoint variants.
+  cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::GenerateKernelExecutionOptions gkeOpts;
   gkeOpts.genRunStack = options.autoGenRunStack;
