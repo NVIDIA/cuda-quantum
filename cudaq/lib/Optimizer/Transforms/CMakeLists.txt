@@ -50,12 +50,14 @@ add_cudaq_library(OptTransforms
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
+  LowerPhase.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
+  NormalizePhasePlacement.cpp
   ObserveAnsatz.cpp
   PhaseFolding.cpp
   Pipelines.cpp
@@ -80,6 +82,7 @@ add_cudaq_library(OptTransforms
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyNoPhase.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 
@@ -92,6 +95,7 @@ add_cudaq_library(OptTransforms
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
+    MLIRTransforms
     OptimBuilder
     QECDialect
     QuakeDialect

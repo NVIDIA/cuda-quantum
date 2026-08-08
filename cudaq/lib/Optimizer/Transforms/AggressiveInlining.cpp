@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/Pass/PassManager.h"
@@ -65,6 +66,23 @@ public:
     }();
     LLVM_DEBUG(llvm::dbgs() << "Processing: " << mod << '\n');
     mod.walk([&](Operation *op) {
+      // Lambda lifting expresses a statically-known callable as a
+      // func.constant followed by func.call_indirect. Convert that form before
+      // inlining so the callable body can be specialized.
+      if (auto indirect = dyn_cast<func::CallIndirectOp>(op)) {
+        if (auto constant =
+                indirect.getCallee().getDefiningOp<func::ConstantOp>()) {
+          OpBuilder rewriter(indirect);
+          auto direct = func::CallOp::create(
+              rewriter, indirect.getLoc(), indirect.getResultTypes(),
+              constant.getValue(), indirect.getArgOperands(),
+              indirect.getArgAttrsAttr(), indirect.getResAttrsAttr());
+          indirect->replaceAllUsesWith(direct->getResults());
+          indirect->erase();
+          op = direct.getOperation();
+        }
+      }
+
       auto call = dyn_cast<CallOpInterface>(op);
       if (!call)
         return;

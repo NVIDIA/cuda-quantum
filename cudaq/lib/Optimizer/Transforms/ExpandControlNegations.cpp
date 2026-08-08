@@ -168,6 +168,11 @@ struct ExpandControlNegationsPass
                            LLVM::LLVMDialect>();
     target.addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>(
         [](Operation *op) {
+          // `quake.phase` handled during phase lifecycle pass so allow
+          // it to be legal here.
+          if (isa<cudaq::quake::PhaseOp>(op))
+            return true;
+
           auto quantumOp = dyn_cast<cudaq::quake::OperatorInterface>(op);
           if (!quantumOp)
             return true;

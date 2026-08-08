@@ -15,9 +15,10 @@
 namespace cudaq::opt {
 
 /// Extract resource counts from a Quake IR module using static analysis.
-/// Runs ResourceCountPreprocess to count gates with qubit indices for depth.
-/// Counted gates are erased from the module. Returns the accumulated counts,
-/// or failure if the pass pipeline fails.
+/// Completes and verifies the global-phase lifecycle, then runs
+/// ResourceCountPreprocess to count physical gates with qubit indices for
+/// depth. Counted gates are erased from the module. Returns the accumulated
+/// counts, or failure if the pass pipeline fails.
 mlir::FailureOr<cudaq::Resources> countResourcesFromIR(mlir::ModuleOp module);
 
 } // namespace cudaq::opt
