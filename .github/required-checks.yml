@@ -56,5 +56,7 @@ push:
 - Build and test (arm64, llvm, openmpi) / Dev environment (Python)
 - Build and test (amd64, gcc12, openmpi) / Dev environment (Debug)
 - Build and test (amd64, gcc12, openmpi) / Dev environment (Python)
+# Doc gate for PR builds; the Docker image doc job is skipped here.
+- Documentation / Build and check docs
 workflow_dispatch: *full_matrix
 schedule: *full_matrix

@@ -281,6 +281,18 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
+  # Doc gate for PR builds; complements docker_image (which covers other events).
+  documentation:
+    name: Documentation
+    needs: [metadata, config_devdeps]
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/build_docs.yml
+    with:
+      platform: linux/amd64
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash['amd64-gcc12'] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key['amd64-gcc12'] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive['amd64-gcc12'] }}
+
   # Docker images are packaging, not correctness — only built on merge_group/dispatch.
   docker_image:
     name: Create Docker images
@@ -377,6 +389,7 @@ jobs:
       - config_source_build
       - build_and_test
       - gen_code_coverage
+      - documentation
       - docker_image
       - python_wheels
       - python_metapackages
