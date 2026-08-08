@@ -571,9 +571,11 @@ TEST_F(DecompositionPatternsTest, R1ToRzRewritesAdjointR1) {
 TEST_F(DecompositionPatternsTest, R1ToRzPhaseSurvivesControlAddedLater) {
   auto module = createR1ControlAddedLaterModule(context.get());
 
-  // Apply R1ToRz directly so the helper is decomposed before its caller's
-  // control is specialized into it.
-  ASSERT_TRUE(succeeded(applySinglePattern(module, "R1ToRz", {})));
+  PassManager decompositionPm(context.get());
+  cudaq::opt::DecompositionOptions options;
+  options.enabledPatterns = llvm::SmallVector<std::string>{"R1ToRz"};
+  decompositionPm.addPass(cudaq::opt::createDecomposition(options));
+  ASSERT_TRUE(succeeded(decompositionPm.run(module)));
 
   EXPECT_EQ(countOps<cudaq::quake::R1Op>(module), 0u);
   EXPECT_EQ(countOps<cudaq::quake::RzOp>(module), 1u);
