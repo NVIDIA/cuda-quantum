@@ -310,6 +310,20 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
       throw std::runtime_error("Unable to get counts for job " + jobId + ": " +
                                std::string(e.what()));
     }
+
+    // Walk over the measurements and build a map for looking up on which qubit
+    // the measurement with a given key is done. This is then appended to the
+    // artifacts.
+    nlohmann::json mkey2qubit;
+    auto instructions =
+        getJobResponse["metadata"]["request"]["circuits"][0]["instructions"];
+    for (auto instruction : instructions) {
+      if (instruction["name"] == "measure") {
+        mkey2qubit[instruction["args"]["key"]] = instruction["qubits"][0];
+      }
+    }
+    counts_batch[0]["mkeys2qubit"] = mkey2qubit;
+
     CUDAQ_INFO("Artifacts: {}", counts_batch.dump());
 
     // replace the status request response with the counts artifacts
@@ -328,27 +342,32 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
   // GlobalRegisterName of `sample_results`
   std::vector<ExecutionResult> srs;
 
-  for (auto &counts : postJobResponse.get<std::vector<ServerMessage>>()) {
-    bool reorder = false;
+  for (auto &result : postJobResponse.get<std::vector<ServerMessage>>()) {
+    if (!result.contains("mkeys2qubit")) {
+      throw std::runtime_error("mkeys2qubit field missing in results");
+    }
+    std::map<std::string, std::string> mkeyLoci =
+        result["mkeys2qubit"].get<std::map<std::string, std::string>>();
+    std::map<std::string, std::size_t, qubitOrder> mKeys;
+    std::vector<std::size_t> mOrder;
     std::size_t i = 0; // bit positions
-    std::map<std::string, std::size_t, qubitOrder> mxKeys;
-    std::vector<std::size_t> mxOrder;
+    bool reorder = false;
 
     // The measurement_keys tell which qubits were measured. An ordered map
     // is used to sort the strings in numerical order and then the bitstrings
     // are ordered accordingly. As result the bitstrings are ordered according
     // to the physical qubit numbering.
-    for (std::string key : counts["measurement_keys"]) {
-      // keys must not be empty and end with a digit
-      if (key.empty() || !std::isdigit(key.back())) {
-        throw std::runtime_error("Malformed measurement key received: " + key);
+    for (std::string key : result["measurement_keys"]) {
+      // keys must not be empty and declared in the circuit
+      if (key.empty() || mkeyLoci.count(key) == 0) {
+        throw std::runtime_error("Undeclared measurement key received: " + key);
       }
-      mxKeys[key] = i++;
+      mKeys[mkeyLoci[key]] = i++;
     }
-    mxOrder.reserve(mxKeys.size());
+    mOrder.reserve(mKeys.size());
     i = 0;
-    for (auto [_, idx] : mxKeys) {
-      mxOrder.push_back(idx);
+    for (auto [_, idx] : mKeys) {
+      mOrder.push_back(idx);
       if (!reorder && idx != i++)
         reorder = true;
     }
@@ -358,17 +377,17 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
 
       // get the bits into the order given by the measurement keys
       for (auto [bits, count] :
-           counts["counts"]
+           result["counts"]
                .get<std::unordered_map<std::string, std::size_t>>()) {
-        if (bits.size() != mxOrder.size()) {
+        if (bits.size() != mOrder.size()) {
           throw std::runtime_error("Expected length " +
-                                   std::to_string(mxOrder.size()) +
+                                   std::to_string(mOrder.size()) +
                                    " for bitstring " + bits);
         }
 
         std::string oBits(bits);
         i = 0;
-        for (auto idx : mxOrder) {
+        for (auto idx : mOrder) {
           oBits[i++] = bits[idx];
         }
 
@@ -378,7 +397,7 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
       srs.push_back(ExecutionResult(cntDict));
     } else {
       srs.push_back(ExecutionResult(
-          counts["counts"]
+          result["counts"]
               .get<std::unordered_map<std::string, std::size_t>>()));
     }
   }
