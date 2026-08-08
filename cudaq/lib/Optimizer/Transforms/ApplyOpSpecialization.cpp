@@ -521,6 +521,18 @@ public:
         auto newArrAttr = DenseI32ArrayAttr::get(ctx, arrRef);
         NamedAttrList attrs(op->getAttrs());
         attrs.set(segmentSizes, newArrAttr);
+
+        if (auto quantumOp = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
+          if (auto oldPolarities = quantumOp.getNegatedControls()) {
+            SmallVector<bool> newPolarities{
+                false}; // control from `ApplyOp` is always positive
+            newPolarities.append(oldPolarities->begin(), oldPolarities->end());
+
+            attrs.set("negated_qubit_controls",
+                      builder.getDenseBoolArrayAttr(newPolarities));
+          }
+        }
+
         OperationState res(op->getLoc(), op->getName().getStringRef(), operands,
                            op->getResultTypes(), attrs);
         // FIXME: Quake quantum gates do have results.
