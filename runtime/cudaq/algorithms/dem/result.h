@@ -42,7 +42,38 @@ struct M2OSparseMatrix {
   std::vector<std::vector<std::size_t>> rows;
 };
 
-struct dem_result {
+class dem_result {
+public:
+  dem_result() = default;
+
+  dem_result(std::string dem, M2DSparseMatrix m2d, M2OSparseMatrix m2o,
+             std::size_t num_detectors, std::size_t num_observables,
+             std::size_t num_measurements, bool matrices_computed,
+             cudaq_json annotations = {})
+      : dem(std::move(dem)), m2d(std::move(m2d)), m2o(std::move(m2o)),
+        num_detectors(num_detectors), num_observables(num_observables),
+        num_measurements(num_measurements),
+        matrices_computed(matrices_computed),
+        annotations(std::move(annotations)) {}
+
+  // Lvalue accessors
+  const std::string &get_dem() const & { return dem; }
+  const M2DSparseMatrix &get_m2d() const & { return m2d; }
+  const M2OSparseMatrix &get_m2o() const & { return m2o; }
+  std::size_t get_num_detectors() const { return num_detectors; }
+  std::size_t get_num_observables() const { return num_observables; }
+  std::size_t get_num_measurements() const { return num_measurements; }
+  bool get_matrices_computed() const { return matrices_computed; }
+  const cudaq_json &get_annotations() const { return annotations; }
+  cudaq_json &get_annotations() { return annotations; }
+
+  // Rvalue overloads — preserve move semantics when extracting from an
+  // expiring value (e.g. in dem.h after launchDem returns by value).
+  std::string get_dem() && { return std::move(dem); }
+  M2DSparseMatrix get_m2d() && { return std::move(m2d); }
+  M2OSparseMatrix get_m2o() && { return std::move(m2o); }
+
+private:
   /// @brief The Detector Error Model (DEM) string.
   std::string dem;
 

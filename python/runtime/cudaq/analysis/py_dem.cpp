@@ -92,15 +92,15 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
              const std::vector<std::vector<std::size_t>> &m2o,
              std::size_t num_detectors, std::size_t num_observables,
              std::size_t num_measurements, const nlohmann::json &annotations) {
-            new (self) dem_result();
-            self->dem = dem;
-            self->m2d.rows = m2d;
-            self->m2o.rows = m2o;
-            self->num_detectors = num_detectors;
-            self->num_observables = num_observables;
-            self->num_measurements = num_measurements;
-            self->matrices_computed = !m2d.empty() || !m2o.empty();
-            self->annotations = cudaq_json(annotations);
+            cudaq::M2DSparseMatrix m2d_mat;
+            m2d_mat.rows = m2d;
+            cudaq::M2OSparseMatrix m2o_mat;
+            m2o_mat.rows = m2o;
+            bool matrices_computed = !m2d.empty() || !m2o.empty();
+            new (self)
+                dem_result(dem, std::move(m2d_mat), std::move(m2o_mat),
+                           num_detectors, num_observables, num_measurements,
+                           matrices_computed, cudaq_json(annotations));
           },
           nanobind::arg("dem"),
           nanobind::arg("m2d") = std::vector<std::vector<std::size_t>>{},
@@ -119,30 +119,35 @@ Args:
   num_observables (int, optional): Number of logical observables.
   num_measurements (int, optional): Total measurement count.
   annotations (dict, optional): Endpoint metadata.)#")
-      .def_ro("dem", &dem_result::dem, "DEM text in Stim's ``.dem`` format.")
+      .def_prop_ro(
+          "dem",
+          [](const dem_result &self) -> const std::string & {
+            return self.get_dem();
+          },
+          "DEM text in Stim's ``.dem`` format.")
       .def_prop_ro(
           "m2d",
           [](const dem_result &self)
               -> const std::vector<std::vector<std::size_t>> & {
-            return self.m2d.rows;
+            return self.get_m2d().rows;
           },
           "Measurement-to-detector row lists (neutral C++ form).")
       .def_prop_ro(
           "m2o",
           [](const dem_result &self)
               -> const std::vector<std::vector<std::size_t>> & {
-            return self.m2o.rows;
+            return self.get_m2o().rows;
           },
           "Measurement-to-observable row lists (neutral C++ form).")
-      .def_ro("num_detectors", &dem_result::num_detectors)
-      .def_ro("num_observables", &dem_result::num_observables)
-      .def_ro("num_measurements", &dem_result::num_measurements)
-      .def_ro("matrices_computed", &dem_result::matrices_computed,
-              "True when m2d / m2o were populated.")
+      .def_prop_ro("num_detectors", &dem_result::get_num_detectors)
+      .def_prop_ro("num_observables", &dem_result::get_num_observables)
+      .def_prop_ro("num_measurements", &dem_result::get_num_measurements)
+      .def_prop_ro("matrices_computed", &dem_result::get_matrices_computed,
+                   "True when m2d / m2o were populated.")
       .def_prop_ro(
           "annotations",
           [](dem_result &self) -> nlohmann::json & {
-            auto &j = self.annotations.get();
+            auto &j = self.get_annotations().get();
             // Default cudaq_json() is null; promote to empty object so the
             // property always returns a mutable dict, matching SampleResult.
             if (j.is_null())
@@ -151,36 +156,37 @@ Args:
           },
           "Extensible endpoint metadata dict. Mutate in place: "
           "``result.annotations['key'] = value``.")
-      .def("__str__", [](const dem_result &self) { return self.dem; })
+      .def("__str__", [](const dem_result &self) { return self.get_dem(); })
       .def("__repr__",
            [](const dem_result &self) {
              return "DEMResult(detectors=" +
-                    std::to_string(self.num_detectors) +
-                    ", observables=" + std::to_string(self.num_observables) +
-                    ", measurements=" + std::to_string(self.num_measurements) +
-                    ")";
+                    std::to_string(self.get_num_detectors()) +
+                    ", observables=" +
+                    std::to_string(self.get_num_observables()) +
+                    ", measurements=" +
+                    std::to_string(self.get_num_measurements()) + ")";
            })
       .def_prop_ro(
           "m2d_matrix",
           [](const dem_result &self) -> nanobind::object {
-            if (!self.matrices_computed)
+            if (!self.get_matrices_computed())
               return nanobind::none();
             auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
             return dem_mod.attr("_make_csr")(
-                nanobind::cast(self.m2d.rows),
-                nanobind::cast(self.num_measurements));
+                nanobind::cast(self.get_m2d().rows),
+                nanobind::cast(self.get_num_measurements()));
           },
           "scipy CSR matrix (num_detectors x num_measurements), or None when "
           "matrices were not requested.")
       .def_prop_ro(
           "m2o_matrix",
           [](const dem_result &self) -> nanobind::object {
-            if (!self.matrices_computed)
+            if (!self.get_matrices_computed())
               return nanobind::none();
             auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
             return dem_mod.attr("_make_csr")(
-                nanobind::cast(self.m2o.rows),
-                nanobind::cast(self.num_measurements));
+                nanobind::cast(self.get_m2o().rows),
+                nanobind::cast(self.get_num_measurements()));
           },
           "scipy CSR matrix (num_observables x num_measurements), or None "
           "when matrices were not requested.")
@@ -199,20 +205,18 @@ Args:
                 nanobind::cast<std::vector<std::vector<std::size_t>>>(
                     csr_to_rows(m2o_csr));
 
-            dem_result result;
-            result.dem = dem;
-            result.m2d.rows = std::move(m2d_rows);
-            result.m2o.rows = std::move(m2o_rows);
-            result.num_detectors = num_detectors;
-            result.num_observables = num_observables;
-            result.num_measurements = num_measurements;
-            result.matrices_computed =
-                !result.m2d.rows.empty() || !result.m2o.rows.empty();
-            if (!annotations.is_none()) {
-              result.annotations =
-                  cudaq_json(nanobind::cast<nlohmann::json>(annotations));
-            }
-            return result;
+            cudaq::M2DSparseMatrix m2d_mat;
+            m2d_mat.rows = std::move(m2d_rows);
+            cudaq::M2OSparseMatrix m2o_mat;
+            m2o_mat.rows = std::move(m2o_rows);
+            bool matrices_computed =
+                !m2d_mat.rows.empty() || !m2o_mat.rows.empty();
+            cudaq_json ann;
+            if (!annotations.is_none())
+              ann = cudaq_json(nanobind::cast<nlohmann::json>(annotations));
+            return dem_result(dem, std::move(m2d_mat), std::move(m2o_mat),
+                              num_detectors, num_observables, num_measurements,
+                              matrices_computed, std::move(ann));
           },
           nanobind::arg("dem"), nanobind::arg("m2d_csr"),
           nanobind::arg("m2o_csr"),

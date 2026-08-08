@@ -223,23 +223,26 @@ protected:
     return result;
   }
 
-  /// @brief Populate the measurement matrices in @p result from @p flat.
+  /// @brief Populate the measurement matrices from @p flat and return them.
   /// Rows = detectors/observables, cols = measurements; non-zero entries are 1.
   ///
   /// @p flat must be the already-flattened circuit (caller owns flattening so
   /// compute_stats() is not called a second time here).
-  /// result.num_* and result.m2d/m2o.num_measurements must be pre-filled by
-  /// the caller before this is invoked.
   ///
   /// Duplicate measurement targets within a single DETECTOR or
   /// OBSERVABLE_INCLUDE instruction are collapsed modulo 2 (GF(2) XOR): an
   /// index that appears an even number of times cancels out.
-  void computeMeasurementMatrices(cudaq::dem_result &result,
-                                  const stim::Circuit &flat) {
-    result.m2d.num_measurements = result.num_measurements;
-    result.m2o.num_measurements = result.num_measurements;
-    result.m2d.rows.resize(result.num_detectors);
-    result.m2o.rows.resize(result.num_observables);
+  std::pair<cudaq::M2DSparseMatrix, cudaq::M2OSparseMatrix>
+  computeMeasurementMatrices(std::size_t num_measurements,
+                             std::size_t num_detectors,
+                             std::size_t num_observables,
+                             const stim::Circuit &flat) {
+    cudaq::M2DSparseMatrix m2d;
+    cudaq::M2OSparseMatrix m2o;
+    m2d.num_measurements = num_measurements;
+    m2o.num_measurements = num_measurements;
+    m2d.rows.resize(num_detectors);
+    m2o.rows.resize(num_observables);
 
     // XOR-dedup: remove indices that appear an even number of times in @p row.
     auto xorDedup = [](std::vector<std::size_t> &row) {
@@ -263,7 +266,7 @@ protected:
       if (n > 0) {
         meas_so_far += n;
       } else if (op.gate_type == stim::GateType::DETECTOR) {
-        auto &row = result.m2d.rows[det_so_far];
+        auto &row = m2d.rows[det_so_far];
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
@@ -279,7 +282,7 @@ protected:
         ++det_so_far;
       } else if (op.gate_type == stim::GateType::OBSERVABLE_INCLUDE) {
         auto obs_idx = static_cast<std::size_t>(op.args[0]);
-        auto &row = result.m2o.rows[obs_idx];
+        auto &row = m2o.rows[obs_idx];
         for (const auto &t : op.targets) {
           if (t.is_measurement_record_target()) {
             auto lookback = static_cast<std::size_t>(-t.rec_offset());
@@ -294,6 +297,7 @@ protected:
         xorDedup(row);
       }
     });
+    return {std::move(m2d), std::move(m2o)};
   }
 
   /// @brief Finalize the execution context, ensuring the simulator is left in a
@@ -312,29 +316,35 @@ protected:
   finalizeExecutionContext(const cudaq::dem_policy &policy) override {
     finalizeExecutionContextImpl();
 
-    cudaq::dem_result result;
     const auto &options = policy.options;
-    result.dem = stim::ErrorAnalyzer::circuit_to_detector_error_model(
-                     recordedCircuit, options.decompose_errors,
-                     options.fold_loops, options.allow_gauge_detectors,
-                     options.approximate_disjoint_errors_threshold,
-                     options.ignore_decomposition_failures,
-                     options.block_decomposition_from_introducing_remnant_edges)
-                     .str();
+    std::string dem =
+        stim::ErrorAnalyzer::circuit_to_detector_error_model(
+            recordedCircuit, options.decompose_errors, options.fold_loops,
+            options.allow_gauge_detectors,
+            options.approximate_disjoint_errors_threshold,
+            options.ignore_decomposition_failures,
+            options.block_decomposition_from_introducing_remnant_edges)
+            .str();
 
     // Always populate counts — repr and downstream helpers depend on them even
     // when the caller opts out of the full matrices.
     auto flat = recordedCircuit.flattened();
     auto stats = flat.compute_stats();
-    result.num_detectors = stats.num_detectors;
-    result.num_observables = stats.num_observables;
-    result.num_measurements = stats.num_measurements;
 
+    cudaq::M2DSparseMatrix m2d;
+    cudaq::M2OSparseMatrix m2o;
+    bool matrices_computed = false;
     if (options.return_measurement_matrices) {
-      computeMeasurementMatrices(result, flat);
-      result.matrices_computed = true;
+      auto [cm2d, cm2o] = computeMeasurementMatrices(
+          stats.num_measurements, stats.num_detectors, stats.num_observables,
+          flat);
+      m2d = std::move(cm2d);
+      m2o = std::move(cm2o);
+      matrices_computed = true;
     }
-    return result;
+    return cudaq::dem_result(std::move(dem), std::move(m2d), std::move(m2o),
+                             stats.num_detectors, stats.num_observables,
+                             stats.num_measurements, matrices_computed);
   }
 
   cudaq::msm_dimensions
