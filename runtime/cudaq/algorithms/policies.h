@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CompileOptions.h"
 #include "cudaq/Support/Tuple.h"
 #include "cudaq/algorithms/dem/policy.h"
 #include "cudaq/algorithms/msm/policy.h"
@@ -20,7 +21,9 @@
 namespace cudaq {
 
 /// @brief Fallback policy tag used when no specific policy matches.
-struct other_policies {};
+struct other_policies {
+  friend CompileOptions get_compile_options_impl(const other_policies &policy);
+};
 
 /// @brief List of all existing launch policies.
 using all_policies =
