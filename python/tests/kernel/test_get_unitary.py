@@ -51,14 +51,10 @@ def test_single_hadamard():
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_two_x_gates_one_qubit():
 
-    @cudaq.kernel
+    # This qernel is a NOP. Disable the optimizer to generate some fluff.
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qubit()
         x(q)
@@ -99,13 +95,13 @@ def test_rotation_h_hadamard_rotation():
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
 
-@skipIfValueSemantics
 def test_single_qubit_large():
 
     @cudaq.kernel
     def k():
         q = cudaq.qvector(3)
         x(q[2])
+        ry(12 * np.pi, q)
 
     U = cudaq.get_unitary(k)
     # U = I  ⊗ I ⊗ X
@@ -113,7 +109,6 @@ def test_single_qubit_large():
     np.testing.assert_allclose(U, expected, atol=1e-12)
 
 
-@skipIfValueSemantics
 def test_two_sparse_qubits():
 
     @cudaq.kernel
@@ -121,6 +116,7 @@ def test_two_sparse_qubits():
         q = cudaq.qvector(3)
         h(q[0])
         x(q[2])
+        ry(12 * np.pi, q)
 
     U = cudaq.get_unitary(k)
     # U = H ⊗ I ⊗ X
@@ -194,13 +190,13 @@ def test_cnot_two_qubits_opposite():
     np.testing.assert_allclose(U, CNOT, atol=1e-12)
 
 
-@skipIfValueSemantics
 def test_cnot_nonadjacent_qubits():
 
     @cudaq.kernel
     def k():
         q = cudaq.qvector(3)
         x.ctrl(q[2], q[0])
+        ry(12 * np.pi, q)
 
     U = cudaq.get_unitary(k)
     EXPECTED = general_cnot(3, ctrl=2, tgt=0)
