@@ -63,6 +63,11 @@ struct CompileTarget {
 
     /// Whether to run the add-measurements pass.
     bool addMeasurements = false;
+
+    /// Whether to lower through value semantics, enabling the quantum
+    /// optimizations that follow it (`quake-simplify`, dead quantum
+    /// elimination, ...).
+    bool useValueSemantics = true;
   };
 
   /// Pipeline configuration, populated by the constructor.
