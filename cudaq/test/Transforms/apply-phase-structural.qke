@@ -1,0 +1,115 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining %s \
+// RUN:   | FileCheck %s --check-prefix=INLINE
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining \
+// RUN:   --expand-control-veqs --cse --normalize-phase-placement \
+// RUN:   --lower-phase --canonicalize %s \
+// RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+
+func.func private @phase_leaf(%theta: f64, %negative: !quake.ref,
+                              %anchor: !quake.ref) {
+  quake.phase (%theta) [%negative neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @phase_middle(%theta: f64, %negative: !quake.ref,
+                                %anchor: !quake.ref) {
+  quake.apply @phase_leaf %theta, %negative, %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @nested_caller(%theta: f64, %outer0: !quake.ref,
+                         %outer1: !quake.ref, %negative: !quake.ref,
+                         %anchor: !quake.ref) {
+  quake.apply<adj> @phase_middle [%outer0, %outer1]
+      %theta, %negative, %anchor
+      : (!quake.ref, !quake.ref, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func private @structured_phase(%theta: f64, %condition: i1,
+                                    %count: i32, %anchor: !quake.ref) {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  cc.if(%condition) {
+    quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  }
+  %unused = cc.loop while ((%i = %c0) -> (i32)) {
+    %more = arith.cmpi slt, %i, %count : i32
+    cc.condition %more(%i : i32)
+  } do {
+  ^bb0(%i: i32):
+    quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+    cc.continue %i : i32
+  } step {
+  ^bb0(%i: i32):
+    %next = arith.addi %i, %c1 : i32
+    cc.continue %next : i32
+  }
+  return
+}
+
+func.func @structured_caller(%theta: f64, %condition: i1,
+                             %count: i32, %anchor: !quake.ref) {
+  quake.apply<adj> @structured_phase %theta, %condition, %count, %anchor
+      : (f64, i1, i32, !quake.ref) -> ()
+  return
+}
+
+func.func private @recursive_phase(%theta: f64, %recurse: i1,
+                                   %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  cc.if(%recurse) {
+    quake.apply @recursive_phase %theta, %recurse, %anchor
+        : (f64, i1, !quake.ref) -> ()
+  }
+  return
+}
+
+func.func @recursive_caller(%theta: f64, %recurse: i1,
+                            %outer: !quake.ref, %anchor: !quake.ref) {
+  quake.apply @recursive_phase [%outer] %theta, %recurse, %anchor
+      : (!quake.ref, f64, i1, !quake.ref) -> ()
+  return
+}
+
+// CHECK: func.func private @recursive_phase.ctrl(
+// CHECK: quake.phase
+// CHECK: call @recursive_phase.ctrl
+// CHECK: func.func private @structured_phase.adj(
+// CHECK: cc.loop
+// CHECK: arith.negf
+// CHECK: quake.phase
+// CHECK: cc.if
+// CHECK: arith.negf
+// CHECK: quake.phase
+// CHECK: func.func private @phase_leaf.adj.ctrl(
+// CHECK: arith.negf
+// CHECK: quake.phase {{.*}} neg [false, true]
+
+// INLINE-LABEL: func.func @nested_caller(
+// INLINE: quake.concat
+// INLINE: arith.negf
+// INLINE: quake.phase {{.*}} neg [false, true]
+// INLINE-LABEL: func.func @recursive_caller(
+// INLINE: call @recursive_phase.ctrl
+
+// Every specialized phase reaches the target-independent LowerPhase fallback.
+// LOWER-LABEL: func.func private @recursive_phase.ctrl(
+// LOWER: quake.r1
+// LOWER: quake.rz
+// LOWER: call @recursive_phase.ctrl
+// LOWER-LABEL: func.func @nested_caller(
+// LOWER: quake.r1
+// LOWER-LABEL: func.func @recursive_caller(
+// LOWER: call @recursive_phase.ctrl
