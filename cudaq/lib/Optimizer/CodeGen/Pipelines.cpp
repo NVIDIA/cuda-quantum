@@ -99,6 +99,13 @@ createTargetCodegenPipeline(OpPassManager &pm,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }
+
+  cudaq::opt::addPhaseLifecycle(pm);
+  // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
+  // to run this pass again to expand those negations.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
+
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
@@ -190,6 +197,9 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());
   pm.addPass(createSymbolDCEPass());
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
@@ -204,4 +214,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
+  // Generic phase lowering can introduce R1/Rz after IQM native-gate
+  // decomposition, so reject residual bookkeeping instead of lowering it.
+  pm.addPass(createVerifyNoPhase());
 }

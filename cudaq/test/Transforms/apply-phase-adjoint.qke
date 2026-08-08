@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining %s | FileCheck %s --check-prefix=INLINE
+
+// Verify that the phase angle in `quake.phase` is negated after adjoint control specialization.
+// In the test, note the addition of the `arith.negf` op.
+
+func.func private @phase_helper(%theta: f64, %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor
+      : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @caller(%theta: f64, %outer: !quake.ref,
+                  %anchor: !quake.ref) {
+  quake.apply<adj> @phase_helper [%outer] %theta, %anchor
+      : (!quake.ref, f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func private @phase_helper.adj.ctrl(
+// CHECK-SAME:      %[[ARG0:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[ARG1:.*]]: f64,
+// CHECK-SAME:      %[[ARG2:.*]]: !quake.ref) {
+// CHECK:           %[[NEGF_0:.*]] = arith.negf %[[ARG1]] : f64
+// CHECK:           quake.phase (%[[NEGF_0]]) {{\[}}%[[ARG0]]] %[[ARG2]] : (f64, !quake.veq<?>, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// INLINE-LABEL:   func.func @caller(
+// INLINE-SAME:                      %[[ARG0:.*]]: f64,
+// INLINE-SAME:                      %[[ARG1:.*]]: !quake.ref,
+// INLINE-SAME:                      %[[ARG2:.*]]: !quake.ref) {
+// INLINE:           %[[CONCAT_0:.*]] = quake.concat %[[ARG1]] : (!quake.ref) -> !quake.veq<1>
+// INLINE:           %[[NEGF_0:.*]] = arith.negf %[[ARG0]] : f64
+// INLINE:           quake.phase (%[[NEGF_0]]) {{\[}}%[[CONCAT_0]]] %[[ARG2]] : (f64, !quake.veq<1>, !quake.ref) -> ()
+// INLINE:           return
+// INLINE:         }
