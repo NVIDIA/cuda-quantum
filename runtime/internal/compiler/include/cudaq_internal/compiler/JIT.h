@@ -35,7 +35,12 @@ namespace cudaq_internal::compiler {
 /// boundary. A nested direct-callable module may still carry `cudaq-entrypoint`
 /// as a code-generation root; passing false prevents it from clearing runtime
 /// state owned by its caller.
+/// \param useValueSemantics False to lower without value semantics, skipping
+/// the quantum optimizations it enables. The `quake.noOptimization` module
+/// attribute forces this off independently, for IR that cannot survive the
+/// lowering at all.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
-                                 llvm::StringRef convertTo, bool isEntryPoint);
+                                 llvm::StringRef convertTo, bool isEntryPoint,
+                                 bool useValueSemantics = true);
 
 } // namespace cudaq_internal::compiler
