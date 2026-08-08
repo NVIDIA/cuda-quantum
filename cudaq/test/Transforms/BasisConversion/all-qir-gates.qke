@@ -130,6 +130,9 @@ module {
 // CHECK:           quake.y %[[VAL_7]] : (!quake.ref) -> ()
 // CHECK:           quake.z %[[VAL_7]] : (!quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[BARE_R1_PHASE_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[BARE_R1_PHASE:.*]] = arith.divf %[[VAL_6]], %[[BARE_R1_PHASE_TWO]] : f64
+// CHECK:           quake.phase (%[[BARE_R1_PHASE]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rx (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_6]]) %[[VAL_7]] : (f64, !quake.ref) -> ()
@@ -180,10 +183,19 @@ module {
 // CHECK:           %[[VAL_25:.*]] = arith.divf %[[VAL_0]], %[[VAL_24]] : f64
 // CHECK:           %[[VAL_26:.*]] = arith.negf %[[VAL_25]] : f64
 // CHECK:           quake.rz (%[[VAL_25]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_R1_PHASE_0_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_R1_PHASE_0:.*]] = arith.divf %[[VAL_25]], %[[CTRL_R1_PHASE_0_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_R1_PHASE_0]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_26]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_R1_PHASE_1_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_R1_PHASE_1:.*]] = arith.divf %[[VAL_26]], %[[CTRL_R1_PHASE_1_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_R1_PHASE_1]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_25]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_R1_PHASE_2_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_R1_PHASE_2:.*]] = arith.divf %[[VAL_25]], %[[CTRL_R1_PHASE_2_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_R1_PHASE_2]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
 // CHECK:           %[[VAL_27:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK:           %[[VAL_28:.*]] = arith.divf %[[VAL_3]], %[[VAL_27]] : f64
 // CHECK:           %[[VAL_29:.*]] = arith.negf %[[VAL_28]] : f64
@@ -213,19 +225,37 @@ module {
 // CHECK:           %[[VAL_39:.*]] = arith.divf %[[VAL_37]], %[[VAL_38]] : f64
 // CHECK:           %[[VAL_40:.*]] = arith.negf %[[VAL_39]] : f64
 // CHECK:           quake.rz (%[[VAL_39]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_S_PHASE_0_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_S_PHASE_0:.*]] = arith.divf %[[VAL_39]], %[[CTRL_S_PHASE_0_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_S_PHASE_0]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_40]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_S_PHASE_1_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_S_PHASE_1:.*]] = arith.divf %[[VAL_40]], %[[CTRL_S_PHASE_1_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_S_PHASE_1]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.x {{\[}}%[[VAL_22]]] %[[VAL_23]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_39]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_S_PHASE_2_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_S_PHASE_2:.*]] = arith.divf %[[VAL_39]], %[[CTRL_S_PHASE_2_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_S_PHASE_2]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
 // CHECK:           %[[VAL_41:.*]] = arith.constant 0.78539816339744828 : f64
 // CHECK:           %[[VAL_42:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK:           %[[VAL_43:.*]] = arith.divf %[[VAL_41]], %[[VAL_42]] : f64
 // CHECK:           %[[VAL_44:.*]] = arith.negf %[[VAL_43]] : f64
 // CHECK:           quake.rz (%[[VAL_43]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_T_PHASE_0_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_T_PHASE_0:.*]] = arith.divf %[[VAL_43]], %[[CTRL_T_PHASE_0_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_T_PHASE_0]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_44]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_T_PHASE_1_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_T_PHASE_1:.*]] = arith.divf %[[VAL_44]], %[[CTRL_T_PHASE_1_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_T_PHASE_1]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.x {{\[}}%[[VAL_23]]] %[[VAL_22]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           quake.rz (%[[VAL_43]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[CTRL_T_PHASE_2_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[CTRL_T_PHASE_2:.*]] = arith.divf %[[VAL_43]], %[[CTRL_T_PHASE_2_TWO]] : f64
+// CHECK:           quake.phase (%[[CTRL_T_PHASE_2]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
 // CHECK:           %[[VAL_45:.*]] = arith.constant 2.000000e+00 : f64
 // CHECK:           %[[VAL_46:.*]] = arith.divf %[[VAL_4]], %[[VAL_45]] : f64
 // CHECK:           %[[VAL_47:.*]] = arith.negf %[[VAL_46]] : f64
@@ -306,6 +336,9 @@ module {
 // CHECK:           %[[VAL_88:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[NEG_PI:.*]] = arith.negf %[[VAL_4]] : f64
 // CHECK:           quake.rz (%[[NEG_PI]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[ADJ_R1_PHASE_TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK:           %[[ADJ_R1_PHASE:.*]] = arith.divf %[[NEG_PI]], %[[ADJ_R1_PHASE_TWO]] : f64
+// CHECK:           quake.phase (%[[ADJ_R1_PHASE]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry<adj> (%[[VAL_3]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz<adj> (%[[VAL_2]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
