@@ -94,27 +94,27 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
     const char *DiagContains;
   };
   const TestCase cases[] = {
-      {"0.9.0", "0.8.1", Compatibility::Error, "was built for CUDA-Q 0.9.0"},
-      {"0.9.2", "0.9.1", Compatibility::Error, "was built for CUDA-Q 0.9.2"},
-      {"0.10.0", "0.9.9", Compatibility::Error, "was built for CUDA-Q 0.10.0"},
+      {"0.9.0", "0.8.1", Compatibility::Warning, "was built for CUDA-Q 0.9.0"},
+      {"0.9.2", "0.9.1", Compatibility::Warning, "was built for CUDA-Q 0.9.2"},
+      {"0.10.0", "0.9.9", Compatibility::Warning,
+       "was built for CUDA-Q 0.10.0"},
       {"0.0.0", "0.0.0", Compatibility::Compatible, ""},
       {"0.9.0", "0.9.0", Compatibility::Compatible, ""},
-      {"0.9.0", "0.9.3", Compatibility::Compatible, ""},
+      {"0.9.0", "0.9.3", Compatibility::Warning,
+       "compatibility is not guaranteed"},
       {"0.9.0", "0.10.0", Compatibility::Warning,
        "compatibility is not guaranteed"},
       {"0.9.0", "1.0.0", Compatibility::Warning,
        "compatibility is not guaranteed"},
-      {"0.9.0", "0.9.0-rc2-developer", Compatibility::Compatible, ""},
-      // Non-numeric current version: string-compare, warn if different.
+      {"0.9.0", "0.9.0-rc2-developer", Compatibility::Warning,
+       "compatibility is not guaranteed"},
       {"0.9.0", "developer", Compatibility::Warning,
-       "versions are non-numeric so compatibility cannot be verified"},
+       "compatibility is not guaranteed"},
       {"amd64-pr-1234", "amd64-pr-1234", Compatibility::Compatible, ""},
       {"amd64-pr-1234", "amd64-pr-5678", Compatibility::Warning,
-       "versions are non-numeric so compatibility cannot be verified"},
-      // Both empty (CI dev builds with no version set): compatible.
+       "compatibility is not guaranteed"},
       {"", "", Compatibility::Compatible, ""},
-      // Numeric current + empty plugin: plugin metadata is required → Error.
-      {"", "0.9.0", Compatibility::Error, "missing or malformed"},
+      {"", "0.9.0", Compatibility::Warning, "compatibility is not guaranteed"},
   };
 
   cudaq::config::TargetConfig config;
@@ -136,16 +136,13 @@ TEST(TargetConfigTester, checksExternalTargetVersionCompatibility) {
   }
 }
 
-TEST(TargetConfigTester, nonNumericVersionsFallBackToStringComparison) {
+TEST(TargetConfigTester, allVersionDifferencesProduceWarnings) {
   using Compatibility = cudaq::config::TargetVersionCompatibility;
   cudaq::config::TargetConfig config;
   config.Name = "version-test";
 
-  // When the current version is non-numeric, any plugin version produces a
-  // Warning (differing) or Compatible (equal) — never an Error.
   for (const auto *pluginVer : {"", "0.9", "v0.9.0", "not-a-version"}) {
     config.CudaqVersion = pluginVer;
-    // Different non-numeric strings → Warning.
     const auto diffResult = cudaq::config::checkExternalTargetVersion(
         config, "developer", "/tmp/version-test.yml");
     const bool isEqual = std::string(pluginVer) == std::string("developer");
@@ -153,7 +150,7 @@ TEST(TargetConfigTester, nonNumericVersionsFallBackToStringComparison) {
               isEqual ? Compatibility::Compatible : Compatibility::Warning)
         << "plugin=" << pluginVer;
     if (!isEqual)
-      EXPECT_NE(diffResult.Diagnostic.find("cannot be verified"),
+      EXPECT_NE(diffResult.Diagnostic.find("compatibility is not guaranteed"),
                 std::string::npos)
           << "plugin=" << pluginVer;
   }
@@ -164,14 +161,13 @@ TEST(TargetConfigTester, nonNumericVersionsFallBackToStringComparison) {
       config, "amd64-pr-1234", "/tmp/version-test.yml");
   EXPECT_EQ(equalResult.Status, Compatibility::Compatible);
 
-  // When the current version IS numeric, non-numeric plugin versions remain
-  // an Error (missing or malformed metadata).
   for (const auto *badPlugin : {"", "0.9", "v0.9.0", "0.-1.0"}) {
     config.CudaqVersion = badPlugin;
     const auto result = cudaq::config::checkExternalTargetVersion(
         config, "0.9.0", "/tmp/version-test.yml");
-    EXPECT_EQ(result.Status, Compatibility::Error) << "plugin=" << badPlugin;
-    EXPECT_NE(result.Diagnostic.find("missing or malformed"), std::string::npos)
+    EXPECT_EQ(result.Status, Compatibility::Warning) << "plugin=" << badPlugin;
+    EXPECT_NE(result.Diagnostic.find("compatibility is not guaranteed"),
+              std::string::npos)
         << "plugin=" << badPlugin;
   }
 }
@@ -368,17 +364,35 @@ TEST_F(ExternalBackendTester, registerBackendPath_rejectsMissingTargetsDir) {
   }
 }
 
-TEST_F(ExternalBackendTester, setTargetRequiresValidPluginVersionMetadata) {
-  const auto missingRoot = createBackendPackage("missing-version", false, "");
+TEST_F(ExternalBackendTester,
+       setTargetAllowsMissingOrMalformedPluginVersionMetadata) {
+  const auto createVersionBackend = [&](const std::string &name,
+                                        const std::string &version) {
+    const auto root = tmpRoot / name;
+    const auto targetsDir = root / "targets";
+    std::filesystem::create_directories(targetsDir);
+    std::filesystem::create_directories(root / "lib");
+
+    std::ofstream configFile(targetsDir / (name + ".yml"));
+    configFile << "name: " << name << "\ndescription: \"Test backend.\"\n";
+    if (!version.empty())
+      configFile << "cudaq-version: \"" << version << "\"\n";
+    configFile << "config:\n"
+               << "  nvqir-simulation-backend: qpp\n"
+               << "  library-mode: false\n";
+    return root;
+  };
+
+  const auto missingRoot = createVersionBackend("missing-version", "");
   const auto malformedRoot =
-      createBackendPackage("malformed-version", false, "not-a-version");
+      createVersionBackend("malformed-version", "not-a-version");
 
   cudaq::LinkedLibraryHolder holder;
   holder.registerBackendPath(missingRoot);
   holder.registerBackendPath(malformedRoot);
 
-  EXPECT_THROW(holder.setTarget("missing-version"), std::runtime_error);
-  EXPECT_THROW(holder.setTarget("malformed-version"), std::runtime_error);
+  EXPECT_NO_THROW(holder.setTarget("missing-version"));
+  EXPECT_NO_THROW(holder.setTarget("malformed-version"));
 }
 
 TEST_F(ExternalBackendTester, pluginLibrariesFieldIsParsed) {
@@ -412,20 +426,7 @@ config:
   EXPECT_EQ(libs[1], "libdummy2.so");
 }
 
-TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {
-  // This test requires a numeric current CUDA-Q version to perform semver
-  // comparison. When the version is non-numeric (e.g. empty dev builds), the
-  // validator falls back to string comparison and only warns, so no throw
-  // occurs.
-  const std::string testVersion(CUDAQ_TEST_VERSION);
-  if (testVersion.empty() ||
-      testVersion.find_first_of("0123456789") == std::string::npos ||
-      testVersion.find('.') == std::string::npos) {
-    GTEST_SKIP() << "Skipping: current CUDA-Q version '" << testVersion
-                 << "' is non-numeric; semver rejection is not tested in dev "
-                    "builds";
-  }
-
+TEST_F(ExternalBackendTester, versionWarningAllowsPluginLibraryLoad) {
   auto root = tmpRoot / "pluginversiontest";
   auto targetsDir = root / "targets";
   auto libDir = root / "lib";
@@ -459,8 +460,8 @@ config:
   holder.registerBackendPath(root);
 
   EXPECT_FALSE(std::filesystem::exists(sentinelPath));
-  EXPECT_THROW(holder.setTarget("future-backend"), std::runtime_error);
-  EXPECT_FALSE(std::filesystem::exists(sentinelPath));
+  EXPECT_NO_THROW(holder.setTarget("future-backend"));
+  EXPECT_TRUE(std::filesystem::exists(sentinelPath));
   unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
 }
 
