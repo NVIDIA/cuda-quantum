@@ -21,4 +21,4 @@ add_cudaq_dialect_library(QECDialect
   MLIRIR
 )
 
-register_cudaq_mlir_lib(QECDialect)
+check_registered_mlir_lib(QECDialect)

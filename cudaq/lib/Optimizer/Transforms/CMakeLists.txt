@@ -102,7 +102,7 @@ target_include_directories(OptTransforms SYSTEM
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
-register_cudaq_mlir_lib(OptTransforms)
+check_registered_mlir_lib(OptTransforms)
 
 target_link_libraries(OptTransforms PRIVATE cudaq-synth)
 target_include_directories(obj.OptTransforms SYSTEM PRIVATE

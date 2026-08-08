@@ -24,4 +24,4 @@ add_mlir_dialect_library(OptimBuilder
     QuakeDialect
 )
 
-register_cudaq_mlir_lib(OptimBuilder)
+check_registered_mlir_lib(OptimBuilder)
