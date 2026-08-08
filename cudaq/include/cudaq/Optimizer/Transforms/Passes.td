@@ -443,9 +443,10 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     - `x(n)` — Pauli-X with unbounded controls
     - `x,x(1)` — Both `not` and `cx`
 
-    NOTE: The current implementation is conservative w.r.t global phase, which
-    means no decomposition will take place under the presence of controlled
-    `quake.apply` operations in the module.
+    Every successful decomposition preserves the complete unitary, including
+    any scalar phase represented by compiler bookkeeping. This lets the pass
+    run before a later controlled `quake.apply` specialization; unsupported
+    forms remain unchanged rather than taking an implicit phase-relaxed path.
   }];
   let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
