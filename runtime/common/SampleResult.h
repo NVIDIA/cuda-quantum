@@ -118,10 +118,13 @@ private:
   const ExecutionResult &retrieve_result(const std::string &registerName) const;
   ExecutionResult &retrieve_result(const std::string &registerName);
 
-public:
   /// @brief Language-neutral extension point for backends to attach metadata
   /// (e.g. job ID, timing, shots requested).
   cudaq_json annotations;
+
+public:
+  /// @brief Return the backend-attached metadata (read-only).
+  const cudaq_json &get_annotations() const { return annotations; }
 
   /// @brief Default constructor
   sample_result() = default;

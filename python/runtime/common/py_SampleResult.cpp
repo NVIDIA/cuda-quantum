@@ -62,8 +62,8 @@ Args:
           "Return the global counts as a ``dict[str, int]``.")
       .def_prop_ro(
           "annotations",
-          [](sample_result &self) -> nlohmann::json & {
-            return self.annotations.get();
+          [](sample_result &self) -> const nlohmann::json & {
+            return self.get_annotations().get();
           },
           "Read-only metadata dict set by backends.")
       .def(
@@ -94,7 +94,7 @@ Args:
                 counts.begin(), counts.end());
             const auto countsRepr = nanobind::cast<std::string>(
                 nanobind::repr(nanobind::cast(sortedCounts)));
-            const auto &annotations = self.annotations.get();
+            const auto &annotations = self.get_annotations().get();
 
             if (annotations.empty())
               return "SampleResult(" + countsRepr + ")";
