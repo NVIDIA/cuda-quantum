@@ -9,76 +9,52 @@
 ################################################################################
 # Define the shared core library libcudaqMLIR.so
 #
-# It bundles the following compilation units into one shared library:
-#  - All the object files of the libraries registered via register_cudaq_mlir_lib
-#  - All the MLIR libraries listed in mlir-libs-allowlist.txt
+# It bundles every library in CUDAQ_MLIR_BUNDLED_LIBS:
+#  - CUDA-Q dialect/transform libs (obj.<lib> targets) as object files
+#  - MLIR/LLVM libs as WHOLE_ARCHIVE static dependencies
 #
 # MLIR libraries are linked as WHOLE_ARCHIVE so their full symbol set is
 # exported for downstream plugins.
 ################################################################################
 
-# Read a newline-separated list file (one entry per line) into `_out_var`,
-# stripping comments and whitespace.
-function(cudaq_read_symbol_list _file _out_var)
-  # Re-run CMake configuration if the file changes.
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_file}")
-  file(STRINGS "${_file}" _lines)
-  set(_entries)
-  foreach(_line IN LISTS _lines)
-    string(STRIP "${_line}" _line)
-    if(NOT (_line STREQUAL "" OR _line MATCHES "^#"))
-      list(APPEND _entries "${_line}")
-    endif()
-  endforeach()
-  set(${_out_var} "${_entries}" PARENT_SCOPE)
-endfunction()
-
 set(LIBRARY_NAME cudaqMLIR)
-get_property(_cudaq_bundle_libs GLOBAL PROPERTY CUDAQ_MLIR_BUNDLE_LIBS)
 
-# 1. Bundle the list of all MLIR object files. This assumes that every bundled
-# lib was built with ENABLE_AGGREGATION (e.g. via add_cudaq_library)
+# 1. Partition each library in CUDAQ_MLIR_BUNDLED_LIBS as either to be:
+#    - bundled directly as object files (preferred if available), or
+#    - whole-archived as a static lib otherwise.
 set(_cudaq_bundle_objs)
-foreach(_lib IN LISTS _cudaq_bundle_libs)
+set(_cudaq_bundle_whole_archive_libs)
+set(_cudaq_bundle_link_libs)
+foreach(_lib IN LISTS CUDAQ_MLIR_BUNDLED_LIBS)
   if(TARGET obj.${_lib})
     list(APPEND _cudaq_bundle_objs "$<TARGET_OBJECTS:obj.${_lib}>")
+    list(APPEND _cudaq_bundle_link_libs ${_lib})
     # Do not export inline/template member functions, as downstream re-emits
     # them from headers anyway.
     target_compile_options(obj.${_lib} PRIVATE
       "$<$<COMPILE_LANGUAGE:CXX>:-fvisibility-inlines-hidden>"
       -ffunction-sections -fdata-sections)
+  elseif(TARGET ${_lib})
+    list(APPEND _cudaq_bundle_whole_archive_libs ${_lib})
   else()
     message(WARNING
-      "${LIBRARY_NAME}: obj.${_lib} not found; ensure ${_lib} is built with ENABLE_AGGREGATION")
+      "${LIBRARY_NAME}: bundled library '${_lib}' not found; skipping")
   endif()
 endforeach()
+
+# 2a. Create the shared library from the list of object files.
 add_library(${LIBRARY_NAME} SHARED ${_cudaq_bundle_objs})
 
-# 2. Pull in the dependencies
-target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_libs})
+# 2b. Provide the namespaced alias cudaq::cudaqMLIR used downstream
+add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 
-# 3. WHOLE_ARCHIVE the allowlisted MLIR libraries and C-API dependencies so their
-# full symbol set is exported for downstream plugins.
-cudaq_read_symbol_list(
-  "${CMAKE_CURRENT_SOURCE_DIR}/mlir-libs-allowlist.txt" _cudaq_mlir_whole_archive)
-get_property(_cudaq_required_mlir_libs GLOBAL PROPERTY CUDAQ_MLIR_REQUIRED_LIBS)
-list(APPEND _cudaq_mlir_whole_archive ${_cudaq_required_mlir_libs})
-list(REMOVE_DUPLICATES _cudaq_mlir_whole_archive)
-foreach(_lib IN LISTS _cudaq_mlir_whole_archive)
-  if(TARGET ${_lib})
-    target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
-  else()
-    message(WARNING
-      "${LIBRARY_NAME}: MLIR library '${_lib}' not found; skipping whole-archive")
-  endif()
-endforeach()
+# 2c. Pull in any required transitive dependencies.
+target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_link_libs})
 
-# 4. Bundle the LLVM native target for JITing.
-llvm_map_components_to_libnames(_cudaq_llvm_native_libs native nativecodegen)
-foreach(_lib IN LISTS _cudaq_llvm_native_libs)
-  if(TARGET ${_lib})
-    target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
-  endif()
+# 3. WHOLE_ARCHIVE MLIR/LLVM static libs so their full symbol set is exported
+# for downstream plugins.
+foreach(_lib IN LISTS _cudaq_bundle_whole_archive_libs)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
 endforeach()
 
 # Ideally, we use -Bsymbolic-functions as it removes PLT/GOT indirection. However
