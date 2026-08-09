@@ -196,8 +196,8 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
             })
             .wasInterrupted();
 
-    bool noValueSemantics =
-        disableQuantumOpts || module->hasAttr(cudaq::runtime::disableQuantumOpts);
+    bool noValueSemantics = disableQuantumOpts ||
+                            module->hasAttr(cudaq::runtime::disableQuantumOpts);
 
     // Even though we're not lowering all the way to a real QIR profile for
     // this emulated path, we need to pass in `convertTo` to mimic the
