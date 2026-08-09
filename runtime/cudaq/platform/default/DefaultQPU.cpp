@@ -161,6 +161,11 @@ cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
 }
 
 cudaq::CompileTarget
+cudaq::DefaultQPU::getCompileTarget(const async_sample_policy &policy) {
+  return getDefaultCompileTarget(policy);
+}
+
+cudaq::CompileTarget
 cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
   return createDefaultCompileTarget();
 }

@@ -104,6 +104,11 @@ cudaq::CompileTarget cudaq::QPU::getCompileTarget(const sample_policy &) {
   return getCompileTarget(other_policies{}, nullptr);
 }
 
+cudaq::CompileTarget
+cudaq::QPU::getCompileTarget(const async_sample_policy &p) {
+  return getCompileTarget(p.inner);
+}
+
 cudaq::CompileTarget cudaq::QPU::getCompileTarget(const observe_policy &) {
   // Fall back to policy-agnostic compile target.
   return getCompileTarget(other_policies{}, nullptr);

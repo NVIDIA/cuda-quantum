@@ -184,6 +184,8 @@ public:
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const sample_policy &policy);
   [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const async_sample_policy &policy);
+  [[nodiscard]] virtual CompileTarget
   getCompileTarget(const observe_policy &policy);
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const run_policy &policy);
