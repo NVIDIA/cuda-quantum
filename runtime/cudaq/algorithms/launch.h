@@ -104,6 +104,12 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
   else
     CUDAQ_INFO("Launching kernel in sync mode with policy {}", policy.name);
 
+  if constexpr (!std::is_same_v<Policy, dem_policy>) {
+    if (nvqir::AnalysisScope::is_active()) {
+      throw std::runtime_error(
+          "Invalid kernel launch within an active AnalysisScope");
+    }
+  }
   detail::try_finally(
       [&] {
         detail::with_policy_and_ctx(policy, ctx, std::forward<Callable>(f),

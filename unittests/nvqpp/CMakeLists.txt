@@ -176,6 +176,7 @@ if (cuStateVec_FOUND)
     cudaq-platform-mqpu
     cudaq-mlir-runtime
     nvqir-custatevec-fp64
+    nvqir
     gtest_main)
   cudaq_gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
 
@@ -203,6 +204,7 @@ if (cuStateVec_FOUND)
     cudaq-platform-default
     cudaq-mlir-runtime
     nvqir-custatevec-fp32
+    nvqir
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
   cudaq_gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
@@ -303,6 +305,7 @@ if(TARGET nvqir-tensornet)
     cudaq-platform-default
     cudaq-mlir-runtime
     nvqir-tensornet
+    nvqir
     gtest_main)
   # Run this test with "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=TRUE"
   cudaq_gtest_discover_tests(test_tensornet_observe_path_reuse TEST_SUFFIX _PathReuse PROPERTIES ENVIRONMENT "CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE=ON" PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu")
@@ -321,6 +324,7 @@ target_link_libraries(test_qudit
   cudaq-mlir-runtime
   cudaq-em-qudit
   nvqir-qpp
+  nvqir
   gtest_main)
 cudaq_gtest_discover_tests(test_qudit PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
@@ -336,6 +340,7 @@ target_link_libraries(test_photonics
   cudaq-mlir-runtime
   cudaq-em-photonics
   nvqir-qpp
+  nvqir
   gtest_main)
 cudaq_gtest_discover_tests(test_photonics PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
