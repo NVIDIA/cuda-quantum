@@ -97,15 +97,13 @@ class SupportsObserve(Protocol):
 _PROTOCOLS = (SupportsSample, SupportsObserve)
 
 
-def set_runtime_endpoint(endpoint, qpu_id: int = 0) -> None:
+def set_runtime_endpoint(endpoint) -> None:
     """Route kernel launches to `endpoint` instead of the active target's QPU.
 
     Args:
       endpoint: An object implementing at least one of :class:`SupportsSample`,
         :class:`SupportsObserve` or :class:`SupportsRun`. Launches under a
         policy the object does not implement raise a `RuntimeError`.
-      `qpu_id` (Optional[int]): The QPU on the current platform whose launches
-        to redirect. Defaults to zero.
 
     Raises:
       TypeError: If `endpoint` implements none of the protocols.
@@ -118,4 +116,4 @@ def set_runtime_endpoint(endpoint, qpu_id: int = 0) -> None:
             f"{type(endpoint).__name__} is not a runtime endpoint: it must "
             f"define at least one of "
             f"{', '.join(p.__name__ for p in _PROTOCOLS)}.")
-    _cudaq_runtime.set_runtime_endpoint(endpoint, qpu_id)
+    _cudaq_runtime.set_runtime_endpoint(endpoint)
