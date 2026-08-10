@@ -6,6 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .builtin_integrators import RungeKuttaIntegrator
+from .builtin_integrators import RungeKuttaIntegrator, DoPri5Integrator, MagnusCF4Integrator
 from .scipy_integrators import ScipyZvodeIntegrator
 from .cuda_torchdiffeq_integrator import CUDATorchDiffEqRK4Integrator, CUDATorchDiffEqAdaptiveHeunIntegrator, CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqDopri5Integrator, CUDATorchDiffEqDopri8Integrator, CUDATorchDiffEqEulerIntegrator, CUDATorchDiffEqExplicitAdamsIntegrator, CUDATorchDiffEqMidpointIntegrator, CUDATorchDiffEqFehlberg2Integrator, CUDATorchDiffEqHeun3Integrator, CUDATorchDiffEqImplicitAdamsIntegrator, CUDATorchDiffEqFixedAdamsIntegrator
