@@ -274,6 +274,8 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
+            .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
@@ -3333,17 +3335,17 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.NoiseModel"){.reference .internal}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_noise "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[model]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_noise "Permalink to this definition"){.headerlink}
 
-:   Set the underlying noise model.
+:   
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.unset_noise "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unset_noise "Permalink to this definition"){.headerlink}
 
-:   Clear backend simulation from any existing noise models.
+:   
 
 ```{=html}
 <!-- -->
@@ -6581,6 +6583,10 @@ discriminated bits into an integer.)
         .literal .notranslate}]{.pre}. Equivalent to the number of
         uniquely measured bitstrings.
 
+    *[property]{.pre}[ ]{.w}*[[annotations]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.annotations "Permalink to this definition"){.headerlink}
+
+    :   Read-only metadata dict set by backends.
+
     [[clear]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.clear "Permalink to this definition"){.headerlink}
 
     :   Clear out all metadata from [`self`{.code .docutils .literal
@@ -6612,6 +6618,12 @@ discriminated bits into an integer.)
 
         :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
+
+    *[property]{.pre}[ ]{.w}*[[counts]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.counts "Permalink to this definition"){.headerlink}
+
+    :   Return the global counts as a [`dict[str,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`int]`{.docutils .literal .notranslate}]{.pre}.
 
     [[deserialize]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.deserialize "Permalink to this definition"){.headerlink}
 

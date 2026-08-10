@@ -274,6 +274,8 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
+            .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
@@ -9082,6 +9084,22 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
+[]{#classcudaq_1_1cudaq__json .target}[[class]{.pre}]{.k}[ ]{.w}[[[cudaq_json]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq10cudaq_jsonE "Permalink to this definition"){.headerlink}\
+
+:   Opaque [`pimpl`{.docutils .literal .notranslate}]{.pre} wrapper
+    around [`nlohmann::json`{.docutils .literal .notranslate}]{.pre}.
+
+    Use this type in headers to avoid pulling in the heavy
+    nlohmann/json.hpp. Only cudaq_json.cpp includes the full
+    [`nlohmann`{.docutils .literal .notranslate}]{.pre} header. Callers
+    that need to operate on the underlying JSON value should call get()
+    in a [`.cpp`{.docutils .literal .notranslate}]{.pre} file that
+    includes nlohmann/json.hpp directly.
+
+```{=html}
+<!-- -->
+```
+
 []{#classcudaq_1_1sample__result .target}[[class]{.pre}]{.k}[ ]{.w}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13sample_resultE "Permalink to this definition"){.headerlink}\
 
 :   The [[sample_result]{.std
@@ -9108,6 +9126,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
+
+    []{#classcudaq_1_1sample__result_1a77baabc3a31fed3362e171993b06c8b5 .target}[[inline]{.pre}]{.k}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[[cudaq_json]{.pre}]{.n}](#_CPPv4N5cudaq10cudaq_jsonE "cudaq::cudaq_json"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[get_annotations]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq13sample_result15get_annotationsEv "Permalink to this definition"){.headerlink}\
+
+    :   Return the backend-attached metadata (read-only).
+
+    ```{=html}
+    <!-- -->
+    ```
 
     []{#classcudaq_1_1sample__result_1ae8f611495ea923027a4008a4da8019a8 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq13sample_result13sample_resultEv "Permalink to this definition"){.headerlink}\
 
@@ -9158,6 +9184,15 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         .notranslate}]{.pre}]{.std
         .std-ref}](#structcudaq_1_1ExecutionResult){.reference
         .internal}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1sample__result_1af62507b788d034613235c942050d2b19 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[CountsDictionary]{.pre}]{.n}[ ]{.w}[[counts]{.pre}]{.n .sig-param}, [[[cudaq_json]{.pre}]{.n}](#_CPPv4N5cudaq10cudaq_jsonE "cudaq::cudaq_json"){.reference .internal}[ ]{.w}[[annotations]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultE16CountsDictionary10cudaq_json "Permalink to this definition"){.headerlink}\
+
+    :   Construct from a counts dictionary and optional annotations. The
+        global register is populated with the provided counts.
 
     ```{=html}
     <!-- -->
@@ -9993,6 +10028,12 @@ discriminate a vector of handles.
 []{#SimulationState_8h_1a492cfc761cde8697c6e6263a23812c9e .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[TensorStateData]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq15TensorStateDataE "Permalink to this definition"){.headerlink}\
 
 :   Encapsulates a list of tensors (data pointer and dimensions).
+
+    ::: {.admonition .note}
+    Note
+
+    Each tensor must be contiguous and stored in column-major order.
+    :::
 
 ```{=html}
 <!-- -->

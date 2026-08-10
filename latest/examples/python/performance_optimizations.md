@@ -266,6 +266,8 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
+            .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
@@ -1984,14 +1986,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![d76d72a6bf4a4c7e8435beead4434f5a](../../_images/gate-fuse.png)
+![26be6689fb304e9aa3755915899ec2b1](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![ed867e040fab40d395f4addef7201967](../../_images/gatefusion.png)
+![7d714d9e8d4746e0aaabde1792efeab5](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -269,6 +269,8 @@ latest
             .internal}
         -   [Pasqal](../../examples/hardware_providers.html#pasqal){.reference
             .internal}
+        -   [qBraid](../../examples/hardware_providers.html#qbraid){.reference
+            .internal}
         -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
@@ -2071,10 +2073,9 @@ hardware, pass [`--qbraid-machine`{.docutils .literal
 :::
 :::
 
-To see a complete example for using qBraid's backends, take a look at
-our [[Python examples]{.doc}](../../examples/examples.html){.reference
-.internal} and [[C++
-examples]{.doc}](../../examples/examples.html){.reference .internal}.
+To see a complete example, take a look at [[qBraid examples]{.std
+.std-ref}](../../examples/hardware_providers.html#qbraid-examples){.reference
+.internal}.
 :::
 :::
 :::

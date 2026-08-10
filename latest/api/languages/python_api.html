@@ -243,6 +243,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
@@ -1985,15 +1986,13 @@ the call and lowers it to a vector form <code class="docutils literal notranslat
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.set_noise">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.NoiseModel"><span class="pre">cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.NoiseModel</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.set_noise" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set the underlying noise model.</p>
-</dd></dl>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_noise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_noise" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.unset_noise">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">unset_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.unset_noise" title="Permalink to this definition">¶</a></dt>
-<dd><p>Clear backend simulation from any existing noise models.</p>
-</dd></dl>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">unset_noise</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.unset_noise" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.register_set_target_callback">
@@ -4043,6 +4042,12 @@ during the <code class="code docutils literal notranslate"><span class="pre">sho
 <dd><p>Return the number of elements in <code class="code docutils literal notranslate"><span class="pre">self</span></code>. Equivalent to the number of uniquely measured bitstrings.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.SampleResult.annotations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">annotations</span></span><a class="headerlink" href="#cudaq.SampleResult.annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read-only metadata dict set by backends.</p>
+</dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.SampleResult.clear">
 <span class="sig-name descname"><span class="pre">clear</span></span><a class="headerlink" href="#cudaq.SampleResult.clear" title="Permalink to this definition">¶</a></dt>
@@ -4068,6 +4073,12 @@ extract the probability from. Defaults to the ‘__global__’ register.</p></li
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.SampleResult.counts">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">counts</span></span><a class="headerlink" href="#cudaq.SampleResult.counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the global counts as a <code class="docutils literal notranslate"><span class="pre">dict[str,</span> <span class="pre">int]</span></code>.</p>
 </dd></dl>
 
 <dl class="py attribute">

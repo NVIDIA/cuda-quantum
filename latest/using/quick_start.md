@@ -256,6 +256,8 @@ latest
             .internal}
         -   [Pasqal](examples/hardware_providers.html#pasqal){.reference
             .internal}
+        -   [qBraid](examples/hardware_providers.html#qbraid){.reference
+            .internal}
         -   [Quantinuum](examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,

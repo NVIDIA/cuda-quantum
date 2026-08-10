@@ -239,6 +239,7 @@ latest
         -   [OQC](#oqc){.reference .internal}
         -   [ORCA Computing](#orca-computing){.reference .internal}
         -   [Pasqal](#pasqal){.reference .internal}
+        -   [qBraid](#qbraid){.reference .internal}
         -   [Quantinuum](#quantinuum){.reference .internal}
         -   [Quantum Circuits, Inc.](#quantum-circuits-inc){.reference
             .internal}
@@ -3185,6 +3186,133 @@ C++
       result.sampling_result->dump();
 
       return 0;
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#qbraid .section}
+[]{#qbraid-examples}
+
+## qBraid[¶](#qbraid "Permalink to this heading"){.headerlink}
+
+The following code illustrates how to run kernels on qBraid's backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import cudaq
+
+    # You only have to set the target once! No need to redefine it
+    # for every execution call on your kernel.
+    # To use different targets in the same file, you must update
+    # it via another call to `cudaq.set_target()`
+    cudaq.set_target("qbraid")
+
+
+    # Create the kernel we'd like to execute on qBraid.
+    @cudaq.kernel
+    def kernel():
+        qvector = cudaq.qvector(2)
+        h(qvector[0])
+        x.ctrl(qvector[0], qvector[1])
+
+
+    # Execute on qBraid and print out the results.
+
+    # Option A:
+    # By using the asynchronous `cudaq.sample_async`, the remaining
+    # classical code will be executed while the job is being handled
+    # by qBraid. This is ideal when submitting via a queue over
+    # the cloud.
+    async_results = cudaq.sample_async(kernel)
+    # ... more classical code to run ...
+
+    # We can either retrieve the results later in the program with
+    # ```
+    # async_counts = async_results.get()
+    # ```
+    # or we can also write the job reference (`async_results`) to
+    # a file and load it later or from a different process.
+    file = open("future.txt", "w")
+    file.write(str(async_results))
+    file.close()
+
+    # We can later read the file content and retrieve the job
+    # information and results.
+    same_file = open("future.txt", "r")
+    retrieved_async_results = cudaq.AsyncSampleResult(str(same_file.read()))
+
+    counts = retrieved_async_results.get()
+    print(counts)
+
+    # Option B:
+    # By using the synchronous `cudaq.sample`, the execution of
+    # any remaining classical code in the file will occur only
+    # after the job has been returned from qBraid.
+    counts = cudaq.sample(kernel)
+    print(counts)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    // Compile and run with:
+    // ```
+    // nvq++ --target qbraid qbraid.cpp -o out.x && ./out.x
+    // ```
+    // This will submit the job to the qBraid ideal simulator target (default).
+
+    #include <cudaq.h>
+    #include <fstream>
+
+    // Define a simple quantum kernel to execute on qBraid.
+    struct ghz {
+      // Maximally entangled state between 5 qubits.
+      auto operator()() __qpu__ {
+        cudaq::qvector q(5);
+        h(q[0]);
+        for (int i = 0; i < 4; i++) {
+          x<cudaq::ctrl>(q[i], q[i + 1]);
+        }
+        auto result = mz(q);
+      }
+    };
+
+    int main() {
+      // Submit to qBraid asynchronously (e.g., continue executing
+      // code in the file until the job has been returned).
+      auto future = cudaq::sample_async(ghz{});
+      // ... classical code to execute in the meantime ...
+
+      // Can write the future to file:
+      {
+        std::ofstream out("saveMe.json");
+        out << future;
+      }
+
+      // Then come back and read it in later.
+      cudaq::async_result<cudaq::sample_result> readIn;
+      std::ifstream in("saveMe.json");
+      in >> readIn;
+
+      // Get the results of the read in future.
+      auto async_counts = readIn.get();
+      async_counts.dump();
+
+      // OR: Submit to qBraid synchronously (e.g., wait for the job
+      // result to be returned before proceeding).
+      auto counts = cudaq::sample(ghz{});
+      counts.dump();
     }
 :::
 :::

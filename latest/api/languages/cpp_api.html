@@ -243,6 +243,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#oqc">OQC</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#qbraid">qBraid</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
@@ -5810,12 +5811,25 @@
 </dd></dl>
 
 <dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10cudaq_jsonE">
+<span class="target" id="classcudaq_1_1cudaq__json"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cudaq_json</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq10cudaq_jsonE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Opaque <code class="docutils literal notranslate"><span class="pre">pimpl</span></code> wrapper around <code class="docutils literal notranslate"><span class="pre">nlohmann::json</span></code>. </p>
+<p>Use this type in headers to avoid pulling in the heavy nlohmann/json.hpp. Only cudaq_json.cpp includes the full <code class="docutils literal notranslate"><span class="pre">nlohmann</span></code> header. Callers that need to operate on the underlying JSON value should call get() in a <code class="docutils literal notranslate"><span class="pre">.cpp</span></code> file that includes nlohmann/json.hpp directly. </p>
+</dd></dl>
+
+<dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_resultE">
 <span class="target" id="classcudaq_1_1sample__result"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_resultE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref">sample_result</span></a> abstraction wraps a set of <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code>s for a single quantum kernel execution under the sampling or observation <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1ExecutionContext"><span class="std std-ref"><span class="pre">ExecutionContext</span></span></a></code>. Each <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> is mapped to a register name, with a default <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> with name <strong>global</strong> representing the observed measurement results holistically for the quantum kernel. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1ptsbe_1_1sample__result"><span class="std std-ref">cudaq::ptsbe::sample_result</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result15get_annotationsEv">
+<span class="target" id="classcudaq_1_1sample__result_1a77baabc3a31fed3362e171993b06c8b5"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10cudaq_jsonE" title="cudaq::cudaq_json"><span class="n"><span class="pre">cudaq_json</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_annotations</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result15get_annotationsEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return the backend-attached metadata (read-only). </p>
+</dd></dl>
+
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultEv">
 <span class="target" id="classcudaq_1_1sample__result_1ae8f611495ea923027a4008a4da8019a8"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultEv" title="Permalink to this definition">¶</a><br /></dt>
@@ -5849,6 +5863,12 @@
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultEdRKNSt6vectorI15ExecutionResultEE">
 <span class="target" id="classcudaq_1_1sample__result_1ab8c063b978cefc340b6137a54f6431e5"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">preComputedExp</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">results</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultEdRKNSt6vectorI15ExecutionResultEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The constructor, takes a precomputed expectation value and stores it with the <code class="docutils literal notranslate"><span class="pre">__global__</span></code> <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result13sample_resultE16CountsDictionary10cudaq_json">
+<span class="target" id="classcudaq_1_1sample__result_1af62507b788d034613235c942050d2b19"></span><span class="sig-name descname"><span class="n"><span class="pre">sample_result</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">CountsDictionary</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">counts</span></span>, <a class="reference internal" href="#_CPPv4N5cudaq10cudaq_jsonE" title="cudaq::cudaq_json"><span class="n"><span class="pre">cudaq_json</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">annotations</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result13sample_resultE16CountsDictionary10cudaq_json" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Construct from a counts dictionary and optional annotations. The global register is populated with the provided counts. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -6465,6 +6485,10 @@ handles, a vector of <code class="docutils literal notranslate"><span class="pre
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15TensorStateDataE">
 <span class="target" id="SimulationState_8h_1a492cfc761cde8697c6e6263a23812c9e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">TensorStateData</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq15TensorStateDataE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Encapsulates a list of tensors (data pointer and dimensions). </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Each tensor must be contiguous and stored in column-major order. </p>
+</div>
 </dd></dl>
 
 <dl class="cpp type">
