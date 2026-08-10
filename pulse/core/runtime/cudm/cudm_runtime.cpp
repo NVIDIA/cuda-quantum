@@ -937,10 +937,7 @@ CudmStatus cudm_evolve(CudmHandle handle, CudmOperator op, CudmState stateIn,
   // The dialect IntegratorKind values map as: 2=rk1, 3=rk2, 4=rk4,
   // 5=magnus (Taylor-series midpoint), 6=crank_nicolson (predictor-corrector).
   // These mirror the mainlined cudaq::integrators algorithms of the same name,
-  // driven here through the cuDensityMat Liouvillian action. Adaptive (dopri5)
-  // and dense-Hamiltonian (magnus_cf4) integrators are only available via the
-  // cudaq.dynamics API; they are not expressible through this operator-action
-  // path and are rejected here.
+  // driven here through the cuDensityMat Liouvillian action.
   if (integrator < 2 || integrator > 6)
     return fail(CUDM_ERROR_INTERNAL,
                 "cudm-runtime supports rk1, rk2, rk4, magnus, and "

@@ -138,16 +138,6 @@ selects the time-evolution scheme used by the cuDensityMat runtime path:
 All five schemes reuse the same boundary-safe sampling that keeps piecewise
 constant pulse segments from being sampled across a discontinuity.
 
-.. note::
-
-   The adaptive ``dopri5`` (Dormand-Prince RK5(4)) and the high-order
-   commutator-free ``magnus_cf4`` integrators are available through the
-   mainlined ``cudaq.dynamics`` evolution API, not through this pulse
-   frontend path. ``magnus_cf4`` requires a densely materialized Hamiltonian
-   and ``dopri5`` requires adaptive error control with device readbacks;
-   neither maps onto the pulse runtime's C ABI, which drives cuDensityMat
-   through Liouvillian actions.
-
 Requirements:
 
 - NVIDIA GPU with compute capability 7.0+

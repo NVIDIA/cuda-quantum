@@ -238,9 +238,7 @@ runner whenever CMake detects an accessible NVIDIA GPU and CUDA runtime.
   drive-amplitude scaling are supported. Transmon anharmonicity remains target
   metadata because a faithful leakage model requires three or more levels.
 - GPU evolution supports the ``rk1``, ``rk2``, ``rk4``, ``magnus``, and
-  ``crank_nicolson`` integrators. The adaptive ``dopri5`` and dense-Hamiltonian
-  ``magnus_cf4`` integrators are exposed through the mainlined
-  ``cudaq.dynamics`` API rather than this pulse frontend.
+  ``crank_nicolson`` integrators through the pulse frontend.
   Readout/acquisition, observable evaluation, neutral-atom and multilevel
   models, unspecialized parameters, arbitrary Python waveform callbacks, and
   waveform algebra are rejected explicitly by the execution lowering.

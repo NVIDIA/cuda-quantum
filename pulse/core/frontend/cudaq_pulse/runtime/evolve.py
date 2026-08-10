@@ -77,9 +77,7 @@ def evolve(
         Time-integration strategy for the cuDensityMat runtime. One of the
         explicit Runge-Kutta schemes ``"rk1"``, ``"rk2"``, ``"rk4"``, the
         ``"magnus"`` Taylor-series midpoint expansion, or the
-        ``"crank_nicolson"`` predictor-corrector method. The adaptive
-        ``dopri5`` and dense-Hamiltonian ``magnus_cf4`` integrators are
-        available through the ``cudaq.dynamics`` API only.
+        ``"crank_nicolson"`` predictor-corrector method.
     clock_ghz:
         Pulse virtual-clock rate in GHz when converting a traced kernel IR.
     observables:
