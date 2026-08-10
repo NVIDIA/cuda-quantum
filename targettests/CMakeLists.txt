@@ -14,6 +14,11 @@ llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
 )
 
+set(CUDAQ_QDMI_DDSIM_AVAILABLE 0)
+if (CUDAQ_ENABLE_QDMI_BACKEND AND TARGET MQT::CoreQDMI_DDSIM_Device)
+  set(CUDAQ_QDMI_DDSIM_AVAILABLE 1)
+endif()
+
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
   ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py
@@ -35,6 +40,9 @@ set(CUDAQ_TEST_DEPENDS
     FileCheck
     CustomPassPlugin
 )
+if (CUDAQ_QDMI_DDSIM_AVAILABLE)
+  list(APPEND CUDAQ_TEST_DEPENDS cudaq-qdmi-qpu)
+endif()
 # We require split-file, which should be installed along with FileCheck, but
 # the CI doesn't do it. Comment this out and open a bug.
 #   split-file

@@ -71,10 +71,32 @@ jobs:
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
       devdeps_matrix: ${{ steps.config.outputs.devdeps_matrix }}
       merge_queue_fast: ${{ steps.config.outputs.merge_queue_fast }}
+      qdmi_changes: ${{ steps.qdmi_changes.outputs.matched }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Check for QDMI changes
+        id: qdmi_changes
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            runtime/cudaq/platform/qdmi/
+            runtime/common/Future.cpp
+            runtime/common/Future.h
+            runtime/internal/compiler/Compiler.cpp
+            cudaq/include/cudaq/Target/CompileTarget.h
+            cudaq/lib/Target/CompileTarget.cpp
+            targettests/CMakeLists.txt
+            targettests/lit.site.cfg.py.in
+            targettests/qdmi/
+            docs/sphinx/using/backends/qdmi.rst
+            CMakeLists.txt
+            runtime/cudaq/platform/CMakeLists.txt
+            docker/build/cudaq.dev.Dockerfile
+            .github/workflows/ci.yml
+            .github/workflows/test_in_devenv.yml
 
       - id: config
         env:
@@ -327,6 +349,21 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
+  # Build and test the optional QDMI platform only when related files change.
+  qdmi_build_and_test:
+    name: QDMI build and DDSIM tests
+    needs: [metadata, config_devdeps]
+    if: needs.metadata.outputs.qdmi_changes == 'true'
+    uses: ./.github/workflows/test_in_devenv.yml
+    with:
+      platform: linux/amd64
+      mpi: ""
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash['amd64-llvm'] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key['amd64-llvm'] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive['amd64-llvm'] }}
+      enable_qdmi: true
+      test_scope: qdmi
+
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
@@ -441,6 +478,7 @@ jobs:
       - config_wheeldeps
       - config_source_build
       - build_and_test
+      - qdmi_build_and_test
       - gen_code_coverage
       - docker_image
       - python_wheels
