@@ -24,3 +24,7 @@ endif()
 if (CUDAQ_ENABLE_PASQAL_BACKEND)
   add_subdirectory(pasqal)
 endif()
+
+if (CUDAQ_ENABLE_QDMI_BACKEND)
+  add_subdirectory(qdmi)
+endif()
