@@ -191,6 +191,12 @@ function f_option_handling {
 	-fapply-specialization)
 		ENABLE_APPLY_SPECIALIZATION=true
 		;;
+	-fno-quantum-optimization)
+		ENABLE_QUANTUM_OPTIMIZATION=false
+		;;
+	-fquantum-optimization)
+		ENABLE_QUANTUM_OPTIMIZATION=true
+		;;
 	-fno-lambda-lifting)
 		ENABLE_LAMBDA_LIFTING=false
 		;;
@@ -566,6 +572,7 @@ ENABLE_AGGRESSIVE_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
+ENABLE_QUANTUM_OPTIMIZATION=true
 ENABLE_MLIR_LIB_LINKING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
@@ -938,6 +945,10 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		fi
 	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"""   
 	fi
+fi
+
+if ! ${ENABLE_QUANTUM_OPTIMIZATION}; then
+    CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} -fdisable-quantum-optimization"
 fi
 
 # Configure the NVQIR link line if this is in refactored mode

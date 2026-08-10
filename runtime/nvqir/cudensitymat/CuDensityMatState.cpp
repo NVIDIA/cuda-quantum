@@ -113,7 +113,7 @@ CuDensityMatState::createFromData(const state_data &data) {
           "[CuDensityMatState] Density matrix input must be square.");
     const std::size_t size = cMat.rows() * cMat.cols();
     void *dataPtr = const_cast<cudaq::complex_matrix &>(cMat).get_data(
-        cudaq::complex_matrix::order::row_major);
+        cudaq::complex_matrix::order::column_major);
     std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
         cudaq::dynamics::DeviceAllocator::allocate(
             size * sizeof(std::complex<double>)));
@@ -182,7 +182,9 @@ CuDensityMatState::getTensor(std::size_t tensorIdx) const {
     const std::vector<std::size_t> extents =
         isDensityMatrix ? std::vector<std::size_t>{dim, dim}
                         : std::vector<std::size_t>{dim};
-    return Tensor{devicePtr, extents, precision::fp64};
+    const auto order = isDensityMatrix ? Tensor::storage_order::column_major
+                                       : Tensor::storage_order::unspecified;
+    return Tensor{devicePtr, extents, precision::fp64, order};
   } else {
     // For batched state, always returns the flat buffer.
     return Tensor{devicePtr, {dimension}, precision::fp64};

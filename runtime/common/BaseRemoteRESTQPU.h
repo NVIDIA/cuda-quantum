@@ -80,6 +80,14 @@ protected:
   /// @brief The target configuration
   cudaq::config::TargetConfig targetConfig;
 
+  CompileTarget createCompileTarget() {
+    CompileTarget target(targetConfig, backendConfig, emulate,
+                         serverHelper->getPipelineSubstitutions(platformPath));
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
+    return target;
+  }
+
 public:
   // This class overrides `launchKernel(dem_policy)` (local DEM generation,
   // shared by all remote QPUs) but not the `sample`/`observe` overloads (those
@@ -230,42 +238,23 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    CompileTarget target(targetConfig, backendConfig, emulate,
-                         serverHelper->getPipelineSubstitutions(platformPath));
-    target.pipelineConfig.replaceStateWithKernel = true;
-    target.overrideAOTCompilation = true;
-    if (ctx && ctx->name == "resource-count")
-      target.emitResourceCounts = true;
-
-    return target;
+    return createCompileTarget();
   }
 
   CompileTarget getCompileTarget(const sample_policy &policy) override {
-    CompileTarget target(targetConfig, backendConfig, emulate,
-                         serverHelper->getPipelineSubstitutions(platformPath));
-    target.supportConditionalsOnMeasureResults = !emulate;
-    target.pipelineConfig.addMeasurements = true;
-    target.storeReorderIdx = true;
-    target.pipelineConfig.replaceStateWithKernel = true;
-    target.overrideAOTCompilation = true;
-    return target;
+    auto ct = createCompileTarget();
+    ct.pipelineConfig.addMeasurements = true;
+    return ct;
   }
 
   CompileTarget getCompileTarget(const observe_policy &policy) override {
-    CompileTarget target(targetConfig, backendConfig, emulate,
-                         serverHelper->getPipelineSubstitutions(platformPath));
-    target.overrideAOTCompilation = true;
+    auto target = createCompileTarget();
     target.pauliTermSplitObservable = policy.spin;
-    target.pipelineConfig.replaceStateWithKernel = true;
     return target;
   }
 
   CompileTarget getCompileTarget(const run_policy &) override {
-    CompileTarget target(targetConfig, backendConfig, emulate,
-                         serverHelper->getPipelineSubstitutions(platformPath));
-    target.pipelineConfig.replaceStateWithKernel = true;
-    target.overrideAOTCompilation = true;
-    return target;
+    return createCompileTarget();
   }
 
   /// Build a local JIT artifact for DEM analysis. No provider target code is
@@ -276,9 +265,6 @@ public:
     CompileTarget target(targetConfig, backendConfig, emulate);
     target.pipelineConfig.replaceStateWithKernel = true;
     target.overrideAOTCompilation = true;
-    target.emitJit = true;
-    target.emitTargetCode = false;
-    target.pipelineConfig.skipTargetLoweringPipeline = true;
     return target;
   }
 

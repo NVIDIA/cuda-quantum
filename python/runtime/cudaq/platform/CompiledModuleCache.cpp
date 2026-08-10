@@ -9,7 +9,6 @@
 #include "CompiledModuleCache.h"
 #include <algorithm>
 #include <exception>
-#include <iostream>
 #include <stdexcept>
 
 namespace cudaq::detail {
@@ -79,10 +78,6 @@ CompiledModuleCache::Result CompiledModuleCache::getOrCompile(
     readyEntries.emplace_back(compilingEntry->key, module);
     if (readyEntries.size() > maxReadyEntries) {
       evicted = std::move(readyEntries.front().module);
-      if (cudaq::CompiledModule::debugMode()) {
-        std::cout << "Evicting compiled module for " << evicted->getName()
-                  << std::endl;
-      }
       readyEntries.erase(readyEntries.begin());
     }
     std::erase(compilingEntries, compilingEntry);
@@ -104,21 +99,6 @@ CompiledModuleCache::Result CompiledModuleCache::getOrCompile(
   // reuse the module instead of joining a completed attempt.
   compilingEntry->promise.set_value(module);
   return {std::move(module), role};
-}
-
-CompiledModuleCache::CompiledModuleCache() {
-  if (const auto *cacheSize = std::getenv("CUDAQ_COMPILED_MODULE_CACHE_SIZE")) {
-    try {
-      maxReadyEntries = std::stoi(cacheSize);
-    } catch (const std::exception &) {
-    }
-  }
-  if (cudaq::CompiledModule::debugMode()) {
-    std::cout << "CompiledModuleCache constructor with maxReadyEntries = "
-              << maxReadyEntries << std::endl;
-    std::cout << "Size of CompiledModule: " << sizeof(CompiledModule)
-              << std::endl;
-  }
 }
 
 } // namespace cudaq::detail
