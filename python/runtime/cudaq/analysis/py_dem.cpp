@@ -17,6 +17,7 @@
 #include "utils/NanobindAdaptors.h"
 #include "cudaq/algorithms/dem.h"
 #include "cudaq/platform.h"
+#include <stdexcept>
 #include <string>
 
 using namespace cudaq;
@@ -108,17 +109,7 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
           nanobind::arg("num_detectors") = std::size_t(0),
           nanobind::arg("num_observables") = std::size_t(0),
           nanobind::arg("num_measurements") = std::size_t(0),
-          nanobind::arg("annotations") = nlohmann::json::object(),
-          R"#(Construct a DEMResult.
-
-Args:
-  dem (str): DEM text in Stim's ``.dem`` format.
-  m2d (list[list[int]], optional): Measurement-to-detector row lists.
-  m2o (list[list[int]], optional): Measurement-to-observable row lists.
-  num_detectors (int, optional): Number of detectors.
-  num_observables (int, optional): Number of logical observables.
-  num_measurements (int, optional): Total measurement count.
-  annotations (dict, optional): Endpoint metadata.)#")
+          nanobind::arg("annotations") = nlohmann::json::object())
       .def_prop_ro(
           "dem",
           [](const dem_result &self) -> const std::string & {
@@ -205,8 +196,36 @@ Args:
           "from_matrices",
           [](const std::string &dem, nanobind::object m2d_csr,
              nanobind::object m2o_csr, std::size_t num_detectors,
-             std::size_t num_observables, std::size_t num_measurements,
+             std::size_t num_observables, nanobind::object num_measurements,
              nanobind::object annotations) -> dem_result {
+            auto get_shape = [](nanobind::object matrix,
+                                const char *matrix_name) {
+              auto shape = nanobind::cast<std::vector<std::size_t>>(
+                  matrix.attr("shape"));
+              if (shape.size() != 2)
+                throw std::invalid_argument(std::string(matrix_name) +
+                                            " must be a two-dimensional CSR "
+                                            "matrix.");
+              return shape;
+            };
+            auto m2d_shape = get_shape(m2d_csr, "m2d_csr");
+            auto m2o_shape = get_shape(m2o_csr, "m2o_csr");
+            const auto m2d_width = m2d_shape[1];
+            const auto m2o_width = m2o_shape[1];
+            if (m2d_width != m2o_width)
+              throw std::invalid_argument(
+                  "m2d_csr and m2o_csr must have the same number of "
+                  "columns (measurements).");
+
+            const auto resolved_num_measurements =
+                num_measurements.is_none()
+                    ? m2d_width
+                    : nanobind::cast<std::size_t>(num_measurements);
+            if (resolved_num_measurements != m2d_width)
+              throw std::invalid_argument(
+                  "num_measurements must match the number of columns in "
+                  "m2d_csr and m2o_csr.");
+
             auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
             auto csr_to_rows = dem_mod.attr("_csr_to_rows");
             auto m2d_rows =
@@ -226,14 +245,15 @@ Args:
             if (!annotations.is_none())
               ann = cudaq_json(nanobind::cast<nlohmann::json>(annotations));
             return dem_result(dem, std::move(m2d_mat), std::move(m2o_mat),
-                              num_detectors, num_observables, num_measurements,
-                              matrices_computed, std::move(ann));
+                              num_detectors, num_observables,
+                              resolved_num_measurements, matrices_computed,
+                              std::move(ann));
           },
           nanobind::arg("dem"), nanobind::arg("m2d_csr"),
           nanobind::arg("m2o_csr"),
           nanobind::arg("num_detectors") = std::size_t(0),
           nanobind::arg("num_observables") = std::size_t(0),
-          nanobind::arg("num_measurements") = std::size_t(0),
+          nanobind::arg("num_measurements") = nanobind::none(),
           nanobind::arg("annotations") = nanobind::none(),
           "Build a DEMResult from scipy CSR matrices.");
 

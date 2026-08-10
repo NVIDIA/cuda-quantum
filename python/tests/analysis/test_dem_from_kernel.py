@@ -320,7 +320,7 @@ def test_dem_result_constructor_defaults():
 
 
 def test_dem_result_from_matrices():
-    """DEMResult.from_matrices accepts scipy CSR matrices and populates row lists."""
+    """CSR width is inferred unless an equal explicit count is supplied."""
     import numpy as np
     import scipy.sparse as sp
 
@@ -334,7 +334,6 @@ def test_dem_result_from_matrices():
         m2o_csr,
         num_detectors=1,
         num_observables=1,
-        num_measurements=3,
     )
     assert result.dem == dem_text
     assert result.num_detectors == 1
@@ -346,6 +345,31 @@ def test_dem_result_from_matrices():
     import scipy.sparse as _sp
     assert (_sp.csr_matrix(result.m2d_matrix) - m2d_csr).nnz == 0
     assert (_sp.csr_matrix(result.m2o_matrix) - m2o_csr).nnz == 0
+
+
+def test_dem_result_from_matrices_rejects_inconsistent_widths():
+    """The two CSR matrices must describe the same measurement space."""
+    import scipy.sparse as sp
+
+    m2d_csr = sp.csr_matrix(([1], ([0], [2])), shape=(1, 3))
+    m2o_csr = sp.csr_matrix(([1], ([0], [3])), shape=(1, 4))
+
+    with pytest.raises(ValueError, match="same number of columns"):
+        cudaq.DEMResult.from_matrices("error(0.1) D0", m2d_csr, m2o_csr)
+
+
+def test_dem_result_from_matrices_rejects_incorrect_explicit_width():
+    """An explicit measurement count is checked against both CSR matrices."""
+    import scipy.sparse as sp
+
+    m2d_csr = sp.csr_matrix(([1], ([0], [2])), shape=(1, 3))
+    m2o_csr = sp.csr_matrix(([1], ([0], [2])), shape=(1, 3))
+
+    with pytest.raises(ValueError, match="num_measurements must match"):
+        cudaq.DEMResult.from_matrices("error(0.1)",
+                                      m2d_csr,
+                                      m2o_csr,
+                                      num_measurements=2)
 
 
 # ---------------------------------------------------------------------------
