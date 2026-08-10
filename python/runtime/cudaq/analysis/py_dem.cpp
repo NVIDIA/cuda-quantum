@@ -146,8 +146,11 @@ Args:
                    "True when m2d / m2o were populated.")
       .def_prop_ro(
           "annotations",
-          [](sample_result &self) -> const nlohmann::json & {
-            return self.get_annotations().get();
+          [](dem_result &self) -> const nlohmann::json & {
+            auto &j = self.get_annotations().get();
+            if (j.is_null())
+              j = nlohmann::json::object();
+            return j;
           },
           "Read-only metadata dict set by backends.")
       .def("__str__", [](const dem_result &self) { return self.get_dem(); })
