@@ -28,7 +28,7 @@
 namespace cudaq::quake {
 constexpr const char ancillaAttrName[] = "quake.ancilla";
 
-/// Marks \p op as allocating ancillas. See \a ancillaAttrName.
+/// Marks \p op as allocating `ancillas`. See \a ancillaAttrName.
 inline void markAsAncilla(mlir::Operation *op) {
   op->setAttr(ancillaAttrName, mlir::UnitAttr::get(op->getContext()));
 }

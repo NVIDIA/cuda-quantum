@@ -29,12 +29,12 @@ public:
 
   mlir::LogicalResult build(mlir::func::FuncOp func);
 
-  /// Number of qubits that were projected out of the operator as ancillas.
+  /// Number of qubits that were projected out of the operator as `ancillas`.
   std::size_t getNumAncillas() const { return numAncillas; }
 
-  /// True if build() failed because the kernel's ancillas were not returned to
-  /// the computational basis state they came in as. This is a property of the
-  /// circuit, not a builder error.
+  /// True if build() failed because the kernel's `ancillas` were not returned
+  /// to the computational basis state they came in as. This is a property of
+  /// the circuit, not a builder error.
   bool sawDirtyAncilla() const { return dirtyAncilla; }
 
 private:
@@ -69,9 +69,9 @@ private:
   void negatedControls(mlir::ArrayRef<bool> negatedControls,
                        mlir::ArrayRef<Qubit> qubits);
 
-  /// Projects the ancillas out of the operator, leaving the action on the
+  /// Projects the `ancillas` out of the operator, leaving the action on the
   /// system qubits alone. numQubits is the number of qubits that came in as
-  /// function arguments, used only when the kernel has no marked ancillas.
+  /// function arguments, used only when the kernel has no marked `ancillas`.
   mlir::LogicalResult deallocateAncillas(std::size_t numQubits);
 
   //===--------------------------------------------------------------------===//

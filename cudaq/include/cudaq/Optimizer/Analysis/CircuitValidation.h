@@ -44,7 +44,7 @@ enum class DomainRejectionKind {
   DynamicQubitRegister,
   /// The kernel uses more qubits than the exact-unitary bound allows.
   TooManyQubits,
-  /// The kernel's ancillas are not returned to the computational basis state
+  /// The kernel's `ancillas` are not returned to the computational basis state
   /// they came in as, so the operator cannot be reduced to one on the system
   /// qubits alone. Unlike the kinds above this is not a `preflight` verdict:
   /// it is only visible once the unitary has been built, and it is reported
@@ -101,18 +101,18 @@ checkBoundedUnitaryDomain(mlir::ModuleOp module,
 
 /// What an equivalence verdict is a statement about.
 enum class EquivalenceGuarantee {
-  /// Neither kernel used ancillas. The verdict covers the whole operator.
+  /// Neither kernel used `ancillas`. The verdict covers the whole operator.
   Exact,
-  /// At least one kernel introduced ancillas, which were checked to be
+  /// At least one kernel introduced `ancillas`, which were checked to be
   /// returned to the basis state they came in as and then projected out. The
   /// verdict is that the two kernels agree on the system qubits when the
-  /// ancillas start in |0>. It says nothing about ancillas that arrive in some
-  /// other state (the borrowed-ancilla claim), which is a stronger property
-  /// this oracle does not check.
+  /// `ancillas` start in |0>. It says nothing about `ancillas` that arrive in
+  /// some other state (the borrowed-ancilla claim), which is a stronger
+  /// property this oracle does not check.
   CleanAncilla,
-  /// The wider kernel was shown to be the narrower one tensored with the
+  /// The wider kernel was shown to be the narrower one `tensored` with the
   /// identity, so it never touches the extra qubits. Stronger than
-  /// CleanAncilla: it holds whatever state the ancillas arrive in.
+  /// CleanAncilla: it holds whatever state the `ancillas` arrive in.
   BorrowedAncilla,
 };
 
@@ -136,13 +136,13 @@ struct UnitaryComparisonResult {
   bool phaseIsZero = false;
   /// What the verdict is a statement about. See EquivalenceGuarantee.
   EquivalenceGuarantee guarantee = EquivalenceGuarantee::Exact;
-  /// True iff the candidate left its ancillas dirty. This is a negative
+  /// True iff the candidate left its `ancillas` dirty. This is a negative
   /// verdict, not a failure to compare. Computed stays true and the kernels
-  /// are reported as not equivalent. A baseline with dirty ancillas is a
+  /// are reported as not equivalent. A baseline with dirty `ancillas` is a
   /// different matter (there is nothing to compare against) and reports
   /// computed == false instead.
   bool ancillaNotRestored = false;
-  /// Qubits projected out as ancillas on each side.
+  /// Qubits projected out as `ancillas` on each side.
   std::size_t baselineAncillas = 0;
   std::size_t candidateAncillas = 0;
   /// Populated only when computed is false.
@@ -256,7 +256,7 @@ struct CliffordComparisonResult {
 /// phase.
 ///
 /// Kernels of different widths are compared by padding the narrower tableau
-/// with identity, so a kernel that took on ancillas certifies exactly when it
+/// with identity, so a kernel that took on `ancillas` certifies exactly when it
 /// leaves them untouched.
 CliffordComparisonResult compareTableaux(mlir::func::FuncOp baseline,
                                          mlir::func::FuncOp candidate);

@@ -80,20 +80,21 @@ INVARIANT_KINDS = (INVARIANT_EQUIVALENCE, INVARIANT_DETERMINISM,
 
 # What an equivalence verdict is a statement about.
 #
-#   `exact`           Neither kernel used ancillas. The verdict covers the whole
-#                     operator.
+#   `exact`           Neither kernel used `ancillas`. The verdict covers the
+#                     whole operator.
 #
 #   `clean-ancilla`   A kernel introduced ancilla qubits (allocations marked
 #                     `quake.ancilla`). They were checked to be returned to the
 #                     basis state they came in as and projected out, so the
 #                     verdict is that the two kernels agree on the system qubits
-#                     when the ancillas start in |0>. It is not a claim about
-#                     ancillas that arrive in any other state.
+#                     when the `ancillas` start in |0>. It is not a claim about
+#                     `ancillas` that arrive in any other state.
 #
-#   `borrowed-ancilla` The wider kernel was shown to be the narrower one tensored
-#                     with the identity, so it never touches the extra qubits.
+#   `borrowed-ancilla` The wider kernel was shown to be the narrower one
+#                     `tensored` with the identity, so it never touches the
+#                     extra qubits.
 #                     Stronger than `clean-ancilla`: it holds whatever state the
-#                     ancillas arrive in.
+#                     `ancillas` arrive in.
 GUARANTEE_EXACT = "exact"
 GUARANTEE_CLEAN_ANCILLA = "clean-ancilla"
 GUARANTEE_BORROWED_ANCILLA = "borrowed-ancilla"
@@ -300,7 +301,7 @@ class DenseUnitaryOracle(Oracle):
             detail = f"comparison failed: {comparison['error']}"
         elif comparison.get("ancilla_not_restored", False):
             # A determinate negative verdict, not a failure to compare. The
-            # candidate's ancillas come back entangled with the system qubits,
+            # candidate's `ancillas` come back entangled with the system qubits,
             # so it does not implement the baseline operator on them.
             detail = (f"not equivalent under oracle '{self.kind}': "
                       "ancilla-not-restored")
@@ -338,10 +339,10 @@ class CliffordTableauOracle(Oracle):
     Wraps the ``preflight_clifford`` and ``compare_tableaux`` bindings.
 
     Kernels of different widths are compared by padding the narrower tableau
-    with identity, so a candidate that took on ancillas certifies exactly when
+    with identity, so a candidate that took on `ancillas` certifies exactly when
     it leaves them untouched. That earns ``borrowed-ancilla``, which is a
     stronger claim than the dense oracle's ``clean-ancilla``: the dense
-    oracle projects onto ancillas starting in |0>, whereas an untouched qubit
+    oracle projects onto `ancillas` starting in |0>, whereas an untouched qubit
     is untouched whatever state it arrives in.
     """
 
@@ -385,8 +386,7 @@ class CliffordTableauOracle(Oracle):
                               tier=self.tier,
                               detail=detail,
                               guarantee=str(
-                                  comparison.get("guarantee",
-                                                 GUARANTEE_EXACT)))
+                                  comparison.get("guarantee", GUARANTEE_EXACT)))
 
 
 @dataclass(frozen=True)

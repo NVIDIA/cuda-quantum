@@ -759,12 +759,12 @@ func.func @ghz() {
 # The ancilla is entangled with the system and left that way, so the candidate
 # is not the baseline tensored with anything.
 _GHZ3_ANCILLA_USED = _GHZ3_WITH_ANCILLA.replace(
-    "  return", "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n  return")
+    "  return",
+    "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n  return")
 
 # Touched but returned: still the baseline tensored with the identity.
 _GHZ3_ANCILLA_RESTORED = _GHZ3_WITH_ANCILLA.replace(
-    "  return",
-    "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n"
+    "  return", "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n"
     "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n  return")
 
 
