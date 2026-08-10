@@ -118,16 +118,18 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
           "DEM text in Stim's ``.dem`` format.")
       .def_prop_ro(
           "m2d",
-          [](const dem_result &self)
+          [](dem_result &self)
               -> const std::vector<std::vector<std::size_t>> & {
-            return self.get_m2d().rows;
+            const auto &m2d = self.get_m2d();
+            return m2d.rows;
           },
           "Measurement-to-detector row lists (neutral C++ form).")
       .def_prop_ro(
           "m2o",
-          [](const dem_result &self)
+          [](dem_result &self)
               -> const std::vector<std::vector<std::size_t>> & {
-            return self.get_m2o().rows;
+            const auto &m2o = self.get_m2o();
+            return m2o.rows;
           },
           "Measurement-to-observable row lists (neutral C++ form).")
       .def_prop_ro("num_detectors", &dem_result::get_num_detectors)
@@ -156,7 +158,7 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
            })
       .def_prop_ro(
           "m2d_matrix",
-          [](const dem_result &self) -> nanobind::object {
+          [](dem_result &self) -> nanobind::object {
             if (!self.get_matrices_computed())
               return nanobind::none();
             auto self_obj = nanobind::find(self);
@@ -164,8 +166,9 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
                 nanobind::hasattr(self_obj, "_m2d_cache"))
               return nanobind::getattr(self_obj, "_m2d_cache");
             auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
+            const auto &m2d = self.get_m2d();
             auto result = dem_mod.attr("_make_csr")(
-                nanobind::cast(self.get_m2d().rows),
+                nanobind::cast(m2d.rows),
                 nanobind::cast(self.get_num_measurements()));
             if (self_obj.is_valid())
               nanobind::setattr(self_obj, "_m2d_cache", result);
@@ -175,7 +178,7 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
           "matrices were not requested.")
       .def_prop_ro(
           "m2o_matrix",
-          [](const dem_result &self) -> nanobind::object {
+          [](dem_result &self) -> nanobind::object {
             if (!self.get_matrices_computed())
               return nanobind::none();
             auto self_obj = nanobind::find(self);
@@ -183,8 +186,9 @@ void cudaq::bindDemFromKernel(nanobind::module_ &mod) {
                 nanobind::hasattr(self_obj, "_m2o_cache"))
               return nanobind::getattr(self_obj, "_m2o_cache");
             auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
+            const auto &m2o = self.get_m2o();
             auto result = dem_mod.attr("_make_csr")(
-                nanobind::cast(self.get_m2o().rows),
+                nanobind::cast(m2o.rows),
                 nanobind::cast(self.get_num_measurements()));
             if (self_obj.is_valid())
               nanobind::setattr(self_obj, "_m2o_cache", result);
