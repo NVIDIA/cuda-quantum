@@ -363,6 +363,62 @@ private:
   stim::Circuit circuit;
 };
 
+/// Do the two kernels agree on the system qubits when the `ancillas` start in
+/// |0>? That subspace is the joint +1 eigenspace of the `Z_anc`, so each kernel
+/// must map it to itself (`Z_anc` conjugates to a positive product of `Z`s on
+/// `ancillas` alone) and the system `X` and `Z` images must agree.
+///
+/// Takes the inverse tableaux the builder produces, padded to the same width
+/// with system qubits first.
+static bool cleanAncillaEquivalent(const stim::Tableau<W> &baselineInverse,
+                                   const stim::Tableau<W> &candidateInverse,
+                                   std::size_t numSystem) {
+  const std::size_t width = candidateInverse.num_qubits;
+
+  // Condition 1, on each kernel in turn: without it the kernel has no
+  // well-defined action on the subspace to compare in the first place.
+  auto preservesAncillas = [&](const stim::Tableau<W> &inverse) {
+    for (std::size_t ancilla = numSystem; ancilla < width; ++ancilla) {
+      auto image = inverse.inverse_z_output(ancilla);
+      if (image.sign)
+        return false;
+      for (std::size_t qubit = 0; qubit < width; ++qubit) {
+        if (image.xs[qubit])
+          return false;
+        if (qubit < numSystem && image.zs[qubit])
+          return false;
+      }
+    }
+    return true;
+  };
+  if (!preservesAncillas(baselineInverse) ||
+      !preservesAncillas(candidateInverse))
+    return false;
+
+  // Condition 2: the two induced actions agree.
+  auto sameOnSystem = [&](const stim::PauliString<W> &candidateImage,
+                          const stim::PauliString<W> &baselineImage) {
+    if (candidateImage.sign != baselineImage.sign)
+      return false;
+    for (std::size_t qubit = 0; qubit < numSystem; ++qubit)
+      if (candidateImage.xs[qubit] != baselineImage.xs[qubit] ||
+          candidateImage.zs[qubit] != baselineImage.zs[qubit])
+        return false;
+    for (std::size_t ancilla = numSystem; ancilla < width; ++ancilla)
+      if (candidateImage.xs[ancilla] || baselineImage.xs[ancilla])
+        return false;
+    return true;
+  };
+  for (std::size_t qubit = 0; qubit < numSystem; ++qubit) {
+    if (!sameOnSystem(candidateInverse.inverse_x_output(qubit),
+                      baselineInverse.inverse_x_output(qubit)) ||
+        !sameOnSystem(candidateInverse.inverse_z_output(qubit),
+                      baselineInverse.inverse_z_output(qubit)))
+      return false;
+  }
+  return true;
+}
+
 } // namespace
 
 CliffordComparisonResult compareTableaux(func::FuncOp baseline,
@@ -385,7 +441,14 @@ CliffordComparisonResult compareTableaux(func::FuncOp baseline,
   // that took on extra qubits and left them alone. Both builders put ancillas
   // at the highest indices, so the padding lines up with them.
   const auto width = std::max(baselineT.num_qubits, candidateT.num_qubits);
+  // What each side counts as its own qubits, taking the narrower view when the
+  // two disagree. Ancillas are renumbered last, so these are the low indices.
+  const auto numSystem =
+      std::min(baselineT.num_qubits - baselineBuilder.getNumAncillas(),
+               candidateT.num_qubits - candidateBuilder.getNumAncillas());
   const bool padded = baselineT.num_qubits != candidateT.num_qubits;
+  const bool usesAncillas = padded || baselineBuilder.getNumAncillas() ||
+                            candidateBuilder.getNumAncillas();
   if (baselineT.num_qubits < width)
     baselineT.expand(width, /*resize_pad_factor=*/1.0);
   if (candidateT.num_qubits < width)
@@ -393,11 +456,17 @@ CliffordComparisonResult compareTableaux(func::FuncOp baseline,
 
   result.computed = true;
   result.equivalent = (baselineT == candidateT);
+  if (!usesAncillas)
+    return result;
+
   // Any padding at all, whether it came from a marked ancilla or from a plain
   // width difference, means the verdict rests on qubits one side never used.
-  if (padded || baselineBuilder.getNumAncillas() ||
-      candidateBuilder.getNumAncillas())
-    result.guarantee = EquivalenceGuarantee::BorrowedAncilla;
+  result.guarantee = EquivalenceGuarantee::BorrowedAncilla;
+  if (result.equivalent)
+    return result;
+
+  result.guarantee = EquivalenceGuarantee::CleanAncilla;
+  result.equivalent = cleanAncillaEquivalent(baselineT, candidateT, numSystem);
   return result;
 }
 

@@ -255,9 +255,11 @@ struct CliffordComparisonResult {
 /// tableau does not track global phase, equality is inherently up to a global
 /// phase.
 ///
-/// Kernels of different widths are compared by padding the narrower tableau
-/// with identity, so a kernel that took on `ancillas` certifies exactly when it
-/// leaves them untouched.
+/// A kernel that took on `ancillas` is first checked against the padded
+/// tableau, which certifies it when the extra qubits are untouched
+/// (`borrowed-ancilla`). Failing that, it is checked on the subspace where the
+/// `ancillas` hold |0>, which certifies the weaker `clean-ancilla` claim. The
+/// guarantee on the result says which one the verdict is about.
 CliffordComparisonResult compareTableaux(mlir::func::FuncOp baseline,
                                          mlir::func::FuncOp candidate);
 

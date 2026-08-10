@@ -338,12 +338,11 @@ class CliffordTableauOracle(Oracle):
     of domain is reported as an unsupported domain, never as a negative verdict.
     Wraps the ``preflight_clifford`` and ``compare_tableaux`` bindings.
 
-    Kernels of different widths are compared by padding the narrower tableau
-    with identity, so a candidate that took on `ancillas` certifies exactly when
-    it leaves them untouched. That earns ``borrowed-ancilla``, which is a
-    stronger claim than the dense oracle's ``clean-ancilla``: the dense
-    oracle projects onto `ancillas` starting in |0>, whereas an untouched qubit
-    is untouched whatever state it arrives in.
+    A candidate that took on `ancillas` is checked twice, strongest claim
+    first: untouched extra qubits earn ``borrowed-ancilla``, and failing that,
+    agreeing wherever the `ancillas` hold |0> earns ``clean-ancilla``. A
+    Clifford can act on |1> while leaving |0> alone, so the second catches what
+    the first cannot.
     """
 
     kind = CLIFFORD_TABLEAU_ORACLE_KIND

@@ -161,8 +161,10 @@ TEST_F(TableauBuilderTest, DifferentCircuitsNotEquivalent) {
   EXPECT_FALSE(result.equivalent);
 }
 
-// Kernels on different numbers of qubits cannot be compared, computed is false.
-TEST_F(TableauBuilderTest, DimensionMismatch) {
+// Kernels on different numbers of qubits are compared by padding the narrower
+// one with identity. A wider kernel that leaves the extra qubit alone is the
+// narrower one tensored with I, and certifies at the borrowed guarantee.
+TEST_F(TableauBuilderTest, WidthMismatchComparedAsTensorWithIdentity) {
   OpBuilder builder(&context);
   auto refTy = builder.getType<cudaq::quake::RefType>();
   Location loc = builder.getUnknownLoc();
@@ -176,8 +178,33 @@ TEST_F(TableauBuilderTest, DimensionMismatch) {
   func::ReturnOp::create(builder, loc);
 
   auto result = compareTableaux(base, cand);
-  EXPECT_FALSE(result.computed);
-  EXPECT_FALSE(result.error.empty());
+  EXPECT_TRUE(result.computed);
+  EXPECT_TRUE(result.error.empty());
+  EXPECT_TRUE(result.equivalent);
+  EXPECT_EQ(result.guarantee,
+            cudaq::opt::EquivalenceGuarantee::BorrowedAncilla);
+}
+
+// The same padding must not wave through a kernel that actually uses its extra
+// qubit: entangling it with the system is not a tensor with anything.
+TEST_F(TableauBuilderTest, WidthMismatchRejectsUsedExtraQubit) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  Location loc = builder.getUnknownLoc();
+
+  auto base = createKernel("base", {refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, base.getArgument(0));
+  func::ReturnOp::create(builder, loc);
+
+  auto cand = createKernel("cand", {refTy, refTy}, builder);
+  cudaq::quake::XOp::create(builder, loc, cand.getArgument(0));
+  cudaq::quake::XOp::create(builder, loc, ValueRange{cand.getArgument(0)},
+                            ValueRange{cand.getArgument(1)});
+  func::ReturnOp::create(builder, loc);
+
+  auto result = compareTableaux(base, cand);
+  EXPECT_TRUE(result.computed);
+  EXPECT_FALSE(result.equivalent);
 }
 
 // A negated control is the control conjugated by X, so `x [neg] q0, q1` must

@@ -856,3 +856,91 @@ def test_decomposition_strategies_trade_qubits_against_gates(tmp_path):
     assert barenco["qubit-count"].candidate < ladder["qubit-count"].candidate
     assert barenco["operation-count"].candidate > ladder[
         "operation-count"].candidate
+
+
+# Tableau clean-ancilla mode: correct only because the ancilla starts in |0>
+_BELL = """
+func.func @bell() {
+  %v = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %v[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+
+def _bell_with_ancilla(extra: str) -> str:
+    return """
+func.func @bell() {
+  %anc = quake.alloca !quake.ref {quake.ancilla}
+  %v = quake.alloca !quake.veq<2>
+  %q0 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
+  %q1 = quake.extract_ref %v[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+""" + extra + """  return
+}
+"""
+
+
+# The ancilla controls a system qubit. Because it is |0> the gate never fires,
+# so the kernel is indistinguishable from the baseline -- but it is emphatically
+# not the baseline tensored with the identity.
+_ANCILLA_AS_CONTROL = "  quake.x [%anc] %q1 : (!quake.ref, !quake.ref) -> ()\n"
+# Z on a |0> ancilla is a +1 phase: invisible, and again not the identity.
+_Z_ON_ANCILLA = "  quake.z %anc : (!quake.ref) -> ()\n"
+# The system controls the ancilla, leaving it entangled.
+_ANCILLA_LEFT_DIRTY = "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n"
+_ANCILLA_MOVED_OFF_ZERO = "  quake.h %anc : (!quake.ref) -> ()\n"
+_WRONG_SYSTEM_ACTION = "  quake.z %q1 : (!quake.ref) -> ()\n"
+
+
+def test_tableau_certifies_an_ancilla_that_is_only_correct_when_clean():
+    """The case tensor-with-identity cannot see: a Clifford that acts on |1> but
+    not on |0>. It certifies, at the weaker guarantee, and says which."""
+    decision = _decide_clifford(_BELL, _bell_with_ancilla(_ANCILLA_AS_CONTROL))
+    assert decision.computed and decision.equivalent
+    assert decision.guarantee == GUARANTEE_CLEAN_ANCILLA
+
+
+def test_tableau_prefers_the_stronger_guarantee_when_it_holds():
+    """An untouched ancilla earns borrowed-ancilla, not the weaker fallback."""
+    decision = _decide_clifford(_BELL, _bell_with_ancilla(""))
+    assert decision.equivalent
+    assert decision.guarantee == GUARANTEE_BORROWED_ANCILLA
+
+
+def test_tableau_certifies_a_phase_on_a_clean_ancilla():
+    decision = _decide_clifford(_BELL, _bell_with_ancilla(_Z_ON_ANCILLA))
+    assert decision.equivalent
+    assert decision.guarantee == GUARANTEE_CLEAN_ANCILLA
+
+
+@pytest.mark.parametrize("extra,reason", [
+    (_ANCILLA_LEFT_DIRTY, "ancilla left entangled with the system"),
+    (_ANCILLA_MOVED_OFF_ZERO, "ancilla no longer in |0>"),
+    (_WRONG_SYSTEM_ACTION, "clean ancilla but the wrong system action"),
+])
+def test_tableau_clean_ancilla_mode_still_fails_closed(extra, reason):
+    decision = _decide_clifford(_BELL, _bell_with_ancilla(extra))
+    assert decision.computed
+    assert not decision.equivalent, reason
+
+
+@pytest.mark.parametrize("extra", [
+    "",
+    _ANCILLA_AS_CONTROL,
+    _Z_ON_ANCILLA,
+    _ANCILLA_LEFT_DIRTY,
+    _ANCILLA_MOVED_OFF_ZERO,
+    _WRONG_SYSTEM_ACTION,
+])
+def test_tableau_and_dense_oracles_agree_on_ancilla_verdicts(extra):
+    """Two independent implementations of the same clean-ancilla claim: the
+    tableau's stabilizer conditions and the dense oracle's projection."""
+    candidate = _bell_with_ancilla(extra)
+    tableau = _decide_clifford(_BELL, candidate)
+    dense = _decide(_BELL, candidate)
+    assert tableau.equivalent == dense.equivalent
