@@ -8,12 +8,17 @@
 
 #pragma once
 #include "ObserveResult.h"
+#include "Registry.h"
 #include "SampleResult.h"
 
 #include <functional>
 #include <future>
 #include <map>
 #include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace cudaq {
 
@@ -29,6 +34,19 @@ namespace detail {
 // differently when propagating it back to the runtime.
 enum class ExecutionContextType : int { other = 0, sample = 1, observe, run };
 
+/// Provider-neutral extension point for reopening serialized asynchronous
+/// jobs that are not served through the CUDA-Q REST helper interface.
+class JobResultRetriever : public registry::RegisteredType<JobResultRetriever> {
+public:
+  using Job = std::pair<std::string, std::string>;
+
+  virtual ~JobResultRetriever() = default;
+  virtual sample_result
+  retrieve(const std::vector<Job> &jobs,
+           const std::map<std::string, std::string> &config,
+           ExecutionContextType resultType) = 0;
+};
+
 /// @brief The future type models the expected result of a
 /// CUDA-Q kernel execution under a specific execution context.
 /// This type is returned from asynchronous execution calls. It
@@ -37,9 +55,9 @@ enum class ExecutionContextType : int { other = 0, sample = 1, observe, run };
 /// information needed to retrieve the results later from the server.
 /// This type can be persisted to file and read in later to retrieve
 /// execution results.
-/// It also optionally wraps a std::future<T> type, and in this case,
-/// persistence to file is not allowed, .get() must be invoked at some
-/// later point within the same runtime context.
+/// It can also wrap a std::future<T> as a same-process fast path. Such a future
+/// can be persisted only when provider job metadata is present for reopening
+/// it in another process.
 class future {
 public:
   using Job = std::pair<std::string, std::string>;
@@ -65,6 +83,10 @@ protected:
   /// @brief Indicate the execution context of this call
   ExecutionContextType resultType = ExecutionContextType::sample;
 
+  /// Observable required to reconstruct a persisted asynchronous observe
+  /// result. This is provider-neutral result metadata.
+  std::optional<spin_op> persistedSpinOp;
+
   /// @brief Raw output data, if any, that is being returned
   /// from the server. This is used for `run` calls.
   std::vector<char> *inFutureRawOutput = nullptr;
@@ -83,6 +105,15 @@ public:
     wrapsFutureSampling = true;
   }
 
+  /// Same-process fast path plus all data required to persist and reopen the
+  /// provider job in a later process.
+  future(std::future<sample_result> &&f, std::vector<Job> jobs,
+         std::string qpuName, std::map<std::string, std::string> config,
+         ExecutionContextType type)
+      : jobs(std::move(jobs)), qpuName(std::move(qpuName)),
+        serverConfig(std::move(config)), inFuture(std::move(f)),
+        wrapsFutureSampling(true), resultType(type) {}
+
   /// @brief The constructor, takes all info required to
   /// be able to retrieve results at a later date, even after file persistence.
   future(std::vector<Job> &_jobs, std::string &qpuNameIn,
@@ -96,9 +127,18 @@ public:
         inFutureRawOutput(rawOutput) {}
 
   future &operator=(future &other);
-  future &operator=(future &&other);
+  future &operator=(future &&other) noexcept;
 
   sample_result get();
+
+  void setSpinOp(const spin_op &op) {
+    persistedSpinOp = op;
+    persistedSpinOp->canonicalize();
+  }
+
+  [[nodiscard]] const std::optional<spin_op> &getSpinOp() const {
+    return persistedSpinOp;
+  }
 
   friend std::ostream &operator<<(std::ostream &, future &);
   friend std::istream &operator>>(std::istream &, future &);
@@ -141,6 +181,7 @@ public:
     if (op) {
       spinOp = *op;
       spinOp.value().canonicalize();
+      result.setSpinOp(*spinOp);
     }
   }
   async_result(detail::future &&f,
@@ -160,6 +201,8 @@ public:
       return data;
 
     if constexpr (std::is_same_v<T, observe_result>) {
+      if (!spinOp)
+        spinOp = result.getSpinOp();
       if (!spinOp)
         throw std::runtime_error(
             "Returning an observe_result requires a spin_op.");
