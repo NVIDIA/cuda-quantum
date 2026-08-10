@@ -25,12 +25,12 @@ struct Qernel0 {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel0(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>)
-// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>>) -> !cc.ptr<!cc.stdvec<i32>>
-// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.stdvec<i32>>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>)
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>>) -> !cc.ptr<!cc.sequence<i32>>
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.sequence<i32>>
+// CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.alloca i32
@@ -92,8 +92,8 @@ struct Qernel2 {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel2(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<!cc.struct<"Product" {i16, f32} [64,4]>>)
-// CHECK:           %[[VAL_1:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.struct<"Product" {i16, f32} [64,4]>>) -> !cc.ptr<!cc.array<!cc.struct<"Product" {i16, f32} [64,4]> x ?>>
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<!cc.struct<"Product" {i16, f32} [64,4]>>)
+// CHECK:           %[[VAL_1:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<!cc.struct<"Product" {i16, f32} [64,4]>>) -> !cc.ptr<!cc.array<!cc.struct<"Product" {i16, f32} [64,4]> x ?>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<!cc.struct<"Product" {i16, f32} [64,4]> x ?>>) -> !cc.ptr<i16>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i16>
 // CHECK:           %[[VAL_5:.*]] = cc.alloca i16

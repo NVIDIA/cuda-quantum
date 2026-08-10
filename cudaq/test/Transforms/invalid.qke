@@ -230,7 +230,7 @@ func.func private @wonk(!quake.veq<18>, i32) -> f64
 // -----
 
 func.func @mz_handle_register_scalar_result(%v: !quake.veq<?>) {
-  // expected-error@+1 {{must return `!cc.stdvec<!quake.measure>` or `!cc.stdvec<!cc.measure_handle>`}}
+  // expected-error@+1 {{must return `!cc.sequence<!quake.measure>` or `!cc.sequence<!cc.measure_handle>`}}
   %m = quake.mz %v : (!quake.veq<?>) -> !cc.measure_handle
   return
 }

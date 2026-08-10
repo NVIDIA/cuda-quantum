@@ -440,11 +440,12 @@ LogicalResult cudaq::quake::ApplyNoiseOp::verify() {
       return emitOpError("cannot have a noise function and a key");
   }
 
-  // Parameters must be exactly one stdvec or 0 or more ptr<floating-point>.
+  // Parameters must be exactly one sequence or 0 or more ptr<floating-point>.
   auto params = getParameters();
   if (params.size() == 1) {
-    if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(params[0].getType())) {
-      if (stdvecTy.getElementType() != Float64Type::get(getContext()))
+    if (auto sequenceTy =
+            dyn_cast<cudaq::cc::SequenceType>(params[0].getType())) {
+      if (sequenceTy.getElementType() != Float64Type::get(getContext()))
         return emitOpError("must be std::vector<double>");
     } else if (auto ptrTy =
                    dyn_cast<cudaq::cc::PointerType>(params[0].getType())) {
@@ -863,17 +864,18 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
                                  const Type bitsType) {
   if (failed(verifyWireResultsAreLinear(op)))
     return failure();
-  bool mustBeStdvec =
+  bool mustBeSequence =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<cudaq::quake::VeqType>(targetsType[0]));
-  if (mustBeStdvec) {
-    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(op.getMeasOut().getType());
-    if (!stdvecTy ||
+  if (mustBeSequence) {
+    auto sequenceTy =
+        dyn_cast<cudaq::cc::SequenceType>(op.getMeasOut().getType());
+    if (!sequenceTy ||
         !isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
-            stdvecTy.getElementType()))
+            sequenceTy.getElementType()))
       return op.emitOpError(
-          "must return `!cc.stdvec<!quake.measure>` or "
-          "`!cc.stdvec<!cc.measure_handle>` when measuring a qvector, a "
+          "must return `!cc.sequence<!quake.measure>` or "
+          "`!cc.sequence<!cc.measure_handle>` when measuring a qvector, a "
           "series of qubits, or both");
   } else {
     if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
@@ -908,11 +910,11 @@ LogicalResult cudaq::quake::MzOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult cudaq::quake::DiscriminateOp::verify() {
-  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType())) {
-    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(getResult().getType());
-    if (!stdvecTy || !isa<IntegerType>(stdvecTy.getElementType()))
+  if (isa<cudaq::cc::SequenceType>(getMeasurement().getType())) {
+    auto sequenceTy = dyn_cast<cudaq::cc::SequenceType>(getResult().getType());
+    if (!sequenceTy || !isa<IntegerType>(sequenceTy.getElementType()))
       return emitOpError(
-          "must return a !cc.stdvec<integral> type, when discriminating a "
+          "must return a !cc.sequence<integral> type, when discriminating a "
           "qvector, a series of qubits, or both");
   } else {
     if (!isa<cudaq::quake::MeasureType, cudaq::cc::MeasureHandleType>(
@@ -927,14 +929,14 @@ LogicalResult cudaq::quake::DiscriminateOp::verify() {
 void cudaq::quake::DiscriminateOp::getEffects(
     SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
         &effects) {
-  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType()))
+  if (isa<cudaq::cc::SequenceType>(getMeasurement().getType()))
     effects.emplace_back(MemoryEffects::Read::get(),
                          SideEffects::DefaultResource::get());
 }
 
 mlir::Speculation::Speculatability
 cudaq::quake::DiscriminateOp::getSpeculatability() {
-  return isa<cudaq::cc::StdvecType>(getMeasurement().getType())
+  return isa<cudaq::cc::SequenceType>(getMeasurement().getType())
              ? Speculation::NotSpeculatable
              : Speculation::Speculatable;
 }

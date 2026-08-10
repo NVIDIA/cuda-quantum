@@ -73,10 +73,10 @@ func.func @quantum_ops() {
   quake.u3 (%f, %g, %h) %7 : (f32, f32, f32, !quake.ref) -> ()
 
   %15 = quake.mx %4 : (!quake.ref) -> !quake.measure
-  %16 = quake.my %5 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-  %17 = quake.mz %6 : (!quake.veq<5>) -> !cc.stdvec<!quake.measure>
+  %16 = quake.my %5 : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
+  %17 = quake.mz %6 : (!quake.veq<5>) -> !cc.sequence<!quake.measure>
   %z15 = quake.discriminate %15 : (!quake.measure) -> i1
-  %z16 = quake.discriminate %16 : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+  %z16 = quake.discriminate %16 : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
 
   // Quantum operations, wire form
   %19 = cc.undef i32 {wires = true}
@@ -223,10 +223,10 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 // CHECK:           %[[VAL_22:.*]] = arith.constant 3.400000e+01 : f32
 // CHECK:           quake.u3 (%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) %[[VAL_10]] : (f32, f32, f32, !quake.ref) -> ()
 // CHECK:           %[[VAL_23:.*]] = quake.mx %[[VAL_5]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_24:.*]] = quake.my %[[VAL_8]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_25:.*]] = quake.mz %[[VAL_9]] : (!quake.veq<5>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_24:.*]] = quake.my %[[VAL_8]] : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
+// CHECK:           %[[VAL_25:.*]] = quake.mz %[[VAL_9]] : (!quake.veq<5>) -> !cc.sequence<!quake.measure>
 // CHECK:           %[[VAL_123:.*]] = quake.discriminate %[[VAL_23]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_124:.*]] = quake.discriminate %[[VAL_24]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_124:.*]] = quake.discriminate %[[VAL_24]] : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
 // CHECK:           %[[VAL_26:.*]] = cc.undef i32 {wires = true}
 // CHECK:           %[[VAL_27:.*]] = quake.null_wire
 // CHECK:           %[[VAL_28:.*]] = quake.null_wire
@@ -301,16 +301,16 @@ cc.global constant private @quantum_ops.rodata_synth_0 (dense<[(0.707106769,0.00
 
 // CHECK-LABEL:   func.func @quake_op1(
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.ptr<f64>, %[[VAL_1:.*]]: i64) -> i64 {
-// CHECK:           %[[VAL_2:.*]] = cc.stdvec_init %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<f64>) -> i64
+// CHECK:           %[[VAL_2:.*]] = cc.sequence_init %[[VAL_0]], %[[VAL_1]] : (!cc.ptr<f64>, i64) -> !cc.sequence<f64>
+// CHECK:           %[[VAL_3:.*]] = cc.sequence_data %[[VAL_2]] : (!cc.sequence<f64>) -> !cc.ptr<f64>
+// CHECK:           %[[VAL_4:.*]] = cc.sequence_size %[[VAL_2]] : (!cc.sequence<f64>) -> i64
 // CHECK:           return %[[VAL_4]] : i64
 // CHECK:         }
 
 func.func @quake_op1(%a : !cc.ptr<f64>, %b : i64) -> i64 {
-  %svec = cc.stdvec_init %a, %b : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
-  %dp = cc.stdvec_data %svec : (!cc.stdvec<f64>) -> !cc.ptr<f64>
-  %len = cc.stdvec_size %svec : (!cc.stdvec<f64>) -> i64
+  %svec = cc.sequence_init %a, %b : (!cc.ptr<f64>, i64) -> !cc.sequence<f64>
+  %dp = cc.sequence_data %svec : (!cc.sequence<f64>) -> !cc.ptr<f64>
+  %len = cc.sequence_size %svec : (!cc.sequence<f64>) -> i64
   return %len : i64
 }
 
@@ -1020,16 +1020,16 @@ func.func @measure_handle_mz_one(%q : !quake.ref) -> i1 {
 // CHECK:         return %[[VAL_2]] : i1
 // CHECK:       }
 
-func.func @measure_handle_mx_vec(%v : !quake.veq<?>) -> !cc.stdvec<i1> {
-  %m = quake.mx %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+func.func @measure_handle_mx_vec(%v : !quake.veq<?>) -> !cc.sequence<i1> {
+  %m = quake.mx %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
   %b = quake.discriminate %m
-      : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-  return %b : !cc.stdvec<i1>
+      : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+  return %b : !cc.sequence<i1>
 }
 
 // CHECK-LABEL: func.func @measure_handle_mx_vec(
-// CHECK-SAME:    %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.stdvec<i1> {
-// CHECK:         %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:         %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-// CHECK:         return %[[VAL_2]] : !cc.stdvec<i1>
+// CHECK-SAME:    %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.sequence<i1> {
+// CHECK:         %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:         %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+// CHECK:         return %[[VAL_2]] : !cc.sequence<i1>
 // CHECK:       }

@@ -713,7 +713,7 @@ LogicalResult cudaq::cc::ComputePtrOp::verify() {
       if (i != kDynamicIndex && !arrTy.isUnknownSize() &&
           (i < 0 || i > arrTy.getSize())) {
         // Note: allow indexing of last element + 1 so we can compute a
-        // pointer to `end()` of a stdvec buffer. Consider adding a flag
+        // pointer to `end()` of a sequence buffer. Consider adding a flag
         // to cc.compute_ptr explicitly for this or using casts.
         return emitOpError("array cannot index out of bounds elements");
       }
@@ -1342,16 +1342,16 @@ LogicalResult cudaq::cc::InsertValueOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
-// StdvecInitOp
+// SequenceInitOp
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct CollapseCastToStdvecInit
-    : public OpRewritePattern<cudaq::cc::StdvecInitOp> {
-  using Base = OpRewritePattern<cudaq::cc::StdvecInitOp>;
+struct CollapseCastToSequenceInit
+    : public OpRewritePattern<cudaq::cc::SequenceInitOp> {
+  using Base = OpRewritePattern<cudaq::cc::SequenceInitOp>;
   using Base::Base;
 
-  LogicalResult matchAndRewrite(cudaq::cc::StdvecInitOp init,
+  LogicalResult matchAndRewrite(cudaq::cc::SequenceInitOp init,
                                 PatternRewriter &rewriter) const override {
     if (auto buff = init.getBuffer().getDefiningOp<cudaq::cc::CastOp>()) {
       auto castVal = buff.getValue();
@@ -1363,7 +1363,7 @@ struct CollapseCastToStdvecInit
       if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(fromTy))
         if (!isa<cudaq::cc::ArrayType>(toTy)) {
           if (arrTy.isUnknownSize()) {
-            rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(
                 init, init.getType(), castVal, init.getLength());
             return success();
           }
@@ -1377,7 +1377,7 @@ struct CollapseCastToStdvecInit
             return arrSize + 1; // do not replace this one
           }();
           if (!initLen || arrSize == initSize) {
-            rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(
                 init, init.getType(), castVal);
             return success();
           }
@@ -1387,11 +1387,11 @@ struct CollapseCastToStdvecInit
   }
 };
 
-struct FoldStdvecInit : public OpRewritePattern<cudaq::cc::StdvecInitOp> {
-  using Base = OpRewritePattern<cudaq::cc::StdvecInitOp>;
+struct FoldSequenceInit : public OpRewritePattern<cudaq::cc::SequenceInitOp> {
+  using Base = OpRewritePattern<cudaq::cc::SequenceInitOp>;
   using Base::Base;
 
-  LogicalResult matchAndRewrite(cudaq::cc::StdvecInitOp init,
+  LogicalResult matchAndRewrite(cudaq::cc::SequenceInitOp init,
                                 PatternRewriter &rewriter) const override {
     if (auto arrTy =
             dyn_cast<cudaq::cc::ArrayType>(init.getBuffer().getType())) {
@@ -1400,7 +1400,7 @@ struct FoldStdvecInit : public OpRewritePattern<cudaq::cc::StdvecInitOp> {
       if (auto len = init.getLength())
         if (auto optInt = cudaq::opt::factory::getIntIfConstant(len))
           if (*optInt == arrTy.getSize()) {
-            rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(
                 init, init.getType(), init.getBuffer());
             return success();
           }
@@ -1410,12 +1410,12 @@ struct FoldStdvecInit : public OpRewritePattern<cudaq::cc::StdvecInitOp> {
 };
 } // namespace
 
-void cudaq::cc::StdvecInitOp::getCanonicalizationPatterns(
+void cudaq::cc::SequenceInitOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<CollapseCastToStdvecInit, FoldStdvecInit>(context);
+  patterns.add<CollapseCastToSequenceInit, FoldSequenceInit>(context);
 }
 
-LogicalResult cudaq::cc::StdvecInitOp::verify() {
+LogicalResult cudaq::cc::SequenceInitOp::verify() {
   Value buff = getBuffer();
   auto buffTy = cast<cc::PointerType>(buff.getType());
   auto buffEleTy = buffTy.getElementType();
@@ -1443,23 +1443,24 @@ LogicalResult cudaq::cc::StdvecInitOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
-// StdvecDataOp
+// SequenceDataOp
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct ForwardStdvecInitData
-    : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
+struct ForwardSequenceInitData
+    : public OpRewritePattern<cudaq::cc::SequenceDataOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::cc::StdvecDataOp data,
+  LogicalResult matchAndRewrite(cudaq::cc::SequenceDataOp data,
                                 PatternRewriter &rewriter) const override {
     // Bypass the std::vector wrappers for the creation of an abstract
     // subvector. This is possible because copies of std::vector data aren't
     // created but instead passed around like std::span objects. Specifically, a
-    // pointer to the data and a length. Thus the pointer wrapped by stdvec_init
-    // and unwrapped by stdvec_data is the same pointer value. This pattern will
-    // arise after inlining, for example.
-    if (auto ini = data.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+    // pointer to the data and a length. Thus the pointer wrapped by
+    // sequence_init and unwrapped by sequence_data is the same pointer value.
+    // This pattern will arise after inlining, for example.
+    if (auto ini =
+            data.getSequence().getDefiningOp<cudaq::cc::SequenceInitOp>()) {
       rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(data, data.getType(),
                                                      ini.getBuffer());
       return success();
@@ -1469,24 +1470,25 @@ struct ForwardStdvecInitData
 };
 } // namespace
 
-void cudaq::cc::StdvecDataOp::getCanonicalizationPatterns(
+void cudaq::cc::SequenceDataOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardStdvecInitData>(context);
+  patterns.add<ForwardSequenceInitData>(context);
 }
 
 //===----------------------------------------------------------------------===//
-// StdvecSizeOp
+// SequenceSizeOp
 //===----------------------------------------------------------------------===//
 
 namespace {
-struct ForwardStdvecInitSize
-    : public OpRewritePattern<cudaq::cc::StdvecSizeOp> {
-  using Base = OpRewritePattern<cudaq::cc::StdvecSizeOp>;
+struct ForwardSequenceInitSize
+    : public OpRewritePattern<cudaq::cc::SequenceSizeOp> {
+  using Base = OpRewritePattern<cudaq::cc::SequenceSizeOp>;
   using Base::Base;
 
-  LogicalResult matchAndRewrite(cudaq::cc::StdvecSizeOp size,
+  LogicalResult matchAndRewrite(cudaq::cc::SequenceSizeOp size,
                                 PatternRewriter &rewriter) const override {
-    if (auto init = size.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+    if (auto init =
+            size.getSequence().getDefiningOp<cudaq::cc::SequenceInitOp>()) {
       auto ty = size.getType();
       if (Value len = init.getLength()) {
         rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(size, ty, len);
@@ -1505,9 +1507,9 @@ struct ForwardStdvecInitSize
 };
 } // namespace
 
-void cudaq::cc::StdvecSizeOp::getCanonicalizationPatterns(
+void cudaq::cc::SequenceSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardStdvecInitSize>(context);
+  patterns.add<ForwardSequenceInitSize>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2682,8 +2684,8 @@ LogicalResult cudaq::cc::DeviceCallOp::verify() {
       return emitOpError("by_ref_vec_arg_indices contains duplicate "
                          "argument index ")
              << index;
-    if (!isa<StdvecType>(args[index].getType()))
-      return emitOpError("by_ref_vec_arg_indices references non-stdvec "
+    if (!isa<SequenceType>(args[index].getType()))
+      return emitOpError("by_ref_vec_arg_indices references non-sequence "
                          "argument index ")
              << index;
   }

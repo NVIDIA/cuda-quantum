@@ -1214,7 +1214,7 @@ def test_var_scopes():
 
         test4(True)
 
-    assert "variable of type !cc.stdvec<i64> is defined in a prior block and cannot be accessed" in str(
+    assert "variable of type !cc.sequence<i64> is defined in a prior block and cannot be accessed" in str(
         e.value)
     assert "(offending source -> ls)" in str(e.value)
 

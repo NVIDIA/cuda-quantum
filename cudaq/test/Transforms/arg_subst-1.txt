@@ -10,7 +10,7 @@ cc.arg_subst[0] {
   %0 = cc.address_of @cstr.48692C2074686572652100 : !cc.ptr<!llvm.array<11 x i8>>
   %1 = cc.cast %0 : (!cc.ptr<!llvm.array<11 x i8>>) -> !cc.ptr<i8>
   %c10_i64 = arith.constant 10 : i64
-  %2 = cc.stdvec_init %1, %c10_i64 : (!cc.ptr<i8>, i64) -> !cc.charspan
+  %2 = cc.sequence_init %1, %c10_i64 : (!cc.ptr<i8>, i64) -> !cc.charspan
 }
 
 llvm.mlir.global private constant @cstr.48692C2074686572652100("Hi, there!\00") {addr_space = 0 : i32}

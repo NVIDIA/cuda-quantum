@@ -67,7 +67,7 @@ def test_detector_variadic():
 # CHECK:         }
 
 # ---------------------------------------------------------------------------
-# `cudaq.detector(vec)` — single stdvec of handles.
+# `cudaq.detector(vec)` — single sequence of handles.
 # ---------------------------------------------------------------------------
 
 
@@ -83,8 +83,8 @@ def test_detector_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_detector_vector
-# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<4>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.detector %[[VS]] : !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.detector %[[VS]] : !cc.sequence<!cc.measure_handle>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -133,8 +133,8 @@ def test_observable_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_observable_vector_default
-# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.observable %[[VS]] : !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.observable %[[VS]] : !cc.sequence<!cc.measure_handle>
 # CHECK-NOT:       index
 # CHECK:           return
 # CHECK:         }
@@ -156,8 +156,8 @@ def test_observable_indexed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_observable_explicit_idx
-# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.observable %[[VS]] index 2 : !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[VS:.*]] = quake.mz %{{.*}} name "handles" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.observable %[[VS]] index 2 : !cc.sequence<!cc.measure_handle>
 # CHECK:           return
 # CHECK:         }
 
@@ -186,7 +186,7 @@ def test_detector_nested_mz():
 # ---------------------------------------------------------------------------
 # Mixed shape: scalar handles + handle lists in the same call. The dialect
 # op accepts any combination (`Variadic<AnyTypeOf<[scalar, list]>>`) and
-# Q3's QIR conversion (`packMeasurementHandles` mixed-or-multi-stdvec
+# Q3's QIR conversion (`packMeasurementHandles` mixed-or-multi-sequence
 # branch) flattens the mix into a single `Result**` array, so a natural
 # QEC-source-code call like "combine these stabilizers (list) with the
 # boundary readout (scalar)" lowers cleanly.
@@ -208,14 +208,14 @@ def test_detector_mixed():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_detector_mixed
 # CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.detector %[[VAL_HS]], %[[VAL_M]] : !cc.stdvec<!cc.measure_handle>, !cc.measure_handle
+# CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.detector %[[VAL_HS]], %[[VAL_M]] : !cc.sequence<!cc.measure_handle>, !cc.measure_handle
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
 
 # ---------------------------------------------------------------------------
-# `cudaq.detectors(prev, curr)` — paired stdvecs.
+# `cudaq.detectors(prev, curr)` — paired sequences.
 # ---------------------------------------------------------------------------
 
 
@@ -233,8 +233,8 @@ def test_pair_detectors():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_pair_detectors
-# CHECK:           %[[P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           %[[C:.*]] = quake.mz %{{.*}} name "curr" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[C:.*]] = quake.mz %{{.*}} name "curr" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           qec.pair_detectors %[[P]], %[[C]] : <!cc.measure_handle>, <!cc.measure_handle>
 # CHECK:           return
 # CHECK:         }
@@ -314,8 +314,8 @@ def test_rep_code_d3():
 # CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_12]], %[[CONSTANT_0]] : i64
 # CHECK:             cc.continue %[[ADDI_0]], %[[VAL_13]], %[[VAL_14]], %[[VAL_15]], %[[VAL_16]], %[[VAL_17]] : i64, i64, !cc.measure_handle, !cc.measure_handle, !cc.measure_handle, !cc.measure_handle
 # CHECK:           }
-# CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "readout" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.observable %[[MZ_2]] : !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_0]] name "readout" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.observable %[[MZ_2]] : !cc.sequence<!cc.measure_handle>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -348,8 +348,8 @@ def test_b_detector_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<4>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.detector %[[HS]] : !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.detector %[[HS]] : !cc.sequence<!cc.measure_handle>
 # CHECK:           return
 
 
@@ -365,8 +365,8 @@ def test_b_detector_mixed():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK:           %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.detector %[[HS]], %[[H]] : !cc.stdvec<!cc.measure_handle>, !cc.measure_handle
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.detector %[[HS]], %[[H]] : !cc.sequence<!cc.measure_handle>, !cc.measure_handle
 # CHECK:           return
 
 
@@ -397,8 +397,8 @@ def test_b_observable_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.observable %[[HS]] : !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.observable %[[HS]] : !cc.sequence<!cc.measure_handle>
 # CHECK-NOT:       index
 # CHECK:           return
 
@@ -412,8 +412,8 @@ def test_b_observable_indexed():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           qec.observable %[[HS]] index 2 : !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[HS:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           qec.observable %[[HS]] index 2 : !cc.sequence<!cc.measure_handle>
 # CHECK:           return
 
 
@@ -428,7 +428,7 @@ def test_b_pair_detectors():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK:           %[[P:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           %[[C:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[P:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[C:.*]] = quake.mz %{{.*}} : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           qec.pair_detectors %[[P]], %[[C]] : <!cc.measure_handle>, <!cc.measure_handle>
 # CHECK:           return

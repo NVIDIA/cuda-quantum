@@ -467,7 +467,7 @@ struct ExpPauliDecomposition
               pauliWord = storeVal;
           }
           if (auto vecInit =
-                  pauliWord.getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+                  pauliWord.getDefiningOp<cudaq::cc::SequenceInitOp>()) {
             auto addrOp = vecInit.getOperand(0);
             if (auto cast = addrOp.getDefiningOp<cudaq::cc::CastOp>())
               addrOp = cast.getOperand();
@@ -498,7 +498,7 @@ struct ExpPauliDecomposition
             } else if (auto lit = addrOp.getDefiningOp<
                                   cudaq::cc::CreateStringLiteralOp>()) {
               // Get the pauli word string if it was a literal wrapped in a
-              // stdvec structure.
+              // sequence structure.
               optPauliWordStr = lit.getStringLiteral();
             }
           }

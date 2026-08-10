@@ -1927,7 +1927,7 @@ def test_bad_attr_call_error():
     assert "offending source -> kernel.h(q[0])" in repr(e)
 
 
-def test_bad_return_value_with_stdvec_arg():
+def test_bad_return_value_with_sequence_arg():
 
     @cudaq.kernel
     def test_param(i: int, l: List[int]) -> int:
@@ -2020,7 +2020,7 @@ def test_measure_variadic_qubits():
     assert len(counts) == 1 and '101' in counts
 
 
-def test_bad_return_value_with_stdvec_arg():
+def test_bad_return_value_with_sequence_arg():
 
     @cudaq.kernel
     def test_param(i: int, l: List[int]) -> int:
@@ -2872,7 +2872,7 @@ def test_struct_list_int_member():
     """Test that list[int] members in a struct are correctly marshaled.
 
     Regression test for a bug in handleStructMemberVariable where
-    the StdvecType branch always created std::vector<double> regardless
+    the SequenceType branch always created std::vector<double> regardless
     of the actual element type T. This caused list[int] values to be
     stored as doubles; the kernel then read the IEEE 754 bit pattern
     as int64, producing garbage values.
