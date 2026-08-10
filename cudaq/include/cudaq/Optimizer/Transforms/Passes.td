@@ -1193,10 +1193,28 @@ def MultiControlDecomposition :
     Pauli-X and Pauli-Z operations add _N_ - 2 qubits, while other operations
     add _N_ - 1 qubits, where _N_ is the number of controls.
 
+    The `strategy` option selects the construction, which trades circuit depth
+    against the number of extra qubits:
+
+    * `v-ladder` (default) computes the control conjunction along a chain of
+      ancillas, one per control. Shallowest, but the qubit cost grows with the
+      number of controls, as described above.
+    * `barenco` uses a constant number of extra qubits regardless of the number
+      of controls: one for Pauli-X and Pauli-Z, two for other operations. It
+      borrows the operation's own controls as dirty ancillas (Barenco et al.,
+      "Elementary gates for quantum computation", Lemmas 7.2 and 7.3), which
+      costs roughly four times as many Toffolis.
+
     Note: When a `veq` is used as control, we need to know its size to be able
     to decompose. In such cases, all qubits will be extracted. If the size is
     unknown at compilation-time, the pass leaves the operation as-is.
   }];
+
+  let options = [
+    Option<"strategy", "strategy", "std::string", /*default=*/"\"v-ladder\"",
+      "Decomposition strategy: 'v-ladder' (fewest gates, one ancilla per "
+      "control) or 'barenco' (a constant number of ancillas, more gates).">
+  ];
 }
 
 def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {

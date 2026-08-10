@@ -806,3 +806,53 @@ def test_tableau_fails_closed_on_an_unmarked_extra_qubit():
     decision = _decide_clifford(_GHZ3, unmarked)
     assert decision.computed
     assert not decision.equivalent
+
+
+# The depth-vs-ancilla frontier: one input, two decomposition strategies
+_C5X = """
+func.func @c5x() {
+  %v = quake.alloca !quake.veq<6>
+  %c0 = quake.extract_ref %v[0] : (!quake.veq<6>) -> !quake.ref
+  %c1 = quake.extract_ref %v[1] : (!quake.veq<6>) -> !quake.ref
+  %c2 = quake.extract_ref %v[2] : (!quake.veq<6>) -> !quake.ref
+  %c3 = quake.extract_ref %v[3] : (!quake.veq<6>) -> !quake.ref
+  %c4 = quake.extract_ref %v[4] : (!quake.veq<6>) -> !quake.ref
+  %t = quake.extract_ref %v[5] : (!quake.veq<6>) -> !quake.ref
+  quake.x [%c0, %c1, %c2, %c3, %c4] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+
+def _decomposition_metrics(tmp_path, strategy):
+    """Validate the same kernel under one decomposition strategy."""
+    path = _write(tmp_path, f"c5x_{strategy}.qke", _C5X)
+    result = validate(
+        _request([path],
+                 pipeline=PipelineSpec(
+                     candidate="builtin.module(func.func("
+                     f"multicontrol-decomposition{{strategy={strategy}}}))"),
+                 metrics=(MetricSpec("qubit-count", "any", gating=False),
+                          MetricSpec("operation-count", "any", gating=False))))
+    assert result.status == ValidationStatus.PASSED
+    case = result.cases[0]
+    assert case.guarantee == GUARANTEE_CLEAN_ANCILLA
+    return {m.name: m for m in case.metrics}
+
+
+def test_decomposition_strategies_are_both_certified(tmp_path):
+    """Both constructions of the same operation certify against the original."""
+    for strategy in ("v-ladder", "barenco"):
+        metrics = _decomposition_metrics(tmp_path, strategy)
+        assert metrics["qubit-count"].candidate > metrics[
+            "qubit-count"].baseline
+
+
+def test_decomposition_strategies_trade_qubits_against_gates(tmp_path):
+    """The frontier the agent loop is meant to search: neither strategy wins on
+    both axes, so the choice is an objective's to make, not the core's."""
+    ladder = _decomposition_metrics(tmp_path, "v-ladder")
+    barenco = _decomposition_metrics(tmp_path, "barenco")
+    assert barenco["qubit-count"].candidate < ladder["qubit-count"].candidate
+    assert barenco["operation-count"].candidate > ladder[
+        "operation-count"].candidate

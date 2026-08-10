@@ -1,0 +1,69 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(multicontrol-decomposition{strategy=barenco}))' %s | CircuitCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(multicontrol-decomposition{strategy=barenco}))' %s | FileCheck %s
+// RUN: not cudaq-opt -pass-pipeline='builtin.module(func.func(multicontrol-decomposition{strategy=nonsense}))' %s 2>&1 | FileCheck --check-prefix=BADOPT %s
+
+// BADOPT: unknown multicontrol-decomposition strategy 'nonsense'
+
+// The barenco strategy borrows the operation's own controls as dirty scratch,
+// so its qubit cost does not grow with the number of controls: one ancilla for
+// X and Z however many controls there are, two for anything else. The
+// v-ladder strategy would need five here.
+
+// CHECK-LABEL: func.func @c7x
+// CHECK: quake.alloca !quake.ref {quake.ancilla}
+// CHECK-NOT: quake.alloca !quake.ref {quake.ancilla}
+func.func @c7x(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %c4: !quake.ref, %c5: !quake.ref, %c6: !quake.ref, %t: !quake.ref) {
+  quake.x [%c0, %c1, %c2, %c3, %c4, %c5, %c6] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @c5z
+func.func @c5z(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %c4: !quake.ref, %t: !quake.ref) {
+  quake.z [%c0, %c1, %c2, %c3, %c4] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// An operation that is neither X nor Z needs the control conjunction in hand,
+// so it takes the second ancilla.
+// CHECK-LABEL: func.func @c4r1
+func.func @c4r1(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %t: !quake.ref) {
+  %angle = arith.constant 0.78539816339744828 : f64
+  quake.r1 (%angle) [%c0, %c1, %c2, %c3] %t : (f64, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @c4y
+func.func @c4y(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %t: !quake.ref) {
+  quake.y [%c0, %c1, %c2, %c3] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Negated controls are handled by conjugating with X rather than by threading
+// negation flags through the ladder.
+// CHECK-LABEL: func.func @c5x_negated_controls
+func.func @c5x_negated_controls(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %c3: !quake.ref, %c4: !quake.ref, %t: !quake.ref) {
+  quake.x [%c0, %c1, %c2, %c3, %c4 neg [true, false, true, false, true]] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @c3r1_negated_controls
+func.func @c3r1_negated_controls(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  %angle = arith.constant 0.78539816339744828 : f64
+  quake.r1 (%angle) [%c0, %c1, %c2 neg [false, true, false]] %t : (f64, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A veq control is extracted first, like any other strategy.
+// CHECK-LABEL: func.func @c4x_veq
+func.func @c4x_veq(%c: !quake.veq<4>, %t: !quake.ref) {
+  quake.x [%c] %t : (!quake.veq<4>, !quake.ref) -> ()
+  return
+}
