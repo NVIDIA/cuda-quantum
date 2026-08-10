@@ -48,7 +48,7 @@ def _state_to_matrix(state, dimension: int) -> np.ndarray:
         raise RuntimeError("Expected propagator state with size "
                            f"{expected_size}, got {data.size}.")
 
-    return data.reshape((dimension, dimension)).T
+    return data.reshape((dimension, dimension))
 
 
 def _closed_system_generator(hamiltonian):
