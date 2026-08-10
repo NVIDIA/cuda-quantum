@@ -53,6 +53,7 @@ WORKDIR "$destination"
 # to create the released cuda-quantum image.
 ARG install=
 ARG cudaq_enable_projects=
+ARG enable_qdmi=false
 ARG git_source_sha=xxxxxxxx
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
@@ -78,6 +79,9 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         if [ -n "$cudaq_enable_projects" ]; then \
             cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
         fi; \
+        if [ "$enable_qdmi" = "true" ]; then \
+            cudaq_cmake_args+=("-DCUDAQ_ENABLE_QDMI_BACKEND=ON"); \
+        fi; \
         bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}"; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \
@@ -96,10 +100,18 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
 # defaults to false so non-CI builds skip these stages entirely.
 FROM devbuild AS test
 ARG run_tests=false
+ARG test_scope=all
 RUN if [ "$run_tests" = "true" ]; then \
         cd $CUDAQ_REPO_ROOT && \
         python3 -m pip install -r requirements-tests-backend.txt --break-system-packages && \
-        bash scripts/run_tests.sh -v; \
+        if [ "$test_scope" = "qdmi" ]; then \
+            cmake --build build --target nvqpp-targettest-depends -j "$(nproc)" && \
+            "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v --time-tests \
+              --param cudaq_site_config=build/targettests/lit.site.cfg.py \
+              build/targettests/qdmi; \
+        else \
+            bash scripts/run_tests.sh -v; \
+        fi; \
     fi
 
 FROM test AS test-mpi
