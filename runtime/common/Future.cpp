@@ -20,6 +20,11 @@ sample_result future::get() {
   if (wrapsFutureSampling)
     return inFuture.get();
 
+  if (registry::isRegistered<JobResultRetriever>(qpuName)) {
+    auto retriever = registry::get<JobResultRetriever>(qpuName);
+    return retriever->retrieve(jobs, serverConfig, resultType);
+  }
+
 #ifdef CUDAQ_RESTCLIENT_AVAILABLE
   RestClient client;
   auto serverHelper = registry::get<ServerHelper>(qpuName);
@@ -89,33 +94,41 @@ sample_result future::get() {
 }
 
 future &future::operator=(future &other) {
+  if (this == &other)
+    return *this;
   jobs = other.jobs;
   qpuName = other.qpuName;
   serverConfig = other.serverConfig;
   resultType = other.resultType;
-  if (other.wrapsFutureSampling) {
-    wrapsFutureSampling = true;
+  persistedSpinOp = other.persistedSpinOp;
+  wrapsFutureSampling = other.wrapsFutureSampling;
+  if (wrapsFutureSampling)
     inFuture = std::move(other.inFuture);
-  }
+  else
+    inFuture = {};
   inFutureRawOutput = other.inFutureRawOutput;
   return *this;
 }
 
-future &future::operator=(future &&other) {
-  jobs = other.jobs;
-  qpuName = other.qpuName;
-  serverConfig = other.serverConfig;
+future &future::operator=(future &&other) noexcept {
+  if (this == &other)
+    return *this;
+  jobs = std::move(other.jobs);
+  qpuName = std::move(other.qpuName);
+  serverConfig = std::move(other.serverConfig);
   resultType = other.resultType;
-  if (other.wrapsFutureSampling) {
-    wrapsFutureSampling = true;
+  persistedSpinOp = std::move(other.persistedSpinOp);
+  wrapsFutureSampling = other.wrapsFutureSampling;
+  if (wrapsFutureSampling)
     inFuture = std::move(other.inFuture);
-  }
+  else
+    inFuture = {};
   inFutureRawOutput = other.inFutureRawOutput;
   return *this;
 }
 
 std::ostream &operator<<(std::ostream &os, future &f) {
-  if (f.wrapsFutureSampling)
+  if (f.wrapsFutureSampling && f.jobs.empty())
     throw std::runtime_error(
         "Cannot persist a cudaq::future for a local kernel execution.");
 
@@ -124,6 +137,8 @@ std::ostream &operator<<(std::ostream &os, future &f) {
   j["qpu"] = f.qpuName;
   j["config"] = f.serverConfig;
   j["resultType"] = f.resultType;
+  if (f.persistedSpinOp)
+    j["spin"] = f.persistedSpinOp->get_data_representation();
   os << j.dump(4);
   return os;
 }
@@ -140,7 +155,18 @@ std::istream &operator>>(std::istream &is, future &f) {
   f.qpuName = j["qpu"].get<std::string>();
   f.serverConfig = j["config"].get<std::map<std::string, std::string>>();
   f.resultType = j["resultType"].get<ExecutionContextType>();
+  if (const auto spin = j.find("spin"); spin != j.end()) {
+    f.persistedSpinOp.emplace(spin->get<std::vector<double>>());
+    f.persistedSpinOp->canonicalize();
+  } else {
+    f.persistedSpinOp.reset();
+  }
+  f.wrapsFutureSampling = false;
+  f.inFuture = {};
+  f.inFutureRawOutput = nullptr;
   return is;
 }
 
 } // namespace cudaq::detail
+
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::detail::JobResultRetriever::RegistryType)
