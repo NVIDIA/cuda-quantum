@@ -44,7 +44,7 @@ def _state_to_matrix(state,
                      column_major: bool = False) -> np.ndarray:
     """Convert a `vectorized` propagated identity state back to a matrix.
 
-    The dynamics backend vectorizes super-operator states in row-major order
+    The dynamics backend `vectorizes` super-operator states in row-major order
     for a single system but in column-major order for a batch, so the batched
     path must transpose to recover the same propagator.
     """
