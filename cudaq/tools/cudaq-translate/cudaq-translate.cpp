@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
@@ -79,6 +80,12 @@ static llvm::cl::opt<bool> emitLLVM(
     llvm::cl::desc("Emit LLVM IR as the output. If set to false, the "
                    "translation will terminate with the selected dialect."),
     llvm::cl::init(true));
+
+static llvm::cl::opt<bool> disableQuantumOptimization(
+    "fdisable-quantum-optimization",
+    llvm::cl::desc("Disable value-semantics quantum optimization passes "
+                   "(quake-simplify, dqe) during QIR code generation."),
+    llvm::cl::init(false));
 
 using namespace mlir;
 
@@ -176,9 +183,13 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
+               bool useValueSemantics =
+                   !disableQuantumOptimization &&
+                   !modOp->hasAttr(cudaq::runtime::disableQuantumOpts);
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
-               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue);
+               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,
+                                                      useValueSemantics);
              })
       .Case("openqasm2",
             [&]() {

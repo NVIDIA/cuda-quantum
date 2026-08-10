@@ -350,8 +350,8 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   cudaq::complex_matrix rhoRow(rhoRowMajor, {2, 2},
                                cudaq::complex_matrix::order::row_major);
 
-  using RowMajorMatrix = Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
-                                       Eigen::Dynamic, Eigen::RowMajor>;
+  using ColumnMajorMatrix =
+      Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>;
 
   CuDensityMatState prototype;
   auto stateRow = prototype.createFromData(cudaq::state_data(rhoRow));
@@ -360,7 +360,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   cudmRow->initialize_cudm(handle, {2}, /*batchSize=*/1);
   EXPECT_TRUE(cudmRow->is_density_matrix());
 
-  RowMajorMatrix hostRow(2, 2);
+  ColumnMajorMatrix hostRow(2, 2);
   cudmRow->toHost(hostRow.data(), 4);
   EXPECT_NEAR(hostRow(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostRow(0, 0).imag(), 0.0, 1e-12);
@@ -379,7 +379,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   cudmCol->initialize_cudm(handle, {2}, /*batchSize=*/1);
   EXPECT_TRUE(cudmCol->is_density_matrix());
 
-  RowMajorMatrix hostCol(2, 2);
+  ColumnMajorMatrix hostCol(2, 2);
   cudmCol->toHost(hostCol.data(), 4);
   EXPECT_NEAR(hostCol(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostCol(1, 0).real(), 0.0, 1e-12);
@@ -394,7 +394,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   auto *cudmOffRow = dynamic_cast<CuDensityMatState *>(stateOffRow.get());
   ASSERT_NE(cudmOffRow, nullptr);
   cudmOffRow->initialize_cudm(handle, {2}, /*batchSize=*/1);
-  RowMajorMatrix hostOffRow(2, 2);
+  ColumnMajorMatrix hostOffRow(2, 2);
   cudmOffRow->toHost(hostOffRow.data(), 4);
   EXPECT_NEAR(hostOffRow(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostOffRow(0, 1).real(), 2.0, 1e-12);
@@ -409,7 +409,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   auto *cudmOffCol = dynamic_cast<CuDensityMatState *>(stateOffCol.get());
   ASSERT_NE(cudmOffCol, nullptr);
   cudmOffCol->initialize_cudm(handle, {2}, /*batchSize=*/1);
-  RowMajorMatrix hostOffCol(2, 2);
+  ColumnMajorMatrix hostOffCol(2, 2);
   cudmOffCol->toHost(hostOffCol.data(), 4);
   EXPECT_NEAR(hostOffCol(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostOffCol(0, 1).real(), 2.0, 1e-12);

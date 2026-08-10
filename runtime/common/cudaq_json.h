@@ -21,25 +21,35 @@ namespace cudaq {
 /// that includes nlohmann/json.hpp directly.
 class cudaq_json {
 public:
+  /// @brief Default-construct an empty JSON object.
   cudaq_json();
+  /// @brief Copy constructor.
   cudaq_json(const cudaq_json &);
+  /// @brief Move constructor.
   cudaq_json(cudaq_json &&) noexcept;
+  /// @brief Copy-assignment operator.
   cudaq_json &operator=(const cudaq_json &);
+  /// @brief Move-assignment operator.
   cudaq_json &operator=(cudaq_json &&) noexcept;
   ~cudaq_json();
 
-  /// Construct from an existing nlohmann::json value (copies).
+  /// @brief Construct from an existing nlohmann::json value (copies).
   cudaq_json(const nlohmann::json &);
-  /// Construct from an rvalue nlohmann::json (moves).
+  /// @brief Construct from an rvalue nlohmann::json (moves).
   cudaq_json(nlohmann::json &&);
 
-  /// Access the underlying nlohmann::json.
+  /// @brief Access the underlying nlohmann::json.
   nlohmann::json &get();
+  /// @brief Access the underlying nlohmann::json (`const`).
   const nlohmann::json &get() const;
 
+  /// @brief `Dereference` to the underlying nlohmann::json.
   nlohmann::json &operator*();
+  /// @brief `Dereference` to the underlying nlohmann::json (`const`).
   const nlohmann::json &operator*() const;
+  /// @brief Arrow access to the underlying nlohmann::json.
   nlohmann::json *operator->();
+  /// @brief Arrow access to the underlying nlohmann::json (`const`).
   const nlohmann::json *operator->() const;
 
 private:

@@ -23,7 +23,7 @@ target_include_directories(OptAnalysis
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
-register_cudaq_mlir_lib(OptAnalysis)
+check_registered_mlir_lib(OptAnalysis)
 
 # The Clifford tableau oracle compiles Quake into a stabilizer tableau using the
 # vendored Stim library.

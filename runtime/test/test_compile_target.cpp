@@ -31,6 +31,7 @@ static void compileAndDump(mlir::MLIRContext *ctx,
                            const std::string &kernelName,
                            const std::string &quake,
                            cudaq::CompileTarget target,
+                           cudaq::CompileOptions options = {},
                            cudaq::KernelArgs args = {}) {
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(quake, ctx);
   if (!mod) {
@@ -38,7 +39,7 @@ static void compileAndDump(mlir::MLIRContext *ctx,
     return;
   }
 
-  Compiler compiler(std::move(target));
+  Compiler compiler(std::move(target), std::move(options));
   auto compiled = compiler.runPassPipeline(
       kernelName, mod.release().getAsOpaquePointer(), args, /*isEntryPoint=*/
       true);
@@ -108,8 +109,10 @@ void test_device_calls_supported(mlir::MLIRContext *ctx) {
   target.supportDeviceCalls = true;
   // Isolate the device-call lowering performed during argument synthesis from
   // the rest of the target lowering pipeline.
-  target.pipelineConfig.skipTargetLoweringPipeline = true;
-  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target), args);
+  cudaq::CompileOptions options;
+  options.skipTargetLoweringPipeline = true;
+  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target),
+                 std::move(options), args);
 }
 
 // clang-format off
@@ -128,8 +131,10 @@ void test_device_calls_unsupported(mlir::MLIRContext *ctx) {
 
   auto target = cudaq::CompileTarget{};
   target.supportDeviceCalls = false;
-  target.pipelineConfig.skipTargetLoweringPipeline = true;
-  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target), args);
+  cudaq::CompileOptions options;
+  options.skipTargetLoweringPipeline = true;
+  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target),
+                 std::move(options), args);
 }
 
 // CHECK-LABEL: Compiled module:
