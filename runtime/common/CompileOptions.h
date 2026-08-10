@@ -91,6 +91,7 @@ struct std::hash<cudaq::CompileOptions> {
     return cudaq::detail::hashVal(
         o.warnNamedMeasurements, o.storeReorderIdx, o.emitResourceCounts,
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
-        o.addMeasurements, o.failOnConditionalsOnMeasureResults, o.emulate);
+        o.addMeasurements, o.failOnConditionalsOnMeasureResults, o.emulate,
+        o.disableQuantumOpts);
   }
 };
