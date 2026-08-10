@@ -16,6 +16,7 @@ To submit to a hardware backend, you need an account with the respective provide
         Neutral Atom QPUs <hardware/neutralatom.rst>
         Photonic QPUs <hardware/photonic.rst>
         Quantum Control Systems <hardware/qcontrol.rst>
+        QDMI Devices <qdmi.rst>
 
 - :doc:`Cloud <cloud>`
 
