@@ -46,7 +46,7 @@ def test_host_to_bools_raises_runtime_error():
 
 
 # ---------------------------------------------------------------------------
-# `cudaq.to_integer` rejects a raw `!cc.stdvec<!cc.measure_handle>`
+# `cudaq.to_integer` rejects a raw `!cc.sequence<!cc.measure_handle>`
 # without an intervening `cudaq.to_bools`.
 # ---------------------------------------------------------------------------
 

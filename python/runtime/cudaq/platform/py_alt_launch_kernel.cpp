@@ -204,11 +204,11 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
       .Case([&](mlir::Float64Type ty) {
         appendValue(data, nanobind::cast<double>(value), offset);
       })
-      .Case([&](cudaq::cc::StdvecType ty) {
+      .Case([&](cudaq::cc::SequenceType ty) {
         // Nested vectors aren't supported in the synthesis (argument
         // substitution) path.
         if constexpr (style == cudaq::PackingStyle::synthesis)
-          if (isa<cudaq::cc::StdvecType>(ty.getElementType()))
+          if (isa<cudaq::cc::SequenceType>(ty.getElementType()))
             throw std::runtime_error(
                 "Type not supported for custom struct in kernel.");
 
@@ -315,7 +315,7 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
               return nanobind::cast<std::complex<float>>(v);
             });
       })
-      .Case([&](cudaq::cc::StdvecType ty) {
+      .Case([&](cudaq::cc::SequenceType ty) {
         auto appendVectorValue = []<typename T>(mlir::Type eleTy,
                                                 nanobind::list list) -> void * {
           auto *values = new std::vector<std::vector<T>>();
@@ -378,7 +378,7 @@ static void deleteVectorElements(mlir::Type eleTy, void *ptr) {
         else
           deleteAs.template operator()<std::complex<float>>();
       })
-      .Case([&](cudaq::cc::StdvecType ty) {
+      .Case([&](cudaq::cc::SequenceType ty) {
         // Nested vectors: `handleVectorElements` collapses the inner element
         // type to `std::size_t` (or `BoolVecElem` for bools), so mirror that
         // here to match the actual allocation.
@@ -521,7 +521,7 @@ void cudaq::packArgs(
           }
           argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
         })
-        .Case([&](cc::StdvecType ty) {
+        .Case([&](cc::SequenceType ty) {
           checkArgumentType<nanobind::list>(arg, i);
           auto list = nanobind::cast<nanobind::list>(arg);
           auto eleTy = ty.getElementType();
@@ -902,13 +902,13 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
       .Case([&](Float32Type ty) -> nanobind::object {
         return readPyObject<float>(ty, data);
       })
-      .Case([&](cudaq::cc::StdvecType ty) -> nanobind::object {
+      .Case([&](cudaq::cc::SequenceType ty) -> nanobind::object {
         auto eleTy = ty.getElementType();
-        // Nested StdvecType elements have a different in-memory size than
+        // Nested SequenceType elements have a different in-memory size than
         // scalar types: span ({ptr,size_t} = 16 bytes) in direct-call context,
         // std::vector ({ptr,ptr,ptr} = 24 bytes) in run context.
         auto getEleByteSize = [&](Type eTy) -> std::size_t {
-          if (isa<cudaq::cc::StdvecType>(eTy))
+          if (isa<cudaq::cc::SequenceType>(eTy))
             return isRunContext ? 3 * sizeof(void *)
                                 : sizeof(char *) + sizeof(std::size_t);
           return byteSize(eTy);

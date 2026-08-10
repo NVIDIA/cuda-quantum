@@ -235,7 +235,7 @@ struct RegisterHandle {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__RegisterHandle()
 // CHECK:           %[[VAL_V:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %{{.*}} = quake.mz %[[VAL_V]] name "hs" : (!quake.veq<4>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %{{.*}} = quake.mz %[[VAL_V]] name "hs" : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
@@ -249,14 +249,14 @@ struct RegisterBools {
 };
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__RegisterBools() -> !cc.stdvec<i1>
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__RegisterBools() -> !cc.sequence<i1>
 // CHECK:           %[[VAL_V:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_M:.*]] = quake.mz %[[VAL_V]] : (!quake.veq<4>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           %[[VAL_BV:.*]] = quake.discriminate %[[VAL_M]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-// CHECK:           %{{.*}} = cc.stdvec_data %[[VAL_BV]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-// CHECK:           %{{.*}} = cc.stdvec_size %[[VAL_BV]] : (!cc.stdvec<i1>) -> i64
+// CHECK:           %[[VAL_M:.*]] = quake.mz %[[VAL_V]] : (!quake.veq<4>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_BV:.*]] = quake.discriminate %[[VAL_M]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+// CHECK:           %{{.*}} = cc.sequence_data %[[VAL_BV]] : (!cc.sequence<i1>) -> !cc.ptr<i8>
+// CHECK:           %{{.*}} = cc.sequence_size %[[VAL_BV]] : (!cc.sequence<i1>) -> i64
 // CHECK:           %{{.*}} = call @__nvqpp_vectorCopyCtor(
-// CHECK:           return %{{.*}} : !cc.stdvec<i1>
+// CHECK:           return %{{.*}} : !cc.sequence<i1>
 // CHECK:         }
 // clang-format on
 
@@ -271,9 +271,9 @@ struct ToIntegerExplicit {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ToIntegerExplicit
-// CHECK:           %[[BOOLS:.*]] = quake.discriminate %{{.*}} : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+// CHECK:           %[[BOOLS:.*]] = quake.discriminate %{{.*}} : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
 // CHECK-NOT:       quake.discriminate
-// CHECK:           %{{.*}} = call @__nvqpp_cudaqConvertToInteger(%[[BOOLS]]) : (!cc.stdvec<i1>) -> i64
+// CHECK:           %{{.*}} = call @__nvqpp_cudaqConvertToInteger(%[[BOOLS]]) : (!cc.sequence<i1>) -> i64
 // clang-format on
 
 struct MxMyHandles {
@@ -339,14 +339,14 @@ __qpu__ std::vector<cudaq::measure_handle> single_round(cudaq::qview<> qv) {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_single_round.
-// CHECK-SAME:      -> !cc.stdvec<!cc.measure_handle>
+// CHECK-SAME:      -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %[[C8:.*]] = arith.constant 8 : i64
-// CHECK:           %[[M:.*]] = quake.mz %{{.*}} : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           %[[D:.*]] = cc.stdvec_data %[[M]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<i8>
-// CHECK:           %[[S:.*]] = cc.stdvec_size %[[M]] : (!cc.stdvec<!cc.measure_handle>) -> i64
+// CHECK:           %[[M:.*]] = quake.mz %{{.*}} : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[D:.*]] = cc.sequence_data %[[M]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<i8>
+// CHECK:           %[[S:.*]] = cc.sequence_size %[[M]] : (!cc.sequence<!cc.measure_handle>) -> i64
 // CHECK:           %[[H:.*]] = call @__nvqpp_vectorCopyCtor(%[[D]], %[[S]], %[[C8]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[V:.*]] = cc.stdvec_init %[[H]], %[[S]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           return %[[V]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[V:.*]] = cc.sequence_init %[[H]], %[[S]] : (!cc.ptr<i8>, i64) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           return %[[V]] : !cc.sequence<!cc.measure_handle>
 // clang-format on
 
 __qpu__ std::vector<cudaq::measure_handle> stab_round(cudaq::qview<> ancz,
@@ -356,11 +356,11 @@ __qpu__ std::vector<cudaq::measure_handle> stab_round(cudaq::qview<> ancz,
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_stab_round.
-// CHECK-SAME:      -> !cc.stdvec<!cc.measure_handle>
+// CHECK-SAME:      -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %[[C8:.*]] = arith.constant 8 : i64
-// CHECK:           %[[M:.*]] = quake.mz %{{.*}}, %{{.*}} : (!quake.veq<?>, !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[M:.*]] = quake.mz %{{.*}}, %{{.*}} : (!quake.veq<?>, !quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %{{.*}} = call @__nvqpp_vectorCopyCtor(%{{.*}}, %{{.*}}, %[[C8]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           return %{{.*}} : !cc.stdvec<!cc.measure_handle>
+// CHECK:           return %{{.*}} : !cc.sequence<!cc.measure_handle>
 // clang-format on
 
 struct HandleEquality {
@@ -588,7 +588,7 @@ struct CallableParamReturningHandleVec {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CallableParamReturningHandleVec(
-// CHECK-SAME:      %{{.*}}: !cc.indirect_callable<(i64) -> !cc.stdvec<!cc.measure_handle>>
+// CHECK-SAME:      %{{.*}}: !cc.indirect_callable<(i64) -> !cc.sequence<!cc.measure_handle>>
 // CHECK-SAME:      attributes {"cudaq-entrypoint", "cudaq-kernel"
 // clang-format on
 
@@ -634,16 +634,16 @@ struct HandleVecAssignFromLvalue {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleVecAssignFromLvalue()
 // CHECK:           %[[HV_C8:.*]] = arith.constant 8 : i64
-// CHECK:           %[[HV_PREV_SLOT:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
-// CHECK:           cc.store %{{.*}}, %[[HV_PREV_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:           %[[HV_CURR_SLOT:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
-// CHECK:           cc.store %{{.*}}, %[[HV_CURR_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:           %[[HV_RHS:.*]] = cc.load %[[HV_CURR_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:           %[[HV_D:.*]] = cc.stdvec_data %[[HV_RHS]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<i8>
-// CHECK:           %[[HV_S:.*]] = cc.stdvec_size %[[HV_RHS]] : (!cc.stdvec<!cc.measure_handle>) -> i64
+// CHECK:           %[[HV_PREV_SLOT:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
+// CHECK:           cc.store %{{.*}}, %[[HV_PREV_SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:           %[[HV_CURR_SLOT:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
+// CHECK:           cc.store %{{.*}}, %[[HV_CURR_SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:           %[[HV_RHS:.*]] = cc.load %[[HV_CURR_SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:           %[[HV_D:.*]] = cc.sequence_data %[[HV_RHS]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<i8>
+// CHECK:           %[[HV_S:.*]] = cc.sequence_size %[[HV_RHS]] : (!cc.sequence<!cc.measure_handle>) -> i64
 // CHECK:           %[[HV_H:.*]] = call @__nvqpp_vectorCopyCtor(%[[HV_D]], %[[HV_S]], %[[HV_C8]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[HV_NEW:.*]] = cc.stdvec_init %[[HV_H]], %[[HV_S]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           cc.store %[[HV_NEW]], %[[HV_PREV_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[HV_NEW:.*]] = cc.sequence_init %[[HV_H]], %[[HV_S]] : (!cc.ptr<i8>, i64) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           cc.store %[[HV_NEW]], %[[HV_PREV_SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -663,14 +663,14 @@ struct HandleVecCrossRoundLoop {
 // (`prev = curr;`) so that `prev` doesn't dangle into the next iteration.
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleVecCrossRoundLoop(
-// CHECK:           %[[L_PREV:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
-// CHECK:           cc.store %{{.*}}, %[[L_PREV]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[L_PREV:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
+// CHECK:           cc.store %{{.*}}, %[[L_PREV]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
 // CHECK:           cc.loop while
 // CHECK:           } do {
-// CHECK:             %[[L_CURR:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
-// CHECK:             cc.store %{{.*}}, %[[L_CURR]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:             %[[L_RHS:.*]] = cc.load %[[L_CURR]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:             %[[L_CURR:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
+// CHECK:             cc.store %{{.*}}, %[[L_CURR]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:             %[[L_RHS:.*]] = cc.load %[[L_CURR]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
 // CHECK:             %{{.*}} = func.call @__nvqpp_vectorCopyCtor(
-// CHECK:             %[[L_NEW:.*]] = cc.stdvec_init %{{.*}}, %{{.*}} : (!cc.ptr<i8>, i64) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:             cc.store %[[L_NEW]], %[[L_PREV]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:             %[[L_NEW:.*]] = cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<i8>, i64) -> !cc.sequence<!cc.measure_handle>
+// CHECK:             cc.store %[[L_NEW]], %[[L_PREV]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
 // clang-format on
