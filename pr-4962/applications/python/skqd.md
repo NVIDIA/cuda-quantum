@@ -274,6 +274,8 @@ latest
             .internal}
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
+        -   [qBraid](../../using/examples/hardware_providers.html#qbraid){.reference
+            .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
         -   [Quantum Circuits,
@@ -2497,7 +2499,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![cf8485e866ed4b4d98137b5c7175b77f](../../_images/speedup.png){.no-scaled-link
+![3794272659284354b6ef4276b0119d30](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2511,9 +2513,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![bdee584a9ddd4b2082dd304d5c64330f](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![05297497712445949902276589f96ae6](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![302affd7dd414f2c80e50484fe132446](../../_images/efficiency.jpeg){.no-scaled-link
+![43190a977c594427a0a3e1888bde39fb](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 
