@@ -39,7 +39,7 @@ jobs:
       - name: Build cudaq-devel wheel
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.cudaq_version }}
-          BASE_IMAGE: ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu13.6-gcc12-main
+          BASE_IMAGE: ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu13.0-gcc12-main
         run: |
           mkdir -p dist
           DOCKER_BUILDKIT=1 docker build \
@@ -55,6 +55,6 @@ jobs:
       - name: Upload devel wheel artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cudaq-devel-cu13
+          name: cudaq-devel
           path: dist/cudaq_devel*.whl
           if-no-files-found: error
