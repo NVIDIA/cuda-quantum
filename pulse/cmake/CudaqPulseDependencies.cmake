@@ -8,6 +8,11 @@
 
 include_guard(DIRECTORY)
 
+# Build-time dependency discovery for the pulse source-tree build (GPU runtime,
+# Python, nanobind). This is distinct from the installed package config: a
+# downstream find_package(cudaq-pulse CONFIG) consumer re-discovers the runtime
+# dependencies through cmake/cudaq-pulse-config.cmake.in instead.
+
 # Enable the optional GPU runtime whenever cuDensityMat is available. An
 # explicitly provided SDK root is a request, so fail instead of silently
 # falling back to the compiler-only package when that root is invalid.

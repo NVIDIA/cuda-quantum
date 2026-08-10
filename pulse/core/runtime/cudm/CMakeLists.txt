@@ -36,7 +36,10 @@ set_target_properties(cudm_runtime PROPERTIES
   SOVERSION 0
 )
 
+# Join the cudaq-pulse export set so the installed package can expose
+# cudaq::cudm_runtime via find_package(cudaq-pulse CONFIG).
 install(TARGETS cudm_runtime
+  EXPORT cudaq-pulse-targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )

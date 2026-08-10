@@ -277,13 +277,12 @@ option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
 
-# Stable sub-projects that can be enabled independently, in the style of
-# LLVM_ENABLE_PROJECTS. Research previews are accepted by the same selector
-# but intentionally kept out of CUDAQ_ALL_PROJECTS.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
-set(CUDAQ_RESEARCH_PROJECTS "pulse")
+# Sub-projects that can be enabled independently, in the style of
+# LLVM_ENABLE_PROJECTS. 'pulse' is a research preview (still experimental) but
+# opts in through the same selector as the stable projects.
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime;pulse")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
-    "Semicolon-separated list of CUDA-Q sub-projects to build. Stable projects: ${CUDAQ_ALL_PROJECTS}. Research-preview projects: ${CUDAQ_RESEARCH_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
+    "Semicolon-separated list of CUDA-Q sub-projects to build: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package. Include 'pulse' to build the source-tree pulse research preview; set CUDAQ_PULSE_DIR to use an installed pulse package.")
 
 # Back-compat: if CUDAQ_ENABLE_PROJECTS wasn't given, derive it from the
 # legacy per-project flags so existing build scripts keep working, and warn
@@ -310,12 +309,10 @@ if(NOT CUDAQ_ENABLE_PROJECTS)
 endif()
 
 foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
-  if(NOT _proj IN_LIST CUDAQ_ALL_PROJECTS AND
-     NOT _proj IN_LIST CUDAQ_RESEARCH_PROJECTS)
+  if(NOT _proj IN_LIST CUDAQ_ALL_PROJECTS)
     message(FATAL_ERROR
       "Unknown project '${_proj}' in CUDAQ_ENABLE_PROJECTS. "
-      "Stable projects: ${CUDAQ_ALL_PROJECTS}. "
-      "Research-preview projects: ${CUDAQ_RESEARCH_PROJECTS}.")
+      "Known projects: ${CUDAQ_ALL_PROJECTS}.")
   endif()
 endforeach()
 
@@ -948,6 +945,28 @@ elseif ("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
 else()
   message(STATUS
     "CUDA-Q realtime integration disabled. Include \"realtime\" in CUDAQ_ENABLE_PROJECTS to enable it.")
+endif()
+
+# CUDA-Q pulse research preview. Like realtime, pulse can be built from the
+# source tree (include "pulse" in CUDAQ_ENABLE_PROJECTS) or consumed as an
+# installed CMake package (set CUDAQ_PULSE_DIR). Keeping the two builds
+# separated avoids setting/namespace pollution and lets core CUDA-Q depend on
+# an installed pulse package down the line.
+set(CUDAQ_PULSE_DIR "" CACHE PATH
+    "Path to an installed cudaq-pulse prefix. Uses an installed pulse research-preview package instead of the source tree.")
+if (CUDAQ_PULSE_DIR)
+  if ("pulse" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    message(WARNING
+      "Both CUDAQ_PULSE_DIR and 'pulse' in CUDAQ_ENABLE_PROJECTS were provided. "
+      "Using CUDAQ_PULSE_DIR=${CUDAQ_PULSE_DIR} and skipping the source-tree pulse build.")
+    list(REMOVE_ITEM CUDAQ_ENABLE_PROJECTS "pulse")
+  endif()
+
+  find_package(cudaq-pulse CONFIG REQUIRED
+    PATHS "${CUDAQ_PULSE_DIR}"
+    NO_DEFAULT_PATH)
+
+  message(STATUS "CUDA-Q pulse research preview enabled from: ${CUDAQ_PULSE_DIR}")
 endif()
 
 # Code coverage setup
