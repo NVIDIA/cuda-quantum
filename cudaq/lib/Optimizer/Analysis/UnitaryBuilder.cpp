@@ -58,13 +58,26 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 
       for (auto &&[newQuantumOp, quantumOp] :
            llvm::zip(cudaq::quake::getQuantumResults(op),
-                     cudaq::quake::getQuantumOperands(op)))
-        qubitMap.insert({newQuantumOp, qubitMap[quantumOp]});
+                     cudaq::quake::getQuantumOperands(op))) {
+        auto entry = qubitMap.find(quantumOp);
+        if (entry == qubitMap.end()) {
+          optor.emitOpError("Operand has no qubit mapping.");
+          return WalkResult::interrupt();
+        }
+        SmallVector<Qubit, 4> mapped(entry->second);
+        qubitMap.insert({newQuantumOp, std::move(mapped)});
+      }
 
       // When checking mapped circuits, we do a software swap, i.e., just change
       // the qubit mapping instead of applying the swap operation.
       if (upToMapping && isa<cudaq::quake::SwapOp>(op)) {
-        std::swap(qubitMap[op->getResult(0)], qubitMap[op->getResult(1)]);
+        auto lhs = qubitMap.find(op->getResult(0));
+        auto rhs = qubitMap.find(op->getResult(1));
+        if (lhs == qubitMap.end() || rhs == qubitMap.end()) {
+          optor.emitOpError("Swap result has no qubit mapping.");
+          return WalkResult::interrupt();
+        }
+        std::swap(lhs->second, rhs->second);
       } else {
         if (optor.getNegatedControls())
           negatedControls(*optor.getNegatedControls(), qubits);
@@ -90,8 +103,6 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
 //===----------------------------------------------------------------------===//
 
 WalkResult UnitaryBuilder::visitExtractOp(cudaq::quake::ExtractRefOp op) {
-  Value veq = op.getVeq();
-  ArrayRef<unsigned> qubits = qubitMap[veq];
   std::size_t index = 0;
   // We need to check whether the index is a "raw" index or not.
   if (op.hasConstantIndex())
@@ -100,15 +111,18 @@ WalkResult UnitaryBuilder::visitExtractOp(cudaq::quake::ExtractRefOp op) {
     op.emitError("Failed to get index as a integer.");
     return WalkResult::interrupt();
   }
-  auto [entry, _] = qubitMap.try_emplace(op.getResult());
-  entry->second.push_back(qubits[index]);
+  Qubit qubit = 0;
+  if (failed(lookupQubit(op, op.getVeq(), index, qubit)))
+    return WalkResult::interrupt();
+  qubitMap.try_emplace(op.getResult()).first->second.push_back(qubit);
   return WalkResult::advance();
 }
 
 WalkResult UnitaryBuilder::visitUnwrapOp(cudaq::quake::UnwrapOp op) {
-  ArrayRef<unsigned> qubits = qubitMap[op.getOperand()];
-  auto [entry, _] = qubitMap.try_emplace(op.getResult());
-  entry->second.push_back(qubits.front());
+  Qubit qubit = 0;
+  if (failed(lookupQubit(op, op.getOperand(), 0, qubit)))
+    return WalkResult::interrupt();
+  qubitMap.try_emplace(op.getResult()).first->second.push_back(qubit);
   return WalkResult::advance();
 }
 
@@ -147,15 +161,33 @@ LogicalResult UnitaryBuilder::getValueAsInt(Value value, std::size_t &result) {
   return failure();
 }
 
+LogicalResult UnitaryBuilder::lookupQubit(Operation *op, Value value,
+                                          std::size_t index, Qubit &qubit) {
+  auto entry = qubitMap.find(value);
+  if (entry == qubitMap.end()) {
+    op->emitError("Value has no qubit mapping.");
+    return failure();
+  }
+  if (index >= entry->second.size()) {
+    op->emitError("Qubit index out of range.");
+    return failure();
+  }
+  qubit = entry->second[index];
+  return success();
+}
+
 LogicalResult UnitaryBuilder::getQubits(ValueRange values,
                                         SmallVectorImpl<Qubit> &qubits) {
   for (Value value : values) {
+    auto entry = qubitMap.find(value);
+    if (entry == qubitMap.end() || entry->second.empty())
+      return failure();
     if (auto veq = dyn_cast<cudaq::quake::VeqType>(value.getType())) {
       if (!veq.hasSpecifiedSize())
         return failure();
-      llvm::copy(qubitMap[value], std::back_inserter(qubits));
+      llvm::copy(entry->second, std::back_inserter(qubits));
     } else {
-      qubits.push_back(qubitMap[value][0]);
+      qubits.push_back(entry->second[0]);
     }
   }
   return success();

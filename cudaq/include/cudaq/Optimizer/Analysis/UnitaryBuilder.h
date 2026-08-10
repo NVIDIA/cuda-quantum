@@ -46,6 +46,11 @@ private:
 
   mlir::LogicalResult getValueAsInt(mlir::Value value, std::size_t &result);
 
+  /// Looks up the qubit identifier at `index` for `value`, emitting an error on
+  /// `op` when the value was never mapped or the index is out of range.
+  mlir::LogicalResult lookupQubit(mlir::Operation *op, mlir::Value value,
+                                  std::size_t index, Qubit &qubit);
+
   std::size_t getNumQubits() {
     return matrix.rows() > 0 ? std::log2(matrix.rows()) : 0;
   }
