@@ -52,6 +52,7 @@ jobs:
             for file in LICENSE NOTICE CITATION.cff; do
                 cp $file python/metapackages/$file
             done
+            cp -r LICENSES python/metapackages/LICENSES
 
             retry sudo apt-get update
             retry sudo apt-get install -y --no-install-recommends \

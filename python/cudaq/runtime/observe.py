@@ -250,8 +250,10 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
             " expected.")
     shortName = decorator.uniqName
     processedArgs, module = decorator.prepare_call(*args)
-    return cudaq_runtime.observe_async_impl(shortName, module, spin_operator,
-                                            qpu_id, shots_count, *processedArgs)
+    return cudaq_runtime.observe_async_impl(shortName, module,
+                                            decorator.compiledModuleCache(),
+                                            spin_operator, qpu_id, shots_count,
+                                            *processedArgs)
 
 
 def observe_parallel(kernel,
@@ -313,6 +315,8 @@ def observe_parallel(kernel,
             "unrecognized kernel - did you forget the @kernel attribute?")
     shortName = decorator.uniqName
     processedArgs, module = decorator.prepare_call(*args)
-    return cudaq_runtime.observe_parallel_impl(shortName, module, execution,
-                                               spin_operator, shots_count,
-                                               noise_model, *processedArgs)
+    return cudaq_runtime.observe_parallel_impl(shortName, module,
+                                               decorator.compiledModuleCache(),
+                                               execution, spin_operator,
+                                               shots_count, noise_model,
+                                               *processedArgs)

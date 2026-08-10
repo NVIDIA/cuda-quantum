@@ -175,7 +175,7 @@ jobs:
             # Build CUDA-Q Realtime
             cd /workspace/realtime
             mkdir -p build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/workspace/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/workspace/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/workspace/installer
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/workspace/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/workspace/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/workspace/installer
             make -j$(nproc) install
 
       - name: 'Tar files'

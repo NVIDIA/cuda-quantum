@@ -11,22 +11,16 @@ FROM $base_image
 
 USER root
 
-# Copy over additional CUDA-Q assets.
-ARG assets=./assets
-COPY "$assets" "$CUDA_QUANTUM_PATH/assets/"
-ADD ./scripts/migrate_assets.sh "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
-# Remove the base build_info.txt because the migration intentionally does not overwrite
-# existing files, but adds its own entries to the build info.
-RUN rm "$CUDA_QUANTUM_PATH/build_info.txt"
-RUN if [ -d "$CUDA_QUANTUM_PATH/assets/documentation" ]; then \
-        rm -rf "$CUDA_QUANTUM_PATH/docs" && mkdir -p "$CUDA_QUANTUM_PATH/docs"; \
-        mv "$CUDA_QUANTUM_PATH/assets/documentation"/* "$CUDA_QUANTUM_PATH/docs"; \
-        rmdir "$CUDA_QUANTUM_PATH/assets/documentation"; \
+# Optionally replace the base image documentation with the documentation
+# produced by the selected deployment run.
+ARG documentation=./documentation
+ARG include_documentation=false
+COPY "$documentation" "$CUDA_QUANTUM_PATH/publishing-documentation/"
+RUN if [ "$include_documentation" = "true" ]; then \
+        rm -rf "$CUDA_QUANTUM_PATH/docs" && mkdir -p "$CUDA_QUANTUM_PATH/docs" && \
+        cp -r "$CUDA_QUANTUM_PATH/publishing-documentation/." "$CUDA_QUANTUM_PATH/docs"; \
     fi && \
-    for folder in `find "$CUDA_QUANTUM_PATH/assets/$(uname -m)"/* -maxdepth 0 -type d -not -name cudaq`; \
-    do bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$folder" && rm -rf "$folder"; done \
-    && bash "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh" -s "$CUDA_QUANTUM_PATH/assets/$(uname -m)" \
-    && rm -rf "$CUDA_QUANTUM_PATH/assets" "$CUDA_QUANTUM_PATH/bin/migrate_assets.sh"
+    rm -rf "$CUDA_QUANTUM_PATH/publishing-documentation"
 
 # Install additional runtime dependencies.
 RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \

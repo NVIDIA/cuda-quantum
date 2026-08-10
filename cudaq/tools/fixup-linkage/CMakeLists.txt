@@ -8,4 +8,4 @@
 
 add_llvm_executable(fixup-linkage fixup-linkage.cpp)
 
-install(TARGETS fixup-linkage DESTINATION bin)
+install(TARGETS fixup-linkage DESTINATION bin COMPONENT Nvqpp)

@@ -13,6 +13,7 @@
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
@@ -194,6 +195,8 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
             })
             .wasInterrupted();
 
+    bool noValueSemantics = module->hasAttr(cudaq::runtime::disableQuantumOpts);
+
     // Even though we're not lowering all the way to a real QIR profile for
     // this emulated path, we need to pass in `convertTo` to mimic the
     // non-emulated path.
@@ -202,7 +205,9 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
       profileName = convertTo;
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
     } else {
-      cudaq::opt::addAOTPipelineConvertToQIR(pm);
+      cudaq::opt::addAOTPipelineConvertToQIR(pm, {},
+                                             /*useValueSemantics=*/
+                                             !noValueSemantics);
     }
 
     std::string error_msg;

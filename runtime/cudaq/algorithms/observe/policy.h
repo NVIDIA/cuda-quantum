@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CompileOptions.h"
 #include "common/Future.h"
 #include "common/ObserveResult.h"
 #include "cudaq/algorithms/observe/options.h"

@@ -30,7 +30,8 @@ using namespace cudaq_internal::compiler;
 static void compileAndDump(mlir::MLIRContext *ctx,
                            const std::string &kernelName,
                            const std::string &quake,
-                           std::unique_ptr<cudaq::CompileTarget> target,
+                           cudaq::CompileTarget target,
+                           cudaq::CompileOptions options = {},
                            cudaq::KernelArgs args = {}) {
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(quake, ctx);
   if (!mod) {
@@ -38,7 +39,7 @@ static void compileAndDump(mlir::MLIRContext *ctx,
     return;
   }
 
-  Compiler compiler(std::move(target));
+  Compiler compiler(std::move(target), std::move(options));
   auto compiled = compiler.runPassPipeline(
       kernelName, mod.release().getAsOpaquePointer(), args, /*isEntryPoint=*/
       true);
@@ -53,35 +54,32 @@ static void compileAndDump(mlir::MLIRContext *ctx,
 }
 
 /// Build a CompileTarget with no backend configuration
-static std::unique_ptr<cudaq::CompileTarget> noBackendTarget() {
+static cudaq::CompileTarget noBackendTarget() {
   cudaq::config::TargetConfig cfg;
-  return std::make_unique<cudaq::CompileTarget>(
-      cfg, /*runtimeConfig=*/
-      std::map<std::string, std::string>{},
-      /*emulate=*/false);
+  return cudaq::CompileTarget(cfg, /*runtimeConfig=*/
+                              std::map<std::string, std::string>{},
+                              /*emulate=*/false);
 }
 
 /// Build a CompileTarget with a backend configuration with an empty pass
 /// pipeline
-static std::unique_ptr<cudaq::CompileTarget> emptyPipelineTarget() {
+static cudaq::CompileTarget emptyPipelineTarget() {
   cudaq::config::TargetConfig cfg;
   cfg.BackendConfig = cudaq::config::BackendEndConfigEntry{};
-  return std::make_unique<cudaq::CompileTarget>(
-      cfg, std::map<std::string, std::string>{},
-      /*emulate=*/false);
+  return cudaq::CompileTarget(cfg, std::map<std::string, std::string>{},
+                              /*emulate=*/false);
 }
 
 /// Build a CompileTarget with a backend configuration with a non-empty pass
 /// pipeline
-static std::unique_ptr<cudaq::CompileTarget>
+static cudaq::CompileTarget
 nonEmptyPipelineTarget(const std::string &pipeline) {
   cudaq::config::TargetConfig cfg;
   cudaq::config::BackendEndConfigEntry backend;
   backend.TargetPassPipeline = pipeline;
   cfg.BackendConfig = backend;
-  return std::make_unique<cudaq::CompileTarget>(
-      cfg, std::map<std::string, std::string>{},
-      /*emulate=*/false);
+  return cudaq::CompileTarget(cfg, std::map<std::string, std::string>{},
+                              /*emulate=*/false);
 }
 
 /// Kernel with statically-sized qubit register
@@ -107,12 +105,14 @@ void test_device_calls_supported(mlir::MLIRContext *ctx) {
   std::vector<void *> v = {static_cast<void *>(&arg)};
   cudaq::KernelArgs args(std::span<void *const>(v.data(), v.size()));
 
-  auto target = std::make_unique<cudaq::CompileTarget>();
-  target->supportDeviceCalls = true;
+  auto target = cudaq::CompileTarget{};
+  target.supportDeviceCalls = true;
   // Isolate the device-call lowering performed during argument synthesis from
   // the rest of the target lowering pipeline.
-  target->pipelineConfig.skipTargetLoweringPipeline = true;
-  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target), args);
+  cudaq::CompileOptions options;
+  options.skipTargetLoweringPipeline = true;
+  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target),
+                 std::move(options), args);
 }
 
 // clang-format off
@@ -129,10 +129,12 @@ void test_device_calls_unsupported(mlir::MLIRContext *ctx) {
   std::vector<void *> v = {static_cast<void *>(&arg)};
   cudaq::KernelArgs args(std::span<void *const>(v.data(), v.size()));
 
-  auto target = std::make_unique<cudaq::CompileTarget>();
-  target->supportDeviceCalls = false;
-  target->pipelineConfig.skipTargetLoweringPipeline = true;
-  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target), args);
+  auto target = cudaq::CompileTarget{};
+  target.supportDeviceCalls = false;
+  cudaq::CompileOptions options;
+  options.skipTargetLoweringPipeline = true;
+  compileAndDump(ctx, "devKernel", deviceCallKernel, std::move(target),
+                 std::move(options), args);
 }
 
 // CHECK-LABEL: Compiled module:

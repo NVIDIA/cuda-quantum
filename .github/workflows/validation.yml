@@ -1,0 +1,157 @@
+# Runs automatically after Deployments completes, or on demand via
+# workflow_dispatch with a deployment run id. Rebuilds installers/wheels/
+# metapackages from the deployment's dependency images and validates the
+# release image, debug image, and those artifacts.
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_id:
+        type: string
+        description: The workflow id of the deployment whose images should be validated.
+        required: true
+      github_commit:
+        type: string
+        description: Optional argument to set the GitHub commit to use for the validation sources.
+        required: false
+  # Called inline by the Deployments workflow (see its trigger_validation job).
+  # workflow_call resolves ./.github/workflows/validation.yml against the caller's
+  # ref, so this works on feature branches without the workflow existing on the
+  # default branch (unlike a REST workflow_dispatch, which 404s until then).
+  workflow_call:
+    inputs:
+      deployment_id:
+        type: string
+        description: The workflow id of the deployment whose images should be validated.
+        required: true
+      github_commit:
+        type: string
+        description: Optional argument to set the GitHub commit to use for the validation sources.
+        required: false
+  workflow_run:
+    workflows:
+      - Deployments
+    types:
+      - completed
+    branches:
+      - 'main'
+      - 'releases/*'
+      - 'staging/*'
+      - 'experimental/*'
+
+name: Validation
+
+jobs:
+  metadata:
+    name: Validation metadata
+    if: >-
+      inputs.deployment_id != '' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+
+    outputs:
+      github_commit: ${{ steps.artifacts.outputs.github_commit }}
+      cudaq_version: ${{ steps.artifacts.outputs.cudaq_version }}
+      artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
+      retrieved_build_info: ${{ steps.artifacts.outputs.retrieved_build_info }}
+      release_title: ${{ steps.artifacts.outputs.release_title }}
+      release_version: ${{ steps.artifacts.outputs.release_version }}
+      release_images: ${{ steps.artifacts.outputs.release_images }}
+      debug_images: ${{ steps.artifacts.outputs.debug_images }}
+      python_wheels: ${{ steps.artifacts.outputs.python_wheels }}
+      installers: ${{ steps.artifacts.outputs.installers }}
+
+    steps:
+      - name: Download build info
+        id: artifacts
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # deployment_id is the dispatch input, or the triggering Deployments run.
+          deployment_id="${{ inputs.deployment_id || github.event.workflow_run.id }}"
+          artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${deployment_id}/artifacts
+          echo "Validating images from https://github.com/${{ github.repository }}/actions/runs/${deployment_id}" >> $GITHUB_STEP_SUMMARY
+          artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+
+          build_info_folder=/tmp/validation-build-info
+          mkdir -p "$build_info_folder"
+
+          function download {
+            # $1 = artifact name, $2 = archive download url
+            mkdir -p "$build_info_folder/$1"
+            retry gh api "$2" > /tmp/info.zip
+            unzip -o -d /tmp/info /tmp/info.zip
+            for file in `find /tmp/info -type f`; do
+              cat "$file" >> "$build_info_folder/$1/$1.txt"
+            done
+            rm -rf /tmp/info /tmp/info.zip
+          }
+
+          release_images="[]"
+          debug_images="[]"
+          python_wheels="{\"info_files\":[]}"
+          installers="{\"info_files\":[]}"
+          github_commit=""
+          release_title=""
+          release_version=""
+
+          for artifact in `echo "$artifacts"`; do
+            name=`echo $artifact | jq -r '.name'`
+            url=`echo $artifact | jq -r '.url'`
+            if [ "${name%_publishing}" != "$name" ]; then
+              download "$name" "$url"
+              info="$build_info_folder/$name/$name.txt"
+              if [ "${name#image}" != "$name" ]; then
+                release_image=`grep -o 'cuda-quantum-image: \S*' "$info" | cut -d ' ' -f 2`
+                debug_image=`grep -o 'cuda-quantum-dev-image: \S*' "$info" | cut -d ' ' -f 2`
+                [ -n "$release_image" ] && release_images=`echo "$release_images" | jq --arg v "$release_image" '. + [$v]'`
+                [ -n "$debug_image" ] && debug_images=`echo "$debug_images" | jq --arg v "$debug_image" '. + [$v]'`
+              elif [ "${name#python}" != "$name" ]; then
+                python_wheels=`echo $python_wheels | jq ".info_files |= . + [\"$name\"]"`
+              elif [ "${name#installer}" != "$name" ]; then
+                installers=`echo $installers | jq ".info_files |= . + [\"$name\"]"`
+              fi
+            elif [ "${name#deployment_info}" != "$name" ]; then
+              download "$name" "$url"
+              info="$build_info_folder/$name/$name.txt"
+              github_commit=`grep -o 'source-sha: \S*' "$info" | cut -d ' ' -f 2`
+              release_title=`grep -o 'release-title: \S*' "$info" | cut -d ' ' -f 2`
+              release_version=`grep -o 'release-version: \S*' "$info" | cut -d ' ' -f 2`
+            fi
+          done
+
+          # CUDA-Q version number (matches the deployment's staging logic).
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
+            cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            cudaq_version=${release_version:-0.0.0}
+          fi
+
+          echo "retrieved_build_info=validation_build_info_${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
+          echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
+          echo "release_title=$release_title" >> $GITHUB_OUTPUT
+          echo "release_version=$release_version" >> $GITHUB_OUTPUT
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+          echo "release_images=$(echo $release_images | jq -c .)" >> $GITHUB_OUTPUT
+          echo "debug_images=$(echo $debug_images | jq -c .)" >> $GITHUB_OUTPUT
+          echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
+          echo "installers=$(echo $installers)" >> $GITHUB_OUTPUT
+          echo "Release images: $release_images"
+          echo "Debug images: $debug_images"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Upload validation build information
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.artifacts.outputs.retrieved_build_info }}
+          path: /tmp/validation-build-info
+          retention-days: 1
+          if-no-files-found: error
+

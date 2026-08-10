@@ -78,9 +78,9 @@ add_dependencies(CUDAQuantumPythonModules CUDAQPythonStaging)
 add_subdirectory(runtime/cudaq/domains/plugins)
 
 if (NOT SKBUILD)
-  install(DIRECTORY cudaq DESTINATION .)
+  install(DIRECTORY cudaq DESTINATION . COMPONENT CUDAQuantumPythonModules)
 endif()
-install(FILES "${METADATA_FILE}" DESTINATION cudaq)
+install(FILES "${METADATA_FILE}" DESTINATION cudaq COMPONENT CUDAQuantumPythonModules)
 
 # Do we have pytest and numpy? 
 execute_process(COMMAND ${Python_EXECUTABLE} -m pytest --version
@@ -106,3 +106,5 @@ add_subdirectory(runtime/interop)
 if (cuDensityMat_FOUND)
   add_subdirectory(runtime/cudaq/dynamics)
 endif()
+
+add_subdirectory(runtime/synth)

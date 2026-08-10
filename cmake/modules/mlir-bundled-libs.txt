@@ -1,0 +1,99 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Complete list of libraries bundled into libcudaqMLIR.so.
+#
+# The only entries not listed are the target-specific codegen libraries, which
+# AddCUDAQ.cmake resolves through llvm_map_components_to_libnames() for
+# "native nativecodegen" because they differ per architecture (LLVMX86* on
+# x86_64, LLVMAArch64* on arm64).
+
+# CUDA-Q dialect / transform libraries
+CCDialect
+QuakeDialect
+QECDialect
+OptTransforms
+OptCodeGen
+OptimBuilder
+OptAnalysis
+
+# Core IR + support
+MLIRIR
+MLIRSupport
+
+# Textual parsing and printing
+MLIRParser
+MLIRAsmParser
+MLIRBytecodeWriter
+
+# Pass + analysis infrastructure
+MLIRPass
+MLIRAnalysis
+
+# Pattern-rewrite / transform infrastructure
+MLIRRewrite
+MLIRTransformUtils
+MLIRTransforms
+
+# MLIR plugin loading (mlir::DialectPlugin / mlir::PassPlugin)
+MLIRPluginsLib
+
+# Common op/type interfaces a custom dialect or pass builds on
+MLIRCallInterfaces
+MLIRCastInterfaces
+MLIRControlFlowInterfaces
+MLIRDataLayoutInterfaces
+MLIRFunctionInterfaces
+MLIRInferTypeOpInterface
+MLIRSideEffectInterfaces
+
+# Foundational building-block dialects most custom dialects/lowerings reuse
+MLIRFuncDialect
+MLIRFuncTransforms
+MLIRFuncInlinerExtension
+MLIRArithDialect
+MLIRControlFlowDialect
+MLIRSCFDialect
+MLIRComplexDialect
+MLIRMathDialect
+MLIRLLVMDialect
+MLIROpenMPDialect
+MLIROpenACCDialect
+
+# JIT / execution engine and pass-manager tools
+MLIRExecutionEngine
+MLIRExecutionEngineUtils
+MLIROptLib
+MLIRTranslateLib
+
+# LLVM IR code-generation (lowering + export)
+MLIRTargetLLVMIRExport
+MLIRLLVMCommonConversion
+MLIRToLLVMIRTranslationRegistration
+MLIRLLVMToLLVMIRTranslation
+MLIRBuiltinToLLVMIRTranslation
+MLIRLLVMIRToLLVMTranslation
+MLIROpenMPToLLVMIRTranslation
+MLIRLLVMIRTransforms
+
+# Arithmetic and type lowerings used by OptCodeGen
+MLIRArithTransforms
+MLIRArithToLLVM
+MLIRComplexToLibm
+MLIRComplexToLLVM
+MLIRControlFlowToLLVM
+MLIRSCFTransforms
+MLIRSCFToControlFlow
+MLIRFuncToLLVM
+MLIRMathToFuncs
+MLIRMathToLLVM
+
+# LLVM support libraries.
+LLVMSupport
+LLVMCore
+LLVMOrcJIT

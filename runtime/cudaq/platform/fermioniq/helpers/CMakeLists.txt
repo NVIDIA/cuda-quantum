@@ -13,5 +13,6 @@ target_link_libraries(cudaq-serverhelper-fermioniq
     cudaq-common 
     cudaq-logger 
 )
-install(TARGETS cudaq-serverhelper-fermioniq DESTINATION lib)
+install(TARGETS cudaq-serverhelper-fermioniq DESTINATION lib
+        COMPONENT Runtime)
 

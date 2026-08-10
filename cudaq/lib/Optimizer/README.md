@@ -14,14 +14,16 @@ CUDAQ defines as one shared `mondo` library. The goal is twofold:
 
 ## Build strategy
 
-The `libcudaqMLIR` library is built in two layers:
+The `libcudaqMLIR` library is built from the single list in
+[`mlir-bundled-libs.txt`](../../../cmake/modules/mlir-bundled-libs.txt) (plus
+per-arch native `codegen` resolved at configure time), available as the CMake
+variable `CUDAQ_MLIR_BUNDLED_LIBS`. Every entry in that list is bundled into
+the shared library:
 
-1. All object files from CUDAQ MLIR libraries (registered with `register_cudaq_mlir_lib`)
-   are bundled together in the shared library.
-2. All MLIR targets listed in [`mlir-libs-allowlist.txt`](mlir-libs-allowlist.txt)
-   are added as static dependencies. By using CMake's `WHOLE_ARCHIVE` flag, we
-   ensure that all symbols from these libraries are re-exported, so that CUDAQ libraries
-   as well as downstream extensions can use them.
+1. CUDA-Q dialect/transform libraries are bundled as object files (`obj.<lib>`
+   targets built via `add_cudaq_library`).
+2. MLIR/LLVM libraries are whole-archived so their full symbol set is
+   re-exported for CUDAQ libraries and downstream extensions.
 
 ## C API
 
@@ -36,8 +38,12 @@ In the library's `CMakeLists.txt`:
 
 ```cmake
 add_cudaq_library(MyNewLib ...)
-register_cudaq_mlir_lib(MyNewLib)
+
+# Check that the library is listed in cmake/modules/mlir-bundled-libs.txt.
+check_registered_mlir_lib(MyNewLib)
 ```
 
-If the library needs additional upstream MLIR symbols, add the corresponding `MLIR*`
-target to `mlir-libs-allowlist.txt`.
+Add `MyNewLib` to `cmake/modules/mlir-bundled-libs.txt` under the CUDA-Q section.
+
+If the library needs additional upstream MLIR symbols, add the corresponding
+`MLIR*` target to the MLIR/LLVM section of that file.

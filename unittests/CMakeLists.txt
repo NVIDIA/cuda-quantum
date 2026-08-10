@@ -8,7 +8,7 @@
 
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
-     "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
+     "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported -Wno-deprecated-declarations")
 # clear any flags for static linking, only keeping linker selection flags
 foreach(_flags_var IN ITEMS CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS)
   string(REGEX MATCHALL "-fuse-ld=[^ ]+|-B[^ ]+" _linker_selection "${${_flags_var}}")
@@ -89,7 +89,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     # host-dispatch.a contains relocatable device code (host_dispatcher.cu); the
     # final link must run the CUDA device-link step even though this target has
     # no .cu sources. Same "bridge as .cpp with CUDA device linking" pattern as
-    # the realtime hololink/hsb bridge tools.
+    # the realtime gpu_roce/hsb bridge tools.
     set_target_properties(cpu_roce_test_daemon PROPERTIES
       LINKER_LANGUAGE CUDA
       CUDA_SEPARABLE_COMPILATION ON
@@ -243,6 +243,16 @@ target_link_libraries(test_exec_ctx_thread
   cudaq-platform-default
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
+
+add_executable(test_quantum_platform main.cpp common/QuantumPlatformTester.cpp)
+target_include_directories(test_quantum_platform PRIVATE .)
+target_link_libraries(test_quantum_platform
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  nvqir
+  gtest_main)
+cudaq_gtest_discover_tests(test_quantum_platform DISCOVERY_TIMEOUT 120)
 
 add_subdirectory(qis)
 add_subdirectory(nvqpp)

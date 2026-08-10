@@ -51,14 +51,14 @@ def cc_ScopeOp : CCOp<"scope",
     appear in the context of the ScopeOp are dead when the ScopeOp exits.
 
     For a C++ variable, this means that the variable may require a call to a
-    destructor as well as deallocation. For example, after inserting calls to
-    dtors the LLVM IR intrinsics `llvm.stacksave.p0` and `llvm.stackrestore.p0`
-    may be added to reclaim stack space, or a call to `free` may be inserted to
-    deallocate any compiler-generated heap allocations.
+    destructor as well as deallocation. For example, after inserting destructor
+    calls, the LLVM IR intrinsics `llvm.stacksave.p0` and
+    `llvm.stackrestore.p0` may be added to reclaim stack space, or a call to
+    `free` may be inserted to deallocate compiler-generated heap allocations.
 
-    For a CUDA-Q variable, cc.scope will, at minimum add calls to
-    deallocate any quantum references created inside the ScopeOp's region. It
-    may also be desirable to autogenerate adjoint code.
+    For a CUDA-Q variable, a ScopeOp marks where quantum references created in
+    its region must be deallocated. It can also delimit automatically generated
+    adjoint code.
 
     A ScopeOp that contains no allocations has no semantics and can be inlined
     into the parent Region. This transformation is done in canonicalization.
@@ -492,10 +492,10 @@ def cc_ContinueOp : CCOp<"continue", [Pure, ReturnLike, Terminator,
     which starts at the while region. If the LoopOp does not have a step
     region, control is transferred to the while region's entry block.
 
-    In the step region of a LoopOp, a ContinueOp is an unconditinal branch from
+    In the step region of a LoopOp, a ContinueOp is an unconditional branch from
     the step region to the while region's entry block.
 
-    In the parent op is a ScopeOp or IfOp, a ContinueOp is an unconditional
+    If the parent op is a ScopeOp or IfOp, a ContinueOp is an unconditional
     branch exiting the parent op and returning control to the parent's parent.
 
     Example:
@@ -550,13 +550,11 @@ def cc_BreakOp : CCOp<"break",
 
 def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
         ParentOneOf<["mlir::func::FuncOp", "CreateLambdaOp"]>]> {
-  let summary = "Return (exiting) branch.";
+  let summary = "Return from a function or callable.";
   let description = [{
-    A ReturnOp returns control from the current activation of a λ expression to
-    the enclosing dynamic scope, the calling function.
-
-    In callable expressions, the ReturnOp is always ends the execution of the
-    callable.
+    A ReturnOp returns control from the current `func.func` or
+    `cc.create_lambda` activation to its caller. Its operands are the returned
+    values.
 
     ```mlir
       %lambda = cc.create_lambda {
@@ -638,7 +636,7 @@ def cc_UnwindBreakOp : CCOp<"unwind_break", [
     ```
 
     An UnwindBreakOp is clearly not pure. It is also not a terminator. Note
-    that it cannot be a ReturnLikeOp because it's arguments do not correspond
+    that it cannot be a ReturnLikeOp because its arguments do not correspond
     to the nearest enclosing structured Op in any way. MLIR's builtin
     verification does not support Ops with non-local return semantics.
   }];
@@ -700,7 +698,7 @@ def cc_UnwindContinueOp : CCOp<"unwind_continue", [
     ```
 
     An UnwindContinueOp is clearly not pure. It is also not a terminator. Note
-    that it cannot be a ReturnLikeOp because it's arguments do not correspond
+    that it cannot be a ReturnLikeOp because its arguments do not correspond
     to the nearest enclosing structured Op in any way. MLIR's builtin
     verification does not support Ops with non-local return semantics.
   }];
@@ -756,7 +754,7 @@ def cc_UnwindReturnOp : CCOp<"unwind_return", [
     ```
 
     An UnwindReturnOp is clearly not pure. It is also not a terminator. Note
-    that it cannot be a ReturnLikeOp because it's arguments do not correspond
+    that it cannot be a ReturnLikeOp because its arguments do not correspond
     to the nearest enclosing structured Op in any way. MLIR's builtin
     verification does not support Ops with non-local return semantics.
   }];
@@ -789,8 +787,8 @@ def cc_PoisonOp : CCOp<"poison", [Pure]> {
 def cc_UndefOp : CCOp<"undef", [Pure]> {
   let summary = "Explicit undefined value.";
   let description = [{
-    An UndefOp is used to create an undefined value of a specified type. This
-    op will be translated to LLVM IR as an undefined instruction.
+    An UndefOp creates an undefined value of a specified type. CC-to-LLVM
+    lowering replaces it with `llvm.mlir.undef` using the converted result type.
 
     Example:
 
@@ -1061,11 +1059,12 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
 }
 
 def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
-  let summary = "Creates a pointer pointing to a subobject in an object.";
+  let summary = "Compute a pointer to a subobject.";
   let description = [{
-    This translates to LLVM's get_element_ptr operation. The initial thinking
-    is that unlike the GEP, the base object must be either an array or a single
-    object and a ComputerPtrOp does not accept a pointer as both implicitly.
+    A ComputePtrOp computes a pointer to a nested subobject of the object
+    referenced by its base pointer. Each index selects an array element, struct
+    member, or complex component. Struct indices must be constant, and the
+    result element type must match the selected subobject type.
 
     Example:
 
@@ -1152,7 +1151,7 @@ def cc_OffsetOfOp : CCOp<"offsetof", [Pure]> {
     ```mlir
       // the offset of the i64 in the struct
       %0 = cc.offsetof !cc.struct<i32, f64, i64> [2] : i64
-      // the offset of of the 3rd i32 element in the array field
+      // the offset of the 3rd i32 element in the array field
       %1 = cc.offsetof !cc.struct<!cc.array<!cc.struct<i32, i8> x 4>, f32>
            [0, 2, 0] : i64
     ```
@@ -1173,7 +1172,7 @@ def cc_OffsetOfOp : CCOp<"offsetof", [Pure]> {
 }
 
 def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
-  let summary = "A one dimensional array of constant values.";
+  let summary = "A one-dimensional array of constant values.";
   let description = [{
     A ConstantArrayOp is used to create a constant value that is an aggregate of
     type !cc.array<T,n> and is composed of constant values. The aggregate has a
@@ -1210,9 +1209,8 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
 def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
   let summary = "Create a constant string literal.";
   let description = [{
-    This operation creates a ASCIIZ string literal value. It's argument is a
-    constant MLIR String Attribute. The literal will have a null character
-    appended automatically.
+    This operation creates a null-terminated string literal from a constant MLIR
+    string attribute. It appends the null character automatically.
 
     ```mlir
       %0 = cc.string_literal "Quantum Computing" : !cc.ptr<!cc.array<i8 x 18>>
@@ -1342,7 +1340,7 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
 def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
   let summary = "Retrieve the data pointer from a stdvec object.";
   let description = [{
-    A StdvecDataOp can be used to retreive the data pointer from a stdvec
+    A StdvecDataOp can be used to retrieve the data pointer from a stdvec
     object. (See StdvecInitOp.) This operation is analogous to a call to
     `std::vector<T>::data()`.
 
@@ -1363,7 +1361,7 @@ def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
 def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
   let summary = "Retrieve the size from a stdvec object.";
   let description = [{
-    A StdvecSizeOp can be used to retreive the size from a stdvec object.
+    A StdvecSizeOp can be used to retrieve the size from a stdvec object.
     This is analogous to a call to `std::vector<T>::size()`.
 
     Note that this operation is pure and has value semantics. It does not
@@ -2057,7 +2055,7 @@ def cc_LogOutputOp : CCOp<"log_output"> {
 
 def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
     [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
-  let summary = "An argument substition.";
+  let summary = "An argument substitution.";
   let description = [{
     This operation is used to define computations to produce a particular value.
     The last Op in the block is the result and specifies the result type.

@@ -28,6 +28,7 @@
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Support/Hash.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/nvqpp_interface.h"
@@ -59,6 +60,7 @@
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <optional>
 
 using namespace mlir;
 
@@ -695,29 +697,42 @@ static std::size_t digestLogValue(const std::array<uint8_t, 32> &digest) {
   return value;
 }
 
-/// Obtain a fresh `CompileTarget` for the current execution context.
-static std::unique_ptr<cudaq::CompileTarget> getCompileTargetImpl() {
+/// Construct the compiler config (`CompileTarget` and `CompileOptions`) from
+/// the current execution context.
+static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
+getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
-  if (!ctx)
-    return cudaq::get_compile_target(cudaq::other_policies{});
+  cudaq::CompileOptions options;
+  if (!ctx) {
+    if (!target)
+      target = cudaq::get_compile_target(cudaq::other_policies{});
+    options = cudaq::get_compile_options(cudaq::other_policies{});
+  } else {
+    cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
+      using Policy = std::decay_t<decltype(policy)>;
+      if constexpr (std::is_same_v<Policy, cudaq::observe_policy>) {
+        policy.spin = ctx->spin.value();
+      }
 
-  return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
-    using Policy = std::decay_t<decltype(policy)>;
-    if constexpr (std::is_same_v<Policy, cudaq::observe_policy>) {
-      policy.spin = ctx->spin.value();
-    }
-    return cudaq::get_compile_target(policy);
-  });
+      if (!target)
+        target = cudaq::get_compile_target(policy);
+      options = cudaq::get_compile_options(policy);
+    });
+  }
+
+  // TODO: remove this call by moving flags out of the target
+  cudaq::propagateTargetOptionsToCompileOptions(*target, options);
+  return {*std::move(target), std::move(options)};
 }
 
 static cudaq::CompiledModule
 compileModuleImpl(const std::string &name, ModuleOp mod,
                   const std::vector<void *> &rawArgs, bool isEntryPoint,
-                  std::unique_ptr<cudaq::CompileTarget> target = nullptr) {
-  if (!target)
-    target = getCompileTargetImpl();
+                  std::optional<cudaq::CompileTarget> target = std::nullopt) {
+  auto [compileTarget, options] = getCompileConfig(std::move(target));
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
-  return cudaq_internal::compiler::compileModule(std::move(target), src,
+  return cudaq_internal::compiler::compileModule(std::move(compileTarget),
+                                                 std::move(options), src,
                                                  {rawArgs}, isEntryPoint);
 }
 
@@ -730,14 +745,15 @@ static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
                const std::vector<void *> &rawArgs) {
-  auto target = getCompileTargetImpl();
-  auto targetHash = std::hash<cudaq::CompileTarget>{}(*target);
+  auto config = getCompileConfig();
+  auto &target = config.first;
+  auto targetHash = cudaq::detail::hashVal(config.first, config.second);
 
   // We don't cache kernels that inline all arguments, as any change to the
   // runtime arguments would invalidate the cache. Currently, synthesis is
   // all-or-nothing, but if arg-by-arg synthesis is supported, then that will
   // need to be detected.
-  bool cacheable = cache && !target->fullySpecialize && targetHash != 0;
+  bool cacheable = cache && !target.fullySpecialize && targetHash != 0;
 
   // Normally, we assume that the module IR is constant given the uniqued name.
   // However, kernels with compile-time dependencies — captured kernels or
@@ -761,7 +777,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   mlir::OwningOpRef<ModuleOp> resolvedModule;
   if (cacheable && hasCompileTimeDependencies) {
     if (auto digest = cudaq::detail::createProgramFingerprint(
-            name, mod, rawArgs, *target, resolvedModule))
+            name, mod, rawArgs, target, resolvedModule))
       programDigest = *digest;
     else
       cacheable = false;

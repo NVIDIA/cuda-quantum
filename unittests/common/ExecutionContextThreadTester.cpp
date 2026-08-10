@@ -56,7 +56,7 @@ class DummyMQPUPlatform : public cudaq::quantum_platform {
 public:
   DummyMQPUPlatform(std::size_t numQPUs) {
     for (std::size_t i = 0; i < numQPUs; ++i) {
-      platformQPUs.emplace_back(std::make_unique<DummyQPU>());
+      addQPU(std::make_unique<DummyQPU>());
     }
   }
 };
