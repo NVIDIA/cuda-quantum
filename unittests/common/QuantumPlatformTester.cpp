@@ -36,7 +36,7 @@ public:
 
   CompileTarget getCompileTarget(const sample_policy &) override {
     CompileTarget ct;
-    ct.emitJit = true;
+    ct.pipelineConfig.highLevelPipeline = "custom_sample";
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
     return ct;
@@ -45,8 +45,7 @@ public:
   CompileTarget getCompileTarget(const other_policies &,
                                  ExecutionContext *) override {
     CompileTarget ct;
-    ct.emitResourceCounts = true;
-    ct.emitJit = false;
+    ct.pipelineConfig.highLevelPipeline = "custom_other";
     ct.fullySpecialize = false;
     return ct;
   }
@@ -86,7 +85,7 @@ public:
 
 CompileTarget makePlatformCompileTarget() {
   CompileTarget ct;
-  ct.emitJit = false;
+  ct.pipelineConfig.highLevelPipeline = "custom_platform";
   ct.fullySpecialize = true;
   ct.overrideAOTCompilation = false;
   ct.supportDeviceCalls = true;
@@ -187,7 +186,7 @@ TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
   sample_policy policy{.kernelName = "test_kernel"};
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_TRUE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_sample");
   EXPECT_FALSE(ct.fullySpecialize);
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
@@ -198,7 +197,7 @@ TEST(QuantumPlatformCompileTargetTester, usesPlatformOverrideWhenSet) {
   sample_policy policy{.kernelName = "test_kernel"};
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_FALSE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
   EXPECT_FALSE(ct.overrideAOTCompilation);
   EXPECT_TRUE(ct.supportDeviceCalls);
@@ -209,8 +208,7 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
   other_policies policy;
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_TRUE(ct.emitResourceCounts);
-  EXPECT_FALSE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_other");
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
@@ -219,9 +217,8 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
   other_policies policy;
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_FALSE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_platform");
   EXPECT_TRUE(ct.fullySpecialize);
-  EXPECT_FALSE(ct.emitResourceCounts);
 }
 
 TEST(QuantumPlatformCompileTargetTester, rejectsInvalidQpuId) {
@@ -241,7 +238,7 @@ TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
   platform.setCompileTarget(std::nullopt);
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_TRUE(ct.emitJit);
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_sample");
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
 

@@ -6,9 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Register a library for inclusion in the cudaqMLIR bundle.
-function(register_cudaq_mlir_lib name)
-  set_property(GLOBAL APPEND PROPERTY CUDAQ_MLIR_BUNDLE_LIBS ${name})
+# Check that a library is listed in `CUDAQ_MLIR_BUNDLED_LIBS`.
+function(check_registered_mlir_lib name)
+  if(NOT name IN_LIST CUDAQ_MLIR_BUNDLED_LIBS)
+    message(FATAL_ERROR
+      "${name} is not listed in ${CUDAQ_MLIR_BUNDLED_LIBS_PATH}.")
+  endif()
 endfunction()
 
 add_subdirectory(Builder)
@@ -22,7 +25,5 @@ add_subdirectory(Analysis)
 include(cudaqMLIR-shlib.cmake)
 
 # Define a static variant of the bundled MLIR library
-cudaq_read_symbol_list(
-  "${CMAKE_CURRENT_SOURCE_DIR}/mlir-libs-allowlist.txt" _cudaq_mlir_static_libs)
 add_library(cudaq-mlir-static INTERFACE)
-target_link_libraries(cudaq-mlir-static INTERFACE ${_cudaq_mlir_static_libs})
+target_link_libraries(cudaq-mlir-static INTERFACE ${CUDAQ_MLIR_BUNDLED_LIBS})

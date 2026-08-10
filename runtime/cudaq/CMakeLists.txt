@@ -19,6 +19,7 @@ add_library(${LIBRARY_NAME}
     algorithms/draw.cpp
     algorithms/encoding.cpp
     algorithms/evolve.cpp
+    algorithms/policy_compile_options.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
     analysis/Dem.cpp

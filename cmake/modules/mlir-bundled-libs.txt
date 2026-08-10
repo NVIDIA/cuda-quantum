@@ -6,8 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Allowlist of MLIR libraries that cudaqMLIR whole-archives and downstream
-# plugins can link against.
+# Complete list of libraries bundled into libcudaqMLIR.so.
+#
+# The only entries not listed are the target-specific codegen libraries, which
+# AddCUDAQ.cmake resolves through llvm_map_components_to_libnames() for
+# "native nativecodegen" because they differ per architecture (LLVMX86* on
+# x86_64, LLVMAArch64* on arm64).
+
+# CUDA-Q dialect / transform libraries
+CCDialect
+QuakeDialect
+QECDialect
+OptTransforms
+OptCodeGen
+OptimBuilder
+OptAnalysis
 
 # Core IR + support
 MLIRIR
@@ -16,6 +29,7 @@ MLIRSupport
 # Textual parsing and printing
 MLIRParser
 MLIRAsmParser
+MLIRBytecodeWriter
 
 # Pass + analysis infrastructure
 MLIRPass
@@ -40,9 +54,11 @@ MLIRSideEffectInterfaces
 
 # Foundational building-block dialects most custom dialects/lowerings reuse
 MLIRFuncDialect
+MLIRFuncTransforms
 MLIRFuncInlinerExtension
 MLIRArithDialect
 MLIRControlFlowDialect
+MLIRSCFDialect
 MLIRComplexDialect
 MLIRMathDialect
 MLIRLLVMDialect
@@ -58,8 +74,10 @@ MLIRTranslateLib
 # LLVM IR code-generation (lowering + export)
 MLIRTargetLLVMIRExport
 MLIRLLVMCommonConversion
+MLIRToLLVMIRTranslationRegistration
 MLIRLLVMToLLVMIRTranslation
 MLIRBuiltinToLLVMIRTranslation
+MLIRLLVMIRToLLVMTranslation
 MLIROpenMPToLLVMIRTranslation
 MLIRLLVMIRTransforms
 
@@ -69,6 +87,13 @@ MLIRArithToLLVM
 MLIRComplexToLibm
 MLIRComplexToLLVM
 MLIRControlFlowToLLVM
+MLIRSCFTransforms
+MLIRSCFToControlFlow
 MLIRFuncToLLVM
 MLIRMathToFuncs
 MLIRMathToLLVM
+
+# LLVM support libraries.
+LLVMSupport
+LLVMCore
+LLVMOrcJIT

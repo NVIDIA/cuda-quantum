@@ -44,14 +44,6 @@ struct CompileTarget {
     /// Optional pass pipeline to run after code generation.
     std::string postCodeGenPasses;
 
-    /// Whether to skip the target lowering compilation pipeline.
-    ///
-    /// Local analysis contexts set this to true: they JIT the kernel directly
-    /// for an analysis simulator. The target lowering pipeline would otherwise
-    /// erase operations such as noise or QEC, or fail to legalize them during
-    /// code generation.
-    bool skipTargetLoweringPipeline = false;
-
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
 
@@ -63,6 +55,12 @@ struct CompileTarget {
 
     /// Whether to run the add-measurements pass.
     bool addMeasurements = false;
+
+    /// Whether the pipeline is empty.
+    bool empty() const {
+      return overridePassPipeline.empty() && highLevelPipeline.empty() &&
+             midLevelPipeline.empty() && lowLevelPipeline.empty();
+    }
   };
 
   /// Pipeline configuration, populated by the constructor.
@@ -71,38 +69,11 @@ struct CompileTarget {
   /// Whether to emulate execution locally.
   bool emulate = false;
 
-  /// Issue a warning if named measurements are contained in the kernel.
-  bool warnNamedMeasurements = false;
-
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
 
   /// Whether device calls are supported by the target.
   bool supportDeviceCalls = false;
-
-  /// Whether to retrieve mapping reorder indices from MLIR and store it as
-  /// compiled metadata.
-  bool storeReorderIdx = false;
-
-  /// Whether to generate resource counts.
-  ///
-  /// When true, the compiler will generate resource counts during compilation
-  /// and simplify the IR to remove all quantum operations already accounted
-  /// for in the counts.
-  bool emitResourceCounts = false;
-
-  /// Whether to create local JIT artifacts even when not emulating the target.
-  ///
-  /// Analysis contexts that execute locally, but are entered through a remote
-  /// platform, use this to run the kernel under the analysis simulator instead
-  /// of submitting it to the remote executor.
-  bool emitJit = false;
-
-  /// Whether to translate MLIR artifacts into target transport code.
-  ///
-  /// Local analysis contexts can set this to false when they only need the JIT
-  /// artifact and do not need a QIR/QASM payload for the remote backend.
-  bool emitTargetCode = true;
 
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
