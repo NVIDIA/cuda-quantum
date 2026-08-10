@@ -35,11 +35,6 @@ on:
         description: Build and include macOS wheels and installer.
         required: false
         default: true
-      run_publishing_after:
-        type: boolean
-        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
-        required: false
-        default: false
   workflow_run:
     workflows:
       - PR merged
@@ -167,17 +162,6 @@ jobs:
           path: deployment_info.txt
           retention-days: 30
           if-no-files-found: error
-
-      - name: Upload publishing flag
-        if: github.event_name == 'workflow_dispatch'
-        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
-      - name: Upload publishing_requested artifact
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v7
-        with:
-          name: publishing_requested
-          path: publishing_requested.txt
-          retention-days: 1
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -712,9 +696,6 @@ jobs:
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
-          suffix="-base"
-          image_tag="${image_tag}${suffix}"
-
           stitched_tag="${registry}:${image_tag}"
 
           echo "Stitching release image with tag: $stitched_tag"
@@ -723,7 +704,7 @@ jobs:
           retry docker buildx imagetools create --tag "$stitched_tag" $refs
           digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
-          stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "release-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
           echo "$stitched_output" | tee stitched_digests.json
 
       - name: Read stitched_digests.json
@@ -799,7 +780,7 @@ jobs:
           artifact_name="image_cu${cuda_major}_publishing"            
           info_file="$artifact_name.txt"
 
-          key="base-cu${cuda_major}"
+          key="release-cu${cuda_major}"
           cudaq_reference=$(echo "$STITCHED_CUDAQ_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
           key="dev-cu${cuda_major}"
@@ -886,15 +867,15 @@ jobs:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
       cudaq_version: ${{ inputs.create_release }}
 
-  trigger_publishing:
-    name: Trigger Publishing
+  trigger_validation:
+    name: Trigger Validation
     needs: [summary, python_wheels, binaries]
-    if: inputs.run_publishing_after
+    if: ${{ ! inputs.devcontainer_only }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
-      - name: Trigger Publishing workflow
+      - name: Trigger Validation workflow
         uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -903,7 +884,7 @@ jobs:
             const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'publishing.yml',
+              workflow_id: 'validation.yml',
               ref: context.ref.replace('refs/heads/', ''),
               inputs: {
                 deployment_id: context.runId.toString(),
