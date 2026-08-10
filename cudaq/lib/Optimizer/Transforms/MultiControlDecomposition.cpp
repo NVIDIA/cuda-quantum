@@ -92,9 +92,14 @@ Decomposer::extractControls(cudaq::quake::OperatorInterface op,
 ArrayRef<Value> Decomposer::getAncillas(Location loc, std::size_t numAncillas) {
   OpBuilder::InsertionGuard g(builder);
   builder.setInsertionPointToStart(entryBlock);
-  // If we don't have enough ancillas, allocate some more.
-  for (size_t i = allocatedAncillas.size(); i < numAncillas; ++i)
-    allocatedAncillas.push_back(cudaq::quake::AllocaOp::create(builder, loc));
+  // If we don't have enough ancillas, allocate some more. The allocations land
+  // at the top of the entry block, so they do not follow the kernel's own
+  // qubits; mark them instead of relying on that order.
+  for (size_t i = allocatedAncillas.size(); i < numAncillas; ++i) {
+    auto alloca = cudaq::quake::AllocaOp::create(builder, loc);
+    cudaq::quake::markAsAncilla(alloca);
+    allocatedAncillas.push_back(alloca);
+  }
   return {allocatedAncillas.begin(), allocatedAncillas.begin() + numAncillas};
 }
 

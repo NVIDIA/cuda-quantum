@@ -63,7 +63,17 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
 
       // Allocate a qubit register with a size known at runtime time
       %veq = quake.alloca(%size : i32) !quake.veq<?>
+
+      // Allocate an ancilla qubit
+      %anc = quake.alloca {quake.ancilla} !quake.ref
     ```
+
+    A pass that introduces scratch qubits of its own should tag the allocations
+    it creates with the discardable unit attribute `quake.ancilla`, which is a
+    promise that those qubits are returned to the |0> state by the end of the
+    kernel. Analyses use the attribute to separate the kernel's own qubits from
+    the ones a rewrite added; without it they have to fall back on allocation
+    order, which no pass is obliged to respect.
 
     Canonicalization for this op will fold constant vector sizes directly into
     the type.

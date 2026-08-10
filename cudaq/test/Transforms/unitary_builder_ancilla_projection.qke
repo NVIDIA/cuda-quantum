@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A clean ancilla at an interior index projects out, and the projected operator
+// is the baseline below.
+// RUN: CircuitCheck -input %S/Inputs/ancilla_interleaved.qke %s
+
+// The same circuit with the ancilla left dirty must be rejected instead of
+// silently projected.
+// RUN: not CircuitCheck -input %S/Inputs/ancilla_dirty.qke %s 2>&1 | FileCheck %s
+
+// CHECK: Failed to clean up ancilla qubits
+// CHECK: Cannot compute unitary for ccc_x
+
+// Baseline: a three-control X, with no ancillas at all.
+func.func @ccc_x() {
+  %v = quake.alloca !quake.veq<4>
+  %c0 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %c1 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %c2 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %t = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.x [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}

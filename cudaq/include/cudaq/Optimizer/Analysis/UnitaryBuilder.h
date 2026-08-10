@@ -61,6 +61,9 @@ private:
   void negatedControls(mlir::ArrayRef<bool> negatedControls,
                        mlir::ArrayRef<Qubit> qubits);
 
+  /// Projects the ancillas out of the operator, leaving the action on the
+  /// system qubits alone. numQubits is the number of qubits that came in as
+  /// function arguments, used only when the kernel has no marked ancillas.
   mlir::LogicalResult deallocateAncillas(std::size_t numQubits);
 
   //===--------------------------------------------------------------------===//
@@ -96,6 +99,10 @@ private:
   /// single qubits and registers, we add single qubits to this map as a vector
   /// of size one.
   mlir::DenseMap<mlir::Value, mlir::SmallVector<Qubit, 4>> qubitMap;
+
+  /// Identifiers of the qubits that came from allocations marked with
+  /// `quake.ancilla`. These can be at any index, in any order.
+  mlir::SmallVector<Qubit, 4> ancillaQubits;
 };
 
 // rtol : Relative tolerance

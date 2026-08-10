@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Analysis/UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "llvm/ADT/bit.h"
 #include <algorithm>
 #include <numeric>
 
@@ -143,6 +144,8 @@ WalkResult UnitaryBuilder::allocateQubits(Value value) {
   } else {
     qubits.push_back(getNumQubits());
   }
+  if (cudaq::quake::isAncilla(value.getDefiningOp()))
+    llvm::append_range(ancillaQubits, qubits);
   growMatrix(qubits.size());
   return WalkResult::advance();
 }
@@ -201,22 +204,51 @@ void UnitaryBuilder::negatedControls(ArrayRef<bool> negatedControls,
 }
 
 LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
-  if (numQubits == 0 || matrix.rows() == (1 << numQubits))
-    return success();
-  const std::size_t size = (1ULL << numQubits);
-  UMatrix newMatrix = matrix.block(0, 0, size, size);
-  for (std::size_t i = 0; i < (1ULL << (getNumQubits() - numQubits)); ++i)
-    matrix.block(i * size, i * size, size, size).setZero();
-
-  // If the resulting matrix is not zero, we have dirty ancillas.
-  auto applyTolerance = [](cudaq::UnitaryBuilder::UMatrix &m) {
-    m = (1e-12 < m.array().abs()).select(m, 0.0f);
-  };
-  applyTolerance(matrix);
-  if (!matrix.isZero()) {
-    llvm::errs() << "Failed to clean up ancilla qubits.\n";
-    return failure();
+  // Qubit `k` occupies bit `1 << k`, and marked ancillas can sit at any index,
+  // hence the bitmask. Without markers, fall back to the older rule: anything
+  // allocated after the function arguments is scratch.
+  std::size_t ancillaMask = 0;
+  if (!ancillaQubits.empty()) {
+    for (Qubit qubit : ancillaQubits)
+      ancillaMask |= (1ULL << qubit);
+  } else {
+    if (numQubits == 0)
+      return success();
+    for (std::size_t qubit = numQubits, end = getNumQubits(); qubit < end;
+         ++qubit)
+      ancillaMask |= (1ULL << qubit);
   }
+  if (ancillaMask == 0)
+    return success();
+
+  const std::size_t dim = matrix.rows();
+  // The ancillas must be returned to whichever computational basis state they
+  // came in as, i.e. the operator has to be block diagonal in the ancilla
+  // index. Anything that mixes two different ancilla states is a dirty
+  // ancilla.
+  constexpr double tolerance = 1e-12;
+  for (std::size_t col = 0; col < dim; ++col)
+    for (std::size_t row = 0; row < dim; ++row)
+      if ((row & ancillaMask) != (col & ancillaMask) &&
+          std::abs(matrix(row, col)) > tolerance) {
+        llvm::errs() << "Failed to clean up ancilla qubits.\n";
+        return failure();
+      }
+
+  // Gather the |ancillas = 0> block. Dropping the ancilla bits preserves the
+  // order of the remaining indices, so collecting them in increasing order
+  // already puts the system qubits back in their own index order.
+  SmallVector<std::size_t> systemIndices;
+  systemIndices.reserve(dim >> llvm::popcount(ancillaMask));
+  for (std::size_t index = 0; index < dim; ++index)
+    if ((index & ancillaMask) == 0)
+      systemIndices.push_back(index);
+
+  const std::size_t size = systemIndices.size();
+  UMatrix newMatrix(size, size);
+  for (std::size_t col = 0; col < size; ++col)
+    for (std::size_t row = 0; row < size; ++row)
+      newMatrix(row, col) = matrix(systemIndices[row], systemIndices[col]);
 
   matrix.swap(newMatrix);
   return success();
