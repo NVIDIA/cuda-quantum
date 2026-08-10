@@ -143,36 +143,6 @@ createDefaultCompileTarget(quantum_platform *platform = nullptr) {
   ct.overrideAOTCompilation = false;
   return ct;
 }
-cudaq::CompileTarget getDefaultCompileTarget(const async_sample_policy &p) {
-  return getDefaultCompileTarget(p.inner);
-}
-cudaq::CompileTarget getDefaultCompileTarget(const observe_policy &) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  return ct;
-}
-cudaq::CompileTarget getDefaultCompileTarget(const run_policy &) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  return ct;
-}
-cudaq::CompileTarget getDefaultCompileTarget(const dem_policy &) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  ct.emitJit = true;
-  ct.emitTargetCode = false;
-  ct.pipelineConfig.skipTargetLoweringPipeline = true;
-  return ct;
-}
-cudaq::CompileTarget getDefaultCompileTarget(const other_policies &,
-                                             ExecutionContext *context) {
-  auto ct = getDefaultPythonCompileTargetImpl();
-  ct.overrideAOTCompilation = false;
-  ct.emitResourceCounts = context && context->name == "resource-count";
-  if (context && context->name == "tracer")
-    ct.pipelineConfig.disableQuantumOpts = true;
-  return ct;
-}
 
 std::future<sample_result>
 quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,

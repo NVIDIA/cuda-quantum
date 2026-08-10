@@ -70,7 +70,6 @@ public:
 
   using QPU::getCompileTarget;
   CompileTarget getCompileTarget(const sample_policy &policy) override;
-  CompileTarget getCompileTarget(const async_sample_policy &policy) override;
 
   CompileTarget getCompileTarget(const observe_policy &policy) override;
 

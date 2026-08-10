@@ -57,14 +57,6 @@ cudaq::CompileTarget get_compile_target(const Policy &policy) {
 cudaq::CompileTarget
 createDefaultCompileTarget(quantum_platform *platform = nullptr);
 
-cudaq::CompileTarget getDefaultCompileTarget(const sample_policy &policy);
-cudaq::CompileTarget getDefaultCompileTarget(const async_sample_policy &policy);
-cudaq::CompileTarget getDefaultCompileTarget(const observe_policy &policy);
-cudaq::CompileTarget getDefaultCompileTarget(const run_policy &policy);
-cudaq::CompileTarget getDefaultCompileTarget(const dem_policy &policy);
-cudaq::CompileTarget getDefaultCompileTarget(const other_policies &policy,
-                                             ExecutionContext *context);
-
 // Declare this function, implemented elsewhere
 std::string getQIR(const std::string &);
 

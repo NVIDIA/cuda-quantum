@@ -61,6 +61,10 @@ struct CompileOptions {
   /// Make the required adjustments to target an emulator rather than the real
   /// device.
   bool emulate = false;
+
+  /// Whether to disable quantum optimization passes (e.g. value semantics
+  /// lowering). Used in tracer mode.
+  bool disableQuantumOpts = false;
 };
 
 /// A temporary function to modify the compile options based on the target.

@@ -61,10 +61,6 @@ struct CompileTarget {
       return overridePassPipeline.empty() && highLevelPipeline.empty() &&
              midLevelPipeline.empty() && lowLevelPipeline.empty();
     }
-
-    /// Whether to disable quantum optimization passes (e.g. value semantics
-    /// lowering). Set implicitly when compiling for cudaq.sample.
-    bool disableQuantumOpts = false;
   };
 
   /// Pipeline configuration, populated by the constructor.
