@@ -131,6 +131,13 @@ inline double i2f(int64_t bits) {
 // -----------------------------------------------------------------------
 // PulseModule: opaque handle around an in-memory mlir::ModuleOp
 // -----------------------------------------------------------------------
+// TODO(pulse): this wrapper owns the MLIRContext + ModuleOp and maps pass
+// names through the if/else chain in run_passes() below. A cleaner design
+// (tracked as a follow-up) is to expose MLIR's own MlirModule/MlirPassManager
+// and register the pulse passes so PassManager pipeline strings parse
+// directly, removing this bespoke wrapper. Deferred here because it threads
+// through the Python frontend (compile.py/jit.py/evolve.py) and warrants its
+// own change + validation pass.
 class PulseModule {
 public:
   PulseModule(std::shared_ptr<mlir::MLIRContext> ctx,

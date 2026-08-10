@@ -6,11 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-// CAPI entry point for pulse-canonicalize: exposes MLIR's
-// applyPatternsAndFoldGreedily to Python callers via a thin C API.
+// CAPI entry point for pulse-canonicalize: exposes MLIR's greedy pattern
+// rewrite driver to Python callers via a thin C API. It runs the same
+// canonicalization every loaded op registers (e.g. the Pulse ops declared with
+// `hasCanonicalizer = 1`), gathered the way MLIR's own `-canonicalize` pass
+// does.
 
 #include "mlir-c/IR.h"
 #include "mlir/CAPI/IR.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
@@ -19,7 +24,15 @@ extern "C" {
 MLIR_CAPI_EXPORTED MlirLogicalResult
 cudaqPulseRunCanonicalize(MlirOperation op) {
   mlir::Operation *cppOp = unwrap(op);
-  mlir::RewritePatternSet patterns(cppOp->getContext());
+  mlir::MLIRContext *context = cppOp->getContext();
+
+  // Collect the canonicalization patterns registered by every loaded op,
+  // exactly as the built-in canonicalizer pass does, so pulse ops with
+  // `hasCanonicalizer = 1` actually fold here instead of this being a no-op.
+  mlir::RewritePatternSet patterns(context);
+  for (mlir::RegisteredOperationName registeredOp :
+       context->getRegisteredOperations())
+    registeredOp.getCanonicalizationPatterns(patterns, context);
 
   mlir::GreedyRewriteConfig config;
   auto result = mlir::applyPatternsGreedily(cppOp, std::move(patterns), config);

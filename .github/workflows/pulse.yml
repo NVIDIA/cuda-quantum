@@ -10,6 +10,10 @@ name: Pulse research preview
 
 on:
   workflow_dispatch:
+  # These trigger-level filters are a coarse pre-gate only. YAML `paths:` cannot
+  # be sourced from a file, so they duplicate the prefixes owned by
+  # .github/research-preview-paths.txt (plus the shared build files); the
+  # authoritative check in the `changes` job below reads that registry directly.
   push:
     branches:
       - main
@@ -44,19 +48,33 @@ jobs:
     outputs:
       pulse: ${{ steps.filter.outputs.matched }}
     steps:
-      - name: Check out changed-path action
+      - name: Check out changed-path action and path registry
         uses: actions/checkout@v6
         with:
-          sparse-checkout: .github/actions/check-changed-paths
+          sparse-checkout: |
+            .github/actions/check-changed-paths
+            .github/research-preview-paths.txt
+
+      - name: Assemble pulse path filter
+        id: paths
+        shell: bash
+        # research-preview-paths.txt is the single source of truth for the
+        # pulse-owned prefixes; add the shared build files that also affect
+        # pulse but are not preview-owned.
+        run: |
+          {
+            echo 'value<<EOF'
+            grep -vE '^[[:space:]]*(#|$)' .github/research-preview-paths.txt
+            echo 'CMakeLists.txt'
+            echo '.github/workflows/pulse.yml'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Check changed paths
         id: filter
         uses: ./.github/actions/check-changed-paths
         with:
-          paths: |
-            pulse/
-            CMakeLists.txt
-            .github/workflows/pulse.yml
+          paths: ${{ steps.paths.outputs.value }}
 
   quality:
     name: Check pulse license headers
