@@ -44,6 +44,12 @@ enum class DomainRejectionKind {
   DynamicQubitRegister,
   /// The kernel uses more qubits than the exact-unitary bound allows.
   TooManyQubits,
+  /// The kernel's ancillas are not returned to the computational basis state
+  /// they came in as, so the operator cannot be reduced to one on the system
+  /// qubits alone. Unlike the kinds above this is not a `preflight` verdict:
+  /// it is only visible once the unitary has been built, and it is reported
+  /// through UnitaryComparisonResult.
+  AncillaNotRestored,
 };
 
 /// Return a stable, machine-consumable slug for \p kind (e.g. "measurement").
@@ -68,6 +74,10 @@ struct BoundedUnitaryDomainStatus {
   bool supported = true;
   /// The largest statically-known qubit count observed across kernels.
   std::size_t maxQubits = 0;
+  /// Of those, the largest number contributed by allocations marked with
+  /// `quake.ancilla`. Ancillas count against the same flat bound as any other
+  /// qubit (a 2^n matrix does not care what a qubit is for).
+  std::size_t maxAncillaQubits = 0;
   /// All rejections found, in discovery order. Empty iff supported.
   llvm::SmallVector<DomainRejection> rejections;
 };
@@ -89,6 +99,22 @@ BoundedUnitaryDomainStatus
 checkBoundedUnitaryDomain(mlir::ModuleOp module,
                           unsigned exactQubitBound = kDefaultExactQubitBound);
 
+/// What an equivalence verdict is a statement about.
+enum class EquivalenceGuarantee {
+  /// Neither kernel used ancillas. The verdict covers the whole operator.
+  Exact,
+  /// At least one kernel introduced ancillas, which were checked to be
+  /// returned to the basis state they came in as and then projected out. The
+  /// verdict is that the two kernels agree on the system qubits when the
+  /// ancillas start in |0>. It says nothing about ancillas that arrive in some
+  /// other state (the borrowed-ancilla claim), which is a stronger property
+  /// this oracle does not check.
+  CleanAncilla,
+};
+
+/// Return a stable slug for guarantee ("exact", "clean-ancilla").
+llvm::StringRef toString(EquivalenceGuarantee guarantee);
+
 /// Result of an exact unitary comparison of two straight-line kernels.
 struct UnitaryComparisonResult {
   /// True iff both unitaries were built and have matching dimensions. When
@@ -103,6 +129,17 @@ struct UnitaryComparisonResult {
   double phase = 0.0;
   /// True iff phase is within tolerance of zero.
   bool phaseIsZero = false;
+  /// What the verdict is a statement about. See EquivalenceGuarantee.
+  EquivalenceGuarantee guarantee = EquivalenceGuarantee::Exact;
+  /// True iff the candidate left its ancillas dirty. This is a negative
+  /// verdict, not a failure to compare. Computed stays true and the kernels
+  /// are reported as not equivalent. A baseline with dirty ancillas is a
+  /// different matter (there is nothing to compare against) and reports
+  /// computed == false instead.
+  bool ancillaNotRestored = false;
+  /// Qubits projected out as ancillas on each side.
+  std::size_t baselineAncillas = 0;
+  std::size_t candidateAncillas = 0;
   /// Populated only when computed is false.
   std::string error;
 };

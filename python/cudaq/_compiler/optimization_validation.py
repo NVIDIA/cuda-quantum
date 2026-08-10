@@ -78,6 +78,21 @@ INVARIANT_FIXED_POINT = "fixed-point"
 INVARIANT_KINDS = (INVARIANT_EQUIVALENCE, INVARIANT_DETERMINISM,
                    INVARIANT_FIXED_POINT)
 
+# What an equivalence verdict is a statement about.
+#
+#   `exact`           Neither kernel used ancillas. The verdict covers the whole
+#                     operator.
+#
+#   `clean-ancilla`   A kernel introduced ancilla qubits (allocations marked
+#                     `quake.ancilla`). They were checked to be returned to the
+#                     basis state they came in as and projected out, so the
+#                     verdict is that the two kernels agree on the system qubits
+#                     when the ancillas start in |0>. It is not a claim about
+#                     ancillas that arrive in any other state.
+GUARANTEE_EXACT = "exact"
+GUARANTEE_CLEAN_ANCILLA = "clean-ancilla"
+GUARANTEE_KINDS = (GUARANTEE_EXACT, GUARANTEE_CLEAN_ANCILLA)
+
 
 @dataclass(frozen=True)
 class OracleDescriptor:
@@ -196,6 +211,7 @@ class OracleDecision:
     equal_up_to_global_phase: bool = False
     phase: float = 0.0
     phase_is_zero: bool = False
+    guarantee: str = GUARANTEE_EXACT
 
 
 class Oracle(abc.ABC):
@@ -275,6 +291,12 @@ class DenseUnitaryOracle(Oracle):
         equivalent = computed and _equivalent(self.kind, comparison)
         if not computed:
             detail = f"comparison failed: {comparison['error']}"
+        elif comparison.get("ancilla_not_restored", False):
+            # A determinate negative verdict, not a failure to compare. The
+            # candidate's ancillas come back entangled with the system qubits,
+            # so it does not implement the baseline operator on them.
+            detail = (f"not equivalent under oracle '{self.kind}': "
+                      "ancilla-not-restored")
         elif not equivalent:
             detail = f"not equivalent under oracle '{self.kind}'"
         else:
@@ -289,7 +311,8 @@ class DenseUnitaryOracle(Oracle):
             equal_up_to_global_phase=bool(
                 comparison.get("equal_up_to_global_phase", False)),
             phase=float(comparison.get("phase", 0.0)),
-            phase_is_zero=bool(comparison.get("phase_is_zero", False)))
+            phase_is_zero=bool(comparison.get("phase_is_zero", False)),
+            guarantee=str(comparison.get("guarantee", GUARANTEE_EXACT)))
 
 
 class CliffordTableauOracle(Oracle):
@@ -421,6 +444,8 @@ class CaseResult:
     equal_up_to_global_phase: bool
     phase: float
     phase_is_zero: bool
+    # What the verdict is a statement about; one of GUARANTEE_KINDS.
+    guarantee: str
     # Semantic `invariants` (equivalence, determinism, fixed-point).
     invariants: tuple[InvariantResult, ...]
     metrics: tuple[MetricDelta, ...]
@@ -687,6 +712,7 @@ def _failed_case(path: Path,
         equal_up_to_global_phase=False,
         phase=0.0,
         phase_is_zero=False,
+        guarantee=GUARANTEE_EXACT,
         invariants=(),
         metrics=(),
         messages=tuple(messages),
@@ -802,6 +828,7 @@ def _evaluate_observed(baseline_obs: Module, candidate_obs: Module,
         equal_up_to_global_phase=decision.equal_up_to_global_phase,
         phase=decision.phase,
         phase_is_zero=decision.phase_is_zero,
+        guarantee=decision.guarantee,
         invariants=invariants,
         metrics=tuple(metrics),
         messages=tuple(messages),

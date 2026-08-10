@@ -38,6 +38,18 @@ llvm::StringRef toString(DomainRejectionKind kind) {
     return "dynamic-qubit-register";
   case DomainRejectionKind::TooManyQubits:
     return "too-many-qubits";
+  case DomainRejectionKind::AncillaNotRestored:
+    return "ancilla-not-restored";
+  }
+  return "unknown";
+}
+
+llvm::StringRef toString(EquivalenceGuarantee guarantee) {
+  switch (guarantee) {
+  case EquivalenceGuarantee::Exact:
+    return "exact";
+  case EquivalenceGuarantee::CleanAncilla:
+    return "clean-ancilla";
   }
   return "unknown";
 }
@@ -63,6 +75,7 @@ struct KernelChecker {
   StringRef kernel;
   unsigned exactQubitBound;
   std::size_t qubits = 0;
+  std::size_t ancillaQubits = 0;
   bool sawDynamicRegister = false;
 
   void reject(DomainRejectionKind kind, Operation *op, std::string detail) {
@@ -72,10 +85,14 @@ struct KernelChecker {
   }
 
   /// Add the qubits contributed by \p ty to the running tally, flagging a
-  /// dynamic register at most once per kernel.
+  /// dynamic register at most once per kernel. Ancillas are counted twice on
+  /// purpose: once in the total, which is what the bound applies to, and once
+  /// on their own so the split can be reported.
   void tally(Type ty, Operation *op) {
     if (auto n = qubitsInType(ty)) {
       qubits += *n;
+      if (quake::isAncilla(op))
+        ancillaQubits += *n;
     } else if (isa<quake::VeqType>(ty) && !sawDynamicRegister) {
       sawDynamicRegister = true;
       reject(DomainRejectionKind::DynamicQubitRegister, op,
@@ -124,6 +141,8 @@ BoundedUnitaryDomainStatus checkBoundedUnitaryDomain(ModuleOp module,
     });
 
     status.maxQubits = std::max(status.maxQubits, checker.qubits);
+    status.maxAncillaQubits =
+        std::max(status.maxAncillaQubits, checker.ancillaQubits);
 
     if (!checker.sawDynamicRegister && checker.qubits > exactQubitBound)
       checker.reject(DomainRejectionKind::TooManyQubits, func.getOperation(),
@@ -282,11 +301,17 @@ CliffordDomainStatus checkCliffordDomain(ModuleOp module) {
   return status;
 }
 
-/// Build the dense unitary of \p func directly from the IR.
+/// Build the dense unitary of func directly from the IR, reporting how many
+/// ancillas were projected out and, on failure, whether they were dirty.
 static LogicalResult computeKernelUnitary(func::FuncOp func,
-                                          UnitaryBuilder::UMatrix &unitary) {
+                                          UnitaryBuilder::UMatrix &unitary,
+                                          std::size_t &numAncillas,
+                                          bool &dirtyAncilla) {
   UnitaryBuilder builder(unitary, /*upToMapping=*/false);
-  return builder.build(func);
+  auto status = builder.build(func);
+  numAncillas = builder.getNumAncillas();
+  dirtyAncilla = builder.sawDirtyAncilla();
+  return status;
 }
 
 UnitaryComparisonResult compareUnitaries(func::FuncOp baseline,
@@ -296,14 +321,31 @@ UnitaryComparisonResult compareUnitaries(func::FuncOp baseline,
 
   UnitaryBuilder::UMatrix baselineU;
   UnitaryBuilder::UMatrix candidateU;
-  if (failed(computeKernelUnitary(baseline, baselineU))) {
-    result.error = "failed to build baseline unitary";
+  bool dirtyAncilla = false;
+  if (failed(computeKernelUnitary(baseline, baselineU, result.baselineAncillas,
+                                  dirtyAncilla))) {
+    // A baseline that does not restore its own ancillas leaves nothing to
+    // compare against, so it stays an error rather than a verdict.
+    result.error = dirtyAncilla ? "baseline ancillas not restored to |0>"
+                                : "failed to build baseline unitary";
     return result;
   }
-  if (failed(computeKernelUnitary(candidate, candidateU))) {
-    result.error = "failed to build candidate unitary";
+  if (failed(computeKernelUnitary(candidate, candidateU,
+                                  result.candidateAncillas, dirtyAncilla))) {
+    if (!dirtyAncilla) {
+      result.error = "failed to build candidate unitary";
+      return result;
+    }
+    // The candidate is a well-formed circuit that answers the equivalence
+    // question in the negative. It does not implement the baseline operator on
+    // the system qubits, whatever the ancillas started as.
+    result.computed = true;
+    result.ancillaNotRestored = true;
+    result.guarantee = EquivalenceGuarantee::CleanAncilla;
     return result;
   }
+  if (result.baselineAncillas != 0 || result.candidateAncillas != 0)
+    result.guarantee = EquivalenceGuarantee::CleanAncilla;
   if (baselineU.rows() != candidateU.rows() ||
       baselineU.cols() != candidateU.cols()) {
     result.error = "unitary dimension mismatch (different qubit counts)";

@@ -29,6 +29,14 @@ public:
 
   mlir::LogicalResult build(mlir::func::FuncOp func);
 
+  /// Number of qubits that were projected out of the operator as ancillas.
+  std::size_t getNumAncillas() const { return numAncillas; }
+
+  /// True if build() failed because the kernel's ancillas were not returned to
+  /// the computational basis state they came in as. This is a property of the
+  /// circuit, not a builder error.
+  bool sawDirtyAncilla() const { return dirtyAncilla; }
+
 private:
   //===--------------------------------------------------------------------===//
   // Visitors
@@ -103,6 +111,11 @@ private:
   /// Identifiers of the qubits that came from allocations marked with
   /// `quake.ancilla`. These can be at any index, in any order.
   mlir::SmallVector<Qubit, 4> ancillaQubits;
+
+  /// How many qubits deallocateAncillas projected out, and whether it found
+  /// them dirty. See getNumAncillas() and sawDirtyAncilla().
+  std::size_t numAncillas = 0;
+  bool dirtyAncilla = false;
 };
 
 // rtol : Relative tolerance

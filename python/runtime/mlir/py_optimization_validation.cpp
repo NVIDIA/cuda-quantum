@@ -60,6 +60,7 @@ static nb::dict preflight_bounded_unitary(MlirModule module,
   nb::dict result;
   result["supported"] = status.supported;
   result["max_qubits"] = status.maxQubits;
+  result["max_ancilla_qubits"] = status.maxAncillaQubits;
   nb::list rejections;
   for (const auto &r : status.rejections) {
     nb::dict entry;
@@ -142,6 +143,10 @@ static nb::dict compare_unitaries(MlirModule baseline, MlirModule candidate,
   result["equal_up_to_global_phase"] = cmp.equalUpToGlobalPhase;
   result["phase"] = cmp.phase;
   result["phase_is_zero"] = cmp.phaseIsZero;
+  result["guarantee"] = std::string(cudaq::opt::toString(cmp.guarantee));
+  result["ancilla_not_restored"] = cmp.ancillaNotRestored;
+  result["baseline_ancillas"] = cmp.baselineAncillas;
+  result["candidate_ancillas"] = cmp.candidateAncillas;
   result["error"] = cmp.error;
   result["kernel"] = baseFunc.getSymName().str();
   return result;
@@ -194,14 +199,16 @@ void cudaq::bindOptimizationValidation(nanobind::module_ &mod) {
           nb::arg("module"),
           nb::arg("exact_qubit_bound") = cudaq::opt::kDefaultExactQubitBound,
           "Classify a Quake module against the bounded-unitary validation "
-          "domain. Returns {supported, max_qubits, rejections[]}.");
+          "domain. Returns {supported, max_qubits, max_ancilla_qubits, "
+          "rejections[]}.");
   mod.def(
       "compare_unitaries", &compare_unitaries, nb::arg("baseline"),
       nb::arg("candidate"), nb::arg("kernel_name").none() = nb::none(),
       nb::arg("rtol") = 1e-5, nb::arg("atol") = 1e-8,
       "Compare two Quake modules' unitaries exactly (no simulator). Returns "
       "{computed, strict_equal, equal_up_to_global_phase, phase, "
-      "phase_is_zero, error, kernel}.");
+      "phase_is_zero, guarantee, ancilla_not_restored, baseline_ancillas, "
+      "candidate_ancillas, error, kernel}.");
   mod.def("preflight_clifford", &preflight_clifford, nb::arg("module"),
           "Classify a Quake module against the Clifford (stabilizer-tableau) "
           "validation domain. There is no qubit bound. Returns {supported, "

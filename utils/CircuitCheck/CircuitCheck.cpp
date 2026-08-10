@@ -51,7 +51,10 @@ static LogicalResult computeUnitary(func::FuncOp func,
                                     cudaq::UnitaryBuilder::UMatrix &unitary,
                                     bool upToMapping = false) {
   cudaq::UnitaryBuilder builder(unitary, upToMapping);
-  return builder.build(func);
+  auto status = builder.build(func);
+  if (failed(status) && builder.sawDirtyAncilla())
+    llvm::errs() << "Failed to clean up ancilla qubits.\n";
+  return status;
 }
 
 int main(int argc, char **argv) {

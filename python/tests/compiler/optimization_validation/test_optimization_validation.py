@@ -26,6 +26,8 @@ from cudaq._compiler.optimization_validation import (
     ASSURANCE_TIER_EXACT_UNITARY,
     CLIFFORD_TABLEAU_ORACLE_KIND,
     DEFAULT_EXACT_QUBIT_BOUND,
+    GUARANTEE_CLEAN_ANCILLA,
+    GUARANTEE_EXACT,
     INVARIANT_KINDS,
     ORACLE_ROADMAP,
     CliffordTableauOracle,
@@ -47,6 +49,7 @@ from cudaq._compiler.optimization_validation import (
     validate,
     validate_artifacts,
 )
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import Module
 
 _INPUTS = Path(__file__).parent / "Inputs"
@@ -55,6 +58,10 @@ _INPUTS = Path(__file__).parent / "Inputs"
 # semantics-preserving candidate to exercise the happy path against.
 _PREPARE = "builtin.module(func.func(memtoreg))"
 _PHASE_FOLDING = "builtin.module(func.func(phase-folding))"
+# A candidate that genuinely shrinks the seeded corpus kernel (it cancels the
+# adjacent involution pair and merges the adjacent rotations, 10 gates -> 7).
+# Tests about metric deltas need a pass that actually moves the count.
+_QUAKE_SIMPLIFY = "builtin.module(func.func(quake-simplify))"
 
 
 def _write(tmp_path, name, text) -> Path:
@@ -368,7 +375,7 @@ def test_baseline_is_isolated_from_candidate(tmp_path):
         _request([good],
                  pipeline=PipelineSpec(
                      prepare="builtin.module(func.func(memtoreg))",
-                     candidate="builtin.module(func.func(canonicalize))"),
+                     candidate=_QUAKE_SIMPLIFY),
                  metrics=(MetricSpec("operation-count", "nonincreasing"),)))
     case = result.cases[0]
     assert case.status == ValidationStatus.PASSED
@@ -394,11 +401,12 @@ def test_violated_metric_predicate_is_invariant_failure(tmp_path):
 
 
 # Metric/objective split: gating vs informational, and no scalar reward
-def _canonicalize_request(good, gating):
+def _simplify_request(good, gating):
+    """A candidate that changes the operation count, against an ``unchanged``
+    predicate: the predicate is violated by construction."""
     return _request([good],
-                    pipeline=PipelineSpec(
-                        prepare=_PREPARE,
-                        candidate="builtin.module(func.func(canonicalize))"),
+                    pipeline=PipelineSpec(prepare=_PREPARE,
+                                          candidate=_QUAKE_SIMPLIFY),
                     metrics=(MetricSpec("operation-count",
                                         "unchanged",
                                         gating=gating),))
@@ -406,7 +414,7 @@ def _canonicalize_request(good, gating):
 
 def test_informational_metric_reports_outcome_but_does_not_gate(tmp_path):
     good = _good_input(tmp_path)
-    result = validate(_canonicalize_request(good, gating=False))
+    result = validate(_simplify_request(good, gating=False))
     case = result.cases[0]
     (metric,) = [m for m in case.metrics if m.name == "operation-count"]
     assert not metric.satisfied
@@ -417,7 +425,7 @@ def test_informational_metric_reports_outcome_but_does_not_gate(tmp_path):
 
 def test_gating_metric_violation_fails_the_case(tmp_path):
     good = _good_input(tmp_path)
-    result = validate(_canonicalize_request(good, gating=True))
+    result = validate(_simplify_request(good, gating=True))
     case = result.cases[0]
     (metric,) = [m for m in case.metrics if m.name == "operation-count"]
     assert not metric.satisfied
@@ -603,3 +611,115 @@ def test_oracle_roadmap_serializes():
     assert len(back["oracle_roadmap"]) == len(ORACLE_ROADMAP)
     for entry in back["oracle_roadmap"]:
         assert {"kind", "tier", "method", "note"} == set(entry.keys())
+
+
+# Ancilla-introducing candidates
+_MULTICONTROL = "builtin.module(func.func(multicontrol-decomposition))"
+
+# A four-control X that allocates its own qubits, so `multicontrol-decomposition`
+# gives its two ancillas the lowest indices.
+_MCX = """
+func.func @mcx() {
+  %v = quake.alloca !quake.veq<5>
+  %c0 = quake.extract_ref %v[0] : (!quake.veq<5>) -> !quake.ref
+  %c1 = quake.extract_ref %v[1] : (!quake.veq<5>) -> !quake.ref
+  %c2 = quake.extract_ref %v[2] : (!quake.veq<5>) -> !quake.ref
+  %c3 = quake.extract_ref %v[3] : (!quake.veq<5>) -> !quake.ref
+  %t = quake.extract_ref %v[4] : (!quake.veq<5>) -> !quake.ref
+  quake.x [%c0, %c1, %c2, %c3] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+# The same three-control X written two ways: with a marked ancilla that is
+# uncomputed, and with the uncompute dropped so the ancilla stays entangled.
+_CCCX = """
+func.func @ccc_x() {
+  %v = quake.alloca !quake.veq<4>
+  %c0 = quake.extract_ref %v[0] : (!quake.veq<4>) -> !quake.ref
+  %c1 = quake.extract_ref %v[1] : (!quake.veq<4>) -> !quake.ref
+  %c2 = quake.extract_ref %v[2] : (!quake.veq<4>) -> !quake.ref
+  %t = quake.extract_ref %v[3] : (!quake.veq<4>) -> !quake.ref
+  quake.x [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+_CCCX_CLEAN_ANCILLA = """
+func.func @ccc_x() {
+  %c0 = quake.alloca !quake.ref
+  %anc = quake.alloca !quake.ref {quake.ancilla}
+  %c1 = quake.alloca !quake.ref
+  %c2 = quake.alloca !quake.ref
+  %t = quake.alloca !quake.ref
+  quake.x [%c0, %c1] %anc : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.x [%c2, %anc] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.x [%c0, %c1] %anc : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+_CCCX_DIRTY_ANCILLA = """
+func.func @ccc_x() {
+  %c0 = quake.alloca !quake.ref
+  %anc = quake.alloca !quake.ref {quake.ancilla}
+  %c1 = quake.alloca !quake.ref
+  %c2 = quake.alloca !quake.ref
+  %t = quake.alloca !quake.ref
+  quake.x [%c0, %c1] %anc : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.x [%c2, %anc] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+
+def _decide(baseline_text, candidate_text) -> OracleDecision:
+    ctx = _make_context()
+    return DenseUnitaryOracle(kind="up-to-global-phase").decide(
+        Module.parse(baseline_text, ctx), Module.parse(candidate_text, ctx),
+        None)
+
+
+def test_ancilla_introducing_candidate_is_certified(tmp_path):
+    """A pass that adds ancillas is certifiable, not a dimension mismatch."""
+    result = validate(
+        _request([_write(tmp_path, "mcx.qke", _MCX)],
+                 pipeline=PipelineSpec(candidate=_MULTICONTROL),
+                 metrics=(MetricSpec("qubit-count", "any", gating=False),)))
+    assert result.status == ValidationStatus.PASSED
+    case = result.cases[0]
+    assert case.equal_up_to_global_phase
+    # The ancillas are real. The candidate is wider than the baseline.
+    qubits = {m.name: m for m in case.metrics}["qubit-count"]
+    assert qubits.candidate > qubits.baseline
+
+
+def test_ancilla_verdict_names_the_weaker_guarantee(tmp_path):
+    """An ancilla verdict is a claim about ancillas starting in |0>, and says so."""
+    decision = _decide(_CCCX, _CCCX_CLEAN_ANCILLA)
+    assert decision.computed and decision.equivalent
+    assert decision.guarantee == GUARANTEE_CLEAN_ANCILLA
+
+
+def test_ancilla_free_verdict_is_exact(tmp_path):
+    result = validate(_request([_good_input(tmp_path)]))
+    assert result.cases[0].guarantee == GUARANTEE_EXACT
+
+
+def test_dirty_ancilla_is_a_verdict_not_an_infrastructure_failure():
+    """A candidate that leaves its ancilla entangled is wrong, not unbuildable."""
+    decision = _decide(_CCCX, _CCCX_DIRTY_ANCILLA)
+    assert decision.supported
+    assert decision.computed
+    assert not decision.equivalent
+    assert "ancilla-not-restored" in decision.detail
+
+
+def test_preflight_reports_the_ancilla_share_of_the_qubit_bound():
+    """Ancillas count against the flat bound."""
+    ctx = _make_context()
+    status = cudaq_runtime.preflight_bounded_unitary(
+        Module.parse(_CCCX_CLEAN_ANCILLA, ctx), DEFAULT_EXACT_QUBIT_BOUND)
+    assert status["supported"]
+    assert status["max_qubits"] == 5
+    assert status["max_ancilla_qubits"] == 1

@@ -96,6 +96,9 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   });
   if (result.wasInterrupted())
     return failure();
+  // A dirty ancilla is reported through sawDirtyAncilla() rather than as a
+  // diagnostic. It is a property of the circuit that callers turn into a
+  // verdict, not a malformed-input error.
   return deallocateAncillas(numQubits);
 }
 
@@ -220,6 +223,7 @@ LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
   }
   if (ancillaMask == 0)
     return success();
+  numAncillas = llvm::popcount(ancillaMask);
 
   const std::size_t dim = matrix.rows();
   // The ancillas must be returned to whichever computational basis state they
@@ -231,7 +235,7 @@ LogicalResult UnitaryBuilder::deallocateAncillas(std::size_t numQubits) {
     for (std::size_t row = 0; row < dim; ++row)
       if ((row & ancillaMask) != (col & ancillaMask) &&
           std::abs(matrix(row, col)) > tolerance) {
-        llvm::errs() << "Failed to clean up ancilla qubits.\n";
+        dirtyAncilla = true;
         return failure();
       }
 
