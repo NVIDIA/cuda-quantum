@@ -326,15 +326,15 @@ protected:
             options.block_decomposition_from_introducing_remnant_edges)
             .str();
 
-    // Always populate counts — repr and downstream helpers depend on them even
-    // when the caller opts out of the full matrices.
-    auto flat = recordedCircuit.flattened();
-    auto stats = flat.compute_stats();
+    // Always populate counts — `repr` and downstream helpers depend on them
+    // even when the caller opts out of the full matrices.
+    auto stats = recordedCircuit.compute_stats();
 
     cudaq::M2DSparseMatrix m2d;
     cudaq::M2OSparseMatrix m2o;
     bool matrices_computed = false;
     if (options.return_measurement_matrices) {
+      auto flat = recordedCircuit.flattened();
       auto [cm2d, cm2o] = computeMeasurementMatrices(
           stats.num_measurements, stats.num_detectors, stats.num_observables,
           flat);
