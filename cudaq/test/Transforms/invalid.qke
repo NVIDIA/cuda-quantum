@@ -67,7 +67,8 @@ func.func @test_struq() {
 // -----
 
 func.func @test_struq() {
-  // expected-error@+1 {{invalid struq member type}}
+  // expected-error@+2 {{invalid struq member type}}
+  // expected-error@+1 {{struq type must have specified size}}
   %0 = quake.alloca !quake.struq<!quake.struq<!quake.veq<3>, !quake.ref>, !quake.veq<7>>
   return
 }
@@ -307,4 +308,63 @@ module {
     return
   }
   cc.global constant private @int_mat (dense<[0, 1, 1, 0]> : tensor<4xi64>) : !cc.array<i64 x 4>
+}
+
+// -----
+
+func.func @invalid_exp_pauli_literal(%theta : f64) {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word must contain only I, X, Y, or Z}}
+  quake.exp_pauli (%theta) %qubits to "XA" : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_control_polarity_count() {
+  %control = quake.alloca !quake.ref
+  %target = quake.alloca !quake.ref
+  // expected-error@+1 {{control polarity count must match control operand count}}
+  quake.x [%control neg [true, false]] %target : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_exp_pauli_literal_length(%theta : f64) {
+  %qubits = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  quake.exp_pauli (%theta) %qubits to "X" : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_exp_pauli_multi_target_literal_length(%theta : f64) {
+  %scalar = quake.alloca !quake.ref
+  %vector = quake.alloca !quake.veq<2>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  quake.exp_pauli (%theta) %scalar, %vector to "XY" : (f64, !quake.ref, !quake.veq<2>) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_exp_pauli_relaxed_literal_length(%theta : f64) {
+  %targets = quake.alloca !quake.veq<2>
+  %relaxed = quake.relax_size %targets : (!quake.veq<2>) -> !quake.veq<?>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  quake.exp_pauli (%theta) %relaxed to "X" : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+// -----
+
+func.func @invalid_exp_pauli_nested_relaxed_literal_length(%theta : f64) {
+  %targets = quake.alloca !quake.veq<2>
+  %relaxed0 = quake.relax_size %targets : (!quake.veq<2>) -> !quake.veq<?>
+  %relaxed1 = quake.relax_size %relaxed0 : (!quake.veq<?>) -> !quake.veq<?>
+  // expected-error@+1 {{literal Pauli word length must match target qubit count}}
+  quake.exp_pauli (%theta) %relaxed1 to "X" : (f64, !quake.veq<?>) -> ()
+  return
 }
