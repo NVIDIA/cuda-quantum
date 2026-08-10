@@ -770,7 +770,9 @@ static bool isDirectlyThreadedPhase(cudaq::quake::PhaseOp first,
        llvm::zip(firstTargets, secondTargets))
     if (!matchesOperand(firstTarget, secondTarget))
       return false;
-  return resultIndex == first.getNumResults();
+  return resultIndex == first.getNumResults() && 
+    llvm::all_of(first.getWires(),
+      [](Value wire) { return wire.hasOneUse(); });
 }
 
 struct EraseZeroPhasePattern : public OpRewritePattern<cudaq::quake::PhaseOp> {
