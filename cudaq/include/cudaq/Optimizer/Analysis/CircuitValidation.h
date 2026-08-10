@@ -110,9 +110,14 @@ enum class EquivalenceGuarantee {
   /// other state (the borrowed-ancilla claim), which is a stronger property
   /// this oracle does not check.
   CleanAncilla,
+  /// The wider kernel was shown to be the narrower one tensored with the
+  /// identity, so it never touches the extra qubits. Stronger than
+  /// CleanAncilla: it holds whatever state the ancillas arrive in.
+  BorrowedAncilla,
 };
 
-/// Return a stable slug for guarantee ("exact", "clean-ancilla").
+/// Return a stable slug for guarantee ("exact", "clean-ancilla",
+/// "borrowed-ancilla").
 llvm::StringRef toString(EquivalenceGuarantee guarantee);
 
 /// Result of an exact unitary comparison of two straight-line kernels.
@@ -233,8 +238,12 @@ struct CliffordComparisonResult {
   /// not represent global phase, so this is inherently an up-to-global-phase
   /// verdict (the same acceptance signal as the dense-unitary oracle).
   bool equivalent = false;
+  /// What the verdict is a statement about. A width difference is checked as
+  /// a tensor with the identity, which earns BorrowedAncilla rather than the
+  /// dense oracle's weaker CleanAncilla.
+  EquivalenceGuarantee guarantee = EquivalenceGuarantee::Exact;
   /// Populated only when computed is false (a non-Clifford op slipped past the
-  /// domain `preflight`, or the kernels differ in qubit count).
+  /// domain `preflight`).
   std::string error;
 };
 
@@ -245,6 +254,10 @@ struct CliffordComparisonResult {
 /// no qubit bound: the tableau is polynomial in the qubit count. Because a
 /// tableau does not track global phase, equality is inherently up to a global
 /// phase.
+///
+/// Kernels of different widths are compared by padding the narrower tableau
+/// with identity, so a kernel that took on ancillas certifies exactly when it
+/// leaves them untouched.
 CliffordComparisonResult compareTableaux(mlir::func::FuncOp baseline,
                                          mlir::func::FuncOp candidate);
 

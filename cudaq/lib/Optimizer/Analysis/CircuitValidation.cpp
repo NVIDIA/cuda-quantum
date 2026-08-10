@@ -50,6 +50,8 @@ llvm::StringRef toString(EquivalenceGuarantee guarantee) {
     return "exact";
   case EquivalenceGuarantee::CleanAncilla:
     return "clean-ancilla";
+  case EquivalenceGuarantee::BorrowedAncilla:
+    return "borrowed-ancilla";
   }
   return "unknown";
 }

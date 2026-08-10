@@ -113,6 +113,7 @@ static nb::dict compare_tableaux(MlirModule baseline, MlirModule candidate,
   auto cmp = cudaq::opt::compareTableaux(baseFunc, candFunc);
   result["computed"] = cmp.computed;
   result["equivalent"] = cmp.equivalent;
+  result["guarantee"] = std::string(cudaq::opt::toString(cmp.guarantee));
   result["error"] = cmp.error;
   result["kernel"] = baseFunc.getSymName().str();
   return result;
@@ -216,8 +217,10 @@ void cudaq::bindOptimizationValidation(nanobind::module_ &mod) {
   mod.def("compare_tableaux", &compare_tableaux, nb::arg("baseline"),
           nb::arg("candidate"), nb::arg("kernel_name").none() = nb::none(),
           "Compare two Clifford Quake modules by their stabilizer tableaux (no "
-          "simulator, no qubit bound). Equality is up to a global phase. "
-          "Returns {computed, equivalent, error, kernel}.");
+          "simulator, no qubit bound). Equality is up to a global phase, and "
+          "kernels of different widths are compared as a tensor with the "
+          "identity. Returns {computed, equivalent, guarantee, error, "
+          "kernel}.");
   mod.def("count_resources_checkpoint", &count_resources_checkpoint,
           nb::arg("module"),
           "Count resources from a Quake module at its current checkpoint "

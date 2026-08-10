@@ -26,6 +26,7 @@ from cudaq._compiler.optimization_validation import (
     ASSURANCE_TIER_EXACT_UNITARY,
     CLIFFORD_TABLEAU_ORACLE_KIND,
     DEFAULT_EXACT_QUBIT_BOUND,
+    GUARANTEE_BORROWED_ANCILLA,
     GUARANTEE_CLEAN_ANCILLA,
     GUARANTEE_EXACT,
     INVARIANT_KINDS,
@@ -723,3 +724,85 @@ def test_preflight_reports_the_ancilla_share_of_the_qubit_bound():
     assert status["supported"]
     assert status["max_qubits"] == 5
     assert status["max_ancilla_qubits"] == 1
+
+
+# Tableau tensor mode: a Clifford kernel that took on ancillas
+_GHZ3 = """
+func.func @ghz() {
+  %v = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %v[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %v[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %v[2] : (!quake.veq<3>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+# The same circuit plus a marked ancilla at the *lowest* index, which is where
+# an allocating pass actually puts one.
+_GHZ3_WITH_ANCILLA = """
+func.func @ghz() {
+  %anc = quake.alloca !quake.ref {quake.ancilla}
+  %v = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %v[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %v[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %v[2] : (!quake.veq<3>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+"""
+
+# The ancilla is entangled with the system and left that way, so the candidate
+# is not the baseline tensored with anything.
+_GHZ3_ANCILLA_USED = _GHZ3_WITH_ANCILLA.replace(
+    "  return", "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n  return")
+
+# Touched but returned: still the baseline tensored with the identity.
+_GHZ3_ANCILLA_RESTORED = _GHZ3_WITH_ANCILLA.replace(
+    "  return",
+    "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n"
+    "  quake.x [%q0] %anc : (!quake.ref, !quake.ref) -> ()\n  return")
+
+
+def _decide_clifford(baseline_text, candidate_text) -> OracleDecision:
+    ctx = _make_context()
+    return CliffordTableauOracle().decide(Module.parse(baseline_text, ctx),
+                                          Module.parse(candidate_text, ctx),
+                                          None)
+
+
+def test_tableau_certifies_a_kernel_padded_with_an_unused_ancilla():
+    decision = _decide_clifford(_GHZ3, _GHZ3_WITH_ANCILLA)
+    assert decision.computed and decision.equivalent
+    # Untouched is untouched whatever the ancilla arrives in, which is a
+    # stronger claim than the dense oracle's clean-ancilla projection.
+    assert decision.guarantee == GUARANTEE_BORROWED_ANCILLA
+
+
+def test_tableau_certifies_an_ancilla_that_is_used_and_returned():
+    decision = _decide_clifford(_GHZ3, _GHZ3_ANCILLA_RESTORED)
+    assert decision.computed and decision.equivalent
+
+
+def test_tableau_rejects_a_kernel_whose_ancilla_is_genuinely_used():
+    decision = _decide_clifford(_GHZ3, _GHZ3_ANCILLA_USED)
+    assert decision.computed
+    assert not decision.equivalent
+
+
+def test_tableau_verdict_without_ancillas_is_exact():
+    decision = _decide_clifford(_GHZ3, _GHZ3)
+    assert decision.equivalent
+    assert decision.guarantee == GUARANTEE_EXACT
+
+
+def test_tableau_fails_closed_on_an_unmarked_extra_qubit():
+    """Widening without the marker is indistinguishable from a relabeling."""
+    unmarked = _GHZ3_WITH_ANCILLA.replace(" {quake.ancilla}", "")
+    decision = _decide_clifford(_GHZ3, unmarked)
+    assert decision.computed
+    assert not decision.equivalent

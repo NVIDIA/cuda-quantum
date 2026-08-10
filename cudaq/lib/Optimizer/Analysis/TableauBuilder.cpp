@@ -52,6 +52,9 @@ class TableauBuilder {
 public:
   using Qubit = uint32_t;
 
+  /// Number of qubits that came from allocations marked `quake.ancilla`.
+  std::size_t getNumAncillas() const { return ancillaQubits.size(); }
+
   LogicalResult build(func::FuncOp func, stim::Tableau<W> &tableau) {
     for (BlockArgument arg : func.getArguments())
       if (isa<quake::RefType, quake::VeqType>(arg.getType()))
@@ -97,6 +100,7 @@ public:
     });
     if (result.wasInterrupted())
       return failure();
+    renumberAncillasLast();
 
     // The inverse tableau is what the simulator accumulates. Asking for the
     // forward one costs an O(n^3) inversion that dominates the build. Since
@@ -132,6 +136,8 @@ private:
       qubits.push_back(numQubits);
       numQubits += 1;
     }
+    if (quake::isAncilla(value.getDefiningOp()))
+      llvm::append_range(ancillaQubits, qubits);
     return WalkResult::advance();
   }
 
@@ -199,9 +205,42 @@ private:
     return mlir::success();
   }
 
+  /// Record a gate. Gates are buffered rather than appended to the circuit
+  /// directly because the qubit numbering is not final until the walk ends:
+  /// see renumberAncillasLast().
   void emit(const std::string &name, ArrayRef<Qubit> targets) {
-    circuit.safe_append_u(
-        name, std::vector<uint32_t>(targets.begin(), targets.end()));
+    gates.push_back({name, SmallVector<Qubit, 4>(targets)});
+  }
+
+  /// Move the marked ancillas to the highest indices, keeping the kernel's own
+  /// qubits in their relative order, and append the buffered gates under that
+  /// numbering.
+  ///
+  /// A pass is free to allocate its ancillas anywhere, and
+  /// `MultiControlDecomposition` in fact gives them the lowest indices. With
+  /// the ancillas last, "the kernel used some scratch qubits and left them
+  /// alone" is exactly `T_candidate == T_baseline (x) I`, which is a plain
+  /// tableau equality after padding the smaller side.
+  void renumberAncillasLast() {
+    SmallVector<Qubit> remap(numQubits);
+    llvm::BitVector isAncilla(numQubits);
+    for (Qubit qubit : ancillaQubits)
+      isAncilla.set(qubit);
+    Qubit next = 0;
+    for (Qubit qubit = 0; qubit < numQubits; ++qubit)
+      if (!isAncilla[qubit])
+        remap[qubit] = next++;
+    for (Qubit qubit = 0; qubit < numQubits; ++qubit)
+      if (isAncilla[qubit])
+        remap[qubit] = next++;
+
+    for (auto &[name, targets] : gates) {
+      std::vector<uint32_t> renumbered;
+      renumbered.reserve(targets.size());
+      for (Qubit target : targets)
+        renumbered.push_back(remap[target]);
+      circuit.safe_append_u(name, renumbered);
+    }
   }
 
   LogicalResult emitOperator(quake::OperatorInterface optor) {
@@ -315,8 +354,12 @@ private:
     return mlir::success();
   }
 
-  std::size_t numQubits = 0;
+  Qubit numQubits = 0;
+  /// Qubits from allocations marked `quake.ancilla`, in allocation order.
+  SmallVector<Qubit, 4> ancillaQubits;
   DenseMap<Value, SmallVector<Qubit, 4>> qubitMap;
+  /// Gates in the order they were walked, in pre-renumbering qubit indices.
+  SmallVector<std::pair<std::string, SmallVector<Qubit, 4>>> gates;
   stim::Circuit circuit;
 };
 
@@ -327,21 +370,34 @@ CliffordComparisonResult compareTableaux(func::FuncOp baseline,
   CliffordComparisonResult result;
 
   stim::Tableau<W> baselineT(0), candidateT(0);
-  if (failed(TableauBuilder().build(baseline, baselineT))) {
+  TableauBuilder baselineBuilder, candidateBuilder;
+  if (failed(baselineBuilder.build(baseline, baselineT))) {
     result.error = "failed to build baseline tableau (non-Clifford op?)";
     return result;
   }
-  if (failed(TableauBuilder().build(candidate, candidateT))) {
+  if (failed(candidateBuilder.build(candidate, candidateT))) {
     result.error = "failed to build candidate tableau (non-Clifford op?)";
     return result;
   }
-  if (baselineT.num_qubits != candidateT.num_qubits) {
-    result.error = "tableau qubit count mismatch (different qubit counts)";
-    return result;
-  }
+
+  // Padding the narrower tableau with identity asks "is the wider kernel the
+  // narrower one tensored with I", which is the claim to check for a kernel
+  // that took on extra qubits and left them alone. Both builders put ancillas
+  // at the highest indices, so the padding lines up with them.
+  const auto width = std::max(baselineT.num_qubits, candidateT.num_qubits);
+  const bool padded = baselineT.num_qubits != candidateT.num_qubits;
+  if (baselineT.num_qubits < width)
+    baselineT.expand(width, /*resize_pad_factor=*/1.0);
+  if (candidateT.num_qubits < width)
+    candidateT.expand(width, /*resize_pad_factor=*/1.0);
 
   result.computed = true;
   result.equivalent = (baselineT == candidateT);
+  // Any padding at all, whether it came from a marked ancilla or from a plain
+  // width difference, means the verdict rests on qubits one side never used.
+  if (padded || baselineBuilder.getNumAncillas() ||
+      candidateBuilder.getNumAncillas())
+    result.guarantee = EquivalenceGuarantee::BorrowedAncilla;
   return result;
 }
 

@@ -89,9 +89,16 @@ INVARIANT_KINDS = (INVARIANT_EQUIVALENCE, INVARIANT_DETERMINISM,
 #                     verdict is that the two kernels agree on the system qubits
 #                     when the ancillas start in |0>. It is not a claim about
 #                     ancillas that arrive in any other state.
+#
+#   `borrowed-ancilla` The wider kernel was shown to be the narrower one tensored
+#                     with the identity, so it never touches the extra qubits.
+#                     Stronger than `clean-ancilla`: it holds whatever state the
+#                     ancillas arrive in.
 GUARANTEE_EXACT = "exact"
 GUARANTEE_CLEAN_ANCILLA = "clean-ancilla"
-GUARANTEE_KINDS = (GUARANTEE_EXACT, GUARANTEE_CLEAN_ANCILLA)
+GUARANTEE_BORROWED_ANCILLA = "borrowed-ancilla"
+GUARANTEE_KINDS = (GUARANTEE_EXACT, GUARANTEE_CLEAN_ANCILLA,
+                   GUARANTEE_BORROWED_ANCILLA)
 
 
 @dataclass(frozen=True)
@@ -329,6 +336,13 @@ class CliffordTableauOracle(Oracle):
     rotation, a measurement/reset, or a Toffoli-class control puts it out. Out
     of domain is reported as an unsupported domain, never as a negative verdict.
     Wraps the ``preflight_clifford`` and ``compare_tableaux`` bindings.
+
+    Kernels of different widths are compared by padding the narrower tableau
+    with identity, so a candidate that took on ancillas certifies exactly when
+    it leaves them untouched. That earns ``borrowed-ancilla``, which is a
+    stronger claim than the dense oracle's ``clean-ancilla``: the dense
+    oracle projects onto ancillas starting in |0>, whereas an untouched qubit
+    is untouched whatever state it arrives in.
     """
 
     kind = CLIFFORD_TABLEAU_ORACLE_KIND
@@ -369,7 +383,10 @@ class CliffordTableauOracle(Oracle):
                               computed=computed,
                               equivalent=equivalent,
                               tier=self.tier,
-                              detail=detail)
+                              detail=detail,
+                              guarantee=str(
+                                  comparison.get("guarantee",
+                                                 GUARANTEE_EXACT)))
 
 
 @dataclass(frozen=True)
