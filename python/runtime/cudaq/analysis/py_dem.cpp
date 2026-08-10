@@ -146,16 +146,10 @@ Args:
                    "True when m2d / m2o were populated.")
       .def_prop_ro(
           "annotations",
-          [](dem_result &self) -> nlohmann::json & {
-            auto &j = self.get_annotations().get();
-            // Default cudaq_json() is null; promote to empty object so the
-            // property always returns a mutable dict, matching SampleResult.
-            if (j.is_null())
-              j = nlohmann::json::object();
-            return j;
+          [](sample_result &self) -> const nlohmann::json & {
+            return self.get_annotations().get();
           },
-          "Extensible endpoint metadata dict. Mutate in place: "
-          "``result.annotations['key'] = value``.")
+          "Read-only metadata dict set by backends.")
       .def("__str__", [](const dem_result &self) { return self.get_dem(); })
       .def("__repr__",
            [](const dem_result &self) {
@@ -171,10 +165,17 @@ Args:
           [](const dem_result &self) -> nanobind::object {
             if (!self.get_matrices_computed())
               return nanobind::none();
+            auto self_obj = nanobind::find(self);
+            if (self_obj.is_valid() &&
+                nanobind::hasattr(self_obj, "_m2d_cache"))
+              return nanobind::getattr(self_obj, "_m2d_cache");
             auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
-            return dem_mod.attr("_make_csr")(
+            auto result = dem_mod.attr("_make_csr")(
                 nanobind::cast(self.get_m2d().rows),
                 nanobind::cast(self.get_num_measurements()));
+            if (self_obj.is_valid())
+              nanobind::setattr(self_obj, "_m2d_cache", result);
+            return result;
           },
           "scipy CSR matrix (num_detectors x num_measurements), or None when "
           "matrices were not requested.")
@@ -183,10 +184,17 @@ Args:
           [](const dem_result &self) -> nanobind::object {
             if (!self.get_matrices_computed())
               return nanobind::none();
+            auto self_obj = nanobind::find(self);
+            if (self_obj.is_valid() &&
+                nanobind::hasattr(self_obj, "_m2o_cache"))
+              return nanobind::getattr(self_obj, "_m2o_cache");
             auto dem_mod = nanobind::module_::import_("cudaq.runtime.dem");
-            return dem_mod.attr("_make_csr")(
+            auto result = dem_mod.attr("_make_csr")(
                 nanobind::cast(self.get_m2o().rows),
                 nanobind::cast(self.get_num_measurements()));
+            if (self_obj.is_valid())
+              nanobind::setattr(self_obj, "_m2o_cache", result);
+            return result;
           },
           "scipy CSR matrix (num_observables x num_measurements), or None "
           "when matrices were not requested.")
