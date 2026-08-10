@@ -1,6 +1,7 @@
-# Dispatched by Deployments (via trigger_validation) with the deployment run id.
-# Rebuilds installers/wheels/metapackages from the deployment's dependency images
-# and validates the release image, debug image, and those artifacts.
+# Runs automatically after Deployments completes, or on demand via
+# workflow_dispatch with a deployment run id. Rebuilds installers/wheels/
+# metapackages from the deployment's dependency images and validates the
+# release image, debug image, and those artifacts.
 on:
   workflow_dispatch:
     inputs:
@@ -12,12 +13,24 @@ on:
         type: string
         description: Optional argument to set the GitHub commit to use for the validation sources.
         required: false
+  workflow_run:
+    workflows:
+      - Deployments
+    types:
+      - completed
+    branches:
+      - 'main'
+      - 'releases/*'
+      - 'staging/*'
+      - 'experimental/*'
 
 name: Validation
 
 jobs:
   metadata:
     name: Validation metadata
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -44,8 +57,10 @@ jobs:
         id: artifacts
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
-          echo "Validating images from https://github.com/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}" >> $GITHUB_STEP_SUMMARY
+          # deployment_id is the dispatch input, or the triggering Deployments run.
+          deployment_id="${{ inputs.deployment_id || github.event.workflow_run.id }}"
+          artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${deployment_id}/artifacts
+          echo "Validating images from https://github.com/${{ github.repository }}/actions/runs/${deployment_id}" >> $GITHUB_STEP_SUMMARY
           artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           build_info_folder=/tmp/validation-build-info

@@ -867,37 +867,4 @@ jobs:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
       cudaq_version: ${{ inputs.create_release }}
 
-  trigger_validation:
-    name: Trigger Validation
-    needs: [summary, python_wheels, binaries]
-    if: ${{ ! inputs.devcontainer_only }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Trigger Validation workflow
-        uses: actions/github-script@v9
-        with:
-          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
-          script: |
-            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-            const params = {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'validation.yml',
-              ref: context.ref.replace('refs/heads/', ''),
-              inputs: {
-                deployment_id: context.runId.toString(),
-              },
-            };
-            for (let n = 1; n <= 3; n++) {
-              try {
-                await github.rest.actions.createWorkflowDispatch(params);
-                if (n > 1) core.notice(`createWorkflowDispatch succeeded on attempt ${n}`);
-                return;
-              } catch (err) {
-                if (n === 3) throw err;
-                core.warning(`createWorkflowDispatch attempt ${n}/3 failed: ${err.message}; retrying...`);
-                await sleep(15000 * n * n);
-              }
-            }
+  # Validation runs automatically via its workflow_run trigger on Deployments.
