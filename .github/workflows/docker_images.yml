@@ -31,6 +31,11 @@ on:
       environment:
         required: false
         type: string
+      run_validation:
+        required: false
+        type: boolean
+        default: true
+        description: Run image validation. Deployments disables this; validation runs in the Validation workflow.
     secrets:
       NGC_CREDENTIALS:
         description: 'Credentials for deployments to NGC.'
@@ -912,7 +917,7 @@ jobs:
     needs: [metadata, cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && inputs.run_validation && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
@@ -1065,7 +1070,7 @@ jobs:
 
   staging:
     name: Staging
-    needs: [metadata, cudaqdev_image, cudaq_image, validation]
+    needs: [metadata, cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && inputs.environment && needs.metadata.outputs.platform_tag == '' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
@@ -1084,7 +1089,9 @@ jobs:
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
-          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          platform_id=${{ needs.metadata.outputs.platform_tag }}
+          artifact_name=image${platform_id:+_$platform_id}${cuda_major:+_cu$cuda_major}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
