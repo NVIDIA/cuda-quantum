@@ -11399,7 +11399,7 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1kernel__builder_1a93e1e94ce81d273f342834d75ecfbe55 .target}[[inline]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[isArgStdVec]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[idx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1kernel__builder_1a5d651bba098bf0574539f51e7fcdd40f .target}[[inline]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[isArgSequence]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[idx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder13isArgSequenceENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Return [`true`{.docutils .literal .notranslate}]{.pre} if the
         argument to the kernel is a [`std::vector`{.docutils .literal
@@ -11570,7 +11570,7 @@ discriminate a vector of handles.
         .notranslate}]{.pre}. Takes a single [[[`QuakeValue`{.docutils
         .literal .notranslate}]{.pre}]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
-        handle (typically a [`!cc.stdvec<!cc.`{.docutils .literal
+        handle (typically a [`!cc.sequence<!cc.`{.docutils .literal
         .notranslate}]{.pre}[[[`measure_handle`{.docutils .literal
         .notranslate}]{.pre}]{.std
         .std-ref}](#classcudaq_1_1measure__handle){.reference
@@ -11694,8 +11694,8 @@ discriminate a vector of handles.
 
     :   Return true if this [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} of
-        StdVecType can validate its number of unique elements. We cannot
-        do this in the case of [[QuakeValue]{.std
+        SequenceType can validate its number of unique elements. We
+        cannot do this in the case of [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
         extractions within for loops where we do not know the bounds of
         the loop.
@@ -11719,7 +11719,7 @@ discriminate a vector of handles.
 
     :   For a [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} with
-        type StdVec or Veq, return the size [[QuakeValue]{.std
+        type Sequence or Veq, return the size [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}.
 
     ```{=html}
@@ -11736,11 +11736,11 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QuakeValue_1a9a744ebbea0a51a5cda2f90684ab6ec8 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[isStdVec]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq10QuakeValue8isStdVecEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1QuakeValue_1a066685a645dad87c7d99c2256e08c556 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[isSequence]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq10QuakeValue10isSequenceEv "Permalink to this definition"){.headerlink}\
 
     :   Return true if this [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} is
-        of type StdVec.
+        of type Sequence.
 
         Returns[:]{.colon}
 
@@ -11754,7 +11754,7 @@ discriminate a vector of handles.
 
     :   For a [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} of
-        type StdVec, return the number of required elements, i.e. the
+        type Sequence, return the number of required elements, i.e. the
         number of unique extractions observed.
 
     ```{=html}
@@ -11766,7 +11766,7 @@ discriminate a vector of handles.
     :   Return a new [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} when
         the current value is indexed, specifically for QuakeValues of
-        type StdVecType and VeqType.
+        type SequenceType and VeqType.
 
     ```{=html}
     <!-- -->
@@ -11777,7 +11777,7 @@ discriminate a vector of handles.
     :   Return a new [[QuakeValue]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal} when
         the current value is indexed, specifically for QuakeValues of
-        type StdVecType and VeqType.
+        type SequenceType and VeqType.
 
     ```{=html}
     <!-- -->

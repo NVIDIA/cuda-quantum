@@ -1991,6 +1991,82 @@ The authored [[Quake semantic
 specification]{.doc}](../../../specification/quake-dialect.html){.reference
 .internal} explains the reference and value models and the reasoning
 behind them.
+
+::: {#linear-value-quake-ir .section}
+[]{#quake-linear-values}
+
+#### Linear-value Quake IR[¶](#linear-value-quake-ir "Permalink to this heading"){.headerlink}
+
+The [`convert-to-linear-values`{.docutils .literal .notranslate}]{.pre}
+pipeline turns supported Quake references into linear values. Each
+converted qubit becomes a [`!quake.wire`{.docutils .literal
+.notranslate}]{.pre} threaded from one operation to the next, making
+dependencies visible to optimization passes.
+
+Where possible, the pipeline splits fixed-size allocations and vector
+controls into individual wires. A [`!quake.cable`{.docutils .literal
+.notranslate}]{.pre} keeps wires grouped and ordered when they cross
+into reference-form code. Dynamic registers, runtime-indexed elements,
+and anything else the pipeline cannot convert stay in reference form.
+This pipeline changes the representation only. It does not simplify
+gates.
+
+Run the registered pipeline on a Quake module with:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    cudaq-opt \
+      --pass-pipeline='builtin.module(convert-to-linear-values)' \
+      input.qke -o -
+:::
+:::
+
+For example, start with:
+
+::: {.highlight-mlir .notranslate}
+::: highlight
+    func.func private @callee(!quake.veq<?>)
+
+    func.func @linear_values(%dynamic : !quake.veq<?>) {
+      %controls = quake.alloca !quake.veq<2>
+      %target = quake.alloca !quake.ref
+      quake.h %target : (!quake.ref) -> ()
+      quake.h %target : (!quake.ref) -> ()
+      quake.x [%controls] %target : (!quake.veq<2>, !quake.ref) -> ()
+      %relaxed = quake.relax_size %controls : (!quake.veq<2>) -> !quake.veq<?>
+      call @callee(%relaxed) : (!quake.veq<?>) -> ()
+      quake.dealloc %target : !quake.ref
+      quake.dealloc %controls : !quake.veq<2>
+      return
+    }
+:::
+:::
+
+The command produces:
+
+::: {.highlight-mlir .notranslate}
+::: highlight
+    module {
+      func.func private @callee(!quake.veq<?>)
+      func.func @linear_values(%arg0: !quake.veq<?>) {
+        %0 = quake.null_wire
+        %1 = quake.null_wire
+        %2 = quake.null_wire
+        %3 = quake.h %2 : (!quake.wire) -> !quake.wire
+        %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+        %5:3 = quake.x [%0, %1] %4 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+        %6 = quake.bundle_cable %5#0, %5#1 : (!quake.wire, !quake.wire) -> !quake.cable<2>
+        %7 = quake.call_by_ref @callee(%6) : (!quake.cable<2>) -> !quake.cable<2>
+        %8:2 = quake.split_cable %7 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+        quake.sink %5#2 : !quake.wire
+        quake.sink %8#0 : !quake.wire
+        quake.sink %8#1 : !quake.wire
+        return
+      }
+    }
+:::
+:::
+:::
 :::
 
 ::: {#cc .section}

@@ -3238,8 +3238,9 @@ discriminated bits into an integer.)
     kernel code can call [`cudaq.to_bools(...)`{.docutils .literal
     .notranslate}]{.pre}; the AST bridge intercepts the call and lowers
     it to a vector form [`quake.discriminate`{.docutils .literal
-    .notranslate}]{.pre} on [`!cc.stdvec<!cc.measure_handle>`{.docutils
-    .literal .notranslate}]{.pre}. Host-side invocation raises a
+    .notranslate}]{.pre} on
+    [`!cc.sequence<!cc.measure_handle>`{.docutils .literal
+    .notranslate}]{.pre}. Host-side invocation raises a
     [`RuntimeError`{.docutils .literal .notranslate}]{.pre}.
 :::
 
@@ -6008,7 +6009,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x4146ec0\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 

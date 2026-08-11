@@ -1135,6 +1135,61 @@ requires one of these forms must state that requirement explicitly.</p>
 <p>The authored
 <a class="reference internal" href="../../../specification/quake-dialect.html"><span class="doc">Quake semantic specification</span></a>
 explains the reference and value models and the reasoning behind them.</p>
+<section id="linear-value-quake-ir">
+<span id="quake-linear-values"></span><h4>Linear-value Quake IR<a class="headerlink" href="#linear-value-quake-ir" title="Permalink to this heading">¶</a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">convert-to-linear-values</span></code> pipeline turns supported Quake references into
+linear values. Each converted qubit becomes a <code class="docutils literal notranslate"><span class="pre">!quake.wire</span></code> threaded from one
+operation to the next, making dependencies visible to optimization passes.</p>
+<p>Where possible, the pipeline splits fixed-size allocations and vector controls
+into individual wires. A <code class="docutils literal notranslate"><span class="pre">!quake.cable</span></code> keeps wires grouped and ordered when
+they cross into reference-form code. Dynamic registers, runtime-indexed
+elements, and anything else the pipeline cannot convert stay in reference form.
+This pipeline changes the representation only. It does not simplify gates.</p>
+<p>Run the registered pipeline on a Quake module with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cudaq-opt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--pass-pipeline<span class="o">=</span><span class="s1">&#39;builtin.module(convert-to-linear-values)&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>input.qke<span class="w"> </span>-o<span class="w"> </span>-
+</pre></div>
+</div>
+<p>For example, start with:</p>
+<div class="highlight-mlir notranslate"><div class="highlight"><pre><span></span>func.func private @callee(!quake.veq&lt;?&gt;)
+
+func.func @linear_values(%dynamic : !quake.veq&lt;?&gt;) {
+  %controls = quake.alloca !quake.veq&lt;2&gt;
+  %target = quake.alloca !quake.ref
+  quake.h %target : (!quake.ref) -&gt; ()
+  quake.h %target : (!quake.ref) -&gt; ()
+  quake.x [%controls] %target : (!quake.veq&lt;2&gt;, !quake.ref) -&gt; ()
+  %relaxed = quake.relax_size %controls : (!quake.veq&lt;2&gt;) -&gt; !quake.veq&lt;?&gt;
+  call @callee(%relaxed) : (!quake.veq&lt;?&gt;) -&gt; ()
+  quake.dealloc %target : !quake.ref
+  quake.dealloc %controls : !quake.veq&lt;2&gt;
+  return
+}
+</pre></div>
+</div>
+<p>The command produces:</p>
+<div class="highlight-mlir notranslate"><div class="highlight"><pre><span></span>module {
+  func.func private @callee(!quake.veq&lt;?&gt;)
+  func.func @linear_values(%arg0: !quake.veq&lt;?&gt;) {
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.null_wire
+    %3 = quake.h %2 : (!quake.wire) -&gt; !quake.wire
+    %4 = quake.h %3 : (!quake.wire) -&gt; !quake.wire
+    %5:3 = quake.x [%0, %1] %4 : (!quake.wire, !quake.wire, !quake.wire) -&gt; (!quake.wire, !quake.wire, !quake.wire)
+    %6 = quake.bundle_cable %5#0, %5#1 : (!quake.wire, !quake.wire) -&gt; !quake.cable&lt;2&gt;
+    %7 = quake.call_by_ref @callee(%6) : (!quake.cable&lt;2&gt;) -&gt; !quake.cable&lt;2&gt;
+    %8:2 = quake.split_cable %7 : (!quake.cable&lt;2&gt;) -&gt; (!quake.wire, !quake.wire)
+    quake.sink %5#2 : !quake.wire
+    quake.sink %8#0 : !quake.wire
+    quake.sink %8#1 : !quake.wire
+    return
+  }
+}
+</pre></div>
+</div>
+</section>
 </section>
 <section id="cc">
 <h3>CC<a class="headerlink" href="#cc" title="Permalink to this heading">¶</a></h3>

@@ -7452,8 +7452,8 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE">
-<span class="target" id="classcudaq_1_1kernel__builder_1a93e1e94ce81d273f342834d75ecfbe55"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isArgStdVec</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder11isArgStdVecENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder13isArgSequenceENSt6size_tE">
+<span class="target" id="classcudaq_1_1kernel__builder_1a5d651bba098bf0574539f51e7fcdd40f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isArgSequence</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder13isArgSequenceENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return <code class="docutils literal notranslate"><span class="pre">true</span></code> if the argument to the kernel is a <code class="docutils literal notranslate"><span class="pre">std::vector</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code> otherwise. </p>
 </dd></dl>
 
@@ -7522,7 +7522,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder18logical_observableE10QuakeValueNSt6size_tE">
 <span class="target" id="classcudaq_1_1kernel__builder_1a70e54a7b27a0d0419178f27bf6d0468e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">logical_observable</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">measurements</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">observable_index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder18logical_observableE10QuakeValueNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">logical_observable</span></code> with an explicit <code class="docutils literal notranslate"><span class="pre">observable_index</span></code>. Takes a single <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> handle (typically a <code class="docutils literal notranslate"><span class="pre">!cc.stdvec&lt;!cc.</span><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a><span class="pre">&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">mz</span></code> on a <code class="docutils literal notranslate"><span class="pre">qvector</span></code>, but a scalar handle is also accepted by the dialect). </p>
+<dd><p><code class="docutils literal notranslate"><span class="pre">logical_observable</span></code> with an explicit <code class="docutils literal notranslate"><span class="pre">observable_index</span></code>. Takes a single <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> handle (typically a <code class="docutils literal notranslate"><span class="pre">!cc.sequence&lt;!cc.</span><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a><span class="pre">&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">mz</span></code> on a <code class="docutils literal notranslate"><span class="pre">qvector</span></code>, but a scalar handle is also accepted by the dialect). </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -7591,7 +7591,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue22canValidateNumElementsEv">
 <span class="target" id="classcudaq_1_1QuakeValue_1acc754ef5c14737881caf8bc44d06a761"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">canValidateNumElements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue22canValidateNumElementsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of StdVecType can validate its number of unique elements. We cannot do this in the case of <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> extractions within for loops where we do not know the bounds of the loop. </p>
+<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of SequenceType can validate its number of unique elements. We cannot do this in the case of <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> extractions within for loops where we do not know the bounds of the loop. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -7603,7 +7603,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue4sizeEv">
 <span class="target" id="classcudaq_1_1QuakeValue_1af7d27118ed68e75175ab7e7927e16000"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue4sizeEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> with type StdVec or Veq, return the size <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
+<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> with type Sequence or Veq, return the size <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -7613,9 +7613,9 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue8isStdVecEv">
-<span class="target" id="classcudaq_1_1QuakeValue_1a9a744ebbea0a51a5cda2f90684ab6ec8"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isStdVec</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue8isStdVecEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> is of type StdVec. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue10isSequenceEv">
+<span class="target" id="classcudaq_1_1QuakeValue_1a066685a645dad87c7d99c2256e08c556"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isSequence</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue10isSequenceEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Return true if this <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> is of type Sequence. </p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p></p>
@@ -7626,19 +7626,19 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValue19getRequiredElementsEv">
 <span class="target" id="classcudaq_1_1QuakeValue_1af63960107eb641d65b04e0eff5889d68"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getRequiredElements</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValue19getRequiredElementsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of type StdVec, return the number of required elements, i.e. the number of unique extractions observed. </p>
+<dd><p>For a <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> of type Sequence, return the number of required elements, i.e. the number of unique extractions observed. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValueixEKNSt6size_tE">
 <span class="target" id="classcudaq_1_1QuakeValue_1ad6347f7655d24d2b540783a91fef8274"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValueixEKNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type StdVecType and VeqType. </p>
+<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type SequenceType and VeqType. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq10QuakeValueixERK10QuakeValue">
 <span class="target" id="classcudaq_1_1QuakeValue_1a055e4cc59ef7a83cffdf2a6d90d56060"></span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">idx</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10QuakeValueixERK10QuakeValue" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type StdVecType and VeqType. </p>
+<dd><p>Return a new <a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref">QuakeValue</span></a> when the current value is indexed, specifically for QuakeValues of type SequenceType and VeqType. </p>
 </dd></dl>
 
 <dl class="cpp function">
