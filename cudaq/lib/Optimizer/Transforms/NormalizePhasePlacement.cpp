@@ -138,9 +138,18 @@ static LogicalResult advanceAcrossOperator(cudaq::quake::OperatorInterface op,
                                            Value &anchor) {
   bool bookkeepingPhase = isa<cudaq::quake::PhaseOp>(op.getOperation());
 
-  for (Value &control : controls) {
+  // do not modify controls or anchor if any of them cannot be advanced!
+  // create stage for controls and anchor and commit only after we've
+  // verified that both the controls and anchor can be advanced past the
+  // candidate op `op`
+
+  SmallVector<Value> stagedControls(controls.begin(), controls.end());
+  Value stagedAnchor = anchor;
+
+  for (Value &control : stagedControls) {
     if (!hasUnambiguousWireUse(control))
       return failure();
+
     // Without element-level alias information, a composite control might
     // overlap any target of an intervening operator. Statically sized vectors
     // are expected to have been expanded before this pass.
@@ -152,15 +161,26 @@ static LogicalResult advanceAcrossOperator(cudaq::quake::OperatorInterface op,
     FailureOr<Value> threaded = getThreadedValue(op, control);
     if (failed(threaded))
       return failure();
+
     control = *threaded;
   }
 
-  if (!hasUnambiguousWireUse(anchor))
+  if (!hasUnambiguousWireUse(stagedAnchor))
     return failure();
-  FailureOr<Value> threadedAnchor = getThreadedValue(op, anchor);
+  FailureOr<Value> threadedAnchor = getThreadedValue(op, stagedAnchor);
   if (failed(threadedAnchor))
     return failure();
-  anchor = *threadedAnchor;
+
+  stagedAnchor = *threadedAnchor;
+
+  // at this point, we've verified that all controls and anchors can safely be
+  // moved past the candidate op
+
+  for (unsigned i = 0; i < controls.size(); ++i)
+    controls[i] = stagedControls[i];
+
+  anchor = stagedAnchor;
+
   return success();
 }
 
@@ -180,7 +200,7 @@ static bool isSafeToCross(Operation *operation) {
     return true;
   if (hasQuantumValue(operation))
     return false;
-  return isMemoryEffectFree(operation);
+  return true;
 }
 
 static void replaceLiveWireUses(ValueRange inputs,

@@ -90,6 +90,20 @@ func.func @stop_at_call(%a: f64, %b: f64, %control: !quake.ref,
   return
 }
 
+// An effectful classical store is transparent to phase placement.
+// CHECK-LABEL: func.func @sink_past_store
+// CHECK: cc.store %{{.*}}, %{{.*}} : !cc.ptr<i64>
+// CHECK-NEXT: quake.phase
+// CHECK-NEXT: return
+func.func @sink_past_store(%theta: f64, %control: !quake.ref,
+                           %anchor: !quake.ref, %slot: !cc.ptr<i64>) {
+  %zero = arith.constant 0 : i64
+  quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  cc.store %zero, %slot : !cc.ptr<i64>
+  return
+}
+
 // A non-unitary operation ends the safe section.
 // CHECK-LABEL: func.func @stop_at_measurement
 // CHECK: quake.phase
@@ -101,6 +115,21 @@ func.func @stop_at_measurement(%a: f64, %b: f64, %control: !quake.ref,
       : (f64, !quake.ref, !quake.ref) -> ()
   %measurement = quake.mz %anchor
       : (!quake.ref) -> !quake.measure
+  quake.phase (%b) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A reset ends the safe section.
+// CHECK-LABEL: func.func @stop_at_reset
+// CHECK: quake.phase
+// CHECK-NEXT: quake.reset
+// CHECK-NEXT: quake.phase
+func.func @stop_at_reset(%a: f64, %b: f64, %control: !quake.ref,
+                         %anchor: !quake.ref) {
+  quake.phase (%a) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  quake.reset %anchor : (!quake.ref) -> ()
   quake.phase (%b) [%control] %anchor
       : (f64, !quake.ref, !quake.ref) -> ()
   return
@@ -139,6 +168,42 @@ func.func @merge_wire(%a: f64, %b: f64) {
   quake.sink %last#0 : !quake.wire
   quake.sink %last#1 : !quake.wire
   quake.sink %z : !quake.wire
+  return
+}
+
+// Advancing across an operator is transactional. In this test, 
+// `x` would thread c0_1, but it targets c1_1, so phase placement 
+// can cross unrelated `s` but stop before x.
+// CHECK-LABEL: func.func @partial_control_advance(
+// CHECK: %[[Q:.*]] = quake.null_wire
+// CHECK-NEXT: %[[C0:.*]] = quake.null_wire
+// CHECK-NEXT: %[[C1:.*]] = quake.null_wire
+// CHECK-NEXT: %[[OTHER:.*]] = quake.null_wire
+// CHECK-NEXT: %[[SAFE:.*]] = quake.s %[[OTHER]]
+// CHECK-NEXT: %[[PHASE:.*]]:3 = quake.phase (%{{.*}}) {{\[}}%[[C0]], %[[C1]]{{\]}} %[[Q]]
+// CHECK-NEXT: %[[X:.*]]:2 = quake.x {{\[}}%[[PHASE]]#0{{\]}} %[[PHASE]]#1
+// CHECK-NEXT: quake.sink %[[PHASE]]#2 : !quake.wire
+// CHECK-NEXT: quake.sink %[[X]]#0 : !quake.wire
+// CHECK-NEXT: quake.sink %[[X]]#1 : !quake.wire
+// CHECK-NEXT: quake.sink %[[SAFE]] : !quake.wire
+func.func @partial_control_advance(%theta: f64) {
+  %q = quake.null_wire
+  %c0 = quake.null_wire
+  %c1 = quake.null_wire
+  %another_q = quake.null_wire
+
+  %c0_1, %c1_1, %h = quake.phase (%theta) [%c0, %c1] %q
+      : (f64, !quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %another_q_1 = quake.s %another_q : (!quake.wire) -> !quake.wire
+
+  %c0_2, %c1_2 = quake.x [%c0_1] %c1_1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  quake.sink %h : !quake.wire
+  quake.sink %c0_2 : !quake.wire
+  quake.sink %c1_2 : !quake.wire
+  quake.sink %another_q_1 : !quake.wire
   return
 }
 
