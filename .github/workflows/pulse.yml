@@ -125,7 +125,12 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Initialize source dependencies
-        run: git -c submodule.tpls/llvm.update=none submodule update --init --recursive
+        run: |
+          # The devcontainer runs as a non-root user while the workspace is owned
+          # by the runner UID, so git's ownership guard trips on the manual
+          # submodule step (actions/checkout only scopes safe.directory to itself).
+          git config --global --add safe.directory '*'
+          git -c submodule.tpls/llvm.update=none submodule update --init --recursive
 
       - name: Install pulse test dependencies
         run: |
@@ -186,7 +191,12 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Initialize source dependencies
-        run: git -c submodule.tpls/llvm.update=none submodule update --init --recursive
+        run: |
+          # The devcontainer runs as a non-root user while the workspace is owned
+          # by the runner UID, so git's ownership guard trips on the manual
+          # submodule step (actions/checkout only scopes safe.directory to itself).
+          git config --global --add safe.directory '*'
+          git -c submodule.tpls/llvm.update=none submodule update --init --recursive
 
       - name: Install pulse test dependencies
         run: |
