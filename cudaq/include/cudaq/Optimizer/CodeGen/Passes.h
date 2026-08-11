@@ -92,7 +92,7 @@ void addLowerToCCPipeline(mlir::OpPassManager &pm);
 /// necessary. Letting \p convertTo default means full QIR.
 void addAOTPipelineConvertToQIR(mlir::PassManager &pm,
                                 mlir::StringRef convertTo = {},
-                                bool enableQuantumOpt = true);
+                                bool useValueSemantics = true);
 
 /// Pipeline builder to convert Quake to Open QASM 2.0
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);

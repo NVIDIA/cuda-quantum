@@ -85,9 +85,9 @@ createCommonTargetCodegenPipeline(OpPassManager &pm,
 static void
 createTargetCodegenPipeline(OpPassManager &pm,
                             const TargetCodegenPipelineOptions &options,
-                            bool enableQuantumOpt) {
+                            bool useValueSemantics) {
   createCommonTargetCodegenPipeline(pm, options);
-  if (enableQuantumOpt) {
+  if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
@@ -106,21 +106,21 @@ createTargetCodegenPipeline(OpPassManager &pm,
 }
 
 static void createTargetCodegenPipeline(OpPassManager &pm,
-                                        bool enableQuantumOpt,
+                                        bool useValueSemantics,
                                         StringRef convertTo) {
   auto convertFields = convertTo.split(':');
   TargetCodegenPipelineOptions opts;
   opts.allowBreaksInLoops = convertFields.first == "qir-adaptive";
   opts.target = convertTo.str();
-  createTargetCodegenPipeline(pm, opts, enableQuantumOpt);
+  createTargetCodegenPipeline(pm, opts, useValueSemantics);
 }
 
 void cudaq::opt::addAOTPipelineConvertToQIR(PassManager &pm,
                                             StringRef convertTo,
-                                            bool enableQuantumOpt) {
+                                            bool useValueSemantics) {
   if (convertTo.empty())
     convertTo = "qir";
-  ::createTargetCodegenPipeline(pm, enableQuantumOpt, convertTo);
+  ::createTargetCodegenPipeline(pm, useValueSemantics, convertTo);
 }
 
 namespace {
@@ -130,7 +130,7 @@ struct CodegenForQIRPipelineOptions
       *this, "convert-to",
       llvm::cl::desc("option to specify what QIR profile to convert to."),
       llvm::cl::init("qir")};
-  PassOptions::Option<bool> enableQuantumOpt{
+  PassOptions::Option<bool> useValueSemantics{
       *this, "value-semantics",
       llvm::cl::desc(
           "lower to value semantics to enable quantum optimizations"),
@@ -142,7 +142,7 @@ void cudaq::opt::registerCodegenForQIRPipeline() {
   PassPipelineRegistration<CodegenForQIRPipelineOptions>(
       "codegen-for-qir", "Convert quake to one of the QIR APIs.",
       [](OpPassManager &pm, const CodegenForQIRPipelineOptions &opt) {
-        ::createTargetCodegenPipeline(pm, opt.enableQuantumOpt, opt.convertTo);
+        ::createTargetCodegenPipeline(pm, opt.useValueSemantics, opt.convertTo);
       });
 }
 

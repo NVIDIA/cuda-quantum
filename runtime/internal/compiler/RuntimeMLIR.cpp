@@ -461,7 +461,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   } else {
     profileName = qirProfile;
     cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName,
-                                           /*enableQuantumOpt=*/
+                                           /*useValueSemantics=*/
                                            !noValueSemantics);
   }
 

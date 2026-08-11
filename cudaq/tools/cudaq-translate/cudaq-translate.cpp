@@ -183,13 +183,13 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
-               bool enableQuantumOpt =
+               bool useValueSemantics =
                    !disableQuantumOptimization &&
                    !modOp->hasAttr(cudaq::runtime::disableQuantumOpts);
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
                cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,
-                                                      enableQuantumOpt);
+                                                      useValueSemantics);
              })
       .Case("openqasm2",
             [&]() {
