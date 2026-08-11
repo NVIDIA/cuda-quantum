@@ -28,4 +28,4 @@ config:
   #
   # TODO: Remove fail-on-controlled-rotation after controlled Clifford+T
   # synthesis preserves the synthesis global phase.
-  jit-mid-level-pipeline: "decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe,memtoreg,quake-simplify,canonicalize,dqe),unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,x(1),y(1),z(1)},clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=%EPSILON:1e-10% fail-on-controlled-rotation=true},inline,func.func(quake-simplify,canonicalize,dqe,regtomem),symbol-dce"
+  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe,memtoreg),unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,x(1),y(1),z(1)},func.func(quake-simplify{threshold=0},canonicalize,dqe),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=%EPSILON:1e-10% fail-on-controlled-rotation=true},inline,func.func(quake-simplify,canonicalize,dqe,regtomem),symbol-dce"

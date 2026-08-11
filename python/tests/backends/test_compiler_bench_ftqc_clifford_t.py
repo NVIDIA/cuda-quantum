@@ -80,3 +80,14 @@ def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
     assert t_count == reference_t_count
     assert t_count > 0
     assert candidate_resources.depth > 0
+
+    # Synthesis epsilon owns approximate pruning at the target boundary.
+    cudaq.reset_target()
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='1e-13')
+    precision_boundary = cudaq.make_kernel()
+    q = precision_boundary.qalloc()
+    precision_boundary.rz(5e-13, q)
+    boundary_operations = cudaq.estimate_resources(precision_boundary).to_dict()
+    boundary_t_count = (boundary_operations.get('t', 0) +
+                        boundary_operations.get('tdg', 0))
+    assert boundary_t_count > 0
