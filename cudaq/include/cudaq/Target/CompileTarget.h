@@ -61,6 +61,11 @@ struct CompileTarget {
       return overridePassPipeline.empty() && highLevelPipeline.empty() &&
              midLevelPipeline.empty() && lowLevelPipeline.empty();
     }
+
+    /// Whether to lower through value semantics, enabling the quantum
+    /// optimizations that follow it (`quake-simplify`, dead quantum
+    /// elimination, ...).
+    bool enableQuantumOpt = true;
   };
 
   /// Pipeline configuration, populated by the constructor.

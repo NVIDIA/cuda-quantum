@@ -69,9 +69,10 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
   bool disableQuantumOpt =
+      !compiler.getTarget().pipelineConfig.enableQuantumOpt ||
       compiled_module->hasAttr(cudaq::runtime::disableQuantumOpts);
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
-                                         /*useValueSemantics=*/
+                                         /*enableQuantumOpt=*/
                                          !disableQuantumOpt);
   if (failed(cudaq_internal::compiler::runPassManager(pm, compiled_module)))
     throw std::runtime_error("Pass pipeline failed.");

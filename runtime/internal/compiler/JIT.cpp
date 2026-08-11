@@ -208,7 +208,7 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
     } else {
       cudaq::opt::addAOTPipelineConvertToQIR(pm, {},
-                                             /*useValueSemantics=*/
+                                             /*enableQuantumOpt=*/
                                              !noValueSemantics);
     }
 
