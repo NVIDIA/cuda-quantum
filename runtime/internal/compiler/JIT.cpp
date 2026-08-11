@@ -167,7 +167,8 @@ insertResultMapCleanupOperations(Operation *module,
 }
 
 cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
-    ModuleOp &moduleOp, llvm::StringRef convertTo, bool isEntryPoint) {
+    ModuleOp &moduleOp, llvm::StringRef convertTo, bool isEntryPoint,
+    bool disableQuantumOpts) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
@@ -179,7 +180,7 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
   opts.transformer = std::move(transformerTemp);
   opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   auto llvmModuleBuilderTemp =
-      [convertTo = convertTo.str(), isEntryPoint](
+      [convertTo = convertTo.str(), isEntryPoint, disableQuantumOpts](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -195,7 +196,8 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
             })
             .wasInterrupted();
 
-    bool noValueSemantics = module->hasAttr(cudaq::runtime::disableQuantumOpts);
+    bool noValueSemantics = disableQuantumOpts ||
+                            module->hasAttr(cudaq::runtime::disableQuantumOpts);
 
     // Even though we're not lowering all the way to a real QIR profile for
     // this emulated path, we need to pass in `convertTo` to mimic the
