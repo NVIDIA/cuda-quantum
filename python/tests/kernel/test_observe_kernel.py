@@ -210,11 +210,6 @@ def test_broadcast_py39Plus():
     assert len(energies) == 50
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_observe_list():
     """Test that we can observe a list of spin_ops."""
     hamiltonianList = [
@@ -222,7 +217,7 @@ def test_observe_list():
         .21829 * spin.z(0), -6.125 * spin.z(1)
     ]
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def circuit(theta: float):
         q = cudaq.qvector(2)
         x(q[0])
@@ -375,12 +370,12 @@ def test_pack_args_pauli_list():
     print('observe_async exp_val2', exp_val2)
 
 
-@skipIfValueSemantics
 def test_observe_list_multi_term_operators():
 
     @cudaq.kernel
     def simple_kernel():
         q = cudaq.qvector(2)
+        ry(12 * np.pi, q)
 
     op_multi1 = spin.z(0) + spin.x(0)
     op_multi2 = spin.y(1) + spin.z(1)

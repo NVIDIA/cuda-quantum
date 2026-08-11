@@ -61,6 +61,10 @@ struct CompileOptions {
   /// Make the required adjustments to target an emulator rather than the real
   /// device.
   bool emulate = false;
+
+  /// Whether to disable quantum optimization passes (e.g. value semantics
+  /// lowering). Used in tracer mode.
+  bool disableQuantumOpts = false;
 };
 
 /// A temporary function to modify the compile options based on the target.
@@ -87,6 +91,7 @@ struct std::hash<cudaq::CompileOptions> {
     return cudaq::detail::hashVal(
         o.warnNamedMeasurements, o.storeReorderIdx, o.emitResourceCounts,
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
-        o.addMeasurements, o.failOnConditionalsOnMeasureResults, o.emulate);
+        o.addMeasurements, o.failOnConditionalsOnMeasureResults, o.emulate,
+        o.disableQuantumOpts);
   }
 };

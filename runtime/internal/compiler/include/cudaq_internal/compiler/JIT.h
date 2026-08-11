@@ -36,6 +36,7 @@ namespace cudaq_internal::compiler {
 /// as a code-generation root; passing false prevents it from clearing runtime
 /// state owned by its caller.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
-                                 llvm::StringRef convertTo, bool isEntryPoint);
+                                 llvm::StringRef convertTo, bool isEntryPoint,
+                                 bool disableQuantumOpts = false);
 
 } // namespace cudaq_internal::compiler

@@ -27,10 +27,6 @@ def run_and_clear_registries():
     cudaq.__clearKernelRegistries()
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
 def test_argument_int():
 
     @cudaq.kernel
@@ -390,10 +386,9 @@ def test_callable_kernel_arg_signature_mismatch_arity():
         caller(callee)
 
 
-@skipIfValueSemantics
 def test_observe():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def ansatz():
         q = cudaq.qvector(1)
 
@@ -458,10 +453,9 @@ def test_exp_pauli():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 
-@skipIfValueSemantics
 def test_exp_pauli_zz():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel(theta: float):
         q = cudaq.qvector(2)
         h(q[0])
@@ -962,10 +956,9 @@ def test_list_creation_with_cast():
     assert '1' * 5 in counts
 
 
-@skipIfValueSemantics
 def test_list_boundaries():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel1():
         qubits = cudaq.qvector(2)
         r = range(0, 0)
@@ -976,7 +969,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '00' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel2():
         qubits = cudaq.qvector(2)
         r = range(1, 0)
@@ -987,7 +980,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '00' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel3():
         qubits = cudaq.qvector(2)
         for i in range(-1):
@@ -997,7 +990,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '00' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel4():
         qubits = cudaq.qvector(4)
         r = [i * 2 + 1 for i in range(1)]
@@ -1008,7 +1001,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '0100' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel5():
         qubits = cudaq.qvector(4)
         r = [i * 2 + 1 for i in range(0)]
@@ -1019,7 +1012,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '0000' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel6():
         qubits = cudaq.qvector(4)
         r = [i * 2 + 1 for i in range(2)]
@@ -1030,7 +1023,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '0101' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel7():
         qubits = cudaq.qvector(5)
         r = [i for i in range(2, 5)]
@@ -1041,7 +1034,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '00111' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel8():
         qubits = cudaq.qvector(5)
         r = [i for i in range(2, 6, 2)]
@@ -1052,7 +1045,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '00101' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel9():
         qubits = cudaq.qvector(5)
         r = [i for i in range(6, 2, 2)]
@@ -1063,7 +1056,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '00000' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel10():
         qubits = cudaq.qvector(5)
         r = [i for i in range(3, 0, -2)]
@@ -1074,7 +1067,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '01010' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel11():
         qubits = cudaq.qvector(5)
         r = [i for i in range(-5, -2, -2)]
@@ -1085,7 +1078,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '00000' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel12():
         qubits = cudaq.qvector(5)
         r = [i for i in range(-1, -5, -2)]
@@ -1096,7 +1089,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '01010' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel13():
         qubits = cudaq.qvector(5)
         r = [i for i in range(1, -4, -1)]
@@ -1110,7 +1103,7 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '10110' in counts
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel14():
         qubits = cudaq.qvector(5)
         r = [i for i in range(-2, 6, 2)]
@@ -1126,7 +1119,7 @@ def test_list_boundaries():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(disable_quantum_optimization=True)
         def kernel15():
             qubits = cudaq.qvector(5)
             r = [i for i in range(1, 4, 0)]
@@ -1139,7 +1132,7 @@ def test_list_boundaries():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(disable_quantum_optimization=True)
         def kernel16(v: int):
             qubits = cudaq.qvector(5)
             r = [i for i in range(1, 4, v)]
@@ -1170,7 +1163,6 @@ def test_array_value_assignment():
     assert "11" in counts
 
 
-@skipIfValueSemantics
 def test_control_operations_1():
 
     @cudaq.kernel
@@ -1178,6 +1170,7 @@ def test_control_operations_1():
         q = cudaq.qvector(4)
         x.ctrl(q[0], q[1])
         cx(q[0], q[1])
+        ry(12 * np.pi, q)
 
     print(test)
     counts = cudaq.sample(test)
@@ -1312,7 +1305,6 @@ def test_capture_vars():
                       atol=1e-3)
 
 
-@skipIfValueSemantics
 def test_inner_function_capture():
 
     n = 3
@@ -1320,7 +1312,7 @@ def test_inner_function_capture():
 
     def innerClassical():
 
-        @cudaq.kernel()
+        @cudaq.kernel(disable_quantum_optimization=True)
         def foo():
             q = cudaq.qvector(n)
 
@@ -2279,7 +2271,6 @@ def test_rebind_symbol_to_distinct_decorator():
     assert len(counts) == 2 and '0' in counts and '1' in counts
 
 
-@skipIfValueSemantics
 def test_custom_classical_kernel_type():
     from dataclasses import dataclass
 
@@ -2367,14 +2358,13 @@ def test_custom_classical_kernel_type():
     # and the paths all work out
     from mock.hello import TestClass
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def test(input: TestClass):
         q = cudaq.qvector(input.i)
 
     instance = TestClass(2, 2.2)
-    #@skipIfValueSemantics
-    #state = cudaq.get_state(test, instance)
-    #state.dump()
+    state = cudaq.get_state(test, instance)
+    state.dump()
 
     assert len(state) == 2**instance.i
 
