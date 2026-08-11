@@ -730,7 +730,8 @@ jobs:
           bash /tmp/miniconda.sh -b -u -p "$conda_prefix"
           rm -f /tmp/miniconda.sh
           eval "$($conda_prefix/bin/conda shell.bash hook)"
-          retry conda install -y -c conda-forge openmpi">=5.0.7"
+          export CONDA_OVERRIDE_CUDA="$CUDA_VERSION"
+          retry conda install -y --override-channels -c conda-forge openmpi">=5.0.7"
           chmod -R a+rX "$conda_prefix"
 
       - name: Install and run sanity checks
