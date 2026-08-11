@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "common/AnalysisScope.h"
 #include "common/Resources.h"
-#include "nvqir/AnalysisScope.h"
 #include <functional>
 
 namespace nvqir::resource_counter {

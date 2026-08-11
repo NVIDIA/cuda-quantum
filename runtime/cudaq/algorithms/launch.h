@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "common/AnalysisScope.h"
 #include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "nvqir/AnalysisScope.h"
+#include "common/AnalysisScope.h"
 #include <string>
 
 namespace nvqir::dem {

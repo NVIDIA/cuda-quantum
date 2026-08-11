@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "nvqir/AnalysisScope.h"
+#include "common/AnalysisScope.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/resourcecounter/ResourceCounter.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"

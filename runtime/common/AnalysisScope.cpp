@@ -7,25 +7,29 @@
  ******************************************************************************/
 
 #include "AnalysisScope.h"
-#include "CircuitSimulator.h"
-#include "common/PluginUtils.h"
+#include "PluginUtils.h"
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <stdexcept>
 #include <utility>
 
-namespace nvqir {
+namespace {
 
-// Thread-local simulator override slot consulted by the NVQIR resolver in
-// `getCircuitSimulatorInternal()`. A non-null value preempts the normal
-// sampling backend and routes all gate / measurement / qubit-allocation
-// calls to the analysis simulator until the owning `AnalysisScope` is
-// destroyed.
-//
-// Single-slot by design: nested `nvqir::AnalysisScope` instances on the
-// same thread throw at construction (see `AnalysisScope::AnalysisScope`).
-// LIFO nesting can be added later by promoting this to a vector without
-// breaking the public API.
-thread_local CircuitSimulator *activeAnalysisSimulator = nullptr;
+/// Thread-local simulator override slot consulted by the NVQIR resolver in
+/// `getCircuitSimulatorInternal()`. A non-null value preempts the normal
+/// sampling backend and routes all gate / measurement / qubit-allocation
+/// calls to the analysis simulator until the owning `AnalysisScope` is
+/// destroyed.
+///
+/// Single-slot by design: nested `nvqir::AnalysisScope` instances on the
+/// same thread throw at construction (see `AnalysisScope::AnalysisScope`).
+/// LIFO nesting can be added later by promoting this to a vector without
+/// breaking the public API.
+thread_local nvqir::CircuitSimulator *activeAnalysisSimulator = nullptr;
+
+} // namespace
+
+namespace nvqir {
 
 AnalysisScope::AnalysisScope(std::string name, CircuitSimulator &sim, hooks h)
     : name_(std::move(name)), sim_(&sim), on_exit_(std::move(h.on_exit)) {

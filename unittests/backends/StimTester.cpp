@@ -8,8 +8,8 @@
 
 #include "CUDAQTestUtils.h"
 #include "StimCircuitSimulator.cpp"
+#include "common/AnalysisScope.h"
 #include "common/ExecutionContext.h"
-#include "nvqir/AnalysisScope.h"
 #include "nvqir/QIRTypes.h"
 #include <cstdint>
 #include <gtest/gtest.h>

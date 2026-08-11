@@ -9,13 +9,13 @@
 #pragma once
 
 #include "CompiledModule.h"
+#include "common/AnalysisScope.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
 #include "common/ServerHelper.h"
-#include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/sample/policy.h"
