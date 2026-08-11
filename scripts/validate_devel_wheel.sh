@@ -74,13 +74,17 @@ unzip -q -d "$scratch" "$devel_wheel" \
   'lib/cmake/*Targets*.cmake' 'lib/cmake/*/*Targets*.cmake' \
   'bin/clang.cfg' 'bin/clang++.cfg' \
   'lib/cmake/llvm/LLVMConfig.cmake' 2>/dev/null || true
-bad_paths=$(grep -RInE '/Users/|/home/[^/]+/\.local/' "$scratch" 2>/dev/null || true)
+if [ -z "$(find "$scratch" -type f -print -quit)" ]; then
+  echo "Error: no files extracted from devel wheel" >&2
+  exit 1
+fi
+bad_paths=$(grep -RInE '/Users/|/home/|/usr/|\.local/bin/|/opt/homebrew/' "$scratch" 2>/dev/null || true)
 if [ -n "$bad_paths" ]; then
   echo "Error: devel wheel contains absolute builder paths:" >&2
   echo "$bad_paths" | head -20 >&2
   exit 1
 fi
-echo "  OK: no absolute builder paths in CMake exports / clang.cfg"
+echo "  OK: no absolute builder paths found in CMake exports / clang.cfg"
 
 if $quick; then
   echo "Skipping smoke build (-q)"

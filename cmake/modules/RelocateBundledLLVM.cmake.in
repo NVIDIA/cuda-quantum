@@ -11,8 +11,6 @@
 # Rewrite absolute paths stored within the LLVM/MLIR tree to be relocatable. Run
 # at install time when CUDAQ_BUNDLE_MLIR_INSTALL is on (see BundleMLIRDevel.cmake).
 
-set(_llvm_build_prefix "@CUDAQ_LLVM_INSTALL_PREFIX@")
-
 # LLVMConfig.cmake hardcodes the zlib it was built against as `set(ZLIB_ROOT <path>)`
 # and then calls find_package(ZLIB). That path is not part of the bundled tree, so
 # for a consumer of the wheel the find_package would fail. Drop the pin and let

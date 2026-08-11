@@ -216,7 +216,6 @@ function(add_cudaq_python_common_capi_library name)
   mlir_python_setup_extension_rpath(${name}
     RELATIVE_INSTALL_ROOT "${ARG_RELATIVE_INSTALL_ROOT}")
   if(CUDAQ_LIBRARY_DIR)
-    set_property(TARGET ${name} APPEND PROPERTY INSTALL_RPATH "${CUDAQ_LIBRARY_DIR}")
     set_property(TARGET ${name} APPEND PROPERTY BUILD_RPATH "${CUDAQ_LIBRARY_DIR}")
   endif()
 

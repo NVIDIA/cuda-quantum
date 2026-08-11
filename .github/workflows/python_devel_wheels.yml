@@ -41,13 +41,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           ARTIFACT_NAME: pycudaq-3-11-manylinux-amd64-cu13-0-gcc12-main
+          WHEEL_URL: ${{ inputs.runtime_wheel_url }}
         run: |
-          url="${{ inputs.runtime_wheel_url }}"
-          if [ -n "$url" ]; then
-            run_id=$(echo "$url" | sed -n 's|.*/runs/\([0-9]*\)/.*|\1|p')
-            artifact_id=$(echo "$url" | sed -n 's|.*/artifacts/\([0-9]*\)$|\1|p')
+          if [ -n "$WHEEL_URL" ]; then
+            run_id=$(echo "$WHEEL_URL" | sed -n 's|.*/runs/\([0-9]*\)/.*|\1|p')
+            artifact_id=$(echo "$WHEEL_URL" | sed -n 's|.*/artifacts/\([0-9]*\)$|\1|p')
             if [ -z "$run_id" ] || [ -z "$artifact_id" ]; then
-              echo "::error::Could not parse run and artifact id from: $url"
+              echo "::error::Could not parse run and artifact id from: $WHEEL_URL"
               exit 1
             fi
           else
@@ -133,8 +133,8 @@ jobs:
           PYTHON="$(uv python find "$py")" bash scripts/validate_devel_wheel.sh -i dist -r runtime
 
       - name: Upload devel wheel artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: cudaq-devel
           path: dist/cudaq_devel*.whl
+          archive: false
           if-no-files-found: error
