@@ -13,6 +13,20 @@ on:
         type: string
         description: Optional argument to set the GitHub commit to use for the validation sources.
         required: false
+  # Called inline by the Deployments workflow (see its trigger_validation job).
+  # workflow_call resolves ./.github/workflows/validation.yml against the caller's
+  # ref, so this works on feature branches without the workflow existing on the
+  # default branch (unlike a REST workflow_dispatch, which 404s until then).
+  workflow_call:
+    inputs:
+      deployment_id:
+        type: string
+        description: The workflow id of the deployment whose images should be validated.
+        required: true
+      github_commit:
+        type: string
+        description: Optional argument to set the GitHub commit to use for the validation sources.
+        required: false
   workflow_run:
     workflows:
       - Deployments
@@ -30,7 +44,7 @@ jobs:
   metadata:
     name: Validation metadata
     if: >-
-      github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+      inputs.deployment_id != '' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     permissions:
       actions: read
