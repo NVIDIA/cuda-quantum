@@ -9,8 +9,9 @@
 #pragma once
 
 /// \file cuda_memory.h
-/// \brief Minimal RAII device-memory wrapper and cuBLAS/cuSOLVER error checks
-/// used by the dynamics matrix-exponential support and propagator caches.
+/// \brief Minimal RAII device-memory wrapper used by the dynamics
+/// matrix-exponential support and propagator caches. The CUDA / cuBLAS /
+/// cuSOLVER error-check helpers live in cuda_check.h.
 ///
 /// This is a trimmed subset of the experimental pulse runtime's cuda_memory.h,
 /// containing only the pieces required by matrix_exp.cu and the propagator /
@@ -20,33 +21,10 @@
 
 #include <algorithm>
 #include <cuComplex.h>
-#include <cublas_v2.h>
-#include <cusolverDn.h>
 #include <stdexcept>
-#include <string>
 #include <utility>
 
 namespace cudaq::detail {
-
-/// \brief Check cuBLAS error and throw on failure.
-inline void checkCublasError(cublasStatus_t status, const char *file,
-                             int line) {
-  if (status != CUBLAS_STATUS_SUCCESS) {
-    throw std::runtime_error(std::string("cuBLAS error at ") + file + ":" +
-                             std::to_string(line) + " - code " +
-                             std::to_string(status));
-  }
-}
-
-/// \brief Check cuSOLVER error and throw on failure.
-inline void checkCusolverError(cusolverStatus_t status, const char *file,
-                               int line) {
-  if (status != CUSOLVER_STATUS_SUCCESS) {
-    throw std::runtime_error(std::string("cuSOLVER error at ") + file + ":" +
-                             std::to_string(line) + " - code " +
-                             std::to_string(status));
-  }
-}
 
 /// \brief RAII wrapper for CUDA device memory (move-only, 2x growth).
 ///
@@ -133,9 +111,3 @@ private:
 using CudaComplexMemory = CudaDeviceMemory<cuDoubleComplex>;
 
 } // namespace cudaq::detail
-
-#define CUBLAS_CHECK(call)                                                     \
-  ::cudaq::detail::checkCublasError((call), __FILE__, __LINE__)
-
-#define CUSOLVER_CHECK(call)                                                   \
-  ::cudaq::detail::checkCusolverError((call), __FILE__, __LINE__)

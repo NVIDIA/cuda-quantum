@@ -16,8 +16,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace cudaq {
-namespace integrators {
+namespace cudaq::integrators {
 
 // Dormand-Prince RK5(4) adaptive integrator.
 // Reference: Dormand, J. R.; Prince, P. J. (1980), "A family of embedded
@@ -206,5 +205,4 @@ void dopri5::integrate(double targetTime) {
   }
 }
 
-} // namespace integrators
-} // namespace cudaq
+} // namespace cudaq::integrators

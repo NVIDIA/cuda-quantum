@@ -23,8 +23,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace cudaq {
-namespace integrators {
+namespace cudaq::integrators {
 
 // High-order commutator-free Magnus integrator (CF4).
 //
@@ -270,5 +269,4 @@ void magnus_cf4::integrate(double targetTime) {
   }
 }
 
-} // namespace integrators
-} // namespace cudaq
+} // namespace cudaq::integrators

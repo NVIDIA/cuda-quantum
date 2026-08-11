@@ -9,10 +9,13 @@
 #pragma once
 
 /// \file cuda_check.h
-/// \brief Lightweight CUDA error checking macros for the dynamics support
-/// helpers (matrix exponential, propagator / Hamiltonian caches).
+/// \brief Lightweight CUDA / cuBLAS / cuSOLVER error-checking helpers for the
+/// dynamics support code (matrix exponential, propagator / Hamiltonian caches).
+/// All of the runtime-API error checks live here in one place.
 
+#include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cusolverDn.h>
 #include <stdexcept>
 #include <string>
 
@@ -27,7 +30,33 @@ inline void checkCudaError(cudaError_t error, const char *file, int line) {
   }
 }
 
+/// \brief Check cuBLAS error and throw on failure.
+inline void checkCublasError(cublasStatus_t status, const char *file,
+                             int line) {
+  if (status != CUBLAS_STATUS_SUCCESS) {
+    throw std::runtime_error(std::string("cuBLAS error at ") + file + ":" +
+                             std::to_string(line) + " - code " +
+                             std::to_string(status));
+  }
+}
+
+/// \brief Check cuSOLVER error and throw on failure.
+inline void checkCusolverError(cusolverStatus_t status, const char *file,
+                               int line) {
+  if (status != CUSOLVER_STATUS_SUCCESS) {
+    throw std::runtime_error(std::string("cuSOLVER error at ") + file + ":" +
+                             std::to_string(line) + " - code " +
+                             std::to_string(status));
+  }
+}
+
 } // namespace cudaq::detail
 
 #define CUDA_CHECK(call)                                                       \
   ::cudaq::detail::checkCudaError((call), __FILE__, __LINE__)
+
+#define CUBLAS_CHECK(call)                                                     \
+  ::cudaq::detail::checkCublasError((call), __FILE__, __LINE__)
+
+#define CUSOLVER_CHECK(call)                                                   \
+  ::cudaq::detail::checkCusolverError((call), __FILE__, __LINE__)
