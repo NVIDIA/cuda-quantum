@@ -19,6 +19,7 @@ CompileOptions get_compile_options_impl(const other_policies &policy) {
   const auto *ctx = cudaq::getExecutionContext();
   CompileOptions opts;
   opts.emitResourceCounts = ctx && ctx->name == "resource-count";
+  opts.disableQuantumOpts = ctx && ctx->name == "tracer";
   return opts;
 }
 

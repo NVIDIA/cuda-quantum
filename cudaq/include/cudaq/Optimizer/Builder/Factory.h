@@ -133,7 +133,7 @@ inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
 /// \p eleTy (`T`).
 inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   auto *ctx = eleTy.getContext();
-  // Map stdvec<complex<T>> to stdvec<struct<T,T>>
+  // Map sequence<complex<T>> to sequence<struct<T,T>>
   if (auto cTy = mlir::dyn_cast<mlir::ComplexType>(eleTy)) {
     llvm::SmallVector<mlir::Type> types = {cTy.getElementType(),
                                            cTy.getElementType()};
@@ -290,7 +290,7 @@ mlir::Type convertToHostSideType(mlir::Type ty, mlir::ModuleOp module);
 // Return `true` if the given type corresponds to a standard vector type
 // according to our convention.
 // The convention is a `ptr<struct<ptr<T>, ptr<T>, ptr<T>>>`.
-bool isStdVecArg(mlir::Type type);
+bool isSequenceArg(mlir::Type type);
 
 bool isX86_64(mlir::ModuleOp);
 bool isAArch64(mlir::ModuleOp);

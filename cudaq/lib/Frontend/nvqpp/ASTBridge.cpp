@@ -135,7 +135,7 @@ static bool isQubitType(Type ty) {
   if (cudaq::quake::isQuakeType(ty))
     return true;
   // FIXME: next if case is a bug.
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+  if (auto vecTy = dyn_cast<cudaq::cc::SequenceType>(ty))
     return isQubitType(vecTy.getElementType());
   return false;
 }

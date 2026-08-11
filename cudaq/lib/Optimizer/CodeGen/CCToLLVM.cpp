@@ -634,13 +634,13 @@ public:
   }
 };
 
-class StdvecDataOpPattern
-    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecDataOp> {
+class SequenceDataOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::SequenceDataOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(cudaq::cc::StdvecDataOp data, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::cc::SequenceDataOp data, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto operands = adaptor.getOperands();
     auto resTy = getTypeConverter()->convertType(data.getType());
@@ -648,7 +648,7 @@ public:
     auto zero = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{0});
     auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
     if (!structTy)
-      return data.emitError("stdvec_data must have a struct as argument.");
+      return data.emitError("sequence_data must have a struct as argument.");
     auto extract = LLVM::ExtractValueOp::create(
         rewriter, data.getLoc(), structTy.getBody()[0], operands[0], zero);
     rewriter.replaceOpWithNewOp<LLVM::BitcastOp>(data, resTy, extract);
@@ -656,13 +656,13 @@ public:
   }
 };
 
-class StdvecInitOpPattern
-    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecInitOp> {
+class SequenceInitOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::SequenceInitOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(cudaq::cc::StdvecInitOp init, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::cc::SequenceInitOp init, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto operands = adaptor.getOperands();
     auto resTy = getTypeConverter()->convertType(init.getType());
@@ -672,7 +672,7 @@ public:
     Value val = LLVM::UndefOp::create(rewriter, loc, resTy);
     auto structTy = dyn_cast<LLVM::LLVMStructType>(resTy);
     if (!structTy)
-      return init.emitError("stdvec_init must have a struct as argument.");
+      return init.emitError("sequence_init must have a struct as argument.");
     auto yolo = LLVM::BitcastOp::create(rewriter, loc, structTy.getBody()[0],
                                         operands[0]);
     val = LLVM::InsertValueOp::create(rewriter, loc, val, yolo, zero);
@@ -695,13 +695,13 @@ public:
   }
 };
 
-class StdvecSizeOpPattern
-    : public ConvertOpToLLVMPattern<cudaq::cc::StdvecSizeOp> {
+class SequenceSizeOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::SequenceSizeOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(cudaq::cc::StdvecSizeOp size, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::cc::SequenceSizeOp size, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto operands = adaptor.getOperands();
     auto resTy = getTypeConverter()->convertType(size.getType());
@@ -836,14 +836,14 @@ class NoInlineCallPattern
 
 void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                           RewritePatternSet &patterns) {
-  patterns
-      .insert<AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
-              CallableFuncOpPattern, CallCallableOpPattern,
-              CallIndirectCallableOpPattern, CastOpPattern, ComputePtrOpPattern,
-              CreateStringLiteralOpPattern, ExtractValueOpPattern,
-              FuncToPtrOpPattern, GlobalOpPattern, InsertValueOpPattern,
-              InstantiateCallableOpPattern, LoadOpPattern, NoInlineCallPattern,
-              OffsetOfOpPattern, PoisonOpPattern, SizeOfOpPattern,
-              StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-              StoreOpPattern, UndefOpPattern, VarargCallPattern>(typeConverter);
+  patterns.insert<
+      AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
+      CallableFuncOpPattern, CallCallableOpPattern,
+      CallIndirectCallableOpPattern, CastOpPattern, ComputePtrOpPattern,
+      CreateStringLiteralOpPattern, ExtractValueOpPattern, FuncToPtrOpPattern,
+      GlobalOpPattern, InsertValueOpPattern, InstantiateCallableOpPattern,
+      LoadOpPattern, NoInlineCallPattern, OffsetOfOpPattern, PoisonOpPattern,
+      SizeOfOpPattern, SequenceDataOpPattern, SequenceInitOpPattern,
+      SequenceSizeOpPattern, StoreOpPattern, UndefOpPattern, VarargCallPattern>(
+      typeConverter);
 }

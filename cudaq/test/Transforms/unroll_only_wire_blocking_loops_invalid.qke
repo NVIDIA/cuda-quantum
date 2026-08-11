@@ -51,9 +51,9 @@ module {
         cc.continue %13 : i32
       }
     }
-    %measOut = quake.mz %5 name "m" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-    %6 = cc.undef !cc.stdvec<!cc.measure_handle>
-    %7 = cc.stdvec_data %measOut : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+    %measOut = quake.mz %5 name "m" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+    %6 = cc.undef !cc.sequence<!cc.measure_handle>
+    %7 = cc.sequence_data %measOut : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
     %8 = cc.cast %7 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
     %9 = cc.load %8 : !cc.ptr<!cc.measure_handle>
     %10 = quake.discriminate %9 : (!cc.measure_handle) -> i1
@@ -81,7 +81,7 @@ module {
         %6 = cc.cast signed %arg1 : (i32) -> i64
         %7 = arith.addi %6, %c1_i64 : i64
         %8 = quake.subveq %4, %6, %7 : (!quake.veq<2>, i64, i64) -> !quake.veq<2>
-        quake.mz %8 : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+        quake.mz %8 : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
         cc.continue %arg1 : i32
       } step {
       ^bb0(%arg1: i32):

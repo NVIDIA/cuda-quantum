@@ -555,9 +555,9 @@ class PyASTBridge(ast.NodeVisitor):
     def containsList(self, ty, innerListsOnly=False):
         """Returns true if the give type is a vector or contains items that are
         vectors."""
-        if cc.StdvecType.isinstance(ty):
+        if cc.SequenceType.isinstance(ty):
             return (not innerListsOnly or
-                    self.containsList(cc.StdvecType.getElementType(ty)))
+                    self.containsList(cc.SequenceType.getElementType(ty)))
         if not cc.StructType.isinstance(ty):
             return False
         eleTys = cc.StructType.getTypes(ty)
@@ -698,11 +698,11 @@ class PyASTBridge(ast.NodeVisitor):
                                    F64Type.isinstance(ty)):
             disc = self.__discriminateIfMeasureHandle(operand, self.currentNode)
             return self.changeOperandToType(ty, disc, allowDemotion)
-        if (cc.StdvecType.isinstance(ty) and
-                cc.StdvecType.getElementType(ty) == i1Type and
-                cc.StdvecType.isinstance(operand.type) and
+        if (cc.SequenceType.isinstance(ty) and
+                cc.SequenceType.getElementType(ty) == i1Type and
+                cc.SequenceType.isinstance(operand.type) and
                 cc.MeasureHandleType.isinstance(
-                    cc.StdvecType.getElementType(operand.type))):
+                    cc.SequenceType.getElementType(operand.type))):
             return self.__discriminateIfMeasureHandle(operand, self.currentNode)
         if cc.CallableType.isinstance(ty):
             fctTy = cc.CallableType.getFunctionType(ty)
@@ -735,9 +735,9 @@ class PyASTBridge(ast.NodeVisitor):
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 return complex.CreateOp(complexType, real, imag).result
 
-        if (cc.StdvecType.isinstance(ty)):
-            if cc.StdvecType.isinstance(operand.type):
-                eleTy = cc.StdvecType.getElementType(ty)
+        if (cc.SequenceType.isinstance(ty)):
+            if cc.SequenceType.isinstance(operand.type):
+                eleTy = cc.SequenceType.getElementType(ty)
                 return self.__copyVectorAndConvertElements(
                     operand,
                     eleTy,
@@ -956,9 +956,9 @@ class PyASTBridge(ast.NodeVisitor):
         return sawStore
 
     def __discriminateIfMeasureHandle(self, value, node):
-        """If `value` is a `!cc.measure_handle` (or `stdvec` thereof) at a
+        """If `value` is a `!cc.measure_handle` (or `sequence` thereof) at a
         `bool`-coercion context, insert a `quake.discriminate` and return
-        the `i1`/`stdvec<i1>` result.
+        the `i1`/`sequence<i1>` result.
         """
         if value is None:
             return value
@@ -968,10 +968,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     'discriminating an unbound measurement handle', node)
             return quake.DiscriminateOp(self.getIntegerType(1), value).result
-        if cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
-                cc.StdvecType.getElementType(ty)):
+        if cc.SequenceType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+                cc.SequenceType.getElementType(ty)):
             return quake.DiscriminateOp(
-                cc.StdvecType.get(self.getIntegerType(1)), value).result
+                cc.SequenceType.get(self.getIntegerType(1)), value).result
         return value
 
     def __isUnitaryGate(self, id):
@@ -982,7 +982,7 @@ class PyASTBridge(ast.NodeVisitor):
                 id in ['swap', 'u3', 'exp_pauli'] or
                 id in globalRegisteredOperations)
 
-    def __createStdvecWithKnownValues(self, listElementValues):
+    def __createSequenceWithKnownValues(self, listElementValues):
         assert (len(set((v.type for v in listElementValues))) == 1)
         arrSize = self.getConstantInt(len(listElementValues))
         elemTy = listElementValues[0].type
@@ -1004,10 +1004,11 @@ class PyASTBridge(ast.NodeVisitor):
                 v = self.changeOperandToType(self.getIntegerType(8), v)
             cc.StoreOp(v, eleAddr)
 
-        # We still use `i1` as the vector element type for `cc.StdvecInitOp`.
-        vecTy = cc.StdvecType.get(elemTy) if not isBool else cc.StdvecType.get(
-            self.getIntegerType(1))
-        return cc.StdvecInitOp(vecTy, alloca, length=arrSize).result
+        # We still use `i1` as the vector element type for `cc.SequenceInitOp`.
+        vecTy = cc.SequenceType.get(
+            elemTy) if not isBool else cc.SequenceType.get(
+                self.getIntegerType(1))
+        return cc.SequenceInitOp(vecTy, alloca, length=arrSize).result
 
     def __createStructWithKnownValues(self, mlirVals, name=None):
         structTy = mlirTryCreateStructType([item.type for item in mlirVals],
@@ -1107,8 +1108,8 @@ class PyASTBridge(ast.NodeVisitor):
         be used to create a deep copy).
         """
 
-        assert cc.StdvecType.isinstance(source.type)
-        sourceEleType = cc.StdvecType.getElementType(source.type)
+        assert cc.SequenceType.isinstance(source.type)
+        sourceEleType = cc.SequenceType.getElementType(source.type)
         if not targetEleType:
             targetEleType = sourceEleType
         if not alwaysCopy and sourceEleType == targetEleType:
@@ -1121,8 +1122,8 @@ class PyASTBridge(ast.NodeVisitor):
             targetEleType = self.getIntegerType(8)
 
         sourceArrPtrTy = cc.PointerType.get(cc.ArrayType.get(sourceEleType))
-        sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, source).result
-        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), source).result
+        sourceDataPtr = cc.SequenceDataOp(sourceArrPtrTy, source).result
+        sourceSize = cc.SequenceSizeOp(self.getIntegerType(), source).result
         targetPtr = cc.AllocaOp(cc.PointerType.get(
             cc.ArrayType.get(targetEleType)),
                                 TypeAttr.get(targetEleType),
@@ -1146,11 +1147,11 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.createInvariantForLoop(bodyBuilder, sourceSize)
 
-        # We still use `i1` as the vector element type for `cc.StdvecInitOp`.
-        vecTy = cc.StdvecType.get(
-            targetEleType) if not isTargetBool else cc.StdvecType.get(
+        # We still use `i1` as the vector element type for `cc.SequenceInitOp`.
+        vecTy = cc.SequenceType.get(
+            targetEleType) if not isTargetBool else cc.SequenceType.get(
                 self.getIntegerType(1))
-        return cc.StdvecInitOp(vecTy, targetPtr, length=sourceSize).result
+        return cc.SequenceInitOp(vecTy, targetPtr, length=sourceSize).result
 
     def __copyAndValidateContainer(self, value, pyVal, deepCopy, dataType=None):
         """Helper function to implement deep and shallow copies for structs and
@@ -1172,7 +1173,7 @@ class PyASTBridge(ast.NodeVisitor):
         if deepCopy:
 
             def conversion(idx, structItem):
-                if cc.StdvecType.isinstance(structItem.type):
+                if cc.SequenceType.isinstance(structItem.type):
                     structItem = self.__copyVectorAndConvertElements(
                         structItem, alwaysCopy=True, conversion=conversion)
                 elif (cc.StructType.isinstance(structItem.type) and
@@ -1187,7 +1188,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__validate_container_entry(structItem, pyVal)
                 return structItem
 
-        if cc.StdvecType.isinstance(value.type):
+        if cc.SequenceType.isinstance(value.type):
             listVal = self.__copyVectorAndConvertElements(value,
                                                           dataType,
                                                           alwaysCopy=True,
@@ -1212,12 +1213,12 @@ class PyASTBridge(ast.NodeVisitor):
 
         Does an in-place replacement for list elements.
         """
-        if cc.StdvecType.isinstance(value.type):
-            eleTy = cc.StdvecType.getElementType(value.type)
+        if cc.SequenceType.isinstance(value.type):
+            eleTy = cc.SequenceType.getElementType(value.type)
             if self.containsList(eleTy):
-                size = cc.StdvecSizeOp(self.getIntegerType(), value).result
+                size = cc.SequenceSizeOp(self.getIntegerType(), value).result
                 ptrTy = cc.PointerType.get(cc.ArrayType.get(eleTy))
-                iterable = cc.StdvecDataOp(ptrTy, value).result
+                iterable = cc.SequenceDataOp(ptrTy, value).result
 
                 def bodyBuilder(iterVar):
                     eleAddr = cc.ComputePtrOp(
@@ -1332,8 +1333,8 @@ class PyASTBridge(ast.NodeVisitor):
         Returns:
             MLIR Value containing the loaded element
         """
-        if cc.StdvecType.isinstance(vector.type):
-            elem_ty = cc.StdvecType.getElementType(vector.type)
+        if cc.SequenceType.isinstance(vector.type):
+            elem_ty = cc.SequenceType.getElementType(vector.type)
             is_bool = elem_ty == self.getIntegerType(1)
             # std::vector<bool> is a special case in C++ where each element is
             # stored as a single bit, but the underlying array is actually an
@@ -1341,7 +1342,7 @@ class PyASTBridge(ast.NodeVisitor):
             if is_bool:
                 # `i1` elements are stored as `i8` in the underlying array.
                 elem_ty = self.getIntegerType(8)
-            data_ptr = cc.StdvecDataOp(
+            data_ptr = cc.SequenceDataOp(
                 cc.PointerType.get(cc.ArrayType.get(elem_ty)), vector).result
             load_val = cc.LoadOp(
                 cc.ComputePtrOp(cc.PointerType.get(elem_ty), data_ptr, [index],
@@ -1531,13 +1532,13 @@ class PyASTBridge(ast.NodeVisitor):
                 getItem = lambda idx: quake.GetMemberOp(
                     argTypes[idx], value,
                     IntegerAttr.get(self.getIntegerType(32), idx)).result
-            elif cc.StdvecType.isinstance(value.type):
+            elif cc.SequenceType.isinstance(value.type):
                 # We will get a runtime error for out of bounds access
-                eleTy = cc.StdvecType.getElementType(value.type)
+                eleTy = cc.SequenceType.getElementType(value.type)
                 elePtrTy = cc.PointerType.get(eleTy)
                 arrTy = cc.ArrayType.get(eleTy)
                 ptrArrTy = cc.PointerType.get(arrTy)
-                vecPtr = cc.StdvecDataOp(ptrArrTy, value).result
+                vecPtr = cc.SequenceDataOp(ptrArrTy, value).result
                 attr = DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                              context=self.ctx)
                 nrArgs = len(target.elts)
@@ -1773,7 +1774,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(
                 "cudaq.contrib.angular_encode: first argument must be a "
                 "cudaq.qvector or qview", node)
-        if not cc.StdvecType.isinstance(angles.type):
+        if not cc.SequenceType.isinstance(angles.type):
             self.emitFatalError(
                 "cudaq.contrib.angular_encode: angles must be a list[float]",
                 node)
@@ -1788,11 +1789,11 @@ class PyASTBridge(ast.NodeVisitor):
                     "match the number of qubits", node)
 
         float_ty = self.getFloatType()
-        angle_ele_ty = cc.StdvecType.getElementType(angles.type)
+        angle_ele_ty = cc.SequenceType.getElementType(angles.type)
         angle_arr_ty = cc.ArrayType.get(angle_ele_ty)
         angle_ptr_ty = cc.PointerType.get(angle_ele_ty)
         angle_arr_ptr_ty = cc.PointerType.get(angle_arr_ty)
-        angles_ptr = cc.StdvecDataOp(angle_arr_ptr_ty, angles).result
+        angles_ptr = cc.SequenceDataOp(angle_arr_ptr_ty, angles).result
         ptr_attr = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
 
         veq_size = quake.VeqSizeOp(self.getIntegerType(), q).result
@@ -1855,7 +1856,7 @@ class PyASTBridge(ast.NodeVisitor):
             # We need to give a proper error if we try to assign a mutable
             # `dataclass` to an item in another container. Allowing this would
             # lead to incorrect behavior (i.e. inconsistent with Python) unless
-            # we change the representation of structs to be like `StdvecType`
+            # we change the representation of structs to be like `SequenceType`
             # where we have a container that is passed by value wrapping the
             # actual pointer, thus ensuring that the reference behavior actually
             # works across function boundaries.
@@ -2140,7 +2141,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         For all assignments, the variable name will be used as a key for the
         symbol table, mapping to the corresponding MLIR Value. Quantum values,
-        measurements results, `cc.callable`, and `cc.stdvec` will be stored as
+        measurements results, `cc.callable`, and `cc.sequence` will be stored as
         values in the symbol table.  For all other values, the variable will be
         allocated with a `cc.alloca` op, and the pointer will be stored in
         the symbol table.
@@ -2160,26 +2161,26 @@ class PyASTBridge(ast.NodeVisitor):
             # function argument items.
             containerFuncArg = (not self.buildingFunctionBody and
                                 (cc.StructType.isinstance(varTy) or
-                                 cc.StdvecType.isinstance(varTy)))
+                                 cc.SequenceType.isinstance(varTy)))
             # FIXME: Consider storing vectors and callables as pointers like
             # other variables.
-            # A local `!cc.stdvec<!cc.measure_handle>` is backed by a stack slot
+            # A local `!cc.sequence<!cc.measure_handle>` is backed by a stack slot
             # (like a scalar `!cc.measure_handle`) so it can be reassigned from a
             # child block. Function-argument handle vectors stay value-backed via
             # `containerFuncArg`; every other vector stays value-backed so
             # reassigning a general list across scopes is still rejected.
             # See https://github.com/NVIDIA/cuda-quantum/issues/4601.
-            # Discriminated measurement results (`i1` / `stdvec<i1>` produced by
+            # Discriminated measurement results (`i1` / `sequence<i1>` produced by
             # `quake.discriminate`) are stored like any other value: the
             # `!cc.measure_handle` type now carries the "is a measurement"
             # distinction, so they no longer need a value-storage carve-out to
             # preserve their discriminate origin.
-            isLocalHandleVec = (cc.StdvecType.isinstance(varTy) and
+            isLocalHandleVec = (cc.SequenceType.isinstance(varTy) and
                                 cc.MeasureHandleType.isinstance(
-                                    cc.StdvecType.getElementType(varTy)))
+                                    cc.SequenceType.getElementType(varTy)))
             storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
                           cc.CallableType.isinstance(varTy) or
-                          (cc.StdvecType.isinstance(varTy) and
+                          (cc.SequenceType.isinstance(varTy) and
                            not isLocalHandleVec))
             # Nothing should ever produce a pointer to a type we store as value
             # in the symbol table.
@@ -2256,7 +2257,7 @@ class PyASTBridge(ast.NodeVisitor):
                             "only literals can be assigned to variables defined"
                             " in parent scope - use `.copy(deep)` to create a "
                             "new value that can be assigned", node)
-                if cc.StdvecType.isinstance(destination.type):
+                if cc.SequenceType.isinstance(destination.type):
                     # In this case, we are assigning a list to a variable in a
                     #  parent scope.
                     assert isinstance(target, ast.Name)
@@ -2282,7 +2283,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # NOTE: The assignment is subject to the usual restrictions for
                 # container items - these should be validated before calling
                 # update_in_parent_block.
-                if not cc.StdvecType.isinstance(
+                if not cc.SequenceType.isinstance(
                         value.type) and storedAsValue(destination):
                     # We can't properly deal with this, since there is no way to ensure that
                     # the target in the symbol table is updated conditionally on the child
@@ -2331,7 +2332,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # by the caller, if the return value contains any
                     # lists. This is problematic for reasons commented in
                     # `__validate_container_entry`.
-                    if (cc.StdvecType.isinstance(value.type) and
+                    if (cc.SequenceType.isinstance(value.type) and
                             self.signature.return_type and
                             self.containsList(self.signature.return_type)):
                         # We loose this information if we assign an item of a
@@ -2599,7 +2600,7 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if (quake.VeqType.isinstance(valType) or
-                cc.StdvecType.isinstance(valType)):
+                cc.SequenceType.isinstance(valType)):
             if self.__isSupportedVectorFunction(node.attr):
                 if self.pushPointerValue:
                     self.emitFatalError(
@@ -2628,9 +2629,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(
                     quake.VeqSizeOp(self.getIntegerType(), value).result)
                 return
-            if cc.StdvecType.isinstance(value.type):
+            if cc.SequenceType.isinstance(value.type):
                 self.pushValue(
-                    cc.StdvecSizeOp(self.getIntegerType(), value).result)
+                    cc.SequenceSizeOp(self.getIntegerType(), value).result)
                 return
 
         self.emitFatalError("unrecognized attribute {}".format(node.attr), node)
@@ -2741,15 +2742,15 @@ class PyASTBridge(ast.NodeVisitor):
         def copy_list_to_stack(value):
             symName = '__nvqpp_vectorCopyToStack'
             load_intrinsic(self.module, symName)
-            elemTy = cc.StdvecType.getElementType(value.type)
+            elemTy = cc.SequenceType.getElementType(value.type)
             if elemTy == self.getIntegerType(1):
                 elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
             ptrArrTy = cc.PointerType.get(cc.ArrayType.get(elemTy))
-            resBuf = cc.StdvecDataOp(ptrArrTy, value).result
+            resBuf = cc.SequenceDataOp(ptrArrTy, value).result
             eleSize = cc.SizeOfOp(self.getIntegerType(),
                                   TypeAttr.get(elemTy)).result
-            dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+            dynSize = cc.SequenceSizeOp(self.getIntegerType(), value).result
             resBuf = cc.CastOp(cc.PointerType.get(elemTy), resBuf)
             stackCopy = cc.AllocaOp(cc.PointerType.get(
                 cc.ArrayType.get(elemTy)),
@@ -2760,7 +2761,8 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.CastOp(ptrTy, resBuf).result,
                 arith.MulIOp(dynSize, eleSize).result
             ])
-            return cc.StdvecInitOp(value.type, stackCopy, length=dynSize).result
+            return cc.SequenceInitOp(value.type, stackCopy,
+                                     length=dynSize).result
 
         def convertArguments(expectedArgTypes, values):
             assert len(expectedArgTypes) == len(values)
@@ -3105,9 +3107,10 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.id == 'len':
                 listVal = self.__groupValues(node.args, [1])
 
-                if cc.StdvecType.isinstance(listVal.type):
+                if cc.SequenceType.isinstance(listVal.type):
                     self.pushValue(
-                        cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
+                        cc.SequenceSizeOp(self.getIntegerType(),
+                                          listVal).result)
                     return
                 if quake.VeqType.isinstance(listVal.type):
                     self.pushValue(
@@ -3167,9 +3170,9 @@ class PyASTBridge(ast.NodeVisitor):
                                             endVal=endVal,
                                             isDecrementing=isDecrementing)
 
-                vect = cc.StdvecInitOp(cc.StdvecType.get(iTy),
-                                       iterable,
-                                       length=totalSize).result
+                vect = cc.SequenceInitOp(cc.SequenceType.get(iTy),
+                                         iterable,
+                                         length=totalSize).result
                 self.pushValue(vect)
                 return
 
@@ -3189,16 +3192,16 @@ class PyASTBridge(ast.NodeVisitor):
                                                   iterable,
                                                   -1,
                                                   index=idxVal).result
-                elif cc.StdvecType.isinstance(iterable.type):
-                    iterEleTy = cc.StdvecType.getElementType(iterable.type)
-                    totalSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                                iterable).result
+                elif cc.SequenceType.isinstance(iterable.type):
+                    iterEleTy = cc.SequenceType.getElementType(iterable.type)
+                    totalSize = cc.SequenceSizeOp(self.getIntegerType(),
+                                                  iterable).result
 
                     def extractFunctor(idxVal):
                         arrEleTy = cc.ArrayType.get(iterEleTy)
                         elePtrTy = cc.PointerType.get(iterEleTy)
                         arrPtrTy = cc.PointerType.get(arrEleTy)
-                        vecPtr = cc.StdvecDataOp(arrPtrTy, iterable).result
+                        vecPtr = cc.SequenceDataOp(arrPtrTy, iterable).result
                         eleAddr = cc.ComputePtrOp(
                             elePtrTy, vecPtr, [idxVal],
                             DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -3239,9 +3242,9 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.StoreOp(element, eleAddr)
 
                 self.createInvariantForLoop(bodyBuilder, totalSize)
-                vect = cc.StdvecInitOp(cc.StdvecType.get(structTy),
-                                       enumIterable,
-                                       length=totalSize).result
+                vect = cc.SequenceInitOp(cc.SequenceType.get(structTy),
+                                         enumIterable,
+                                         length=totalSize).result
                 self.pushValue(vect)
                 return
 
@@ -3307,14 +3310,14 @@ class PyASTBridge(ast.NodeVisitor):
                     label = registerName or None
                     # `mx`/`my`/`mz` are the single measurement API: they emit
                     # `quake.{mx,my,mz}` producing `!cc.measure_handle` (scalar)
-                    # or `!cc.stdvec<!cc.measure_handle>` (vector form on a
+                    # or `!cc.sequence<!cc.measure_handle>` (vector form on a
                     # `qvector`/`qview`).
                     handleEleTy = cc.MeasureHandleType.get()
                     if len(qubits) == 1 and quake.RefType.isinstance(
                             qubits[0].type):
                         measTy = handleEleTy
                     else:
-                        measTy = cc.StdvecType.get(handleEleTy)
+                        measTy = cc.SequenceType.get(handleEleTy)
                     handle = processQuantumOperation(node.func.id.title(), [],
                                                      qubits,
                                                      measTy,
@@ -3540,7 +3543,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # Just to be nice and give a dedicated error.
                 if (node.func.attr == 'append' and
                     (quake.VeqType.isinstance(funcVal.type) or
-                     cc.StdvecType.isinstance(funcVal.type))):
+                     cc.SequenceType.isinstance(funcVal.type))):
                     self.emitFatalError(
                         "CUDA-Q does not allow dynamic resizing or lists, "
                         "arrays, or qvectors.", node)
@@ -3796,7 +3799,7 @@ class PyASTBridge(ast.NodeVisitor):
                         valueTy = value.type
                         if cc.PointerType.isinstance(value.type):
                             valueTy = cc.PointerType.getElementType(value.type)
-                        if cc.StdvecType.isinstance(valueTy):
+                        if cc.SequenceType.isinstance(valueTy):
                             self.pushValue(value)
                             return
 
@@ -3820,7 +3823,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 self.pushValue(qubits)
                                 return
 
-                            if cc.StdvecType.isinstance(value.type):
+                            if cc.SequenceType.isinstance(value.type):
 
                                 # handle `cudaq.qvector(initState)`
                                 def check_vector_init():
@@ -3856,12 +3859,13 @@ class PyASTBridge(ast.NodeVisitor):
                                                 node)
 
                                 check_vector_init()
-                                eleTy = cc.StdvecType.getElementType(value.type)
+                                eleTy = cc.SequenceType.getElementType(
+                                    value.type)
                                 arrTy = cc.ArrayType.get(eleTy)
                                 ptrArrTy = cc.PointerType.get(arrTy)
-                                data = cc.StdvecDataOp(ptrArrTy, value).result
+                                data = cc.SequenceDataOp(ptrArrTy, value).result
                                 intTy = self.getIntegerType()
-                                size = cc.StdvecSizeOp(intTy, value).result
+                                size = cc.SequenceSizeOp(intTy, value).result
                                 stateTy = cc.PointerType.get(cc.StateType.get())
                                 state = quake.CreateStateOp(
                                     stateTy, data, size).result
@@ -3933,13 +3937,13 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
                         handle = self.__groupValues(node.args, [1])
                         ty = handle.type
-                        if not (cc.StdvecType.isinstance(ty) and
+                        if not (cc.SequenceType.isinstance(ty) and
                                 cc.MeasureHandleType.isinstance(
-                                    cc.StdvecType.getElementType(ty))):
+                                    cc.SequenceType.getElementType(ty))):
                             self.emitFatalError(
                                 'cudaq.to_bools expects a '
                                 'list[cudaq.measure_handle] argument', node)
-                        resTy = cc.StdvecType.get(self.getIntegerType(1))
+                        resTy = cc.SequenceType.get(self.getIntegerType(1))
                         self.pushValue(
                             quake.DiscriminateOp(resTy, handle).result)
                         return
@@ -4137,9 +4141,9 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == 'to_integer':
                         # `cudaq.to_integer` consumes a `list[bool]`
                         boolVec = self.__groupValues(node.args, [1])
-                        if (cc.StdvecType.isinstance(boolVec.type) and
+                        if (cc.SequenceType.isinstance(boolVec.type) and
                                 cc.MeasureHandleType.isinstance(
-                                    cc.StdvecType.getElementType(
+                                    cc.SequenceType.getElementType(
                                         boolVec.type))):
                             self.emitFatalError(
                                 '`cudaq.to_integer` does not accept a '
@@ -4147,7 +4151,7 @@ class PyASTBridge(ast.NodeVisitor):
                                 '`cudaq.to_integer(cudaq.to_bools(handles))`',
                                 node)
                         args = convertArguments(
-                            [cc.StdvecType.get(self.getIntegerType(1))],
+                            [cc.SequenceType.get(self.getIntegerType(1))],
                             [boolVec])
                         cudaqConvertToInteger = "__nvqpp_cudaqConvertToInteger"
                         load_intrinsic(self.module, cudaqConvertToInteger)
@@ -4317,12 +4321,12 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.generators[0].iter)
         iterable = self.popValue()
         orig_iterable_type = iterable.type
-        if cc.StdvecType.isinstance(iterable.type):
-            iterableSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                           iterable).result
-            iterTy = cc.StdvecType.getElementType(iterable.type)
+        if cc.SequenceType.isinstance(iterable.type):
+            iterableSize = cc.SequenceSizeOp(self.getIntegerType(),
+                                             iterable).result
+            iterTy = cc.SequenceType.getElementType(iterable.type)
             iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
-            iterable = cc.StdvecDataOp(iterArrPtrTy, iterable).result
+            iterable = cc.SequenceDataOp(iterArrPtrTy, iterable).result
         elif quake.VeqType.isinstance(iterable.type):
             iterableSize = quake.VeqSizeOp(self.getIntegerType(),
                                            iterable).result
@@ -4416,8 +4420,8 @@ class PyASTBridge(ast.NodeVisitor):
                 parentType = get_item_type(pyval.value)
                 if cc.PointerType.isinstance(parentType):
                     parentType = cc.PointerType.getElementType(parentType)
-                if cc.StdvecType.isinstance(parentType):
-                    return cc.StdvecType.getElementType(parentType)
+                if cc.SequenceType.isinstance(parentType):
+                    return cc.SequenceType.getElementType(parentType)
                 elif quake.VeqType.isinstance(parentType):
                     return quake.RefType.get()
                 self.emitFatalError(
@@ -4439,7 +4443,7 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 f"non-homogenous list not allowed - must all be "
                                 f"same type: {elts}", node)
-                return cc.StdvecType.get(base_elTy)
+                return cc.SequenceType.get(base_elTy)
             elif isinstance(pyval, ast.Call):
                 if isinstance(pyval.func, ast.Name):
                     from .kernel_decorator import isa_kernel_decorator
@@ -4565,7 +4569,7 @@ class PyASTBridge(ast.NodeVisitor):
             if quake.VeqType.isinstance(orig_iterable_type) and not hasFilter:
                 self.pushValue(iterable)
                 return
-            if (cc.StdvecType.isinstance(orig_iterable_type) or
+            if (cc.SequenceType.isinstance(orig_iterable_type) or
                     quake.VeqType.isinstance(orig_iterable_type)):
                 i64Ty = self.getIntegerType()
                 veqTy = self.getVeqType()
@@ -4625,7 +4629,7 @@ class PyASTBridge(ast.NodeVisitor):
                 "unsupported list comprehension producing qubit references",
                 node)
 
-        resultVecTy = cc.StdvecType.get(listElemTy)
+        resultVecTy = cc.SequenceType.get(listElemTy)
         if listElemTy == self.getIntegerType(1):
             listElemTy = self.getIntegerType(8)
         listTy = cc.ArrayType.get(listElemTy)
@@ -4665,8 +4669,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable.endBlock()
 
             self.createInvariantForLoop(bodyBuilder, iterableSize)
-            res = cc.StdvecInitOp(resultVecTy, listValue,
-                                  length=iterableSize).result
+            res = cc.SequenceInitOp(resultVecTy, listValue,
+                                    length=iterableSize).result
             self.pushValue(res)
             return
 
@@ -4698,7 +4702,8 @@ class PyASTBridge(ast.NodeVisitor):
                 IntegerAttr.get(i64Ty, 2), args[0], iterableSize).result,
             lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
         finalCount = loop.results[1]
-        res = cc.StdvecInitOp(resultVecTy, listValue, length=finalCount).result
+        res = cc.SequenceInitOp(resultVecTy, listValue,
+                                length=finalCount).result
         self.pushValue(res)
         return
 
@@ -4774,8 +4779,8 @@ class PyASTBridge(ast.NodeVisitor):
                 for v in listElementValues
             ]
 
-        # Turn this List into a StdVec<T>
-        self.pushValue(self.__createStdvecWithKnownValues(listElementValues))
+        # Turn this List into a Sequence<T>
+        self.pushValue(self.__createSequenceWithKnownValues(listElementValues))
 
     def visit_Constant(self, node):
         """Convert constant values in the code to constant values in the
@@ -4821,14 +4826,14 @@ class PyASTBridge(ast.NodeVisitor):
         `q[1:3]`) to corresponding extraction or slice code in the MLIR.
 
         This method
-        handles extraction for `veq` types and `stdvec` types.
+        handles extraction for `veq` types and `sequence` types.
         """
 
         def get_size(val):
             if quake.VeqType.isinstance(val.type):
                 return quake.VeqSizeOp(self.getIntegerType(), val).result
-            elif cc.StdvecType.isinstance(val.type):
-                return cc.StdvecSizeOp(self.getIntegerType(), val).result
+            elif cc.SequenceType.isinstance(val.type):
+                return cc.SequenceSizeOp(self.getIntegerType(), val).result
             return None
 
         def fix_negative_idx(idx, get_size):
@@ -4867,7 +4872,7 @@ class PyASTBridge(ast.NodeVisitor):
                 upperVal = fix_negative_idx(self.popValue(), lambda: vectorSize)
             else:
                 if not quake.VeqType.isinstance(
-                        var.type) and not cc.StdvecType.isinstance(var.type):
+                        var.type) and not cc.SequenceType.isinstance(var.type):
                     self.emitFatalError(
                         f"unhandled upper slice == None, can't handle "
                         f"type {var.type}", node)
@@ -4899,8 +4904,8 @@ class PyASTBridge(ast.NodeVisitor):
                     subv = cc.UndefOp(self.getVeqType())
                     cc.ContinueOp([subv.result])
                 self.pushValue(ifOp.result)
-            elif cc.StdvecType.isinstance(var.type):
-                eleTy = cc.StdvecType.getElementType(var.type)
+            elif cc.SequenceType.isinstance(var.type):
+                eleTy = cc.SequenceType.getElementType(var.type)
                 # Use `i8` for boolean elements
                 if eleTy == self.getIntegerType(1):
                     eleTy = self.getIntegerType(8)
@@ -4910,16 +4915,17 @@ class PyASTBridge(ast.NodeVisitor):
                 nElementsVal = arith.SubIOp(upperVal, lowerVal).result
 
                 # need to compute the distance between `upperVal` and `lowerVal`
-                # then slice is `stdvecdataOp + computeptr[lower] +`
-                # `stdvecinit[ptr,distance]`
+                # then slice is `sequenceDataOp + computeptr[lower] +`
+                # `sequence_init[ptr,distance]`
 
-                vecPtr = cc.StdvecDataOp(ptrArrTy, var).result
+                vecPtr = cc.SequenceDataOp(ptrArrTy, var).result
                 ptr = cc.ComputePtrOp(
                     ptrTy, vecPtr, [lowerVal],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
                 self.pushValue(
-                    cc.StdvecInitOp(var.type, ptr, length=nElementsVal).result)
+                    cc.SequenceInitOp(var.type, ptr,
+                                      length=nElementsVal).result)
             else:
                 self.emitFatalError(
                     f"unhandled slice operation, cannot handle type {var.type}",
@@ -5007,7 +5013,7 @@ class PyASTBridge(ast.NodeVisitor):
             # We should only ever get a pointer if we explicitly asked for it.
             assert self.pushPointerValue
             varType = cc.PointerType.getElementType(var.type)
-            if cc.StdvecType.isinstance(varType):
+            if cc.SequenceType.isinstance(varType):
                 # We can get a pointer to a vector (only) if we are updating a
                 # struct item that is a pointer.
                 if self.pushPointerValue:
@@ -5040,16 +5046,16 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(eleAddr)
                     return
 
-        if cc.StdvecType.isinstance(var.type):
+        if cc.SequenceType.isinstance(var.type):
             idx = fix_negative_idx(idx, lambda: get_size(var))
-            eleTy = cc.StdvecType.getElementType(var.type)
+            eleTy = cc.SequenceType.getElementType(var.type)
             isBool = eleTy == self.getIntegerType(1)
             if isBool:
                 eleTy = self.getIntegerType(8)
             elePtrTy = cc.PointerType.get(eleTy)
             arrTy = cc.ArrayType.get(eleTy)
             ptrArrTy = cc.PointerType.get(arrTy)
-            vecPtr = cc.StdvecDataOp(ptrArrTy, var).result
+            vecPtr = cc.SequenceDataOp(ptrArrTy, var).result
             eleAddr = cc.ComputePtrOp(
                 elePtrTy, vecPtr, [idx],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -5126,7 +5132,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         This node represents the typical Python for
         statement, `for VAR in ITERABLE`. Currently supported ITERABLEs are the
-        `veq` type, the `stdvec` type, and the result of range() and
+        `veq` type, the `sequence` type, and the result of range() and
         enumerate().
         """
 
@@ -5167,7 +5173,7 @@ class PyASTBridge(ast.NodeVisitor):
             stepVal = self.getConstantInt(1)
             relevantVals = getValues or (lambda iterVar, v: v)
 
-            # we currently handle `veq` and `stdvec` types
+            # we currently handle `veq` and `sequence` types
             if quake.VeqType.isinstance(iterable.type):
                 size = quake.VeqType.getSize(iterable.type)
                 if quake.VeqType.hasSpecifiedSize(iterable.type):
@@ -5185,18 +5191,19 @@ class PyASTBridge(ast.NodeVisitor):
 
                 getValues = loadElement
 
-            elif cc.StdvecType.isinstance(iterable.type):
-                iterEleTy = cc.StdvecType.getElementType(iterable.type)
+            elif cc.SequenceType.isinstance(iterable.type):
+                iterEleTy = cc.SequenceType.getElementType(iterable.type)
                 isBool = iterEleTy == self.getIntegerType(1)
                 if isBool:
                     iterEleTy = self.getIntegerType(8)
-                endVal = cc.StdvecSizeOp(self.getIntegerType(), iterable).result
+                endVal = cc.SequenceSizeOp(self.getIntegerType(),
+                                           iterable).result
 
                 def loadElement(iterVar):
                     elePtrTy = cc.PointerType.get(iterEleTy)
                     arrTy = cc.ArrayType.get(iterEleTy)
                     ptrArrTy = cc.PointerType.get(arrTy)
-                    vecPtr = cc.StdvecDataOp(ptrArrTy, iterable).result
+                    vecPtr = cc.SequenceDataOp(ptrArrTy, iterable).result
                     eleAddr = cc.ComputePtrOp(
                         elePtrTy, vecPtr, [iterVar],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
@@ -5437,10 +5444,10 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(op, (ast.In, ast.NotIn)):
 
             # Type validation and vector initialization
-            if not cc.StdvecType.isinstance(right.type):
+            if not cc.SequenceType.isinstance(right.type):
                 self.emitFatalError(
                     "Right operand must be a list/vector for 'in' comparison")
-            vectSize = cc.StdvecSizeOp(self.getIntegerType(), right).result
+            vectSize = cc.SequenceSizeOp(self.getIntegerType(), right).result
 
             # Loop setup
             i1_type = self.getIntegerType(1)
@@ -5593,20 +5600,21 @@ class PyASTBridge(ast.NodeVisitor):
         def copy_list_to_heap(value):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
-            elemTy = cc.StdvecType.getElementType(value.type)
+            elemTy = cc.SequenceType.getElementType(value.type)
             if elemTy == self.getIntegerType(1):
                 elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
             arrTy = cc.ArrayType.get(self.getIntegerType(8))
             ptrArrTy = cc.PointerType.get(arrTy)
-            resBuf = cc.StdvecDataOp(ptrArrTy, value).result
+            resBuf = cc.SequenceDataOp(ptrArrTy, value).result
             eleSize = cc.SizeOfOp(self.getIntegerType(),
                                   TypeAttr.get(elemTy)).result
-            dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+            dynSize = cc.SequenceSizeOp(self.getIntegerType(), value).result
             resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
                                    [resBuf, dynSize, eleSize]).result
-            return cc.StdvecInitOp(value.type, heapCopy, length=dynSize).result
+            return cc.SequenceInitOp(value.type, heapCopy,
+                                     length=dynSize).result
 
         rootVal = self.__get_root_value(node.value)
         if rootVal and self.isFunctionArgument(rootVal):

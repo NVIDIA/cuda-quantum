@@ -39,8 +39,15 @@ def _basis_states(dimension: int):
     return states
 
 
-def _state_to_matrix(state, dimension: int) -> np.ndarray:
-    """Convert a `vectorized` propagated identity state back to a matrix."""
+def _state_to_matrix(state,
+                     dimension: int,
+                     column_major: bool = False) -> np.ndarray:
+    """Convert a `vectorized` propagated identity state back to a matrix.
+
+    The dynamics backend `vectorizes` super-operator states in row-major order
+    for a single system but in column-major order for a batch, so the batched
+    path must transpose to recover the same propagator.
+    """
     data = np.array(state).reshape(-1)
     expected_size = dimension * dimension
 
@@ -48,7 +55,8 @@ def _state_to_matrix(state, dimension: int) -> np.ndarray:
         raise RuntimeError("Expected propagator state with size "
                            f"{expected_size}, got {data.size}.")
 
-    return data.reshape((dimension, dimension)).T
+    matrix = data.reshape((dimension, dimension))
+    return matrix.T if column_major else matrix
 
 
 def _closed_system_generator(hamiltonian):
@@ -58,16 +66,18 @@ def _closed_system_generator(hamiltonian):
     return generator
 
 
-def _extract_propagator(result, dimension: int,
-                        store_intermediate_results: bool):
+def _extract_propagator(result,
+                        dimension: int,
+                        store_intermediate_results: bool,
+                        column_major: bool = False):
     """Extract closed-system propagators from a CUDA-Q evolve result."""
     if store_intermediate_results:
         return [
-            _state_to_matrix(state, dimension)
+            _state_to_matrix(state, dimension, column_major)
             for state in result.intermediate_states()
         ]
 
-    return _state_to_matrix(result.final_state(), dimension)
+    return _state_to_matrix(result.final_state(), dimension, column_major)
 
 
 def _extract_batched_basis_propagator(results,
@@ -237,9 +247,10 @@ def propagator(
 
     if is_batched:
         return [
-            _extract_propagator(single_result, propagator_dimension,
-                                store_intermediate_results)
-            for single_result in result
+            _extract_propagator(single_result,
+                                propagator_dimension,
+                                store_intermediate_results,
+                                column_major=True) for single_result in result
         ]
 
     return _extract_propagator(result, propagator_dimension,
