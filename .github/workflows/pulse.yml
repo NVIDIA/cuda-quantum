@@ -108,19 +108,17 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-      packages: read  # pull the private cuda-quantum-devcontainer image from ghcr.io
+      packages: read  # read the public cuda-quantum-devcontainer image from ghcr.io
     container:
       # The cuda-quantum-devcontainer image bundles the pinned LLVM/MLIR toolchain
-      # at LLVM_INSTALL_PREFIX; the pulse job never builds LLVM from source. It is
-      # a PRIVATE ghcr.io package (built and pushed from this same repo by
-      # docker_images.yml), so pulling it needs a token with package read:
-      # GHCR_PULL_TOKEN if configured (a PAT with read:packages that can read the
-      # package), otherwise the job's GITHUB_TOKEN -- which resolves once the
-      # package grants NVIDIA/cuda-quantum read under "Manage Actions access".
-      image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      # at LLVM_INSTALL_PREFIX; the pulse job never builds LLVM from source. Use
+      # the canonical multi-arch tag: the arch-prefixed (amd64-/arm64-) tags are
+      # per-arch build/cache artifacts, and the *-llvm-* tags belong to the
+      # separate cuda-quantum-devdeps image -- neither is meant to be pulled here.
+      image: ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc12-main
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
+        password: ${{ github.token }}
 
     steps:
       - name: Check out CUDA-Q
@@ -173,16 +171,15 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      packages: read  # pull the private cuda-quantum-devcontainer image from ghcr.io
+      packages: read  # read the public cuda-quantum-devcontainer image from ghcr.io
     container:
       # The development image supplies the pinned LLVM/MLIR toolchain, CUDA
-      # Toolkit, and cuDensityMat SDK; LLVM is never built in this job. See
-      # test-and-docs for the ghcr.io credential notes (private package -> uses
-      # GHCR_PULL_TOKEN if set, else the job's GITHUB_TOKEN).
-      image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      # Toolkit, and cuDensityMat SDK; LLVM is never built in this job. Uses the
+      # same canonical multi-arch devcontainer tag as test-and-docs.
+      image: ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc12-main
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
+        password: ${{ github.token }}
 
     steps:
       - name: Check out CUDA-Q
