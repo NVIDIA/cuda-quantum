@@ -116,7 +116,7 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.pipelineConfig.codegenTranslation, t.pipelineConfig.postCodeGenPasses,
       t.pipelineConfig.disableQubitMapping,
       t.pipelineConfig.replaceStateWithKernel, t.pipelineConfig.addMeasurements,
-      t.pipelineConfig.enableQuantumOpt, t.overrideAOTCompilation, t.emulate,
+      t.overrideAOTCompilation, t.emulate,
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
       t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics);
 

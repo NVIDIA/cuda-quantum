@@ -42,7 +42,8 @@ using namespace mlir;
 std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
                                              mlir::ModuleOp module,
                                              OpaqueArguments &args,
-                                             const std::string &format) {
+                                             const std::string &format,
+                                             const CompileOptions &options) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
 
   auto target = createDefaultCompileTarget();
@@ -69,7 +70,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
   bool disableQuantumOpt =
-      !compiler.getTarget().pipelineConfig.enableQuantumOpt ||
+      options.disableQuantumOpts ||
       compiled_module->hasAttr(cudaq::runtime::disableQuantumOpts);
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
                                          /*useValueSemantics=*/

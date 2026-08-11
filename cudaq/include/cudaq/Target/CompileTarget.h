@@ -62,10 +62,6 @@ struct CompileTarget {
              midLevelPipeline.empty() && lowLevelPipeline.empty();
     }
 
-    /// Duplicate flag to disableQuantumOpt with reverse polarity. This one tags
-    /// along on the CompileTarget, while that one is in the Policy.
-    /// FIXME: this flag should not be threaded in two distinct ways.
-    bool enableQuantumOpt = true;
   };
 
   /// Pipeline configuration, populated by the constructor.

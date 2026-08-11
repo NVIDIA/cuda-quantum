@@ -8,6 +8,7 @@
 
 #include "py_translate.h"
 #include "common/Timing.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
@@ -51,11 +52,12 @@ static std::string translate_impl(const std::string &shortName,
   auto opaques =
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
+  auto options = cudaq::get_compile_options(cudaq::other_policies{});
   return StringSwitch<std::function<std::string()>>(formatPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
-                                                       format);
+                                                       format, options);
              })
       .Case("openqasm2",
             [&]() {
