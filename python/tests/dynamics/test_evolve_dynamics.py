@@ -84,6 +84,89 @@ def test_euler_integrator():
     np.testing.assert_allclose(expected_answer, expt, 1e-3)
 
 
+# Factories for the native adaptive integrators (`dopri5`, `magnus_cf4`).
+# These are parametrized separately from `all_integrator_classes` because they
+# target single-system closed/open evolution (the scenarios covered by their
+# C++ unit tests) rather than the full batched / super-operator model matrix.
+_adaptive_integrator_factories = [
+    pytest.param(lambda: DoPri5Integrator(), id="dopri5"),
+    pytest.param(lambda: MagnusCF4Integrator(max_step_size=0.01),
+                 id="magnus_cf4"),
+]
+
+
+@pytest.mark.parametrize('integrator_factory', _adaptive_integrator_factories)
+def test_native_adaptive_integrator_open_system_decay(integrator_factory):
+    """Open-system cavity decay via the native adaptive integrators.
+
+    Mirrors ``test_euler_integrator`` but drives the evolution with ``dopri5``
+    / ``magnus_cf4``. With a collapse operator present, ``magnus_cf4``
+    transparently falls back to ``magnus_expansion``; ``dopri5`` integrates the
+    master equation with error-controlled adaptive stepping.
+    """
+    N = 10
+    steps = np.linspace(0, 10, 101)
+    schedule = Schedule(steps, ["t"])
+    hamiltonian = operators.number(0)
+    dimensions = {0: N}
+    psi0_ = cp.zeros(N, dtype=cp.complex128)
+    psi0_[-1] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+    decay_rate = 0.1
+    evolution_result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        psi0,
+        observables=[hamiltonian],
+        collapse_operators=[np.sqrt(decay_rate) * boson.annihilate(0)],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+        integrator=integrator_factory())
+
+    expt = [
+        exp_vals[0].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+    expected_answer = (N - 1) * np.exp(-decay_rate * steps)
+    np.testing.assert_allclose(expected_answer, expt, 1e-3)
+
+
+@pytest.mark.parametrize('integrator_factory', _adaptive_integrator_factories)
+def test_native_adaptive_integrator_closed_system(integrator_factory):
+    """Closed-system evolution (no collapse operators) conserves populations.
+
+    Starting from a number eigenstate under ``H = number``, the occupation is a
+    constant of motion. Using a density-matrix initial state exercises
+    ``magnus_cf4``'s unitary matrix-exponential fast path (and its propagator
+    cache for the constant Hamiltonian), and the closed-system path for
+    ``dopri5``.
+    """
+    N = 4
+    steps = np.linspace(0, 5, 51)
+    schedule = Schedule(steps, ["t"])
+    hamiltonian = operators.number(0)
+    dimensions = {0: N}
+    # Density matrix |2><2| (a number eigenstate).
+    rho0_ = cp.zeros((N, N), dtype=cp.complex128)
+    rho0_[2, 2] = 1.0
+    rho0 = cudaq.State.from_data(rho0_)
+    evolution_result = cudaq.evolve(hamiltonian,
+                                    dimensions,
+                                    schedule,
+                                    rho0,
+                                    observables=[hamiltonian],
+                                    store_intermediate_results=cudaq.
+                                    IntermediateResultSave.EXPECTATION_VALUE,
+                                    integrator=integrator_factory())
+
+    expt = [
+        exp_vals[0].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+    np.testing.assert_allclose(expt, [2.0] * len(steps), atol=1e-3)
+
+
 def test_evolve_async_dynamics_target():
     """Test async evolution on the dynamics target."""
     steps = np.linspace(0, 0.1, 3)

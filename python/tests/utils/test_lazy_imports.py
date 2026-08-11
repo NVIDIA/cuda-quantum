@@ -58,6 +58,8 @@ assert hasattr(cudaq.ast, '__name__')
 # _DEFERRED_STAR_MODULES (integrator classes)
 assert cudaq.RungeKuttaIntegrator is not None
 assert cudaq.ScipyZvodeIntegrator is not None
+assert cudaq.DoPri5Integrator is not None
+assert cudaq.MagnusCF4Integrator is not None
 """)
 
 
@@ -82,7 +84,8 @@ d = dir(cudaq)
 for name in ['evolve', 'evolve_async', 'Schedule',
              'IntermediateResultSave', 'amplitude_encode', 'angular_encode',
              'chemistry', 'uccsd', 'ast',
-             'RungeKuttaIntegrator', 'ScipyZvodeIntegrator']:
+             'RungeKuttaIntegrator', 'ScipyZvodeIntegrator',
+             'DoPri5Integrator', 'MagnusCF4Integrator']:
     assert name in d, f'{name} missing from dir(cudaq)'
 """)
 
