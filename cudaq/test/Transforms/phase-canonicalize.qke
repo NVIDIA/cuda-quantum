@@ -124,6 +124,13 @@ func.func @merge_reference(%a: f64, %b: f64, %control: !quake.ref,
 
 // In wire form, every operand of the second phase is the corresponding result
 // of the first phase. The merged operation starts from the original wires and
+// 
+// In the next four tests, we check all of the potential situations for merging 
+// two adjacent phase ops:
+// 1. both are non-adjoint phases
+// 2. both are adjoint phases
+// 3. first phase is adjoint phase, second is non-adjoint
+// 4. first phase is non-adjoint phase, second is adjoint
 // preserves the positional result mapping.
 // CHECK-LABEL: func.func @merge_wire(
 // CHECK-SAME: %[[A:[a-zA-Z0-9_.$-]+]]: f64, %[[B:[a-zA-Z0-9_.$-]+]]: f64
@@ -138,6 +145,81 @@ func.func @merge_wire(%a: f64, %b: f64) {
   %control = quake.null_wire
   %anchor = quake.null_wire
   %first:2 = quake.phase (%a) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %second:2 = quake.phase (%b) [%first#0] %first#1
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %second#0 : !quake.wire
+  quake.sink %second#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @merge_wire_two_adj(
+// CHECK-SAME:      %[[ARG0:.*]]: f64,
+// CHECK-SAME:      %[[ARG1:.*]]: f64) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[ADDF_0:.*]] = arith.addf %[[ARG0]], %[[ARG1]] : f64
+// CHECK:           %[[PHASE_0:.*]]:2 = quake.phase<adj> (%[[ADDF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[PHASE_0]]#0 : !quake.wire
+// CHECK:           quake.sink %[[PHASE_0]]#1 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+func.func @merge_wire_two_adj(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %first:2 = quake.phase<adj> (%a) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %second:2 = quake.phase<adj> (%b) [%first#0] %first#1
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %second#0 : !quake.wire
+  quake.sink %second#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @merge_wire_first_normal_second_adj(
+// CHECK-SAME:      %[[ARG0:.*]]: f64,
+// CHECK-SAME:      %[[ARG1:.*]]: f64) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SUBF_0:.*]] = arith.subf %[[ARG0]], %[[ARG1]] : f64
+// CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[SUBF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[PHASE_0]]#0 : !quake.wire
+// CHECK:           quake.sink %[[PHASE_0]]#1 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+func.func @merge_wire_first_normal_second_adj(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %first:2 = quake.phase (%a) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %second:2 = quake.phase<adj> (%b) [%first#0] %first#1
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %second#0 : !quake.wire
+  quake.sink %second#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @merge_wire_first_adj_second_normal(
+// CHECK-SAME:      %[[ARG0:.*]]: f64,
+// CHECK-SAME:      %[[ARG1:.*]]: f64) {
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[SUBF_0:.*]] = arith.subf %[[ARG1]], %[[ARG0]] : f64
+// CHECK:           %[[PHASE_0:.*]]:2 = quake.phase (%[[SUBF_0]]) {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[PHASE_0]]#0 : !quake.wire
+// CHECK:           quake.sink %[[PHASE_0]]#1 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+func.func @merge_wire_first_adj_second_normal(%a: f64, %b: f64) {
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %first:2 = quake.phase<adj> (%a) [%control] %anchor
       : (f64, !quake.wire, !quake.wire)
         -> (!quake.wire, !quake.wire)
   %second:2 = quake.phase (%b) [%first#0] %first#1
