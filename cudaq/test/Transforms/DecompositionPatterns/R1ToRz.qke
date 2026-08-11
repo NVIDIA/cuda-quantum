@@ -1,0 +1,29 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToRz})' %s | CircuitCheck %s --up-to-global-phase
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=R1ToRz})' %s | FileCheck %s --check-prefix=VALUE
+// RUN: cudaq-opt -pass-pipeline='builtin.module(func.func(memtoreg),decomposition{enable-patterns=R1ToRz})' %s | CircuitCheck %s --up-to-global-phase
+
+// R1 and Rz differ only by global phase. The value-semantics run ensures the
+// replacement preserves the wire result introduced by memtoreg.
+
+// CHECK-LABEL: func.func @test
+func.func @test(%qubit: !quake.ref) {
+  %0 = arith.constant 1.57079632679489660 : f64
+  // CHECK: quake.rz
+  // CHECK-NOT: quake.r1
+  quake.r1 (%0) %qubit : (f64, !quake.ref) -> ()
+  return
+}
+
+// VALUE-LABEL: func.func @test
+// VALUE: quake.rz
+// VALUE-SAME: -> !quake.wire
+// VALUE-NOT: quake.r1

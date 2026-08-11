@@ -658,8 +658,9 @@ struct R1ToRz
       return failure();
 
     rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
-        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
-        r1Op.getTargets());
+        r1Op, r1Op.getResultTypes(), r1Op.isAdj(), r1Op.getParameters(),
+        r1Op.getControls(), r1Op.getTargets(),
+        r1Op.getNegatedQubitControlsAttr());
     return success();
   }
 };
