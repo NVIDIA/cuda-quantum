@@ -81,9 +81,13 @@ protected:
   /// @brief The target configuration
   cudaq::config::TargetConfig targetConfig;
 
-  CompileTarget createCompileTarget() {
+  CompileTarget createCompileTarget(bool skipPipelineSubstitutions = false) {
+    std::map<std::string, std::string> pipelineSubstitutions{};
+    if (!skipPipelineSubstitutions)
+      pipelineSubstitutions =
+          serverHelper->getPipelineSubstitutions(platformPath);
     CompileTarget target(targetConfig, backendConfig, emulate,
-                         serverHelper->getPipelineSubstitutions(platformPath));
+                         pipelineSubstitutions);
     target.pipelineConfig.replaceStateWithKernel = true;
     target.overrideAOTCompilation = true;
     return target;
@@ -264,7 +268,7 @@ public:
   CompileTarget getCompileTarget(const dem_policy &) override {
     // Skip pipeline substitutions: this path never builds the lowering pipeline
     // and should not trigger server-helper side effects (e.g. IQM arch fetch).
-    return createCompileTarget();
+    return createCompileTarget(/*skipPipelineSubstitutions=*/true);
   }
 
   CompileTarget getCompileTarget(const estimate_policy &) override {
