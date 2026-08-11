@@ -16,7 +16,7 @@
 #include <stdexcept>
 #include <string>
 
-namespace cudaq::__dynamics_support {
+namespace cudaq::detail {
 
 /// \brief Check CUDA error and throw on failure.
 inline void checkCudaError(cudaError_t error, const char *file, int line) {
@@ -27,7 +27,7 @@ inline void checkCudaError(cudaError_t error, const char *file, int line) {
   }
 }
 
-} // namespace cudaq::__dynamics_support
+} // namespace cudaq::detail
 
 #define CUDA_CHECK(call)                                                       \
-  ::cudaq::__dynamics_support::checkCudaError((call), __FILE__, __LINE__)
+  ::cudaq::detail::checkCudaError((call), __FILE__, __LINE__)

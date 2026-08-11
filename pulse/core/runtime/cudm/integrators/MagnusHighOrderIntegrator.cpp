@@ -68,9 +68,9 @@ std::size_t hashMatrixBuffer(const std::vector<std::complex<double>> &buf) {
 
 /// @brief Hidden CUDA/cache state for `magnus_cf4`.
 struct magnus_cf4::Impl {
-  cudaq::pulse::PropagatorLRUCache cache;
-  cudaq::pulse::CudaComplexMemory dH;        // Scaled Hamiltonian / scratch.
-  cudaq::pulse::CudaComplexMemory applyWork; // Workspace for U rho U^dagger.
+  cudaq::detail::PropagatorLRUCache cache;
+  cudaq::detail::CudaComplexMemory dH;        // Scaled Hamiltonian / scratch.
+  cudaq::detail::CudaComplexMemory applyWork; // Workspace for U rho U^dagger.
   void *expWorkspace = nullptr;
   std::size_t expWorkspaceBytes = 0;
   cusolverDnHandle_t cusolver = nullptr;

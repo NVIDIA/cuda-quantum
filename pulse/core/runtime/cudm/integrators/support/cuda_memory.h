@@ -26,7 +26,7 @@
 #include <string>
 #include <utility>
 
-namespace cudaq::pulse {
+namespace cudaq::detail {
 
 /// \brief Check cuBLAS error and throw on failure.
 inline void checkCublasError(cublasStatus_t status, const char *file,
@@ -132,10 +132,10 @@ private:
 
 using CudaComplexMemory = CudaDeviceMemory<cuDoubleComplex>;
 
-} // namespace cudaq::pulse
+} // namespace cudaq::detail
 
 #define CUBLAS_CHECK(call)                                                     \
-  ::cudaq::pulse::checkCublasError((call), __FILE__, __LINE__)
+  ::cudaq::detail::checkCublasError((call), __FILE__, __LINE__)
 
 #define CUSOLVER_CHECK(call)                                                   \
-  ::cudaq::pulse::checkCusolverError((call), __FILE__, __LINE__)
+  ::cudaq::detail::checkCusolverError((call), __FILE__, __LINE__)
