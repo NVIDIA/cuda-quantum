@@ -43,6 +43,7 @@ add_cudaq_library(OptTransforms
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
   GlobalizeArrayValues.cpp
+  InjectImplicitOutput.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp

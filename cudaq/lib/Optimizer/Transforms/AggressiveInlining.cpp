@@ -178,6 +178,7 @@ void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   // the original called function returning a span to the calling function as
   // they are now the same function.
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseVectorCopyCtor());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }

@@ -1108,7 +1108,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
     AnyQTargetType:$targets
   );
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
   let hasVerifier = 1;
 
@@ -1145,7 +1145,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   let results = (outs
     AnyTypeOf<[MeasureType, cc_MeasureHandleType,
                SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let assemblyFormat = [{
@@ -1265,7 +1265,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   ));
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let builders = [
@@ -1397,7 +1397,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
     OptionalAttr<StrAttr>:$pauliLiteral
   );
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let assemblyFormat = [{
@@ -1978,6 +1978,51 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
   let assemblyFormat = [{
      $numQubitsFunc `,` $initFunc `:` qualified(type(results)) attr-dict
   }];
+}
+
+//===----------------------------------------------------------------------===//
+// LogOutputOp
+//===----------------------------------------------------------------------===//
+
+def quake_LogOutputOp : QuakeOp<"log_output"> {
+  let summary = "Auto-generate calls to log the output of a runnable kernel.";
+  let description = [{
+    This operation is a high-level \e abstraction for the necessary and
+    sufficient functionality to log output results to a \e virtual output device
+    produced by a well-defined CUDA-Q kernel. \e How this to be accomplished and
+    the details thereof are not the concern of Quake. The presence of this
+    operation explicitly denotes that a \e value in Quake is \e observable in
+    the computational sense. This restricts the types of optimizations that may
+    be applied; such as, the value cannot be trivially erased.
+
+    The semantics of this operation are very clear. Arguments are considered
+    observable and live, and this operation \e explicitly denotes I/O
+    side-effects.
+
+    The lowering of this operation is heavily context dependent. The target and
+    launch policies of an entry-point kernel will interplay with an abstract
+    virtual output stream from the virtual device. Different policies are fully
+    expected to adapt the virtual output stream to data structures pertinent to
+    the launch policy itself. Each policy (or the absence of policy) defines
+    different data structures (I/O) as defined in the CUDA-Q specification.
+
+    This operation explicitly threads linear types.
+  }];
+
+  let arguments = (ins Variadic<AnyType>:$args);
+  let results = (outs Variadic<AnyQLinearType>:$outs);
+  let hasVerifier = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::ValueRange":$args), [{
+      llvm::SmallVector<mlir::Type> resultTypes;
+      for (mlir::Value v : args)
+        if (cudaq::quake::isLinearType(v.getType()))
+          resultTypes.push_back(v.getType());
+      build($_builder, $_state, resultTypes, args);
+    }]>
+  ];
+  let assemblyFormat =
+      "$args `:` functional-type(operands, results) attr-dict";
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS

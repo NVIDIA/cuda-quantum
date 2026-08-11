@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CallGraphFix.h"
@@ -741,6 +742,9 @@ struct WireSetToProfileQIRPostPass
 
 void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
                                                 StringRef profile) {
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
@@ -749,6 +753,9 @@ void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
   if (!profile.empty())
     wopt.convertTo = profile.str();
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createWireSetToProfileQIR(wopt));
+  // Insert the array-record-output prologue before the first
+  // result-record-output call emitted by WireSetToProfileQIR.
+  pm.addPass(cudaq::opt::createQirInsertArrayRecord());
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPost());
   // Perform final cleanup for other dialect conversions (like func.func)
   pm.addPass(cudaq::opt::createConvertToQIR());

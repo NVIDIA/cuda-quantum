@@ -2040,18 +2040,6 @@ def cc_VarargCallOp : CCOp<"call_vararg",
   }];
 }
 
-def cc_LogOutputOp : CCOp<"log_output"> {
-  let summary = "Auto-generate calls to log the output of a runnable kernel.";
-  let description = [{
-    This operation is an abstraction for auto-generation of the necessary code
-    in the transport layer to log output results from a runnable kernel. The
-    assumption is that the transport layer supports something analogous to a
-    set of file output functions, something like `fprintf()`.
-  }];
-
-  let arguments = (ins Variadic<AnyType>:$args);
-  let assemblyFormat = "$args `:` type(operands) attr-dict";
-}
 
 //===----------------------------------------------------------------------===//
 // Argument synthesis support
