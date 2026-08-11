@@ -15,7 +15,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace cudaq::__dynamics_support {
+namespace cudaq::detail {
 
 /// \file propagator_cache.h
 /// \brief LRU cache for PWC propagator matrices.
@@ -160,4 +160,4 @@ private:
   size_t cache_misses_ = 0;    ///< Miss counter.
 };
 
-} // namespace cudaq::__dynamics_support
+} // namespace cudaq::detail

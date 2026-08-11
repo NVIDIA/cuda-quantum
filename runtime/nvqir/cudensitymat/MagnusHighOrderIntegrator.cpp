@@ -67,10 +67,10 @@ std::size_t hashMatrixBuffer(const std::vector<std::complex<double>> &buf) {
 
 /// @brief Hidden CUDA/cache state for `magnus_cf4`.
 struct magnus_cf4::Impl {
-  cudaq::__dynamics_support::PropagatorLRUCache cache;
-  cudaq::__dynamics_support::CudaComplexMemory
+  cudaq::detail::PropagatorLRUCache cache;
+  cudaq::detail::CudaComplexMemory
       dH; // Scaled Hamiltonian / scratch.
-  cudaq::__dynamics_support::CudaComplexMemory
+  cudaq::detail::CudaComplexMemory
       applyWork; // Workspace for U rho U^dagger.
   void *expWorkspace = nullptr;
   std::size_t expWorkspaceBytes = 0;

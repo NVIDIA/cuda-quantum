@@ -22,7 +22,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace cudaq::__dynamics_support {
+namespace cudaq::detail {
 
 /// \brief RAII wrapper for CUDA device memory (move-only, 2x growth).
 ///
@@ -108,4 +108,4 @@ private:
 
 using CudaComplexMemory = CudaDeviceMemory<cuDoubleComplex>;
 
-} // namespace cudaq::__dynamics_support
+} // namespace cudaq::detail
