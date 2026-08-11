@@ -49,7 +49,7 @@ struct Candidate {
 
 struct CircuitCost {
   int tCount;
-  std::size_t cliffordCount;
+  std::size_t emittedGateCount;
 
   auto operator<=>(const CircuitCost &) const = default;
 };
@@ -178,10 +178,10 @@ buildMatrixProduct(llvm::ArrayRef<UnaryWireOp> operations) {
 // Prefer lower T-count, then fewer emitted Clifford gates. Scalar W phases
 // are not emitted as Quake operations.
 static CircuitCost emittedCost(const cudaq::synth::Circuit &circuit) {
-  std::size_t cliffordCount = 0;
+  std::size_t emittedGateCount = 0;
   for (cudaq::synth::Gate gate : circuit)
-    cliffordCount += gate != cudaq::synth::Gate::W;
-  return {circuit.t_count(), cliffordCount};
+    emittedGateCount += gate != cudaq::synth::Gate::W;
+  return {circuit.t_count(), emittedGateCount};
 }
 
 static CircuitCost inputCost(llvm::ArrayRef<UnaryWireOp> chain) {
