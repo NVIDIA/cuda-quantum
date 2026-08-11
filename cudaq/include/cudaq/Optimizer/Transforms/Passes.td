@@ -308,7 +308,7 @@ def CombineMeasurements :
       %1 = ... : !quake.veq<4>
       %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
             !quake.veq<2>
-      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
     }
     ```
     with:
@@ -316,7 +316,7 @@ def CombineMeasurements :
     func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
     "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
       %1 = ... : !quake.veq<4>
-      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
     }
     ```
   }];
@@ -745,13 +745,13 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::ModuleOp"> {
     ```mlir
       module {
         func.func @__nvqpp__mlirgen__function_foo_generator_1.bar(%arg0:
-            !cc.stdvec<f64>) -> !cc.stdvec<complex<f64>> {
+            !cc.sequence<f64>) -> !cc.sequence<complex<f64>> {
           ...
           %0 = cc.address_of
               @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 :
               !cc.ptr<!cc.array<complex<f64> x 4>>
           ...
-          return %3 : !cc.stdvec<complex<f64>>
+          return %3 : !cc.sequence<complex<f64>>
         }
 
         func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
@@ -1616,7 +1616,7 @@ def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
   let description = [{
     `cudaq::run` entry points log kernel results instead of returning them
     through the host ABI. After the `kernel-execution` pass creates the `.run`
-    wrapper, this pass finds wrappers that call kernels returning `!cc.stdvec`,
+    wrapper, this pass finds wrappers that call kernels returning `!cc.sequence`,
     clones those kernels, removes calls to `__nvqpp_vectorCopyCtor` from the
     clones, and redirects the wrappers to call the clones. It must run after
     `kernel-execution`, while both the generated wrapper and original kernel are

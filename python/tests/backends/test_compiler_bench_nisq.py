@@ -140,7 +140,7 @@ def _make_nonlocal_cx_kernel():
     On a path topology, q0 and q4 are 4 hops apart, forcing SWAP insertion."""
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(5)
-    kernel.h(q[0])
+    kernel.h(q)
     kernel.cx(q[0], q[4])
     return kernel
 
@@ -157,7 +157,9 @@ def test_routing_inserts_swaps_on_path():
     routed = cudaq.estimate_resources(kernel)
 
     assert unrouted.gate_count_for_arity(2) == 1
-    assert routed.gate_count_for_arity(2) >= unrouted.gate_count_for_arity(2)
+    assert routed.gate_count_for_arity(2) > unrouted.gate_count_for_arity(2)
+    assert routed.num_qubits == 5
+    assert routed.num_used_qubits == 5
 
 
 def test_routing_star_no_swaps():

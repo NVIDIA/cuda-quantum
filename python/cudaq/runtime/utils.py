@@ -62,14 +62,14 @@ def __isBroadcast(kernel, *args):
                     )
 
         firstArg = args[0]
-        firstArgTypeIsFlatStdvec = cc.StdvecType.isinstance(argTypes[0])
+        firstArgTypeIsFlatSequence = cc.SequenceType.isinstance(argTypes[0])
         if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsFlatStdvec:
+                isinstance(firstArg, List)) and not firstArgTypeIsFlatSequence:
             return True
 
         if hasattr(firstArg, "shape"):
             shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsFlatStdvec:
+            if len(shape) == 1 and not firstArgTypeIsFlatSequence:
                 return True
 
             if len(shape) == 2:
@@ -97,14 +97,14 @@ def __isBroadcast(kernel, *args):
                     )
 
         firstArg = args[0]
-        firstArgTypeIsFlatStdvec = cc.StdvecType.isinstance(argTypes[0])
+        firstArgTypeIsFlatSequence = cc.SequenceType.isinstance(argTypes[0])
         if (isinstance(firstArg, list) or
-                isinstance(firstArg, List)) and not firstArgTypeIsFlatStdvec:
+                isinstance(firstArg, List)) and not firstArgTypeIsFlatSequence:
             return True
 
         if hasattr(firstArg, "shape"):
             shape = firstArg.shape
-            if len(shape) == 1 and not firstArgTypeIsFlatStdvec:
+            if len(shape) == 1 and not firstArgTypeIsFlatSequence:
                 return True
 
             if len(shape) == 2:

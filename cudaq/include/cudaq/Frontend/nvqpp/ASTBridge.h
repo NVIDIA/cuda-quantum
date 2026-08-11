@@ -67,7 +67,8 @@ inline mlir::Value loadHandleVectorIfPointer(mlir::OpBuilder &builder,
                                              mlir::Location loc,
                                              mlir::Value v) {
   if (auto ptrTy = mlir::dyn_cast<cudaq::cc::PointerType>(v.getType()))
-    if (auto sv = mlir::dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
+    if (auto sv =
+            mlir::dyn_cast<cudaq::cc::SequenceType>(ptrTy.getElementType());
         sv && mlir::isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
       return cudaq::cc::LoadOp::create(builder, loc, v);
   return v;
