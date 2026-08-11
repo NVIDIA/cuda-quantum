@@ -103,7 +103,7 @@ def test_sample_launch():
     name, args, kwargs = endpoint.calls[0]
     assert name == "sample"
     # The first argument is a scalar and decodes; the vector does not.
-    assert args == "KernelArgs([1, <instance of !cc.stdvec<i64>>])"
+    assert args == "KernelArgs([1, <instance of !cc.sequence<i64>>])"
     assert kwargs["shots_count"] == 12
     assert kwargs["explicit_measurements"] is False
 
@@ -121,7 +121,7 @@ def test_observe_launch():
     assert len(endpoint.calls) == 1
     name, args, kwargs = endpoint.calls[0]
     assert name == "observe"
-    assert args == "KernelArgs([2, <instance of !cc.stdvec<i64>>])"
+    assert args == "KernelArgs([2, <instance of !cc.sequence<i64>>])"
     assert str(kwargs["spin_operator"]) == str(cudaq.spin.x(0))
 
     assert result.expectation() == pytest.approx(0.25)
@@ -136,8 +136,8 @@ def test_sample_twice_reuses_the_endpoint():
     cudaq.sample(kernel, 2, [1, 2, 3], shots_count=10)
 
     assert [args for _, args, _ in endpoint.calls] == [
-        "KernelArgs([1, <instance of !cc.stdvec<i64>>])",
-        "KernelArgs([2, <instance of !cc.stdvec<i64>>])",
+        "KernelArgs([1, <instance of !cc.sequence<i64>>])",
+        "KernelArgs([2, <instance of !cc.sequence<i64>>])",
     ]
 
 
