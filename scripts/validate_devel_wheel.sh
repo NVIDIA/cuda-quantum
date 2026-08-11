@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -114,7 +114,8 @@ else
   pip install -q "$devel_wheel"
 fi
 
-site_packages=$("$python" -c 'import site; print(site.getsitepackages()[0])')
+site_packages=$("$venv_dir/bin/python" -c 'import site; print(site.getsitepackages()[0])')
+echo "Installing into site-packages: $site_packages"
 
 # The out-of-tree example project that gets built against the installed wheels.
 # Package / module names and the install component match its CMake targets.
