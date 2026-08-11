@@ -41,7 +41,7 @@ TEST(QubitIdentityAnalysisTest, TracksQubitIdentity) {
         %measurement, %measuredInitial, %measuredDistinct =
             quake.mz %measurementInput, %distinct
                 : (!quake.wire, !quake.wire)
-                  -> (!cc.stdvec<!quake.measure>, !quake.wire, !quake.wire)
+                  -> (!cc.sequence<!cc.measure_handle>, !quake.wire, !quake.wire)
         %conversionInput = quake.null_wire
         %control = quake.to_ctrl %conversionInput
             : (!quake.wire) -> !quake.control
