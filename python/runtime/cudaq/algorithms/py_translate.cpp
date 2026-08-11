@@ -8,12 +8,12 @@
 
 #include "py_translate.h"
 #include "common/Timing.h"
-#include "cudaq/algorithms/policies.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/platform/default/python/QPU.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"

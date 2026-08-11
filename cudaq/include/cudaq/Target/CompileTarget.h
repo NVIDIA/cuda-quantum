@@ -61,7 +61,6 @@ struct CompileTarget {
       return overridePassPipeline.empty() && highLevelPipeline.empty() &&
              midLevelPipeline.empty() && lowLevelPipeline.empty();
     }
-
   };
 
   /// Pipeline configuration, populated by the constructor.
