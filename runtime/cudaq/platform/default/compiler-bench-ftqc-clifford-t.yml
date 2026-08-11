@@ -20,12 +20,12 @@ config:
   # Preserve named Clifford operations while reducing rotations and
   # non-Clifford controlled gates before synthesis. Keep the circuit in value
   # semantics through post-synthesis simplification.
-  # TODO: Standardize this with compiler-bench-ftqc-logical.yml once we know
-  # what the common pipeline should be.
+  # Use the shared conversion pipeline with compiler-bench-ftqc-logical.yml
+  # so both FTQC targets enter explicit linear value semantics consistently.
   #
   # Clifford+T synthesis outlines one private helper for each distinct angle.
   # Inline those helpers and simplify before the resource-counting boundary.
   #
   # TODO: Remove fail-on-controlled-rotation after controlled Clifford+T
   # synthesis preserves the synthesis global phase.
-  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe,memtoreg),unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,x(1),y(1),z(1)},func.func(quake-simplify{threshold=0},canonicalize,dqe),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=%EPSILON:1e-10% fail-on-controlled-rotation=true},inline,func.func(quake-simplify,canonicalize,dqe,regtomem),symbol-dce"
+  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,x(1),y(1),z(1)},func.func(quake-simplify{threshold=0},canonicalize,dqe),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=%EPSILON:1e-10% fail-on-controlled-rotation=true},inline,func.func(quake-simplify,canonicalize,dqe,regtomem),symbol-dce"
