@@ -62,9 +62,9 @@ struct CompileTarget {
              midLevelPipeline.empty() && lowLevelPipeline.empty();
     }
 
-    /// Whether to lower through value semantics, enabling the quantum
-    /// optimizations that follow it (`quake-simplify`, dead quantum
-    /// elimination, ...).
+    /// Duplicate flag to disableQuantumOpt with reverse polarity. This one tags
+    /// along on the CompileTarget, while that one is in the Policy.
+    /// FIXME: this flag should not be threaded in two distinct ways.
     bool enableQuantumOpt = true;
   };
 
