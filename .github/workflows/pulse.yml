@@ -106,10 +106,18 @@ jobs:
     if: needs.changes.outputs.pulse == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read  # pull the private NVIDIA devcontainer image from ghcr.io
     container:
       # This CUDA-Q development image contains the pinned LLVM/MLIR toolchain
       # at LLVM_INSTALL_PREFIX; the pulse job never builds LLVM from source.
       image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      # Authenticate to ghcr.io so the private image resolves (mirrors the
+      # pattern in integration_tests.yml / python_metapackages.yml).
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     steps:
       - name: Check out CUDA-Q
@@ -160,10 +168,18 @@ jobs:
     if: needs.changes.outputs.pulse == 'true' && github.event_name != 'pull_request'
     runs-on: linux-amd64-gpu-a100-latest-1
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read  # pull the private NVIDIA devcontainer image from ghcr.io
     container:
       # The development image supplies the pinned LLVM/MLIR toolchain,
       # CUDA Toolkit, and cuDensityMat SDK; LLVM is never built in this job.
       image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      # Authenticate to ghcr.io so the private image resolves (mirrors the
+      # pattern in integration_tests.yml / python_metapackages.yml).
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     steps:
       - name: Check out CUDA-Q
