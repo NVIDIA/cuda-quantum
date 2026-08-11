@@ -96,6 +96,7 @@ def test_rotation_h_hadamard_rotation():
 
 
 def test_single_qubit_large():
+
     @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(3)
@@ -108,6 +109,7 @@ def test_single_qubit_large():
 
 
 def test_two_sparse_qubits():
+
     @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(3)
@@ -187,6 +189,7 @@ def test_cnot_two_qubits_opposite():
 
 
 def test_cnot_nonadjacent_qubits():
+
     @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(3)
