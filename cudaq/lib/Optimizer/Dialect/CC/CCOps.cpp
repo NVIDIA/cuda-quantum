@@ -1503,11 +1503,123 @@ struct ForwardStdvecInitSize
     return failure();
   }
 };
+
+// cc.stdvec_size(cc.reify_span(%arr : !cc.array<T x N>)) => arith.constant N
+struct FoldReifySpanSize : public OpRewritePattern<cudaq::cc::StdvecSizeOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::StdvecSizeOp size,
+                                PatternRewriter &rewriter) const override {
+    auto reify = size.getStdvec().getDefiningOp<cudaq::cc::ReifySpanOp>();
+    if (!reify)
+      return failure();
+    auto conArr =
+        reify.getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
+    if (!conArr)
+      return failure();
+    auto arrTy = cast<cudaq::cc::ArrayType>(conArr.getType());
+    if (arrTy.isUnknownSize())
+      return failure();
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(size, size.getType(),
+                                                      arrTy.getSize());
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::cc::StdvecSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardStdvecInitSize>(context);
+  patterns.add<ForwardStdvecInitSize, FoldReifySpanSize>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// LoadOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// cc.load(cc.compute_ptr(cc.stdvec_data(cc.reify_span(%arr)), %c_i))
+//   => arr[i]   (element i materialized as a constant)
+// The index-0 case folds compute_ptr[0] to cc.cast before this pattern runs,
+// so both forms are matched.
+struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::LoadOp load,
+                                PatternRewriter &rewriter) const override {
+    Value ptrVal = load.getPtrvalue();
+    std::int64_t idx = 0;
+    cudaq::cc::StdvecDataOp data;
+
+    if (auto ptr = ptrVal.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+      if (ptr.getRawConstantIndices().size() != 1)
+        return failure();
+      if (auto c = ptr.getConstantIndex(0)) {
+        idx = *c;
+      } else {
+        if (ptr.getDynamicIndices().size() != 1)
+          return failure();
+        APInt indexVal;
+        if (!matchPattern(ptr.getDynamicIndices()[0], m_ConstantInt(&indexVal)))
+          return failure();
+        idx = indexVal.getSExtValue();
+      }
+      data = ptr.getBase().getDefiningOp<cudaq::cc::StdvecDataOp>();
+    } else if (auto cast = ptrVal.getDefiningOp<cudaq::cc::CastOp>()) {
+      // compute_ptr[0] folds to a cast; treat as index 0.
+      auto fromTy =
+          dyn_cast<cudaq::cc::PointerType>(cast.getValue().getType());
+      if (!fromTy || !isa<cudaq::cc::ArrayType>(fromTy.getElementType()))
+        return failure();
+      data = cast.getValue().getDefiningOp<cudaq::cc::StdvecDataOp>();
+    }
+
+    if (!data)
+      return failure();
+    auto reify = data.getStdvec().getDefiningOp<cudaq::cc::ReifySpanOp>();
+    if (!reify)
+      return failure();
+    auto conArr =
+        reify.getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
+    if (!conArr)
+      return failure();
+    ArrayAttr vals = conArr.getConstantValues();
+    if (idx < 0 || idx >= static_cast<std::int64_t>(vals.size()))
+      return failure();
+    Attribute elemAttr = vals[idx];
+    auto loc = load.getLoc();
+    Type resultTy = load.getType();
+    if (auto fltTy = dyn_cast<FloatType>(resultTy)) {
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
+          load, fltTy, cast<FloatAttr>(elemAttr).getValue());
+      return success();
+    }
+    if (auto intTy = dyn_cast<IntegerType>(resultTy)) {
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
+          load, intTy, cast<IntegerAttr>(elemAttr).getInt());
+      return success();
+    }
+    if (isa<cudaq::cc::CharspanType>(resultTy) ||
+        isa<cudaq::cc::StdvecType>(resultTy)) {
+      auto stringAttr = cast<StringAttr>(elemAttr);
+      auto *ctx = rewriter.getContext();
+      std::int64_t len = stringAttr.getValue().size() + 1;
+      Type litTy = cudaq::cc::PointerType::get(
+          cudaq::cc::ArrayType::get(ctx, rewriter.getI8Type(), len));
+      auto strLit = cudaq::cc::CreateStringLiteralOp::create(rewriter, loc,
+                                                             litTy, stringAttr);
+      auto size = arith::ConstantIntOp::create(rewriter, loc, len, 64);
+      rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(load, resultTy,
+                                                           strLit, size);
+      return success();
+    }
+    return failure();
+  }
+};
+} // namespace
+
+void cudaq::cc::LoadOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FoldConstArrayElementLoad>(context);
 }
 
 //===----------------------------------------------------------------------===//

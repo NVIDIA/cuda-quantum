@@ -862,6 +862,7 @@ def cc_LoadOp : CCOp<"load",
   let assemblyFormat = [{
     $ptrvalue `:` qualified(type($ptrvalue)) attr-dict
   }];
+  let hasCanonicalizer = 1;
 }
 
 def cc_StoreOp : CCOp<"store",
