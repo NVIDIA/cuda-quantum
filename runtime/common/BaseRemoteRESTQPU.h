@@ -152,7 +152,7 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active())
+    if (cudaq::AnalysisScope::is_active())
       throw std::runtime_error(
           "Illegal use of a resource counter on a remote QPU.");
 

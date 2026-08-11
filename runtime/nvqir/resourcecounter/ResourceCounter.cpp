@@ -25,11 +25,11 @@ ResourceCounter *getResourceCounterSimulator() {
 
 namespace resource_counter {
 
-AnalysisScope make_scope(std::function<bool()> choice) {
+cudaq::AnalysisScope make_scope(std::function<bool()> choice) {
   auto *rc = getResourceCounterSimulator();
   // Install the choice function only after the scope has successfully claimed
   // the thread-local slot.
-  return AnalysisScope{
+  return cudaq::AnalysisScope{
       "resource_counter",
       *rc,
       {.on_enter =
@@ -39,7 +39,7 @@ AnalysisScope make_scope(std::function<bool()> choice) {
        .on_exit = [rc](CircuitSimulator &) { rc->setToZeroState(); }}};
 }
 
-cudaq::Resources get_counts(AnalysisScope &s) {
+cudaq::Resources get_counts(cudaq::AnalysisScope &s) {
   auto *rc = getResourceCounterSimulator();
   // Reject scopes that are not backed by the resource-counter singleton so
   // callers can't accidentally reinterpret other plugin simulator
@@ -54,7 +54,7 @@ cudaq::Resources get_counts(AnalysisScope &s) {
 
 void prepopulate(cudaq::Resources counts) {
   auto *rc = getResourceCounterSimulator();
-  if (AnalysisScope::active_simulator() != rc)
+  if (cudaq::AnalysisScope::active_simulator() != rc)
     throw std::runtime_error(
         "`nvqir::resource_counter::prepopulate`: no resource-counter"
         " scope is active on this thread.");

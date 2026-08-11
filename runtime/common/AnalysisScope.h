@@ -13,8 +13,10 @@
 #include <string_view>
 
 namespace nvqir {
-
 class CircuitSimulator;
+} // namespace nvqir
+
+namespace cudaq {
 
 /// @brief RAII override of the active circuit simulator for non-sampling
 /// analyses (resource counting, detector error model generation, ...).
@@ -46,13 +48,13 @@ public:
   /// logged; `on_enter` exceptions propagate out of the constructor and the
   /// slot is released before they do.
   struct hooks {
-    std::function<void(CircuitSimulator &)> on_enter;
-    std::function<void(CircuitSimulator &)> on_exit;
+    std::function<void(nvqir::CircuitSimulator &)> on_enter;
+    std::function<void(nvqir::CircuitSimulator &)> on_exit;
   };
 
   /// @brief Activate `sim` as the analysis simulator for the current thread.
   /// Throws `std::runtime_error` if a scope is already active on this thread.
-  AnalysisScope(std::string name, CircuitSimulator &sim, hooks h = {});
+  AnalysisScope(std::string name, nvqir::CircuitSimulator &sim, hooks h = {});
 
   /// @brief Activate the simulator exposed by the named NVQIR plugin.
   ///
@@ -71,7 +73,7 @@ public:
   AnalysisScope &operator=(AnalysisScope &&) = delete;
 
   /// @brief The underlying simulator. Stable for the lifetime of the scope.
-  CircuitSimulator &simulator() const noexcept { return *sim_; }
+  nvqir::CircuitSimulator &simulator() const noexcept { return *sim_; }
 
   /// @brief Identifier supplied at construction. Used for logs and diagnostics.
   std::string_view name() const noexcept { return name_; }
@@ -84,12 +86,12 @@ public:
   /// this thread, or `nullptr` if no scope is active. Provided so analysis
   /// engines can verify the active scope is theirs before mutating shared
   /// per-engine singletons.
-  static CircuitSimulator *active_simulator() noexcept;
+  static nvqir::CircuitSimulator *active_simulator() noexcept;
 
 private:
   std::string name_;
-  CircuitSimulator *sim_;
-  std::function<void(CircuitSimulator &)> on_exit_;
+  nvqir::CircuitSimulator *sim_;
+  std::function<void(nvqir::CircuitSimulator &)> on_exit_;
 };
 
-} // namespace nvqir
+} // namespace cudaq

@@ -92,7 +92,7 @@ namespace nvqir {
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
-  if (auto *analysisSim = AnalysisScope::active_simulator())
+  if (auto *analysisSim = cudaq::AnalysisScope::active_simulator())
     return analysisSim;
 
   if (simulator)

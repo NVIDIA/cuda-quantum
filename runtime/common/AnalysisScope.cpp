@@ -21,7 +21,7 @@ namespace {
 /// calls to the analysis simulator until the owning `AnalysisScope` is
 /// destroyed.
 ///
-/// Single-slot by design: nested `nvqir::AnalysisScope` instances on the
+/// Single-slot by design: nested `cudaq::AnalysisScope` instances on the
 /// same thread throw at construction (see `AnalysisScope::AnalysisScope`).
 /// LIFO nesting can be added later by promoting this to a vector without
 /// breaking the public API.
@@ -29,13 +29,12 @@ thread_local nvqir::CircuitSimulator *activeAnalysisSimulator = nullptr;
 
 } // namespace
 
-namespace nvqir {
-
-AnalysisScope::AnalysisScope(std::string name, CircuitSimulator &sim, hooks h)
+cudaq::AnalysisScope::AnalysisScope(std::string name,
+                                    nvqir::CircuitSimulator &sim, hooks h)
     : name_(std::move(name)), sim_(&sim), on_exit_(std::move(h.on_exit)) {
   if (activeAnalysisSimulator)
     throw std::runtime_error(
-        "`nvqir::AnalysisScope`: a scope is already active on this thread "
+        "`cudaq::AnalysisScope`: a scope is already active on this thread "
         "(nested analysis scopes are not supported).");
   activeAnalysisSimulator = sim_;
   if (h.on_enter) {
@@ -50,18 +49,19 @@ AnalysisScope::AnalysisScope(std::string name, CircuitSimulator &sim, hooks h)
   }
 }
 
-AnalysisScope AnalysisScope::from_plugin(std::string name,
-                                         std::string plugin_name, hooks h) {
+cudaq::AnalysisScope cudaq::AnalysisScope::from_plugin(std::string name,
+                                                       std::string plugin_name,
+                                                       hooks h) {
   const auto symbol = std::string("getCircuitSimulator_") + plugin_name;
-  auto *sim = cudaq::getUniquePluginInstance<CircuitSimulator>(symbol);
+  auto *sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(symbol);
   if (!sim)
-    throw std::runtime_error("`nvqir::AnalysisScope::from_plugin`: plugin '" +
+    throw std::runtime_error("`cudaq::AnalysisScope::from_plugin`: plugin '" +
                              plugin_name +
                              "' returned a null CircuitSimulator.");
   return AnalysisScope{std::move(name), *sim, std::move(h)};
 }
 
-AnalysisScope::~AnalysisScope() noexcept {
+cudaq::AnalysisScope::~AnalysisScope() noexcept {
   if (on_exit_) {
     try {
       on_exit_(*sim_);
@@ -69,10 +69,10 @@ AnalysisScope::~AnalysisScope() noexcept {
       // CUDAQ_ERROR throws; that is fatal in a noexcept destructor. Use the
       // logging-only `cudaq::error` deduction struct instead so we record
       // the failure without escalating it through stack unwinding.
-      cudaq::error("`nvqir::AnalysisScope` '{}' on_exit threw: {}", name_,
+      cudaq::error("`cudaq::AnalysisScope` '{}' on_exit threw: {}", name_,
                    e.what());
     } catch (...) {
-      cudaq::error("`nvqir::AnalysisScope` '{}' on_exit threw a non-std "
+      cudaq::error("`cudaq::AnalysisScope` '{}' on_exit threw a non-std "
                    "exception",
                    name_);
     }
@@ -80,12 +80,10 @@ AnalysisScope::~AnalysisScope() noexcept {
   activeAnalysisSimulator = nullptr;
 }
 
-bool AnalysisScope::is_active() noexcept {
+bool cudaq::AnalysisScope::is_active() noexcept {
   return activeAnalysisSimulator != nullptr;
 }
 
-CircuitSimulator *AnalysisScope::active_simulator() noexcept {
+nvqir::CircuitSimulator *cudaq::AnalysisScope::active_simulator() noexcept {
   return activeAnalysisSimulator;
 }
-
-} // namespace nvqir
