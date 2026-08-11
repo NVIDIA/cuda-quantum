@@ -97,7 +97,7 @@ static bool useIsReifySpans(cudaq::cc::ConstantArrayOp conarr) {
 
 static bool useDataToInitState(cudaq::cc::ReifySpanOp reify) {
   for (auto *user : reify->getUsers())
-    if (auto data = dyn_cast<cudaq::cc::StdvecDataOp>(user))
+    if (auto data = dyn_cast<cudaq::cc::SequenceDataOp>(user))
       if (std::distance(data->user_begin(), data->user_end()) == 1)
         return isa<cudaq::quake::InitializeStateOp,
                    cudaq::quake::CreateStateOp>(*data->user_begin());
@@ -227,12 +227,12 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
       if (useDataToInitState(reify)) {
         auto loc = reify.getLoc();
         auto eleTy =
-            cast<cudaq::cc::StdvecType>(reify.getType()).getElementType();
+            cast<cudaq::cc::SequenceType>(reify.getType()).getElementType();
         auto numEle = arith::ConstantIntOp::create(
             rewriter, loc, conArr.getConstantValues().size(), 64);
         Value buff = cudaq::cc::AllocaOp::create(rewriter, loc, eleTy, numEle);
         cudaq::cc::StoreOp::create(rewriter, loc, conArr, buff);
-        rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+        rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(
             reify, reify.getType(), buff, numEle);
         return success();
       }
@@ -263,7 +263,7 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         auto strLit = cudaq::cc::CreateStringLiteralOp::create(
             rewriter, loc, litTy, stringAttr);
         auto size = arith::ConstantIntOp::create(rewriter, loc, len, 64);
-        members.push_back(cudaq::cc::StdvecInitOp::create(
+        members.push_back(cudaq::cc::SequenceInitOp::create(
             rewriter, loc, cudaq::cc::CharspanType::get(ctx), strLit, size));
       } else if (auto a = dyn_cast<IntegerAttr>(attr)) {
         if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
@@ -310,7 +310,7 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
       cudaq::cc::StoreOp::create(rewriter, loc, m, ptr);
     }
     Value result =
-        cudaq::cc::StdvecInitOp::create(rewriter, loc, ty, buff, size);
+        cudaq::cc::SequenceInitOp::create(rewriter, loc, ty, buff, size);
     return result;
   }
 

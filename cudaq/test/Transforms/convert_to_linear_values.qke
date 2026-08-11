@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --convert-to-linear-values %s | FileCheck %s --check-prefixes=LINEAR,PAIR
+// RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(convert-to-linear-values)' %s | FileCheck %s --check-prefixes=LINEAR,PAIR
+// RUN: cudaq-opt --verify-each --pass-pipeline='builtin.module(convert-to-linear-values,func.func(quake-simplify))' %s | FileCheck %s --check-prefixes=LINEAR,SIMPLIFIED
+
+func.func private @callee(!quake.veq<?>)
+
+func.func @linear_values(%dynamic : !quake.veq<?>) {
+  %controls = quake.alloca !quake.veq<2>
+  %target = quake.alloca !quake.ref
+  quake.h %target : (!quake.ref) -> ()
+  quake.h %target : (!quake.ref) -> ()
+  quake.x [%controls] %target : (!quake.veq<2>, !quake.ref) -> ()
+  %relaxed = quake.relax_size %controls : (!quake.veq<2>) -> !quake.veq<?>
+  call @callee(%relaxed) : (!quake.veq<?>) -> ()
+  quake.dealloc %target : !quake.ref
+  quake.dealloc %controls : !quake.veq<2>
+  return
+}
+
+// LINEAR-LABEL: func.func @linear_values(
+// LINEAR-SAME:      %{{.*}}: !quake.veq<?>
+// LINEAR:         %[[CONTROL0:.*]] = quake.null_wire
+// LINEAR:         %[[CONTROL1:.*]] = quake.null_wire
+// LINEAR:         %[[TARGET:.*]] = quake.null_wire
+// PAIR-COUNT-2: quake.h
+// SIMPLIFIED-NOT: quake.h
+// LINEAR:         %[[CONTROLLED:.*]]:3 = quake.x [%{{.*}}, %{{.*}}] %{{.*}} : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+// LINEAR:         %[[CABLE:.*]] = quake.bundle_cable %{{.*}}, %{{.*}} : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// LINEAR:         %[[CALL:.*]] = quake.call_by_ref @callee(%[[CABLE]]) : (!quake.cable<2>) -> !quake.cable<2>
+// LINEAR:         %[[SPLIT:.*]]:2 = quake.split_cable %[[CALL]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// LINEAR:         quake.sink %[[SPLIT]]#0 : !quake.wire
+// LINEAR:         quake.sink %[[SPLIT]]#1 : !quake.wire
+// LINEAR-NOT:     quake.extract_ref
+// LINEAR:         return

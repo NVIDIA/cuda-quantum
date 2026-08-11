@@ -57,7 +57,7 @@ struct kernel {
 // CHECK:             %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_2]] : i64
 // CHECK:             cc.continue %[[VAL_22]] : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_23:.*]] = quake.mz %[[VAL_14]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_23:.*]] = quake.mz %[[VAL_14]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

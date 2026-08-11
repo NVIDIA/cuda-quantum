@@ -8,10 +8,10 @@
 
 // RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
 
-func.func @__nvqpp__mlirgen__function_test._Z4testSt6vectorIfSaIfEE(%arg0: !cc.stdvec<f32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-  %0 = cc.stdvec_size %arg0 : (!cc.stdvec<f32>) -> i64
+func.func @__nvqpp__mlirgen__function_test._Z4testSt6vectorIfSaIfEE(%arg0: !cc.sequence<f32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = cc.sequence_size %arg0 : (!cc.sequence<f32>) -> i64
   %1 = math.cttz %0 : i64
-  %2 = cc.stdvec_data %arg0 : (!cc.stdvec<f32>) -> !cc.ptr<f32>
+  %2 = cc.sequence_data %arg0 : (!cc.sequence<f32>) -> !cc.ptr<f32>
   %3 = quake.alloca !quake.veq<?>[%1 : i64]
   %4 = quake.init_state %3, %2 : (!quake.veq<?>, !cc.ptr<f32>) -> !quake.veq<?>
   return

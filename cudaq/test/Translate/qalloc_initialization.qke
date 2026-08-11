@@ -19,12 +19,12 @@ module attributes {
     cc.store %s0, %s1 : !cc.ptr<!cc.array<f64 x 4>>
     %s2 = arith.constant 4 : i64
     %s3 = cc.cast %s1 : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
-    %arg0 = cc.stdvec_init %s3, %s2 : (!cc.ptr<f64>, i64) -> !cc.stdvec<f64>
+    %arg0 = cc.sequence_init %s3, %s2 : (!cc.ptr<f64>, i64) -> !cc.sequence<f64>
     %c0_i64 = arith.constant 0 : i64
     %c1_i64 = arith.constant 1 : i64
     %0 = arith.constant 4 : i64
     %1 = math.cttz %0 : i64
-    %2 = cc.stdvec_data %arg0 : (!cc.stdvec<f64>) -> !cc.ptr<f64>
+    %2 = cc.sequence_data %arg0 : (!cc.sequence<f64>) -> !cc.ptr<f64>
     %3 = quake.alloca !quake.veq<?>[%1 : i64]
     %4 = quake.init_state %3, %2 : (!quake.veq<?>, !cc.ptr<f64>) -> !quake.veq<?>
     %5 = quake.veq_size %4 : (!quake.veq<?>) -> i64

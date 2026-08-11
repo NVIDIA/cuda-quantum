@@ -57,7 +57,7 @@ zipArgumentsWithDeviceTypes(Location loc, OpBuilder &builder, ModuleOp module,
             isa<cudaq::cc::IndirectCallableType>(ty)))
         v = cudaq::cc::LoadOp::create(builder, loc, v);
       // Python will pass a std::vector<bool> to us here. Unpack it.
-      auto pear = cudaq::opt::marshal::unpackAnyStdVectorBool(
+      auto pear = cudaq::opt::marshal::unpackAnySequenceBool(
           loc, builder, module, v, ty, heapTracker);
       v = pear.first;
       result.emplace_back(iter.index(), v, ty);
@@ -77,7 +77,7 @@ zipArgumentsWithDeviceTypes(Location loc, OpBuilder &builder, ModuleOp module,
 
       // std::vector<bool> isn't really a std::vector<>. Use the helper
       // function to unpack it so it looks like any other vector.
-      auto pear = cudaq::opt::marshal::unpackAnyStdVectorBool(
+      auto pear = cudaq::opt::marshal::unpackAnySequenceBool(
           loc, builder, module, *argIter, devTy, heapTracker);
       if (pear.second) {
         result.emplace_back(argPos, pear.first, devTy);
@@ -690,13 +690,13 @@ public:
               SmallVector<cudaq::cc::ComputePtrArg>{1});
           auto vecLen = cudaq::cc::LoadOp::create(builder, loc, gep1);
           if (spanTy.getElementType() == builder.getI1Type()) {
-            cudaq::opt::marshal::genStdvecBoolFromInitList(loc, builder, arg0,
-                                                           dataPtr, vecLen);
+            cudaq::opt::marshal::genSequenceBoolFromInitList(loc, builder, arg0,
+                                                             dataPtr, vecLen);
           } else {
             Value tSize =
                 cudaq::cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
-            cudaq::opt::marshal::genStdvecTFromInitList(loc, builder, arg0,
-                                                        dataPtr, tSize, vecLen);
+            cudaq::opt::marshal::genSequenceTFromInitList(
+                loc, builder, arg0, dataPtr, tSize, vecLen);
           }
           // free(nullptr) is defined to be a nop in the standard.
           func::CallOp::create(builder, loc, TypeRange{}, "free",
@@ -845,18 +845,18 @@ public:
       return module.emitError("could not load malloc");
     if (failed(irBuilder.loadIntrinsic(module, "free")))
       return module.emitError("could not load free");
-    if (failed(
-            irBuilder.loadIntrinsic(module, cudaq::stdvecBoolCtorFromInitList)))
-      return module.emitError(std::string("could not load ") +
-                              cudaq::stdvecBoolCtorFromInitList);
-    if (failed(
-            irBuilder.loadIntrinsic(module, cudaq::stdvecBoolUnpackToInitList)))
-      return module.emitError(std::string("could not load ") +
-                              cudaq::stdvecBoolUnpackToInitList);
     if (failed(irBuilder.loadIntrinsic(module,
-                                       cudaq::stdvecBoolFreeTemporaryLists)))
+                                       cudaq::sequenceBoolCtorFromInitList)))
       return module.emitError(std::string("could not load ") +
-                              cudaq::stdvecBoolFreeTemporaryLists);
+                              cudaq::sequenceBoolCtorFromInitList);
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::sequenceBoolUnpackToInitList)))
+      return module.emitError(std::string("could not load ") +
+                              cudaq::sequenceBoolUnpackToInitList);
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::sequenceBoolFreeTemporaryLists)))
+      return module.emitError(std::string("could not load ") +
+                              cudaq::sequenceBoolFreeTemporaryLists);
     if (failed(irBuilder.loadIntrinsic(module, cudaq::llvmMemCopyIntrinsic)))
       return module.emitError(std::string("could not load ") +
                               cudaq::llvmMemCopyIntrinsic);
