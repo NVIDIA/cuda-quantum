@@ -108,15 +108,19 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
-    env:
-      # The cuda-quantum-devcontainer image is public on ghcr.io, so we pull it
-      # in a step and run the build inside it via `docker run`, rather than a
-      # job-level `container:`. GitHub auto-authenticates ghcr.io container jobs
-      # with GITHUB_TOKEN, which is not authorized for this package and fails
-      # with "manifest unknown"; an anonymous `docker pull` of the public image
-      # succeeds and needs no credentials. The image pins the LLVM/MLIR
-      # toolchain at LLVM_INSTALL_PREFIX; the pulse job never builds LLVM.
-      DEV_IMAGE: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      packages: read  # pull the private cuda-quantum-devcontainer image from ghcr.io
+    container:
+      # The cuda-quantum-devcontainer image bundles the pinned LLVM/MLIR toolchain
+      # at LLVM_INSTALL_PREFIX; the pulse job never builds LLVM from source. It is
+      # a PRIVATE ghcr.io package (built and pushed from this same repo by
+      # docker_images.yml), so pulling it needs a token with package read:
+      # GHCR_PULL_TOKEN if configured (a PAT with read:packages that can read the
+      # package), otherwise the job's GITHUB_TOKEN -- which resolves once the
+      # package grants NVIDIA/cuda-quantum read under "Manage Actions access".
+      image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
 
     steps:
       - name: Check out CUDA-Q
@@ -125,28 +129,31 @@ jobs:
       - name: Initialize source dependencies
         run: git -c submodule.tpls/llvm.update=none submodule update --init --recursive
 
-      - name: Pull the CUDA-Q development image
-        run: docker pull "$DEV_IMAGE"
+      - name: Install pulse test dependencies
+        run: |
+          python3 -m pip install --no-cache-dir --break-system-packages \
+            hypothesis \
+            lit \
+            "myst-parser>=3.0" \
+            nvidia-sphinx-theme==0.0.8 \
+            numpy==1.26.4 \
+            pytest==9.0.3 \
+            "sphinx>=8.1,<8.3"
+
+      - name: Configure pulse
+        run: |
+          cmake -S . -B build-pulse -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCUDAQ_BUILD_TESTS=ON \
+            -DCUDAQ_ENABLE_PROJECTS=pulse \
+            -DCUDAQ_PULSE_BUILD_DOCS=ON \
+            -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
+            -DPython_EXECUTABLE=/usr/bin/python3
 
       - name: Build, test, and generate docs
         run: |
-          docker run --rm --user root \
-            -v "${{ github.workspace }}:/workspace" -w /workspace \
-            "$DEV_IMAGE" bash -lc '
-              set -euo pipefail
-              git config --global --add safe.directory /workspace
-              python3 -m pip install --no-cache-dir --break-system-packages \
-                hypothesis lit "myst-parser>=3.0" nvidia-sphinx-theme==0.0.8 \
-                numpy==1.26.4 pytest==9.0.3 "sphinx>=8.1,<8.3"
-              cmake -S . -B build-pulse -G Ninja \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DCUDAQ_BUILD_TESTS=ON \
-                -DCUDAQ_ENABLE_PROJECTS=pulse \
-                -DCUDAQ_PULSE_BUILD_DOCS=ON \
-                -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
-                -DPython_EXECUTABLE=/usr/bin/python3
-              cmake --build build-pulse --parallel 2 --target check-pulse pulse-docs
-            '
+          cmake --build build-pulse --parallel 2 \
+            --target check-pulse pulse-docs
 
       - name: Upload documentation
         uses: actions/upload-artifact@v4
@@ -166,12 +173,16 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-    env:
-      # See test-and-docs: pull the public devcontainer image and run inside it
-      # via `docker run` instead of a job-level `container:` (whose GITHUB_TOKEN
-      # auto-login is unauthorized for this package). The image supplies the
-      # pinned LLVM/MLIR toolchain, CUDA Toolkit, and cuDensityMat SDK.
-      DEV_IMAGE: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      packages: read  # pull the private cuda-quantum-devcontainer image from ghcr.io
+    container:
+      # The development image supplies the pinned LLVM/MLIR toolchain, CUDA
+      # Toolkit, and cuDensityMat SDK; LLVM is never built in this job. See
+      # test-and-docs for the ghcr.io credential notes (private package -> uses
+      # GHCR_PULL_TOKEN if set, else the job's GITHUB_TOKEN).
+      image: ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_PULL_TOKEN || github.token }}
 
     steps:
       - name: Check out CUDA-Q
@@ -180,25 +191,29 @@ jobs:
       - name: Initialize source dependencies
         run: git -c submodule.tpls/llvm.update=none submodule update --init --recursive
 
-      - name: Pull the CUDA-Q development image
-        run: docker pull "$DEV_IMAGE"
+      - name: Install pulse test dependencies
+        run: |
+          python3 -m pip install --no-cache-dir --break-system-packages \
+            hypothesis \
+            lit \
+            numpy==1.26.4 \
+            pytest==9.0.3
+
+      - name: Locate cuDensityMat
+        run: |
+          echo "CUDENSITYMAT_ROOT=$(python3 -c 'import pathlib, cuquantum; print(pathlib.Path(cuquantum.__file__).parent)')" >> "$GITHUB_ENV"
+
+      - name: Configure pulse GPU validation
+        run: |
+          cmake -S . -B build-pulse-gpu -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCUDAQ_BUILD_TESTS=ON \
+            -DCUDAQ_ENABLE_PROJECTS=pulse \
+            -DCUDENSITYMAT_ROOT="$CUDENSITYMAT_ROOT" \
+            -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
+            -DPython_EXECUTABLE=/usr/bin/python3
 
       - name: Build and run numerical GPU tests
         run: |
-          docker run --rm --user root --gpus all \
-            -v "${{ github.workspace }}:/workspace" -w /workspace \
-            "$DEV_IMAGE" bash -lc '
-              set -euo pipefail
-              git config --global --add safe.directory /workspace
-              python3 -m pip install --no-cache-dir --break-system-packages \
-                hypothesis lit numpy==1.26.4 pytest==9.0.3
-              CUDENSITYMAT_ROOT="$(python3 -c "import pathlib, cuquantum; print(pathlib.Path(cuquantum.__file__).parent)")"
-              cmake -S . -B build-pulse-gpu -G Ninja \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DCUDAQ_BUILD_TESTS=ON \
-                -DCUDAQ_ENABLE_PROJECTS=pulse \
-                -DCUDENSITYMAT_ROOT="$CUDENSITYMAT_ROOT" \
-                -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
-                -DPython_EXECUTABLE=/usr/bin/python3
-              cmake --build build-pulse-gpu --parallel 2 --target check-pulse-gpu
-            '
+          cmake --build build-pulse-gpu --parallel 2 \
+            --target check-pulse-gpu
