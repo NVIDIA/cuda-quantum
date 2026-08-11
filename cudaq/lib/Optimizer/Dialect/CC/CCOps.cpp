@@ -1568,8 +1568,7 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
       data = ptr.getBase().getDefiningOp<cudaq::cc::SequenceDataOp>();
     } else if (auto cast = ptrVal.getDefiningOp<cudaq::cc::CastOp>()) {
       // compute_ptr[0] folds to a cast; treat as index 0.
-      auto fromTy =
-          dyn_cast<cudaq::cc::PointerType>(cast.getValue().getType());
+      auto fromTy = dyn_cast<cudaq::cc::PointerType>(cast.getValue().getType());
       if (!fromTy || !isa<cudaq::cc::ArrayType>(fromTy.getElementType()))
         return failure();
       data = cast.getValue().getDefiningOp<cudaq::cc::SequenceDataOp>();
@@ -1611,7 +1610,7 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
                                                              litTy, stringAttr);
       auto size = arith::ConstantIntOp::create(rewriter, loc, len, 64);
       rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(load, resultTy,
-                                                           strLit, size);
+                                                             strLit, size);
       return success();
     }
     return failure();
@@ -1619,8 +1618,8 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
 };
 } // namespace
 
-void cudaq::cc::LoadOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
+void cudaq::cc::LoadOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
+                                                    MLIRContext *context) {
   patterns.add<FoldConstArrayElementLoad>(context);
 }
 
