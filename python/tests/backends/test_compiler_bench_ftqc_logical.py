@@ -16,7 +16,7 @@ FTQC_LOGICAL_TARGET = 'compiler-bench-ftqc-logical'
 
 ALLOWED_LOGICAL_OPS = {
     'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'swap', 'cx',
-    'cy', 'cz', 'ccx', 'ccz', 'mz'
+    'cy', 'cz', 'ccx', 'ccz', 'mx', 'my', 'mz'
 }
 
 
@@ -102,7 +102,9 @@ def test_axis_measurements_count_as_measurements():
 
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
-    assert ops.get('mz', 0) == 3
+    assert ops.get('mx', 0) == 1
+    assert ops.get('my', 0) == 1
+    assert ops.get('mz', 0) == 1
 
 
 def test_composite_operations_lower_to_logical_basis():

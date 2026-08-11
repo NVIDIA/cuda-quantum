@@ -14,7 +14,8 @@ import pytest
 FTQC_CLIFFORD_T_TARGET = 'compiler-bench-ftqc-clifford-t'
 
 ALLOWED_CLIFFORD_T_OPS = {
-    'h', 's', 'sdg', 't', 'tdg', 'x', 'y', 'z', 'cx', 'cy', 'cz', 'swap', 'mz'
+    'h', 's', 'sdg', 't', 'tdg', 'x', 'y', 'z', 'cx', 'cy', 'cz', 'swap', 'mx',
+    'my', 'mz'
 }
 
 
@@ -76,7 +77,9 @@ def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
     assert operations.get('cy', 0) == 1
     assert operations.get('cz', 0) == 1
     assert operations.get('swap', 0) == 1
-    assert operations.get('mz', 0) == 14
+    assert operations.get('mx', 0) == 1
+    assert operations.get('my', 0) == 1
+    assert operations.get('mz', 0) == 12
     assert t_count == reference_t_count
     assert t_count > 0
     assert candidate_resources.depth > 0
