@@ -49,10 +49,10 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   auto target = createDefaultCompileTarget();
   target.fullySpecialize = true;
   // Translation consumes only the compiled MLIR artifact.
-  CompileOptions options;
-  options.emitJit = false;
+  CompileOptions compileOpts = options;
+  compileOpts.emitJit = false;
   cudaq_internal::compiler::Compiler compiler(std::move(target),
-                                              std::move(options));
+                                              std::move(compileOpts));
 
   auto rawArgs = args.getArgs();
   auto compiled =
