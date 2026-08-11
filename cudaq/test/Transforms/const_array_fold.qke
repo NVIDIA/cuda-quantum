@@ -1,0 +1,51 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | cudaq-opt | FileCheck %s
+
+// CHECK-LABEL: func.func @test_sequence_size_fold
+func.func @test_sequence_size_fold() -> i64 {
+  // cc.sequence_size(cc.reify_span(cc.const_array[N])) => arith.constant N
+  %arr = cc.const_array [1.0 : f64, 2.0 : f64, 3.0 : f64] : !cc.array<f64 x 3>
+  %span = cc.reify_span %arr : (!cc.array<f64 x 3>) -> !cc.sequence<f64>
+  %sz = cc.sequence_size %span : (!cc.sequence<f64>) -> i64
+  // CHECK: %[[C:.*]] = arith.constant 3 : i64
+  // CHECK: return %[[C]]
+  return %sz : i64
+}
+
+// CHECK-LABEL: func.func @test_float_element_fold
+func.func @test_float_element_fold() -> f64 {
+  // cc.load(cc.compute_ptr(cc.sequence_data(cc.reify_span(cc.const_array)), %c_i))
+  //   => arith.constant arr[i]
+  %arr = cc.const_array [1.5 : f64, 2.5 : f64, 3.5 : f64] : !cc.array<f64 x 3>
+  %span = cc.reify_span %arr : (!cc.array<f64 x 3>) -> !cc.sequence<f64>
+  %data = cc.sequence_data %span : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+  %c1 = arith.constant 1 : i64
+  %ptr = cc.compute_ptr %data[%c1] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
+  %val = cc.load %ptr : !cc.ptr<f64>
+  // CHECK: %[[C:.*]] = arith.constant 2.500000e+00 : f64
+  // CHECK: return %[[C]]
+  return %val : f64
+}
+
+// CHECK-LABEL: func.func @test_charspan_element_fold
+func.func @test_charspan_element_fold() -> !cc.charspan {
+  // cc.load(cc.cast(cc.sequence_data(cc.reify_span(cc.const_array))))
+  //   => cc.string_literal + cc.sequence_init  (index-0 case; compute_ptr[0] folds to cast)
+  %arr = cc.const_array ["XZXIIIII", "YZYIIIII"] : !cc.array<!cc.array<i8 x ?> x 2>
+  %span = cc.reify_span %arr : (!cc.array<!cc.array<i8 x ?> x 2>) -> !cc.sequence<!cc.charspan>
+  %data = cc.sequence_data %span : (!cc.sequence<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+  %c0 = arith.constant 0 : i64
+  %ptr = cc.compute_ptr %data[%c0] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.ptr<!cc.charspan>
+  %elem = cc.load %ptr : !cc.ptr<!cc.charspan>
+  // CHECK: %[[LIT:.*]] = cc.string_literal "XZXIIIII"
+  // CHECK: %[[SPAN:.*]] = cc.sequence_init %[[LIT]]
+  // CHECK: return %[[SPAN]]
+  return %elem : !cc.charspan
+}
