@@ -138,7 +138,10 @@ def test_two_qubit_selective_drive():
     """Driving q0 excites only q0; q1 remains in its ground state."""
     target = Target(
         name="physics-2q",
-        qubits={0: _unitary_qubit(0), 1: _unitary_qubit(1, 5.2e9)},
+        qubits={
+            0: _unitary_qubit(0),
+            1: _unitary_qubit(1, 5.2e9)
+        },
     )
 
     @pulse.kernel
@@ -161,9 +164,9 @@ def test_two_qubit_selective_drive():
     # Exactly one qubit is excited (the driven one), independent of the
     # basis-ordering convention: population sits in the single-excitation
     # manifold, not in |00> and not in |11>.
-    assert probs[0] < 0.1               # left the ground state
-    assert probs[1] + probs[2] > 0.9    # one qubit excited
-    assert probs[3] < 0.05              # both-excited is negligible
+    assert probs[0] < 0.1  # left the ground state
+    assert probs[1] + probs[2] > 0.9  # one qubit excited
+    assert probs[3] < 0.05  # both-excited is negligible
 
 
 @gpu
@@ -172,7 +175,10 @@ def test_xx_coupling_transfers_excitation():
     """An XX coupling exchanges excitation between neighboring qubits."""
     target = Target(
         name="physics-xx",
-        qubits={0: _unitary_qubit(0), 1: _unitary_qubit(1, 5.0e9)},
+        qubits={
+            0: _unitary_qubit(0),
+            1: _unitary_qubit(1, 5.0e9)
+        },
         couplings=[Coupling(0, 1, coupling_strength_hz=25.0e6)],
     )
 

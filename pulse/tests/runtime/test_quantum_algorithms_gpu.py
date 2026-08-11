@@ -79,7 +79,10 @@ def test_bell_schedule_mlir_structure():
 
     prog = to_program(bell(pulse.qudit_ref(), pulse.qudit_ref()),
                       clock_ghz=2.0,
-                      qubit_freq_hz={0: 5.0e9, 1: 5.1e9})
+                      qubit_freq_hz={
+                          0: 5.0e9,
+                          1: 5.1e9
+                      })
     mlir = program_to_pulse_mlir(prog)
     assert mlir.count("pulse.qudit_alloc") == 2
     assert "pulse.sync" in mlir
@@ -102,7 +105,11 @@ def test_ghz_schedule_mlir_structure():
     prog = to_program(ghz(pulse.qudit_ref(), pulse.qudit_ref(),
                           pulse.qudit_ref()),
                       clock_ghz=2.0,
-                      qubit_freq_hz={0: 5.0e9, 1: 5.1e9, 2: 5.2e9})
+                      qubit_freq_hz={
+                          0: 5.0e9,
+                          1: 5.1e9,
+                          2: 5.2e9
+                      })
     mlir = program_to_pulse_mlir(prog)
     assert mlir.count("pulse.qudit_alloc") == 3
 

@@ -103,8 +103,8 @@ def test_evolve_builds_target_aware_mlir(monkeypatch):
     assert 'qop.integrator = "rk4"' in captured["mlir"]
 
 
-@pytest.mark.parametrize("integrator", ["rk1", "rk2", "rk4", "magnus",
-                                        "crank_nicolson"])
+@pytest.mark.parametrize("integrator",
+                         ["rk1", "rk2", "rk4", "magnus", "crank_nicolson"])
 def test_evolve_emits_selected_integrator(monkeypatch, integrator):
     """Every supported integrator name lowers to its dialect attribute."""
     from cudaq_pulse.runtime import evolve as evolve_module

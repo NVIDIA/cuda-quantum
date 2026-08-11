@@ -57,7 +57,8 @@ def _ladder_8q_target(coupling_hz=1.0e6):
         for i in range(8)
     }
     couplings = [
-        Coupling(a, b, coupling_strength_hz=coupling_hz) for a, b in _LADDER_EDGES
+        Coupling(a, b, coupling_strength_hz=coupling_hz)
+        for a, b in _LADDER_EDGES
     ]
     return Target(name="ladder-8q", qubits=qubits, couplings=couplings)
 
@@ -122,5 +123,5 @@ def test_8qubit_single_qubit_excitation():
     # MSB/LSB ordering convention.
     probs = np.abs(state)**2
     single_excitation = float(sum(probs[1 << b] for b in range(8)))
-    assert probs[0] < 0.1               # left the all-ground state
-    assert single_excitation > 0.5      # one qubit excited
+    assert probs[0] < 0.1  # left the all-ground state
+    assert single_excitation > 0.5  # one qubit excited

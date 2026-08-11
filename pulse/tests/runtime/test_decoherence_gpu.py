@@ -124,7 +124,7 @@ def test_t1_longer_wait_more_decay():
                               integrator="rk4")
         return result.final_state[1, 1].real
 
-    p1_short = _run(200, 120.0)   # 100 ns wait
+    p1_short = _run(200, 120.0)  # 100 ns wait
     p1_long = _run(2000, 1020.0)  # 1000 ns wait
     assert p1_long < p1_short
     assert p1_short < 1.0

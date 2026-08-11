@@ -11,9 +11,6 @@
         },
         {
             "root": "tests"
-        },
-        {
-            "root": "benchmarks"
         }
     ]
 }
