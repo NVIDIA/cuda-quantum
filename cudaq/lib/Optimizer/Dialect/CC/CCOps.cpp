@@ -1507,12 +1507,12 @@ struct ForwardSequenceInitSize
 };
 
 // cc.stdvec_size(cc.reify_span(%arr : !cc.array<T x N>)) => arith.constant N
-struct FoldReifySpanSize : public OpRewritePattern<cudaq::cc::StdvecSizeOp> {
+struct FoldReifySpanSize : public OpRewritePattern<cudaq::cc::SequenceSizeOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::cc::StdvecSizeOp size,
+  LogicalResult matchAndRewrite(cudaq::cc::SequenceSizeOp size,
                                 PatternRewriter &rewriter) const override {
-    auto reify = size.getStdvec().getDefiningOp<cudaq::cc::ReifySpanOp>();
+    auto reify = size.getSequence().getDefiningOp<cudaq::cc::ReifySpanOp>();
     if (!reify)
       return failure();
     auto conArr =
@@ -1531,7 +1531,7 @@ struct FoldReifySpanSize : public OpRewritePattern<cudaq::cc::StdvecSizeOp> {
 
 void cudaq::cc::SequenceSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardStdvecInitSize, FoldReifySpanSize>(context);
+  patterns.add<ForwardSequenceInitSize, FoldReifySpanSize>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1550,7 +1550,7 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
                                 PatternRewriter &rewriter) const override {
     Value ptrVal = load.getPtrvalue();
     std::int64_t idx = 0;
-    cudaq::cc::StdvecDataOp data;
+    cudaq::cc::SequenceDataOp data;
 
     if (auto ptr = ptrVal.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
       if (ptr.getRawConstantIndices().size() != 1)
@@ -1565,19 +1565,19 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
           return failure();
         idx = indexVal.getSExtValue();
       }
-      data = ptr.getBase().getDefiningOp<cudaq::cc::StdvecDataOp>();
+      data = ptr.getBase().getDefiningOp<cudaq::cc::SequenceDataOp>();
     } else if (auto cast = ptrVal.getDefiningOp<cudaq::cc::CastOp>()) {
       // compute_ptr[0] folds to a cast; treat as index 0.
       auto fromTy =
           dyn_cast<cudaq::cc::PointerType>(cast.getValue().getType());
       if (!fromTy || !isa<cudaq::cc::ArrayType>(fromTy.getElementType()))
         return failure();
-      data = cast.getValue().getDefiningOp<cudaq::cc::StdvecDataOp>();
+      data = cast.getValue().getDefiningOp<cudaq::cc::SequenceDataOp>();
     }
 
     if (!data)
       return failure();
-    auto reify = data.getStdvec().getDefiningOp<cudaq::cc::ReifySpanOp>();
+    auto reify = data.getSequence().getDefiningOp<cudaq::cc::ReifySpanOp>();
     if (!reify)
       return failure();
     auto conArr =
@@ -1601,7 +1601,7 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
       return success();
     }
     if (isa<cudaq::cc::CharspanType>(resultTy) ||
-        isa<cudaq::cc::StdvecType>(resultTy)) {
+        isa<cudaq::cc::SequenceType>(resultTy)) {
       auto stringAttr = cast<StringAttr>(elemAttr);
       auto *ctx = rewriter.getContext();
       std::int64_t len = stringAttr.getValue().size() + 1;
@@ -1610,7 +1610,7 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
       auto strLit = cudaq::cc::CreateStringLiteralOp::create(rewriter, loc,
                                                              litTy, stringAttr);
       auto size = arith::ConstantIntOp::create(rewriter, loc, len, 64);
-      rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(load, resultTy,
+      rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(load, resultTy,
                                                            strLit, size);
       return success();
     }
@@ -1621,7 +1621,7 @@ struct FoldConstArrayElementLoad : public OpRewritePattern<cudaq::cc::LoadOp> {
 
 void cudaq::cc::LoadOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FoldConstArrayElementLoad, ForwardSequenceInitSize>(context);
+  patterns.add<FoldConstArrayElementLoad>(context);
 }
 
 //===----------------------------------------------------------------------===//
