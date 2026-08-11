@@ -38,6 +38,7 @@ def test_preserves_native_logical_resource_classes():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(3)
     kernel.h(q[0])
+    kernel.t(q[0])
     kernel.s(q[0])
     kernel.t(q[0])
     kernel.tdg(q[1])
@@ -49,9 +50,9 @@ def test_preserves_native_logical_resource_classes():
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
     assert ops.get('h', 0) == 1
-    assert ops.get('s', 0) == 1
+    assert ops.get('s', 0) == 2
     # The current resource-count path reports T and Tdg as the T family.
-    assert ops.get('t', 0) + ops.get('tdg', 0) == 2
+    assert ops.get('t', 0) + ops.get('tdg', 0) == 1
     assert ops.get('rx', 0) == 1
     assert ops.get('ry', 0) == 1
     assert ops.get('rz', 0) == 1

@@ -17,11 +17,12 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include <compare>
 #include <optional>
 #include <utility>
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_OPTIMIZECLIFFORDT
+#define GEN_PASS_DEF_OPTIMIZESINGLEQUBITCLIFFORDT
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -46,10 +47,18 @@ struct Candidate {
   cudaq::synth::Circuit normalized;
 };
 
-class OptimizeCliffordTPass
-    : public cudaq::opt::impl::OptimizeCliffordTBase<OptimizeCliffordTPass> {
+struct CircuitCost {
+  int tCount;
+  std::size_t cliffordCount;
+
+  auto operator<=>(const CircuitCost &) const = default;
+};
+
+class OptimizeSingleQubitCliffordTPass
+    : public cudaq::opt::impl::OptimizeSingleQubitCliffordTBase<
+          OptimizeSingleQubitCliffordTPass> {
 public:
-  using OptimizeCliffordTBase::OptimizeCliffordTBase;
+  using OptimizeSingleQubitCliffordTBase::OptimizeSingleQubitCliffordTBase;
   void runOnOperation() override;
 };
 
@@ -71,8 +80,8 @@ static std::optional<ExactGate> getExactGate(Operation *operation) {
   return std::nullopt;
 }
 
-// The pass adopts only the unary scalar-wire subset of Quake value semantics.
-// Every other operand/result shape is a chain boundary and remains unchanged.
+// Accept only uncontrolled, unary scalar-wire operations. Every other
+// operand/result shape is a chain boundary and remains unchanged.
 static std::optional<UnaryWireOp> getUnaryWireOp(Operation *operation) {
   std::optional<ExactGate> gate = getExactGate(operation);
   if (!gate)
@@ -88,6 +97,35 @@ static std::optional<UnaryWireOp> getUnaryWireOp(Operation *operation) {
 
   return UnaryWireOp{operation, gateInterface.getTargets()[0],
                      operation->getResult(0), *gate, gateInterface.isAdj()};
+}
+
+// Collect a maximal same-block chain through single-use scalar-wire values.
+// Unsupported operations and non-linear wire flow terminate the chain.
+static llvm::SmallVector<UnaryWireOp>
+collectLinearChain(Operation *operation, Block &block,
+                   llvm::SmallDenseSet<Operation *> &collected) {
+  if (collected.contains(operation))
+    return {};
+
+  std::optional<UnaryWireOp> first = getUnaryWireOp(operation);
+  if (!first || !first->input.hasOneUse())
+    return {};
+
+  llvm::SmallVector<UnaryWireOp> chain;
+  std::optional<UnaryWireOp> current = first;
+  while (current) {
+    chain.push_back(*current);
+    collected.insert(current->operation);
+    if (!current->output.hasOneUse())
+      break;
+    Operation *next = *current->output.getUsers().begin();
+    std::optional<UnaryWireOp> nextGate = getUnaryWireOp(next);
+    if (!nextGate || next->getBlock() != &block ||
+        nextGate->input != current->output)
+      break;
+    current = nextGate;
+  }
+  return chain;
 }
 
 static void appendExactGate(cudaq::synth::Circuit &circuit,
@@ -137,12 +175,21 @@ buildMatrixProduct(llvm::ArrayRef<UnaryWireOp> operations) {
   return circuit;
 }
 
-static std::pair<int, std::size_t>
-emittedCost(const cudaq::synth::Circuit &circuit) {
-  std::size_t operationCount = 0;
+// Prefer lower T-count, then fewer emitted Clifford gates. Scalar W phases
+// are not emitted as Quake operations.
+static CircuitCost emittedCost(const cudaq::synth::Circuit &circuit) {
+  std::size_t cliffordCount = 0;
   for (cudaq::synth::Gate gate : circuit)
-    operationCount += gate != cudaq::synth::Gate::W;
-  return {circuit.t_count(), operationCount};
+    cliffordCount += gate != cudaq::synth::Gate::W;
+  return {circuit.t_count(), cliffordCount};
+}
+
+static CircuitCost inputCost(llvm::ArrayRef<UnaryWireOp> chain) {
+  return {static_cast<int>(llvm::count_if(chain,
+                                          [](const UnaryWireOp &gate) {
+                                            return gate.gate == ExactGate::T;
+                                          })),
+          chain.size()};
 }
 
 template <typename OpTy>
@@ -185,35 +232,14 @@ static void optimizeBlock(Block &block) {
   llvm::SmallDenseSet<Operation *> collected;
 
   for (Operation &operation : block) {
-    if (collected.contains(&operation))
+    llvm::SmallVector<UnaryWireOp> chain =
+        collectLinearChain(&operation, block, collected);
+    if (chain.empty())
       continue;
-    std::optional<UnaryWireOp> first = getUnaryWireOp(&operation);
-    if (!first || !first->input.hasOneUse())
-      continue;
-
-    llvm::SmallVector<UnaryWireOp> chain;
-    std::optional<UnaryWireOp> current = first;
-    while (current) {
-      chain.push_back(*current);
-      collected.insert(current->operation);
-      if (!current->output.hasOneUse())
-        break;
-      Operation *next = *current->output.getUsers().begin();
-      std::optional<UnaryWireOp> nextGate = getUnaryWireOp(next);
-      if (!nextGate || next->getBlock() != &block ||
-          nextGate->input != current->output)
-        break;
-      current = nextGate;
-    }
 
     cudaq::synth::Circuit inputCircuit = buildMatrixProduct(chain);
     cudaq::synth::Circuit normalized = inputCircuit.normalized();
-    std::pair<int, std::size_t> inputCost = {
-        static_cast<int>(llvm::count_if(
-            chain,
-            [](const UnaryWireOp &gate) { return gate.gate == ExactGate::T; })),
-        chain.size()};
-    if (emittedCost(normalized) >= inputCost)
+    if (emittedCost(normalized) >= inputCost(chain))
       continue;
 
     Candidate candidate;
@@ -246,13 +272,9 @@ static void optimizeRegion(Region &region) {
   }
 }
 
-void OptimizeCliffordTPass::runOnOperation() {
-  // A global phase of a callee becomes a relative phase when the callee is
-  // controlled. Since Quake cannot yet represent the W phase emitted by
-  // Matsumoto--Amano normalization, conservatively preserve the whole module
-  // whenever a controlled apply remains. Target pipelines specialize applies
-  // before invoking this pass, so their flat value-semantics boundary is not
-  // affected by this guard.
+void OptimizeSingleQubitCliffordTPass::runOnOperation() {
+  // TODO: Support controlled quake.apply after Quake can represent scalar W
+  // phase factors.
   ModuleOp module = getOperation();
   WalkResult result = module.walk([](cudaq::quake::ApplyOp apply) {
     return apply.getControls().empty() ? WalkResult::advance()

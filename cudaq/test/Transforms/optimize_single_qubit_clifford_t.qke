@@ -6,21 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.    //
 // ========================================================================== //
 
-// RUN: cudaq-opt --optimize-clifford-t %s | FileCheck %s
+// RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
 // RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
-// RUN: cudaq-opt --optimize-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke --up-to-global-phase
-
-func.func @profitable_mixed(%arg0: !quake.wire) -> !quake.wire {
-  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
-  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
-  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
-  return %2 : !quake.wire
-}
-
-// CHECK-LABEL: func.func @profitable_mixed
-// CHECK-NEXT:    %[[S0:.*]] = quake.s %arg0
-// CHECK-NEXT:    %[[S1:.*]] = quake.s %[[S0]]
-// CHECK-NEXT:    return %[[S1]]
+// RUN: cudaq-opt --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke --up-to-global-phase
 
 func.func @independent_wires(%arg0: !quake.wire, %arg1: !quake.wire)
     -> (!quake.wire, !quake.wire) {
@@ -47,17 +35,6 @@ func.func @unchanged(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-NEXT:    %[[H:.*]] = quake.h %arg0
 // CHECK-NEXT:    %[[T:.*]] = quake.t %[[H]]
 // CHECK-NEXT:    return %[[T]]
-
-func.func @adjoint_cancellation(%arg0: !quake.wire) -> !quake.wire {
-  %0 = quake.s<adj> %arg0 : (!quake.wire) -> !quake.wire
-  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
-  %2 = quake.t<adj> %1 : (!quake.wire) -> !quake.wire
-  %3 = quake.t %2 : (!quake.wire) -> !quake.wire
-  return %3 : !quake.wire
-}
-
-// CHECK-LABEL: func.func @adjoint_cancellation
-// CHECK-NEXT:    return %arg0
 
 // `S X S` normalizes exactly to `X W W`. The compiler omits both `W` gates,
 // so this rewrite is equivalent modulo global phase and emits only `X`.

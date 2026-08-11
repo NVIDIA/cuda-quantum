@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --optimize-clifford-t %s | FileCheck %s
+// RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
 
 // `S X S` differs from `X` by global phase. That phase becomes observable when
 // this function is controlled, so the pass must preserve the original chain.
