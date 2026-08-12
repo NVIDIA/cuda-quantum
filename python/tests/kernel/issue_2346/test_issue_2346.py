@@ -32,14 +32,9 @@ def clear_registries():
     cudaq.__clearKernelRegistries()
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_kernel_call_via_partial_module_path():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def test0():
         gates.qft_ops.qft_kernel()
 
@@ -47,7 +42,6 @@ def test_kernel_call_via_partial_module_path():
     assert '0' in counts
 
 
-@skipIfValueSemantics
 def test_repeated_kernel_call_via_partial_module_path(monkeypatch):
 
     class CountingModuleAlias:
@@ -63,12 +57,12 @@ def test_repeated_kernel_call_via_partial_module_path(monkeypatch):
 
     qft_alias = CountingModuleAlias(gates)
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def test0():
         qft_alias.qft_ops.qft_kernel()
         qft_alias.qft_ops.qft_kernel()
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def test1():
         qft_alias.qft_ops.qft_kernel()
         qft_alias.qft_ops.qft_kernel()

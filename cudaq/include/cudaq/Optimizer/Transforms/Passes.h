@@ -84,7 +84,8 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// idempotent on already-lowered IR, so the duplication is safe.
 ///
 /// Opt-in only. This helper is not added to default target pipelines.
-void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
+void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
+                           bool failOnControlledRotation = false);
 
 void registerAOTPipelines();
 void registerJITPipelines();

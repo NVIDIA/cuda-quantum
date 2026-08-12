@@ -77,6 +77,10 @@ struct FaultTolerantTargetPipelineOptions
       *this, "epsilon",
       llvm::cl::desc("Approximation tolerance for Clifford+T synthesis."),
       llvm::cl::init(1e-10)};
+  PassOptions::Option<bool> failOnControlledRotation{
+      *this, "fail-on-controlled-rotation",
+      llvm::cl::desc("Reject controlled rotations left at synthesis."),
+      llvm::cl::init(false)};
 };
 } // namespace
 
@@ -170,7 +174,8 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
   pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
-void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon) {
+void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
+                                       bool failOnControlledRotation) {
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addPass(cudaq::opt::createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
@@ -191,6 +196,7 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon) {
   cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
   cudaq::opt::CliffordTSynthesisOptions ctsOpts;
   ctsOpts.epsilon = epsilon;
+  ctsOpts.failOnControlledRotation = failOnControlledRotation;
   pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
   cudaq::opt::DecompositionOptions decOpts;
   decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
@@ -203,7 +209,8 @@ void cudaq::opt::registerFaultTolerantTargetPipeline() {
       "Lower rotations to the {H, S, T, X, Z, CNOT} basis via Clifford+T "
       "synthesis.",
       [](OpPassManager &pm, const FaultTolerantTargetPipelineOptions &options) {
-        cudaq::opt::addCliffordTSynthesis(pm, options.epsilon);
+        cudaq::opt::addCliffordTSynthesis(pm, options.epsilon,
+                                          options.failOnControlledRotation);
       });
 }
 

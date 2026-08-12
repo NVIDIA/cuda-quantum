@@ -190,3 +190,62 @@ func.func @kernel_veq_ctrl() {
   quake.x [%ctrl] %3 : (!quake.veq<2>, !quake.ref) -> ()
   return
 }
+
+// -----
+
+// CHECK: Preprocessing mx(0) for 1 counts
+// CHECK: Preprocessing my(0) for 1 counts
+// CHECK-LABEL: func.func @kernel_axis_measurements() {
+// CHECK:   %0 = quake.alloca !quake.ref
+// CHECK:   %1 = quake.alloca !quake.ref
+// CHECK-NOT: quake.m{{[xyz]}}
+// CHECK:   return
+// CHECK: }
+
+// Unused axis measurements are invariant for resource counting. Count them
+// before execution-manager lowering would normalize their axes to Z.
+func.func @kernel_axis_measurements() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %mx = quake.mx %0 : (!quake.ref) -> !quake.measure
+  %my = quake.my %1 : (!quake.ref) -> !quake.measure
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func.func @kernel_used_axis_measurement() {
+// CHECK:   %measOut = quake.mx %0 : (!quake.ref) -> !quake.measure
+// CHECK:   %{{.*}} = quake.discriminate %measOut : (!quake.measure) -> i1
+// CHECK:   cc.if
+// CHECK:     quake.x %1 : (!quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
+// Retain a measurement whose result may influence control flow.
+func.func @kernel_used_axis_measurement() {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %measOut = quake.mx %0 : (!quake.ref) -> !quake.measure
+  %2 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cc.if(%2) {
+    quake.x %1 : (!quake.ref) -> ()
+  }
+  return
+}
+
+// -----
+
+// CHECK-LABEL: func.func @kernel_used_axis_wire(
+// CHECK:   quake.my
+// CHECK:   quake.sink
+// CHECK:   return
+// CHECK: }
+
+// The linear-value result is also a live measurement result and must retain
+// the operation for subsequent lowering.
+func.func @kernel_used_axis_wire(%q: !quake.wire) {
+  %0:2 = quake.my %q : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %0#1 : !quake.wire
+  return
+}
