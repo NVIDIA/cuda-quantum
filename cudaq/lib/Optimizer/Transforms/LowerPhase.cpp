@@ -222,8 +222,9 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
 
   PhasePredicate predicate = materializeKnownSizedControls(rewriter, phase);
   if (predicate.controls.empty()) {
-    rewriter.replaceOp(phase, getPhaseReplacements(phase, predicate.controls,
-                                                   phase.getTarget()));
+    rewriter.replaceOp(
+        phase, cudaq::opt::getPhaseReplacements(phase, predicate.controls,
+                                                phase.getTarget()));
     return success();
   }
 
