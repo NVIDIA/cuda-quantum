@@ -488,6 +488,9 @@ public:
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), inTys, module);
     newFunc.setPrivate();
+    if (auto atomicRegion =
+            func->getAttr(cudaq::cc::atomicQuantumRegionAttrName))
+      newFunc->setAttr(cudaq::cc::atomicQuantumRegionAttrName, atomicRegion);
     IRMapping mapping;
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
@@ -608,6 +611,9 @@ public:
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), funcTy.getInputs(), module);
     newFunc.setPrivate();
+    if (auto atomicRegion =
+            func->getAttr(cudaq::cc::atomicQuantumRegionAttrName))
+      newFunc->setAttr(cudaq::cc::atomicQuantumRegionAttrName, atomicRegion);
     IRMapping mapping;
     funcBody.cloneInto(&newFunc.getBody(), mapping);
     reverseTheOpsInTheBlock(loc, newFunc.getBody().front().getTerminator(),
