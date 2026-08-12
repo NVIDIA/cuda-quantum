@@ -78,7 +78,7 @@ def _extract_propagator(result, dimension: int,
 def _vectorize_state(state) -> np.ndarray:
     """Flatten an evolved basis state in the column-major `Liouville` order.
 
-    The evolved states are reported as matrices, so they must be re-vectorized
+    The evolved states are reported as matrices, so they must be `re-vectorized`
     in the same column-major order used to build the input basis states.
     """
     return np.array(state).reshape(-1, order="F")
