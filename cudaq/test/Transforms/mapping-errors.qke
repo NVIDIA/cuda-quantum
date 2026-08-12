@@ -56,6 +56,77 @@ func.func @test_02() {
 
 // -----
 
+quake.wire_set @wires_02_scope[10]
+
+// Transparent scope routing does not assign or retire local quantum tracks.
+func.func @test_02_scope() {
+  %0 = quake.borrow_wire @wires_02_scope[0] : !quake.wire
+  cc.scope {
+    // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside an ordinary scope}}
+    %1 = quake.alloca !quake.ref
+    quake.x %1 : (!quake.ref) -> ()
+    quake.dealloc %1 : !quake.ref
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_borrow[10]
+
+// A local borrow has an independent device-wire lifetime and cannot be seeded
+// from the enclosing scope's layout.
+func.func @test_02_scope_borrow() {
+  %0 = quake.borrow_wire @wires_02_scope_borrow[0] : !quake.wire
+  cc.scope {
+    // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside an ordinary scope}}
+    %1 = quake.borrow_wire @wires_02_scope_borrow[1] : !quake.wire
+    %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+    quake.sink %2 : !quake.wire
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_exit[10]
+
+// Mapping reconstructs terminal return wires at function scope. A captured
+// wire therefore must leave an ordinary scope through a scope result.
+func.func @test_02_scope_exit() {
+  %0 = quake.borrow_wire @wires_02_scope_exit[0] : !quake.wire
+  // expected-error @+1 {{mapper requires every captured wire to leave an ordinary scope through a matching result}}
+  cc.scope {
+    quake.return_wire %0 : !quake.wire
+    cc.continue
+  }
+  return
+}
+
+// -----
+
+quake.wire_set @wires_02_scope_cfg[10]
+
+// The ordinary-scope router deliberately does not construct a CFG routing
+// problem. A multi-block scope is diagnosed before mapping rewrites wires.
+func.func @test_02_scope_cfg() {
+  %0 = quake.borrow_wire @wires_02_scope_cfg[0] : !quake.wire
+  // expected-error @+1 {{mapper can only handle ordinary single-block scopes}}
+  cc.scope {
+    cf.br ^bb1
+  ^bb1:
+    cc.continue
+  }
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// -----
+
 quake.wire_set @wires_03[10]
 
 // expected-error@+1 {{no borrow_wire ops found in test_03}}

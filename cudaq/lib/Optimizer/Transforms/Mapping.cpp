@@ -15,6 +15,7 @@
 #include "cudaq/Support/Device.h"
 #include "cudaq/Support/Handle.h"
 #include "cudaq/Support/Placement.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -760,12 +761,12 @@ struct RoutingProblem {
 };
 
 /// A single routing decision: a gate mapped onto physical qubits, a swap
-/// inserted between them, an if-op, or a loop-op. The router records Gate and
-/// Swap events; the enrichment step adds If and Loop events. The emitter
-/// replays the full trace to rewrite the IR. Body results for If/Loop events
-/// live in the block map, not here.
+/// inserted between them, an if-op, a loop-op, or an ordinary scope. The router
+/// records Gate and Swap events; the enrichment step adds structured
+/// control-flow events. The emitter replays the full trace to rewrite the IR.
+/// Body results for If/Loop events live in the block map, not here.
 struct RoutingEvent {
-  enum class Kind { Gate, Swap, If, Loop };
+  enum class Kind { Gate, Swap, If, Loop, Scope };
 
   /// A gate mapped onto the physical qubits `phys`, in operand order.
   static RoutingEvent gate(mlir::Operation *op,
@@ -794,6 +795,11 @@ struct RoutingEvent {
     return RoutingEvent{
         Kind::Loop, op,
         SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
+  }
+  /// An ordinary scope. The scope body restores its layout before
+  /// `cc.continue`, so the event needs no per-wire physical state.
+  static RoutingEvent makeScope(mlir::Operation *op) {
+    return RoutingEvent{Kind::Scope, op, {}};
   }
 
   Kind kind;
@@ -866,6 +872,63 @@ cudaq::Placement::VirtualQ requireVirtualQ(
       "mapper invariant violated: quantum wire has no virtual qubit");
 }
 
+/// Map a use nested in an ordinary scope back to the scope operation visible
+/// in `block`. This makes the scope a single routing node in its parent while
+/// its body is routed recursively.
+static Operation *getRoutingUser(OpOperand &use, Block &block) {
+  Operation *user = use.getOwner();
+  while (user && user->getBlock() != &block) {
+    auto scope = dyn_cast<cudaq::cc::ScopeOp>(user->getParentOp());
+    if (!scope || !scope.getInitRegion().hasOneBlock())
+      return nullptr;
+    user = scope;
+  }
+  return user;
+}
+
+/// Return the scalar wires defined outside a transparent ordinary scope and
+/// captured by its body. Their order is the scope routing node's input order.
+static SmallVector<Value> getScopeCaptureWires(cudaq::cc::ScopeOp scope) {
+  SmallVector<Value> capturedWires;
+  auto collectScopeCaptures = [&](auto &self, Region &region) -> void {
+    if (!region.hasOneBlock())
+      return;
+    for (Operation &nestedOp : region.front()) {
+      SmallVector<Value> quantumOperands(
+          cudaq::quake::getQuantumOperands(&nestedOp));
+      if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(nestedOp))
+        llvm::append_range(quantumOperands, ifOp.getLinearArgs());
+      else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(nestedOp))
+        llvm::append_range(quantumOperands, loopOp.getInitialArgs());
+      for (Value wire : quantumOperands) {
+        if (!isa<cudaq::quake::WireType>(wire.getType()))
+          continue;
+        Operation *def = wire.getDefiningOp();
+        if (def && scope->isAncestor(def))
+          continue;
+        if (!llvm::is_contained(capturedWires, wire))
+          capturedWires.push_back(wire);
+      }
+      // A nested ordinary scope has no operands of its own. Descending through
+      // it finds the caller wire it captures, but stopping at an `if` or loop
+      // avoids treating their region block arguments as new outer captures.
+      if (auto nestedScope = dyn_cast<cudaq::cc::ScopeOp>(nestedOp))
+        self(self, nestedScope.getInitRegion());
+    }
+  };
+  collectScopeCaptures(collectScopeCaptures, scope.getInitRegion());
+  return capturedWires;
+}
+
+/// A transparent scope may only route caller wires. A borrow introduced in the
+/// body starts a separate device-wire lifetime, which this recursive router
+/// cannot seed or reconstruct at the scope boundary.
+static bool hasScopeLocalBorrow(cudaq::cc::ScopeOp scope) {
+  bool found = false;
+  scope.getInitRegion().walk([&](cudaq::quake::BorrowWireOp) { found = true; });
+  return found;
+}
+
 /// Build the routing problem from `block`. The nodes are the routable
 /// operations that `isSupportedMappingOperation` accepts, other than the source
 /// borrows. Edges and source successors are captured in MLIR use-list order so
@@ -889,6 +952,11 @@ RoutingProblem buildRoutingProblem(
       for (auto initArg : loopOp.getInitialArgs())
         if (isa<cudaq::quake::WireType>(initArg.getType()))
           node.qubits.push_back(requireVirtualQ(wireToVirtualQ, initArg));
+    } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
+      if (!scope.getInitRegion().hasOneBlock())
+        continue;
+      for (Value capture : getScopeCaptureWires(scope))
+        node.qubits.push_back(requireVirtualQ(wireToVirtualQ, capture));
     } else {
       if (!cudaq::quake::isSupportedMappingOperation(&op))
         continue;
@@ -911,13 +979,15 @@ RoutingProblem buildRoutingProblem(
   auto recordWireUsers = [&](Value wire,
                              SmallVectorImpl<RoutingProblem::NodeRef> &out) {
     for (OpOperand &use : wire.getUses())
-      if (auto it = nodeIndex.find(use.getOwner()); it != nodeIndex.end())
-        out.push_back(it->second);
+      if (Operation *user = getRoutingUser(use, block))
+        if (auto it = nodeIndex.find(user); it != nodeIndex.end())
+          out.push_back(it->second);
   };
   for (auto &node : problem.nodes) {
-    auto wireResults = isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(node.op)
-                           ? node.op->getResults()
-                           : cudaq::quake::getQuantumResults(node.op);
+    auto wireResults =
+        isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(node.op)
+            ? node.op->getResults()
+            : cudaq::quake::getQuantumResults(node.op);
     for (Value wire : wireResults)
       if (isa<cudaq::quake::WireType>(wire.getType()))
         recordWireUsers(wire, node.successors);
@@ -1160,17 +1230,23 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
 
   // An operation cannot be mapped if it is not a measurement and uses two
   // virtual qubits that are not adjacently placed.
-  if (!node.isMeasure && deviceQubits.size() == 2 &&
+  if (!node.isMeasure &&
+      !isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(node.op) &&
+      deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 
-  // IfOps and LoopOps are opaque: pass through with their current qubit layout.
+  // Structured control flow is routed recursively by ControlFlowRouter.
   if (isa<cudaq::cc::IfOp>(node.op)) {
     result.trace.push_back(RoutingEvent::makeIf(node.op, deviceQubits));
     return success();
   }
   if (isa<cudaq::cc::LoopOp>(node.op)) {
     result.trace.push_back(RoutingEvent::makeLoop(node.op, deviceQubits));
+    return success();
+  }
+  if (isa<cudaq::cc::ScopeOp>(node.op)) {
+    result.trace.push_back(RoutingEvent::makeScope(node.op));
     return success();
   }
 
@@ -1648,10 +1724,10 @@ private:
     }
     unsigned srcIdx = 0;
 
-    // Route one nested block (an if branch, loop body, or loop step) using the
-    // current replay layout as its entry seed, then recurse to fill its
-    // blockResults entry. Reconciliation is left to the caller, since if-joins
-    // and loop back-edges reconcile different predecessor sets.
+    // Route one nested block using the current replay layout as its entry
+    // seed, then recurse to fill its block result. The caller reconciles its
+    // join because if branches, loop back-edges, and scopes use different
+    // predecessor sets.
     auto routeNested = [&](Block &nested) {
       SmallVector<Value> sources;
       for (auto arg : nested.getArguments())
@@ -1708,6 +1784,16 @@ private:
         // never inserts swaps and needs no back-edge reconciliation.
         if (loopOp.hasStep())
           routeNested(*loopOp.getStepBlock());
+        result.trace.push_back(std::move(ev));
+      } else if (ev.kind == RoutingEvent::Kind::Scope) {
+        auto scope = cast<cudaq::cc::ScopeOp>(ev.op);
+        Block &scopeBlock = scope.getInitRegion().front();
+        routeBlock(scopeBlock, getScopeCaptureWires(scope),
+                   {SmallVector<unsigned>(replayVqToPhy)});
+        RoutingResult *scopeResult = &blockResults[&scopeBlock];
+        // A scope has one normal exit. Restore its body before continue so the
+        // enclosing block observes exactly the layout it had on entry.
+        joinStrategy.reconcile(scopeResult);
         result.trace.push_back(std::move(ev));
       } else {
         llvm_unreachable("unhandled RoutingEvent::Kind");
@@ -1890,6 +1976,20 @@ private:
           if (!isa<cudaq::quake::WireType>(res.getType()))
             continue;
           phyToWire[ev.phys[phyIdx++].index] = res;
+        }
+      } else if (ev.kind == RoutingEvent::Kind::Scope) {
+        auto scope = cast<cudaq::cc::ScopeOp>(ev.op);
+        Block &scopeBlock = scope.getInitRegion().front();
+        const RoutingResult &scopeResult = blockResults.at(&scopeBlock);
+        emitBlock(scopeBlock);
+        auto contOp = cast<cudaq::cc::ContinueOp>(scopeBlock.getTerminator());
+        for (auto [index, result] : llvm::enumerate(scope->getResults())) {
+          if (!isa<cudaq::quake::WireType>(result.getType()))
+            continue;
+          auto vq = wireToVirtualQ.find(result)->second;
+          contOp->setOperand(index,
+                             phyToWire[scopeResult.exitLayout[vq.index]]);
+          phyToWire[scopeResult.exitLayout[vq.index]] = result;
         }
       } else {
         llvm_unreachable("unhandled RoutingEvent::Kind");
@@ -2292,6 +2392,75 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         for (Value res : ifOp->getResults())
           if (isa<cudaq::quake::WireType>(res.getType()))
             finalQubitWire[wireToVirtualQ[res].index] = res;
+      } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
+        if (!scope.getInitRegion().hasOneBlock() ||
+            !isa<cudaq::cc::ContinueOp>(
+                scope.getInitRegion().front().getTerminator())) {
+          if (nonComposable) {
+            scope.emitOpError(
+                "mapper can only handle ordinary single-block scopes");
+            signalPassFailure();
+          }
+          analysisOk = false;
+          return;
+        }
+        if (scope.hasQuantumAllocation() || hasScopeLocalBorrow(scope)) {
+          if (nonComposable) {
+            scope.emitOpError(
+                "mapper cannot handle quantum allocations or borrows inside "
+                "an ordinary scope");
+            signalPassFailure();
+          }
+          analysisOk = false;
+          return;
+        }
+        auto capturedWires = getScopeCaptureWires(scope);
+        SmallVector<Value> wireResults;
+        for (Value result : scope->getResults())
+          if (isa<cudaq::quake::WireType>(result.getType()))
+            wireResults.push_back(result);
+        // Routing restores the body layout at the scope exit, then reconstructs
+        // the caller's physical-wire table from the scope results. This subset
+        // therefore accepts only transparent scopes whose captured wires all
+        // remain live after the scope.
+        if (capturedWires.size() != wireResults.size()) {
+          if (nonComposable) {
+            scope.emitOpError(
+                "mapper requires every captured wire to leave an ordinary "
+                "scope through a matching result");
+            signalPassFailure();
+          }
+          analysisOk = false;
+          return;
+        }
+        analyzeBlock(scope.getInitRegion().front(), doCollectInteractions, &op,
+                     analysisOk, sources, returnsToRemove, wireToVirtualQ,
+                     userQubitsMeasured, finalQubitWire, lastSource,
+                     interactions, userVirtualQubits);
+        if (!analysisOk)
+          return;
+        llvm::SmallDenseSet<unsigned> capturedVirtualQubits;
+        for (Value wire : capturedWires)
+          capturedVirtualQubits.insert(
+              requireVirtualQ(wireToVirtualQ, wire).index);
+        llvm::SmallDenseSet<unsigned> resultVirtualQubits;
+        for (Value result : wireResults)
+          resultVirtualQubits.insert(
+              requireVirtualQ(wireToVirtualQ, result).index);
+        if (capturedVirtualQubits != resultVirtualQubits) {
+          if (nonComposable) {
+            scope.emitOpError(
+                "mapper requires every captured wire to leave an ordinary "
+                "scope through a matching result");
+            signalPassFailure();
+          }
+          analysisOk = false;
+          return;
+        }
+        for (Value result : scope->getResults())
+          if (isa<cudaq::quake::WireType>(result.getType()))
+            finalQubitWire[requireVirtualQ(wireToVirtualQ, result).index] =
+                result;
       } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
         auto *whileBlock = loopOp.getWhileBlock();
         auto *bodyBlock = loopOp.getDoEntryBlock();
