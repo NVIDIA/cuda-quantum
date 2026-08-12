@@ -9,6 +9,11 @@
 
 // RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
+// RUN: cudaq-opt --pass-pipeline='builtin.module(cudaq-fault-tolerant-target{epsilon=1e-3 fail-on-controlled-rotation=true},inline,func.func(memtoreg,quake-simplify,canonicalize,dqe,regtomem),symbol-dce)' %s | \
+// RUN:   FileCheck %s --check-prefix=FLAT \
+// RUN:   --implicit-check-not='func.call' \
+// RUN:   --implicit-check-not='func.func private @__cliffordt_' \
+// RUN:   --implicit-check-not='quake.r{{[xyz1]}}'
 
 // End-to-end test of the registered `cudaq-fault-tolerant-target` pipeline
 // (UnitarySynthesis -> ApplyOpSpecialization -> ConstantPropagation ->
@@ -17,12 +22,13 @@
 // the fault-tolerant basis. gridsynth output is stochastic, so we assert only
 // structural invariants.
 
-func.func @kernel() {
+func.func @kernel() -> !quake.measure {
   %q = quake.alloca !quake.ref
   %a = arith.constant 0.7853981633974483 : f64
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
   quake.h %q : (!quake.ref) -> ()
-  return
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
 }
 
 // The constant rotation is synthesized into a Clifford+T helper (dozens of T
@@ -39,14 +45,24 @@ func.func @kernel() {
 // rotation ops. The kernel is marked as an entry point so the decomposition
 // pass processes it (it only decomposes entry points or functions taking
 // qubit arguments).
-func.func @kernel_rx_ry() attributes {"cudaq-entrypoint"} {
+func.func @kernel_rx_ry() -> !quake.measure attributes {"cudaq-entrypoint"} {
   %q = quake.alloca !quake.ref
   %a = arith.constant 0.7853981633974483 : f64
   quake.rx (%a) %q : (f64, !quake.ref) -> ()
   quake.ry (%a) %q : (f64, !quake.ref) -> ()
-  return
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
 }
 
 // CHECK-LABEL: func.func @kernel_rx_ry
 // CHECK:         quake.alloca
 // CHECK:         call @__cliffordt_rz_
+
+// The benchmark boundary inlines the shared angle helper at every call site
+// and deletes the helper symbol before resource counting.
+// FLAT-LABEL: func.func @kernel
+// FLAT:         quake.t
+// FLAT:         quake.mz
+// FLAT-LABEL: func.func @kernel_rx_ry
+// FLAT:         quake.t
+// FLAT:         quake.mz

@@ -146,7 +146,7 @@ def cc_ArrayType : CCType<"Array", "array"> {
     `!cc.array` should itself reside in memory. More precisely, loading an array
     into a register is not portable.
 
-    See also `!cc.stdvec` as another aggregate sequence of values.
+    See also `!cc.sequence` as another aggregate sequence of values.
   }];
 
   let parameters = (ins
@@ -221,10 +221,10 @@ def cc_IndirectCallableType : CCType<"IndirectCallable", "indirect_callable"> {
 }
 
 //===----------------------------------------------------------------------===//
-// StdVectorType - implemented as a span
+// SequenceType - implemented as a span
 //===----------------------------------------------------------------------===//
 
-def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
+def cc_SequenceType : CCType<"Sequence", "sequence", [],
     "cudaq::cc::SpanLikeType"> {
   let summary = "Abstract span-like sequence type in CC";
   let description = [{
@@ -238,7 +238,7 @@ def cc_StdVectorType : CCType<"Stdvec", "stdvec", [],
     ```
     will be lowered from the AST to CC as
     ```mlir
-    func.func @foo(%arg0 : !cc.stdvec<i32>) ...
+    func.func @foo(%arg0 : !cc.sequence<i32>) ...
     ```
     assuming `int` has a length of 32 bits for the target.
   }];
@@ -313,14 +313,14 @@ def AnyStateInitLike : TypeConstraint<cc_PointerType.predicate,
                          "state initializer types">;
 def AnyStateInitType : Type<AnyStateInitLike.predicate, "initial state type">;
 
-def IsStdvecTypePred : CPred<"::mlir::isa<::cudaq::cc::StdvecType>($_self)">;
+def IsSequenceTypePred : CPred<"::mlir::isa<::cudaq::cc::SequenceType>($_self)">;
 
-class StdvecOf<list<Type> allowedTypes> : Type<
-    And<[IsStdvecTypePred, Concat<"[](::mlir::Type elementType) { return ",
+class SequenceOf<list<Type> allowedTypes> : Type<
+    And<[IsSequenceTypePred, Concat<"[](::mlir::Type elementType) { return ",
       SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }(::mlir::cast<::cudaq::cc::StdvecType>($_self).getElementType())">]>,
-    "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
-    "::cudaq::cc::StdvecType">;
+        "; }(::mlir::cast<::cudaq::cc::SequenceType>($_self).getElementType())">]>,
+    "sequence of " # AnyTypeOf<allowedTypes>.summary # " values",
+    "::cudaq::cc::SequenceType">;
 
 def IsPointerTypePred : CPred<"::mlir::isa<::cudaq::cc::PointerType>($_self)">;
 

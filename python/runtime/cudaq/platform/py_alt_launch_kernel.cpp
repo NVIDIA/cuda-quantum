@@ -14,8 +14,10 @@
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
@@ -56,6 +58,7 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/map.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
@@ -204,11 +207,11 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
       .Case([&](mlir::Float64Type ty) {
         appendValue(data, nanobind::cast<double>(value), offset);
       })
-      .Case([&](cudaq::cc::StdvecType ty) {
+      .Case([&](cudaq::cc::SequenceType ty) {
         // Nested vectors aren't supported in the synthesis (argument
         // substitution) path.
         if constexpr (style == cudaq::PackingStyle::synthesis)
-          if (isa<cudaq::cc::StdvecType>(ty.getElementType()))
+          if (isa<cudaq::cc::SequenceType>(ty.getElementType()))
             throw std::runtime_error(
                 "Type not supported for custom struct in kernel.");
 
@@ -315,7 +318,7 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
               return nanobind::cast<std::complex<float>>(v);
             });
       })
-      .Case([&](cudaq::cc::StdvecType ty) {
+      .Case([&](cudaq::cc::SequenceType ty) {
         auto appendVectorValue = []<typename T>(mlir::Type eleTy,
                                                 nanobind::list list) -> void * {
           auto *values = new std::vector<std::vector<T>>();
@@ -378,7 +381,7 @@ static void deleteVectorElements(mlir::Type eleTy, void *ptr) {
         else
           deleteAs.template operator()<std::complex<float>>();
       })
-      .Case([&](cudaq::cc::StdvecType ty) {
+      .Case([&](cudaq::cc::SequenceType ty) {
         // Nested vectors: `handleVectorElements` collapses the inner element
         // type to `std::size_t` (or `BoolVecElem` for bools), so mirror that
         // here to match the actual allocation.
@@ -521,7 +524,7 @@ void cudaq::packArgs(
           }
           argData.emplace_back(allocatedArg, [](void *ptr) { std::free(ptr); });
         })
-        .Case([&](cc::StdvecType ty) {
+        .Case([&](cc::SequenceType ty) {
           checkArgumentType<nanobind::list>(arg, i);
           auto list = nanobind::cast<nanobind::list>(arg);
           auto eleTy = ty.getElementType();
@@ -902,13 +905,13 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
       .Case([&](Float32Type ty) -> nanobind::object {
         return readPyObject<float>(ty, data);
       })
-      .Case([&](cudaq::cc::StdvecType ty) -> nanobind::object {
+      .Case([&](cudaq::cc::SequenceType ty) -> nanobind::object {
         auto eleTy = ty.getElementType();
-        // Nested StdvecType elements have a different in-memory size than
+        // Nested SequenceType elements have a different in-memory size than
         // scalar types: span ({ptr,size_t} = 16 bytes) in direct-call context,
         // std::vector ({ptr,ptr,ptr} = 24 bytes) in run context.
         auto getEleByteSize = [&](Type eTy) -> std::size_t {
-          if (isa<cudaq::cc::StdvecType>(eTy))
+          if (isa<cudaq::cc::SequenceType>(eTy))
             return isRunContext ? 3 * sizeof(void *)
                                 : sizeof(char *) + sizeof(std::size_t);
           return byteSize(eTy);
@@ -1313,6 +1316,22 @@ static std::size_t get_launch_args_required(MlirModule module,
   return result;
 }
 
+/// Copy \p mod into a fresh, Python-owned MLIR context.
+static MlirModule clonePythonOwnedModule(mlir::ModuleOp mod) {
+  std::string ir;
+  llvm::raw_string_ostream os(ir);
+  mod.print(os);
+  auto context = cudaq_internal::compiler::getOwningMLIRContext();
+  auto copy = mlir::parseSourceString<mlir::ModuleOp>(ir, context.get());
+  if (!copy)
+    throw std::runtime_error("failed to clone the compiled MLIR module");
+  MlirModule wrapped = wrap(copy.release());
+  // The MLIR Python bindings adopt the context of a module handed to them and
+  // destroy it with the last reference, so release our ownership here.
+  [[maybe_unused]] auto _ = context.release();
+  return wrapped;
+}
+
 void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                                 std::function<std::string()> &&getTL) {
   getTransportLayer = std::move(getTL);
@@ -1334,7 +1353,22 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                    "The kernel name this module was compiled for.")
       .def_prop_ro("is_fully_specialized",
                    &cudaq::CompiledModule::isFullySpecialized,
-                   "Whether all arguments have been specialized.");
+                   "Whether all arguments have been specialized.")
+      .def_prop_ro(
+          "mlir_module",
+          [](const cudaq::CompiledModule &cm) -> std::optional<MlirModule> {
+            auto mlirArt = cm.getMlir();
+            if (!mlirArt)
+              return std::nullopt;
+            return clonePythonOwnedModule(
+                cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+                    *mlirArt));
+          },
+          "The MLIR module for this compiled kernel, or None if this module "
+          "carries no MLIR artifact.")
+      .def("__repr__", [](const cudaq::CompiledModule &cm) {
+        return "CompiledModule(name='" + cm.getName() + "')";
+      });
 
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");

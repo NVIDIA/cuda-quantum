@@ -42,6 +42,7 @@ struct RotationOptions {
   int32_t factoringTimeoutMs;
   int32_t retryCount;
   std::string onDynamicAngle;
+  bool failOnControlledRotation;
   double skipBelow;
 };
 
@@ -226,6 +227,12 @@ static PreCheck validateRotationOperands(Operation *op, Value angleVal,
                                          const RotationOptions &opts,
                                          bool *hadHardError) {
   if (!controls.empty()) {
+    if (opts.failOnControlledRotation) {
+      op->emitError("clifford-t-synthesis: controlled rotation requires "
+                    "global-phase-aware synthesis");
+      *hadHardError = true;
+      return {PreCheck::Action::LeaveInPlace, 0.0};
+    }
     op->emitRemark("clifford-t-synthesis: skipping controlled rotation; run "
                    "ApplyOpSpecialization to materialize controls before "
                    "synthesis");
@@ -370,7 +377,8 @@ public:
 
     RotationOptions opts{
         epsilon,    diophantineTimeoutMs,      factoringTimeoutMs,
-        retryCount, onDynamicAngle.getValue(), skipBelow};
+        retryCount, onDynamicAngle.getValue(), failOnControlledRotation,
+        skipBelow};
 
     MLIRContext *ctx = &getContext();
     SynthState state;

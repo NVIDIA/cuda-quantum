@@ -36,6 +36,12 @@ void registerMappingPipeline();
 void registerToCFGPipeline();
 void registerFaultTolerantTargetPipeline();
 
+/// Convert supported Quake IR to explicit linear values. This splits
+/// fixed-size allocations, expands vector controls, and threads reusable
+/// controls through their uses.
+void addConvertToLinearValues(mlir::OpPassManager &pm);
+void registerConvertToLinearValuesPipeline();
+
 /// This pipeline is run on every kernel decorator immediately after its
 /// definition has been processed by the Python bridge. It converts the
 /// `ModuleOp` to a target agnostic form which is amenable to further lowering,
@@ -73,7 +79,8 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// idempotent on already-lowered IR, so the duplication is safe.
 ///
 /// Opt-in only. This helper is not added to default target pipelines.
-void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
+void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
+                           bool failOnControlledRotation = false);
 
 void registerAOTPipelines();
 void registerJITPipelines();

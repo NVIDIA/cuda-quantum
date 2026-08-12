@@ -79,3 +79,6 @@ install(FILES ${CUDAQ_MLIR_BUNDLED_LIBS_PATH}
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/check_mlir_symbols.sh
   DESTINATION lib/cmake/cudaq
   COMPONENT Development)
+
+# Optionally, bundle MLIR with the CUDA-Q installation.
+include(${CMAKE_CURRENT_SOURCE_DIR}/BundleMLIRDevel.cmake)

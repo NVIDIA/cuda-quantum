@@ -418,8 +418,7 @@ TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {
   // validator falls back to string comparison and only warns, so no throw
   // occurs.
   const std::string testVersion(CUDAQ_TEST_VERSION);
-  if (testVersion.empty() ||
-      testVersion.find_first_of("0123456789") == std::string::npos ||
+  if (testVersion.empty() || !std::isdigit(testVersion.front()) ||
       testVersion.find('.') == std::string::npos) {
     GTEST_SKIP() << "Skipping: current CUDA-Q version '" << testVersion
                  << "' is non-numeric; semver rejection is not tested in dev "

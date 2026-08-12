@@ -19,11 +19,6 @@ def reset_run_clear():
     cudaq.__clearKernelRegistries()
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_draw():
     """Test draw function, mainly copied from draw_tester.cpp"""
 
@@ -37,7 +32,7 @@ def test_draw():
     def zaz(qub: cudaq.qubit):
         sdg(qub)
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(4)
         h(q)

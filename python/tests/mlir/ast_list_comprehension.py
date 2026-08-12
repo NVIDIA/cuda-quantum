@@ -601,13 +601,13 @@ def test_list_comprehension_capture_list():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelg1
-# CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<i1> {quake.pylifted}) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: (%[[VAL_0:.*]]: !cc.sequence<i1> {quake.pylifted}) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelg2
-# CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<f64> {quake.pylifted}) -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: (%[[VAL_0:.*]]: !cc.sequence<f64> {quake.pylifted}) -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelg3
-# CHECK-SAME: (%[[VAL_45:.*]]: !cc.stdvec<complex<f64>> {quake.pylifted}) -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: (%[[VAL_45:.*]]: !cc.sequence<complex<f64>> {quake.pylifted}) -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 
 
@@ -1023,7 +1023,7 @@ def test_list_comprehension_expressions():
 # CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernelm7
-# CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<i1>, %[[VAL_1:.*]]: !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()> {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"
+# CHECK-SAME: (%[[VAL_0:.*]]: !cc.sequence<i1>, %[[VAL_1:.*]]: !cc.callable<(!quake.veq<?>, f64, !cc.sequence<i1>) -> ()> {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"
 # CHECK: return
 
 
@@ -1129,7 +1129,7 @@ def test_list_comprehension_qubit_refs():
 # CHECK: quake.concat
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kerneln6..
-# CHECK: cc.stdvec_size
+# CHECK: cc.sequence_size
 # CHECK: cc.loop
 # CHECK: quake.concat
 # CHECK: return
@@ -1196,22 +1196,22 @@ def test_list_comprehension_filter():
 # CHECK-LABEL: test_list_comprehension_filter:
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel1..
 # CHECK: cc.loop
-# CHECK: cc.stdvec_init
+# CHECK: cc.sequence_init
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel2..
 # CHECK: cc.loop
 # CHECK: cc.if
-# CHECK: cc.stdvec_init
+# CHECK: cc.sequence_init
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel3..
 # CHECK: cc.loop
 # CHECK: cc.if
-# CHECK: cc.stdvec_init
+# CHECK: cc.sequence_init
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel4..
 # CHECK: cc.loop
 # CHECK: cc.if
-# CHECK: cc.stdvec_init
+# CHECK: cc.sequence_init
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel5..
 # CHECK: cc.loop

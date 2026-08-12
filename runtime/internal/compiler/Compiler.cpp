@@ -346,7 +346,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
                   clonedModule, target.pipelineConfig.codegenTranslation,
-                  isEntryPoint),
+                  isEntryPoint, options.disableQuantumOpts),
               resultInfo, isFullySpecialized);
       // The first artifact is the kernel entry point; rename it to the
       // per-module name (relevant for the multi-module observe path where the
@@ -543,10 +543,10 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
       if (disableMLIRthreading)
         compiled_module->getContext()->disableMultithreading();
       if (codegenTranslation.starts_with("qir")) {
-        if (failed(translation(*compiled_module, codegenTranslation, outStr,
-                               postCodeGenPasses, printIR,
-                               printEachPass == cudaq::PrintEachPassMode::All,
-                               enablePassStatistics)))
+        if (failed(translation(
+                *compiled_module, codegenTranslation, outStr, postCodeGenPasses,
+                printIR, printEachPass == cudaq::PrintEachPassMode::All,
+                enablePassStatistics, options.disableQuantumOpts)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       } else {

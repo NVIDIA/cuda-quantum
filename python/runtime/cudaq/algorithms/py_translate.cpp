@@ -13,6 +13,7 @@
 #include "utils/OpaqueArguments.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/platform/default/python/QPU.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
@@ -51,11 +52,12 @@ static std::string translate_impl(const std::string &shortName,
   auto opaques =
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
+  auto options = cudaq::get_compile_options(cudaq::other_policies{});
   return StringSwitch<std::function<std::string()>>(formatPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
-                                                       format);
+                                                       format, options);
              })
       .Case("openqasm2",
             [&]() {
