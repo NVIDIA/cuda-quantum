@@ -692,7 +692,7 @@ CuDensityMatState::~CuDensityMatState() { destroyState(); }
 bool CuDensityMatState::is_initialized() const { return cudmState != nullptr; }
 
 bool cudaq::CuDensityMatState::is_density_matrix() const {
-  if (!is_initialized())
+  if (!is_initialized() && hilbertSpaceDims.empty())
     return false;
 
   return isDensityMatrix;
@@ -1146,8 +1146,11 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
     HANDLE_CUDA_ERROR(cudaMemcpy(splitStateMemPtr, ptr + i * stateSize,
                                  stateSize * sizeof(std::complex<double>),
                                  cudaMemcpyDefault));
-    splitStates.emplace_back(
-        new CuDensityMatState(stateSize, splitStateMemPtr));
+    auto *splitState = new CuDensityMatState(stateSize, splitStateMemPtr);
+    splitState->isDensityMatrix = batchedState.isDensityMatrix;
+    splitState->hilbertSpaceDims = batchedState.hilbertSpaceDims;
+    splitState->singleStateDimension = stateSize;
+    splitStates.emplace_back(splitState);
   }
   return splitStates;
 }
