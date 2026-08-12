@@ -886,37 +886,41 @@ static Operation *getRoutingUser(OpOperand &use, Block &block) {
   return user;
 }
 
+/// Collect scalar wires defined outside `scope` and captured by ordinary
+/// scopes nested in `region`. `cc.if` and `cc.loop` contribute their explicit
+/// linear operands, but their regions are not traversed because their block
+/// arguments do not introduce new captures of the enclosing scope.
+static void collectScopeCaptureWires(cudaq::cc::ScopeOp scope, Region &region,
+                                     SmallVectorImpl<Value> &capturedWires) {
+  if (!region.hasOneBlock())
+    return;
+  for (Operation &nestedOp : region.front()) {
+    SmallVector<Value> quantumOperands(
+        cudaq::quake::getQuantumOperands(&nestedOp));
+    if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(nestedOp))
+      llvm::append_range(quantumOperands, ifOp.getLinearArgs());
+    else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(nestedOp))
+      llvm::append_range(quantumOperands, loopOp.getInitialArgs());
+    for (Value wire : quantumOperands) {
+      if (!isa<cudaq::quake::WireType>(wire.getType()))
+        continue;
+      Operation *def = wire.getDefiningOp();
+      if (def && scope->isAncestor(def))
+        continue;
+      if (!llvm::is_contained(capturedWires, wire))
+        capturedWires.push_back(wire);
+    }
+    if (auto nestedScope = dyn_cast<cudaq::cc::ScopeOp>(nestedOp))
+      collectScopeCaptureWires(scope, nestedScope.getInitRegion(),
+                               capturedWires);
+  }
+}
+
 /// Return the scalar wires defined outside a transparent ordinary scope and
 /// captured by its body. Their order is the scope routing node's input order.
 static SmallVector<Value> getScopeCaptureWires(cudaq::cc::ScopeOp scope) {
   SmallVector<Value> capturedWires;
-  auto collectScopeCaptures = [&](auto &self, Region &region) -> void {
-    if (!region.hasOneBlock())
-      return;
-    for (Operation &nestedOp : region.front()) {
-      SmallVector<Value> quantumOperands(
-          cudaq::quake::getQuantumOperands(&nestedOp));
-      if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(nestedOp))
-        llvm::append_range(quantumOperands, ifOp.getLinearArgs());
-      else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(nestedOp))
-        llvm::append_range(quantumOperands, loopOp.getInitialArgs());
-      for (Value wire : quantumOperands) {
-        if (!isa<cudaq::quake::WireType>(wire.getType()))
-          continue;
-        Operation *def = wire.getDefiningOp();
-        if (def && scope->isAncestor(def))
-          continue;
-        if (!llvm::is_contained(capturedWires, wire))
-          capturedWires.push_back(wire);
-      }
-      // A nested ordinary scope has no operands of its own. Descending through
-      // it finds the caller wire it captures, but stopping at an `if` or loop
-      // avoids treating their region block arguments as new outer captures.
-      if (auto nestedScope = dyn_cast<cudaq::cc::ScopeOp>(nestedOp))
-        self(self, nestedScope.getInitRegion());
-    }
-  };
-  collectScopeCaptures(collectScopeCaptures, scope.getInitRegion());
+  collectScopeCaptureWires(scope, scope.getInitRegion(), capturedWires);
   return capturedWires;
 }
 
