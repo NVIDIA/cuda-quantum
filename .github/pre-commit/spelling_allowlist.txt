@@ -361,6 +361,7 @@ deserializes
 destructor
 detuning
 deutsch
+devel
 diag
 dicts
 dimensionality
