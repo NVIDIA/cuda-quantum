@@ -8,13 +8,13 @@
 
 // RUN: cudaq-opt --expand-measurements %s | FileCheck %s
 
-func.func @handle_return(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
-  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-  return %mz : !cc.stdvec<!cc.measure_handle>
+func.func @handle_return(%v: !quake.veq<?>) -> !cc.sequence<!cc.measure_handle> {
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  return %mz : !cc.sequence<!cc.measure_handle>
 }
 
 // CHECK-LABEL:   func.func @handle_return(
-// CHECK-SAME:        %[[V:.*]]: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK-SAME:        %[[V:.*]]: !quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %[[N:.*]] = quake.veq_size %[[V]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[BUF:.*]] = cc.alloca !cc.measure_handle{{\[}}%{{.*}} : i64]
 // CHECK:           cc.loop while (({{.*}}) -> (i64)) {
@@ -33,15 +33,15 @@ func.func @handle_return(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
 // CHECK:             %{{.*}} = arith.addi %[[SV]], %{{.*}} : i64
 // CHECK:             cc.continue %{{.*}} : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VEC:.*]] = cc.stdvec_init %[[BUF]]
-// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           return %[[VEC]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VEC:.*]] = cc.sequence_init %[[BUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           return %[[VEC]] : !cc.sequence<!cc.measure_handle>
 
 
-func.func @handle_disc(%v: !quake.veq<?>) -> !cc.stdvec<i1> {
-  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-  %d = quake.discriminate %mz : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-  return %d : !cc.stdvec<i1>
+func.func @handle_disc(%v: !quake.veq<?>) -> !cc.sequence<i1> {
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  %d = quake.discriminate %mz : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+  return %d : !cc.sequence<i1>
 }
 
 // CHECK-LABEL:   func.func @handle_disc(
@@ -65,17 +65,17 @@ func.func @handle_disc(%v: !quake.veq<?>) -> !cc.stdvec<i1> {
 // CHECK:             cc.continue %{{.*}} : i64
 // CHECK:           } {invariant}
 // CHECK:           %[[CAST:.*]] = cc.cast %[[I8BUF]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<i1 x ?>>
-// CHECK:           %[[VEC:.*]] = cc.stdvec_init %[[CAST]]
-// CHECK-SAME:        : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
-// CHECK:           return %[[VEC]] : !cc.stdvec<i1>
+// CHECK:           %[[VEC:.*]] = cc.sequence_init %[[CAST]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.sequence<i1>
+// CHECK:           return %[[VEC]] : !cc.sequence<i1>
 
 
-func.func @handle_mixed(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
-  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-  %d = quake.discriminate %mz : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-  %slot = cc.alloca !cc.stdvec<i1>
-  cc.store %d, %slot : !cc.ptr<!cc.stdvec<i1>>
-  return %mz : !cc.stdvec<!cc.measure_handle>
+func.func @handle_mixed(%v: !quake.veq<?>) -> !cc.sequence<!cc.measure_handle> {
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  %d = quake.discriminate %mz : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+  %slot = cc.alloca !cc.sequence<i1>
+  cc.store %d, %slot : !cc.ptr<!cc.sequence<i1>>
+  return %mz : !cc.sequence<!cc.measure_handle>
 }
 
 // CHECK-LABEL:   func.func @handle_mixed(
@@ -98,16 +98,16 @@ func.func @handle_mixed(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
 // CHECK:             %{{.*}} = arith.addi %{{.*}}, %{{.*}} : i64
 // CHECK:             cc.continue %{{.*}} : i64
 // CHECK:           } {invariant}
-// CHECK:           cc.stdvec_init %{{.*}} : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
-// CHECK:           %[[HVEC:.*]] = cc.stdvec_init %[[HBUF]]
-// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           return %[[HVEC]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.sequence_init %{{.*}} : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.sequence<i1>
+// CHECK:           %[[HVEC:.*]] = cc.sequence_init %[[HBUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           return %[[HVEC]] : !cc.sequence<!cc.measure_handle>
 
 
 func.func @handle_store(%v: !quake.veq<?>) {
-  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-  %slot = cc.alloca !cc.stdvec<!cc.measure_handle>
-  cc.store %mz, %slot : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  %slot = cc.alloca !cc.sequence<!cc.measure_handle>
+  cc.store %mz, %slot : !cc.ptr<!cc.sequence<!cc.measure_handle>>
   return
 }
 
@@ -128,14 +128,14 @@ func.func @handle_store(%v: !quake.veq<?>) {
 // CHECK:             %{{.*}} = arith.addi %{{.*}}, %{{.*}} : i64
 // CHECK:             cc.continue %{{.*}} : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[HVEC:.*]] = cc.stdvec_init %[[HBUF]]
-// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           cc.store %[[HVEC]], %{{.*}} : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[HVEC:.*]] = cc.sequence_init %[[HBUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           cc.store %[[HVEC]], %{{.*}} : !cc.ptr<!cc.sequence<!cc.measure_handle>>
 
 
-func.func @handle_ref_and_veq(%q: !quake.ref, %v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
-  %mz = quake.mz %q, %v : (!quake.ref, !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-  return %mz : !cc.stdvec<!cc.measure_handle>
+func.func @handle_ref_and_veq(%q: !quake.ref, %v: !quake.veq<?>) -> !cc.sequence<!cc.measure_handle> {
+  %mz = quake.mz %q, %v : (!quake.ref, !quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  return %mz : !cc.sequence<!cc.measure_handle>
 }
 
 // CHECK-LABEL:   func.func @handle_ref_and_veq(
@@ -159,13 +159,13 @@ func.func @handle_ref_and_veq(%q: !quake.ref, %v: !quake.veq<?>) -> !cc.stdvec<!
 // CHECK:             %{{.*}} = arith.addi %{{.*}}, %{{.*}} : i64
 // CHECK:             cc.continue %{{.*}} : i64
 // CHECK:           } {invariant}
-// CHECK:           cc.stdvec_init %[[HBUF]]
-// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.sequence_init %[[HBUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
 
 
-func.func @handle_return_mx(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
-  %mx = quake.mx %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-  return %mx : !cc.stdvec<!cc.measure_handle>
+func.func @handle_return_mx(%v: !quake.veq<?>) -> !cc.sequence<!cc.measure_handle> {
+  %mx = quake.mx %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  return %mx : !cc.sequence<!cc.measure_handle>
 }
 
 // CHECK-LABEL:   func.func @handle_return_mx(
@@ -174,12 +174,12 @@ func.func @handle_return_mx(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:             quake.mx %{{.*}} : (!quake.ref) -> !cc.measure_handle
 // CHECK:           } step {
 // CHECK:           } {invariant}
-// CHECK:           cc.stdvec_init %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.sequence_init %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
 
 
-func.func @handle_return_my(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
-  %my = quake.my %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
-  return %my : !cc.stdvec<!cc.measure_handle>
+func.func @handle_return_my(%v: !quake.veq<?>) -> !cc.sequence<!cc.measure_handle> {
+  %my = quake.my %v : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
+  return %my : !cc.sequence<!cc.measure_handle>
 }
 
 // CHECK-LABEL:   func.func @handle_return_my(
@@ -188,19 +188,19 @@ func.func @handle_return_my(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:             quake.my %{{.*}} : (!quake.ref) -> !cc.measure_handle
 // CHECK:           } step {
 // CHECK:           } {invariant}
-// CHECK:           cc.stdvec_init %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.sequence_init %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
 
 
-func.func @to_bools_indirect(%hv: !cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1> {
-  %d = quake.discriminate %hv : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-  return %d : !cc.stdvec<i1>
+func.func @to_bools_indirect(%hv: !cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1> {
+  %d = quake.discriminate %hv : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+  return %d : !cc.sequence<i1>
 }
 
 // CHECK-LABEL:   func.func @to_bools_indirect(
-// CHECK-SAME:        %[[HV:.*]]: !cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-// CHECK:           %[[N:.*]] = cc.stdvec_size %[[HV]] : (!cc.stdvec<!cc.measure_handle>) -> i64
-// CHECK:           %[[HDATA:.*]] = cc.stdvec_data %[[HV]]
-// CHECK-SAME:        : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK-SAME:        %[[HV:.*]]: !cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+// CHECK:           %[[N:.*]] = cc.sequence_size %[[HV]] : (!cc.sequence<!cc.measure_handle>) -> i64
+// CHECK:           %[[HDATA:.*]] = cc.sequence_data %[[HV]]
+// CHECK-SAME:        : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
 // CHECK:           %[[I8BUF:.*]] = cc.alloca i8{{\[}}%[[N]] : i64]
 // CHECK:           cc.loop while (({{.*}}) -> (i64)) {
 // CHECK:             %{{.*}} = arith.cmpi slt, %{{.*}}, %[[N]] : i64
@@ -222,6 +222,6 @@ func.func @to_bools_indirect(%hv: !cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<
 // CHECK:             cc.continue %{{.*}} : i64
 // CHECK:           } {invariant}
 // CHECK:           %[[CAST:.*]] = cc.cast %[[I8BUF]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<i1 x ?>>
-// CHECK:           %[[VEC:.*]] = cc.stdvec_init %[[CAST]], %[[N]]
-// CHECK-SAME:        : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
-// CHECK:           return %[[VEC]] : !cc.stdvec<i1>
+// CHECK:           %[[VEC:.*]] = cc.sequence_init %[[CAST]], %[[N]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.sequence<i1>
+// CHECK:           return %[[VEC]] : !cc.sequence<i1>

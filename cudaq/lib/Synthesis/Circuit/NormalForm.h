@@ -15,23 +15,6 @@
 
 namespace cudaq::synth {
 
-// TODO: expose NormalForm as a first-class type alongside Circuit so callers
-// can keep the Matsumoto-`Amano` structure after normalization instead of
-// re-serializing to a gate list. The internal representation already lives
-// here:
-//
-//     struct NormalForm {
-//       std::vector<Syllable> syllables;  // T-count == syllables.size()
-//       Clifford trailing;
-//     };
-//
-// Pros: O(1) T-count; equality modulo global phase is O(syllables); the
-//       structure mirrors the paper's algorithm 1:1; kmm_synthesize would
-//       no longer need a syllable -> gate serialization step.
-// Cons: Syllable and Clifford become public; gate-by-gate consumers need a
-//       to_circuit() bridge; not closed under concatenation
-//       (re-normalization required after appending).
-
 //===----------------------------------------------------------------------===//
 // Syllable
 //===----------------------------------------------------------------------===//

@@ -297,6 +297,9 @@ Data Types
 .. autoclass:: cudaq::AsyncSampleResult
     :members:
 
+.. autoclass:: cudaq.DEMResult
+    :members:
+
 .. autoclass:: cudaq::ObserveResult
     :members:
 

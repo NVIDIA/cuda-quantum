@@ -15,8 +15,8 @@ import pytest
 FTQC_LOGICAL_TARGET = 'compiler-bench-ftqc-logical'
 
 ALLOWED_LOGICAL_OPS = {
-    'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'cx', 'cy',
-    'cz', 'ccx', 'ccz', 'mz'
+    'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'swap', 'cx',
+    'cy', 'cz', 'ccx', 'ccz', 'mx', 'my', 'mz'
 }
 
 
@@ -38,9 +38,10 @@ def test_preserves_native_logical_resource_classes():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(3)
     kernel.h(q[0])
-    kernel.s(q[0])
-    kernel.t(q[0])
-    kernel.tdg(q[1])
+    kernel.t(q[1])
+    kernel.s(q[1])
+    kernel.t(q[1])
+    kernel.tdg(q[2])
     kernel.rx(0.125, q[0])
     kernel.ry(0.25, q[1])
     kernel.rz(0.5, q[2])
@@ -49,9 +50,9 @@ def test_preserves_native_logical_resource_classes():
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
     assert ops.get('h', 0) == 1
-    assert ops.get('s', 0) == 1
+    assert ops.get('s', 0) == 2
     # The current resource-count path reports T and Tdg as the T family.
-    assert ops.get('t', 0) + ops.get('tdg', 0) == 2
+    assert ops.get('t', 0) + ops.get('tdg', 0) == 1
     assert ops.get('rx', 0) == 1
     assert ops.get('ry', 0) == 1
     assert ops.get('rz', 0) == 1
@@ -62,16 +63,18 @@ def test_preserves_structured_logical_operations():
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
     kernel = cudaq.make_kernel()
-    q = kernel.qalloc(3)
+    q = kernel.qalloc(5)
     kernel.cz(q[0], q[1])
     kernel.cx([q[0], q[1]], q[2])
     kernel.cz([q[0], q[1]], q[2])
+    kernel.swap(q[3], q[4])
 
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
     assert ops.get('cz', 0) == 1
     assert ops.get('ccx', 0) == 1
     assert ops.get('ccz', 0) == 1
+    assert ops.get('swap', 0) == 1
 
 
 def test_preserves_native_cy_as_structured_logical_operation():
@@ -100,7 +103,9 @@ def test_axis_measurements_count_as_measurements():
 
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
-    assert ops.get('mz', 0) == 3
+    assert ops.get('mx', 0) == 1
+    assert ops.get('my', 0) == 1
+    assert ops.get('mz', 0) == 1
 
 
 def test_composite_operations_lower_to_logical_basis():
@@ -110,13 +115,11 @@ def test_composite_operations_lower_to_logical_basis():
     q = kernel.qalloc(3)
     kernel.r1(0.75, q[0])
     kernel.cr1(0.375, q[1], q[2])
-    kernel.swap(q[0], q[2])
 
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
     assert 'r1' not in ops, f"R1 did not lower to RZ: {ops}"
     assert 'cr1' not in ops, f"CR1 did not lower to CX/RZ basis: {ops}"
-    assert 'swap' not in ops, f"SWAP did not lower to CX basis: {ops}"
     assert ops.get('rz', 0) >= 2
     assert ops.get('cx', 0) >= 1
 

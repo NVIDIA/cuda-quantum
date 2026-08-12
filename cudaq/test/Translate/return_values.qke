@@ -23,7 +23,7 @@ module attributes{ quake.mangled_name_map = {
 func.func private @__nvqpp_vectorCopyCtor(%arg0: !cc.ptr<i8> , %arg1: i64 , %arg2: i64 ) -> !cc.ptr<i8>
 
 // vector<bool> -> struct ptr sret
-func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.stdvec<i1> {
+func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.sequence<i1> {
   %c1_i64 = arith.constant 1 : i64
   %c1 = arith.constant 1 : i64
   %c0 = arith.constant 0 : i64
@@ -46,13 +46,13 @@ func.func @__nvqpp__mlirgen__test_0(%arg0: i32) -> !cc.stdvec<i1> {
     %12 = arith.addi %arg1, %c1 : i64
     cc.continue %12 : i64
   } {invariant}
-  %measOut = quake.mz %3 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-  %7 = quake.discriminate %measOut : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-  %8 = cc.stdvec_data %7 : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-  %9 = cc.stdvec_size %7 : (!cc.stdvec<i1>) -> i64
+  %measOut = quake.mz %3 : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
+  %7 = quake.discriminate %measOut : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
+  %8 = cc.sequence_data %7 : (!cc.sequence<i1>) -> !cc.ptr<i8>
+  %9 = cc.sequence_size %7 : (!cc.sequence<i1>) -> i64
   %10 = call @__nvqpp_vectorCopyCtor(%8, %9, %c1_i64) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-  %11 = cc.stdvec_init %10, %9 : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
-  return %11 : !cc.stdvec<i1>
+  %11 = cc.sequence_init %10, %9 : (!cc.ptr<i8>, i64) -> !cc.sequence<i1>
+  return %11 : !cc.sequence<i1>
 }
 
 func.func @test_0(%1: !cc.ptr<!cc.struct<{!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>}>> {llvm.sret = !cc.struct<{!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>}>}, %this: !cc.ptr<i8>, %2: i32) {

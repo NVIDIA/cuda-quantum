@@ -21,7 +21,7 @@
 // RUN: not cudaq-translate --convert-to=qir %s 2>&1 | FileCheck %s
 
 module {
-  func.func private @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1RKSt6vectorIdSaIdEE(!cc.stdvec<f64>) -> !cc.stdvec<complex<f64>>
+  func.func private @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_1RKSt6vectorIdSaIdEE(!cc.sequence<f64>) -> !cc.sequence<complex<f64>>
 
   func.func @__nvqpp__mlirgen__function_kernel._Z6kernelv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = quake.alloca !quake.ref

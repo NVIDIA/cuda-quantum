@@ -12,24 +12,24 @@
 // doesn't throw an error on this input.
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
-  func.func @__nvqpp__mlirgen__trotter(%arg0: !quake.veq<?>, %arg1: f64, %arg2: !cc.stdvec<complex<f64>>, %arg3: !cc.stdvec<!cc.charspan>) attributes {"cudaq-kernel"} {
+  func.func @__nvqpp__mlirgen__trotter(%arg0: !quake.veq<?>, %arg1: f64, %arg2: !cc.sequence<complex<f64>>, %arg3: !cc.sequence<!cc.charspan>) attributes {"cudaq-kernel"} {
     %c1_i64 = arith.constant 1 : i64
     %c0_i64 = arith.constant 0 : i64
     %0 = cc.alloca f64
     cc.store %arg1, %0 : !cc.ptr<f64>
-    %1 = cc.stdvec_size %arg2 : (!cc.stdvec<complex<f64>>) -> i64
+    %1 = cc.sequence_size %arg2 : (!cc.sequence<complex<f64>>) -> i64
     %2 = cc.loop while ((%arg4 = %c0_i64) -> (i64)) {
       %3 = arith.cmpi slt, %arg4, %1 : i64
       cc.condition %3(%arg4 : i64)
     } do {
     ^bb0(%arg4: i64):
-      %3 = cc.stdvec_data %arg2 : (!cc.stdvec<complex<f64>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
+      %3 = cc.sequence_data %arg2 : (!cc.sequence<complex<f64>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
       %4 = cc.compute_ptr %3[%arg4] : (!cc.ptr<!cc.array<complex<f64> x ?>>, i64) -> !cc.ptr<complex<f64>>
       %5 = cc.load %4 : !cc.ptr<complex<f64>>
       %6 = complex.re %5 : complex<f64>
       %7 = cc.load %0 : !cc.ptr<f64>
       %8 = arith.mulf %6, %7 : f64
-      %9 = cc.stdvec_data %arg3 : (!cc.stdvec<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
+      %9 = cc.sequence_data %arg3 : (!cc.sequence<!cc.charspan>) -> !cc.ptr<!cc.array<!cc.charspan x ?>>
       %10 = cc.compute_ptr %9[%arg4] : (!cc.ptr<!cc.array<!cc.charspan x ?>>, i64) -> !cc.ptr<!cc.charspan>
       %11 = cc.load %10 : !cc.ptr<!cc.charspan>
       quake.exp_pauli (%8) %arg0 to %11 : (f64, !quake.veq<?>, !cc.charspan) -> ()
@@ -41,7 +41,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp
     } {invariant}
     return
   }
-  func.func @__nvqpp__mlirgen__kernel(%arg0: i64, %arg1: !cc.stdvec<complex<f64>>, %arg2: !cc.stdvec<!cc.charspan>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  func.func @__nvqpp__mlirgen__kernel(%arg0: i64, %arg1: !cc.sequence<complex<f64>>, %arg2: !cc.sequence<!cc.charspan>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %c1_i64 = arith.constant 1 : i64
     %c0_i64 = arith.constant 0 : i64
     %cst = arith.constant 1.000000e+00 : f64
@@ -67,7 +67,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp
     } do {
     ^bb0(%arg3: i64):
       %12 = cc.load %9 : !cc.ptr<f64>
-      func.call @__nvqpp__mlirgen__trotter(%4, %12, %arg1, %arg2) : (!quake.veq<?>, f64, !cc.stdvec<complex<f64>>, !cc.stdvec<!cc.charspan>) -> ()
+      func.call @__nvqpp__mlirgen__trotter(%4, %12, %arg1, %arg2) : (!quake.veq<?>, f64, !cc.sequence<complex<f64>>, !cc.sequence<!cc.charspan>) -> ()
       cc.continue %arg3 : i64
     } step {
     ^bb0(%arg3: i64):
