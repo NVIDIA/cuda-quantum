@@ -26,18 +26,6 @@ using namespace mlir;
 
 namespace {
 
-static SmallVector<Value> getWireInputs(cudaq::quake::PhaseOp phase) {
-  SmallVector<Value> inputs;
-  for (Value control : phase.getControls())
-    if (isa<cudaq::quake::WireType>(control.getType()))
-      inputs.push_back(control);
-  if (isa<cudaq::quake::WireType>(phase.getTarget().getType()))
-    inputs.push_back(phase.getTarget());
-  assert(inputs.size() == phase.getWires().size() &&
-         "phase result count does not match its wire operands");
-  return inputs;
-}
-
 /// Wire values model linear dataflow and must have at most one live user while
 /// being threaded. Reference-semantics values are not subject to that SSA-use
 /// constraint; their possible aliasing is checked separately.
@@ -266,7 +254,8 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
   liveInputs.push_back(anchor);
   replaceLiveWireUses(liveInputs, moved);
 
-  SmallVector<Value> oldInputs = getWireInputs(phase);
+  SmallVector<Value> oldInputs = cudaq::opt::getPhaseReplacements(
+      phase, phase.getControls(), phase.getTarget());
   rewriter.replaceOp(phase, oldInputs);
 }
 
@@ -360,7 +349,8 @@ mergePair(IRRewriter &rewriter, cudaq::quake::PhaseOp first,
   Value angle =
       arith::AddFOp::create(rewriter, second.getLoc(), firstAngle, secondAngle);
 
-  SmallVector<Value> firstInputs = getWireInputs(first);
+  SmallVector<Value> firstInputs = cudaq::opt::getPhaseReplacements(
+      first, first.getControls(), first.getTarget());
   rewriter.replaceOp(first, firstInputs);
 
   rewriter.setInsertionPoint(second);

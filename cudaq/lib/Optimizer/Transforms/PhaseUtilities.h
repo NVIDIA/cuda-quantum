@@ -16,6 +16,7 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/PatternMatch.h"
+#include <cassert>
 
 namespace cudaq::opt {
 
@@ -44,6 +45,17 @@ inline mlir::Value getSignedAngle(mlir::IRRewriter &rewriter,
   if (phase.isAdj())
     angle = mlir::arith::NegFOp::create(rewriter, phase.getLoc(), angle);
   return angle;
+}
+
+/// Collect the current wire values for a phase's controls and anchor in the
+/// order of its wire results.
+inline llvm::SmallVector<mlir::Value>
+getPhaseReplacements(cudaq::quake::PhaseOp phase, mlir::ValueRange controls,
+                     mlir::Value anchor) {
+  auto replacements = getWireValues(controls, {anchor});
+  assert(replacements.size() == phase.getWires().size() &&
+         "phase result count does not match its wire operands");
+  return replacements;
 }
 
 } // namespace cudaq::opt

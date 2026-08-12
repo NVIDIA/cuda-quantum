@@ -65,20 +65,6 @@ static void threadXResult(cudaq::quake::XOp gate, Value &target) {
     target = gate.getWires().front();
 }
 
-static SmallVector<Value> getPhaseReplacements(cudaq::quake::PhaseOp phase,
-                                               ArrayRef<Value> threadedControls,
-                                               Value threadedAnchor) {
-  SmallVector<Value> replacements;
-  for (Value control : threadedControls)
-    if (isa<cudaq::quake::WireType>(control.getType()))
-      replacements.push_back(control);
-  if (isa<cudaq::quake::WireType>(threadedAnchor.getType()))
-    replacements.push_back(threadedAnchor);
-  assert(replacements.size() == phase.getWires().size() &&
-         "phase result count does not match its wire operands");
-  return replacements;
-}
-
 static bool isScalarGateTarget(Value value) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(value.getType());
 }
@@ -150,7 +136,8 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
   auto r1 = createParameterizedGate<cudaq::quake::R1Op>(
       rewriter, location, angle, remainingControls, controls[selectedControl],
       cudaq::opt::makeNegatedControlsAttr(rewriter, remainingPolarities));
-  threadGateResults(r1, remainingControls, controls[selectedControl]);
+  cudaq::opt::threadWireResults(r1, remainingControls,
+                                {controls[selectedControl]});
   for (auto [position, index] : llvm::enumerate(remainingIndices))
     controls[index] = remainingControls[position];
 
@@ -159,7 +146,8 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
     threadXResult(x, controls[selectedControl]);
   }
 
-  rewriter.replaceOp(phase, getPhaseReplacements(phase, controls, anchor));
+  rewriter.replaceOp(phase,
+                     cudaq::opt::getPhaseReplacements(phase, controls, anchor));
 }
 
 static void lowerWithAnchorFallback(IRRewriter &rewriter,
@@ -179,15 +167,16 @@ static void lowerWithAnchorFallback(IRRewriter &rewriter,
   for (unsigned i = 0; i != 2; ++i) {
     auto r1 = createParameterizedGate<cudaq::quake::R1Op>(
         rewriter, location, angle, controls, anchor, negatedControls);
-    threadGateResults(r1, controls, anchor);
+    cudaq::opt::threadWireResults(r1, controls, {anchor});
   }
   for (unsigned i = 0; i != 2; ++i) {
     auto rz = createParameterizedGate<cudaq::quake::RzOp>(
         rewriter, location, negatedAngle, controls, anchor, negatedControls);
-    threadGateResults(rz, controls, anchor);
+    cudaq::opt::threadWireResults(rz, controls, {anchor});
   }
 
-  rewriter.replaceOp(phase, getPhaseReplacements(phase, controls, anchor));
+  rewriter.replaceOp(phase,
+                     cudaq::opt::getPhaseReplacements(phase, controls, anchor));
 }
 
 static LogicalResult lowerPhase(IRRewriter &rewriter,
@@ -196,8 +185,8 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
 
   if (phase.getControls().empty()) {
     SmallVector<Value> controls;
-    rewriter.replaceOp(
-        phase, getPhaseReplacements(phase, controls, phase.getTarget()));
+    rewriter.replaceOp(phase, cudaq::opt::getPhaseReplacements(
+                                  phase, controls, phase.getTarget()));
     return success();
   }
 
