@@ -24,6 +24,6 @@ except ImportError:
                       "0") not in ("1", "true", "yes"):
         raise ImportError(
             "cudaq-pulse native extension (_cudaq_pulse_native) is not available. "
-            "Configure CUDA-Q with -DCUDAQ_ENABLE_PROJECTS=pulse and build the "
-            "pulse target, or set "
+            "Configure and build the pulse project "
+            "(cmake -S pulse -B build-pulse), or set "
             "CUDAQ_PULSE_ALLOW_NO_NATIVE=1 for pure-Python development mode.")

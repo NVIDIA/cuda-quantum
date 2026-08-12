@@ -6,10 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# `pip install ./pulse` builds the standalone CMake project in this directory.
+# It requires the CUDA-Q toolchain (`cudaq` + `cudaq-devel`) to be installed in
+# the target environment already; those wheels are not build requirements
+# because the build backend resolves them into an isolated environment where
+# CMake would not find them. See pulse/README.md.
 [build-system]
 requires = [
     "scikit-build-core>=0.10",
-    "nanobind>=2.0",
+    "nanobind>=2.12",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -47,11 +52,9 @@ dev = [
 
 [tool.scikit-build]
 cmake.build-type = "Release"
+install.components = ["CudaqPulse"]
 wheel.packages = ["core/frontend/cudaq_pulse"]
 wheel.install-dir = "cudaq_pulse"
-
-[tool.scikit-build.cmake.define]
-CMAKE_PREFIX_PATH = {env = "MLIR_DIR", default = ""}
 
 [tool.ruff]
 line-length = 100

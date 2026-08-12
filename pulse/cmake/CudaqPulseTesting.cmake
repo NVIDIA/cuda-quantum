@@ -8,9 +8,12 @@
 
 include_guard(DIRECTORY)
 
+option(CUDAQ_BUILD_TESTS "Build the CUDA-Q pulse test suites" ON)
 if(NOT CUDAQ_BUILD_TESTS)
   return()
 endif()
+
+enable_testing()
 
 if(LLVM_RUNTIME_OUTPUT_INTDIR)
   set(CUDAQ_PULSE_TOOLS_DIR "${LLVM_RUNTIME_OUTPUT_INTDIR}")

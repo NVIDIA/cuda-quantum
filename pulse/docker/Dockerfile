@@ -8,38 +8,58 @@
 
 # Build from the CUDA-Q repository root:
 #   docker build -f pulse/docker/Dockerfile -t cudaq-pulse-preview .
-# The LLVM-tagged CUDA-Q development image already contains the repository's
-# pinned LLVM/MLIR toolchain; this Dockerfile only builds pulse.
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu12.6-llvm-main
+#
+# Pulse compiles against the CUDA-Q toolchain shipped in the `cudaq-devel`
+# wheel plus `libcudaqMLIR` from the `cudaq` runtime wheel, so this image needs
+# neither the CUDA-Q development container nor a source build of LLVM. To build
+# against locally produced wheels instead of the package index, place them in a
+# directory inside the build context and pass, for example,
+#   --build-arg pip_index_args="--no-index --find-links=dist"
+ARG base_image=ubuntu:24.04
 FROM ${base_image} AS pulse-build
 
-USER root
-WORKDIR /opt/cuda-quantum
+ARG cudaq_version=
+ARG pip_index_args=
 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      g++-12 \
+      python3 \
+      python3-pip \
+      python3-venv \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV CC=gcc-12 CXX=g++-12
+
+WORKDIR /opt/cuda-quantum
 COPY . .
 
-RUN python3 -m pip install --no-cache-dir --break-system-packages \
+# One virtual environment holds the CUDA-Q toolchain, the build tools, and the
+# test/documentation dependencies, so CMake's site-packages probe finds them.
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv "${VIRTUAL_ENV}"
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
+RUN pip install --no-cache-dir ${pip_index_args} \
+      "cudaq${cudaq_version:+==${cudaq_version}}" \
+      "cudaq-devel${cudaq_version:+==${cudaq_version}}" \
+ && pip install --no-cache-dir \
+      "cmake>=4.0" \
       hypothesis \
       lit \
       "myst-parser>=3.0" \
+      "nanobind>=2.12" \
+      ninja \
+      numpy \
       nvidia-sphinx-theme==0.0.8 \
-      numpy==1.26.4 \
       pytest==9.0.3 \
       "sphinx>=8.1,<8.3"
 
-RUN cmake -S . -B build-pulse -G Ninja \
+RUN cmake -S pulse -B build-pulse -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
       -DCUDAQ_BUILD_TESTS=ON \
-      -DCUDAQ_DISABLE_CPP_FRONTEND=ON \
-      -DCUDAQ_ENABLE_ALL_BACKEND=OFF \
-      -DCUDAQ_ENABLE_ENSMALLEN=OFF \
-      -DCUDAQ_ENABLE_NLOPT=OFF \
-      -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF \
-      -DCUDAQ_ENABLE_PROJECTS=pulse \
-      -DCUDAQ_ENABLE_REST=OFF \
       -DCUDAQ_PULSE_BUILD_DOCS=ON \
-      -DLLVM_DIR="${LLVM_INSTALL_PREFIX}/lib/cmake/llvm" \
-      -DPython_EXECUTABLE=/usr/bin/python3 \
   && cmake --build build-pulse --parallel 2 \
       --target pulse
 
