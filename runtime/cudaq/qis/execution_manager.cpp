@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 #include "execution_manager.h"
+#include "common/AnalysisScope.h"
 #include "common/ExecutionContext.h"
-#include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
@@ -78,6 +79,17 @@ void ExecutionManager::configureExecutionContext(const dem_policy &policy) {
 void ExecutionManager::configureExecutionContext(
     const ptsbe::sample_policy &policy) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(
+    const estimate_policy &policy) {
+  assert(cudaq::AnalysisScope::is_active());
+}
+
+estimate_result
+ExecutionManager::finalizeExecutionContext(const estimate_policy &policy) {
+  assert(cudaq::AnalysisScope::is_active());
+  return nvqir::resource_counter::get_counts();
 }
 
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {

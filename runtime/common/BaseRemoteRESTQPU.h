@@ -287,8 +287,9 @@ public:
     // RAII: the scope is released (and the resource-counter state cleared) on
     // every exit path, including exceptions thrown from the kernel.
     auto rcScope = nvqir::resource_counter::make_scope(policy.choice);
-    [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
-    return nvqir::resource_counter::get_counts(rcScope);
+    return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
+      [[maybe_unused]] auto kernelResult = executeJitBinary(module, args);
+    });
   }
 
   /// Generate the DEM locally while preserving the selected remote target.

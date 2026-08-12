@@ -67,10 +67,10 @@ CUDAQ_TEST(AnalysisScopeTester, exitClearsCounts) {
     cudaq::Resources counts;
     counts.appendInstruction("h", 0);
     nvqir::resource_counter::prepopulate(std::move(counts));
-    EXPECT_EQ(nvqir::resource_counter::get_counts(s).count("h"), 1u);
+    EXPECT_EQ(nvqir::resource_counter::get_counts().count("h"), 1u);
   }
   auto next = nvqir::resource_counter::make_scope([] { return false; });
-  EXPECT_EQ(nvqir::resource_counter::get_counts(next).count(), 0u);
+  EXPECT_EQ(nvqir::resource_counter::get_counts().count(), 0u);
 }
 
 CUDAQ_TEST(AnalysisScopeTester, prepopulateRejectsForeignScope) {
@@ -88,7 +88,7 @@ CUDAQ_TEST(AnalysisScopeTester, getCountsRejectsForeignScope) {
   ASSERT_NE(backendSim, nvqir::getResourceCounterSimulator());
 
   cudaq::AnalysisScope s{"backend_scope", *backendSim, {}};
-  EXPECT_ANY_THROW(nvqir::resource_counter::get_counts(s));
+  EXPECT_ANY_THROW(nvqir::resource_counter::get_counts());
 }
 
 CUDAQ_TEST(AnalysisScopeTester, releasesOnException) {
@@ -118,7 +118,7 @@ CUDAQ_TEST(AnalysisScopeTester, prepopulateReflectsInCounts) {
   counts.appendInstruction("x", 1);
   nvqir::resource_counter::prepopulate(std::move(counts));
 
-  auto observed = nvqir::resource_counter::get_counts(s);
+  auto observed = nvqir::resource_counter::get_counts();
   EXPECT_EQ(observed.count("h"), 1u);
   EXPECT_EQ(observed.count_controls("x", 1), 1u);
 }

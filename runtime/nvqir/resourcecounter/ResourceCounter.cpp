@@ -39,12 +39,13 @@ cudaq::AnalysisScope make_scope(std::function<bool()> choice) {
        .on_exit = [rc](CircuitSimulator &) { rc->setToZeroState(); }}};
 }
 
-cudaq::Resources get_counts(cudaq::AnalysisScope &s) {
+cudaq::Resources get_counts() {
+  auto *sim = cudaq::AnalysisScope::active_simulator();
   auto *rc = getResourceCounterSimulator();
   // Reject scopes that are not backed by the resource-counter singleton so
   // callers can't accidentally reinterpret other plugin simulator
   // as a "ResourceCounter".
-  if (&s.simulator() != rc)
+  if (sim != rc)
     throw std::runtime_error(
         "`nvqir::resource_counter::get_counts`: scope is not a "
         "resource-counter scope.");

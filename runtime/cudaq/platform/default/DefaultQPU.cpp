@@ -154,8 +154,9 @@ cudaq::DefaultQPU::launchKernel(const cudaq::estimate_policy &policy,
   // RAII: the scope is released (and the resource-counter state cleared) on
   // every exit path, including exceptions thrown from the kernel.
   auto rcScope = nvqir::resource_counter::make_scope(policy.choice);
-  [[maybe_unused]] auto res = executeCompiledModule(module, args);
-  return nvqir::resource_counter::get_counts(rcScope);
+  return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
+    [[maybe_unused]] auto res = executeCompiledModule(module, args);
+  });
 }
 
 cudaq::ptsbe::sample_policy::result_type
