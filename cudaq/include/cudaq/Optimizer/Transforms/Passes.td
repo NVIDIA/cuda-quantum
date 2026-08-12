@@ -996,7 +996,7 @@ def LoopUnroll : Pass<"cc-loop-unroll"> {
 def LowerPhase : Pass<"lower-phase", "mlir::func::FuncOp"> {
   let summary = "Lower phase bookkeeping operations to ordinary Quake gates";
   let description = [{
-    Lowers controlled `quake.phase` operations to exact `quake.r1``quake.rz`
+    Lowers controlled `quake.phase` operations to exact `quake.r1`/`quake.rz`
     gate sequences and erases uncontrolled phases after forwarding their wire
     results. This pass is intentionally exposed in isolation until the global
     phase lifecycle is integrated into production pipelines.
