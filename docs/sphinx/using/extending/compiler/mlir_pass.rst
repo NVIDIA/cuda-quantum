@@ -111,6 +111,28 @@ branch or region should thread quantum values through the relevant block
 arguments and region results and use the appropriate dominance, control-flow,
 and effect analyses.
 
+Optimize within blocks and across scopes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most quantum optimization passes should optimize each supported block
+independently. Local rewrite patterns may operate on a single operation or a
+directly connected use-def chain. An unsupported operation or control-flow edge
+should stop the current search, not prevent optimization elsewhere in the
+function. A pass may relate operations across branches or loops only when it
+models the relevant control flow and preserves linear wire threading on every
+path. Treat calls as boundaries unless they have been inlined or the pass
+explicitly supports optimization across calls.
+
+Ordinary ``cc.scope`` operations are the common exception. Frontend lowering
+and inlining introduce them frequently, so circuit optimizations should work
+within and across scopes when wire threading is unambiguous. This does not
+require general control-flow support. Rewrites may cross the scope boundary
+only when they do not move scoped allocations or their uses, or bypass cleanup
+performed when the scope exits.
+
+Tests should cover optimization within a block, across an ordinary scope, and
+conservative behavior at an unsupported control-flow boundary.
+
 Pipeline integration should keep related quantum optimizations together in a
 value-form portion of the pipeline. A quantum optimization should not require
 its own ``memtoreg`` and ``regtomem`` round trip. If a downstream path requires
