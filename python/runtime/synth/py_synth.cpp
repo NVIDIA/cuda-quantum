@@ -95,11 +95,26 @@ double rzErrorBinding(RealArg theta, const std::string &gates) {
   return mpfr_get_d(error.get_mpfr(), MPFR_RNDU);
 }
 
+std::string normalizedBinding(const std::string &gates) {
+  llvm::FailureOr<cudaq::synth::Circuit> circuit =
+      cudaq::synth::Circuit::from_string(gates);
+  if (llvm::failed(circuit))
+    throw nanobind::value_error(
+        ("normalized: invalid gate string '" + gates +
+         "'; expected only H, S, T, X, W, or the identity sentinel I")
+            .c_str());
+  return circuit->normalized().to_string();
+}
+
 } // namespace
 
 NB_MODULE(_cudaq_synth, m) {
   m.doc() = "Internal bindings for the Clifford+T rotation synthesis "
             "library (cudaq-synth).";
+
+  m.def(
+      "_normalized", &normalizedBinding, nanobind::arg("gates"),
+      R"doc(Return the exact Matsumoto-Amano normal form of a gate string.)doc");
 
   m.def(
       "gridsynth", &gridsynthBinding, nanobind::arg("theta"),

@@ -64,7 +64,11 @@ find_dependency(NVQIR REQUIRED)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-if (NOT CUDAQ_LIBRARY_MODE)
+# Consumers that only use CUDA-Q libraries (e.g. MLIR/compiler plugins) and never
+# compile CUDA-Q quantum kernels do not need the `nvq++` (CUDAQ language) toolchain.
+# They can set CUDAQ_ENABLE_LANGUAGE=OFF before find_package(CUDAQ) to skip it.
+option(CUDAQ_ENABLE_LANGUAGE "Enable the CUDAQ compiler language (requires nvq++)" ON)
+if(CUDAQ_ENABLE_LANGUAGE AND NOT CUDAQ_LIBRARY_MODE)
   enable_language(CUDAQ)
 endif() 
 
