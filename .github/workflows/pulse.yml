@@ -110,7 +110,11 @@ jobs:
   setup-cudaq-wheels:
     name: Build CUDA-Q wheels
     needs: changes
-    if: needs.changes.outputs.pulse == 'true'
+    # This job builds on NVIDIA's self-hosted runners, which policy forbids for
+    # untrusted `pull_request` events. It runs on the trusted paths instead:
+    # the copy-pr-bot's pull-request/* push, the merge queue, main pushes, and
+    # manual dispatch (same gating as the GPU job below).
+    if: needs.changes.outputs.pulse == 'true' && github.event_name != 'pull_request'
     runs-on: linux-amd64-cpu8
     permissions:
       contents: read
@@ -140,7 +144,9 @@ jobs:
   test-and-docs:
     name: Build, test, and generate docs
     needs: [changes, setup-cudaq-wheels]
-    if: needs.changes.outputs.pulse == 'true'
+    # Self-hosted runner: gate off untrusted `pull_request` events, same as the
+    # wheel-build job it depends on.
+    if: needs.changes.outputs.pulse == 'true' && github.event_name != 'pull_request'
     runs-on: linux-amd64-cpu8
     timeout-minutes: 60
     permissions:
