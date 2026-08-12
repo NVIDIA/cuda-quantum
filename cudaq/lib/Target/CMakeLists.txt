@@ -10,6 +10,7 @@
 add_library(CUDAQTargetConfig
   TargetConfig.cpp
   CompileTarget.cpp
+  RuntimeEndpoint.cpp
 )
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/cudaq/include>

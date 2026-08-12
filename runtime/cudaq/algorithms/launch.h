@@ -9,10 +9,12 @@
 
 #pragma once
 
+#include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
 #include "cudaq/algorithms/msm/policy.h"
+#include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/qis/execution_manager.h"
@@ -24,10 +26,10 @@
 
 #ifndef CUDAQ_DISABLE_JIT_COMPILER
 namespace cudaq_internal::compiler {
-cudaq::CompiledModule
-compileModule(std::unique_ptr<cudaq::CompileTarget> target,
-              const cudaq::SourceModule &src, cudaq::KernelArgs args,
-              bool isEntryPoint);
+cudaq::CompiledModule compileModule(cudaq::CompileTarget target,
+                                    cudaq::CompileOptions options,
+                                    const cudaq::SourceModule &src,
+                                    cudaq::KernelArgs args, bool isEntryPoint);
 } // namespace cudaq_internal::compiler
 #endif
 
@@ -61,7 +63,7 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
   }
 
   typename Policy::result_type result;
-  auto &qpu = platform.getQPU(qpu_id);
+  auto &qpu = platform.getRuntimeEndpoint(qpu_id);
   ctx.executeKernelApi = [&qpu, &result, &policy](const AnyModule &module,
                                                   const KernelArgs &args) {
     CompiledModule compiled;
@@ -73,13 +75,18 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
-      std::unique_ptr<cudaq::CompileTarget> target;
+      cudaq::CompileTarget target;
+      cudaq::CompileOptions options;
       if constexpr (requires { policy.inner; }) {
+        options = cudaq::get_compile_options(policy.inner);
         target = cudaq::get_compile_target(policy.inner);
       } else {
+        options = cudaq::get_compile_options(policy);
         target = cudaq::get_compile_target(policy);
       }
-      compiled = cudaq_internal::compiler::compileModule(std::move(target),
+      // TODO: remove this call by moving flags out of the target
+      cudaq::propagateTargetOptionsToCompileOptions(target, options);
+      compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
                                                          /*isEntryPoint=*/true);
 #endif

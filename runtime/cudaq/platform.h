@@ -43,26 +43,19 @@ inline bool is_simulator_platform() {
 }
 
 template <typename Policy>
-std::unique_ptr<cudaq::CompileTarget> get_compile_target(const Policy &policy) {
+cudaq::CompileTarget get_compile_target(const Policy &policy) {
   return getQuantumPlatformInternal()->getCompileTarget(policy);
 }
 
-/// Get the default compile target configuration
+/// Get the default compile target configuration for the given platform
+/// (default: current platform).
 ///
 /// This is suitable for local simulators, i.e. it will use
 /// AOT-compiled modules as-is if they exist, and otherwise JIT-compile the
 /// module as appropriate for a Python kernel.
-std::unique_ptr<cudaq::CompileTarget>
-getDefaultCompileTarget(const sample_policy &policy);
-std::unique_ptr<cudaq::CompileTarget>
-getDefaultCompileTarget(const observe_policy &policy);
-std::unique_ptr<cudaq::CompileTarget>
-getDefaultCompileTarget(const run_policy &policy);
-std::unique_ptr<cudaq::CompileTarget>
-getDefaultCompileTarget(const dem_policy &policy);
-std::unique_ptr<cudaq::CompileTarget>
-getDefaultCompileTarget(const other_policies &policy,
-                        ExecutionContext *context);
+
+cudaq::CompileTarget
+createDefaultCompileTarget(quantum_platform *platform = nullptr);
 
 // Declare this function, implemented elsewhere
 std::string getQIR(const std::string &);

@@ -203,7 +203,7 @@ def test_Ionq_state_synthesis():
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
-    assert '10' in counts
+    assert '1' in counts
     assert len(counts) == 1
 
 
@@ -221,7 +221,7 @@ def test_Ionq_state_synthesis_builder():
 
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
-    assert '10' in counts
+    assert '1' in counts
     assert len(counts) == 1
 
 
@@ -347,7 +347,7 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    assert counts["0010011"] == 1000
+    assert counts["001011"] == 1000
 
 
 @pytest.mark.skip_macos_arm64_jit
@@ -362,9 +362,9 @@ def test_ionq_dem_from_kernel_target_independent():
         cudaq.detector(m)
 
     noise = cudaq.NoiseModel()
-    dem_text = cudaq.dem_from_kernel(kernel, noise_model=noise)
-    assert "error(0.1" in dem_text
-    assert "D0" in dem_text
+    result = cudaq.dem_from_kernel(kernel, noise_model=noise)
+    assert "error(0.1" in result.dem
+    assert "D0" in result.dem
 
     counts = cudaq.sample(kernel)
     assert counts['1'] == 1000

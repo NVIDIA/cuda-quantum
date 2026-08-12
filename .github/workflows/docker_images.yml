@@ -31,6 +31,11 @@ on:
       environment:
         required: false
         type: string
+      run_validation:
+        required: false
+        type: boolean
+        default: true
+        description: Run image validation. Deployments disables this; validation runs in the Validation workflow.
     secrets:
       NGC_CREDENTIALS:
         description: 'Credentials for deployments to NGC.'
@@ -583,7 +588,6 @@ jobs:
 
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "image_tag=$image_tag" >> $GITHUB_OUTPUT
-          echo "image_tag_suffix=-base" >> $GITHUB_OUTPUT
           echo "image_description=$image_description" >> $GITHUB_OUTPUT
           echo "base_image=$base_image" >> $GITHUB_OUTPUT
           echo "devdeps_image=$devdeps_image" >> $GITHUB_OUTPUT
@@ -633,7 +637,6 @@ jobs:
           images: ${{ steps.prereqs.outputs.dev_image_name }}
           flavor: |
             latest=false
-            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum-dev
@@ -718,7 +721,6 @@ jobs:
           images: ${{ steps.prereqs.outputs.image_name }}
           flavor: |
             latest=false
-            suffix=${{ steps.prereqs.outputs.image_tag_suffix }},onlatest=true
           tags: type=raw,value=${{ steps.prereqs.outputs.image_tag }}
           labels: |
             org.opencontainers.image.title=cuda-quantum
@@ -856,7 +858,7 @@ jobs:
           fi
 
           image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"' | sed -E 's/^(arm64-|amd64-)//'`
-          docs_version="CUDA_QUANTUM_VERSION=$(echo $image_tag | sed -re 's/^(cu[0-9]+-)?(.*)-base$/\2/')"
+          docs_version="CUDA_QUANTUM_VERSION=$(echo $image_tag | sed -re 's/^(cu[0-9]+-)?(.*)$/\2/')"
           docker image rm $cudaq_image
           docker image prune --force
 
@@ -915,7 +917,7 @@ jobs:
     needs: [metadata, cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
-    if: always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !cancelled() && inputs.run_validation && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ${{ needs.metadata.outputs.runner }}
     permissions:
       contents: read
@@ -976,11 +978,15 @@ jobs:
 
           docker run --rm -dit --name cuda-quantum $cudaq_image
           docker cp scripts/validate_installation.sh cuda-quantum:"/home/cudaq/validate_installation.sh"
+          docker cp scripts/validate_license_compliance.sh cuda-quantum:"/home/cudaq/validate_license_compliance.sh"
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
           retry docker exec cuda-quantum bash -c "python3 -m pip install --break-system-packages pandas scipy seaborn h5py contfrac"
-          docker exec cuda-quantum bash -c "sudo apt install -y python3-venv"
+          # binutils is not part of the release image; the license compliance
+          # validation needs nm to scan the shipped binaries for statically
+          # linked GMP/MPFR copies.
+          docker exec cuda-quantum bash -c "sudo apt install -y python3-venv binutils"
           (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_installation.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
           docker stop cuda-quantum
@@ -1064,7 +1070,7 @@ jobs:
 
   staging:
     name: Staging
-    needs: [metadata, cudaqdev_image, cudaq_image, validation]
+    needs: [metadata, cudaqdev_image, cudaq_image]
     # Unfortunately, we basically inherit this from the cudaq_image job;
     # all jobs that depend on it will need to add the same condition.
     if: always() && !cancelled() && inputs.environment && needs.metadata.outputs.platform_tag == '' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
@@ -1083,7 +1089,9 @@ jobs:
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
-          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          platform_id=${{ needs.metadata.outputs.platform_tag }}
+          artifact_name=image${platform_id:+_$platform_id}${cuda_major:+_cu$cuda_major}_publishing # changing the artifact name requires updating other workflows
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
           info_file="$artifact_name.txt"
           echo "info_file=$info_file" >> $GITHUB_OUTPUT
@@ -1095,7 +1103,6 @@ jobs:
           echo "cuda-quantum-devdeps-image: ${{ inputs.devdeps_image }}" >> "$info_file"
           echo "platforms: ${{ inputs.platforms }}" >> "$info_file"
           echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
-          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
         uses: actions/upload-artifact@v7

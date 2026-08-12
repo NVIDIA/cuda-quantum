@@ -12,6 +12,7 @@
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
@@ -428,7 +429,8 @@ static LogicalResult
 qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
-                              bool printIntermediateMLIR, bool printStats) {
+                              bool printIntermediateMLIR, bool printStats,
+                              bool disableQuantumOpts = false) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   auto config = cudaq::parseCodeGenTranslation(qirProfile);
@@ -450,13 +452,17 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
           return WalkResult::interrupt();
         }).wasInterrupted();
 
+  bool noValueSemantics =
+      disableQuantumOpts || op->hasAttr(cudaq::runtime::disableQuantumOpts);
   std::string profileName;
   if (containsWireSet) {
     profileName = config.profile;
     cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
   } else {
     profileName = qirProfile;
-    cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName,
+                                           /*useValueSemantics=*/
+                                           !noValueSemantics);
   }
 
   if (!additionalPasses.empty() &&
@@ -628,10 +634,11 @@ static void registerToQIRTranslation() {
       [](Operation *op, const std::string &transportTriple,                    \
          llvm::raw_string_ostream &output,                                     \
          const std::string &additionalPasses, bool printIR,                    \
-         bool printIntermediateMLIR, bool printStats) {                        \
+         bool printIntermediateMLIR, bool printStats,                          \
+         bool disableQuantumOpts) {                                            \
         return qirProfileTranslationFunction(                                  \
             transportTriple, op, output, additionalPasses, printIR,            \
-            printIntermediateMLIR, printStats);                                \
+            printIntermediateMLIR, printStats, disableQuantumOpts);            \
       })
 
   CREATE_QIR_REGISTRATION(regBase, "qir-base");
@@ -766,6 +773,12 @@ void cudaq_internal::compiler::configurePassManagerFromEnv(PassManager &pm) {
   // Compiler::prepareModule.
   if (printEachPass == cudaq::PrintEachPassMode::All)
     pm.enableIRPrinting();
+  auto enableStats = cudaq::getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", false);
+  if (enableStats)
+    pm.enableStatistics(PassDisplayMode::Pipeline);
+  auto enableTimes = cudaq::getEnvBool("CUDAQ_MLIR_ENABLE_TIMING", false);
+  if (enableTimes)
+    pm.enableTiming();
 }
 
 static mlir::LogicalResult defaultRunPassManager(mlir::PassManager &pm,

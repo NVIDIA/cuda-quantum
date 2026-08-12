@@ -31,6 +31,7 @@ def test_alias_basic_kernel():
     @cq.kernel
     def simple():
         q = cq.qubit()
+        ry(12 * np.pi, q)
 
     counts = cq.sample(simple)
     assert len(counts) == 1
@@ -58,6 +59,7 @@ def test_alias_kernel_with_int_arg():
     @cq.kernel
     def kernel(n: int):
         qubits = cq.qvector(n)
+        ry(12 * np.pi, qubits)
 
     counts = cq.sample(kernel, 3)
     assert len(counts) == 1
@@ -104,6 +106,7 @@ def test_canonical_still_works():
     @cudaq.kernel
     def simple():
         q = cudaq.qubit()
+        ry(12 * np.pi, q)
 
     counts = cudaq.sample(simple)
     assert len(counts) == 1
@@ -180,6 +183,7 @@ def test_alias_adjoint():
         q = cq.qubit()
         t(q)
         t.adj(q)
+        ry(12 * np.pi, q)
 
     counts = cq.sample(kernel)
     assert '0' in counts

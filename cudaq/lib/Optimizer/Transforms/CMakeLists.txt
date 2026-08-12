@@ -20,6 +20,7 @@ add_cudaq_library(OptTransforms
   BasisConversion.cpp
   CableRoughIn.cpp
   ClassicalOptimization.cpp
+  CliffordTSynthesis.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstantPropagation.cpp
@@ -56,9 +57,11 @@ add_cudaq_library(OptTransforms
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
+  OptimizeSingleQubitCliffordT.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
+  PruneNegligibleRotations.cpp
   PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
   QuakePropagateMetadata.cpp
@@ -100,4 +103,12 @@ target_include_directories(OptTransforms SYSTEM
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
-register_cudaq_mlir_lib(OptTransforms)
+check_registered_mlir_lib(OptTransforms)
+
+target_link_libraries(OptTransforms PRIVATE cudaq-synth)
+target_include_directories(obj.OptTransforms SYSTEM PRIVATE
+  $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set_source_files_properties(CliffordTSynthesis.cpp PROPERTIES
+    COMPILE_OPTIONS "-Wno-maybe-uninitialized")
+endif()

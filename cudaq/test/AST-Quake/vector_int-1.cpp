@@ -23,7 +23,7 @@ __qpu__ void touringLondon() {
 }
 
 // clang-format off
-// CHECK-LABEL:  func.func @__nvqpp__mlirgen__function_doubleDeckerBus._Z15doubleDeckerBusv() -> !cc.stdvec<i32> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:  func.func @__nvqpp__mlirgen__function_doubleDeckerBus._Z15doubleDeckerBusv() -> !cc.sequence<i32> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2 : i64
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
@@ -32,15 +32,15 @@ __qpu__ void touringLondon() {
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_7:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_6]], %[[VAL_1]], %[[VAL_2]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_8:.*]] = cc.stdvec_init %[[VAL_7]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i32>
-// CHECK:           return %[[VAL_8]] : !cc.stdvec<i32>
+// CHECK:           %[[VAL_8:.*]] = cc.sequence_init %[[VAL_7]], %[[VAL_1]] : (!cc.ptr<i8>, i64) -> !cc.sequence<i32>
+// CHECK:           return %[[VAL_8]] : !cc.sequence<i32>
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_touringLondon._Z13touringLondonv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_1:.*]] = call @__nvqpp__mlirgen__function_doubleDeckerBus._Z15doubleDeckerBusv() : () -> !cc.stdvec<i32>
-// CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i32>) -> !cc.ptr<i32>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<i32>) -> i64
+// CHECK:           %[[VAL_1:.*]] = call @__nvqpp__mlirgen__function_doubleDeckerBus._Z15doubleDeckerBusv() : () -> !cc.sequence<i32>
+// CHECK:           %[[VAL_2:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<i32>) -> !cc.ptr<i32>
+// CHECK:           %[[VAL_3:.*]] = cc.sequence_size %[[VAL_1]] : (!cc.sequence<i32>) -> i64
 // CHECK:           %[[VAL_4:.*]] = arith.muli %[[VAL_3]], %[[VAL_0]] : i64
 // CHECK:           %[[VAL_5:.*]] = cc.alloca i32[%[[VAL_4]] : i64]
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<i8>

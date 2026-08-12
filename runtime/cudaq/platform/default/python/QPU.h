@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/ArgumentWrapper.h"
+#include "common/CompileOptions.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "cudaq/platform/qpu.h"
@@ -27,7 +28,8 @@ namespace cudaq::detail {
 /// selected entry-point kernel.
 std::string lower_to_qir_llvm(const std::string &kernelName,
                               mlir::ModuleOp module, OpaqueArguments &args,
-                              const std::string &format);
+                              const std::string &format,
+                              const CompileOptions &options = {});
 
 /// Lowers \p module to `Open QASM 2`. The output will be a string of `Open
 /// QASM` code. \p kernelName and \p args should be provided, as they will

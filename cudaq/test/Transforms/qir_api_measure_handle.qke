@@ -141,15 +141,15 @@ func.func @handle_dynamic_array(%n: i64) attributes {"cudaq-kernel"} {
 // CHECK:           cc.alloca i64{{\[}}%[[VAL_N]] : i64]
 
 // -----
-// Function returning `cc.stdvec<measure_handle>` (recursive container rule).
+// Function returning `cc.sequence<measure_handle>` (recursive container rule).
 
-func.func @stdvec_handle(%arg: !cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<!cc.measure_handle> attributes {"cudaq-kernel"} {
-  return %arg : !cc.stdvec<!cc.measure_handle>
+func.func @sequence_handle(%arg: !cc.sequence<!cc.measure_handle>) -> !cc.sequence<!cc.measure_handle> attributes {"cudaq-kernel"} {
+  return %arg : !cc.sequence<!cc.measure_handle>
 }
 
-// CHECK-LABEL:   func.func @stdvec_handle(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<i64>) -> !cc.stdvec<i64>
-// CHECK:           return %[[VAL_0]] : !cc.stdvec<i64>
+// CHECK-LABEL:   func.func @sequence_handle(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<i64>) -> !cc.sequence<i64>
+// CHECK:           return %[[VAL_0]] : !cc.sequence<i64>
 
 // -----
 // Negative: a kernel without any handle types is left alone.
@@ -212,31 +212,31 @@ func.func @handle_array_rw(%h: !cc.measure_handle, %i: i64) -> i1 attributes {"c
 // WIRE:              llvm.return %[[VAL_B]] : i1
 
 // -----
-// `cc.stdvec_init` + `cc.stdvec_data` + `cc.stdvec_size` over a handle buffer.
+// `cc.sequence_init` + `cc.sequence_data` + `cc.sequence_size` over a handle buffer.
 
-func.func @handle_stdvec_init(%n: i64) -> !cc.stdvec<!cc.measure_handle> attributes {"cudaq-kernel"} {
+func.func @handle_sequence_init(%n: i64) -> !cc.sequence<!cc.measure_handle> attributes {"cudaq-kernel"} {
   %0 = cc.alloca !cc.measure_handle[%n : i64]
-  %1 = cc.stdvec_init %0, %n : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
-  return %1 : !cc.stdvec<!cc.measure_handle>
+  %1 = cc.sequence_init %0, %n : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
+  return %1 : !cc.sequence<!cc.measure_handle>
 }
 
-// CHECK-LABEL:   func.func @handle_stdvec_init(
-// CHECK-SAME:      %[[VAL_N:.*]]: i64) -> !cc.stdvec<i64>
+// CHECK-LABEL:   func.func @handle_sequence_init(
+// CHECK-SAME:      %[[VAL_N:.*]]: i64) -> !cc.sequence<i64>
 // CHECK:           %[[VAL_BUF:.*]] = cc.alloca i64{{\[}}%[[VAL_N]] : i64]
-// CHECK:           %[[VAL_VEC:.*]] = cc.stdvec_init %[[VAL_BUF]], %[[VAL_N]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
-// CHECK:           return %[[VAL_VEC]] : !cc.stdvec<i64>
+// CHECK:           %[[VAL_VEC:.*]] = cc.sequence_init %[[VAL_BUF]], %[[VAL_N]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
+// CHECK:           return %[[VAL_VEC]] : !cc.sequence<i64>
 
-func.func @handle_stdvec_consume(%v: !cc.stdvec<!cc.measure_handle>) -> i1 attributes {"cudaq-kernel"} {
-  %0 = cc.stdvec_data %v : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+func.func @handle_sequence_consume(%v: !cc.sequence<!cc.measure_handle>) -> i1 attributes {"cudaq-kernel"} {
+  %0 = cc.sequence_data %v : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
   %1 = cc.cast %0 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
   %2 = cc.load %1 : !cc.ptr<!cc.measure_handle>
   %3 = quake.discriminate %2 : (!cc.measure_handle) -> i1
   return %3 : i1
 }
 
-// CHECK-LABEL:   func.func @handle_stdvec_consume(
-// CHECK-SAME:      %[[VAL_V:.*]]: !cc.stdvec<i64>) -> i1
-// CHECK:           %[[VAL_DATA:.*]] = cc.stdvec_data %[[VAL_V]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK-LABEL:   func.func @handle_sequence_consume(
+// CHECK-SAME:      %[[VAL_V:.*]]: !cc.sequence<i64>) -> i1
+// CHECK:           %[[VAL_DATA:.*]] = cc.sequence_data %[[VAL_V]] : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
 // CHECK:           %[[VAL_PTR:.*]] = cc.cast %[[VAL_DATA]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i64>
 // CHECK:           %[[VAL_LD:.*]] = cc.load %[[VAL_PTR]] : !cc.ptr<i64>
 

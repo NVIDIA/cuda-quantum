@@ -70,7 +70,37 @@ struct TargetFinalizationJitPipelineOptions
           "Lower device calls (to normal function calls) in JIT pipeline."),
       llvm::cl::init(true)};
 };
+
+struct FaultTolerantTargetPipelineOptions
+    : public PassPipelineOptions<FaultTolerantTargetPipelineOptions> {
+  PassOptions::Option<double> epsilon{
+      *this, "epsilon",
+      llvm::cl::desc("Approximation tolerance for Clifford+T synthesis."),
+      llvm::cl::init(1e-10)};
+  PassOptions::Option<bool> failOnControlledRotation{
+      *this, "fail-on-controlled-rotation",
+      llvm::cl::desc("Reject controlled rotations left at synthesis."),
+      llvm::cl::init(false)};
+};
 } // namespace
+
+void cudaq::opt::addConvertToLinearValues(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(createCableRoughIn());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createRepairLinearType());
+  pm.addNestedPass<func::FuncOp>(createLinearCtrlRelations());
+}
+
+void cudaq::opt::registerConvertToLinearValuesPipeline() {
+  PassPipelineRegistration<>(
+      "convert-to-linear-values",
+      "Convert supported Quake IR to explicit linear values.",
+      addConvertToLinearValues);
+}
 
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
@@ -142,6 +172,35 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
   opts.disabledPatterns.assign(disabledPats.begin(), disabledPats.end());
   opts.enabledPatterns.assign(enabledPats.begin(), enabledPats.end());
   pm.addPass(cudaq::opt::createDecomposition(opts));
+}
+
+void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
+                                       bool failOnControlledRotation) {
+  pm.addPass(cudaq::opt::createUnitarySynthesis());
+  pm.addPass(cudaq::opt::createApplySpecialization());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
+  // Reduce Rx, Ry, and R1 rotations to Rz + Clifford so that Clifford+T
+  // synthesis only has to handle Rz. These are the shared decomposition
+  // patterns.
+  cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
+  cudaq::opt::CliffordTSynthesisOptions ctsOpts;
+  ctsOpts.epsilon = epsilon;
+  ctsOpts.failOnControlledRotation = failOnControlledRotation;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
+  cudaq::opt::DecompositionOptions decOpts;
+  decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
+  pm.addPass(cudaq::opt::createDecomposition(decOpts));
+}
+
+void cudaq::opt::registerFaultTolerantTargetPipeline() {
+  PassPipelineRegistration<FaultTolerantTargetPipelineOptions>(
+      "cudaq-fault-tolerant-target",
+      "Lower rotations to the {H, S, T, X, Z, CNOT} basis via Clifford+T "
+      "synthesis.",
+      [](OpPassManager &pm, const FaultTolerantTargetPipelineOptions &options) {
+        cudaq::opt::addCliffordTSynthesis(pm, options.epsilon,
+                                          options.failOnControlledRotation);
+      });
 }
 
 static void

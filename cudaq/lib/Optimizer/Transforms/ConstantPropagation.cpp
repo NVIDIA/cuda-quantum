@@ -26,30 +26,30 @@ using namespace mlir;
 
 /// Common code to determine if \p load is from a reified span over a constant
 /// array. See the examples below in the `LoadOp` patterns. If \p loadSpan is
-/// `true`, the load is loading a `!cc.stdvec<T>` type value, otherwise load
-/// must \e not load a `!cc.stdvec<T>` type value.
+/// `true`, the load is loading a `!cc.sequence<T>` type value, otherwise load
+/// must \e not load a `!cc.sequence<T>` type value.
 static LogicalResult
 checkIfLoadFromReifiedSpan(cudaq::cc::ConstantArrayOp &conArr,
                            SmallVectorImpl<std::int32_t> &indices,
                            cudaq::cc::LoadOp load, bool loadSpan) {
   Value ptrVal = load.getPtrvalue();
-  auto dataOp = [&]() -> cudaq::cc::StdvecDataOp {
+  auto dataOp = [&]() -> cudaq::cc::SequenceDataOp {
     if (auto cast = ptrVal.getDefiningOp<cudaq::cc::CastOp>()) {
       indices.push_back(0);
-      return cast.getValue().getDefiningOp<cudaq::cc::StdvecDataOp>();
+      return cast.getValue().getDefiningOp<cudaq::cc::SequenceDataOp>();
     }
     if (auto comp = ptrVal.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
       if (comp.getNumOperands() != 1)
         return {};
       indices.append(comp.getRawConstantIndices().begin(),
                      comp.getRawConstantIndices().end());
-      return comp.getBase().getDefiningOp<cudaq::cc::StdvecDataOp>();
+      return comp.getBase().getDefiningOp<cudaq::cc::SequenceDataOp>();
     }
     return {};
   }();
   if (!dataOp)
     return failure();
-  auto reify = dataOp.getStdvec().getDefiningOp<cudaq::cc::ReifySpanOp>();
+  auto reify = dataOp.getSequence().getDefiningOp<cudaq::cc::ReifySpanOp>();
   if (!reify)
     return failure();
   conArr = reify.getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
@@ -57,7 +57,7 @@ checkIfLoadFromReifiedSpan(cudaq::cc::ConstantArrayOp &conArr,
     return failure();
 
   // Verify that the data type loaded is a match.
-  return success(loadSpan == isa<cudaq::cc::StdvecType>(load.getType()));
+  return success(loadSpan == isa<cudaq::cc::SequenceType>(load.getType()));
 }
 
 namespace {
@@ -67,24 +67,24 @@ namespace {
 //   %0 = cc.const_array [["XY", "ZI"], ["IZ", "YX"]] :
 //           !cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>
 //   %1 = cc.reify_span %0 : (!cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>)
-//           -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
-//   %2 = cc.stdvec_data %1 : (!cc.stdvec<!cc.stdvec<!cc.charspan>>) ->
-//           !cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>
-//   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan>
-//           x ?>>) -> !cc.ptr<!cc.stdvec<!cc.charspan>>
-//   %4 = cc.load %3 : !cc.ptr<!cc.stdvec<!cc.charspan>>
+//           -> !cc.sequence<!cc.sequence<!cc.charspan>>
+//   %2 = cc.sequence_data %1 : (!cc.sequence<!cc.sequence<!cc.charspan>>) ->
+//           !cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x ?>>
+//   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<!cc.sequence<!cc.charspan>
+//           x ?>>) -> !cc.ptr<!cc.sequence<!cc.charspan>>
+//   %4 = cc.load %3 : !cc.ptr<!cc.sequence<!cc.charspan>>
 //   ─────────────────────────────────────────────────────────────────────────
 //   %0 = cc.const_array [["XY", "ZI"], ["IZ", "YX"]] :
 //           !cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>
 //   %1 = cc.reify_span %0 : (!cc.array<!cc.array<!cc.array<i8 x 3> x 2> x 2>)
-//           -> !cc.stdvec<!cc.stdvec<!cc.charspan>>
-//   %2 = cc.stdvec_data %1 : (!cc.stdvec<!cc.stdvec<!cc.charspan>>) ->
-//           !cc.ptr<!cc.array<!cc.stdvec<!cc.charspan> x ?>>
-//   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<!cc.stdvec<!cc.charspan>
-//           x ?>>) -> !cc.ptr<!cc.stdvec<!cc.charspan>>
+//           -> !cc.sequence<!cc.sequence<!cc.charspan>>
+//   %2 = cc.sequence_data %1 : (!cc.sequence<!cc.sequence<!cc.charspan>>) ->
+//           !cc.ptr<!cc.array<!cc.sequence<!cc.charspan> x ?>>
+//   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<!cc.sequence<!cc.charspan>
+//           x ?>>) -> !cc.ptr<!cc.sequence<!cc.charspan>>
 //   %a = cc.const_array ["IZ", "YX"] : !cc.array<!cc.array<i8 x 3> x 2>
 //   %4 = cc.reify_span %a : (!cc.array<!cc.array<i8 x 3> x 2>)
-//           -> !cc.stdvec<!cc.charspan>
+//           -> !cc.sequence<!cc.charspan>
 //
 class ForwardConstSubArray : public OpRewritePattern<cudaq::cc::LoadOp> {
 public:
@@ -121,15 +121,15 @@ public:
 
 // If this is reifying a single dimension array, then we want to forward the
 // constant element itself. Note that we do not count the innermost array if the
-// data is a string, so in this case, there is a distinction between !cc.stdvec
-// and !cc.charspan.
+// data is a string, so in this case, there is a distinction between
+// !cc.sequence and !cc.charspan.
 //
 // Strings require two operations to get the types to check, as shown below.
 //
 //   %0 = cc.const_array ["IZ", "YX"] : !cc.array<!cc.array<i8 x 3> x 2>
 //   %1 = cc.reify_span %0 : (!cc.array<!cc.array<i8 x 3> x 2>) ->
-//           !cc.stdvec<!cc.charspan>
-//   %2 = cc.stdvec_data %1 : (!cc.stdvec<!cc.charspan>) -> !cc.ptr<
+//           !cc.sequence<!cc.charspan>
+//   %2 = cc.sequence_data %1 : (!cc.sequence<!cc.charspan>) -> !cc.ptr<
 //           !cc.array<!cc.charspan x ?>>
 //   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) ->
 //           !cc.ptr<!cc.charspan>
@@ -137,28 +137,28 @@ public:
 //   ─────────────────────────────────────────────────────────────────────────
 //   %0 = cc.const_array ["IZ", "YX"] : !cc.array<!cc.array<i8 x 3> x 2>
 //   %1 = cc.reify_span %0 : (!cc.array<!cc.array<i8 x 3> x 2>) ->
-//           !cc.stdvec<!cc.charspan>
-//   %2 = cc.stdvec_data %1 : (!cc.stdvec<!cc.charspan>) -> !cc.ptr<
+//           !cc.sequence<!cc.charspan>
+//   %2 = cc.sequence_data %1 : (!cc.sequence<!cc.charspan>) -> !cc.ptr<
 //           !cc.array<!cc.charspan x ?>>
 //   %3 = cc.compute_ptr %2[0] : (!cc.ptr<!cc.array<!cc.charspan x ?>>) ->
 //           !cc.ptr<!cc.charspan>
 //   %a = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
-//   %4 = cc.stdvec_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
+//   %4 = cc.sequence_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
 //           !cc.charspan
 //
 // For a non-string array this looks like the following rewrite.
 //
 //   %0 = cc.const_array [1, 2, 4, 8] : !cc.array<i64 x 4>
-//   %1 = cc.reify_span %0 : (!cc.array<i64 x 2>) -> !cc.stdvec<i64>
-//   %2 = cc.stdvec_data %1 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
-//   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i64>
-//   %4 = cc.load %3 : !cc.ptr<i64>
+//   %1 = cc.reify_span %0 : (!cc.array<i64 x 2>) -> !cc.sequence<i64>
+//   %2 = cc.sequence_data %1 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x
+//   ?>> %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<i64 x ?>>) ->
+//   !cc.ptr<i64> %4 = cc.load %3 : !cc.ptr<i64>
 //   ─────────────────────────────────────────────────────────────────────────
 //   %0 = cc.const_array [1, 2, 4, 8] : !cc.array<i64 x 4>
-//   %1 = cc.reify_span %0 : (!cc.array<i64 x 2>) -> !cc.stdvec<i64>
-//   %2 = cc.stdvec_data %1 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
-//   %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i64>
-//   %4 = cc.constant 2 : i64
+//   %1 = cc.reify_span %0 : (!cc.array<i64 x 2>) -> !cc.sequence<i64>
+//   %2 = cc.sequence_data %1 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x
+//   ?>> %3 = cc.compute_ptr %2[1] : (!cc.ptr<!cc.array<i64 x ?>>) ->
+//   !cc.ptr<i64> %4 = cc.constant 2 : i64
 //
 class ForwardSingleDimensionData : public OpRewritePattern<cudaq::cc::LoadOp> {
 public:
@@ -174,7 +174,7 @@ public:
 
     // The preconditions are met. At this point, we replace this load depending
     // on the type. If this is loading a charspan, we replace the load with a
-    // string_literal from conArr[indices] and stdvec_init op. Otherwise, we
+    // string_literal from conArr[indices] and sequence_init op. Otherwise, we
     // replace the load with the constant from conArr[indices].
     ArrayAttr aa = conArr.getConstantValues();
     auto numIndices = indices.size();
@@ -194,8 +194,8 @@ public:
           rewriter, loc, cudaq::cc::PointerType::get(ty), stringAttr);
       auto len = arith::ConstantIntOp::create(
           rewriter, loc, stringAttr.getValue().size() + 1, 64);
-      rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(loadSpanEle, loadTy,
-                                                           lit, len);
+      rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(loadSpanEle,
+                                                             loadTy, lit, len);
       return success();
     }
     if (auto intTy = dyn_cast<IntegerType>(loadTy)) {
