@@ -43,75 +43,51 @@ passes, and experimental GPU execution path.
 
 ## Build from Source
 
-Clone CUDA-Q with its submodules and configure the repository-level build. The
-pulse package is disabled by default and deliberately excluded from the stable
-`CUDAQ_ALL_PROJECTS` catalog. Select the research preview explicitly with
-`-DCUDAQ_ENABLE_PROJECTS=pulse`; this configures pulse without the stable
-CUDA-Q projects.
+CUDA-Q pulse is a standalone CMake project. It does not build as part of the
+CUDA-Q tree; it compiles against the CUDA-Q toolchain distributed as Python
+wheels, so there is no LLVM to build and no submodule to initialize:
 
-Prerequisites are the standard CUDA-Q compiler dependencies and submodules plus
-Python 3.10 or newer, CMake, Ninja, pytest, Hypothesis, and LLVM lit. Build the
-exact LLVM revision pinned by CUDA-Q with the repository helper (or reuse a
-matching CUDA-Q LLVM installation). Pulse does not need LLVM's Python bindings,
-so this build omits them:
+- **`cudaq-devel`** provides the headers, CMake packages, MLIR/LLVM archives,
+  `mlir-tblgen`, `FileCheck`, and the rest of the pinned LLVM toolchain.
+- **`cudaq`** (the runtime wheel) provides `libcudaqMLIR`, the single shared
+  MLIR/LLVM instance that the pulse Python extension resolves its symbols from.
+
+Both wheels must come from the same CUDA-Q revision. Beyond them, pulse needs
+Python 3.10 or newer, CMake, Ninja, nanobind, pytest, Hypothesis, and LLVM lit.
 
 ```bash
-git clone --recursive https://github.com/NVIDIA/cuda-quantum.git
+git clone https://github.com/NVIDIA/cuda-quantum.git
 cd cuda-quantum
-
-export LLVM_SOURCE="$PWD/tpls/llvm"
-export LLVM_INSTALL_PREFIX="$PWD/.cudaq-llvm"
-export LLVM_PROJECTS="clang;lld;mlir"
-bash scripts/build_llvm.sh -j "$(nproc)"
 
 python3 -m venv .venv-pulse
 source .venv-pulse/bin/activate
-python -m pip install pytest hypothesis lit numpy
+python -m pip install cudaq cudaq-devel
+python -m pip install "nanobind>=2.12" cmake ninja pytest hypothesis lit numpy
 
-cmake -S . -B build -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCUDAQ_ENABLE_PROJECTS=pulse \
-  -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
-
-cmake --build build --parallel
+cmake -S pulse -B build-pulse -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build-pulse --parallel
 ```
 
-No separate nanobind installation or prefix is required. Like CUDA-Q's Python
-build, pulse uses the checkout at `tpls/nanobind/cmake` by default. To use the
-CMake package included in a pip-installed nanobind wheel instead, install it in
-the active environment and configure with:
+Note the `-S pulse`: the configure entry point is `pulse/`, not the repository
+root. Nothing outside `pulse/` participates in the build.
+
+Pulse locates the wheels through `site.getsitepackages()` of the interpreter
+CMake picks up, so run CMake from the environment the wheels were installed
+into, or pass `-DPython3_EXECUTABLE=/path/to/venv/bin/python`. To build against
+a CUDA-Q installation that is not a wheel, point CMake at it directly with
+`-DCMAKE_PREFIX_PATH=/path/to/cudaq/prefix`. nanobind is discovered the same
+way and can be overridden with `-Dnanobind_DIR="$(python -m nanobind --cmake_dir)"`.
+
+The `--target pulse` aggregate target is available for scripts that prefer a
+named target.
+
+The complete pulse package is staged in the build tree, so one `PYTHONPATH`
+entry exposes both its Python sources and its native extension:
 
 ```bash
-python -m pip install nanobind
-cmake -S . -B build -G Ninja \
-  -DCUDAQ_ENABLE_PROJECTS=pulse \
-  -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
-  -Dnanobind_DIR="$(python -m nanobind --cmake_dir)"
-```
-
-For this pulse-only configuration, the default build contains only pulse; it
-does not build stable CUDA-Q utilities such as `CircuitCheck` or their test
-harnesses. The explicit `--target pulse` aggregate target is also available for
-scripts that prefer a named target.
-
-Like the main CUDA-Q Python package, the complete pulse package is staged in
-the build tree. One `PYTHONPATH` entry exposes both its Python sources and
-native extension:
-
-```bash
-export PATH="$PWD/build/bin:$PATH"
-export PYTHONPATH="$PWD/build/python${PYTHONPATH:+:$PYTHONPATH}"
+export PATH="$PWD/build-pulse/bin:$PATH"
+export PYTHONPATH="$PWD/build-pulse/python${PYTHONPATH:+:$PYTHONPATH}"
 python3 -c "import cudaq_pulse; print(cudaq_pulse.__version__)"
-```
-
-To build pulse alongside stable CUDA-Q projects, include each desired project
-in the list:
-
-```bash
-cmake -S . -B build -G Ninja \
-  -DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;python;pulse" \
-  -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
-cmake --build build --parallel
 ```
 
 A GPU and cuDensityMat are not required to build the compiler, inspect the
@@ -125,18 +101,16 @@ CMake discovers cuDensityMat and automatically adds the experimental GPU
 runtime to the `pulse` target; there is no second pulse feature flag:
 
 ```bash
-cmake -S . -B build-gpu -G Ninja \
+cmake -S pulse -B build-gpu -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCUDAQ_BUILD_TESTS=ON \
-  -DCUDAQ_ENABLE_PROJECTS=pulse \
   -DCUDENSITYMAT_ROOT=/path/to/cuquantum \
-  -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm" \
-  -DPython_EXECUTABLE="$PWD/.venv-pulse/bin/python"
+  -DPython3_EXECUTABLE="$PWD/.venv-pulse/bin/python"
 
 cmake --build build-gpu --parallel --target pulse
 
 export CUDAQ_PULSE_BUILD_DIR="$PWD/build-gpu"
-export PATH="$PWD/build-gpu/bin:$LLVM_INSTALL_PREFIX/bin:$PATH"
+export PATH="$PWD/build-gpu/bin:$PATH"
 export PYTHONPATH="$PWD/build-gpu/python${PYTHONPATH:+:$PYTHONPATH}"
 ```
 
@@ -152,13 +126,13 @@ The aggregate target builds and runs the MLIR regression tests and the
 non-GPU Python unit tests:
 
 ```bash
-cmake --build build --target check-pulse
+cmake --build build-pulse --target check-pulse
 ```
 
 Both suites are also registered with CTest:
 
 ```bash
-ctest --test-dir build -L pulse --output-on-failure
+ctest --test-dir build-pulse -L pulse --output-on-failure
 ```
 
 GPU tests remain opt-in and require a compatible NVIDIA GPU and cuDensityMat.
@@ -189,21 +163,19 @@ python3 -m pip install \
   nvidia-sphinx-theme==0.0.8 \
   "sphinx>=8.1,<8.3"
 
-cmake -S . -B build -G Ninja \
-  -DCUDAQ_ENABLE_PROJECTS=pulse \
-  -DCUDAQ_PULSE_BUILD_DOCS=ON \
-  -DLLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
-cmake --build build --target pulse-docs
+cmake -S pulse -B build-pulse -G Ninja \
+  -DCUDAQ_PULSE_BUILD_DOCS=ON
+cmake --build build-pulse --target pulse-docs
 ```
 
-The generated HTML is written to `build/pulse/docs/html` and uses NVIDIA's
+The generated HTML is written to `build-pulse/docs/html` and uses NVIDIA's
 Sphinx theme, matching the QLX documentation style.
 
 ## Docker
 
 The package Dockerfile provides a turnkey compiler and Python environment. Run
-the build from the CUDA-Q repository root so the full source tree and
-submodules are available as context:
+the build from the CUDA-Q repository root so the full source tree is available
+as context:
 
 ```bash
 docker build \
@@ -216,8 +188,8 @@ docker run --rm -it cudaq-pulse-preview
 Inside the container, `cudaq-pulse-opt` and `cudaq_pulse` are already on the
 search paths. The `pulse-ci` Docker target additionally runs the unit tests and
 generates documentation for local validation. GitHub Actions runs the same
-CMake targets directly in CUDA-Q's `llvm-main` development container, which
-already contains the pinned LLVM/MLIR toolchain.
+CMake targets directly on a plain runner, installing the `cudaq` and
+`cudaq-devel` wheels rather than building any part of the CUDA-Q toolchain.
 
 CUDA-Q registers research preview roots in
 `.github/research-preview-paths.txt`. Pull requests that change only registered

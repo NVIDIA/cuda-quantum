@@ -24,8 +24,8 @@ try:
 except ImportError as _e:
     raise RuntimeError(
         "cudaq-pulse native bindings required. "
-        "Configure CUDA-Q with -DCUDAQ_ENABLE_PROJECTS=pulse and build the "
-        "pulse target; see pulse/README.md.") from _e
+        "Configure and build the pulse project (cmake -S pulse -B build-pulse); "
+        "see pulse/README.md.") from _e
 
 from .kernel.ir_builder import Parameter
 from .passes.scheduling import ScheduleMetrics, MachineModel

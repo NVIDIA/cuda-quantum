@@ -27,15 +27,13 @@ available. There is no separate pulse GPU option.
 
 .. code-block:: bash
 
-   cmake -S . -B build-gpu -G Ninja \
+   cmake -S pulse -B build-gpu -G Ninja \
      -DCUDAQ_BUILD_TESTS=ON \
-     -DCUDAQ_ENABLE_PROJECTS=pulse \
-     -DCUDENSITYMAT_ROOT=/path/to/cuquantum \
-     -DLLVM_DIR=/path/to/cudaq-llvm/lib/cmake/llvm
+     -DCUDENSITYMAT_ROOT=/path/to/cuquantum
    cmake --build build-gpu --parallel --target pulse
    cmake --build build-gpu --target check-pulse-gpu
    export CUDAQ_PULSE_BUILD_DIR="$PWD/build-gpu"
-   export PATH="$PWD/build-gpu/bin:/path/to/cudaq-llvm/bin:$PATH"
+   export PATH="$PWD/build-gpu/bin:$PATH"
    export PYTHONPATH="$PWD/build-gpu/python${PYTHONPATH:+:$PYTHONPATH}"
 
 Pipeline Overview

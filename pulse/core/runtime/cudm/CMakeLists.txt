@@ -11,9 +11,8 @@ add_library(cudm_runtime SHARED
 )
 
 # Use build/install-interface generator expressions: the raw source path is only
-# valid while building in-tree, whereas consumers of the installed cudaq-pulse
-# package resolve the header from the install prefix. A plain source path here is
-# rejected by install(EXPORT) below.
+# valid while building from this source tree, whereas consumers of an installed
+# cudaq-pulse resolve the header from the install prefix.
 target_include_directories(cudm_runtime PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include>
@@ -41,13 +40,12 @@ set_target_properties(cudm_runtime PROPERTIES
   SOVERSION 0
 )
 
-# Join the cudaq-pulse export set so the installed package can expose
-# cudaq::cudm_runtime via find_package(cudaq-pulse CONFIG). The public C ABI
-# header ships alongside it so INSTALL_INTERFACE:include resolves for consumers.
+# The public C ABI header ships alongside the library so INSTALL_INTERFACE:include
+# resolves for consumers of an installed pulse tree.
 install(TARGETS cudm_runtime
-  EXPORT cudaq-pulse-targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
+  COMPONENT CudaqPulse
 )
 
-install(FILES cudm_runtime.h DESTINATION include)
+install(FILES cudm_runtime.h DESTINATION include COMPONENT CudaqPulse)

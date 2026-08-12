@@ -120,5 +120,5 @@ Running Examples
 .. code-block:: bash
 
    # Run from the CUDA-Q repository root after building the pulse targets.
-   PYTHONPATH=build/python \
+   PYTHONPATH=build-pulse/python \
      python pulse/examples/01_single_qubit_rabi.py

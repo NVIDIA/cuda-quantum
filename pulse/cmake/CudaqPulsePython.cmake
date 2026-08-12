@@ -8,6 +8,8 @@
 
 include_guard(DIRECTORY)
 
+include(CudaqPulseStagePython)
+
 # Match CUDA-Q's build-tree Python layout. One PYTHONPATH entry exposes both
 # the staged Python sources and the native extension.
 file(GLOB_RECURSE _cudaq_pulse_python_sources
@@ -16,7 +18,7 @@ file(GLOB_RECURSE _cudaq_pulse_python_sources
   "${CUDAQ_PULSE_FRONTEND_DIR}/*.pyi")
 list(APPEND _cudaq_pulse_python_sources py.typed)
 
-cudaq_stage_python_sources(CudaqPulsePythonStaging
+cudaq_pulse_stage_python_sources(CudaqPulsePythonStaging
   ROOT_DIR "${CUDAQ_PULSE_FRONTEND_DIR}"
   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq_pulse"
   SOURCES ${_cudaq_pulse_python_sources})
@@ -35,5 +37,6 @@ add_custom_target(pulse DEPENDS ${_cudaq_pulse_build_targets})
 
 install(DIRECTORY "${CUDAQ_PULSE_FRONTEND_DIR}"
   DESTINATION .
+  COMPONENT CudaqPulse
   PATTERN "__pycache__" EXCLUDE
   PATTERN "*.pyc" EXCLUDE)

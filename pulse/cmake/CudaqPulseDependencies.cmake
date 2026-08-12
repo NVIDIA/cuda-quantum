@@ -8,10 +8,9 @@
 
 include_guard(DIRECTORY)
 
-# Build-time dependency discovery for the pulse source-tree build (GPU runtime,
-# Python, nanobind). This is distinct from the installed package config: a
-# downstream find_package(cudaq-pulse CONFIG) consumer re-discovers the runtime
-# dependencies through cmake/cudaq-pulse-config.cmake.in instead.
+# Build-time dependency discovery for pulse: the optional GPU runtime, Python,
+# and nanobind. MLIR/LLVM and the CUDA-Q CMake packages are resolved in the
+# top-level CMakeLists.txt from the installed cudaq/cudaq-devel wheels.
 
 # Enable the optional GPU runtime whenever cuDensityMat is available. An
 # explicitly provided SDK root is a request, so fail instead of silently
@@ -26,8 +25,13 @@ endif()
 if(NOT TARGET cuDensityMat::cuDensityMat)
   if(_cudaq_pulse_cudm_requested)
     find_package(cuDensityMat REQUIRED)
-  elseif(CUDA_FOUND)
-    find_package(cuDensityMat QUIET)
+  else()
+    # Only probe opportunistically when a CUDA toolkit is actually present;
+    # FindcuDensityMat requires CUDAToolkit to resolve its library suffixes.
+    find_package(CUDAToolkit QUIET)
+    if(CUDAToolkit_FOUND)
+      find_package(cuDensityMat QUIET)
+    endif()
   endif()
 endif()
 
@@ -41,11 +45,29 @@ else()
     "CUDA-Q pulse GPU runtime disabled (cuDensityMat was not found)")
 endif()
 
-# Match CUDA-Q's source-build behavior: use its vendored nanobind checkout by
-# default, while allowing nanobind_DIR to select an installed CMake package
-# such as the one shipped in the nanobind Python wheel.
+# nanobind resolves its Python dependency through FindPython, whereas MLIR and
+# the top-level project use FindPython3. Seed the former from the latter so both
+# modules agree on a single interpreter.
+if(NOT Python_EXECUTABLE)
+  set(Python_EXECUTABLE "${Python3_EXECUTABLE}")
+endif()
 find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development.Module)
+
+# nanobind ships its own CMake package inside the Python wheel. Ask the
+# interpreter where it is, while still letting -Dnanobind_DIR override.
 if(NOT nanobind_DIR)
-  set(nanobind_DIR "${CMAKE_SOURCE_DIR}/tpls/nanobind/cmake")
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}" -m nanobind --cmake_dir
+    OUTPUT_VARIABLE _cudaq_pulse_nanobind_dir
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    RESULT_VARIABLE _cudaq_pulse_nanobind_status
+    ERROR_QUIET)
+  if(NOT _cudaq_pulse_nanobind_status EQUAL 0)
+    message(FATAL_ERROR
+      "nanobind was not found in the active Python environment. Install it "
+      "with `pip install \"nanobind>=2.12\"`, or point at an existing CMake "
+      "package with -Dnanobind_DIR=<dir>.")
+  endif()
+  set(nanobind_DIR "${_cudaq_pulse_nanobind_dir}")
 endif()
 find_package(nanobind CONFIG REQUIRED)
