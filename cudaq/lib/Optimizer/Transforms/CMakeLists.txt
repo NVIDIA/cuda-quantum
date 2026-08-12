@@ -57,6 +57,7 @@ add_cudaq_library(OptTransforms
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
+  OutlinePartitions.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
