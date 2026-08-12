@@ -114,12 +114,14 @@ and effect analyses.
 Optimize within blocks and across scopes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Most quantum optimization passes should keep searches within a block. Local
-rewrite patterns may operate on a single operation or a directly connected
-use-def chain. A pass must not relate operations across branches or loops
-unless it models the relevant control flow and preserves linear wire threading
-on every path. Treat calls as boundaries unless they have been inlined or the
-pass explicitly supports optimization across calls.
+Most quantum optimization passes should optimize each supported block
+independently. Local rewrite patterns may operate on a single operation or a
+directly connected use-def chain. An unsupported operation or control-flow edge
+should stop the current search, not prevent optimization elsewhere in the
+function. A pass may relate operations across branches or loops only when it
+models the relevant control flow and preserves linear wire threading on every
+path. Treat calls as boundaries unless they have been inlined or the pass
+explicitly supports optimization across calls.
 
 Ordinary ``cc.scope`` operations are the common exception. Frontend lowering
 and inlining introduce them frequently, so circuit optimizations should work
