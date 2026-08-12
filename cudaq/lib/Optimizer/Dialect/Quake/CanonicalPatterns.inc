@@ -27,10 +27,11 @@ struct AdjustAdjointExpPauliPattern
     if (!pauli.getParameters().empty())
       negp.push_back(arith::NegFOp::create(rewriter, pauli.getLoc(),
                                            pauli.getParameters()[0]));
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
         pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
         pauli.getPauli(), pauli.getPauliLiteralAttr());
+    newPauli->setDiscardableAttrs(pauli->getDiscardableAttrDictionary());
     return success();
   }
 };
@@ -71,11 +72,12 @@ public:
     if (!buffer)
       return failure();
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), pauli.getIsAdjAttr(),
         pauli.getParameters(), pauli.getControls(), pauli.getTargets(),
         pauli.getNegatedQubitControlsAttr(), Value{},
         buffer.getStringLiteralAttr());
+    newPauli->setDiscardableAttrs(pauli->getDiscardableAttrDictionary());
     return success();
   }
 };

@@ -1985,7 +1985,7 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
 //===----------------------------------------------------------------------===//
 
 def quake_LogOutputOp : QuakeOp<"log_output"> {
-  let summary = "Auto-generate calls to log the output of a runnable kernel.";
+  let summary = "Auto-generate calls to log the output of a kernel.";
   let description = [{
     This operation is a high-level \e abstraction for the necessary and
     sufficient functionality to log output results to a \e virtual output device
