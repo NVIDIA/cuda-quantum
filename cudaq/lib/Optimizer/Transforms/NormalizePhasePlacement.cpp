@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
+#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
@@ -24,18 +25,6 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-static SmallVector<Type> getWireResultTypes(MLIRContext *context,
-                                            ValueRange controls, Value target) {
-  auto wireType = cudaq::quake::WireType::get(context);
-  SmallVector<Type> resultTypes;
-  for (Value control : controls)
-    if (isa<cudaq::quake::WireType>(control.getType()))
-      resultTypes.push_back(wireType);
-  if (isa<cudaq::quake::WireType>(target.getType()))
-    resultTypes.push_back(wireType);
-  return resultTypes;
-}
 
 static SmallVector<Value> getWireInputs(cudaq::quake::PhaseOp phase) {
   SmallVector<Value> inputs;
@@ -267,7 +256,7 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
     rewriter.setInsertionPointToEnd(phase->getBlock());
 
   auto resultTypes =
-      getWireResultTypes(rewriter.getContext(), controls, anchor);
+      cudaq::opt::getWireResultTypes(rewriter, controls, {anchor});
   auto moved = cudaq::quake::PhaseOp::create(
       rewriter, phase.getLoc(), resultTypes, phase.getIsAdjAttr(),
       phase.getParameters(), controls, ValueRange{anchor},
@@ -386,7 +375,7 @@ mergePair(IRRewriter &rewriter, cudaq::quake::PhaseOp first,
                               second.getControls().end());
   Value anchor = second.getTarget();
   auto resultTypes =
-      getWireResultTypes(rewriter.getContext(), controls, anchor);
+      cudaq::opt::getWireResultTypes(rewriter, controls, {anchor});
   auto merged = cudaq::quake::PhaseOp::create(
       rewriter, second.getLoc(), resultTypes, /*is_adj=*/false,
       ValueRange{angle}, controls, ValueRange{anchor},

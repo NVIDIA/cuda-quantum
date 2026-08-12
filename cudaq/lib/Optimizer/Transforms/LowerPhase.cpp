@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
+#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/PatternMatch.h"
@@ -22,25 +23,13 @@ using namespace mlir;
 
 namespace {
 
-static SmallVector<Type> getWireResultTypes(MLIRContext *context,
-                                            ValueRange controls, Value target) {
-  auto wireType = cudaq::quake::WireType::get(context);
-  SmallVector<Type> resultTypes;
-  for (Value control : controls)
-    if (isa<cudaq::quake::WireType>(control.getType()))
-      resultTypes.push_back(wireType);
-  if (isa<cudaq::quake::WireType>(target.getType()))
-    resultTypes.push_back(wireType);
-  return resultTypes;
-}
-
 template <typename Op>
 static Op createParameterizedGate(IRRewriter &rewriter, Location location,
                                   Value parameter, ValueRange controls,
                                   Value target,
                                   DenseBoolArrayAttr negatedControls = {}) {
   auto resultTypes =
-      getWireResultTypes(rewriter.getContext(), controls, target);
+      cudaq::opt::getWireResultTypes(rewriter, controls, {target});
   return Op::create(rewriter, location, resultTypes, /*is_adj=*/false,
                     ValueRange{parameter}, controls, ValueRange{target},
                     negatedControls);
@@ -49,7 +38,7 @@ static Op createParameterizedGate(IRRewriter &rewriter, Location location,
 static cudaq::quake::XOp createXGate(IRRewriter &rewriter, Location location,
                                      Value target) {
   auto resultTypes =
-      getWireResultTypes(rewriter.getContext(), ValueRange{}, target);
+      cudaq::opt::getWireResultTypes(rewriter, ValueRange{}, {target});
   return cudaq::quake::XOp::create(rewriter, location, resultTypes,
                                    /*is_adj=*/false, ValueRange{}, ValueRange{},
                                    ValueRange{target}, DenseBoolArrayAttr{});
