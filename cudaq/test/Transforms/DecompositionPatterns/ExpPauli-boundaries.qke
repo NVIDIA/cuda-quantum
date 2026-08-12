@@ -38,6 +38,31 @@ func.func @dynamic_adjoint_identity(%theta: f64, %targets: !quake.veq<?>) {
 // CHECK: quake.exp_pauli<adj> (%{{.*}}) %{{.*}} to "III" : (f64, !quake.veq<?>) -> ()
 // CHECK: return
 
+func.func @dynamic_nonidentity(%theta: f64, %targets: !quake.veq<?>) {
+  quake.exp_pauli (%theta) %targets to "XY" : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_nonidentity(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[TARGETS:.*]]: !quake.veq<?>
+// CHECK-DAG: %[[NEG_PI_2:.*]] = arith.constant -1.5707963267948966 : f64
+// CHECK-DAG: %[[NEG_TWO:.*]] = arith.constant -2.000000e+00 : f64
+// CHECK-DAG: %[[PI_2:.*]] = arith.constant 1.5707963267948966 : f64
+// CHECK-DAG: %[[ZERO:.*]] = arith.constant 0 : i64
+// CHECK-DAG: %[[ONE:.*]] = arith.constant 1 : i64
+// CHECK: %[[FIRST:.*]] = quake.extract_ref %[[TARGETS]][%[[ZERO]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK: %[[SECOND:.*]] = quake.extract_ref %[[TARGETS]][%[[ONE]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK: quake.h %[[FIRST]] : (!quake.ref) -> ()
+// CHECK: quake.rx (%[[PI_2]]) %[[SECOND]] : (f64, !quake.ref) -> ()
+// CHECK: quake.x {{\[}}%[[FIRST]]] %[[SECOND]] : (!quake.ref, !quake.ref) -> ()
+// CHECK: %[[ANGLE:.*]] = arith.mulf %[[THETA]], %[[NEG_TWO]] : f64
+// CHECK: quake.rz (%[[ANGLE]]) %[[SECOND]] : (f64, !quake.ref) -> ()
+// CHECK: quake.x {{\[}}%[[FIRST]]] %[[SECOND]] : (!quake.ref, !quake.ref) -> ()
+// CHECK: quake.rx (%[[NEG_PI_2]]) %[[SECOND]] : (f64, !quake.ref) -> ()
+// CHECK: quake.h %[[FIRST]] : (!quake.ref) -> ()
+// CHECK-NOT: quake.exp_pauli
+// CHECK: return
+
 func.func @empty_identity(%theta: f64, %targets: !quake.veq<0>) {
   quake.exp_pauli (%theta) %targets to "" : (f64, !quake.veq<0>) -> ()
   return
@@ -61,39 +86,8 @@ func.func @unknown_word(%theta: f64, %target: !quake.ref, %word: !cc.charspan) {
 // CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to %{{.*}} : (f64, !quake.ref, !cc.charspan) -> ()
 // CHECK: return
 
-func.func @invalid_word(%theta: f64, %target: !quake.ref) {
-  quake.exp_pauli (%theta) %target to "Q" : (f64, !quake.ref) -> ()
-  return
-}
-
-// CHECK-LABEL: func.func @invalid_word(
-// CHECK-NOT: quake.extract_ref
-// CHECK-NOT: quake.phase
-// CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to "Q" : (f64, !quake.ref) -> ()
-// CHECK: return
-
-func.func @mismatched_identity(%theta: f64, %targets: !quake.veq<2>) {
-  quake.exp_pauli (%theta) %targets to "I" : (f64, !quake.veq<2>) -> ()
-  return
-}
-
-// CHECK-LABEL: func.func @mismatched_identity(
-// CHECK-NOT: quake.extract_ref
-// CHECK-NOT: quake.phase
-// CHECK: quake.exp_pauli (%{{.*}}) %{{.*}} to "I" : (f64, !quake.veq<2>) -> ()
-// CHECK: return
-
-func.func @malformed_predicate(%theta: f64, %control: !quake.ref,
-                               %target: !quake.ref) {
-  quake.exp_pauli (%theta) [%control neg [false, true]] %target to "I"
-      : (f64, !quake.ref, !quake.ref) -> ()
-  return
-}
-
-// CHECK-LABEL: func.func @malformed_predicate(
-// CHECK-NOT: quake.phase
-// CHECK: quake.exp_pauli (%{{.*}}) {{\[}}%{{.*}} neg [false, true]{{\]}} %{{.*}} to "I"
-// CHECK: return
+// Invalid literal words, static length mismatches, and malformed control
+// polarity metadata are verifier errors covered by Transforms/invalid.qke.
 
 func.func @controlled_nonidentity(%theta: f64, %first: !quake.ref,
                                   %second: !quake.ref, %target: !quake.ref) {
