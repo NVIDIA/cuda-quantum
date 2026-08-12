@@ -362,9 +362,9 @@ def test_ionq_dem_from_kernel_target_independent():
         cudaq.detector(m)
 
     noise = cudaq.NoiseModel()
-    dem_text = cudaq.dem_from_kernel(kernel, noise_model=noise)
-    assert "error(0.1" in dem_text
-    assert "D0" in dem_text
+    result = cudaq.dem_from_kernel(kernel, noise_model=noise)
+    assert "error(0.1" in result.dem
+    assert "D0" in result.dem
 
     counts = cudaq.sample(kernel)
     assert counts['1'] == 1000

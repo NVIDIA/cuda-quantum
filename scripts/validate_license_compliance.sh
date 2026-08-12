@@ -244,12 +244,16 @@ func.func @rz() {
 }
 EOF
     synthesis_smoke_test() {
-        "$install_root/bin/cudaq-opt" --clifford-t-synthesis='epsilon=1e-3' \
+        # Load the shipped libgmp/libmpfr first so the replacement checks act on
+        # them, not a same-soname copy elsewhere on the search path.
+        LD_LIBRARY_PATH="$lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+            "$install_root/bin/cudaq-opt" --clifford-t-synthesis='epsilon=1e-3' \
             "$smoke_dir/rz.qke" 2>/dev/null | grep -q "__cliffordt_rz_"
     }
 else
     synthesis_smoke_test() {
-        python3 -c "import cudaq; gates = cudaq.synth.gridsynth(0.7853981633974483, 1e-3); assert 'T' in gates, gates" 2>/dev/null
+        LD_LIBRARY_PATH="$lib_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+            python3 -c "import cudaq; gates = cudaq.synth.gridsynth(0.7853981633974483, 1e-3); assert 'T' in gates, gates" 2>/dev/null
     }
 fi
 

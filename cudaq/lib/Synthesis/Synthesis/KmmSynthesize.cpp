@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
-#include "Circuit/NormalForm.h"
 #include "Support/StreamOps.h"
 #include "llvm/Support/Debug.h"
 
@@ -142,7 +141,7 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
 ///      components), an omega-power W^m to match z's omega exponent, and
 ///      S-gates to clear the remaining n phase.
 ///
-///   3. Matsumoto-Amano normalization. normalize_gates absorbs Cliffords,
+///   3. Matsumoto-Amano normalization. Circuit::normalized absorbs Cliffords,
 ///      collapses TT -> S, etc., and emits the canonical minimum-T-count
 ///      representation.
 Circuit kmm_synthesize(DOmegaUnitary unitary) {
@@ -207,7 +206,7 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
     gates.push_back(Gate::W);
 
   // Phase 3: normalize. Cannot fail.
-  Circuit result = normalize_gates(gates);
+  Circuit result = gates.normalized();
   CUDAQ_SYNTH_CLOSE_SUCCESS(
       "final " + std::to_string(result.size()) +
       " gates, T-count=" + std::to_string(result.t_count()));

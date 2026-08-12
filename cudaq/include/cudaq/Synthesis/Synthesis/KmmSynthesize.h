@@ -29,11 +29,11 @@ namespace cudaq::synth {
 ///      exponent k by one per iteration.
 ///   2. At k = 0 the residue is a Clifford; unwind it as X / W / S gates
 ///      via the (a, b, c, d) Clifford parameterization.
-///   3. Normalise the accumulated gate list with `normalize_gates` to land
-///      in canonical Matsumoto-`Amano` form with minimum T-count.
+///   3. Normalise the accumulated gate list with `Circuit::normalized()` to
+///      land in canonical Matsumoto-`Amano` form with minimum T-count.
 ///
 /// Total over its input domain. Every DOmegaUnitary produced by
-/// gridsynth_unitary is valid input, and normalize_gates is total over
+/// gridsynth_unitary is valid input, and Circuit::normalized() is total over
 /// Circuit values.
 Circuit kmm_synthesize(DOmegaUnitary unitary);
 
