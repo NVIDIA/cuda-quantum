@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/Resources.h"
+#include "common/cudaq_json.h"
 #include <memory>
 
 namespace cudaq {
@@ -23,7 +24,7 @@ class estimate_result {
   std::unique_ptr<detail::EstimateResultImpl> impl;
 
 public:
-  estimate_result(Resources counts);
+  estimate_result(Resources counts, cudaq_json annotations = {});
 
   estimate_result();
   ~estimate_result();
@@ -35,6 +36,9 @@ public:
   // TODO: update methods and fields according to
   // https://github.com/NVIDIA/cuda-quantum/issues/5050
   const Resources &get_resources() const;
+
+  /// Arbitrary metadata attached by the producer of this result.
+  const cudaq_json &get_annotations() const;
 };
 
 } // namespace cudaq

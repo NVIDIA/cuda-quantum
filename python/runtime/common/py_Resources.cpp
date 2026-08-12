@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/string.h>
@@ -16,6 +17,7 @@
 
 #include "common/Resources.h"
 
+#include <map>
 #include <sstream>
 
 namespace cudaq {
@@ -58,6 +60,22 @@ This includes all gate counts.)#")
           },
           "Return a string of the raw resource counts that are stored in "
           "`self`.\n")
+      .def(
+          "__repr__",
+          [](Resources &self) {
+            const auto counts = self.gateCounts();
+            const std::map<std::string, std::size_t> sortedCounts(
+                counts.begin(), counts.end());
+            const auto gatesRepr = nanobind::cast<std::string>(
+                nanobind::repr(nanobind::cast(sortedCounts)));
+
+            return "Resources(" + gatesRepr +
+                   ", num_qubits=" + std::to_string(self.getNumQubits()) +
+                   ", num_used_qubits=" +
+                   std::to_string(self.getNumUsedQubits()) +
+                   ", depth=" + std::to_string(self.getCircuitDepth()) + ")";
+          },
+          "Return a constructor-style representation of this Resources.\n")
       .def(
           "to_dict", [](Resources &self) { return self.gateCounts(); },
           "Return a dictionary of the raw resource counts that are stored in "
