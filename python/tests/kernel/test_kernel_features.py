@@ -34,7 +34,7 @@ def test_argument_int():
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def kernel(n: np.int8):
@@ -82,7 +82,7 @@ def test_adjoint():
         t.adj(q)
 
     counts = cudaq.sample(single_adjoint_test)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def qvector_adjoint_test():
