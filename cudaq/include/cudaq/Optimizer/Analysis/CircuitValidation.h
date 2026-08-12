@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -32,12 +32,13 @@ enum class DomainRejectionKind {
   Reset,
   /// A noise channel (`quake.apply_noise`) is present.
   Noise,
-  /// Classical control flow (`cc.if`/`cc.loop`) is present. Only straight-line
-  /// circuits are supported for now.
+  /// Control flow is present, either structured (`cc.if`/`cc.loop`, an unwind
+  /// out of one) or as a CFG branch between blocks (`cf.br`/`cf.cond_br`, which
+  /// is what an early return lowers to). Only straight-line circuits are
+  /// supported for now.
   DynamicControlFlow,
   /// An `un-inlined` call is present. The `callee's` body is not visible for
-  /// exact
-  /// unitary construction. Inline before validating.
+  /// exact unitary construction. Inline before validating.
   UnsupportedCall,
   /// A dynamically-sized `!quake.veq` is present. The qubit count is not
   /// statically knowable.
@@ -57,16 +58,22 @@ enum class DomainRejectionKind {
 /// stay stable across releases.
 llvm::StringRef toString(DomainRejectionKind kind);
 
-/// A reason a kernel was rejected, with enough context to diagnose it.
-struct DomainRejection {
-  DomainRejectionKind kind;
+/// A reason a kernel was rejected from a validation domain, with enough
+/// context to diagnose it. RejectionKindTy names the domain's rejection
+/// enum. See DomainRejection and CliffordRejection below.
+template <typename RejectionKindTy>
+struct Rejection {
+  RejectionKindTy kind;
   /// The kernel (function) symbol name the rejection was found in.
   std::string kernel;
-  /// Context (e.g. the offending op name or qubit count).
+  /// Context (e.g. the offending op name, angle, or qubit count).
   std::string detail;
   /// Source location of the offending construct, when available.
   mlir::Location loc;
 };
+
+/// A rejection from the bounded-unitary domain.
+using DomainRejection = Rejection<DomainRejectionKind>;
 
 /// Result of a bounded-unitary domain `preflight` over a whole module.
 struct BoundedUnitaryDomainStatus {
@@ -120,6 +127,11 @@ enum class EquivalenceGuarantee {
 /// "borrowed-ancilla").
 llvm::StringRef toString(EquivalenceGuarantee guarantee);
 
+/// Default tolerances for the element-wise unitary comparison, matching the
+/// defaults of cudaq::isApproxEqual.
+inline constexpr double kDefaultRelativeTolerance = 1e-5;
+inline constexpr double kDefaultAbsoluteTolerance = 1e-8;
+
 /// Result of an exact unitary comparison of two straight-line kernels.
 struct UnitaryComparisonResult {
   /// True iff both unitaries were built and have matching dimensions. When
@@ -161,10 +173,10 @@ struct UnitaryComparisonResult {
 /// checkBoundedUnitaryDomain) first. On a build failure or dimension
 /// mismatch the result reports computed == false rather than a false
 /// equivalence.
-UnitaryComparisonResult compareUnitaries(mlir::func::FuncOp baseline,
-                                         mlir::func::FuncOp candidate,
-                                         double rtol = 1e-5,
-                                         double atol = 1e-8);
+UnitaryComparisonResult
+compareUnitaries(mlir::func::FuncOp baseline, mlir::func::FuncOp candidate,
+                 double rtol = kDefaultRelativeTolerance,
+                 double atol = kDefaultAbsoluteTolerance);
 
 /// Reasons a module can be rejected from the Clifford validation domain.
 ///
@@ -181,7 +193,8 @@ enum class CliffordRejectionKind {
   Reset,
   /// A noise channel (`quake.apply_noise`) is present.
   Noise,
-  /// Classical control flow (`cc.if`/`cc.loop`) is present.
+  /// Control flow is present, either structured (`cc.if`/`cc.loop`, an unwind
+  /// out of one) or as a CFG branch between blocks (`cf.br`/`cf.cond_br`).
   DynamicControlFlow,
   /// An `un-inlined` call is present. Inline before validating.
   UnsupportedCall,
@@ -204,16 +217,8 @@ enum class CliffordRejectionKind {
 /// Part of the `validator's` diagnostic contract; must stay stable.
 llvm::StringRef toString(CliffordRejectionKind kind);
 
-/// A reason a kernel was rejected from the Clifford domain, with context.
-struct CliffordRejection {
-  CliffordRejectionKind kind;
-  /// The kernel (function) symbol name the rejection was found in.
-  std::string kernel;
-  /// Context (e.g. the offending op name or angle).
-  std::string detail;
-  /// Source location of the offending construct, when available.
-  mlir::Location loc;
-};
+/// A rejection from the Clifford domain.
+using CliffordRejection = Rejection<CliffordRejectionKind>;
 
 /// Result of a Clifford-domain `preflight` over a whole module.
 struct CliffordDomainStatus {

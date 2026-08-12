@@ -14,6 +14,7 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Interfaces/CallInterfaces.h"
+#include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include <cmath>
 #include <complex>
 #include <optional>
@@ -57,17 +58,31 @@ llvm::StringRef toString(EquivalenceGuarantee guarantee) {
 }
 
 /// Number of qubits denoted by a quantum type: `!quake.ref` and `!quake.wire`
-/// are single qubits. `!quake.veq<N>` is N qubits. Returns std::nullopt for a
-/// dynamically-sized `!quake.veq` and 0 for a non-quantum (classical) type.
+/// are single qubits, `!quake.veq<N>` is N qubits, and a `!quake.struq` is the
+/// sum over its members. Returns std::nullopt when the count is not statically
+/// knowable (a dynamically-sized `!quake.veq`, directly or inside a `struq`)
+/// and 0 for a non-quantum (classical) type.
 static std::optional<std::size_t> qubitsInType(Type ty) {
-  if (isa<quake::RefType, quake::WireType>(ty))
-    return 1;
-  if (auto veq = dyn_cast<quake::VeqType>(ty)) {
-    if (veq.hasSpecifiedSize())
-      return veq.getSize();
-    return std::nullopt;
+  // Value (wire/control/cable) types always carry a static width.
+  if (quake::isQuantumValueType(ty))
+    return quake::getWireCount(ty);
+  if (quake::isQuantumReferenceType(ty)) {
+    if (!quake::isConstantQuantumRefType(ty))
+      return std::nullopt;
+    return quake::getAllocationSize(ty);
   }
   return 0;
+}
+
+/// True if op transfers control rather than falling through to the next
+/// operation: a structured region construct (`cc.if`/`cc.loop`), an unwind out
+/// of one, or a CFG branch (`cf.br`/`cf.cond_br`/`cf.switch`). The CFG cases
+/// matter because an early return in a kernel reaches the validator as a
+/// branch between blocks, not as a `cc.if`.
+static bool isControlFlow(Operation *op) {
+  return isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::UnwindReturnOp,
+             cudaq::cc::UnwindBreakOp, cudaq::cc::UnwindContinueOp,
+             BranchOpInterface>(op);
 }
 
 namespace {
@@ -79,6 +94,7 @@ struct KernelChecker {
   std::size_t qubits = 0;
   std::size_t ancillaQubits = 0;
   bool sawDynamicRegister = false;
+  bool sawControlFlow = false;
 
   void reject(DomainRejectionKind kind, Operation *op, std::string detail) {
     status.supported = false;
@@ -95,11 +111,20 @@ struct KernelChecker {
       qubits += *n;
       if (quake::isAncilla(op))
         ancillaQubits += *n;
-    } else if (isa<quake::VeqType>(ty) && !sawDynamicRegister) {
+    } else if (!sawDynamicRegister) {
       sawDynamicRegister = true;
       reject(DomainRejectionKind::DynamicQubitRegister, op,
              "dynamically-sized !quake.veq");
     }
+  }
+
+  /// Report control flow at most once per kernel. An early return produces
+  /// both a branch and extra blocks, and one diagnostic is enough.
+  void rejectControlFlow(Operation *op, std::string detail) {
+    if (sawControlFlow)
+      return;
+    sawControlFlow = true;
+    reject(DomainRejectionKind::DynamicControlFlow, op, std::move(detail));
   }
 };
 } // namespace
@@ -119,6 +144,14 @@ BoundedUnitaryDomainStatus checkBoundedUnitaryDomain(ModuleOp module,
     for (BlockArgument arg : func.getArguments())
       checker.tally(arg.getType(), func.getOperation());
 
+    // A multi-block body is a CFG, which the unitary builder would flatten
+    // into a straight line and get wrong. Catch it before looking at ops so
+    // an unreachable or fallthrough-free block cannot slip by.
+    if (!llvm::hasSingleElement(func.getBlocks()))
+      checker.rejectControlFlow(func.getOperation(),
+                                std::to_string(func.getBlocks().size()) +
+                                    " blocks (CFG control flow)");
+
     func.walk([&](Operation *op) {
       // Structural checks that exclude a kernel, most specific first.
       if (isa<quake::MeasurementInterface>(op)) {
@@ -128,9 +161,8 @@ BoundedUnitaryDomainStatus checkBoundedUnitaryDomain(ModuleOp module,
         checker.reject(DomainRejectionKind::Reset, op, "quake.reset");
       } else if (isa<quake::ApplyNoiseOp>(op)) {
         checker.reject(DomainRejectionKind::Noise, op, "quake.apply_noise");
-      } else if (isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(op)) {
-        checker.reject(DomainRejectionKind::DynamicControlFlow, op,
-                       op->getName().getStringRef().str());
+      } else if (isControlFlow(op)) {
+        checker.rejectControlFlow(op, op->getName().getStringRef().str());
       } else if (isa<CallOpInterface>(op)) {
         checker.reject(DomainRejectionKind::UnsupportedCall, op,
                        op->getName().getStringRef().str());
@@ -251,6 +283,7 @@ CliffordDomainStatus checkCliffordDomain(ModuleOp module) {
     StringRef kernel = func.getSymName();
     std::size_t qubits = 0;
     bool sawDynamicRegister = false;
+    bool sawControlFlow = false;
 
     auto reject = [&](CliffordRejectionKind kind, Operation *op,
                       std::string detail) {
@@ -262,15 +295,28 @@ CliffordDomainStatus checkCliffordDomain(ModuleOp module) {
     auto tally = [&](Type ty, Operation *op) {
       if (auto n = qubitsInType(ty)) {
         qubits += *n;
-      } else if (isa<quake::VeqType>(ty) && !sawDynamicRegister) {
+      } else if (!sawDynamicRegister) {
         sawDynamicRegister = true;
         reject(CliffordRejectionKind::DynamicQubitRegister, op,
                "dynamically-sized !quake.veq");
       }
     };
 
+    // See checkBoundedUnitaryDomain: control flow is reported once per kernel.
+    auto rejectControlFlow = [&](Operation *op, std::string detail) {
+      if (sawControlFlow)
+        return;
+      sawControlFlow = true;
+      reject(CliffordRejectionKind::DynamicControlFlow, op, std::move(detail));
+    };
+
     for (BlockArgument arg : func.getArguments())
       tally(arg.getType(), func.getOperation());
+
+    if (!llvm::hasSingleElement(func.getBlocks()))
+      rejectControlFlow(func.getOperation(),
+                        std::to_string(func.getBlocks().size()) +
+                            " blocks (CFG control flow)");
 
     func.walk([&](Operation *op) {
       if (isa<quake::MeasurementInterface>(op)) {
@@ -280,9 +326,8 @@ CliffordDomainStatus checkCliffordDomain(ModuleOp module) {
         reject(CliffordRejectionKind::Reset, op, "quake.reset");
       } else if (isa<quake::ApplyNoiseOp>(op)) {
         reject(CliffordRejectionKind::Noise, op, "quake.apply_noise");
-      } else if (isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(op)) {
-        reject(CliffordRejectionKind::DynamicControlFlow, op,
-               op->getName().getStringRef().str());
+      } else if (isControlFlow(op)) {
+        rejectControlFlow(op, op->getName().getStringRef().str());
       } else if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
         if (auto rejection = classifyCliffordGate(optor))
           reject(*rejection, op, op->getName().getStringRef().str());

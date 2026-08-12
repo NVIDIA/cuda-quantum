@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -30,6 +31,7 @@ using cudaq::opt::DomainRejectionKind;
 
 static void loadTestDialects(MLIRContext &context) {
   context.loadDialect<arith::ArithDialect>();
+  context.loadDialect<cf::ControlFlowDialect>();
   context.loadDialect<func::FuncDialect>();
   context.loadDialect<cudaq::cc::CCDialect>();
   context.loadDialect<cudaq::quake::QuakeDialect>();
@@ -68,6 +70,30 @@ protected:
     func->setAttr("cudaq-kernel", builder.getUnitAttr());
     func.addEntryBlock();
     builder.setInsertionPointToStart(&func.front());
+    return func;
+  }
+
+  /// Building the kernel an early return lowers to. A conditional branch over
+  /// two blocks, each ending in its own return.
+  ///
+  ///   if (flag) { x(q); return; }
+  ///   h(q);
+  func::FuncOp createEarlyReturnKernel(OpBuilder &builder) {
+    auto refTy = builder.getType<cudaq::quake::RefType>();
+    auto func = createKernel("kern", {builder.getI1Type(), refTy}, builder);
+    Location loc = builder.getUnknownLoc();
+    Value flag = func.getArgument(0);
+    Value q0 = func.getArgument(1);
+    Block *thenBlock = func.addBlock();
+    Block *contBlock = func.addBlock();
+    cf::CondBranchOp::create(builder, loc, flag, thenBlock, ValueRange{},
+                             contBlock, ValueRange{});
+    builder.setInsertionPointToStart(thenBlock);
+    cudaq::quake::XOp::create(builder, loc, q0);
+    func::ReturnOp::create(builder, loc);
+    builder.setInsertionPointToStart(contBlock);
+    cudaq::quake::HOp::create(builder, loc, q0);
+    func::ReturnOp::create(builder, loc);
     return func;
   }
 
@@ -128,6 +154,40 @@ TEST_F(CircuitValidationTest, RejectsReset) {
   auto status = checkBoundedUnitaryDomain(*module);
   EXPECT_FALSE(status.supported);
   EXPECT_TRUE(hasKind(status, DomainRejectionKind::Reset));
+}
+
+// An early return reaches the validator as a CFG branch rather than a `cc.if`
+// (the AOT pipeline lowers `unwind_return` to blocks early), so the structured
+// control-flow check alone would let it through and the unitary builder would
+// flatten both branches into one straight line.
+TEST_F(CircuitValidationTest, RejectsCfgControlFlow) {
+  OpBuilder builder(&context);
+  createEarlyReturnKernel(builder);
+
+  auto status = checkBoundedUnitaryDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, DomainRejectionKind::DynamicControlFlow));
+}
+
+// Structured control flow is rejected as well, and only once per kernel.
+TEST_F(CircuitValidationTest, RejectsStructuredControlFlow) {
+  OpBuilder builder(&context);
+  auto refTy = builder.getType<cudaq::quake::RefType>();
+  auto func = createKernel("kern", {builder.getI1Type(), refTy}, builder);
+  Location loc = builder.getUnknownLoc();
+  auto ifOp =
+      cudaq::cc::IfOp::create(builder, loc, TypeRange{}, func.getArgument(0));
+  auto &thenRegion = ifOp.getThenRegion();
+  builder.createBlock(&thenRegion);
+  cudaq::quake::XOp::create(builder, loc, func.getArgument(1));
+  cudaq::cc::ContinueOp::create(builder, loc);
+  builder.setInsertionPointAfter(ifOp);
+  func::ReturnOp::create(builder, loc);
+
+  auto status = checkBoundedUnitaryDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, DomainRejectionKind::DynamicControlFlow));
+  EXPECT_EQ(status.rejections.size(), 1u);
 }
 
 // A dynamically-sized register has an unknowable qubit count.
@@ -374,6 +434,17 @@ TEST_F(CircuitValidationTest, RejectsNonConstantRotationAngle) {
   auto status = checkCliffordDomain(*module);
   EXPECT_FALSE(status.supported);
   EXPECT_TRUE(hasKind(status, CliffordRejectionKind::NonCliffordRotation));
+}
+
+// The tableau oracle is just as blind to a CFG as the dense one. The gates in
+// both arms of an early return would be replayed unconditionally.
+TEST_F(CircuitValidationTest, RejectsCfgControlFlowInCliffordDomain) {
+  OpBuilder builder(&context);
+  createEarlyReturnKernel(builder);
+
+  auto status = checkCliffordDomain(*module);
+  EXPECT_FALSE(status.supported);
+  EXPECT_TRUE(hasKind(status, CliffordRejectionKind::DynamicControlFlow));
 }
 
 // The Clifford oracle has no qubit bound. A 40-qubit register that the

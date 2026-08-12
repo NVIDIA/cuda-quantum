@@ -40,6 +40,7 @@ add_cudaq_unittest("AnalysisPassUnitTests" "analysis-passes"
     INCLUDES
     LINKED_LIBS
         MLIRArithDialect
+        MLIRControlFlowDialect
         MLIRFuncDialect
         MLIRIR
         QuakeDialect
