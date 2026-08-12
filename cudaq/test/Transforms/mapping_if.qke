@@ -6,9 +6,83 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.    //
 // ========================================================================== //
 
-// RUN: cudaq-opt --qubit-mapping=device=path\(3\) %s | FileCheck %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(3) placement=identity search=none' %s | FileCheck %s
+// RUN: cudaq-opt '--qubit-mapping=device=path(3) placement=identity search=none' %s | CircuitCheck --up-to-mapping %s
 
 quake.wire_set @wires[2147483647]
+
+// An ordinary scope carries its captured wires through the body and returns
+// them positionally through cc.continue. The mapper must route the body and
+// leave the enclosing layout usable after the scope.
+//
+// CHECK-LABEL: func.func @test_scope_single_block() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = [0, 1, 2]}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
+// CHECK:   %[[SCOPE:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK:     %[[SW0:.*]]:2 = quake.swap %[[Q0]], %[[Q1]]
+// CHECK:     %[[X:.*]]:2 = quake.x [%[[SW0]]#1] %[[Q2]]
+// CHECK:     %[[SW1:.*]]:2 = quake.swap %[[SW0]]#0, %[[X]]#0
+// CHECK:     cc.continue %[[SW1]]#0, %[[SW1]]#1, %[[X]]#1
+// CHECK:   }
+// CHECK:   %[[POST:.*]]:2 = quake.x [%[[SCOPE]]#0] %[[SCOPE]]#1
+// CHECK:   quake.mz %[[POST]]#0
+// CHECK:   quake.mz %[[POST]]#1
+// CHECK:   quake.mz %[[SCOPE]]#2
+func.func @test_scope_single_block() attributes {"cudaq-kernel"} {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+    %4:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %4#0, %1, %4#1 : !quake.wire, !quake.wire, !quake.wire
+  }
+  %5:2 = quake.x [%3#0] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
+  quake.return_wire %3#2 : !quake.wire
+  return
+}
+
+// The scope capture is the `if` linear argument, not either branch argument.
+// This exercises recursive scope routing without treating region arguments as
+// extra caller wires.
+func.func @test_scope_if_forward() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = cc.scope -> !quake.wire {
+    %2:1 = cc.if (%cond) ((%arg = %0)) -> (!quake.wire) {
+      %3 = quake.h %arg : (!quake.wire) -> !quake.wire
+      cc.continue %3 : !quake.wire
+    } else {
+      %3 = quake.x %arg : (!quake.wire) -> !quake.wire
+      cc.continue %3 : !quake.wire
+    }
+    cc.continue %2#0 : !quake.wire
+  }
+  quake.return_wire %1 : !quake.wire
+  return
+}
+
+// Nested ordinary scopes recursively inherit the caller layout. The inner
+// operation is non-adjacent under the identity placement, so its routing and
+// restoration remain local to the nested scope pair.
+func.func @test_scope_nested() attributes {"cudaq-kernel"} {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+    %4:2 = cc.scope -> (!quake.wire, !quake.wire) {
+      %5:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      cc.continue %5#0, %5#1 : !quake.wire, !quake.wire
+    }
+    cc.continue %4#0, %1, %4#1 : !quake.wire, !quake.wire, !quake.wire
+  }
+  quake.return_wire %3#0 : !quake.wire
+  quake.return_wire %3#1 : !quake.wire
+  quake.return_wire %3#2 : !quake.wire
+  return
+}
 
 // Single wire through an if/else; each branch applies a different 1-qubit gate.
 // The wire must flow borrow_wire -> if arg -> gate -> continue -> if result.
