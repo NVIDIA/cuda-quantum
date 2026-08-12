@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/ScalarWireTraversal.h"
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "llvm/ADT/STLExtras.h"
@@ -42,6 +43,7 @@ struct UnaryWireOp {
 
 struct Candidate {
   llvm::SmallVector<Operation *> operations;
+  llvm::SmallVector<cudaq::opt::ScalarWireStep> scopeSteps;
   Value input;
   Value output;
   cudaq::synth::Circuit normalized;
@@ -99,11 +101,28 @@ static std::optional<UnaryWireOp> getUnaryWireOp(Operation *operation) {
                      operation->getResult(0), *gate, gateInterface.isAdj()};
 }
 
-// Collect a maximal same-block chain through single-use scalar-wire values.
-// Unsupported operations and non-linear wire flow terminate the chain.
-static llvm::SmallVector<UnaryWireOp>
-collectLinearChain(Operation *operation, Block &block,
-                   llvm::SmallDenseSet<Operation *> &collected) {
+// Follow a unique scalar-wire use to another unary gate. The shared traversal
+// owns direct def-use steps and ordinary scope crossings; this pass only
+// decides whether the reached operation is an exact unary gate.
+static std::optional<UnaryWireOp> getNextUnaryWireOp(
+    const UnaryWireOp &current,
+    llvm::SmallVectorImpl<cudaq::opt::ScalarWireStep> &scopeSteps) {
+  std::optional<cudaq::opt::ScalarWireStep> step =
+      cudaq::opt::traverseScalarWire(
+          current.output, cudaq::opt::ScalarWireTraversalDirection::Forward);
+  while (step && step->continueOperand) {
+    scopeSteps.push_back(*step);
+    step = cudaq::opt::traverseScalarWire(
+        step->wire, cudaq::opt::ScalarWireTraversalDirection::Forward);
+  }
+  return step ? getUnaryWireOp(step->operation) : std::nullopt;
+}
+
+// Collect a maximal chain through exactly-once scalar-wire values. Unsupported
+// operations and non-linear wire flow terminate the chain.
+static llvm::SmallVector<UnaryWireOp> collectLinearChain(
+    Operation *operation, llvm::SmallDenseSet<Operation *> &collected,
+    llvm::SmallVectorImpl<cudaq::opt::ScalarWireStep> &scopeSteps) {
   if (collected.contains(operation))
     return {};
 
@@ -118,10 +137,9 @@ collectLinearChain(Operation *operation, Block &block,
     collected.insert(current->operation);
     if (!current->output.hasOneUse())
       break;
-    Operation *next = *current->output.getUsers().begin();
-    std::optional<UnaryWireOp> nextGate = getUnaryWireOp(next);
-    if (!nextGate || next->getBlock() != &block ||
-        nextGate->input != current->output)
+    std::optional<UnaryWireOp> nextGate =
+        getNextUnaryWireOp(*current, scopeSteps);
+    if (!nextGate)
       break;
     current = nextGate;
   }
@@ -232,8 +250,9 @@ static void optimizeBlock(Block &block) {
   llvm::SmallDenseSet<Operation *> collected;
 
   for (Operation &operation : block) {
+    llvm::SmallVector<cudaq::opt::ScalarWireStep> scopeSteps;
     llvm::SmallVector<UnaryWireOp> chain =
-        collectLinearChain(&operation, block, collected);
+        collectLinearChain(&operation, collected, scopeSteps);
     if (chain.empty())
       continue;
 
@@ -245,6 +264,7 @@ static void optimizeBlock(Block &block) {
     Candidate candidate;
     candidate.input = chain.front().input;
     candidate.output = chain.back().output;
+    candidate.scopeSteps = std::move(scopeSteps);
     candidate.normalized = std::move(normalized);
     for (const UnaryWireOp &gate : chain)
       candidate.operations.push_back(gate.operation);
@@ -257,7 +277,15 @@ static void optimizeBlock(Block &block) {
     OpBuilder builder(candidate.operations.front());
     Value output = emitCircuit(builder, candidate.operations.front()->getLoc(),
                                candidate.input, candidate.normalized);
-    candidate.output.replaceAllUsesWith(output);
+    // Each scope exit must keep the wire linear. Thread the normalized output
+    // through the exits in traversal order, then replace the original chain's
+    // final value with the last scope result visible at that point.
+    Value replacement = output;
+    for (cudaq::opt::ScalarWireStep &scopeStep : candidate.scopeSteps) {
+      scopeStep.continueOperand->set(replacement);
+      replacement = scopeStep.wire;
+    }
+    candidate.output.replaceAllUsesWith(replacement);
     for (Operation *operation : llvm::reverse(candidate.operations))
       operation->erase();
   }
@@ -265,10 +293,10 @@ static void optimizeBlock(Block &block) {
 
 static void optimizeRegion(Region &region) {
   for (Block &block : region) {
+    optimizeBlock(block);
     for (Operation &operation : block)
       for (Region &nested : operation.getRegions())
         optimizeRegion(nested);
-    optimizeBlock(block);
   }
 }
 
