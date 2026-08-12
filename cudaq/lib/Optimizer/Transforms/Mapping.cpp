@@ -24,6 +24,7 @@
 #include "mlir/Analysis/TopologicalSortUtils.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Diagnostics.h"
+#include <iterator>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MAPPINGFUNC
@@ -796,8 +797,8 @@ struct RoutingEvent {
         Kind::Loop, op,
         SmallVector<cudaq::Placement::DeviceQ, 2>(phys.begin(), phys.end())};
   }
-  /// An ordinary scope. The scope body restores its layout before
-  /// `cc.continue`, so the event needs no per-wire physical state.
+  /// An ordinary scope. Its body has one normal exit, whose layout becomes the
+  /// entry layout of the following parent-block routing segment.
   static RoutingEvent makeScope(mlir::Operation *op) {
     return RoutingEvent{Kind::Scope, op, {}};
   }
@@ -942,39 +943,85 @@ static bool isStructuredRoutingOperation(Operation *op) {
   return isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(op);
 }
 
+/// Return the wire inputs whose placement an operation needs. A scope has no
+/// operation operands for its captures, so its body supplies those inputs.
+static SmallVector<Value> getRoutingInputWires(Operation &op) {
+  SmallVector<Value> wires;
+  if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
+    for (Value wire : ifOp.getLinearArgs())
+      if (isa<cudaq::quake::WireType>(wire.getType()))
+        wires.push_back(wire);
+  } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
+    for (Value wire : loopOp.getInitialArgs())
+      if (isa<cudaq::quake::WireType>(wire.getType()))
+        wires.push_back(wire);
+  } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
+    if (scope.getInitRegion().hasOneBlock())
+      wires = getScopeCaptureWires(scope);
+  } else {
+    llvm::append_range(wires, cudaq::quake::getQuantumOperands(&op));
+  }
+  return wires;
+}
+
+/// Return whether `op` becomes a routing node in this block. This mirrors the
+/// node construction so a segment can identify the wires it receives from an
+/// earlier segment without treating unsupported operations as mapped.
+static bool isRoutingNode(Operation &op) {
+  if (isa<cudaq::quake::BorrowWireOp>(op))
+    return false;
+  if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op))
+    return scope.getInitRegion().hasOneBlock();
+  return isa<cudaq::cc::IfOp, cudaq::cc::LoopOp>(op) ||
+         cudaq::quake::isSupportedMappingOperation(&op);
+}
+
+/// Find the values that enter a contiguous routing segment. A scope changes
+/// placement at its normal exit, so following operations must be routed from
+/// those result wires rather than from the enclosing block's original inputs.
+static SmallVector<Value> getSegmentSources(Block::iterator first,
+                                            Block::iterator last,
+                                            ArrayRef<Value> blockSources) {
+  llvm::SmallDenseSet<Operation *> segmentOperations;
+  for (auto it = first; it != last; ++it)
+    if (isRoutingNode(*it))
+      segmentOperations.insert(&*it);
+
+  SmallVector<Value> sources(blockSources.begin(), blockSources.end());
+  for (auto it = first; it != last; ++it) {
+    if (!isRoutingNode(*it))
+      continue;
+    for (Value wire : getRoutingInputWires(*it)) {
+      Operation *def = wire.getDefiningOp();
+      if (def && segmentOperations.contains(def))
+        continue;
+      if (!llvm::is_contained(sources, wire))
+        sources.push_back(wire);
+    }
+  }
+  return sources;
+}
+
 /// Build the routing problem from `block`. The nodes are the routable
 /// operations that `isSupportedMappingOperation` accepts, other than the source
 /// borrows. Edges and source successors are captured in MLIR use-list order so
 /// the walk visits successors in the same order as the SSA use-def chains.
 RoutingProblem buildRoutingProblem(
-    Block &block, ArrayRef<Value> sources,
+    Block &block, Block::iterator first, Block::iterator last,
+    ArrayRef<Value> sources,
     const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
   RoutingProblem problem;
   DenseMap<Operation *, RoutingProblem::NodeRef> nodeIndex;
 
-  for (Operation &op : block) {
-    if (isa<cudaq::quake::BorrowWireOp>(op))
+  for (auto it = first; it != last; ++it) {
+    Operation &op = *it;
+    if (!isRoutingNode(op))
       continue;
     RoutingProblem::Node node;
     node.op = &op;
-    if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(op)) {
-      for (auto linArg : ifOp.getLinearArgs())
-        if (isa<cudaq::quake::WireType>(linArg.getType()))
-          node.qubits.push_back(requireVirtualQ(wireToVirtualQ, linArg));
-    } else if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
-      for (auto initArg : loopOp.getInitialArgs())
-        if (isa<cudaq::quake::WireType>(initArg.getType()))
-          node.qubits.push_back(requireVirtualQ(wireToVirtualQ, initArg));
-    } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
-      if (!scope.getInitRegion().hasOneBlock())
-        continue;
-      for (Value capture : getScopeCaptureWires(scope))
-        node.qubits.push_back(requireVirtualQ(wireToVirtualQ, capture));
-    } else {
-      if (!cudaq::quake::isSupportedMappingOperation(&op))
-        continue;
-      for (auto wire : cudaq::quake::getQuantumOperands(&op))
-        node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
+    for (Value wire : getRoutingInputWires(op))
+      node.qubits.push_back(requireVirtualQ(wireToVirtualQ, wire));
+    if (!isStructuredRoutingOperation(&op)) {
       node.isMeasure = op.hasTrait<cudaq::QuantumMeasure>();
       node.isUnitary = isa<cudaq::quake::OperatorInterface>(op);
       node.isTwoQ = node.isUnitary && node.qubits.size() == 2;
@@ -1008,6 +1055,13 @@ RoutingProblem buildRoutingProblem(
     recordWireUsers(source, problem.sourceUsers);
 
   return problem;
+}
+
+static RoutingProblem buildRoutingProblem(
+    Block &block, ArrayRef<Value> sources,
+    const DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ) {
+  return buildRoutingProblem(block, block.begin(), block.end(), sources,
+                             wireToVirtualQ);
 }
 
 /// Only unitary gates take part in the reverse-traversal pass. See
@@ -1697,48 +1751,45 @@ public:
     numV = numVIn;
     numPhy = numPhyIn;
     blockResults.clear();
-    cudaq::Placement bestLayout = routeBlock(topBlock, sources, seeds);
+    cudaq::Placement bestLayout = routeBlock(topBlock, sources, seeds,
+                                             /*selectInitialLayout=*/true);
     return {std::move(blockResults), std::move(bestLayout)};
   }
 
 private:
-  /// Search `block` over `seeds` for the layout with the fewest swaps, then
-  /// record its RoutingResult (recursing through nested control flow) into
-  /// `blockResults`. `sources` are the block's entry wires (borrow results for
-  /// the outer block, wire block arguments for a nested one). Returns the
-  /// winning final layout, whose placement feeds the mapping attributes.
+  /// Route `block` in ordered segments. A scope is a placement boundary: its
+  /// body receives the enclosing layout and its exit layout seeds the following
+  /// segment. `selectInitialLayout` is used only for the top block; nested
+  /// blocks must honor the layout established at their control-flow entry.
   cudaq::Placement routeBlock(Block &block, ArrayRef<Value> sources,
-                              ArrayRef<SmallVector<unsigned>> seeds) {
-    RoutingProblem problem =
-        buildRoutingProblem(block, sources, wireToVirtualQ);
-    RoutingSearchStrategy search(
-        device, problem, searchStrategy == SearchStrategy::Sabre, options);
-    RoutingSearchStrategy::Selection selection =
-        search.run(seeds, numV, numPhy);
-    buildBlockResults(block, std::move(selection.result));
-    return std::move(selection.finalLayout);
-  }
+                              ArrayRef<SmallVector<unsigned>> seeds,
+                              bool selectInitialLayout = false) {
+    SmallVector<unsigned> initialLayout;
+    if (selectInitialLayout) {
+      RoutingProblem problem =
+          buildRoutingProblem(block, sources, wireToVirtualQ);
+      RoutingSearchStrategy search(
+          device, problem, searchStrategy == SearchStrategy::Sabre, options);
+      initialLayout = search.run(seeds, numV, numPhy).result.initialLayout;
+    } else {
+      assert(seeds.size() == 1 && "nested block has one entering layout");
+      initialLayout = seeds.front();
+    }
 
-  /// For `blk` (outer or a branch block), store its RoutingResult in
-  /// `blockResults`. Routes branch blocks using the placement at the point each
-  /// cc::IfOp is reached as the seed. Recurses for nested IfOps.
-  void buildBlockResults(Block &blk, RoutingResult flat) {
     RoutingResult result;
-    result.initialLayout = flat.initialLayout;
-    result.swapCount = flat.swapCount;
+    result.initialLayout = initialLayout;
 
     SmallVector<unsigned> replayVqToPhy(numV);
     SmallVector<unsigned> replayPhyToVQ(numPhy, UINT_MAX);
     for (unsigned v = 0; v < numV; ++v) {
-      replayVqToPhy[v] = flat.initialLayout[v];
-      replayPhyToVQ[flat.initialLayout[v]] = v;
+      replayVqToPhy[v] = initialLayout[v];
+      replayPhyToVQ[initialLayout[v]] = v;
     }
-    unsigned srcIdx = 0;
 
     // Route one nested block using the current replay layout as its entry
-    // seed, then recurse to fill its block result. The caller reconciles its
-    // join because if branches, loop back-edges, and scopes use different
-    // predecessor sets.
+    // seed, then recurse to fill its block result. If branches and loop
+    // back-edges still reconcile to their entry layout; an ordinary scope has
+    // one normal exit and deliberately carries its routed layout onward.
     auto routeNested = [&](Block &nested) {
       SmallVector<Value> sources;
       for (auto arg : nested.getArguments())
@@ -1747,72 +1798,106 @@ private:
       routeBlock(nested, sources, {SmallVector<unsigned>(replayVqToPhy)});
     };
 
-    // Process all trace events, routing branch blocks inline when a Kind::If
-    // event is encountered.
-    while (srcIdx < flat.trace.size()) {
-      RoutingEvent &ev = flat.trace[srcIdx++];
-      if (ev.kind == RoutingEvent::Kind::Swap) {
-        unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
-        unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
-        if (v0 != UINT_MAX)
-          replayVqToPhy[v0] = p1;
-        if (v1 != UINT_MAX)
-          replayVqToPhy[v1] = p0;
-        std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
-        result.trace.push_back(std::move(ev));
-      } else if (ev.kind == RoutingEvent::Kind::Gate) {
-        result.trace.push_back(std::move(ev));
-      } else if (ev.kind == RoutingEvent::Kind::If) {
-        auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
-        SmallVector<Block *> branchBlocks;
-        for (Region *region : ifOp.getRegions()) {
-          if (region->empty())
-            continue;
-          routeNested(region->front());
-          branchBlocks.push_back(&region->front());
+    // Apply a routed segment to the block result and route any nested branch
+    // or loop regions at the placement where their event is reached.
+    auto appendSegment = [&](RoutingResult flat) {
+      result.swapCount += flat.swapCount;
+      for (RoutingEvent &ev : flat.trace) {
+        if (ev.kind == RoutingEvent::Kind::Swap) {
+          unsigned p0 = ev.phys[0].index, p1 = ev.phys[1].index;
+          unsigned v0 = replayPhyToVQ[p0], v1 = replayPhyToVQ[p1];
+          if (v0 != UINT_MAX)
+            replayVqToPhy[v0] = p1;
+          if (v1 != UINT_MAX)
+            replayVqToPhy[v1] = p0;
+          std::swap(replayPhyToVQ[p0], replayPhyToVQ[p1]);
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::Gate) {
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::If) {
+          auto ifOp = cast<cudaq::cc::IfOp>(ev.op);
+          SmallVector<Block *> branchBlocks;
+          for (Region *region : ifOp.getRegions()) {
+            if (region->empty())
+              continue;
+            routeNested(region->front());
+            branchBlocks.push_back(&region->front());
+          }
+          // Reconcile the branches at the if-join so they exit at a common
+          // layout. Collect the predecessors after all branches are routed, as
+          // building each result may rehash blockResults.
+          SmallVector<RoutingResult *> branchResults;
+          for (Block *b : branchBlocks)
+            branchResults.push_back(&blockResults[b]);
+          joinStrategy.reconcile(branchResults);
+          assert(!ifOp.hasElse() ||
+                 blockResults[&ifOp.getThenRegion().front()].exitLayout ==
+                     blockResults[&ifOp.getElseRegion().front()].exitLayout);
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::Loop) {
+          auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
+          auto *bodyBlock = loopOp.getDoEntryBlock();
+          routeNested(*bodyBlock);
+          // Reconcile the loop back-edge: the loop invariant is the entry
+          // layout, restored before the body terminator each iteration.
+          RoutingResult *bodyResult = &blockResults[bodyBlock];
+          joinStrategy.reconcile(bodyResult);
+          // Route the step block if present (for-loop style). It carries wires
+          // straight through (quantum gates in a step are rejected), so it
+          // never inserts swaps and needs no back-edge reconciliation.
+          if (loopOp.hasStep())
+            routeNested(*loopOp.getStepBlock());
+          result.trace.push_back(std::move(ev));
+        } else if (ev.kind == RoutingEvent::Kind::Scope) {
+          llvm_unreachable("scopes delimit routing segments");
+        } else {
+          llvm_unreachable("unhandled RoutingEvent::Kind");
         }
-        // Reconcile the branches at the if-join so they exit at a common
-        // layout. Collect the predecessors after all branches are routed, as
-        // building each result may rehash blockResults.
-        SmallVector<RoutingResult *> branchResults;
-        for (Block *b : branchBlocks)
-          branchResults.push_back(&blockResults[b]);
-        joinStrategy.reconcile(branchResults);
-        assert(!ifOp.hasElse() ||
-               blockResults[&ifOp.getThenRegion().front()].exitLayout ==
-                   blockResults[&ifOp.getElseRegion().front()].exitLayout);
-        result.trace.push_back(std::move(ev));
-      } else if (ev.kind == RoutingEvent::Kind::Loop) {
-        auto loopOp = cast<cudaq::cc::LoopOp>(ev.op);
-        auto *bodyBlock = loopOp.getDoEntryBlock();
-        routeNested(*bodyBlock);
-        // Reconcile the loop back-edge: the loop invariant is the entry
-        // layout, restored before the body terminator each iteration.
-        RoutingResult *bodyResult = &blockResults[bodyBlock];
-        joinStrategy.reconcile(bodyResult);
-        // Route the step block if present (for-loop style). It carries wires
-        // straight through (quantum gates in a step are rejected), so it
-        // never inserts swaps and needs no back-edge reconciliation.
-        if (loopOp.hasStep())
-          routeNested(*loopOp.getStepBlock());
-        result.trace.push_back(std::move(ev));
-      } else if (ev.kind == RoutingEvent::Kind::Scope) {
-        auto scope = cast<cudaq::cc::ScopeOp>(ev.op);
-        Block &scopeBlock = scope.getInitRegion().front();
-        routeBlock(scopeBlock, getScopeCaptureWires(scope),
-                   {SmallVector<unsigned>(replayVqToPhy)});
-        RoutingResult *scopeResult = &blockResults[&scopeBlock];
-        // A scope has one normal exit. Restore its body before continue so the
-        // enclosing block observes exactly the layout it had on entry.
-        joinStrategy.reconcile(scopeResult);
-        result.trace.push_back(std::move(ev));
-      } else {
-        llvm_unreachable("unhandled RoutingEvent::Kind");
       }
+    };
+
+    auto routeSegment = [&](Block::iterator first, Block::iterator last) {
+      if (first == last)
+        return;
+      SmallVector<Value> segmentSources =
+          getSegmentSources(first, last, sources);
+      RoutingProblem problem = buildRoutingProblem(
+          block, first, last, segmentSources, wireToVirtualQ);
+      // The current placement is an IR-visible routing invariant. Refining it
+      // here would silently disconnect this segment from its predecessor.
+      RoutingSearchStrategy search(device, problem, /*refine=*/false, options);
+      appendSegment(
+          search.run({SmallVector<unsigned>(replayVqToPhy)}, numV, numPhy)
+              .result);
+    };
+
+    auto segmentFirst = block.begin();
+    for (auto it = block.begin(), end = block.end(); it != end; ++it) {
+      auto scope = dyn_cast<cudaq::cc::ScopeOp>(*it);
+      if (!scope)
+        continue;
+      routeSegment(segmentFirst, it);
+      Block &scopeBlock = scope.getInitRegion().front();
+      routeBlock(scopeBlock, getScopeCaptureWires(scope),
+                 {SmallVector<unsigned>(replayVqToPhy)});
+      const RoutingResult &scopeResult = blockResults.at(&scopeBlock);
+      replayVqToPhy = scopeResult.exitLayout;
+      std::fill(replayPhyToVQ.begin(), replayPhyToVQ.end(), UINT_MAX);
+      for (unsigned v = 0; v < numV; ++v)
+        replayPhyToVQ[replayVqToPhy[v]] = v;
+      result.trace.push_back(RoutingEvent::makeScope(scope.getOperation()));
+      segmentFirst = std::next(it);
     }
+    routeSegment(segmentFirst, block.end());
     result.exitLayout =
         SmallVector<unsigned>(replayVqToPhy.begin(), replayVqToPhy.end());
-    blockResults[&blk] = std::move(result);
+    blockResults[&block] = std::move(result);
+
+    cudaq::Placement finalLayout(numV, numPhy);
+    for (unsigned v = 0; v < numV; ++v)
+      finalLayout.map(cudaq::Placement::VirtualQ(v),
+                      cudaq::Placement::DeviceQ(replayVqToPhy[v]));
+    return finalLayout;
   }
 
   const cudaq::Device &device;
@@ -2430,8 +2515,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         for (Value result : scope->getResults())
           if (isa<cudaq::quake::WireType>(result.getType()))
             wireResults.push_back(result);
-        // Routing restores the body layout at the scope exit, then reconstructs
-        // the caller's physical-wire table from the scope results. This subset
+        // The parent resumes from the body layout at the scope exit, using the
+        // scope results to reconstruct its physical-wire table. This subset
         // therefore accepts only transparent scopes whose captured wires all
         // remain live after the scope.
         if (capturedWires.size() != wireResults.size()) {
