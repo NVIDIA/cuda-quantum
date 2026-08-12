@@ -61,6 +61,8 @@ struct CompileTarget {
       return overridePassPipeline.empty() && highLevelPipeline.empty() &&
              midLevelPipeline.empty() && lowLevelPipeline.empty();
     }
+
+    bool operator==(const PipelineConfig &other) const = default;
   };
 
   /// Pipeline configuration, populated by the constructor.
@@ -97,6 +99,8 @@ struct CompileTarget {
                 std::map<std::string, std::string> pipelineSubstitutions = {});
 
   CompileTarget() = default;
+
+  bool operator==(const CompileTarget &other) const = default;
 };
 
 } // namespace cudaq
@@ -104,4 +108,9 @@ struct CompileTarget {
 template <>
 struct std::hash<cudaq::CompileTarget> {
   std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
+};
+template <>
+struct std::hash<cudaq::CompileTarget::PipelineConfig> {
+  std::size_t
+  operator()(const cudaq::CompileTarget::PipelineConfig &pc) const noexcept;
 };

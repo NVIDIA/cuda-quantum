@@ -12,7 +12,11 @@ may involve undocumented foot guns.
 """
 
 from .runtime_endpoint import set_runtime_endpoint
+from .compile_target import CompileTarget, PipelineConfig, set_compile_target
 
 __all__ = [
+    "CompileTarget",
+    "PipelineConfig",
+    "set_compile_target",
     "set_runtime_endpoint",
 ]
