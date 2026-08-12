@@ -1,0 +1,140 @@
+# Manually build cudaq-devel wheels and upload them as workflow artifacts. For now this needs
+# to be triggered manually whenever we want to build a new devel wheel.
+
+name: Python devel wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      runtime_wheel_url:
+        required: false
+        type: string
+        description: 'Optional: URL of a cuda-quantum runtime wheel artifact (e.g. .../actions/runs/RUN_ID/artifacts/ARTIFACT_ID). Defaults to the latest CI run on main.'
+
+jobs:
+  build_devel_wheel:
+    name: Build cudaq-devel wheel
+    runs-on: linux-amd64-cpu8
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git -c submodule.tpls/llvm.update=none submodule update --init --recursive
+
+      - name: Compute CUDA-Q version
+        id: version
+        uses: ./.github/actions/compute-cudaq-version
+
+      - name: Resolve runtime wheel artifact
+        id: runtime_artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ARTIFACT_NAME: pycudaq-3-11-manylinux-amd64-cu13-0-gcc12-main
+          WHEEL_URL: ${{ inputs.runtime_wheel_url }}
+        run: |
+          if [ -n "$WHEEL_URL" ]; then
+            run_id=$(echo "$WHEEL_URL" | sed -n 's|.*/runs/\([0-9]*\)/.*|\1|p')
+            artifact_id=$(echo "$WHEEL_URL" | sed -n 's|.*/artifacts/\([0-9]*\)$|\1|p')
+            if [ -z "$run_id" ] || [ -z "$artifact_id" ]; then
+              echo "::error::Could not parse run and artifact id from: $WHEEL_URL"
+              exit 1
+            fi
+          else
+            artifact=$(gh api "repos/$REPO/actions/artifacts?name=$ARTIFACT_NAME&per_page=100" \
+              --jq '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "main")]
+                    | sort_by(.created_at) | last')
+            if [ -z "$artifact" ] || [ "$artifact" = "null" ]; then
+              echo "::error::No unexpired $ARTIFACT_NAME artifact built from main. Wheels are only kept for a day; pass runtime_wheel_url to use a specific artifact instead."
+              exit 1
+            fi
+            run_id=$(echo "$artifact" | jq -r '.workflow_run.id')
+            artifact_id=$(echo "$artifact" | jq -r '.id')
+          fi
+          echo "Using artifact $artifact_id from run $run_id"
+          echo "run_id=$run_id" >> $GITHUB_OUTPUT
+          echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
+
+      - name: Download runtime wheel
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ steps.runtime_artifact.outputs.run_id }}
+          artifact-ids: ${{ steps.runtime_artifact.outputs.artifact_id }}
+          path: runtime/
+          github-token: ${{ github.token }}
+
+      - name: Resolve runtime wheel Python version
+        id: runtime_wheel
+        run: |
+          whl=$(find runtime -name 'cuda_quantum_cu13*.whl' | head -1)
+          if [ -z "$whl" ]; then
+            echo "::error::No cuda_quantum_cu13*.whl found under runtime/"
+            find runtime -type f || true
+            exit 1
+          fi
+          py=$(basename "$whl" | sed -nE 's/.*-cp3([0-9]+)-cp3[0-9]+.*/3.\1/p')
+          if [ -z "$py" ]; then
+            echo "::error::Could not parse Python version from wheel: $whl"
+            exit 1
+          fi
+          echo "Using runtime wheel: $whl (Python $py)"
+          echo "python_version=$py" >> $GITHUB_OUTPUT
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up validation toolchain
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          py="${{ steps.runtime_wheel.outputs.python_version }}"
+          uv python install "$py"
+          uv tool install "cmake==4.0.3"
+          uv tool install "ninja==1.13.0"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          retry sudo apt-get update
+          retry sudo apt-get install -y g++-12
+          echo "CC=gcc-12" >> $GITHUB_ENV
+          echo "CXX=g++-12" >> $GITHUB_ENV
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build cudaq-devel wheel
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.cudaq_version }}
+          BASE_IMAGE: ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu13.0-gcc12-main
+        run: |
+          mkdir -p dist
+          DOCKER_BUILDKIT=1 docker build \
+            -f docker/release/cudaq.wheel.Dockerfile \
+            --build-arg base_image="${BASE_IMAGE}" \
+            --build-arg release_version="${RELEASE_VERSION}" \
+            --build-arg python_version="${{ steps.runtime_wheel.outputs.python_version }}" \
+            --build-arg build_devel=1 \
+            --output dist .
+
+      - name: Validate devel wheel contents
+        run: |
+          py="${{ steps.runtime_wheel.outputs.python_version }}"
+          PYTHON="$(uv python find "$py")" bash scripts/validate_devel_wheel.sh -i dist -r runtime
+
+      - name: Upload devel wheel artifact
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/cudaq_devel*.whl
+          archive: false
+          if-no-files-found: error

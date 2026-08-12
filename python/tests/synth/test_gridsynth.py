@@ -130,6 +130,16 @@ def test_cliffordt_sequence_t_count():
     assert seq.t_count == 2
 
 
+def test_cliffordt_sequence_normalized():
+    sequence = synth.CliffordTSequence("TST")
+    normalized = sequence.normalized()
+
+    assert isinstance(normalized, synth.CliffordTSequence)
+    assert str(normalized) == "SS"
+    assert normalized.normalized() == normalized
+    assert normalized.t_count < sequence.t_count
+
+
 def test_cliffordt_sequence_to_kernel_approximates_rz():
     cudaq = pytest.importorskip("cudaq")
     np = pytest.importorskip("numpy")

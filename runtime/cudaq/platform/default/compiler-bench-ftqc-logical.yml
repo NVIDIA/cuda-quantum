@@ -15,5 +15,5 @@ config:
   # memory semantics, then enter value semantics once for local gate
   # simplification. The basis preserves T-family gates and unresolved
   # single-qubit rotations for layer-one FTQC metrics.
-  jit-mid-level-pipeline: "decomposition{basis=h,s,t,rx,ry,rz,x,y,z,x(1),y(1),z(1),x(2),z(2)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(quake-simplify,canonicalize,dqe,regtomem)"
+  jit-mid-level-pipeline: "decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(quake-simplify),optimize-1q-clifford-t,func.func(canonicalize,dqe,regtomem)"
   

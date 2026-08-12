@@ -210,6 +210,12 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     Option<"onDynamicAngle", "on-dynamic-angle", "std::string",
       /*default=*/"\"error\"",
       "Behavior on non-constant rotation angles: 'error' or 'skip'.">,
+    // TODO: Remove this option once controlled Clifford+T synthesis preserves
+    // the synthesis global phase.
+    Option<"failOnControlledRotation", "fail-on-controlled-rotation", "bool",
+      /*default=*/"false",
+      "Fail instead of preserving a controlled rotation that cannot be "
+      "synthesized without global-phase support.">,
     Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
       "Erase (treat as identity) rotations whose |theta| is below this "
       "threshold, rather than synthesizing a Clifford+T approximation for "
@@ -218,6 +224,25 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
   ];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
+}
+
+def OptimizeSingleQubitCliffordT
+    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+  let summary = "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
+  let description = [{
+    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Rewrites block-local chains of exact, uncontrolled one-qubit Clifford+T
+    operations on scalar `!quake.wire` values to Matsumoto-Amano normal form.
+    The pass leaves unsupported operations and wire-flow boundaries unchanged.
+
+    The normal form is defined by K. Matsumoto and K. Amano, "Representation
+    of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,
+    https://arxiv.org/abs/0806.3834.
+
+  }];
+  let dependentDialects = ["quake::QuakeDialect"];
 }
 
 def PruneNegligibleRotations

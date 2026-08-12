@@ -124,6 +124,7 @@ should_skip_install_validation_target() {
     "opt-test.yml"
     "compiler-bench-nisq.yml"
     "compiler-bench-ftqc-logical.yml"
+    "compiler-bench-ftqc-clifford-t.yml"
   )
 
   for skipped_target_config in "${skipped_target_configs[@]}"; do
