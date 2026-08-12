@@ -29,7 +29,6 @@
  */
 
 using namespace mlir;
-using cudaq::opt::QuakeOperatorCreator;
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternTypeRegistry)
 
@@ -170,6 +169,8 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
 //===----------------------------------------------------------------------===//
 
 namespace {
+using cudaq::opt::decomp::QuakeOperatorCreator;
+
 // quake.h target
 // ───────────────────────────────────
 // quake.phased_rx(π/2, π/2) target

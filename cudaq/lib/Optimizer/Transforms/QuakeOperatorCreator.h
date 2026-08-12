@@ -14,7 +14,7 @@
 #include <cassert>
 #include <cstddef>
 
-namespace cudaq::opt {
+namespace cudaq::opt::decomp {
 using namespace mlir;
 
 /// @brief This is a wrapper class for `PatternRewriter::create<>()` for
@@ -206,4 +206,4 @@ private:
   PatternRewriter &rewriter;
 };
 
-} // namespace cudaq::opt
+} // namespace cudaq::opt::decomp

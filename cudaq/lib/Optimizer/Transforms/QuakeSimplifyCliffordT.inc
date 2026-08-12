@@ -6,8 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-namespace {
-
 constexpr double quarterTurn = llvm::numbers::pi / 4.0;
 
 /// Reconstruct the correctly rounded binary64 value of mathematical k*pi/4.
@@ -74,7 +72,7 @@ static Value emitSimplifiedRotation(PatternRewriter &rewriter, QOP rotation,
                                 cudaq::quake::RzOp>::value);
 
   const Location location = rotation.getLoc();
-  cudaq::opt::QuakeOperatorCreator creator(rewriter);
+  cudaq::opt::decomp::QuakeOperatorCreator creator(rewriter);
   Value target = rotation.getTarget();
   const unsigned rotationClass =
       static_cast<unsigned>(llvm::mod(quarterTurns, 8));
@@ -210,5 +208,3 @@ static void populateCliffordTRotationPatterns(RewritePatternSet &patterns,
                CliffordTRotation<cudaq::quake::RzOp>>(
       patterns.getContext(), epsilon, stat);
 }
-
-} // namespace
