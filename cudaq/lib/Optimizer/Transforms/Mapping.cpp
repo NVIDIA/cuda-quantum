@@ -935,6 +935,13 @@ static bool hasScopeLocalBorrow(cudaq::cc::ScopeOp scope) {
   return found;
 }
 
+/// Return whether `op` is routed recursively instead of as a physical gate.
+/// This is the mapper's supported structured-control-flow subset, not a
+/// dialect-wide classification of region operations.
+static bool isStructuredRoutingOperation(Operation *op) {
+  return isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(op);
+}
+
 /// Build the routing problem from `block`. The nodes are the routable
 /// operations that `isSupportedMappingOperation` accepts, other than the source
 /// borrows. Edges and source successors are captured in MLIR use-list order so
@@ -990,10 +997,9 @@ RoutingProblem buildRoutingProblem(
           out.push_back(it->second);
   };
   for (auto &node : problem.nodes) {
-    auto wireResults =
-        isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(node.op)
-            ? node.op->getResults()
-            : cudaq::quake::getQuantumResults(node.op);
+    auto wireResults = isStructuredRoutingOperation(node.op)
+                           ? node.op->getResults()
+                           : cudaq::quake::getQuantumResults(node.op);
     for (Value wire : wireResults)
       if (isa<cudaq::quake::WireType>(wire.getType()))
         recordWireUsers(wire, node.successors);
@@ -1236,8 +1242,7 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
 
   // An operation cannot be mapped if it is not a measurement and uses two
   // virtual qubits that are not adjacently placed.
-  if (!node.isMeasure &&
-      !isa<cudaq::cc::IfOp, cudaq::cc::LoopOp, cudaq::cc::ScopeOp>(node.op) &&
+  if (!node.isMeasure && !isStructuredRoutingOperation(node.op) &&
       deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
