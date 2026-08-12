@@ -111,25 +111,25 @@ branch or region should thread quantum values through the relevant block
 arguments and region results and use the appropriate dominance, control-flow,
 and effect analyses.
 
-Optimize within or across blocks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Optimize within blocks and across scopes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A pass should state whether it optimizes within individual blocks or across
-block boundaries. A block-local pass may optimize each block independently, but
-must not relate operations across block edges. A pass that crosses blocks must
-model the relevant control flow and preserve linear wire threading on every
-path.
+Most quantum optimization passes should keep searches within a block. Local
+rewrite patterns may operate on a single operation or a directly connected
+use-def chain. A pass must not relate operations across branches or loops
+unless it models the relevant control flow and preserves linear wire threading
+on every path. Treat calls as boundaries unless they have been inlined or the
+pass explicitly supports optimization across calls.
 
-Frontend lowering and inlining commonly introduce ``cc.scope``. Unless
-block-local behavior is an intentional restriction, circuit optimizations
-should work inside and across ordinary scopes when wire threading is
-unambiguous. This does not require general control-flow support. The rewrite
-must still preserve the scope's allocation lifetimes and cleanup.
+Ordinary ``cc.scope`` operations are the common exception. Frontend lowering
+and inlining introduce them frequently, so circuit optimizations should work
+within and across scopes when wire threading is unambiguous. This does not
+require general control-flow support. Rewrites may cross the scope boundary
+only when they do not move scoped allocations or their uses, or bypass cleanup
+performed when the scope exits.
 
-Treat other control flow, including branches and loops, as a boundary unless
-the pass explicitly supports it. Tests should cover optimization within a
-block, across an ordinary scope, and conservative behavior at an unsupported
-control-flow boundary.
+Tests should cover optimization within a block, across an ordinary scope, and
+conservative behavior at an unsupported control-flow boundary.
 
 Pipeline integration should keep related quantum optimizations together in a
 value-form portion of the pipeline. A quantum optimization should not require
