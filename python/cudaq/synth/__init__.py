@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from typing import Optional
+
 from ._cudaq_synth import gridsynth as _gridsynth
 from ._cudaq_synth import _normalized
 from ._cudaq_synth import rz_error as _rz_error
@@ -112,7 +114,8 @@ class CliffordTSequence:
 def gridsynth(theta,
               epsilon,
               diophantine_timeout_ms: int = 200,
-              factoring_timeout_ms: int = 50) -> CliffordTSequence:
+              factoring_timeout_ms: int = 50,
+              seed: Optional[int] = None) -> CliffordTSequence:
     """Synthesize a Clifford+T sequence approximating R_z(theta).
 
     Implements the grid-synthesis algorithm of Ross & Selinger
@@ -131,6 +134,12 @@ def gridsynth(theta,
             worst-case latency. Default 200.
         factoring_timeout_ms: Per-candidate timeout for integer factoring
             inside the Diophantine solver. Default 50.
+        seed: Seed for the internal factoring RNG. Default ``None`` draws
+            from the system entropy source, so repeated calls on the same
+            input explore different factoring attempts and their runtimes
+            can differ by orders of magnitude. Pass an `int` to make a run
+            replayable. Reproducibility also requires that neither timeout
+            fire, since those are wall-clock and machine-dependent.
 
     Returns:
         A :class:`CliffordTSequence`. ``str()`` of the result is the gate
@@ -145,8 +154,8 @@ def gridsynth(theta,
             epsilon region or search space exhausted).
     """
     return CliffordTSequence(
-        _gridsynth(theta, epsilon, diophantine_timeout_ms,
-                   factoring_timeout_ms))
+        _gridsynth(theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms,
+                   seed))
 
 
 def rz_error(theta, sequence) -> float:

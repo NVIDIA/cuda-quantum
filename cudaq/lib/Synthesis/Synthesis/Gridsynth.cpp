@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <optional>
+#include <string>
 
 #define DEBUG_TYPE "cudaq-synth"
 
@@ -319,14 +320,23 @@ mpfr_prec_t details::required_precision(const Real &epsilon) {
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                                  const Real &epsilon,
                                                  int32_t diophantine_timeout_ms,
-                                                 int32_t factoring_timeout_ms) {
+                                                 int32_t factoring_timeout_ms,
+                                                 std::optional<uint64_t> seed) {
   CUDAQ_SYNTH_OPEN_SUB("gridsynth_unitary");
   LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << "\n";
              cudaq::synth::dbgs() << "eps=" << epsilon << "\n";
              cudaq::synth::dbgs() << "diophantine_timeout="
                                   << diophantine_timeout_ms << "ms" << "\n";
              cudaq::synth::dbgs()
-             << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n");
+             << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n";
+             cudaq::synth::dbgs()
+             << "seed=" << (seed ? std::to_string(*seed) : "unset") << "\n");
+
+  // Reseed once for the whole search rather than per candidate: the candidates
+  // share one random stream, so re-seeding inside the loop would make every
+  // candidate replay the same factoring attempts.
+  if (seed)
+    seed_factoring_rng(*seed);
 
   // Reject NaN / infinity / non-positive inputs here.
   if (!theta.is_finite()) {
@@ -494,13 +504,14 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                                    int32_t diophantine_timeout_ms,
-                                   int32_t factoring_timeout_ms) {
+                                   int32_t factoring_timeout_ms,
+                                   std::optional<uint64_t> seed) {
   CUDAQ_SYNTH_OPEN("gridsynth");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "theta=" << theta << ", eps=" << epsilon << '\n');
 
   llvm::FailureOr<DOmegaUnitary> u_or = gridsynth_unitary(
-      theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms);
+      theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms, seed);
   if (llvm::failed(u_or)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("synthesis failed");
     return llvm::failure();

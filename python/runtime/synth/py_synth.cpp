@@ -13,9 +13,11 @@
 #include "llvm/Support/LogicalResult.h"
 
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/variant.h>
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
@@ -42,7 +44,8 @@ cudaq::synth::Real toReal(const RealArg &arg, const char *name) {
 
 std::string gridsynthBinding(RealArg theta, RealArg epsilon,
                              int diophantine_timeout_ms,
-                             int factoring_timeout_ms) {
+                             int factoring_timeout_ms,
+                             std::optional<uint64_t> seed) {
   // Parse epsilon once at the stock precision, which is ample to read off its
   // magnitude, and validate before deriving anything from it.
   cudaq::synth::Real epsilonProbe = toReal(epsilon, "epsilon");
@@ -64,8 +67,9 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
   llvm::FailureOr<cudaq::synth::Circuit> result = llvm::failure();
   {
     nanobind::gil_scoped_release nogil;
-    result = cudaq::synth::gridsynth(
-        thetaReal, epsilonReal, diophantine_timeout_ms, factoring_timeout_ms);
+    result =
+        cudaq::synth::gridsynth(thetaReal, epsilonReal, diophantine_timeout_ms,
+                                factoring_timeout_ms, seed);
   }
   if (llvm::failed(result))
     throw nanobind::value_error(
@@ -120,6 +124,7 @@ NB_MODULE(_cudaq_synth, m) {
       "gridsynth", &gridsynthBinding, nanobind::arg("theta"),
       nanobind::arg("epsilon"), nanobind::arg("diophantine_timeout_ms") = 200,
       nanobind::arg("factoring_timeout_ms") = 50,
+      nanobind::arg("seed") = nanobind::none(),
       R"doc(Synthesize a Clifford+T circuit approximating R_z(theta) to precision epsilon.
 
 Implements the grid-synthesis algorithm of Ross & Selinger (arXiv:1403.2975,
@@ -140,6 +145,12 @@ Args:
         worst-case latency. Default 200.
     factoring_timeout_ms: Per-candidate timeout for integer factoring
         inside the Diophantine solver. Default 50.
+    seed: Seed for the internal factoring RNG. Default None draws from
+        the system entropy source, so repeated calls on the same input
+        explore different factoring attempts and their runtimes can
+        differ by orders of magnitude. Pass an integer to make a run
+        replayable. Reproducibility also requires that neither timeout
+        fire, since those are wall-clock and machine-dependent.
 
 Returns:
     A string of gate characters from the alphabet {H, S, T, X, W}, where

@@ -1099,6 +1099,14 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 } // namespace
 
 //===----------------------------------------------------------------------===//
+// Public API: RNG seeding
+//===----------------------------------------------------------------------===//
+
+void cudaq::synth::seed_factoring_rng(uint64_t seed) {
+  gmp_randseed_ui(global_rng().state, static_cast<unsigned long>(seed));
+}
+
+//===----------------------------------------------------------------------===//
 // Public API: D[sqrt(2)] solver   (Theorem 6.2 / Lemma C.25)
 //===----------------------------------------------------------------------===//
 

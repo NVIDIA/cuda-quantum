@@ -12,6 +12,8 @@
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "llvm/Support/LogicalResult.h"
 
+#include <cstdint>
+
 namespace cudaq::synth {
 
 //===----------------------------------------------------------------------===//
@@ -51,5 +53,19 @@ namespace cudaq::synth {
 llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
                                            int32_t diophantine_timeout,
                                            int32_t factoring_timeout);
+
+/// Reseed the calling thread's random state used by the Pollard-rho factoring
+/// heuristic.
+///
+/// The state is otherwise seeded once per thread from `std::random_device`, so
+/// two runs of the same input explore different factoring attempts and can
+/// differ in runtime by orders of magnitude. Seeding explicitly makes a run
+/// replayable, which is a prerequisite for benchmark numbers being evidence
+/// rather than a single draw from a wide distribution.
+///
+/// Affects only the calling thread. Determinism additionally requires that the
+/// run not be cut short by a wall-clock budget, since those remain
+/// machine-dependent.
+void seed_factoring_rng(uint64_t seed);
 
 } // namespace cudaq::synth

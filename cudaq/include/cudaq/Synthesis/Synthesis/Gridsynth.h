@@ -14,6 +14,8 @@
 #include "llvm/Support/LogicalResult.h"
 
 #include <cmath>
+#include <cstdint>
+#include <optional>
 
 namespace cudaq::synth {
 
@@ -76,10 +78,19 @@ mpfr_prec_t required_precision(const Real &epsilon);
 /// @param epsilon                Approximation precision, must be finite > 0.
 /// @param diophantine_timeout_ms Per-candidate Diophantine budget.
 /// @param factoring_timeout_ms   Per-attempt integer-factoring budget.
+/// @param seed                   Seed for the factoring RNG. Unset draws from
+///                               `std::random_device`, as before.
+///
+/// Passing `seed` makes the search replayable: the same seed and the same
+/// options yield the same result, provided neither timeout fires. Because the
+/// timeouts are wall-clock, a run that hits one stays machine-dependent -- so
+/// reproducing a result across hosts also means giving the budgets enough room
+/// not to bind.
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(
     const Real &theta, const Real &epsilon,
     int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-    int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);
+    int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS,
+    std::optional<uint64_t> seed = std::nullopt);
 
 /// End-to-end `gridsynth` entry point: search for a DOmegaUnitary via
 /// `gridsynth_unitary`, then realize it as an explicit Clifford+T circuit
@@ -88,6 +99,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(
 llvm::FailureOr<Circuit> gridsynth(
     const Real &theta, const Real &epsilon,
     int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-    int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);
+    int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS,
+    std::optional<uint64_t> seed = std::nullopt);
 
 } // namespace cudaq::synth
