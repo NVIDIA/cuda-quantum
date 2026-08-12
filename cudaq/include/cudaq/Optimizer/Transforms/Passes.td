@@ -226,6 +226,25 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
                            "quake::QuakeDialect"];
 }
 
+def OptimizeSingleQubitCliffordT
+    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+  let summary = "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
+  let description = [{
+    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Rewrites block-local chains of exact, uncontrolled one-qubit Clifford+T
+    operations on scalar `!quake.wire` values to Matsumoto-Amano normal form.
+    The pass leaves unsupported operations and wire-flow boundaries unchanged.
+
+    The normal form is defined by K. Matsumoto and K. Amano, "Representation
+    of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,
+    https://arxiv.org/abs/0806.3834.
+
+  }];
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def PruneNegligibleRotations
     : Pass<"prune-negligible-rotations", "mlir::func::FuncOp"> {
   let summary = "Erase constant-angle rotations that are effectively identity.";

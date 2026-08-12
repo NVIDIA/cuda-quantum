@@ -26,6 +26,7 @@ if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARIES OR
 endif()
 
 add_cudaq_library(cudaq-synth
+  Circuit/Circuit.cpp
   Math/Diophantine.cpp
   Math/Geometry/Ellipse.cpp
   Math/Geometry/Rectangle.cpp
