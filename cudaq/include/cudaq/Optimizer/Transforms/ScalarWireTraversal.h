@@ -30,7 +30,7 @@ struct ScalarWireStep {
 /// the sole use or defining operation and may enter nested ordinary scopes.
 /// Scope steps cross a single-block `cc.scope` only through its terminating
 /// `cc.continue`, whose scalar-wire operand and result must correspond
-/// positionally. Forks, branches, loops, calls, unwinds, and every other
+/// `positionally`. Forks, branches, loops, calls, unwinds, and every other
 /// unsupported boundary return `std::nullopt`. The helper describes value flow
 /// only; callers decide whether the reached operation is suitable for their
 /// analysis or rewrite.
