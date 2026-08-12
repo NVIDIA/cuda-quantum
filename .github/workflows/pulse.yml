@@ -215,7 +215,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCUDAQ_BUILD_TESTS=ON \
             -DCUDAQ_PULSE_BUILD_DOCS=ON \
-            -DPython3_EXECUTABLE="${{ steps.cudaq.outputs.venv-path }}/bin/python"
+            -DPython3_EXECUTABLE="${{ steps.cudaq.outputs.venv_path }}/bin/python"
 
       - name: Build, test, and generate docs
         run: |
@@ -249,6 +249,12 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ github.token }}
+
+    # The devcontainer's default shell is dash (/bin/sh); force bash so the
+    # `run` steps below can use bash features (`${!var}`, `mapfile`).
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Check out CUDA-Q
@@ -302,7 +308,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCUDAQ_BUILD_TESTS=ON \
             -DCUDENSITYMAT_ROOT="$CUDENSITYMAT_ROOT" \
-            -DPython3_EXECUTABLE="${{ steps.cudaq.outputs.venv-path }}/bin/python"
+            -DPython3_EXECUTABLE="${{ steps.cudaq.outputs.venv_path }}/bin/python"
 
       - name: Build and run numerical GPU tests
         run: |
