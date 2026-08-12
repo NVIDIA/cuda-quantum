@@ -212,7 +212,7 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
     return;
 
   Operation *destination = phase->getNextNode();
-  bool crossedOperation = false;
+  bool foundNewPlacement = false;
   for (Operation *cursor = phase->getNextNode(); cursor;
        cursor = cursor->getNextNode()) {
     if (!isSafeToCross(cursor)) {
@@ -226,11 +226,11 @@ static void sinkPhase(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
         break;
       }
 
-    crossedOperation = true;
+    foundNewPlacement = true;
     destination = cursor->getNextNode();
   }
 
-  if (!crossedOperation)
+  if (!foundNewPlacement)
     return;
   for (Value control : controls)
     if (!hasUnambiguousWireUse(control))
