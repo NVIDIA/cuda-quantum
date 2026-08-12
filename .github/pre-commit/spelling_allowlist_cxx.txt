@@ -1,7 +1,14 @@
+Dormand
+Higham
+atol
 clang
 dlopen
+dt
 gcc
 nullary
+nullptr
 pre
+rtol
+sqrt
 typedef
 unwinder

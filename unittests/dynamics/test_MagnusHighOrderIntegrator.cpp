@@ -14,11 +14,22 @@
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cmath>
+#include <complex>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
 using namespace cudaq;
+
+namespace {
+// Time-dependent drive parameters for the convergence-order test:
+// H(t) = kDriveOmega * cos(kDriveNu * t) * X.
+constexpr double kDriveOmega = 2.0 * M_PI * 0.4;
+constexpr double kDriveNu = 2.0 * M_PI * 0.7;
+} // namespace
 
 class MagnusHighOrderIntegratorTest : public ::testing::Test {
 protected:
@@ -144,6 +155,67 @@ TEST_F(MagnusHighOrderIntegratorTest, MatchesMagnusExpansion) {
   }
 }
 
+// The CF4 propagator is 4th-order accurate: for a genuinely time-dependent
+// Hamiltonian, halving the step should shrink the global error by ~2^4 = 16.
+// Using a well-resolved run as the reference, we check the empirical order is
+// close to 4.
+TEST_F(MagnusHighOrderIntegratorTest, ConvergenceOrder) {
+  const std::vector<int64_t> dims = {2};
+
+  auto driveFn =
+      [](const std::unordered_map<std::string, std::complex<double>> &params) {
+        auto it = params.find("t");
+        if (it == params.end())
+          throw std::runtime_error("missing schedule parameter 't'");
+        const double t = it->second.real();
+        return std::complex<double>(kDriveOmega * std::cos(kDriveNu * t), 0.0);
+      };
+  cudaq::product_op<cudaq::matrix_handler> ham_t =
+      cudaq::scalar_operator(driveFn) * cudaq::spin_op::x(0);
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham_t);
+  SystemDynamics system(dims, ham);
+
+  const double tFinal = 1.0;
+
+  auto run = [&](double maxStep) {
+    cudaq::integrators::magnus_cf4 integrator(maxStep);
+    auto st = makeDensityMatrixState({{1.0, 0.0}, {0.0, 0.0}}, dims);
+    integrator.setState(st, 0.0);
+    auto sched = makeSchedule(tFinal, 2);
+    cudaq::integrator_helper::init_system_dynamics(integrator, system, sched);
+    integrator.integrate(tFinal);
+    auto [t, state] = integrator.getState();
+    std::vector<std::complex<double>> rho(4);
+    state.to_host(rho.data(), rho.size());
+    return rho;
+  };
+
+  const auto reference = run(tFinal / 2048.0);
+  const auto coarse = run(tFinal / 32.0);
+  const auto fine = run(tFinal / 64.0);
+
+  auto l2diff = [](const std::vector<std::complex<double>> &a,
+                   const std::vector<std::complex<double>> &b) {
+    double s = 0.0;
+    for (std::size_t i = 0; i < a.size(); ++i)
+      s += std::norm(a[i] - b[i]);
+    return std::sqrt(s);
+  };
+
+  const double errCoarse = l2diff(coarse, reference);
+  const double errFine = l2diff(fine, reference);
+  ASSERT_GT(errCoarse, 1e-12)
+      << "coarse-step error should be measurable above the reference floor";
+  ASSERT_GT(errFine, 0.0);
+
+  const double order = std::log2(errCoarse / errFine);
+  EXPECT_GE(order, 3.5) << "observed convergence order too low: " << order
+                        << " (errCoarse=" << errCoarse
+                        << ", errFine=" << errFine << ")";
+  EXPECT_LE(order, 4.8) << "observed convergence order unexpectedly high: "
+                        << order;
+}
+
 TEST_F(MagnusHighOrderIntegratorTest, CloneReproducesTrajectory) {
   const std::vector<int64_t> dims = {2};
   cudaq::sum_op<cudaq::matrix_handler> ham(2.0 * M_PI * 0.1 *
@@ -158,6 +230,24 @@ TEST_F(MagnusHighOrderIntegratorTest, CloneReproducesTrajectory) {
   integrator.integrate(0.5);
 
   auto cloned = integrator.clone();
+
+  // clone() must deep-copy the state: the two integrators must own distinct
+  // device buffers. If they aliased one buffer (shared shared_ptr), stepping
+  // the clone would mutate the original's state in place and this test would
+  // pass by construction rather than by reproducing the trajectory.
+  {
+    auto [tc, cloneState0] = cloned->getState();
+    auto [to, origState0] = integrator.getState();
+    auto *cloneCudm = dynamic_cast<CuDensityMatState *>(
+        cudaq::state_helper::getSimulationState(&cloneState0));
+    auto *origCudm = dynamic_cast<CuDensityMatState *>(
+        cudaq::state_helper::getSimulationState(&origState0));
+    ASSERT_NE(cloneCudm, nullptr);
+    ASSERT_NE(origCudm, nullptr);
+    EXPECT_NE(cloneCudm->get_device_pointer(), origCudm->get_device_pointer())
+        << "clone() must own a distinct device buffer";
+  }
+
   cloned->integrate(1.0);
   integrator.integrate(1.0);
 

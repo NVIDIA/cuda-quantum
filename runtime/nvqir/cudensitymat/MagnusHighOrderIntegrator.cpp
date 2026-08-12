@@ -68,10 +68,8 @@ std::size_t hashMatrixBuffer(const std::vector<std::complex<double>> &buf) {
 /// @brief Hidden CUDA/cache state for `magnus_cf4`.
 struct magnus_cf4::Impl {
   cudaq::detail::PropagatorLRUCache cache;
-  cudaq::detail::CudaComplexMemory
-      dH; // Scaled Hamiltonian / scratch.
-  cudaq::detail::CudaComplexMemory
-      applyWork; // Workspace for U rho U^dagger.
+  cudaq::detail::CudaComplexMemory dH;        // Scaled Hamiltonian / scratch.
+  cudaq::detail::CudaComplexMemory applyWork; // Workspace for U rho U^dagger.
   void *expWorkspace = nullptr;
   std::size_t expWorkspaceBytes = 0;
   cusolverDnHandle_t cusolver = nullptr;
@@ -81,7 +79,7 @@ struct magnus_cf4::Impl {
 
   ~Impl() {
     if (expWorkspace)
-      cudaFree(expWorkspace);
+      cudaq::dynamics::DeviceAllocator::free(expWorkspace);
     if (cusolver)
       cusolverDnDestroy(cusolver);
   }
@@ -89,10 +87,10 @@ struct magnus_cf4::Impl {
   // Lazily allocate device buffers / handles for a given Hilbert dimension.
   void ensureResources(int hilbertDim, cublasHandle_t cublas) {
     if (!cusolver) {
-      CUSOLVER_CHECK(cusolverDnCreate(&cusolver));
+      HANDLE_CUSOLVER_ERROR(cusolverDnCreate(&cusolver));
       cudaStream_t stream = nullptr;
       cublasGetStream(cublas, &stream);
-      CUSOLVER_CHECK(cusolverDnSetStream(cusolver, stream));
+      HANDLE_CUSOLVER_ERROR(cusolverDnSetStream(cusolver, stream));
     }
     if (hilbertDim != dim) {
       dim = hilbertDim;
@@ -102,8 +100,8 @@ struct magnus_cf4::Impl {
       const std::size_t needed = get_matrix_exp_workspace_size(dim);
       if (needed > expWorkspaceBytes) {
         if (expWorkspace)
-          cudaFree(expWorkspace);
-        CUDA_CHECK(cudaMalloc(&expWorkspace, needed));
+          cudaq::dynamics::DeviceAllocator::free(expWorkspace);
+        expWorkspace = cudaq::dynamics::DeviceAllocator::allocate(needed);
         expWorkspaceBytes = needed;
       }
       // Dimension-specific cache entries are stale for a new dimension.
@@ -123,7 +121,15 @@ std::shared_ptr<base_integrator> magnus_cf4::clone() {
   auto cloned =
       std::make_shared<cudaq::integrators::magnus_cf4>(m_dt, m_cache_capacity);
   cloned->m_t = this->m_t;
-  cloned->m_state = this->m_state;
+  // Deep-copy the state: the unitary fast path mutates the density-matrix
+  // device buffer in place (apply_unitary_to_density_matrix), so the clone must
+  // own a distinct buffer rather than share m_state's shared_ptr. Otherwise the
+  // clone and original would alias one device allocation.
+  if (m_state) {
+    auto *cudm = cudmIntHelp::asCudmState(*m_state);
+    cloned->m_state = std::make_shared<cudaq::state>(
+        CuDensityMatState::clone(*cudm).release());
+  }
   cloned->m_system = this->m_system;
   cloned->m_schedule = this->m_schedule;
   // Note: the propagator cache is intentionally not shared; the clone starts
@@ -133,6 +139,8 @@ std::shared_ptr<base_integrator> magnus_cf4::clone() {
 
 void magnus_cf4::setState(const cudaq::state &initialState, double t0) {
   cudmIntHelp::setState(m_state, m_t, initialState, t0);
+  // Drop any cached fallback so the next fallback step rebinds to this state.
+  m_fallback.reset();
   resetStats();
 }
 
@@ -165,16 +173,20 @@ void magnus_cf4::integrate(double targetTime) {
   auto &state = *cudmIntHelp::asCudmState(*m_state);
 
   // Fall back to the general (open-system / state-vector) Magnus path when the
-  // exact unitary propagator does not apply.
+  // exact unitary propagator does not apply. The fallback integrator is built
+  // and seeded with the current state exactly once, then reused across
+  // integrate() calls so its system operators are not rebuilt every step.
   if (!canUseUnitaryFastPath(m_system, state)) {
-    cudaq::integrators::magnus_expansion fallback(
-        magnus_expansion::default_num_taylor_terms, m_dt);
-    cudaq::integrator_helper::init_system_dynamics(fallback, m_system,
-                                                   m_schedule);
-    auto [t0, currentState] = getState();
-    fallback.setState(currentState, m_t);
-    fallback.integrate(targetTime);
-    auto [tFinal, finalState] = fallback.getState();
+    if (!m_fallback) {
+      m_fallback = std::make_shared<cudaq::integrators::magnus_expansion>(
+          magnus_expansion::default_num_taylor_terms, m_dt);
+      cudaq::integrator_helper::init_system_dynamics(*m_fallback, m_system,
+                                                     m_schedule);
+      auto [t0, currentState] = getState();
+      m_fallback->setState(currentState, m_t);
+    }
+    m_fallback->integrate(targetTime);
+    auto [tFinal, finalState] = m_fallback->getState();
     auto *finalCudm = cudmIntHelp::asCudmState(finalState);
     m_state = std::make_shared<cudaq::state>(
         CuDensityMatState::clone(*finalCudm).release());
@@ -232,16 +244,17 @@ void magnus_cf4::integrate(double targetTime) {
                             double step, cuDoubleComplex *dRho) {
     const std::size_t signature = hashMatrixBuffer(X);
     const std::size_t key = m_impl->cache.make_key(signature, step);
-    auto *entry = m_impl->cache.get(key);
+    auto *entry = m_impl->cache.get(key, signature, step);
     if (!entry) {
       ++m_stats.cache_misses;
-      entry = &m_impl->cache.insert(key, static_cast<std::size_t>(dim));
+      entry = &m_impl->cache.insert(key, static_cast<std::size_t>(dim),
+                                    signature, step);
       m_impl->dH.copy_from_host(
           reinterpret_cast<const cuDoubleComplex *>(X.data()), nn);
       // Scale in place: dH <- (-i * step) * X.
       const cuDoubleComplex scale = make_cuDoubleComplex(0.0, -step);
-      CUBLAS_CHECK(cublasZscal(cublas, static_cast<int>(nn), &scale,
-                               m_impl->dH.get(), 1));
+      HANDLE_CUBLAS_ERROR(cublasZscal(cublas, static_cast<int>(nn), &scale,
+                                      m_impl->dH.get(), 1));
       compute_matrix_exp(m_impl->dH.get(), entry->U.get(), dim,
                          m_impl->expWorkspace, cublas, m_impl->cusolver);
     } else {
@@ -258,13 +271,20 @@ void magnus_cf4::integrate(double targetTime) {
 
     const auto H1 = denseHamiltonianColumnMajor(m_t + c1 * step);
     const auto H2 = denseHamiltonianColumnMajor(m_t + c2 * step);
-    const auto expA = combine(H1, H2, alpha1, alpha2);
-    const auto expB = combine(H1, H2, alpha2, alpha1);
+    // CF4 (s=2) propagator over the step: U = exp(A2) * exp(A1), with
+    //   A1 = -i*step*(alpha1*H1 + alpha2*H2)   (right-most, applied first)
+    //   A2 = -i*step*(alpha2*H1 + alpha1*H2)   (left-most, applied second)
+    // Ordering matters: swapping the two factors drops the method from 4th to
+    // 2nd order because exp(A1) and exp(A2) do not commute.
+    const auto expFirst = combine(H1, H2, alpha1, alpha2);  // A1
+    const auto expSecond = combine(H1, H2, alpha2, alpha1); // A2
 
-    // U = exp(-i*step*expA) * exp(-i*step*expB); applying expB first, then
-    // expA, yields rho <- U rho U^dagger.
-    applyExpFactor(expB, step, dRho);
-    applyExpFactor(expA, step, dRho);
+    // applyExpFactor performs rho <- V rho V^dagger in place, so two calls
+    // compose as rho <- V_second (V_first rho V_first^dagger) V_second^dagger
+    // = U rho U^dagger with U = V_second * V_first = exp(A2) * exp(A1). Hence
+    // apply exp(A1) first, then exp(A2).
+    applyExpFactor(expFirst, step, dRho);
+    applyExpFactor(expSecond, step, dRho);
 
     ++m_stats.steps;
     m_t += step;

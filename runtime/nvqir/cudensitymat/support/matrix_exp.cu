@@ -13,6 +13,8 @@
 #include <cuda_runtime.h>
 #include <cusolverDn.h>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 // Small-matrix Frobenius norm kernel
@@ -41,12 +43,13 @@ compute_frobenius_norm_kernel(const cuDoubleComplex *__restrict__ a, int n,
   }
 }
 
-// Use standardized error checking (throws exceptions instead of return codes)
+// Use standardized error checking (throws exceptions instead of return codes).
+// The HANDLE_* helpers and DeviceAllocator come in via cuda_memory.h.
 #include "cuda_memory.h"
 
-#define MATRIX_EXP_CUDA_CHECK(call) CUDA_CHECK(call)
-#define MATRIX_EXP_CUBLAS_CHECK(call) CUBLAS_CHECK(call)
-#define MATRIX_EXP_CUSOLVER_CHECK(call) CUSOLVER_CHECK(call)
+#define MATRIX_EXP_CUDA_CHECK(call) HANDLE_CUDA_ERROR(call)
+#define MATRIX_EXP_CUBLAS_CHECK(call) HANDLE_CUBLAS_ERROR(call)
+#define MATRIX_EXP_CUSOLVER_CHECK(call) HANDLE_CUSOLVER_ERROR(call)
 
 /// Kernel: Set matrix to identity
 __global__ void set_identity_kernel(cuDoubleComplex *__restrict__ d_A, int N) {
@@ -286,18 +289,38 @@ int compute_matrix_exp(cuDoubleComplex *d_A, cuDoubleComplex *d_expA, int N,
   cuDoubleComplex *lu_work = d_lu_work;
   bool lu_allocated = false;
   if (required_bytes > lu_workspace_bytes) {
-    MATRIX_EXP_CUDA_CHECK(cudaMalloc(&lu_work, required_bytes));
+    lu_work = static_cast<cuDoubleComplex *>(
+        cudaq::dynamics::DeviceAllocator::allocate(required_bytes));
     lu_allocated = true;
   }
 
+  // Copy the cuSOLVER status flag to the host and validate it. A non-zero
+  // value signals a wrong/invalid argument (< 0) or a singular factor (> 0),
+  // either of which would otherwise silently produce a garbage propagator.
+  auto checkInfo = [&](const char *routine) {
+    int info = 0;
+    MATRIX_EXP_CUDA_CHECK(
+        cudaMemcpy(&info, d_info, sizeof(int), cudaMemcpyDeviceToHost));
+    if (info != 0) {
+      if (lu_allocated)
+        cudaq::dynamics::DeviceAllocator::free(lu_work);
+      throw std::runtime_error(std::string("matrix exponential: ") + routine +
+                               " failed with info=" + std::to_string(info) +
+                               (info < 0 ? " (invalid argument)"
+                                         : " (singular factor)"));
+    }
+  };
+
   MATRIX_EXP_CUSOLVER_CHECK(
       cusolverDnZgetrf(cusolverH, N, N, d_V, N, lu_work, d_pivots, d_info));
+  checkInfo("cusolverDnZgetrf");
 
   MATRIX_EXP_CUSOLVER_CHECK(cusolverDnZgetrs(cusolverH, CUBLAS_OP_N, N, N, d_V,
                                              N, d_pivots, d_tmp2, N, d_info));
+  checkInfo("cusolverDnZgetrs");
 
   if (lu_allocated) {
-    cudaFree(lu_work);
+    cudaq::dynamics::DeviceAllocator::free(lu_work);
   }
 
   // 4. Squaring: exp(A) = (exp(A_scaled))^(2^s)

@@ -35,6 +35,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
     AdaptiveIntegrator.cpp
     MagnusHighOrderIntegrator.cpp
     support/matrix_exp.cu
+    support/error_norm.cu
     CuDensityMatExpectation.cpp
     CuDensityMatEvolution.cpp
     CuDensityMatState.cpp

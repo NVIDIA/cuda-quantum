@@ -9,8 +9,8 @@
 #pragma once
 
 #include "cuda_memory.h"
-#include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <list>
 #include <unordered_map>
 #include <utility>
@@ -20,21 +20,17 @@ namespace cudaq::detail {
 /// \file propagator_cache.h
 /// \brief LRU cache for PWC propagator matrices.
 
-/// \brief Quantize timestep to 1 ps precision for stable hashing.
-/// \param dt_ns Timestep in nanoseconds.
-/// \return Quantized integer (picoseconds).
-inline int64_t quantize_timestep(double dt_ns) {
-  return static_cast<int64_t>(std::round(dt_ns * 1000.0)); // 0.001 ns = 1 ps
-}
-
 /// \brief Cache entry for PWC propagators.
 ///
-/// Stores both U = exp(-i·0.5·dt·H) and U² = U × U for Magnus CF4.
+/// Stores the propagator U = exp(-i·dt·H) alongside the exact
+/// (H_signature, dt) it was built for, so lookups can verify an exact match
+/// and never return a propagator built for a different slice on a hash
+/// collision.
 struct PropagatorCacheEntry {
-  CudaComplexMemory U;         ///< exp(-i·0.5·dt·H).
-  CudaComplexMemory U_squared; ///< U².
-  size_t dim = 0;              ///< Matrix dimension.
-  size_t last_use_time = 0;    ///< Timestamp for LRU.
+  CudaComplexMemory U;    ///< exp(-i·dt·H).
+  size_t dim = 0;         ///< Matrix dimension.
+  size_t h_signature = 0; ///< Hamiltonian signature this U was built for.
+  double dt = 0.0;        ///< Exact time step this U was built for.
 
   PropagatorCacheEntry() = default;
   PropagatorCacheEntry(PropagatorCacheEntry &&) = default;
@@ -52,26 +48,42 @@ public:
   explicit PropagatorLRUCache(size_t max_entries = 32)
       : max_entries_(max_entries) {}
 
-  /// \brief Build cache key from Hamiltonian signature and timestep.
+  /// \brief Build cache key from Hamiltonian signature and time step.
+  ///
+  /// The exact bit pattern of \p dt_ns is folded into the key (rather than a
+  /// rounded value), so distinct time steps map to distinct keys. The exact
+  /// (signature, dt) is also stored in the entry and re-checked on lookup, so
+  /// a hash collision can never return a propagator built for a different
+  /// slice.
   /// \param H_signature Hamiltonian hash.
-  /// \param dt_ns Timestep in nanoseconds.
+  /// \param dt_ns Time step in nanoseconds.
   /// \return Combined cache key.
   [[nodiscard]] size_t make_key(size_t H_signature, double dt_ns) const {
-    // Combine H_signature and quantized dt using FNV-1a
-    size_t h = H_signature;
+    std::uint64_t dt_bits = 0;
+    std::memcpy(&dt_bits, &dt_ns, sizeof(dt_bits));
+    // FNV-1a combine of the signature and the raw dt bit pattern.
     constexpr size_t fnv_prime = 1099511628211ULL;
-    int64_t dt_quantized = quantize_timestep(dt_ns);
-    h ^= static_cast<size_t>(dt_quantized);
+    size_t h = H_signature;
+    h ^= static_cast<size_t>(dt_bits);
     h *= fnv_prime;
     return h;
   }
 
-  /// \brief Lookup entry by key.
+  /// \brief Lookup an entry, verifying it was built for this exact slice.
   /// \param key Cache key from make_key().
-  /// \return Pointer to entry, or nullptr if not found.
-  PropagatorCacheEntry *get(size_t key) {
+  /// \param H_signature Hamiltonian signature the caller needs.
+  /// \param dt_ns Exact time step the caller needs.
+  /// \return Pointer to entry on an exact match, or nullptr otherwise.
+  PropagatorCacheEntry *get(size_t key, size_t H_signature, double dt_ns) {
     auto it = cache_map_.find(key);
     if (it == cache_map_.end()) {
+      ++cache_misses_;
+      return nullptr;
+    }
+    // Guard against a hash collision: only reuse a propagator that was built
+    // for the identical Hamiltonian signature and time step.
+    if (it->second.entry.h_signature != H_signature ||
+        it->second.entry.dt != dt_ns) {
       ++cache_misses_;
       return nullptr;
     }
@@ -83,12 +95,21 @@ public:
     return &it->second.entry;
   }
 
-  /// \brief Insert new entry (evicts LRU if at capacity).
+  /// \brief Insert (or overwrite) an entry (evicts LRU if at capacity).
   /// \param key Cache key.
   /// \param dim Matrix dimension.
+  /// \param H_signature Hamiltonian signature this entry is built for.
+  /// \param dt_ns Exact time step this entry is built for.
   /// \return Reference to the new cache entry.
-  PropagatorCacheEntry &insert(size_t key, size_t dim) {
-    if (cache_map_.size() >= max_entries_) {
+  PropagatorCacheEntry &insert(size_t key, size_t dim, size_t H_signature,
+                               double dt_ns) {
+    // If the key is already present (a collision that get() rejected), drop the
+    // stale entry first so we don't leave a dangling LRU-list node behind.
+    auto existing = cache_map_.find(key);
+    if (existing != cache_map_.end()) {
+      lru_list_.erase(existing->second.list_iter);
+      cache_map_.erase(existing);
+    } else if (cache_map_.size() >= max_entries_) {
       evict_lru();
     }
 
@@ -97,8 +118,9 @@ public:
 
     auto &cache_entry = cache_map_[key];
     cache_entry.entry.dim = dim;
+    cache_entry.entry.h_signature = H_signature;
+    cache_entry.entry.dt = dt_ns;
     cache_entry.entry.U.reallocate(dim * dim);
-    cache_entry.entry.U_squared.reallocate(dim * dim);
     cache_entry.list_iter = lru_list_.begin();
 
     return cache_entry.entry;

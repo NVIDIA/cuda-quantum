@@ -110,7 +110,7 @@ private:
   std::optional<double> m_dt;
 };
 
-/// @brief Dormand-Prince RK5(4) adaptive-timestep integrator (`dopri5`).
+/// @brief Dormand-Prince RK5(4) adaptive step-size integrator (`dopri5`).
 ///
 /// GPU-accelerated adaptive integrator using the Dormand-Prince embedded
 /// RK5(4) pair with an error-controlled step-size selector. Well suited to
@@ -165,13 +165,22 @@ private:
   double m_t;
   std::shared_ptr<cudaq::state> m_state;
   Stats m_stats;
+
+  // First-Same-As-Last (FSAL) cache. In Dormand-Prince the seventh stage equals
+  // f(t + dt, y5) (the last row a[6][*] equals the fifth-order weights b5), so
+  // on an accepted step it is exactly the next step's k1 = f(t_new, y_new).
+  // Caching it saves one Liouvillian evaluation per accepted step. It is also a
+  // valid k1 when a rejected step is repeated (t and y are unchanged). Reset in
+  // setState().
+  std::shared_ptr<cudaq::state> m_fsalK1;
 };
 
 /// @brief High-order commutator-free Magnus integrator (`magnus_cf4`).
 ///
-/// A 4th-order, two-exponential commutator-free Magnus integrator specialised
-/// for the (approximately) piecewise-constant Hamiltonian evolution that arises
-/// in pulse schedules. For each step it materialises the dense Hamiltonian at
+/// A fourth-order, two-exponential commutator-free Magnus integrator
+/// specialized for the (approximately) piecewise-constant Hamiltonian evolution
+/// that arises in pulse schedules. For each step it materializes the dense
+/// Hamiltonian at
 /// the two Gauss-Legendre nodes, forms the exact propagator via a GPU matrix
 /// exponential (scaling-and-squaring Padé[13/13]), and reuses cached
 /// propagators across identical time slices (an LRU propagator cache keyed by a
@@ -228,6 +237,13 @@ private:
   std::optional<double> m_dt;
   std::size_t m_cache_capacity;
   Stats m_stats;
+
+  // General open-system / state-vector fallback. Built lazily once (the first
+  // time the unitary fast path does not apply) and then reused across
+  // integrate() calls so we do not reconstruct the integrator and re-initialize
+  // system operators on every step. Reset in setState() so a new initial state
+  // rebinds the fallback on next use.
+  std::shared_ptr<cudaq::integrators::magnus_expansion> m_fallback;
 
   // CUDA/cache resources are hidden behind a PImpl so this header stays free of
   // CUDA includes and is safe to include from CPU-only translation units.

@@ -8,11 +8,14 @@
 
 #include "CuDensityMatIntegratorBase.h"
 #include "CuDensityMatUtils.h"
+#include "support/error_norm.h"
 #include "cudaq/algorithms/integrator.h"
+#include "cudaq/cudaq_mpi.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <array>
 #include <cmath>
 #include <complex>
+#include <functional>
 #include <stdexcept>
 #include <vector>
 
@@ -66,24 +69,33 @@ constexpr double kOrder = 5.0;    // Method order used for step adaptation.
 /// @brief Compute the scaled RMS error norm between the embedded solutions.
 ///
 /// Returns a dimensionless error scaled so that a value <= 1 means the step
-/// meets the requested (rtol, atol) tolerance.
+/// meets the requested (rtol, atol) tolerance. Uses a scipy-style element-wise
+/// scale (atol + rtol * max(|y5_i|, |y4_i|)) and reduces on the device to avoid
+/// per-step device-to-host copies of the full state. For distributed
+/// (multi-GPU) states the local partial sums are all-reduced across ranks so
+/// the norm is over the global state.
 double computeErrorNorm(const CuDensityMatState &y5,
                         const CuDensityMatState &y4, double rtol, double atol) {
-  const std::size_t n = y5.getTensor().get_num_elements();
-  std::vector<std::complex<double>> data5(n), data4(n);
-  y5.toHost(data5.data(), data5.size());
-  y4.toHost(data4.data(), data4.size());
+  const std::size_t nLocal = y5.getTensor().get_num_elements();
 
-  double errNormSq = 0.0, y5NormSq = 0.0, y4NormSq = 0.0;
-  for (std::size_t i = 0; i < n; ++i) {
-    errNormSq += std::norm(data5[i] - data4[i]);
-    y5NormSq += std::norm(data5[i]);
-    y4NormSq += std::norm(data4[i]);
+  double sumsqLocal = 0.0;
+  cudaq::detail::scaled_error_sumsq(y5.get_device_pointer(),
+                                    y4.get_device_pointer(), nLocal, rtol, atol,
+                                    &sumsqLocal);
+
+  double sumsqGlobal = sumsqLocal;
+  double nGlobal = static_cast<double>(nLocal);
+  // Distributed density-matrix / state-vector shards: combine the per-rank
+  // partial sums and element counts so the RMS norm is over the full state.
+  if (cudaq::mpi::is_initialized() && cudaq::mpi::num_ranks() > 1) {
+    sumsqGlobal = cudaq::mpi::all_reduce(sumsqLocal, std::plus<double>());
+    nGlobal = cudaq::mpi::all_reduce(static_cast<double>(nLocal),
+                                     std::plus<double>());
   }
-  const double errNorm = std::sqrt(errNormSq);
-  const double yNorm = std::sqrt(std::max(y5NormSq, y4NormSq));
-  const double scale = atol + rtol * yNorm;
-  return errNorm / (scale * std::sqrt(static_cast<double>(n)));
+
+  if (nGlobal == 0.0)
+    return 0.0;
+  return std::sqrt(sumsqGlobal / nGlobal);
 }
 
 /// @brief Select the next step size from the scaled error estimate.
@@ -116,7 +128,13 @@ std::shared_ptr<base_integrator> dopri5::clone() {
   auto cloned = std::make_shared<cudaq::integrators::dopri5>(
       m_rtol, m_atol, m_dt, m_dt_min, m_dt_max);
   cloned->m_t = this->m_t;
-  cloned->m_state = this->m_state;
+  // Deep-copy the state so the clone owns a distinct device buffer and the two
+  // integrators evolve fully independently.
+  if (m_state) {
+    auto *cudm = cudmIntHelp::asCudmState(*m_state);
+    cloned->m_state = std::make_shared<cudaq::state>(
+        CuDensityMatState::clone(*cudm).release());
+  }
   cloned->m_system = this->m_system;
   cloned->m_schedule = this->m_schedule;
   cloned->m_stats = this->m_stats;
@@ -125,6 +143,8 @@ std::shared_ptr<base_integrator> dopri5::clone() {
 
 void dopri5::setState(const cudaq::state &initialState, double t0) {
   cudmIntHelp::setState(m_state, m_t, initialState, t0);
+  // A new initial state invalidates the cached FSAL stage.
+  m_fsalK1.reset();
   resetStats();
 }
 
@@ -161,8 +181,13 @@ void dopri5::integrate(double targetTime) {
       kStates[j] = std::make_shared<cudaq::state>(std::move(result));
     };
 
-    // k1 = f(t, y)
-    evalStage(0, y);
+    // k1 = f(t, y). Reuse the FSAL stage (k7 of the previous accepted step, or
+    // the k1 of a just-rejected step) when available: both equal f at the
+    // current (t, y), so we skip one Liouvillian evaluation.
+    if (m_fsalK1)
+      kStates[0] = m_fsalK1;
+    else
+      evalStage(0, y);
     auto stageK = [&](int j) -> CuDensityMatState & {
       return *cudmIntHelp::asCudmState(*kStates[j]);
     };
@@ -193,6 +218,8 @@ void dopri5::integrate(double targetTime) {
       m_state = std::make_shared<cudaq::state>(y5.release());
       m_t += dt;
       m_dt = dtNext;
+      // FSAL: k7 == f(t + dt, y5) is the next step's k1 = f(t_new, y_new).
+      m_fsalK1 = kStates[6];
       ++m_stats.accepted_steps;
       m_stats.min_dt_used = std::min(m_stats.min_dt_used, dt);
       m_stats.max_dt_used = std::max(m_stats.max_dt_used, dt);
@@ -200,6 +227,8 @@ void dopri5::integrate(double targetTime) {
                        m_stats.accepted_steps;
     } else {
       m_dt = dtNext;
+      // t and y are unchanged, so k1 = f(t, y) stays valid for the retry.
+      m_fsalK1 = kStates[0];
       ++m_stats.rejected_steps;
     }
   }

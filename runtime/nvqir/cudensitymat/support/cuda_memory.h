@@ -12,14 +12,16 @@
 /// \brief Minimal RAII device-memory wrapper used by the dynamics
 /// matrix-exponential support and propagator cache.
 ///
-/// Error-checking helpers (CUDA / cuBLAS / cuSOLVER) live together in
-/// cuda_check.h; this header only provides the device-memory container.
+/// Allocations go through cudaq::dynamics::DeviceAllocator so they share the
+/// dynamics backend allocation scheme / performance tracking, and errors are
+/// reported through the shared HANDLE_CUDA_ERROR helper.
 
-#include "cuda_check.h"
+#include "CuDensityMatErrorHandling.h"
+#include "CuDensityMatUtils.h"
 
 #include <algorithm>
 #include <cuComplex.h>
-#include <stdexcept>
+#include <cuda_runtime.h>
 #include <utility>
 
 namespace cudaq::detail {
@@ -35,7 +37,7 @@ public:
 
   ~CudaDeviceMemory() {
     if (ptr_)
-      cudaFree(ptr_);
+      cudaq::dynamics::DeviceAllocator::free(ptr_);
   }
 
   CudaDeviceMemory(const CudaDeviceMemory &) = delete;
@@ -49,7 +51,7 @@ public:
   CudaDeviceMemory &operator=(CudaDeviceMemory &&other) noexcept {
     if (this != &other) {
       if (ptr_)
-        cudaFree(ptr_);
+        cudaq::dynamics::DeviceAllocator::free(ptr_);
       ptr_ = std::exchange(other.ptr_, nullptr);
       size_ = std::exchange(other.size_, 0);
       capacity_ = std::exchange(other.capacity_, 0);
@@ -64,13 +66,14 @@ public:
       return;
     }
     if (ptr_) {
-      cudaFree(ptr_);
+      cudaq::dynamics::DeviceAllocator::free(ptr_);
       ptr_ = nullptr;
     }
     capacity_ = std::max(new_count, capacity_ * 2);
     size_ = new_count;
     if (capacity_ > 0)
-      CUDA_CHECK(cudaMalloc(&ptr_, capacity_ * sizeof(T)));
+      ptr_ = static_cast<T *>(
+          cudaq::dynamics::DeviceAllocator::allocate(capacity_ * sizeof(T)));
   }
 
   [[nodiscard]] T *get() noexcept { return ptr_; }
@@ -84,20 +87,20 @@ public:
   void copy_from_host(const T *host_ptr, size_t count) {
     if (count > size_)
       throw std::runtime_error("copy_from_host: count exceeds allocated size");
-    CUDA_CHECK(
+    HANDLE_CUDA_ERROR(
         cudaMemcpy(ptr_, host_ptr, count * sizeof(T), cudaMemcpyHostToDevice));
   }
 
   void copy_to_host(T *host_ptr, size_t count) const {
     if (count > size_)
       throw std::runtime_error("copy_to_host: count exceeds allocated size");
-    CUDA_CHECK(
+    HANDLE_CUDA_ERROR(
         cudaMemcpy(host_ptr, ptr_, count * sizeof(T), cudaMemcpyDeviceToHost));
   }
 
   void zero() {
     if (ptr_)
-      CUDA_CHECK(cudaMemset(ptr_, 0, size_ * sizeof(T)));
+      HANDLE_CUDA_ERROR(cudaMemset(ptr_, 0, size_ * sizeof(T)));
   }
 
 private:
