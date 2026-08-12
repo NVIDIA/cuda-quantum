@@ -887,9 +887,11 @@ static Operation *getRoutingUser(OpOperand &use, Block &block) {
 }
 
 /// Collect scalar wires defined outside `scope` and captured by ordinary
-/// scopes nested in `region`. `cc.if` and `cc.loop` contribute their explicit
-/// linear operands, but their regions are not traversed because their block
-/// arguments do not introduce new captures of the enclosing scope.
+/// scopes nested in `region`. `cc.scope` has no operands for those incoming
+/// wires, so the mapper reconstructs its routing inputs from uses in the body.
+/// `cc.if` and `cc.loop` contribute their explicit linear operands, but their
+/// regions are not traversed because their block arguments do not introduce
+/// new captures of the enclosing scope.
 static void collectScopeCaptureWires(cudaq::cc::ScopeOp scope, Region &region,
                                      SmallVectorImpl<Value> &capturedWires) {
   if (!region.hasOneBlock())
