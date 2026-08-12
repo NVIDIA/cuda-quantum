@@ -61,7 +61,7 @@ def _detail_check_conditionals_on_measure(kernel):
 def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
     """Generate a detector error model (DEM) from a CUDA-Q kernel.
 
-    Returns a :class:`DEMResult` carrying the DEM text, count fields, and
+    Returns a :class:`cudaq.DEMResult` carrying the DEM text, count fields, and
     (by default) the measurement matrices.
 
     ``str(result)`` returns the DEM text so existing print calls are unchanged.
@@ -82,7 +82,7 @@ def dem_from_kernel(kernel, *args, noise_model=None, **dem_kwargs):
           ``m2o_matrix`` will be ``None``. Default ``True``.
 
     Returns:
-      :class:`DEMResult`
+      :class:`cudaq.DEMResult`
     """
     _detail_check_conditionals_on_measure(kernel)
 
