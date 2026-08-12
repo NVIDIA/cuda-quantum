@@ -111,6 +111,76 @@ branch or region should thread quantum values through the relevant block
 arguments and region results and use the appropriate dominance, control-flow,
 and effect analyses.
 
+Optimize through ordinary scopes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Linear-value Quake IR is a local optimization representation, not a
+whole-function requirement. Structured control flow, control-flow graph blocks,
+calls, dynamic quantum aggregates, reference-to-value conversions, and
+classical IR may remain around locally supported wire operations. Optimize the
+supported parts of the IR and stop at operations or edges the pass does not
+understand. Do not reject an otherwise valid function because only part of it
+can be optimized.
+
+Frontend lowering and inlining may introduce ``cc.scope`` frequently. Circuit
+optimizations must therefore work inside ordinary scopes. An optimization that
+follows quantum value chains must also work through the common form that has one
+block and one normal ``cc.continue`` exit. Following a wire through that form
+does not require general control-flow support. On entry, follow an implicitly
+captured wire to its use in the scope's block. On exit, follow a
+``cc.continue`` operand to the scope result at the same position. Stop if either
+transition is ambiguous. A rewrite must preserve cleanup, allocation lifetimes,
+effects, dominance, and exactly-once wire threading. It must not move an
+allocation or one of its uses outside the scope.
+
+Other scope forms require more analysis. A ``cc.scope`` may contain multiple
+blocks and exits, including unwind exits. Stop at a multi-block scope, an unwind
+exit, ambiguous wire capture or result threading, or an unknown effect on a
+relevant wire unless the pass explicitly supports that case. A pass may choose
+to stop at other region forms without claiming general control-flow support.
+
+Apply the same conservative rule to other unsupported control flow and region
+operations:
+
+* Optimize within supported blocks of ``cc.if`` and ``cc.loop``, but do not
+  relate operations across branches, loop iterations, ``cf.br``, or
+  ``cf.cond_br`` edges.
+* When a relevant wire path reaches or enters ``func.call``, ``quake.apply``, or
+  an operation with unknown regions or effects, stop unless the operation has
+  been inlined or the pass uses a verified summary.
+* End scalar-wire analysis at ``quake.unwrap``, ``quake.wrap``, dynamic
+  ``!quake.veq`` operations, reusable controls, and unsupported cable
+  operations.
+* Cross measurements, resets, or noise only when the pass states and proves the
+  non-unitary observable behavior it preserves.
+* Follow the SSA dependencies of ``arith``, ``math``, and pure ``cc`` operations
+  that define gate parameters or conditions. Preserve dominance when retaining
+  or moving those values.
+
+An attribute on an operation or one of its ancestors may impose an additional
+boundary. Preserve attributes the pass does not own and honor attributes that
+constrain optimization. Unless the attribute says otherwise, a pass may still
+optimize operations wholly inside a marked region. It must not use operations
+from both sides of the boundary in one proof or replacement. This restriction
+applies to cancellation, combination, synthesis, constant replacement,
+measurement inference, and motion.
+
+For each participating operation, compare all applicable enclosing boundaries,
+not only its immediate parent. Also stop when the path between two outside
+operations passes through a marked region. Comparing only the candidates'
+ancestors would miss this before-and-after case.
+
+Tests should show both useful scope traversal and conservative stopping. Cover
+an endpoint on either side of a simple scope, two endpoints separated by the
+whole scope, an unrelated scoped allocation, and unsupported multi-block and
+unwind forms. Also test ambiguous capture or result threading and an unknown
+effect reached by the relevant wire path. For a semantic boundary attribute,
+test operations immediately inside and outside the region, operations before
+and after the whole region, nested marked and unmarked regions, and attribute
+preservation through cloning, inlining, specialization, and structural
+lowering. Add a separate case for a classical value crossing the boundary when
+the attribute permits it.
+
 Pipeline integration should keep related quantum optimizations together in a
 value-form portion of the pipeline. A quantum optimization should not require
 its own ``memtoreg`` and ``regtomem`` round trip. If a downstream path requires
