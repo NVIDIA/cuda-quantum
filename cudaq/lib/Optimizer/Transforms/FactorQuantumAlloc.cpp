@@ -196,6 +196,86 @@ public:
     return success();
   }
 };
+} // namespace
+
+/// Compute the index within the `concat` result at which the operand at
+/// position \p operandPos of \p concat lands. Returns `nullopt` if the index
+/// cannot be determined statically (e.g., a preceding `veq` has an unspecified
+/// size).
+static std::optional<std::size_t>
+concatResultIndex(cudaq::quake::ConcatOp concat, std::size_t operandPos) {
+  std::size_t idx = 0;
+  auto refTy = cudaq::quake::RefType::get(concat.getContext());
+  for (std::size_t i = 0; i < operandPos; ++i) {
+    auto t = concat.getTargets()[i].getType();
+    if (t == refTy) {
+      idx += 1;
+    } else if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(t)) {
+      if (!veqTy.hasSpecifiedSize())
+        return std::nullopt;
+      idx += veqTy.getSize();
+    } else {
+      return std::nullopt;
+    }
+  }
+  return idx;
+}
+
+namespace {
+/// When individual `!quake.ref` `alloca`s are aliased into a `veq` via
+/// `quake.concat` and then also used directly by gate or measurement `ops` that
+/// appear *after* the `concat` in the same block, this pattern is deployed to
+/// replace each such post-`concat` direct use of an `alloca` `ref` with a fresh
+/// `quake.extract_ref` `op` from the `concat` result at the correct index,
+/// making every post-`concat` qubit access go through the `veq` and eliminate
+/// `use-def` chain aliasing via the `concat` `op`.
+class ConcatAllocaAliasPattern
+    : public OpRewritePattern<cudaq::quake::ConcatOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    Block *concatBlock = concat->getBlock();
+    Value concatResult = concat.getResult();
+    bool modified = false;
+    auto refTy = cudaq::quake::RefType::get(rewriter.getContext());
+
+    for (auto [pos, operand] : llvm::enumerate(concat.getTargets())) {
+      if (operand.getType() != refTy ||
+          !operand.getDefiningOp<cudaq::quake::AllocaOp>())
+        continue;
+
+      auto maybeIdx = concatResultIndex(concat, pos);
+      if (!maybeIdx)
+        continue;
+      std::size_t veqIdx = *maybeIdx;
+
+      // Replace every direct use of this alloca that (a) is in the same block,
+      // (b) comes after the concat, and (c) is not the concat itself or a
+      // dealloc (deallocs manage lifetime, not qubit state).
+      for (OpOperand &use : llvm::make_early_inc_range(operand.getUses())) {
+        auto *user = use.getOwner();
+        if (user == concat.getOperation())
+          continue;
+        if (isa<cudaq::quake::DeallocOp>(user))
+          continue;
+        if (user->getBlock() != concatBlock)
+          continue;
+        if (!concat->isBeforeInBlock(user))
+          continue;
+
+        rewriter.setInsertionPoint(user);
+        auto freshRef = cudaq::quake::ExtractRefOp::create(
+            rewriter, user->getLoc(), concatResult, veqIdx);
+        use.set(freshRef.getResult());
+        modified = true;
+      }
+    }
+
+    return success(modified);
+  }
+};
 
 class DeallocPattern : public OpRewritePattern<cudaq::quake::DeallocOp> {
 public:
@@ -300,6 +380,7 @@ public:
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<AllocaPattern>(ctx);
+    patterns.insert<ConcatAllocaAliasPattern>(ctx);
     if (failed(applyPatternsGreedily(func, std::move(patterns))))
       return failure();
     return success();
