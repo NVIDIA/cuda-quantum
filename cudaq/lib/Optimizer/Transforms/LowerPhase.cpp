@@ -79,14 +79,6 @@ static SmallVector<Value> getPhaseReplacements(cudaq::quake::PhaseOp phase,
   return replacements;
 }
 
-static Value normalizeAdjointAngle(IRRewriter &rewriter,
-                                   cudaq::quake::PhaseOp phase) {
-  Value angle = phase.getParameter();
-  if (phase.isAdj())
-    angle = arith::NegFOp::create(rewriter, phase.getLoc(), angle);
-  return angle;
-}
-
 static bool isScalarGateTarget(Value value) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(value.getType());
 }
@@ -209,7 +201,7 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
     return success();
   }
 
-  Value angle = normalizeAdjointAngle(rewriter, phase);
+  Value angle = cudaq::opt::getSignedAngle(rewriter, phase);
   SmallVector<bool> polarities = cudaq::opt::getControlPolarities(phase);
 
   // Any scalar control can become the R1 target while vector controls remain

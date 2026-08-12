@@ -333,13 +333,6 @@ static Value mapThroughPhase(cudaq::quake::PhaseOp phase, Value value) {
   return value;
 }
 
-static Value getSignedAngle(IRRewriter &rewriter, cudaq::quake::PhaseOp phase) {
-  Value angle = phase.getParameter();
-  if (phase.isAdj())
-    angle = arith::NegFOp::create(rewriter, phase.getLoc(), angle);
-  return angle;
-}
-
 /// Merge compatible corrections after placement. They may be separated by
 /// other phase operations because all such corrections are diagonal and
 /// commute. The merged operation stays at the later correction, uses its live
@@ -362,8 +355,8 @@ mergePair(IRRewriter &rewriter, cudaq::quake::PhaseOp first,
   // keeps a second application of the pass from moving an earlier phase past
   // arithmetic introduced by the first application.
   rewriter.setInsertionPoint(first);
-  Value firstAngle = getSignedAngle(rewriter, first);
-  Value secondAngle = getSignedAngle(rewriter, second);
+  Value firstAngle = cudaq::opt::getSignedAngle(rewriter, first);
+  Value secondAngle = cudaq::opt::getSignedAngle(rewriter, second);
   Value angle =
       arith::AddFOp::create(rewriter, second.getLoc(), firstAngle, secondAngle);
 

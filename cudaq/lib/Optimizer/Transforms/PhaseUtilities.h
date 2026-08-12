@@ -13,7 +13,9 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/PatternMatch.h"
 
 namespace cudaq::opt {
 
@@ -32,6 +34,16 @@ makeNegatedControlsAttr(mlir::OpBuilder &builder,
   if (llvm::none_of(polarities, [](bool value) { return value; }))
     return {};
   return builder.getDenseBoolArrayAttr(polarities);
+}
+
+/// Returns the signed angle for a `phase` op.
+/// Also emits a negation operation if the phase is adjoint.
+inline mlir::Value getSignedAngle(mlir::IRRewriter &rewriter,
+                                  cudaq::quake::PhaseOp phase) {
+  mlir::Value angle = phase.getParameter();
+  if (phase.isAdj())
+    angle = mlir::arith::NegFOp::create(rewriter, phase.getLoc(), angle);
+  return angle;
 }
 
 } // namespace cudaq::opt
