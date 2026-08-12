@@ -29,8 +29,9 @@ thread_local nvqir::CircuitSimulator *activeAnalysisSimulator = nullptr;
 
 } // namespace
 
-cudaq::AnalysisScope::AnalysisScope(std::string name,
-                                    nvqir::CircuitSimulator &sim, hooks h)
+cudaq::detail::AnalysisScope::AnalysisScope(std::string name,
+                                            nvqir::CircuitSimulator &sim,
+                                            hooks h)
     : name_(std::move(name)), sim_(&sim), on_exit_(std::move(h.on_exit)) {
   if (activeAnalysisSimulator)
     throw std::runtime_error(
@@ -49,9 +50,9 @@ cudaq::AnalysisScope::AnalysisScope(std::string name,
   }
 }
 
-cudaq::AnalysisScope cudaq::AnalysisScope::from_plugin(std::string name,
-                                                       std::string plugin_name,
-                                                       hooks h) {
+cudaq::detail::AnalysisScope
+cudaq::detail::AnalysisScope::from_plugin(std::string name,
+                                          std::string plugin_name, hooks h) {
   const auto symbol = std::string("getCircuitSimulator_") + plugin_name;
   auto *sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(symbol);
   if (!sim)
@@ -61,7 +62,7 @@ cudaq::AnalysisScope cudaq::AnalysisScope::from_plugin(std::string name,
   return AnalysisScope{std::move(name), *sim, std::move(h)};
 }
 
-cudaq::AnalysisScope::~AnalysisScope() noexcept {
+cudaq::detail::AnalysisScope::~AnalysisScope() noexcept {
   if (on_exit_) {
     try {
       on_exit_(*sim_);
@@ -80,10 +81,11 @@ cudaq::AnalysisScope::~AnalysisScope() noexcept {
   activeAnalysisSimulator = nullptr;
 }
 
-bool cudaq::AnalysisScope::is_active() noexcept {
+bool cudaq::detail::AnalysisScope::is_active() noexcept {
   return activeAnalysisSimulator != nullptr;
 }
 
-nvqir::CircuitSimulator *cudaq::AnalysisScope::active_simulator() noexcept {
+nvqir::CircuitSimulator *
+cudaq::detail::AnalysisScope::active_simulator() noexcept {
   return activeAnalysisSimulator;
 }

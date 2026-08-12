@@ -15,28 +15,30 @@
 #include <stdexcept>
 #include <utility>
 
+using cudaq::detail::AnalysisScope;
+
 namespace {
 bool alwaysFalse() { return false; }
 } // namespace
 
 CUDAQ_TEST(AnalysisScopeTester, isActiveDuringLifetime) {
-  EXPECT_FALSE(cudaq::AnalysisScope::is_active());
+  EXPECT_FALSE(AnalysisScope::is_active());
   {
     auto s = nvqir::resource_counter::make_scope(alwaysFalse);
-    EXPECT_TRUE(cudaq::AnalysisScope::is_active());
+    EXPECT_TRUE(AnalysisScope::is_active());
     EXPECT_EQ(s.name(), "resource_counter");
   }
-  EXPECT_FALSE(cudaq::AnalysisScope::is_active());
+  EXPECT_FALSE(AnalysisScope::is_active());
 }
 
 CUDAQ_TEST(AnalysisScopeTester, nestedThrows) {
   auto outer = nvqir::resource_counter::make_scope(alwaysFalse);
-  EXPECT_TRUE(cudaq::AnalysisScope::is_active());
+  EXPECT_TRUE(AnalysisScope::is_active());
 
   EXPECT_ANY_THROW(nvqir::resource_counter::make_scope(alwaysFalse));
 
   // Outer scope is still the active one after the failed nest attempt.
-  EXPECT_TRUE(cudaq::AnalysisScope::is_active());
+  EXPECT_TRUE(AnalysisScope::is_active());
 }
 
 CUDAQ_TEST(AnalysisScopeTester, failedNestKeepsChoice) {
@@ -52,7 +54,7 @@ CUDAQ_TEST(AnalysisScopeTester, failedNestKeepsChoice) {
     innerCalled = true;
     return true;
   }));
-  EXPECT_TRUE(cudaq::AnalysisScope::is_active());
+  EXPECT_TRUE(AnalysisScope::is_active());
 
   auto &sim = outer.simulator();
   const auto qIdx = sim.allocateQubit();
@@ -77,7 +79,7 @@ CUDAQ_TEST(AnalysisScopeTester, prepopulateRejectsForeignScope) {
   auto *backendSim = cudaq::get_simulator();
   ASSERT_NE(backendSim, nvqir::getResourceCounterSimulator());
 
-  cudaq::AnalysisScope s{"backend_scope", *backendSim, {}};
+  AnalysisScope s{"backend_scope", *backendSim, {}};
   cudaq::Resources counts;
   counts.appendInstruction("h", 0);
   EXPECT_ANY_THROW(nvqir::resource_counter::prepopulate(std::move(counts)));
@@ -87,25 +89,25 @@ CUDAQ_TEST(AnalysisScopeTester, getCountsRejectsForeignScope) {
   auto *backendSim = cudaq::get_simulator();
   ASSERT_NE(backendSim, nvqir::getResourceCounterSimulator());
 
-  cudaq::AnalysisScope s{"backend_scope", *backendSim, {}};
+  AnalysisScope s{"backend_scope", *backendSim, {}};
   EXPECT_ANY_THROW(nvqir::resource_counter::get_counts());
 }
 
 CUDAQ_TEST(AnalysisScopeTester, releasesOnException) {
-  EXPECT_FALSE(cudaq::AnalysisScope::is_active());
+  EXPECT_FALSE(AnalysisScope::is_active());
   try {
     auto s = nvqir::resource_counter::make_scope(alwaysFalse);
-    EXPECT_TRUE(cudaq::AnalysisScope::is_active());
+    EXPECT_TRUE(AnalysisScope::is_active());
     throw std::runtime_error("simulated failure inside scope");
   } catch (const std::runtime_error &) {
     // expected
   }
   // RAII should have released the slot even though the body threw.
-  EXPECT_FALSE(cudaq::AnalysisScope::is_active());
+  EXPECT_FALSE(AnalysisScope::is_active());
 }
 
 CUDAQ_TEST(AnalysisScopeTester, prepopulateNoScopeThrows) {
-  EXPECT_FALSE(cudaq::AnalysisScope::is_active());
+  EXPECT_FALSE(AnalysisScope::is_active());
   cudaq::Resources counts;
   counts.appendInstruction("h", 0);
   EXPECT_ANY_THROW(nvqir::resource_counter::prepopulate(std::move(counts)));
@@ -129,8 +131,8 @@ CUDAQ_TEST(AnalysisScopeTester, fromPluginStim) {
   // `getCircuitSimulator_stim` into the process. This is the dlsym path
   // that the upcoming DEM engine will rely on, so we exercise it now to
   // pin the design ahead of the DEM migration.
-  auto s = cudaq::AnalysisScope::from_plugin("plugin_smoke", "stim");
-  EXPECT_TRUE(cudaq::AnalysisScope::is_active());
+  auto s = cudaq::detail::AnalysisScope::from_plugin("plugin_smoke", "stim");
+  EXPECT_TRUE(cudaq::detail::AnalysisScope::is_active());
   EXPECT_EQ(s.name(), "plugin_smoke");
   EXPECT_EQ(s.simulator().name(), "stim");
 }

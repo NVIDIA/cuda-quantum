@@ -16,7 +16,7 @@ namespace nvqir {
 class CircuitSimulator;
 } // namespace nvqir
 
-namespace cudaq {
+namespace cudaq::detail {
 
 /// @brief RAII override of the active circuit simulator for non-sampling
 /// analyses (resource counting, detector error model generation, ...).
@@ -94,4 +94,4 @@ private:
   std::function<void(nvqir::CircuitSimulator &)> on_exit_;
 };
 
-} // namespace cudaq
+} // namespace cudaq::detail

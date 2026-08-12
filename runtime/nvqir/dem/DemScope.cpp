@@ -51,7 +51,7 @@ void ensurePluginLoaded(const std::string &plugin_name) {
 
 } // namespace
 
-cudaq::AnalysisScope make_scope(std::string plugin_name) {
+cudaq::detail::AnalysisScope make_scope(std::string plugin_name) {
   ensurePluginLoaded(plugin_name);
 
   // Result handles belong to the complete DEM execution, not to any nested
@@ -61,7 +61,7 @@ cudaq::AnalysisScope make_scope(std::string plugin_name) {
   auto clearResultMaps = [](CircuitSimulator &) {
     __quantum__rt__clear_result_maps();
   };
-  return cudaq::AnalysisScope::from_plugin(
+  return cudaq::detail::AnalysisScope::from_plugin(
       "dem", std::move(plugin_name),
       {.on_enter =
            [clearResultMaps](CircuitSimulator &sim) {

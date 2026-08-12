@@ -228,7 +228,7 @@ CUDAQ_TEST(StimQECTester, AdapterAcceptsRawChronologicalIndices) {
   __quantum__rt__clear_result_maps();
   StimCircuitSimulatorTester sim;
   sim.setRandomSeed(42);
-  cudaq::AnalysisScope scope{"stim_qec_adapter_test", sim, {}};
+  cudaq::detail::AnalysisScope scope{"stim_qec_adapter_test", sim, {}};
 
   auto q0 = sim.allocateQubit();
   auto q1 = sim.allocateQubit();

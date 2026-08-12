@@ -23,7 +23,7 @@ namespace nvqir::resource_counter {
 ///
 /// Throws `std::runtime_error` if an analysis scope is already active on the
 /// current thread.
-cudaq::AnalysisScope make_scope(std::function<bool()> choice);
+cudaq::detail::AnalysisScope make_scope(std::function<bool()> choice);
 
 /// @brief Snapshot of the resource counts accumulated so far.
 ///

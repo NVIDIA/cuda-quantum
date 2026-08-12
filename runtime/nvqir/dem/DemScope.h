@@ -26,6 +26,6 @@ namespace nvqir::dem {
 ///
 /// Throws `std::runtime_error` if an analysis scope is already active on the
 /// current thread or if the plugin shared library cannot be loaded.
-cudaq::AnalysisScope make_scope(std::string plugin_name = "stim");
+cudaq::detail::AnalysisScope make_scope(std::string plugin_name = "stim");
 
 } // namespace nvqir::dem

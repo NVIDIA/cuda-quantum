@@ -83,12 +83,12 @@ void ExecutionManager::configureExecutionContext(
 
 void ExecutionManager::configureExecutionContext(
     const estimate_policy &policy) {
-  assert(cudaq::AnalysisScope::is_active());
+  assert(cudaq::detail::AnalysisScope::is_active());
 }
 
 estimate_result
 ExecutionManager::finalizeExecutionContext(const estimate_policy &policy) {
-  assert(cudaq::AnalysisScope::is_active());
+  assert(cudaq::detail::AnalysisScope::is_active());
   return nvqir::resource_counter::get_counts();
 }
 
