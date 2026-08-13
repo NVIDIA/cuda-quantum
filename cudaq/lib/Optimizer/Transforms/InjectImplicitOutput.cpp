@@ -39,9 +39,16 @@ public:
       return;
     // If the kernel already contains any quake.log_output ops at the top level,
     // it has output: do not inject implicit output.
+    //
+    // Also collect quake.alloca ops at the top level of this func.func only.
+    // Insertion order is preserved.
+    SmallVector<cudaq::quake::AllocaOp> orderedAllocs;
     for (Block &block : funcOp.getBody())
-      for (Operation &op : block)
-        if (isa<cudaq::quake::LogOutputOp, cudaq::quake::DeallocOp>(op)) {
+      for (Operation &op : block) {
+        if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
+          orderedAllocs.push_back(alloc);
+        } else if (isa<cudaq::quake::LogOutputOp, cudaq::quake::DeallocOp>(
+                       op)) {
           LLVM_DEBUG({
             if (isa<cudaq::quake::LogOutputOp>(op))
               llvm::dbgs() << "kernel already has log_output ops, skipping.\n";
@@ -50,22 +57,15 @@ public:
           });
           return;
         }
-
-    // At this point, we have a function that we want to process.
-
-    // 1. Collect quake.alloca ops at the top level of this func.func only.
-    // Insertion order is preserved.
-    SmallVector<cudaq::quake::AllocaOp> orderedAllocs;
-    for (Block &block : funcOp.getBody())
-      for (Operation &op : block)
-        if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op))
-          orderedAllocs.push_back(alloc);
+      }
 
     // If this is a degenerate kernel without qubits, exit now.
     if (orderedAllocs.empty()) {
       LLVM_DEBUG(llvm::dbgs() << "no top-level allocas, nothing to inject\n");
       return;
     }
+
+    // 1. At this point, we have a function that we want to process.
 
     // λ to resolve the value to create a log_output for.
     auto logValue = [](cudaq::quake::AllocaOp alloc) -> Value {
