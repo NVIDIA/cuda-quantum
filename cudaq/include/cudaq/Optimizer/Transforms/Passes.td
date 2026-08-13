@@ -1228,6 +1228,12 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     placements that meet at each control-flow join must be reconciled to a
     single layout so the block after the join has an unambiguous entry.
 
+    An ordinary `cc.scope` is routed as a lexical region. The mapper finds the
+    wires captured by its body, routes the body, and continues with the layout
+    at the scope exit. It currently requires a single block ending in
+    `cc.continue`, no quantum allocation or `quake.borrow_wire` in the scope,
+    and a scope result for every captured wire that remains live at scope exit.
+
     Reconciliation is currently done by reverting each predecessor to the
     layout it entered with (its swaps are replayed in reverse before the region
     terminator):
