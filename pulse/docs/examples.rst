@@ -15,9 +15,13 @@ to multi-qubit QEC circuits.
 All examples are in the ``examples/`` directory and use the canonical
 import convention:
 
+.. :spellcheck-disable:
+
 .. code-block:: python
 
    import cudaq_pulse as pulse
+
+.. :spellcheck-enable:
 
 Core Examples
 -------------
@@ -117,8 +121,12 @@ Hardware Target Examples
 Running Examples
 ----------------
 
+.. :spellcheck-disable:
+
 .. code-block:: bash
 
    # Run from the CUDA-Q repository root after building the pulse targets.
    PYTHONPATH=build-pulse/python \
      python pulse/examples/01_single_qubit_rabi.py
+
+.. :spellcheck-enable:

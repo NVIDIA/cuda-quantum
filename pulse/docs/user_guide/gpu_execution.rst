@@ -25,6 +25,8 @@ With pulse enabled, setting ``CUDENSITYMAT_ROOT`` makes CMake use CUDA-Q's
 of the ``pulse`` target. CMake fails if the explicitly requested SDK is not
 available. There is no separate pulse GPU option.
 
+.. :spellcheck-disable:
+
 .. code-block:: bash
 
    cmake -S pulse -B build-gpu -G Ninja \
@@ -35,6 +37,8 @@ available. There is no separate pulse GPU option.
    export CUDAQ_PULSE_BUILD_DIR="$PWD/build-gpu"
    export PATH="$PWD/build-gpu/bin:$PATH"
    export PYTHONPATH="$PWD/build-gpu/python${PYTHONPATH:+:$PYTHONPATH}"
+
+.. :spellcheck-enable:
 
 Pipeline Overview
 -----------------
@@ -58,6 +62,8 @@ MLIR Lowering
 
 To inspect the lowered LLVM IR:
 
+.. :spellcheck-disable:
+
 .. code-block:: python
 
    import cudaq_pulse as pulse
@@ -66,6 +72,8 @@ To inspect the lowered LLVM IR:
                                    qubit_freq_hz={0: 5e9})
    llvm_ir = compiled_kernel.lower_to_llvm()
    print(llvm_ir)
+
+.. :spellcheck-enable:
 
 The lowering passes through three dialect conversions:
 
@@ -85,6 +93,8 @@ GPU Simulation
 --------------
 
 To execute on a GPU (requires cuDensityMat runtime):
+
+.. :spellcheck-disable:
 
 .. code-block:: python
 
@@ -122,6 +132,8 @@ To execute on a GPU (requires cuDensityMat runtime):
        integrator="rk4",
    )
    print(result.final_state)
+
+.. :spellcheck-enable:
 
 ``t_start`` and ``t_end`` are in nanoseconds. The ``integrator`` argument
 selects the time-evolution scheme used by the cuDensityMat runtime path:

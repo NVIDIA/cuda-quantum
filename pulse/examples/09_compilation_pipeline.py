@@ -8,7 +8,7 @@
 """Full compilation pipeline walkthrough.
 
 Demonstrates the ``pulse.compile()`` API — the single entry point that
-captures a kernel, runs all optimisation passes, and produces a
+captures a kernel, runs all optimization passes, and produces a
 ``pulse.CompiledKernel`` containing lowered MLIR.
 """
 

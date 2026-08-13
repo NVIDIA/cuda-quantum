@@ -53,7 +53,7 @@ wheels, so there is no LLVM to build and no submodule to initialize:
   MLIR/LLVM instance that the pulse Python extension resolves its symbols from.
 
 Both wheels must come from the same CUDA-Q revision. Beyond them, pulse needs
-Python 3.10 or newer, CMake, Ninja, nanobind, pytest, Hypothesis, and LLVM lit.
+Python 3.10 or newer, CMake, Ninja, nanobind, `pytest`, Hypothesis, and LLVM lit.
 
 ```bash
 git clone https://github.com/NVIDIA/cuda-quantum.git
@@ -129,7 +129,7 @@ non-GPU Python unit tests:
 cmake --build build-pulse --target check-pulse
 ```
 
-Both suites are also registered with CTest:
+Both suites are also registered with `CTest`:
 
 ```bash
 ctest --test-dir build-pulse -L pulse --output-on-failure
@@ -169,11 +169,11 @@ cmake --build build-pulse --target pulse-docs
 ```
 
 The generated HTML is written to `build-pulse/docs/html` and uses NVIDIA's
-Sphinx theme, matching the QLX documentation style.
+Sphinx theme, matching the `QLX` documentation style.
 
 ## Docker
 
-The package Dockerfile provides a turnkey compiler and Python environment. Run
+The package `Dockerfile` provides a turnkey compiler and Python environment. Run
 the build from the CUDA-Q repository root so the full source tree is available
 as context:
 
@@ -193,7 +193,7 @@ CMake targets directly on a plain runner, installing the `cudaq` and
 
 CUDA-Q registers research preview roots in
 `.github/research-preview-paths.txt`. Pull requests that change only registered
-preview packages do not run stable CUDA-Q builds, packaging, macOS CI, CodeQL,
+preview packages do not run stable CUDA-Q builds, packaging, macOS CI, `CodeQL`,
 or spelling. Pulse changes instead run this package's license, test, and
 documentation checks and inherit CUDA-Q's existing formatting job. A pull
 request that also changes files outside the registered preview roots runs both
@@ -226,10 +226,10 @@ runner whenever CMake detects an accessible NVIDIA GPU and CUDA runtime.
 
 - `core/frontend/` — Python DSL, compiler pipeline, passes, targets, and
   runtime
-- `core/mlir/` — Pulse, QOp, and CuDensityMat dialects and transformations
+- `core/mlir/` — Pulse, `QOp`, and CuDensityMat dialects and transformations
 - `core/runtime/` — experimental cuDensityMat runtime shim
 - `cmake/` — dependency, Python staging, testing, and documentation modules
-- `test/` — lit and FileCheck compiler regression tests
+- `test/` — lit and `FileCheck` compiler regression tests
 - `tests/` — pytest unit and workload tests
 - `examples/` — pulse programming examples
 - `docs/` — user, API, and architecture documentation

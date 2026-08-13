@@ -8,7 +8,7 @@
 """W3: 4-qubit QAOA single layer on a ring topology.
 
 Tests schedule density: 4 parallel Rz-diagonal rotations and 4 CR
-gates on a ring, requiring explicit synchronisation points.
+gates on a ring, requiring explicit synchronization points.
 """
 
 import math

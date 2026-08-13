@@ -108,6 +108,8 @@ Waveform Arithmetic
 
 Waveforms can be combined algebraically inside kernels:
 
+.. :spellcheck-disable:
+
 .. code-block:: python
 
    @pulse.kernel
@@ -118,6 +120,8 @@ Waveforms can be combined algebraically inside kernels:
        combined = wf_add(envelope_a, envelope_b)
        scaled = wf_scale(0.5, envelope_a)
        inverted = wf_neg(envelope_a)
+
+.. :spellcheck-enable:
 
 .. list-table::
    :header-rows: 1

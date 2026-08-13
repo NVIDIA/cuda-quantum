@@ -14,6 +14,8 @@ a ``@pulse.kernel`` function into a scheduled, optimized MLIR module.
 Basic Usage
 -----------
 
+.. :spellcheck-disable:
+
 .. code-block:: python
 
    import cudaq_pulse as pulse
@@ -25,6 +27,8 @@ Basic Usage
 
    compiled_kernel = pulse.compile(my_kernel, [pulse.qudit_ref()],
                                    qubit_freq_hz={0: 5.0e9})
+
+.. :spellcheck-enable:
 
 The ``compile()`` Function
 --------------------------
@@ -116,6 +120,8 @@ Customizing the Pass Pipeline
 
 To run a custom set of passes:
 
+.. :spellcheck-disable:
+
 .. code-block:: python
 
    compiled_kernel = pulse.compile(
@@ -125,7 +131,11 @@ To run a custom set of passes:
        passes=("verify", "canonicalize", "virtual_z", "fusion", "licm"),
    )
 
+.. :spellcheck-enable:
+
 To skip passes entirely (useful for benchmarking):
+
+.. :spellcheck-disable:
 
 .. code-block:: python
 
@@ -135,3 +145,5 @@ To skip passes entirely (useful for benchmarking):
        qubit_freq_hz={0: 5e9},
        passes=(),
    )
+
+.. :spellcheck-enable:

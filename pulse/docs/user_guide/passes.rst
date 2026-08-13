@@ -25,6 +25,8 @@ The Program IR
 A ``Program`` is a flat, ordered list of ``Op`` records over SSA-style
 ``Value`` handles. You can build one with the fluent ``ProgramBuilder``:
 
+.. :spellcheck-disable:
+
 .. code-block:: python
 
    from cudaq_pulse.passes import ProgramBuilder
@@ -36,11 +38,15 @@ A ``Program`` is a flat, ordered list of ``Op`` records over SSA-style
 
    program = builder.build()
 
+.. :spellcheck-enable:
+
 Applying Built-in Passes
 ------------------------
 
 Every optimization pass is a ``Program -> Program`` function, so passes compose
 by ordinary function application:
+
+.. :spellcheck-disable:
 
 .. code-block:: python
 
@@ -54,8 +60,12 @@ by ordinary function application:
    program = run_virtual_z(program)
    program = run_fusion(program)
 
+.. :spellcheck-enable:
+
 Schedulers return a list of timed events plus metrics rather than a new
 ``Program``:
+
+.. :spellcheck-disable:
 
 .. code-block:: python
 
@@ -65,11 +75,15 @@ Schedulers return a list of timed events plus metrics rather than a new
    print(f"total {metrics.total_length_vtu:.0f} VTU, "
          f"idle {metrics.idle_fraction:.1%}")
 
+.. :spellcheck-enable:
+
 Writing Your Own Pass
 ---------------------
 
 A custom transform is just a function that takes a ``Program`` and returns a
 new one. This example drops any zero-amplitude drives:
+
+.. :spellcheck-disable:
 
 .. code-block:: python
 
@@ -85,6 +99,8 @@ new one. This example drops any zero-amplitude drives:
 
    program = drop_zero_amplitude(program)
 
+.. :spellcheck-enable:
+
 Because passes are pure ``Program -> Program`` functions, they are trivial to
 unit test and to interleave with the built-ins in any order.
 
@@ -93,12 +109,16 @@ Emitting MLIR
 
 Once a program has been transformed, lower it to Pulse-dialect MLIR:
 
+.. :spellcheck-disable:
+
 .. code-block:: python
 
    from cudaq_pulse.passes import program_to_pulse_mlir
 
    mlir = program_to_pulse_mlir(program)
    print(mlir)
+
+.. :spellcheck-enable:
 
 See ``examples/10_scheduling_comparison.py`` and
 ``examples/11_loop_optimizations.py`` for complete, runnable pass walkthroughs.

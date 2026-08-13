@@ -49,6 +49,8 @@ no submodule to initialize.
 
 Both wheels must come from the same CUDA-Q revision.
 
+.. :spellcheck-disable:
+
 .. code-block:: bash
 
    git clone https://github.com/NVIDIA/cuda-quantum.git
@@ -61,6 +63,8 @@ Both wheels must come from the same CUDA-Q revision.
 
    cmake -S pulse -B build-pulse -G Ninja -DCMAKE_BUILD_TYPE=Release
    cmake --build build-pulse --parallel
+
+.. :spellcheck-enable:
 
 Note the ``-S pulse``: the configure entry point is the ``pulse`` directory,
 not the repository root.
@@ -79,10 +83,14 @@ that prefer a named target.
 Like CUDA-Q itself, the complete pulse package is staged under
 ``build-pulse/python``. Put that single directory on your ``PYTHONPATH``:
 
+.. :spellcheck-disable:
+
 .. code-block:: bash
 
    export PATH="$PWD/build-pulse/bin:$PATH"
    export PYTHONPATH="$PWD/build-pulse/python${PYTHONPATH:+:$PYTHONPATH}"
+
+.. :spellcheck-enable:
 
 Build the cuDensityMat GPU Runtime
 ----------------------------------
@@ -92,6 +100,8 @@ The experimental GPU runtime is not needed for compiler-only use. Point
 ``include/cudensitymat.h`` and ``lib/libcudensitymat.so``. CMake then discovers
 cuDensityMat and automatically adds the runtime to the ``pulse`` target; there
 is no second pulse feature flag:
+
+.. :spellcheck-disable:
 
 .. code-block:: bash
 
@@ -105,6 +115,8 @@ is no second pulse feature flag:
    export PATH="$PWD/build-gpu/bin:$PATH"
    export PYTHONPATH="$PWD/build-gpu/python${PYTHONPATH:+:$PYTHONPATH}"
 
+.. :spellcheck-enable:
+
 When ``CUDENSITYMAT_ROOT`` is set, configuration fails if the CUDA Toolkit or
 cuDensityMat dependency cannot be found. Without cuDensityMat, pulse remains
 usable in compiler-only mode. The runtime links the discovered SDK library and
@@ -114,6 +126,8 @@ Hello World
 -----------
 
 Define a pulse kernel, compile it, and inspect the generated MLIR:
+
+.. :spellcheck-disable:
 
 .. code-block:: python
 
@@ -128,6 +142,8 @@ Define a pulse kernel, compile it, and inspect the generated MLIR:
                                    qubit_freq_hz={0: 5.0e9})
    print(compiled_kernel.mlir)
    print(f"Compiled in {compiled_kernel.metrics.total_ms:.1f} ms")
+
+.. :spellcheck-enable:
 
 The Compiler Pipeline
 ---------------------
@@ -152,11 +168,15 @@ IDE Setup
 
 For the best experience, add a ``pyrightconfig.json`` to your project root:
 
+.. :spellcheck-disable:
+
 .. code-block:: json
 
    {
        "reportUndefinedVariable": "warning"
    }
+
+.. :spellcheck-enable:
 
 This downgrades bare-name diagnostics inside ``@pulse.kernel`` functions
 from errors to warnings. See :doc:`user_guide/kernels` for details.
@@ -164,17 +184,25 @@ from errors to warnings. See :doc:`user_guide/kernels` for details.
 Running Tests
 -------------
 
+.. :spellcheck-disable:
+
 .. code-block:: bash
 
    cmake --build build-pulse --target check-pulse
    ctest --test-dir build-pulse -L pulse --output-on-failure
 
+.. :spellcheck-enable:
+
 For a GPU-enabled build, run the cuDensityMat linkage, descriptor, and
 numerical regression tests:
+
+.. :spellcheck-disable:
 
 .. code-block:: bash
 
    cmake --build build-gpu --target check-pulse-gpu
+
+.. :spellcheck-enable:
 
 The checks validate SDK linkage and basic descriptors, then exercise
 single-qubit drive evolution, T1 decay, two-qubit XX coupling, and the public
@@ -189,10 +217,14 @@ Docker Environment
 
 Build the turnkey image from the CUDA-Q repository root:
 
+.. :spellcheck-disable:
+
 .. code-block:: bash
 
    docker build -f pulse/docker/Dockerfile -t cudaq-pulse-preview .
    docker run --rm -it cudaq-pulse-preview
+
+.. :spellcheck-enable:
 
 The Dockerfile installs the ``cudaq`` and ``cudaq-devel`` wheels into a
 virtual environment and builds pulse against them; it does not rebuild LLVM.
@@ -202,10 +234,14 @@ Documentation
 
 Enable the Sphinx target when configuring pulse, then build it:
 
+.. :spellcheck-disable:
+
 .. code-block:: bash
 
    cmake -S pulse -B build-pulse -G Ninja \
      -DCUDAQ_PULSE_BUILD_DOCS=ON
    cmake --build build-pulse --target pulse-docs
+
+.. :spellcheck-enable:
 
 Generated HTML is written to ``build-pulse/docs/html``.
