@@ -243,6 +243,10 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'numpy.ndarray[]'),
+    # numpy documents NDArray as py:data, so the py:class reference that
+    # autodoc generates for the annotation cannot resolve via intersphinx
+    ('py:class', 'NDArray'),
+    ('py:class', 'numpy.typing.NDArray'),
     # FIXME: remove these after adding proper documentation
     # (also reexamine why some of the ones above are ignored)
     ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),
