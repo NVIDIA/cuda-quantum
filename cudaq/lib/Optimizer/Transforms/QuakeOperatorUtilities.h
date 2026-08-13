@@ -21,7 +21,7 @@ namespace cudaq::opt {
 
 /// The controls and polarities resulting from expanding statically sized
 /// vector controls. Controls with unresolved vector sizes remain intact for
-/// callers that can lower them without scalarizing the predicate.
+/// callers that can lower them without making the predicate scalar.
 struct ExpandedControlVeqs {
   llvm::SmallVector<mlir::Value> controls;
   llvm::SmallVector<bool> polarities;
