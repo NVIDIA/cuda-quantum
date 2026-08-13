@@ -51,7 +51,7 @@ func.func @omits_w(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-NEXT:    %[[X:.*]] = quake.x %arg0
 // CHECK-NEXT:    return %[[X]]
 
-// A linear wire may enter and leave an ordinary scope. The normal form is
+// A linear wire may enter and leave a lexical scope. The normal form is
 // emitted at the outer chain head, so the scope remains a pure value-flow
 // boundary and its continue still receives the replacement wire.
 func.func @ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
@@ -120,7 +120,7 @@ func.func @scope_with_unrelated_allocation(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-NEXT:    }
 // CHECK-NEXT:    return %[[SCOPE]]
 
-// An `if` is not an ordinary scope boundary, so each side remains an
+// An `if` is not a lexical-scope boundary, so each side remains an
 // independent chain even though the wire result is threaded positionally.
 func.func @if_boundary(%arg0: !quake.wire, %cond: i1) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire

@@ -102,7 +102,7 @@ static std::optional<UnaryWireOp> getUnaryWireOp(Operation *operation) {
 }
 
 // Follow a unique scalar-wire use to another unary gate. The shared traversal
-// owns direct def-use steps and ordinary scope crossings; this pass only
+// owns direct def-use steps and lexical-scope forwarding; this pass only
 // decides whether the reached operation is an exact unary gate.
 static std::optional<UnaryWireOp> getNextUnaryWireOp(
     const UnaryWireOp &current,
@@ -277,9 +277,9 @@ static void optimizeBlock(Block &block) {
     OpBuilder builder(candidate.operations.front());
     Value output = emitCircuit(builder, candidate.operations.front()->getLoc(),
                                candidate.input, candidate.normalized);
-    // Each scope exit must keep the wire linear. Thread the normalized output
-    // through the exits in traversal order, then replace the original chain's
-    // final value with the last scope result visible at that point.
+    // Thread the normalized output through lexical-scope forwarding in
+    // traversal order, then replace the original chain's final value with the
+    // last scope result visible at that point.
     Value replacement = output;
     for (cudaq::opt::ScalarWireStep &scopeStep : candidate.scopeSteps) {
       scopeStep.continueOperand->set(replacement);

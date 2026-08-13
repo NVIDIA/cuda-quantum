@@ -21,9 +21,9 @@ static Block *getValueBlock(Value wire) {
   return nullptr;
 }
 
-// Return whether a direct use enters only ordinary single-block scopes. Other
-// region-based control flow is a traversal boundary.
-static bool entersOrdinaryScopesOnly(Block *nested, Block *outer) {
+// Returns whether a direct use is nested only in single-block lexical scopes.
+// Other region operations are traversal boundaries.
+static bool entersSingleBlockLexicalScopesOnly(Block *nested, Block *outer) {
   while (nested != outer) {
     if (!nested)
       return false;
@@ -35,10 +35,11 @@ static bool entersOrdinaryScopesOnly(Block *nested, Block *outer) {
   return true;
 }
 
-/// Return the only normal scope exit accepted by scalar-wire traversal. The
-/// direction-specific helpers validate the positional wire mapping.
+/// Returns the `cc.continue` that forwards values from a single-block lexical
+/// scope. Direction-specific helpers validate its positional mapping to the
+/// scope results.
 static std::optional<cudaq::cc::ContinueOp>
-getOrdinaryScopeContinue(cudaq::cc::ScopeOp scope) {
+getSingleBlockScopeContinue(cudaq::cc::ScopeOp scope) {
   if (!scope || !scope.getInitRegion().hasOneBlock())
     return std::nullopt;
   auto cont = dyn_cast<cudaq::cc::ContinueOp>(
@@ -62,7 +63,7 @@ traverseScopeForward(OpOperand *use) {
   if (!cont)
     return std::nullopt;
   auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
-  if (!scope || !getOrdinaryScopeContinue(scope))
+  if (!scope || !getSingleBlockScopeContinue(scope))
     return std::nullopt;
   unsigned index = use->getOperandNumber();
   if (index >= scope->getNumResults() ||
@@ -76,7 +77,7 @@ traverseScopeForward(OpOperand *use) {
 
 static std::optional<cudaq::opt::ScalarWireStep>
 traverseScopeBackward(OpResult result, cudaq::cc::ScopeOp scope) {
-  auto cont = getOrdinaryScopeContinue(scope);
+  auto cont = getSingleBlockScopeContinue(scope);
   if (!cont || result.getResultNumber() >= cont->getNumOperands())
     return std::nullopt;
   Operation *continueOperation = cont->getOperation();
@@ -102,7 +103,8 @@ cudaq::opt::traverseScalarWire(Value wire,
       return traverseScopeForward(use);
     if (!isDirectScalarWireStep(user))
       return std::nullopt;
-    if (!entersOrdinaryScopesOnly(user->getBlock(), getValueBlock(wire)))
+    if (!entersSingleBlockLexicalScopesOnly(user->getBlock(),
+                                            getValueBlock(wire)))
       return std::nullopt;
     return ScalarWireStep{wire, user, user->getBlock()};
   }
