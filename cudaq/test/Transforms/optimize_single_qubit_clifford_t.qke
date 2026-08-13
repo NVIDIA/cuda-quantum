@@ -144,12 +144,12 @@ func.func @if_boundary(%arg0: !quake.wire, %cond: i1) -> !quake.wire {
 
 func.func @semantic_scope_exact(%arg0: !quake.ref) {
   %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
-  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
-  %2 = cc.scope -> !quake.wire {
-    %3 = quake.s %1 : (!quake.wire) -> !quake.wire
-    cc.continue %3 : !quake.wire
+  %1 = cc.scope -> !quake.wire {
+    %2 = quake.t %0 : (!quake.wire) -> !quake.wire
+    cc.continue %2 : !quake.wire
   }
-  %4 = quake.t %2 : (!quake.wire) -> !quake.wire
+  %3 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %4 = quake.t %3 : (!quake.wire) -> !quake.wire
   quake.wrap %4 to %arg0 : !quake.wire, !quake.ref
   return
 }

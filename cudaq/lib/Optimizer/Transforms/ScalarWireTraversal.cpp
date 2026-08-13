@@ -79,12 +79,14 @@ traverseScopeBackward(OpResult result, cudaq::cc::ScopeOp scope) {
   auto cont = getOrdinaryScopeContinue(scope);
   if (!cont || result.getResultNumber() >= cont->getNumOperands())
     return std::nullopt;
-  OpOperand *operand = &cont->getOpOperand(result.getResultNumber());
+  Operation *continueOperation = cont->getOperation();
+  OpOperand *operand =
+      &continueOperation->getOpOperand(result.getResultNumber());
   if (!isa<cudaq::quake::WireType>(operand->get().getType()) ||
       !operand->get().hasOneUse())
     return std::nullopt;
-  return cudaq::opt::ScalarWireStep{operand->get(), *cont, cont->getBlock(),
-                                    operand};
+  return cudaq::opt::ScalarWireStep{operand->get(), *cont,
+                                    continueOperation->getBlock(), operand};
 }
 
 std::optional<cudaq::opt::ScalarWireStep>
