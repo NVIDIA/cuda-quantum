@@ -123,9 +123,20 @@ _OPNAME_MAP_312: dict[str, str] = {
     "POP_JUMP_FORWARD_IF_TRUE": "JUMP_IF_TRUE",
     "JUMP_FORWARD": "JUMP",
     "JUMP_BACKWARD": "JUMP",
+    "JUMP_BACKWARD_NO_INTERRUPT": "JUMP",
     "RETURN_VALUE": "RETURN",
     "RETURN_CONST": "RETURN",
     "IMPORT_NAME": "IMPORT_NAME",
+}
+
+# 3.11 is 3.12 plus the opcodes 3.12 removed: method loads were folded into
+# LOAD_ATTR, and the FORWARD/BACKWARD conditional-jump variants were merged
+# back into direction-agnostic POP_JUMP_IF_*.
+_OPNAME_MAP_311: dict[str, str] = {
+    **_OPNAME_MAP_312,
+    "LOAD_METHOD": "LOAD_ATTR",
+    "POP_JUMP_BACKWARD_IF_FALSE": "JUMP_IF_FALSE",
+    "POP_JUMP_BACKWARD_IF_TRUE": "JUMP_IF_TRUE",
 }
 
 
@@ -134,11 +145,13 @@ def _select_map(major: int, minor: int) -> dict[str, str]:
         raise NotImplementedError(f"Python {major}.{minor} is not supported")
     if minor in (9, 10):
         return _OPNAME_MAP_39
-    if minor in (11, 12, 13, 14):
+    if minor == 11:
+        return _OPNAME_MAP_311
+    if minor in (12, 13, 14):
         return _OPNAME_MAP_312
     raise NotImplementedError(
         f"Python {major}.{minor} is not yet supported by the bytecode bridge. "
-        f"Supported: 3.9, 3.10, 3.12 (primary). Add an opname map to "
+        f"Supported: 3.9-3.14 (3.12 primary). Add an opname map to "
         f"_bytecode_normalize.py to add support.")
 
 
