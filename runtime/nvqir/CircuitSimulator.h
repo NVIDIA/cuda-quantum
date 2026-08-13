@@ -124,6 +124,33 @@ protected:
   /// should be emitted.
   bool warnAboutNamedMeasurements = false;
 
+  /// @brief Record a fatal kernel error. Inside a kernel frame
+  /// (`ExecutionContext::inKernelLaunch`) the exception is stashed for the
+  /// launcher to re-throw above the JIT boundary, since exceptions cannot
+  /// unwind through JIT frames on macOS arm64; otherwise throw directly.
+  static void deferOrThrowKernelException(const std::string &msg) {
+    auto *ctx = cudaq::getExecutionContext();
+    if (!ctx || !ctx->inKernelLaunch)
+      throw std::runtime_error(msg);
+    if (!ctx->deferredKernelException)
+      ctx->deferredKernelException =
+          std::make_exception_ptr(std::runtime_error(msg));
+  }
+
+  /// @brief True once the current kernel run has recorded a deferred error;
+  /// gate enqueue and queue flushing become no-ops in this state.
+  static bool kernelExecutionDeferred() {
+    auto *ctx = cudaq::getExecutionContext();
+    return ctx && ctx->deferredKernelException;
+  }
+
+  template <typename Policy>
+  void configureExecutionContextImpl(Policy policy) {
+    noiseModel = policy.noiseModel;
+    currentCircuitName = policy.kernelName;
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -162,29 +189,6 @@ public:
   /// simulator.
   virtual void synchronize() {}
 
-  /// @brief For simulators that support generating an MSM, this returns the
-  /// number of rows and columns in the MSM (for a given noisy kernel)
-  virtual std::optional<std::pair<std::size_t, std::size_t>> generateMSMSize() {
-    return std::nullopt;
-  }
-
-  /// @brief For simulators that support generating an MSM, this generates the
-  /// MSM and stores the result in the execution context. The result is only
-  /// valid for a specific kernel with a specific noise profile.
-  /// Note: Measurement Syndrome Matrix is defined in
-  /// https://arxiv.org/pdf/2407.13826.
-  virtual void generateMSM() {}
-
-  /// @brief For simulators that support detector error model (DEM) analysis,
-  /// compute the DEM from the recorded circuit and return it as `.dem` text.
-  ///
-  /// `.dem` is the Detector Error Model text format defined by Stim; only the
-  /// `stim` backend currently implements this.
-  virtual std::string generateDem() {
-    throw std::runtime_error(
-        "Detector error model (DEM) analysis not supported.");
-  }
-
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -196,23 +200,29 @@ public:
         // exp(i*theta*Id) is noop if this is not a controlled gate.
         return;
       } else {
-        // Throw an error if this exp_pauli(i*theta*Id) becomes a non-trivial
+        // Raise an error if this exp_pauli(i*theta*Id) becomes a non-trivial
         // gate due to control qubits.
         // FIXME: revisit this once
         // https://github.com/NVIDIA/cuda-quantum/issues/483 is implemented.
-        throw std::logic_error("Applying controlled global phase via exp_pauli "
-                               "of identity operator is not supported");
+        deferOrThrowKernelException(
+            "Applying controlled global phase via exp_pauli "
+            "of identity operator is not supported");
+        return;
       }
     }
     flushGateQueue();
+    if (kernelExecutionDeferred())
+      return;
     CUDAQ_INFO(" [CircuitSimulator decomposing] exp_pauli({}, {})", theta,
                term.to_string());
     std::vector<std::size_t> qubitSupport;
     std::vector<std::function<void(bool)>> basisChange;
-    if (term.num_ops() != qubitIds.size())
-      throw std::runtime_error(
+    if (term.num_ops() != qubitIds.size()) {
+      deferOrThrowKernelException(
           "incorrect number of qubits in exp_pauli - expecting " +
           std::to_string(term.num_ops()) + " qubits");
+      return;
+    }
 
     std::size_t idx = 0;
     for (const auto &op : term) {
@@ -286,6 +296,13 @@ public:
             ctx.result = r.raw_data();
             ctx.expectationValue = r.expectation();
           },
+          [&](cudaq::run_result &&r) {},
+          [&](cudaq::msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
+          [&](cudaq::msm_result &&r) {
+            ctx.result = std::move(r.samples);
+            ctx.msm_probabilities = std::move(r.probabilities);
+            ctx.msm_prob_err_id = std::move(r.probability_error_ids);
+          },
           [&](cudaq::policies::void_result &&r) {});
     });
   }
@@ -296,6 +313,23 @@ public:
   finalizeExecutionContext(const cudaq::observe_policy &policy) = 0;
   virtual cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
+  virtual cudaq::run_result
+  finalizeExecutionContext(const cudaq::run_policy &policy) = 0;
+  virtual cudaq::msm_dimensions
+  finalizeExecutionContext(const cudaq::msm_size_policy &policy) {
+    throw std::runtime_error("This target does not support policy " +
+                             std::string(policy.name));
+  }
+  virtual cudaq::msm_result
+  finalizeExecutionContext(const cudaq::msm_policy &policy) {
+    throw std::runtime_error("This target does not support policy " +
+                             std::string(policy.name));
+  }
+  virtual cudaq::dem_result
+  finalizeExecutionContext(const cudaq::dem_policy &policy) {
+    throw std::runtime_error("This target does not support policy " +
+                             std::string(policy.name));
+  }
 
   /// @brief Clean up after execution ends.
   virtual void endExecution() {}
@@ -306,25 +340,59 @@ public:
   virtual bool canHandleObserve() { return false; }
 
   /// @brief Set the execution context
-  void configureExecutionContext(const cudaq::sample_policy &policy) {
+  virtual void configureExecutionContext(const cudaq::sample_policy &policy) {
+    configureExecutionContextImpl(policy);
+    executionContextType = cudaq::detail::ExecutionContextType::sample;
     warnAboutNamedMeasurements = true;
-    noiseModel = policy.noiseModel;
-    currentCircuitName = policy.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
   /// @brief Set the execution context
-  void configureExecutionContext(const cudaq::observe_policy &policy) {
-    noiseModel = policy.noiseModel;
-    currentCircuitName = policy.kernelName;
+  virtual void configureExecutionContext(const cudaq::observe_policy &policy) {
+    configureExecutionContextImpl(policy);
+    executionContextType = cudaq::detail::ExecutionContextType::observe;
     policy.canHandleObserve = canHandleObserve();
+  }
+
+  /// @brief Set the execution context
+  virtual void configureExecutionContext(const cudaq::run_policy &policy) {
+    configureExecutionContextImpl(policy);
+    executionContextType = cudaq::detail::ExecutionContextType::run;
+    // Start each run with a clean output log so results are not accumulated
+    // across invocations.
+    outputLog.clear();
+  }
+
+  /// @brief Set the execution context
+  virtual void configureExecutionContext(const cudaq::dem_policy &policy) {
+    throw std::runtime_error("This target does not support policy " +
+                             std::string(policy.name));
+  }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(const cudaq::ptsbe::sample_policy &policy) {
+    noiseModel = nullptr;
+    executionContextType = cudaq::detail::ExecutionContextType::other;
+    currentCircuitName = policy.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
   /// @brief Set the execution context
-  void configureExecutionContext(cudaq::ExecutionContext &context) {
+  virtual void configureExecutionContext(const cudaq::msm_size_policy &policy) {
+    throw std::runtime_error("This target does not support policy " +
+                             std::string(policy.name));
+  }
+
+  /// @brief Set the execution context
+  virtual void configureExecutionContext(const cudaq::msm_policy &policy) {
+    throw std::runtime_error("This target does not support policy " +
+                             std::string(policy.name));
+  }
+
+  /// @brief Set the execution context
+  virtual void configureExecutionContext(cudaq::ExecutionContext &context) {
     context.canHandleObserve = canHandleObserve();
     noiseModel = context.noiseModel;
+    executionContextType = cudaq::detail::ExecutionContextType::other;
     currentCircuitName = context.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
@@ -509,6 +577,18 @@ public:
   /// A string containing the output logging of a kernel launched with
   /// `cudaq::run()`.
   std::string outputLog;
+
+  /// @brief The kind of execution the simulator is currently configured for.
+  /// Driven by the policy passed to `configureExecutionContext`, this replaces
+  /// checks against the execution context name (e.g. name == "run").
+  cudaq::detail::ExecutionContextType executionContextType =
+      cudaq::detail::ExecutionContextType::other;
+
+  /// @brief Return the kind of execution the simulator is currently configured
+  /// for.
+  cudaq::detail::ExecutionContextType getExecutionContextType() const {
+    return executionContextType;
+  }
 };
 
 /// @brief The CircuitSimulatorBase is the type that is meant to
@@ -907,34 +987,6 @@ protected:
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
-  /// @brief Record a fatal kernel error. While a JIT/AOT-compiled kernel frame
-  /// is executing (`ExecutionContext::inKernelLaunch`) the exception is stashed
-  /// on the context (`deferredKernelException`) so the launcher can re-throw it
-  /// from a C++ frame above the JIT boundary; this is required on platforms
-  /// such as macOS arm64 where a C++ exception cannot unwind through a
-  /// JIT-compiled kernel frame and would otherwise call `std::terminate`.
-  /// Outside such a frame (for example, gate application during sample/observe
-  /// finalization, or with no active context) there is no JIT frame to escape,
-  /// so throw directly, exactly as callers expect on every platform. Only the
-  /// first error per kernel run is retained; later ones are suppressed since
-  /// the kernel result is discarded.
-  static void deferOrThrowKernelException(const std::string &msg) {
-    auto *ctx = cudaq::getExecutionContext();
-    if (!ctx || !ctx->inKernelLaunch)
-      throw std::runtime_error(msg);
-    if (!ctx->deferredKernelException)
-      ctx->deferredKernelException =
-          std::make_exception_ptr(std::runtime_error(msg));
-  }
-
-  /// @brief True once the current kernel run has recorded a deferred error.
-  /// Gate enqueue and queue flushing become no-ops in this state so the
-  /// simulator is not mutated after the failure and no re-entrant throw occurs.
-  static bool kernelExecutionDeferred() {
-    auto *ctx = cudaq::getExecutionContext();
-    return ctx && ctx->deferredKernelException;
-  }
-
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
@@ -1071,7 +1123,9 @@ public:
   }
 
   void deallocateQubits(const std::vector<std::size_t> &qubits) override {
-    if (cudaq::getExecutionContext() != nullptr) {
+    auto *ctx = cudaq::getExecutionContext();
+    if (ctx != nullptr &&
+        executionContextType != cudaq::detail::ExecutionContextType::run) {
       // Avoid deallocation as we may need to access the state after the
       // execution has completed.
       // TODO: reduce the cases where this is needed.
@@ -1113,6 +1167,14 @@ protected:
   void finalizeExecutionContextImpl() {
     // Flush the queue if there are any gates to apply
     flushGateQueue();
+  }
+
+  cudaq::run_result
+  finalizeExecutionContext(const cudaq::run_policy &policy) override {
+    finalizeExecutionContextImpl();
+    // Capture the output log for this run. Do not clear it here: the log is
+    // reset at the start of each run in configureExecutionContext(run_policy).
+    return cudaq::run_result{this->outputLog};
   }
 
   cudaq::observe_result
@@ -1213,17 +1275,6 @@ protected:
       // State is no longer valid, so clean up
       deallocateState();
     }
-
-    if (context.name == "msm_size") {
-      context.msm_dimensions = generateMSMSize();
-    }
-
-    if (context.name == "msm") {
-      generateMSM();
-    }
-
-    if (context.name == "dem")
-      context.dem_text = generateDem();
   }
 
 public:
@@ -1231,6 +1282,7 @@ public:
   void endExecution() override {
     internalResult = {};
     noiseModel = nullptr;
+    executionContextType = cudaq::detail::ExecutionContextType::other;
 
     if (nQubitsAllocated == 0) {
       tracker = {};
@@ -1604,6 +1656,22 @@ finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
   return sim.finalizeExecutionContext(policy);
 }
 
+inline run_result finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
+                                                   const run_policy &policy) {
+  return sim.finalizeExecutionContext(policy);
+}
+
+inline msm_dimensions
+finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
+                                 const msm_size_policy &policy) {
+  return sim.finalizeExecutionContext(policy);
+}
+
+inline msm_result finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
+                                                   const msm_policy &policy) {
+  return sim.finalizeExecutionContext(policy);
+}
+
 } // namespace cudaq
 
 namespace nvqir {
@@ -1617,14 +1685,16 @@ inline void finalize_simulation_circuit_impl(CircuitSimulator &sim,
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
+#define NVQIR_PLUGIN_EXPORT __attribute__((visibility("default")))
 #define NVQIR_REGISTER_SIMULATOR(CLASSNAME, PRINTED_NAME)                      \
   extern "C" {                                                                 \
-  nvqir::CircuitSimulator *getCircuitSimulator() {                             \
+  NVQIR_PLUGIN_EXPORT nvqir::CircuitSimulator *getCircuitSimulator() {         \
     thread_local static std::unique_ptr<nvqir::CircuitSimulator> simulator =   \
         std::make_unique<CLASSNAME>();                                         \
     return simulator.get();                                                    \
   }                                                                            \
-  nvqir::CircuitSimulator *CONCAT(getCircuitSimulator_, PRINTED_NAME)() {      \
+  NVQIR_PLUGIN_EXPORT nvqir::CircuitSimulator *CONCAT(getCircuitSimulator_,    \
+                                                      PRINTED_NAME)() {        \
     thread_local static std::unique_ptr<nvqir::CircuitSimulator> simulator =   \
         std::make_unique<CLASSNAME>();                                         \
     return simulator.get();                                                    \

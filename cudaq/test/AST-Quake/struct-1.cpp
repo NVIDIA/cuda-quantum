@@ -311,4 +311,3 @@ struct S6 {
 // CHECK:           return %[[VAL_30]] : !cc.struct<{i1, i32, i16, i32} [128,4]>
 // CHECK:         }
 // clang-format on
-

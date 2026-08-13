@@ -13,15 +13,15 @@
 #include <iostream>
 
 struct branching {
-  void operator()() __qpu__ { 
+  void operator()() __qpu__ {
     cudaq::qvector q(3);
-    
+
     h(q.front());
-    x<cudaq::ctrl>(q[0],q[2]);
+    x<cudaq::ctrl>(q[0], q[2]);
     if (mz(q[1]))
-        h(q.front());
+      h(q.front());
     else {
-        h(q.back());
+      h(q.back());
     }
   }
 };

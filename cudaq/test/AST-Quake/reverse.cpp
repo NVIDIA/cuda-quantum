@@ -21,6 +21,7 @@ __qpu__ int std_reverse_std_vector_int() {
   return sum;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_std_reverse_std_vector_int
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 10 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -71,6 +72,7 @@ __qpu__ int std_reverse_std_vector_int() {
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_40:.*]] = cc.load %[[VAL_27]] : !cc.ptr<i32>
 // CHECK:           return %[[VAL_40]] : i32
+// clang-format on
 
 __qpu__ double std_reverse_std_vector_double() {
   std::vector<double> qr(7);
@@ -83,6 +85,7 @@ __qpu__ double std_reverse_std_vector_double() {
   return sum;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_std_reverse_std_vector_double
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 7 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -133,3 +136,4 @@ __qpu__ double std_reverse_std_vector_double() {
 // CHECK:           } {invariant}
 // CHECK:           %[[VAL_40:.*]] = cc.load %[[VAL_27]] : !cc.ptr<f64>
 // CHECK:           return %[[VAL_40]] : f64
+// clang-format on

@@ -12,15 +12,16 @@
 
 __qpu__ int rando_qernel(double);
 
-__qpu__ void superstar_qernel(const cudaq::qkernel<int(double)>& bob, double dub) {
-   auto size = bob(dub);
-   cudaq::qvector q(size);
-   mz(q);
+__qpu__ void superstar_qernel(const cudaq::qkernel<int(double)> &bob,
+                              double dub) {
+  auto size = bob(dub);
+  cudaq::qvector q(size);
+  mz(q);
 }
 
 void meanwhile_on_safari() {
-   cudaq::qkernel<int(double)> tiger{rando_qernel};
-   superstar_qernel(tiger, 11.0);
+  cudaq::qkernel<int(double)> tiger{rando_qernel};
+  superstar_qernel(tiger, 11.0);
 }
 
 // clang-format off
@@ -36,7 +37,7 @@ void meanwhile_on_safari() {
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.cast signed %[[VAL_6]] : (i32) -> i64
 // CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<?>[%[[VAL_7]] : i64]
-// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 

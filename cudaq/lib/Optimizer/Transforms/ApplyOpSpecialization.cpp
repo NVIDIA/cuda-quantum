@@ -316,6 +316,9 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     }
     auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
+    auto calleeAttr = FlatSymbolRefAttr::get(ctx, calleeName);
+    if (!SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply, calleeAttr))
+      return failure();
     auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
@@ -335,7 +338,7 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     }
     LLVM_DEBUG(llvm::dbgs() << "replacing: " << apply << '\n');
     [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<func::CallOp>(
-        apply, apply.getResultTypes(), calleeName, newArgs);
+        apply, apply.getResultTypes(), calleeAttr, newArgs);
     LLVM_DEBUG(llvm::dbgs() << "with " << result << '\n');
     return success();
   }
@@ -404,6 +407,16 @@ public:
       auto func = dyn_cast<func::FuncOp>(global);
       assert(func && "global must be a FuncOp");
       auto &variant = variantIter->second;
+
+      // A forward-declared kernel has no body to specialize. Attempting to
+      // clone the empty region and read its entry block crashes the compiler
+      // (issue #4268). Do not fail the pass here: this pass cannot assume it
+      // has full program information, and the body may still be supplied later
+      // in the pipeline (e.g. at JIT time). Leave the quake.apply ops in place;
+      // any that survive to codegen are diagnosed by ApplyOpTrap, the point at
+      // which a lingering apply is unambiguously unlowerable.
+      if (func.getBody().empty())
+        continue;
 
       if (variant.needsControlVariant)
         createControlVariantOf(func);

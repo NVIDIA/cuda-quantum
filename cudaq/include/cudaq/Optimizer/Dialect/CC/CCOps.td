@@ -11,11 +11,11 @@
 
 include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
-include "cudaq/Optimizer/Dialect/Common/Traits.td"
 include "cudaq/Optimizer/Dialect/CC/CCDialect.td"
 include "cudaq/Optimizer/Dialect/CC/CCInterfaces.td"
 include "cudaq/Optimizer/Dialect/CC/CCTypes.td"
 include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.td"
+include "cudaq/Optimizer/Dialect/Traits.td"
 
 def AnyPointerType : Type<CPred<"isa<mlir::LLVM::LLVMPointerType,"
                           "cudaq::cc::PointerType>($_self)">,
@@ -51,14 +51,14 @@ def cc_ScopeOp : CCOp<"scope",
     appear in the context of the ScopeOp are dead when the ScopeOp exits.
 
     For a C++ variable, this means that the variable may require a call to a
-    destructor as well as deallocation. For example, after inserting calls to
-    dtors the LLVM IR intrinsics `llvm.stacksave.p0` and `llvm.stackrestore.p0` may
-    be added to reclaim stack space, or a call to `free` may be inserted to
-    deallocate any compiler-generated heap allocations.
+    destructor as well as deallocation. For example, after inserting destructor
+    calls, the LLVM IR intrinsics `llvm.stacksave.p0` and
+    `llvm.stackrestore.p0` may be added to reclaim stack space, or a call to
+    `free` may be inserted to deallocate compiler-generated heap allocations.
 
-    For a CUDA-Q variable, cc.scope will, at minimum add calls to
-    deallocate any quantum references created inside the ScopeOp's region. It
-    may also be desirable to autogenerate adjoint code.
+    For a CUDA-Q variable, a ScopeOp marks where quantum references created in
+    its region must be deallocated. It can also delimit automatically generated
+    adjoint code.
 
     A ScopeOp that contains no allocations has no semantics and can be inlined
     into the parent Region. This transformation is done in canonicalization.
@@ -492,10 +492,10 @@ def cc_ContinueOp : CCOp<"continue", [Pure, ReturnLike, Terminator,
     which starts at the while region. If the LoopOp does not have a step
     region, control is transferred to the while region's entry block.
 
-    In the step region of a LoopOp, a ContinueOp is an unconditinal branch from
+    In the step region of a LoopOp, a ContinueOp is an unconditional branch from
     the step region to the while region's entry block.
 
-    In the parent op is a ScopeOp or IfOp, a ContinueOp is an unconditional
+    If the parent op is a ScopeOp or IfOp, a ContinueOp is an unconditional
     branch exiting the parent op and returning control to the parent's parent.
 
     Example:
@@ -550,13 +550,11 @@ def cc_BreakOp : CCOp<"break",
 
 def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
         ParentOneOf<["mlir::func::FuncOp", "CreateLambdaOp"]>]> {
-  let summary = "Return (exiting) branch.";
+  let summary = "Return from a function or callable.";
   let description = [{
-    A ReturnOp returns control from the current activation of a λ expression to
-    the enclosing dynamic scope, the calling function.
-
-    In callable expressions, the ReturnOp is always ends the execution of the
-    callable.
+    A ReturnOp returns control from the current `func.func` or
+    `cc.create_lambda` activation to its caller. Its operands are the returned
+    values.
 
     ```mlir
       %lambda = cc.create_lambda {
@@ -638,7 +636,7 @@ def cc_UnwindBreakOp : CCOp<"unwind_break", [
     ```
 
     An UnwindBreakOp is clearly not pure. It is also not a terminator. Note
-    that it cannot be a ReturnLikeOp because it's arguments do not correspond
+    that it cannot be a ReturnLikeOp because its arguments do not correspond
     to the nearest enclosing structured Op in any way. MLIR's builtin
     verification does not support Ops with non-local return semantics.
   }];
@@ -700,7 +698,7 @@ def cc_UnwindContinueOp : CCOp<"unwind_continue", [
     ```
 
     An UnwindContinueOp is clearly not pure. It is also not a terminator. Note
-    that it cannot be a ReturnLikeOp because it's arguments do not correspond
+    that it cannot be a ReturnLikeOp because its arguments do not correspond
     to the nearest enclosing structured Op in any way. MLIR's builtin
     verification does not support Ops with non-local return semantics.
   }];
@@ -756,7 +754,7 @@ def cc_UnwindReturnOp : CCOp<"unwind_return", [
     ```
 
     An UnwindReturnOp is clearly not pure. It is also not a terminator. Note
-    that it cannot be a ReturnLikeOp because it's arguments do not correspond
+    that it cannot be a ReturnLikeOp because its arguments do not correspond
     to the nearest enclosing structured Op in any way. MLIR's builtin
     verification does not support Ops with non-local return semantics.
   }];
@@ -789,8 +787,8 @@ def cc_PoisonOp : CCOp<"poison", [Pure]> {
 def cc_UndefOp : CCOp<"undef", [Pure]> {
   let summary = "Explicit undefined value.";
   let description = [{
-    An UndefOp is used to create an undefined value of a specified type. This
-    op will be translated to LLVM IR as an undefined instruction.
+    An UndefOp creates an undefined value of a specified type. CC-to-LLVM
+    lowering replaces it with `llvm.mlir.undef` using the converted result type.
 
     Example:
 
@@ -1061,11 +1059,12 @@ def cc_InsertValueOp : CCOp<"insert_value", [Pure]> {
 }
 
 def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
-  let summary = "Creates a pointer pointing to a subobject in an object.";
+  let summary = "Compute a pointer to a subobject.";
   let description = [{
-    This translates to LLVM's get_element_ptr operation. The initial thinking
-    is that unlike the GEP, the base object must be either an array or a single
-    object and a ComputerPtrOp does not accept a pointer as both implicitly.
+    A ComputePtrOp computes a pointer to a nested subobject of the object
+    referenced by its base pointer. Each index selects an array element, struct
+    member, or complex component. Struct indices must be constant, and the
+    result element type must match the selected subobject type.
 
     Example:
 
@@ -1152,7 +1151,7 @@ def cc_OffsetOfOp : CCOp<"offsetof", [Pure]> {
     ```mlir
       // the offset of the i64 in the struct
       %0 = cc.offsetof !cc.struct<i32, f64, i64> [2] : i64
-      // the offset of of the 3rd i32 element in the array field
+      // the offset of the 3rd i32 element in the array field
       %1 = cc.offsetof !cc.struct<!cc.array<!cc.struct<i32, i8> x 4>, f32>
            [0, 2, 0] : i64
     ```
@@ -1173,7 +1172,7 @@ def cc_OffsetOfOp : CCOp<"offsetof", [Pure]> {
 }
 
 def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
-  let summary = "A one dimensional array of constant values.";
+  let summary = "A one-dimensional array of constant values.";
   let description = [{
     A ConstantArrayOp is used to create a constant value that is an aggregate of
     type !cc.array<T,n> and is composed of constant values. The aggregate has a
@@ -1210,9 +1209,8 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
 def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
   let summary = "Create a constant string literal.";
   let description = [{
-    This operation creates a ASCIIZ string literal value. It's argument is a
-    constant MLIR String Attribute. The literal will have a null character
-    appended automatically.
+    This operation creates a null-terminated string literal from a constant MLIR
+    string attribute. It appends the null character automatically.
 
     ```mlir
       %0 = cc.string_literal "Quantum Computing" : !cc.ptr<!cc.array<i8 x 18>>
@@ -1227,7 +1225,7 @@ def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
 }
 
 //===----------------------------------------------------------------------===//
-// Span/Stdvec operations.
+// Span/Sequence operations.
 //===----------------------------------------------------------------------===//
 
 def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
@@ -1245,19 +1243,19 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
       %1 = cc.const_array [ "XZ", "YI" ] : !cc.array<!cc.charspan x 2>
       %2 = cc.extract_value %1[1] : (!cc.array<!cc.charspan>) -> !cc.charspan
       %3 = cc.reify_span %1 : (!cc.array<!cc.charspan x 2>) ->
-                               !cc.stdvec<!cc.charspan>
+                               !cc.sequence<!cc.charspan>
     ```
 
     Expanding the reify_span op will generate the following code
     ```mlir
       %1 = cc.alloca !cc.array<!cc.charspan x 2>
       %2 = cc.string_literal "XZ" : !cc.ptr<!cc.array<i8 x 3>>
-      %4 = cc.stdvec_init %2 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
+      %4 = cc.sequence_init %2 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
       %5 = cc.cast %1 : (!cc.ptr<!cc.array<!cc.charspan x 2>>) ->
                          !cc.ptr<!cc.charspan>
       cc.store %4, %5 : !cc.ptr<!cc.charspan>
       %6 = cc.string_literal "YI" : !cc.ptr<!cc.array<i8 x 3>>
-      %8 = cc.stdvec_init %6 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
+      %8 = cc.sequence_init %6 : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.charspan
       %9 = cc.compute_ptr %1[1] : (!cc.ptr<!cc.array<!cc.charspan x 2>>) ->
                                    !cc.ptr<!cc.charspan>
       cc.store %8, %9 : !cc.ptr<!cc.charspan>
@@ -1265,7 +1263,7 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   }];
 
   let arguments = (ins cc_ArrayType:$elements);
-  let results = (outs cc_StdVectorType:$spanType);
+  let results = (outs cc_SequenceType:$spanType);
   let assemblyFormat = [{
     $elements `:` functional-type(operands, results) attr-dict
   }];
@@ -1290,7 +1288,7 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
     std::size_t vectorDimension() {
       std::size_t depth = 0;
       mlir::Type ty = getType();
-      while (auto vecTy = llvm::dyn_cast<cudaq::cc::StdvecType>(ty)) {
+      while (auto vecTy = llvm::dyn_cast<cudaq::cc::SequenceType>(ty)) {
         ty = vecTy.getElementType();
         ++depth;
       }
@@ -1299,10 +1297,10 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   }];
 }
 
-def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
-  let summary = "Initialize a stdvec object from a pointer and length.";
+def cc_SequenceInitOp : CCOp<"sequence_init", [Pure]> {
+  let summary = "Initialize a sequence object from a pointer and length.";
   let description = [{
-    A StdvecInitOp can be used to create a "high-level" `std::vector` object in
+    A SequenceInitOp can be used to create a "high-level" `std::vector` object in
     cc. The construction is similar to the `std::vector` initializer list
     constructor. It takes two arguments: a pointer to a memory buffer and the
     length of the buffer in terms of the number of elements.
@@ -1315,13 +1313,13 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     ```mlir
       %buff = ... : !cc.ptr<f64>
       %len = ... : i64
-      %vec1 = cc.stdvec_init %buff, %len : (!cc.ptr<f64>, i64) ->
-                                            !cc.stdvec<f64>
+      %vec1 = cc.sequence_init %buff, %len : (!cc.ptr<f64>, i64) ->
+                                            !cc.sequence<f64>
       func.call @kernel(%vec1) ...
 
       %arr = ... : !cc.ptr<!cc.array<i64 x 12>>
-      %vec2 = cc.stdvec_init %arr : (!cc.ptr<!cc.array<i64 x 12>>) ->
-                                     !cc.stdvec<i64>  // span length is 12
+      %vec2 = cc.sequence_init %arr : (!cc.ptr<!cc.array<i64 x 12>>) ->
+                                     !cc.sequence<i64>  // span length is 12
     ```
   }];
 
@@ -1329,7 +1327,7 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
     AnyPointerType:$buffer,
     Optional<AnyInteger>:$length
   );
-  let results = (outs SpanningType:$stdvec);
+  let results = (outs SpanningType:$sequence);
 
   let hasVerifier = 1;
   let hasCanonicalizer = 1;
@@ -1339,45 +1337,45 @@ def cc_StdvecInitOp : CCOp<"stdvec_init", [Pure]> {
   }];
 }
 
-def cc_StdvecDataOp : CCOp<"stdvec_data", [Pure]> {
-  let summary = "Retrieve the data pointer from a stdvec object.";
+def cc_SequenceDataOp : CCOp<"sequence_data", [Pure]> {
+  let summary = "Retrieve the data pointer from a sequence object.";
   let description = [{
-    A StdvecDataOp can be used to retreive the data pointer from a stdvec
-    object. (See StdvecInitOp.) This operation is analogous to a call to
+    A SequenceDataOp can be used to retrieve the data pointer from a sequence
+    object. (See SequenceInitOp.) This operation is analogous to a call to
     `std::vector<T>::data()`.
 
     Note that this operation has value semantics. It does not touch memory as
     the data pointer is part of the aggregate value and nothing is dereferenced.
   }];
 
-  let arguments = (ins SpanningType:$stdvec);
+  let arguments = (ins SpanningType:$sequence);
   let results = (outs AnyPointerType:$data);
 
   let hasCanonicalizer = 1;
 
   let assemblyFormat = [{
-    $stdvec `:` functional-type(operands, results) attr-dict
+    $sequence `:` functional-type(operands, results) attr-dict
   }];
 }
 
-def cc_StdvecSizeOp : CCOp<"stdvec_size", [Pure]> {
-  let summary = "Retrieve the size from a stdvec object.";
+def cc_SequenceSizeOp : CCOp<"sequence_size", [Pure]> {
+  let summary = "Retrieve the size from a sequence object.";
   let description = [{
-    A StdvecSizeOp can be used to retreive the size from a stdvec object.
+    A SequenceSizeOp can be used to retrieve the size from a sequence object.
     This is analogous to a call to `std::vector<T>::size()`.
 
     Note that this operation is pure and has value semantics. It does not
-    modify memory as the size is part of a stdvec's aggregate value and nothing
+    modify memory as the size is part of a sequence's aggregate value and nothing
     is dereferenced.
   }];
 
-  let arguments = (ins SpanningType:$stdvec);
+  let arguments = (ins SpanningType:$sequence);
   let results = (outs AnyInteger:$size);
 
   let hasCanonicalizer = 1;
 
   let assemblyFormat = [{
-    $stdvec `:` functional-type(operands, results) attr-dict
+    $sequence `:` functional-type(operands, results) attr-dict
   }];
 }
 
@@ -1892,7 +1890,7 @@ def cc_DeviceCallOp : CCOp<"device_call",
     OptionalAttr<DictArrayAttr>:$res_attrs,
     // Indices into `args` whose original C++ callee parameters were
     // non-const `std::vector<T>&`. The attribute preserves by-reference
-    // vector intent that is otherwise lost after lowering to `!cc.stdvec<T>`.
+    // vector intent that is otherwise lost after lowering to `!cc.sequence<T>`.
     OptionalAttr<DenseI64ArrayAttr>:$by_ref_vec_arg_indices
   );
   let results = (outs Variadic<AnyType>);
@@ -2057,7 +2055,7 @@ def cc_LogOutputOp : CCOp<"log_output"> {
 
 def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
     [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
-  let summary = "An argument substition.";
+  let summary = "An argument substitution.";
   let description = [{
     This operation is used to define computations to produce a particular value.
     The last Op in the block is the result and specifies the result type.

@@ -6,8 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --apply-op-specialization | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --lambda-lifting=constant-prop=1 --canonicalize --apply-op-specialization -o %t && FileCheck --check-prefix=LAMBDA %s < %t && FileCheck --check-prefix=LAMBDA2 %s < %t
+// clang-format on
 
 #include <cudaq.h>
 
@@ -31,6 +33,7 @@ struct ctrlHeisenberg {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func private @__nvqpp__mlirgen__function_magic_func.
 // CHECK-SAME: .ctrl(%[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !quake.veq<?>) {{.*}}{
 // CHECK:           cc.scope {
@@ -75,9 +78,11 @@ struct ctrlHeisenberg {
 // CHECK:           call @__nvqpp__mlirgen__function_magic_func.{{.*}}.ctrl(%[[VAL_6]], %[[VAL_5]]) : (!quake.veq<?>, !quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 //===----------------------------------------------------------------------===//
 
+// clang-format off
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0.adj(
 // LAMBDA-SAME:      %{{[^:]*}}: !cc.ptr<i32>, %{{[^:]*}}: !quake.veq<?>) {{.*}}{
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
@@ -130,3 +135,4 @@ struct ctrlHeisenberg {
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // LAMBDA:           return
 // LAMBDA:         }
+// clang-format on

@@ -20,7 +20,7 @@ __qpu__ void testInt() {
   ry(M_PI_2, q[index[2]]);
 }
 
-
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_testInt._Z7testIntv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 2 : i32
@@ -51,3 +51,4 @@ __qpu__ void testInt() {
 // CHECK:           quake.ry (%[[VAL_0]]) %[[VAL_23]] : (f64, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

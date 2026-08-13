@@ -26,7 +26,7 @@ on:
       matrix_key:
         required: false
         type: string
-        description: The key for the cloudposse GitHub action matrix output.
+        description: The key for the matrix-outputs action output.
       environment:
         required: false
         type: string
@@ -56,6 +56,7 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' }}
 
     steps:
       - name: Checkout repository
@@ -133,6 +134,7 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' }}
 
     steps:
       - name: Checkout repository
@@ -206,7 +208,7 @@ jobs:
           # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
           # incremental rebuild scoped to the binding targets.
           # Initialize nanobind submodule which are needed for MLIR Python bindings
-          git submodule update --init --recursive tpls/nanobind
+          retry git submodule update --init --recursive tpls/nanobind
 
           source scripts/set_env_defaults.sh
           
@@ -244,7 +246,9 @@ jobs:
         if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''
         env:
           DIGEST: ${{ steps.push_image.outputs.digest }}
-        run: cosign sign --yes "${DIGEST}"
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry cosign sign --yes "${DIGEST}"
 
       - name: Set image hash
         id: image_hash
@@ -267,7 +271,12 @@ jobs:
       image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-write
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment_macos' }}

@@ -13,12 +13,12 @@ __nvqpp__mlirgen__function_hawaiian = "shirt",
 __nvqpp__mlirgen__function_cargo = "pants"}} {
 
   // pure devive kernel: cargo. C++ function: pants.
-  func.func @__nvqpp__mlirgen__function_cargo(%arg0: !cc.stdvec<i32>, %arg1: !quake.ref) attributes {"cudaq-kernel", no_this} {
+  func.func @__nvqpp__mlirgen__function_cargo(%arg0: !cc.sequence<i32>, %arg1: !quake.ref) attributes {"cudaq-kernel", no_this} {
     return
   }
 
   // entry-point kernel: hawaiian. C++ function: shirt.
-  func.func @__nvqpp__mlirgen__function_hawaiian(%arg0: i1, %arg1: !cc.stdvec<i32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  func.func @__nvqpp__mlirgen__function_hawaiian(%arg0: i1, %arg1: !cc.sequence<i32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = quake.alloca !quake.ref
     %1 = quake.alloca !quake.ref
     %2 = quake.alloca !quake.ref
@@ -26,7 +26,7 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
       quake.x %2 : (!quake.ref) -> ()
     } else {
     }
-    call @__nvqpp__mlirgen__function_cargo(%arg1, %2) : (!cc.stdvec<i32>, !quake.ref) -> ()
+    call @__nvqpp__mlirgen__function_cargo(%arg1, %2) : (!cc.sequence<i32>, !quake.ref) -> ()
     return
   }
 
@@ -37,21 +37,21 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_cargo(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<i32>,
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<i32>,
 // CHECK-SAME:      %[[VAL_1:.*]]: !quake.ref) attributes {"cudaq-kernel", no_this} {
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_hawaiian(
 // CHECK-SAME:      %[[VAL_0:.*]]: i1,
-// CHECK-SAME:      %[[VAL_1:.*]]: !cc.stdvec<i32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.sequence<i32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
 // CHECK:           cc.if(%[[VAL_0]]) {
 // CHECK:             quake.x %[[VAL_4]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           call @__nvqpp__mlirgen__function_cargo(%[[VAL_1]], %[[VAL_4]]) : (!cc.stdvec<i32>, !quake.ref) -> ()
+// CHECK:           call @__nvqpp__mlirgen__function_cargo(%[[VAL_1]], %[[VAL_4]]) : (!cc.sequence<i32>, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -185,10 +185,10 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_8]] : !cc.ptr<i64>
 // CHECK:           %[[VAL_11:.*]] = arith.divsi %[[VAL_10]], %[[VAL_9]] : i64
 // CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
-// CHECK:           %[[VAL_13:.*]] = cc.stdvec_init %[[VAL_12]], %[[VAL_11]] : (!cc.ptr<i32>, i64) -> !cc.stdvec<i32>
+// CHECK:           %[[VAL_13:.*]] = cc.sequence_init %[[VAL_12]], %[[VAL_11]] : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_14]]{{\[}}%[[VAL_10]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:           call @__nvqpp__mlirgen__function_hawaiian(%[[VAL_7]], %[[VAL_13]]) : (i1, !cc.stdvec<i32>) -> ()
+// CHECK:           call @__nvqpp__mlirgen__function_hawaiian(%[[VAL_7]], %[[VAL_13]]) : (i1, !cc.sequence<i32>) -> ()
 // CHECK:           %[[VAL_16:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return %[[VAL_16]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         }

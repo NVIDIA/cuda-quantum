@@ -18,6 +18,8 @@ import numpy as np
 
 from utils.mock_qpu.oqc import startServer
 
+pytestmark = pytest.mark.xdist_group("oqc_mock")
+
 # Define the port for the mock server
 port = 62442
 

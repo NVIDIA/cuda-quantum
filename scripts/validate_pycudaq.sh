@@ -83,6 +83,8 @@ while getopts ":c:f:Fi:p:qv:" opt; do
 done
 OPTIND=$__optind__
 
+license_compliance_script="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate_license_compliance.sh"
+
 # Sanitize environment: unset variables that could leak build-tree or
 # system-installed CUDA-Q libraries into the validation environment.
 # Without this, DYLD_LIBRARY_PATH from a prior build step can cause the
@@ -188,7 +190,7 @@ requires_unavailable_gpu_target() {
     targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
     for t in $targets; do
         case "$t" in
-            nvidia|nvidia-legacy|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
                 echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
@@ -299,7 +301,11 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
-    pip install pytest pytest-xdist
+    # Mock QPU server deps for tests/backends. The script may run from a copy
+    # outside the repo (conda validation), so fall back to the CI checkout.
+    backend_requirements="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../requirements-tests-backend.txt"
+    [ ! -f "$backend_requirements" ] && backend_requirements="$GITHUB_WORKSPACE/requirements-tests-backend.txt"
+    pip install pytest pytest-xdist -r "$backend_requirements"
 fi
 
 # Run OpenMPI setup (Linux only)
@@ -320,11 +326,25 @@ test_workdir=$(mktemp -d)
 echo "Running tests from isolated directory: $test_workdir"
 cd "$test_workdir"
 
+# GMP and MPFR are redistributed with the wheel under the LGPL v3; verify
+# the license texts ship with the wheel, all linking to them is dynamic,
+# and the libraries can be replaced.
+if [ -f "$license_compliance_script" ]; then
+    bash "$license_compliance_script" --wheel
+    if [ $? -ne 0 ]; then
+        echo -e "\e[01;31mLicense compliance validation failed.\e[0m" >&2
+        status_sum=$((status_sum + 1))
+    fi
+else
+    echo -e "\e[01;31mError: validate_license_compliance.sh not found next to this script.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
+
 # Verify that the necessary GPU targets are installed and usable (Linux only)
 if $is_macos; then
     echo "Skipping GPU target verification on macOS (CPU-only)"
 else
-    for tgt in nvidia nvidia-legacy nvidia-fp64 nvidia-mgpu tensornet; do
+    for tgt in nvidia nvidia-fp64 nvidia-mgpu tensornet; do
         python3 -c "import cudaq; cudaq.set_target('${tgt}')"
         if [ $? -ne 0 ]; then
             echo -e "\e[01;31mPython trivial test for target ${tgt} failed.\e[0m" >&2
@@ -333,9 +353,12 @@ else
     done
 fi
 
+# Keep each xdist_group (fixed-port mock-server test files) on one worker.
+xdist_flags="--dist=loadgroup"
+
 # Run core tests
 echo "Running core tests."
-python3 -m pytest -v -n "$pytest_workers" "$root_folder/tests" \
+python3 -m pytest -v -n "$pytest_workers" $xdist_flags "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
     --ignore "$root_folder/tests/dynamics/integrators" \
     --ignore "$root_folder/tests/parallel" \
@@ -355,7 +378,7 @@ fi
 
 # Run backend tests (single invocation with xdist; --rootdir matches upstream import layout)
 echo "Running backend tests."
-python3 -m pytest -v -n "$pytest_workers" --rootdir "$root_folder/tests" "$root_folder/tests/backends"
+python3 -m pytest -v -n "$pytest_workers" $xdist_flags --rootdir "$root_folder/tests" "$root_folder/tests/backends"
 status=$?
 # Exit code 5 indicates that no tests were collected.
 if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then

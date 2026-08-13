@@ -39,9 +39,11 @@
 #include "runtime/cudaq/operators/py_scalar_op.h"
 #include "runtime/cudaq/operators/py_spin_op.h"
 #include "runtime/cudaq/operators/py_super_op.h"
+#include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_pauli_word.h"
+#include "runtime/cudaq/target/py_compile_target.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
 #include "runtime/cudaq/trace/py_trace.h"
@@ -68,7 +70,13 @@ using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
+namespace cudaq_internal::compiler {
+void installPythonMLIRHooks();
+} // namespace cudaq_internal::compiler
+
 NB_MODULE(_quakeDialects, m) {
+  cudaq_internal::compiler::installPythonMLIRHooks();
+
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);
@@ -105,6 +113,7 @@ NB_MODULE(_quakeDialects, m) {
       nanobind::arg("target") = nanobind::none(),
       "Initialize the CUDA-Q environment.");
 
+  bindCompileTarget(cudaqRuntime);
   bindRuntimeTarget(cudaqRuntime, *holder.get());
   bindMeasureCounts(cudaqRuntime);
   bindResources(cudaqRuntime);
@@ -141,6 +150,7 @@ NB_MODULE(_quakeDialects, m) {
   bindAltLaunchKernel(cudaqRuntime, [holderPtr = holder.get()]() {
     return python::getTransportLayer(holderPtr);
   });
+  bindRuntimeEndpoint(cudaqRuntime);
   bindTestUtils(cudaqRuntime, *holder.get());
   bindCustomOpRegistry(cudaqRuntime);
   bindTrace(cudaqRuntime);
@@ -398,9 +408,14 @@ When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)
       "installs TracePassInstrumentation and releases the GIL. Used by "
       "cudaq.mlir.passmanager.PassManager.run() so every Python-side pass "
       "run is traced through the same chokepoint as the JIT path.");
-  cudaqRuntime.def("isTerminator", [](MlirOperation op) {
-    return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
-  });
+  cudaqRuntime.def(
+      "blockHasTerminator",
+      [](MlirBlock block) {
+        return !mlirOperationIsNull(mlirBlockGetTerminator(block));
+      },
+      "Return `true` if the block ends with an operation carrying the "
+      "`IsTerminator` trait.",
+      nanobind::arg("block"));
 
   auto ahsSubmodule = cudaqRuntime.def_submodule("ahs");
   bindAnalogHamiltonian(ahsSubmodule);

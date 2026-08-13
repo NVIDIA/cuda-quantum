@@ -65,8 +65,8 @@ Please refer to this [section](#using-docker) for instructions.
     for the reusable `nv_hsb_ip` RTL source, the RFSoC PYNQ source example,
     and the pre-built RFSoC bit-file.
 
-    > **_NOTE:_** Please make sure to set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
-    and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration)
+    > **_NOTE:_** Please make sure to set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/getting-started/host-setup)
+    and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/applications/architecture#datachannel-enumeration-and-ip-address-configuration)
     (if not already done so).
 
 3. Run the validation script
@@ -187,14 +187,14 @@ Using the Integrated Logic Analyzer (`ILA`) timestamp when the FPGA receives
 the response from the GPU, we can compute the round-trip latency,
 i.e., the elapsed time from the timestamp in the header to the `ILA` receive timestamp.
 
-Please refer to `hololink_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
+Please refer to `hsb_fpga_playback.cpp` code in the [CUDA-Q repository](https://github.com/NVIDIA/cuda-quantum)
 for a sample of data generation tools.
 
 ## Troubleshooting
 
 <!-- markdownlint-disable MD013 -->
 
-### Error "`error while loading shared libraries: libcudaq-realtime-bridge-hololink.so cannot open shared object file: No such file or directory`"
+### Error "`error while loading shared libraries: libcudaq-realtime-bridge-gpu-roce.so cannot open shared object file: No such file or directory`"
 
 This can be resolved by following the post-installation step in the [setup](#setup) section to set the `LD_LIBRARY_PATH`.
 

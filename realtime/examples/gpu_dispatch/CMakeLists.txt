@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-cmake_minimum_required(VERSION 3.24 FATAL_ERROR)
+cmake_minimum_required(VERSION 4.0 FATAL_ERROR)
 
 # A simple example demonstrating how to use the CUDA Quantum Realtime library.
 project(dispatch_kernel)
@@ -53,7 +53,7 @@ add_executable(dispatch_kernel dispatch_kernel.cu)
 
 set_target_properties(dispatch_kernel PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
-  CUDA_STANDARD 17
+  CUDA_STANDARD 20
 )
 set_target_properties(dispatch_kernel PROPERTIES CUDA_ARCHITECTURES "80;90")
 

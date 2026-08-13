@@ -73,6 +73,11 @@ void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
 /// pipeline should be run before conversion to the LLVM-IR dialect.
 void registerToExecutionManagerCCPipeline();
 
+/// Register the pipeline to lower the `IR` through the code generation for
+/// `QIR` steps.
+/// Note: this pipeline \e includes the convert to `QIR API`pipeline.
+void registerCodegenForQIRPipeline();
+
 void registerWireSetToProfileQIRPipeline();
 void populateCCTypeConversions(mlir::LLVMTypeConverter *converter);
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
@@ -81,23 +86,13 @@ void addLowerToCCPipeline(mlir::OpPassManager &pm);
 // Final code generation: converting to a transport layer
 //===----------------------------------------------------------------------===//
 
-/// Pipeline builder to convert Quake to QIR at JIT compilation.
-///
-/// \p pm         Pass manager to append passes to.
-/// \p convertTo  QIR triple to specify the QIR profile to convert to.
-///
-/// The QIR triple is a name indicating the selected profile (`qir`, `qir-full`,
-/// `qir-base`, or `qir-adaptive`) followed by an optional `:` and QIR version
-/// followed by an optional `:` and a list of `suboptions`.
-void addJITPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef convertTo);
-
 /// Pipeline builder to convert Quake to QIR at AOT compilation.
 ///
 /// The driver always uses full QIR, but it can support other profiles if
 /// necessary. Letting \p convertTo default means full QIR.
 void addAOTPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef convertTo = {});
+                                mlir::StringRef convertTo = {},
+                                bool useValueSemantics = true);
 
 /// Pipeline builder to convert Quake to Open QASM 2.0
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);

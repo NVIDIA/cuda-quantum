@@ -52,7 +52,7 @@ int main() {
     std::cout << "FAILURE: Unexpected bitstrings found\n";
     return 1;
   }
-  
+
   std::cout << "SUCCESS\n";
   return 0;
 }

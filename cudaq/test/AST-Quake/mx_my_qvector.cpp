@@ -21,7 +21,7 @@ struct MeasureXRange {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__MeasureXRange
 // CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<3>
-// CHECK:           %[[BITS:.*]] = quake.mx %[[Q]] name "bits" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[BITS:.*]] = quake.mx %[[Q]] name "bits" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           quake.discriminate
 // CHECK:           return
 // clang-format on
@@ -37,12 +37,12 @@ struct MeasureYRange {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__MeasureYRange
 // CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<3>
-// CHECK:           %[[BITS:.*]] = quake.my %[[Q]] name "bits" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[BITS:.*]] = quake.my %[[Q]] name "bits" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           quake.discriminate
 // CHECK:           return
 // clang-format on
 
-struct MeasureViewsAndMixedArgs {
+struct MeasureXViewsAndMixedArgs {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qubit head;
     cudaq::qvector q(4);
@@ -54,8 +54,25 @@ struct MeasureViewsAndMixedArgs {
 };
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__MeasureViewsAndMixedArgs
-// CHECK:           quake.mx %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}} : (!quake.ref, !quake.veq<2>, !quake.veq<1>, !quake.ref) -> !cc.stdvec<!cc.measure_handle>
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__MeasureXViewsAndMixedArgs
+// CHECK:           quake.mx %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}} : (!quake.ref, !quake.veq<2>, !quake.veq<1>, !quake.ref) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           return
+// clang-format on
+
+struct MeasureYViewsAndMixedArgs {
+  std::vector<bool> operator()() __qpu__ {
+    cudaq::qubit head;
+    cudaq::qvector q(4);
+    auto front = q.front(2);
+    auto back = q.back(1);
+    cudaq::qubit tail;
+    return cudaq::to_bools(my(head, front, back, tail));
+  }
+};
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__MeasureYViewsAndMixedArgs
+// CHECK:           quake.my %{{.*}}, %{{.*}}, %{{.*}}, %{{.*}} : (!quake.ref, !quake.veq<2>, !quake.veq<1>, !quake.ref) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // clang-format on
 
@@ -77,7 +94,7 @@ struct QECStyleRangeLoop {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__QECStyleRangeLoop
 // CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<?>
-// CHECK:           %[[BITS:.*]] = quake.mx %[[Q]] name "bits" : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[BITS:.*]] = quake.mx %[[Q]] name "bits" : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           quake.discriminate
 // CHECK:           return
 // clang-format on

@@ -26,7 +26,7 @@ int main() {
     for (auto i = 0; i < num_qubits; i++)
       if (mz(q[i]))
         sum++;
-    union test_union lookatme {};
+    union test_union lookatme{};
     lookatme.foo = sum;
     return lookatme;
   };

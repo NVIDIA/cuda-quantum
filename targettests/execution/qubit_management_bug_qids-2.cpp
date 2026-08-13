@@ -8,11 +8,13 @@
 
 #include <cudaq.h>
 
+// clang-format off
 // RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
+// clang-format on
 
 struct run_test {
   __qpu__ auto operator()() {
-    cudaq::qubit q,p,r;
+    cudaq::qubit q, p, r;
 
     h(r);
 
@@ -20,14 +22,14 @@ struct run_test {
     if (true) {
       x(q);
       x(r);
-      x<cudaq::ctrl>(q,p);
+      x<cudaq::ctrl>(q, p);
     } else {
       if (true)
         x(p);
       else
         x(p);
       y(q);
-      x<cudaq::ctrl>(q,r);
+      x<cudaq::ctrl>(q, r);
     }
 
     bool b = mz(r);

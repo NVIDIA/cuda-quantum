@@ -22,6 +22,7 @@ struct kernel {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
 // CHECK-SAME:      %[[VAL_0:.*]]: i1{{.*}}) -> i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -35,6 +36,7 @@ struct kernel {
 // CHECK:             quake.h [%[[VAL_5]]] %[[VAL_6]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           }
 // CHECK:           return %[[VAL_1]] : i32
+// clang-format on
 
 struct kernel_else {
   __qpu__ int operator()(bool flag) {
@@ -48,6 +50,7 @@ struct kernel_else {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_else(
 // CHECK-SAME:      %[[VAL_0:.*]]: i1{{.*}}) -> i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -65,6 +68,7 @@ struct kernel_else {
 // CHECK:             quake.x {{\[}}%[[VAL_7]]] %[[VAL_8]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           }
 // CHECK:           return %[[VAL_1]] : i32
+// clang-format on
 
 struct kernel_short_circuit_and {
   __qpu__ int operator()() {
@@ -75,6 +79,7 @@ struct kernel_short_circuit_and {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_short_circuit_and() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant false
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -103,6 +108,7 @@ struct kernel_short_circuit_and {
 // CHECK:           }
 // CHECK:           return %[[VAL_1]] : i32
 // CHECK:         }
+// clang-format on
 
 struct kernel_short_circuit_or {
   __qpu__ int operator()() {
@@ -113,6 +119,7 @@ struct kernel_short_circuit_or {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_short_circuit_or() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<3>
@@ -139,6 +146,7 @@ struct kernel_short_circuit_or {
 // CHECK:           }
 // CHECK:           return %[[VAL_1]] : i32
 // CHECK:         }
+// clang-format on
 
 struct kernel_ternary {
   __qpu__ int operator()() {
@@ -148,6 +156,7 @@ struct kernel_ternary {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_ternary() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<3>
@@ -170,3 +179,4 @@ struct kernel_ternary {
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_9]] : !cc.ptr<!cc.measure_handle>
 // CHECK:           return %[[VAL_0]] : i32
 // CHECK:         }
+// clang-format on

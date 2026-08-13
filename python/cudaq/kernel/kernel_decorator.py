@@ -125,6 +125,7 @@ class PyKernelDecorator(object):
                  function,
                  verbose=False,
                  defer_compilation=True,
+                 disable_quantum_optimization=False,
                  module=None,
                  kernelName=None,
                  signature=None,
@@ -137,6 +138,7 @@ class PyKernelDecorator(object):
         self.kernelModuleName = None
         self.name = kernelName
         self.verbose = verbose
+        self.disable_quantum_optimization = disable_quantum_optimization
         # Caches the `qkeModule` property once compiled
         self._cached_qkeModule = None
         self.defFrame = _recover_defining_frame()
@@ -286,7 +288,8 @@ class PyKernelDecorator(object):
             location=self.location,
             kernelName=self.name,
             kernelModuleName=self.kernelModuleName,
-            cudaqAliases=getattr(self, 'cudaqAliases', None))
+            cudaqAliases=getattr(self, 'cudaqAliases', None),
+            disable_quantum_optimization=self.disable_quantum_optimization)
 
         # recursively compile any captured kernels if required
         for captured_arg in self.signature.captured_args:
@@ -406,10 +409,10 @@ class PyKernelDecorator(object):
 
         # Support passing `list[int]` to a `list[float]` argument and
         # passing `list[int]` or `list[float]` to a `list[complex]` argument.
-        if cc.StdvecType.isinstance(fromTy):
-            if cc.StdvecType.isinstance(toTy):
-                fromEleTy = cc.StdvecType.getElementType(fromTy)
-                toEleTy = cc.StdvecType.getElementType(toTy)
+        if cc.SequenceType.isinstance(fromTy):
+            if cc.SequenceType.isinstance(toTy):
+                fromEleTy = cc.SequenceType.getElementType(fromTy)
+                toEleTy = cc.SequenceType.getElementType(toTy)
 
                 return self.isCastablePyType(fromEleTy, toEleTy)
 
@@ -446,10 +449,10 @@ class PyKernelDecorator(object):
 
             # Support passing `list[int]` to a `list[float]` argument and
             # passing `list[int]` or `list[float]` to a `list[complex]` argument
-            if cc.StdvecType.isinstance(fromTy):
-                if cc.StdvecType.isinstance(toTy):
-                    fromEleTy = cc.StdvecType.getElementType(fromTy)
-                    toEleTy = cc.StdvecType.getElementType(toTy)
+            if cc.SequenceType.isinstance(fromTy):
+                if cc.SequenceType.isinstance(toTy):
+                    fromEleTy = cc.SequenceType.getElementType(fromTy)
+                    toEleTy = cc.SequenceType.getElementType(toTy)
 
                     if self.isCastablePyType(fromEleTy, toEleTy):
                         return [
@@ -492,9 +495,42 @@ class PyKernelDecorator(object):
     @staticmethod
     def from_json(jStr, overrideDict=None):
         """
-        Convert a JSON string into a new PyKernelDecorator object.
+        Convert a JSON string (as produced by `to_json`) into a new
+        PyKernelDecorator object.
         """
         j = json.loads(jStr)
+        # The serialized form should be a JSON object.
+        if not isinstance(j, dict):
+            raise RuntimeError(
+                "from_json expects a JSON object produced by "
+                "PyKernelDecorator.to_json, but the input deserialized to a "
+                f"JSON {type(j).__name__}.")
+        # `to_json` always emits these three keys.
+        for key in ('funcSrc', 'name', 'location'):
+            if key not in j:
+                raise RuntimeError(
+                    "from_json: serialized PyKernelDecorator is missing the "
+                    f"required key '{key}'.")
+        # `funcSrc` is recompiled as the kernel body and `name` is its
+        # identifier; both should be strings (non-strings would fail deep inside the constructor).
+        if not isinstance(j['funcSrc'], str):
+            raise RuntimeError(
+                "from_json: the 'funcSrc' field must be a string, but got a "
+                f"{type(j['funcSrc']).__name__}.")
+        if not isinstance(j['name'], str):
+            raise RuntimeError(
+                "from_json: the 'name' field must be a string, but got a "
+                f"{type(j['name']).__name__}.")
+        # `location` is null or a `[filename, lineno]` pair. A wrong-typed value
+        # survives construction (compilation is deferred) but later crashes the
+        # diagnostic emitter, so reject it here at the boundary.
+        loc = j['location']
+        if loc is not None and not (isinstance(loc, list) and len(loc) == 2 and
+                                    isinstance(loc[0], str) and
+                                    isinstance(loc[1], int)):
+            raise RuntimeError(
+                "from_json: the 'location' field must be null or a "
+                f"[filename, lineno] pair, but got {repr(loc)}.")
         return PyKernelDecorator(function=j['funcSrc'],
                                  verbose=False,
                                  kernelName=j['name'],
@@ -590,12 +626,12 @@ class PyKernelDecorator(object):
 
         return processed_args, module
 
-    def cachedCompiledModule(self):
-        """Return the kernel's CompiledModule cache slot, creating an empty
+    def compiledModuleCache(self):
+        """Return this kernel's shared compiled-module cache, creating an empty
         one on first access."""
-        if not hasattr(self, '_compiled_module'):
-            self._compiled_module = cudaq_runtime.CompiledModule()
-        return self._compiled_module
+        if not hasattr(self, '_compiled_module_cache'):
+            self._compiled_module_cache = cudaq_runtime.CompiledModuleCache()
+        return self._compiled_module_cache
 
     def get_none_type(self):
         if self._cached_qkeModule:
@@ -644,7 +680,7 @@ class PyKernelDecorator(object):
             self.uniqName,
             module,
             *processed_args,
-            compiled=self.cachedCompiledModule())
+            cache=self.compiledModuleCache())
 
     def beta_reduction(self, isEntryPoint, *args):
         """
@@ -682,8 +718,8 @@ class PyKernelDecorator(object):
 
         # Validate size limit for list[complex] arguments used for `qvector`
         # state initialization.
-        if cc.StdvecType.isinstance(arg_type):
-            eleTy = cc.StdvecType.getElementType(arg_type)
+        if cc.SequenceType.isinstance(arg_type):
+            eleTy = cc.SequenceType.getElementType(arg_type)
             if ComplexType.isinstance(eleTy) and hasattr(
                     arg, '__len__') and len(arg) > 2**10:
                 num_qubits = int(np.log2(len(arg)))
@@ -700,7 +736,7 @@ class PyKernelDecorator(object):
                            f"{mlirTypeToPyType(arg_type)} was expected.")
 
         # Convert `numpy` arrays to lists
-        if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
+        if cc.SequenceType.isinstance(mlirType) and hasattr(arg, "tolist"):
             if arg.ndim != 1:
                 emitFatalError(
                     f"CUDA-Q kernels only support array arguments from NumPy "
@@ -724,9 +760,15 @@ def mk_decorator(builder):
     that handles both CUDA-Q kernel object classes more unified.
     """
     builder.compile()
-    return PyKernelDecorator(None,
-                             module=builder.qkeModule,
-                             kernelName=builder.uniqName)
+    decorator = PyKernelDecorator(None,
+                                  module=builder.qkeModule,
+                                  kernelName=builder.uniqName)
+    # The adapter is transient — one is made per wrapper call (`draw`,
+    # `get_state`, etc.). Share the builder's compiled-module cache so repeated
+    # wrapper calls reuse one compilation state instead of receiving a fresh,
+    # always-cold cache each time.
+    decorator._compiled_module_cache = builder.compiledModuleCache()
+    return decorator
 
 
 def kernel(function=None, **kwargs):

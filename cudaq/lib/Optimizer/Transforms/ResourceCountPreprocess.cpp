@@ -74,13 +74,38 @@ struct ResourceCountPreprocessPass
     if (!isQuakeOperation(op))
       return false;
 
+    if (auto measurement = dyn_cast<cudaq::quake::MeasurementInterface>(op);
+        isa<cudaq::quake::MxOp, cudaq::quake::MyOp>(op)) {
+      // An unused measurement cannot affect resource-count control flow. Count
+      // it from Quake IR before code generation lowers its axis to an execution
+      // manager Z measurement, then remove it with the other pre-counted ops.
+      for (Value result : op->getResults())
+        if (!result.use_empty())
+          return false;
+
+      std::vector<std::size_t> targetIndices;
+      bool allResolved = true;
+      for (Value target : measurement.getTargets()) {
+        if (auto idx = resolveQubitIndex(target))
+          targetIndices.push_back(*idx);
+        else
+          allResolved = false;
+      }
+      if (!allResolved)
+        targetIndices.clear();
+
+      auto name = op->getName().stripDialect();
+      if (dumpPreprocessed)
+        llvm::outs() << "Preprocessing " << name << "(0) for " << to_add
+                     << " counts\n";
+      countGate(name.str(), {}, targetIndices, to_add);
+      to_erase.insert(op);
+      return true;
+    }
+
     auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
 
     if (!opi)
-      return false;
-
-    // Measures may affect control flow, don't remove for now
-    if (isa<cudaq::quake::MeasurementInterface>(op))
       return false;
 
     auto name = op->getName().stripDialect();

@@ -29,6 +29,8 @@ if [ "$(uname)" = "Darwin" ]; then
   export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.local/llvm}
   export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-$HOME/.local/blas}
   export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-$HOME/.local/zlib}
+  export GMP_INSTALL_PREFIX=${GMP_INSTALL_PREFIX:-$HOME/.local/gmp}
+  export MPFR_INSTALL_PREFIX=${MPFR_INSTALL_PREFIX:-$HOME/.local/mpfr}
   export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-$HOME/.local/ssl}
   export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-$HOME/.local/curl}
   export NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-$HOME/.local/nanobind}
@@ -38,7 +40,7 @@ if [ "$(uname)" = "Darwin" ]; then
   # Homebrew's libomp via 'brew install libomp'), set LLVM_PROJECTS without openmp.
   # `export LLVM_PROJECTS='clang;lld;mlir;python-bindings'`
   if [ -z "${LLVM_PROJECTS:-}" ]; then
-    export LLVM_PROJECTS='clang;lld;mlir;python-bindings;openmp'
+    export LLVM_PROJECTS='clang;lld;mlir;python-bindings;openmp;compiler-rt'
   fi
   # Set minimum macOS deployment target for consistent builds.
   # This ensures LLVM/clang and CUDA-Q libraries use the same target.
@@ -59,6 +61,8 @@ else
   export NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-/usr/local/nanobind}
   export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
   export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
+  export GMP_INSTALL_PREFIX=${GMP_INSTALL_PREFIX:-/usr/local/gmp}
+  export MPFR_INSTALL_PREFIX=${MPFR_INSTALL_PREFIX:-/usr/local/mpfr}
   export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
   export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
   export AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-/usr/local/aws}

@@ -31,7 +31,7 @@ struct range_for_measure_bool {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__range_for_measure_bool()
-// CHECK:           quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %[[HANDLE:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
 // CHECK:           %[[BIT:.*]] = quake.discriminate %[[HANDLE]] : (!cc.measure_handle) -> i1
 // CHECK:           cc.store %[[BIT]], %{{.*}} : !cc.ptr<i1>
@@ -52,9 +52,11 @@ struct range_for_measure_auto {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__range_for_measure_auto()
-// CHECK:           quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           cc.store %{{.*}}, %{{.*}} : !cc.ptr<!cc.measure_handle>
+// clang-format on
 
 // A named `std::vector<measure_handle>` bound straight from a multi-qubit `mz`.
 // The descriptor slot stores the `mz` result, so the vector is bound and the
@@ -75,8 +77,8 @@ struct range_for_measure_named_vector {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__range_for_measure_named_vector()
-// CHECK:           quake.mz %{{.*}} name "handles" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           cc.store %{{.*}}, %{{.*}} : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           quake.mz %{{.*}} name "handles" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           cc.store %{{.*}}, %{{.*}} : !cc.ptr<!cc.sequence<!cc.measure_handle>>
 // CHECK:           %[[HANDLE:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
 // CHECK:           %[[BIT:.*]] = quake.discriminate %[[HANDLE]] : (!cc.measure_handle) -> i1
 // CHECK:           cc.store %[[BIT]], %{{.*}} : !cc.ptr<i1>
@@ -104,7 +106,7 @@ struct range_for_measure_list_init {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__range_for_measure_list_init()
 // CHECK:           quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
 // CHECK:           quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
-// CHECK:           cc.stdvec_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.sequence_init %{{.*}}, %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           %[[HANDLE:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
 // CHECK:           %[[BIT:.*]] = quake.discriminate %[[HANDLE]] : (!cc.measure_handle) -> i1
 // CHECK:           cc.store %[[BIT]], %{{.*}} : !cc.ptr<i1>

@@ -12,6 +12,7 @@ add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
         FactoryMergeModuleTest.cpp
         DecompositionPatternsTest.cpp
         DecompositionPatternSelectionTest.cpp
+        CliffordTSynthesisTester.cpp
     INCLUDES
         ${CMAKE_SOURCE_DIR}/runtime
         ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms
@@ -47,6 +48,18 @@ add_cudaq_unittest("AnalysisPassUnitTests" "analysis-passes"
 
 create_cudaq_unittest_check_target("AnalysisPassUnitTests" "analysis-passes")
 
+add_cudaq_unittest("DeviceUnitTests" "device-unit-tests"
+    SOURCES
+        DeviceTest.cpp
+    INCLUDES
+    LINKED_LIBS
+        MLIRIR
+    COMPILE_OPTS
+      -fno-rtti
+)
+
+create_cudaq_unittest_check_target("DeviceUnitTests" "device-unit-tests")
+
 add_cudaq_unittest("test_quake_synth" "quake-synth"
     SOURCES
         QuakeSynthTester.cpp
@@ -57,6 +70,7 @@ add_cudaq_unittest("test_quake_synth" "quake-synth"
         cudaq-builder
         cudaq-common
         cudaq-platform-default
+        cudaqMLIR
         nvqir-qpp 
         nvqir
         cudaq-em-default

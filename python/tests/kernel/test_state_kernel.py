@@ -162,6 +162,28 @@ def test_state_density_matrix_simple():
     np.isclose(.5, got_state[3, 0].real)
     np.isclose(.5, got_state[3, 3].real)
 
+    # state[4, 0]: row equals dimension.
+    with pytest.raises(IndexError):
+        got_state[4, 0]
+    # state[0, 4]: column equals dimension.
+    with pytest.raises(IndexError):
+        got_state[0, 4]
+    # state[INT_MAX, 0]: row exceeds dimension.
+    with pytest.raises(IndexError):
+        got_state[2147483647, 0]
+    # state[[INT_MAX, 0]]: row exceeds dimension.
+    with pytest.raises(IndexError):
+        got_state[[2147483647, 0]]
+    # state[-5, 0]: row below -dimension.
+    with pytest.raises(IndexError):
+        got_state[-5, 0]
+    # state[[0]]: one matrix index.
+    with pytest.raises(RuntimeError):
+        got_state[[0]]
+    # state[[0, 0, 0]]: three matrix indices.
+    with pytest.raises(RuntimeError):
+        got_state[[0, 0, 0]]
+
     # Check the entire matrix with numpy.
     assert np.allclose(want_state, np.array(got_state))
 

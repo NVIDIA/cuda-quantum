@@ -20,18 +20,19 @@ struct ak2 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak2
-// CHECK-SAME: () -> !cc.stdvec<i1> attributes {
+// CHECK-SAME: () -> !cc.sequence<i1> attributes {
 // CHECK:           %[[VAL_22:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_19:.*]] = quake.mz %{{.*}} : (!quake.veq<5>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_19]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-// CHECK:           %[[VAL_20:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_21:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<i1>) -> i64
+// CHECK:           %[[VAL_19:.*]] = quake.mz %{{.*}} : (!quake.veq<5>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_19]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+// CHECK:           %[[VAL_20:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<i1>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_21:.*]] = cc.sequence_size %[[VAL_1]] : (!cc.sequence<i1>) -> i64
 // CHECK:           %[[VAL_23:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_24:.*]] = cc.stdvec_init %[[VAL_23]], %[[VAL_21]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
-// CHECK:           return %[[VAL_24]] : !cc.stdvec<i1>
+// CHECK:           %[[VAL_24:.*]] = cc.sequence_init %[[VAL_23]], %[[VAL_21]] : (!cc.ptr<i8>, i64) -> !cc.sequence<i1>
+// CHECK:           return %[[VAL_24]] : !cc.sequence<i1>
 // CHECK:         }
 // CHECK-NOT:   func.func {{.*}} @_ZNKSt14_Bit_referencecvbEv() -> i1
 // CHECK-LABEL: func.func private @__nvqpp_vectorCopyCtor(
 // CHECK-NOT:   func.func {{.*}} @_ZNKSt14_Bit_referencecvbEv() -> i1
-
+// clang-format on

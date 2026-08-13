@@ -1,0 +1,202 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         //
+// All rights reserved.                                                        //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
+// RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
+// RUN: cudaq-opt --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke --up-to-global-phase
+
+func.func @independent_wires(%arg0: !quake.wire, %arg1: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.t %arg1 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %4 = quake.t %2 : (!quake.wire) -> !quake.wire
+  %5 = quake.t %3 : (!quake.wire) -> !quake.wire
+  return %4, %5 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @independent_wires
+// CHECK-COUNT-4: quake.s
+// CHECK-NOT: quake.t
+
+func.func @unchanged(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  return %1 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @unchanged
+// CHECK-NEXT:    %[[H:.*]] = quake.h %arg0
+// CHECK-NEXT:    %[[T:.*]] = quake.t %[[H]]
+// CHECK-NEXT:    return %[[T]]
+
+// `S X S` normalizes exactly to `X W W`. The compiler omits both `W` gates,
+// so this rewrite is equivalent modulo global phase and emits only `X`.
+func.func @omits_w(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.s %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  return %2 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @omits_w
+// CHECK-NEXT:    %[[X:.*]] = quake.x %arg0
+// CHECK-NEXT:    return %[[X]]
+
+// These ref-semantics wrappers let CircuitCheck compare the unitaries while
+// the pass still operates only on the scalar wire chains between unwrap/wrap.
+// SEMANTIC-BEGIN
+
+func.func @semantic_order(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.h %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_order
+// CHECK:         %[[WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:    %[[S0:.*]] = quake.s %[[WIRE]]
+// CHECK-NEXT:    %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:    %[[H:.*]] = quake.h %[[S1]]
+// CHECK-NEXT:    quake.wrap %[[H]]
+
+func.func @semantic_adjoints(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.s<adj> %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t<adj> %2 : (!quake.wire) -> !quake.wire
+  %4 = quake.t %3 : (!quake.wire) -> !quake.wire
+  quake.wrap %4 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_adjoints
+// CHECK:         %[[ADJ_WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:    quake.wrap %[[ADJ_WIRE]]
+
+// Exercise the X/Y/Z encodings used to build the exact normalization input.
+// `Y Z` reduces to `X` modulo the W phase that the compiler cannot represent.
+func.func @semantic_xyz(%arg0: !quake.ref) {
+  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
+  %1 = quake.y %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.z %1 : (!quake.wire) -> !quake.wire
+  quake.wrap %2 to %arg0 : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_xyz
+// CHECK:         %[[XYZ_WIRE:.*]] = quake.unwrap
+// CHECK-NEXT:    %[[XYZ_X:.*]] = quake.x %[[XYZ_WIRE]]
+// CHECK-NEXT:    quake.wrap %[[XYZ_X]]
+
+// SEMANTIC-END
+
+func.func @controlled_boundary(%control: !quake.wire,
+                               %target: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %target : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.x [%control] %2
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.t %3#1 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.t %5 : (!quake.wire) -> !quake.wire
+  return %3#0, %6 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @controlled_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[CX:.*]]:2 = quake.x [
+// CHECK-NEXT:    quake.s %[[CX]]#1
+// CHECK-NEXT:    quake.s
+
+func.func @rotation_boundary(%arg0: !quake.wire, %angle: f64)
+    -> !quake.wire {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.rz (%angle) %2 : (f64, !quake.wire) -> !quake.wire
+  %4 = quake.t %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.t %5 : (!quake.wire) -> !quake.wire
+  return %6 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @rotation_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[RZ:.*]] = quake.rz
+// CHECK-NEXT:    quake.s %[[RZ]]
+// CHECK-NEXT:    quake.s
+
+func.func @multi_qubit_boundary(%arg0: !quake.wire, %arg1: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3:2 = quake.swap %2, %arg1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4 = quake.t %3#0 : (!quake.wire) -> !quake.wire
+  %5 = quake.s %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.t %5 : (!quake.wire) -> !quake.wire
+  return %6, %3#1 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @multi_qubit_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[SWAP:.*]]:2 = quake.swap
+// CHECK-NEXT:    quake.s %[[SWAP]]#0
+// CHECK-NEXT:    quake.s
+
+func.func @measurement_boundary(%arg0: !quake.wire)
+    -> (!quake.measure, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3, %4 = quake.mz %2
+      : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %5 = quake.t %4 : (!quake.wire) -> !quake.wire
+  %6 = quake.s %5 : (!quake.wire) -> !quake.wire
+  %7 = quake.t %6 : (!quake.wire) -> !quake.wire
+  return %3, %7 : !quake.measure, !quake.wire
+}
+
+// CHECK-LABEL: func.func @measurement_boundary
+// CHECK:         quake.s
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    %[[M:.*]], %[[MWIRE:.*]] = quake.mz
+// CHECK-NEXT:    quake.s %[[MWIRE]]
+// CHECK-NEXT:    quake.s
+
+func.func @non_linear_boundary(%arg0: !quake.wire)
+    -> (!quake.wire, !quake.wire) {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %2 = quake.t %1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %4 = quake.s %3 : (!quake.wire) -> !quake.wire
+  %5 = quake.t %4 : (!quake.wire) -> !quake.wire
+  return %2, %5 : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @non_linear_boundary
+// CHECK-NEXT:    %[[LEFT_T0:.*]] = quake.t %arg0
+// CHECK-NEXT:    %[[LEFT_S:.*]] = quake.s %[[LEFT_T0]]
+// CHECK-NEXT:    %[[LEFT_T1:.*]] = quake.t %[[LEFT_S]]
+// CHECK-NEXT:    %[[RIGHT_T0:.*]] = quake.t %arg0
+// CHECK-NEXT:    %[[RIGHT_S:.*]] = quake.s %[[RIGHT_T0]]
+// CHECK-NEXT:    %[[RIGHT_T1:.*]] = quake.t %[[RIGHT_S]]
+// CHECK-NEXT:    return %[[LEFT_T1]], %[[RIGHT_T1]]

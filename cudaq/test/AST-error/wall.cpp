@@ -13,8 +13,8 @@
 void foo();
 
 struct S {
-   void operator()() __qpu__ {
-      int unused = 42; // expected-warning{{unused variable}}
-      foo();
-   }
+  void operator()() __qpu__ {
+    int unused = 42; // expected-warning{{unused variable}}
+    foo();
+  }
 };

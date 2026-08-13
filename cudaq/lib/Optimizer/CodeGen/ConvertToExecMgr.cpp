@@ -60,10 +60,7 @@ struct QuakeToCCPass : public cudaq::opt::impl::QuakeToCCBase<QuakeToCCPass> {
     QuakeTypeConverter quakeTypeConverter;
     cudaq::opt::populateQuakeToCCPatterns(quakeTypeConverter, patterns);
     ConversionTarget target(*context);
-    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           cf::ControlFlowDialect, func::FuncDialect,
-                           LLVM::LLVMDialect>();
-    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
+    cudaq::opt::setQuakeToCCLegality(target);
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))

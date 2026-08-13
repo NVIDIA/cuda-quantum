@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --cc-loop-normalize --canonicalize | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
 
@@ -16,6 +18,7 @@ __qpu__ void foo1() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo1
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -35,6 +38,7 @@ __qpu__ void foo1() {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void foo2() {
   cudaq::qubit q;
@@ -42,6 +46,7 @@ __qpu__ void foo2() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo2
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -61,6 +66,7 @@ __qpu__ void foo2() {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void foo3() {
   cudaq::qvector q(10);
@@ -68,6 +74,7 @@ __qpu__ void foo3() {
     x(q[i]);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo3
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -86,13 +93,15 @@ __qpu__ void foo3() {
 // CHECK:           ^bb0(%[[VAL_12:.*]]: i32):
 // CHECK:             %[[VAL_13:.*]] = arith.addi %[[VAL_12]], %[[VAL_1]] : i32
 // CHECK:             cc.continue %[[VAL_13]] : i32
+// clang-format on
 
 __qpu__ void foo4() {
   cudaq::qvector q(10);
   for (int i = 10; i > 0; i -= 2)
-    x(q[i-1]);
+    x(q[i - 1]);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo4
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 9 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 5 : i32
@@ -108,6 +117,7 @@ __qpu__ void foo4() {
 // CHECK:             %[[VAL_13:.*]] = quake.extract_ref %{{.*}}[%[[VAL_12]]] : (!quake.veq<10>, i64) -> !quake.ref
 // CHECK:           ^bb0(%[[VAL_14:.*]]: i32):
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_2]] : i32
+// clang-format on
 
 __qpu__ void foo5() {
   cudaq::qubit q;
@@ -115,6 +125,7 @@ __qpu__ void foo5() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo5
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -134,6 +145,7 @@ __qpu__ void foo5() {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void foo6() {
   cudaq::qubit q;
@@ -141,6 +153,7 @@ __qpu__ void foo6() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_foo6
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 5 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -160,6 +173,7 @@ __qpu__ void foo6() {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ void negative1() {
   cudaq::qubit q;
@@ -167,11 +181,13 @@ __qpu__ void negative1() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_negative1
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
 // CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
 // CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)
+// clang-format on
 
 __qpu__ void negative2() {
   cudaq::qubit q;
@@ -179,11 +195,13 @@ __qpu__ void negative2() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_negative2
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
 // CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
 // CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)
+// clang-format on
 
 __qpu__ void negative3() {
   cudaq::qubit q;
@@ -191,11 +209,13 @@ __qpu__ void negative3() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_negative3
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.loop while ((%[[VAL_4:.*]] = %[[VAL_0]]) -> (i32)) {
 // CHECK:             %[[VAL_5:.*]] = arith.cmpi ne, %[[VAL_4]], %[[VAL_0]] : i32
 // CHECK:             cc.condition %[[VAL_5]](%[[VAL_4]] : i32)
+// clang-format on
 
 //===----------------------------------------------------------------------===//
 // Linear expressions
@@ -208,6 +228,7 @@ __qpu__ void linear_expr0() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr0
 // CHECK:           %[[VAL_2:.*]] = arith.constant 9 : i32
 // CHECK:           cc.loop while ((%[[VAL_5:.*]] = %{{.*}}) -> (i32)) {
@@ -216,6 +237,7 @@ __qpu__ void linear_expr0() {
 // CHECK:             cc.condition %[[VAL_7]](%[[VAL_5]] : i32)
 // CHECK:           } do {
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr1a() {
   cudaq::qubit q;
@@ -224,6 +246,7 @@ __qpu__ void linear_expr1a() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr1a
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 6 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
@@ -232,6 +255,7 @@ __qpu__ void linear_expr1a() {
 // CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr1b() {
   cudaq::qubit q;
@@ -240,6 +264,7 @@ __qpu__ void linear_expr1b() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr1b
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 5 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
@@ -248,6 +273,7 @@ __qpu__ void linear_expr1b() {
 // CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr2() {
   cudaq::qubit q;
@@ -256,6 +282,7 @@ __qpu__ void linear_expr2() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr2
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 7 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 3 : i32
@@ -266,6 +293,7 @@ __qpu__ void linear_expr2() {
 // CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_7]] : i32)
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr3a() {
   cudaq::qubit q;
@@ -274,6 +302,7 @@ __qpu__ void linear_expr3a() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3a
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 6 : i32
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i32
@@ -282,6 +311,7 @@ __qpu__ void linear_expr3a() {
 // CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_7]] : i32)
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr3b() {
   cudaq::qubit q;
@@ -291,6 +321,7 @@ __qpu__ void linear_expr3b() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3b
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
@@ -298,6 +329,7 @@ __qpu__ void linear_expr3b() {
 // CHECK:             %[[VAL_8:.*]] = arith.subi %[[VAL_3]], %[[VAL_6]] : i32
 // CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_0]] : i32
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr3c() {
   cudaq::qubit q;
@@ -307,6 +339,7 @@ __qpu__ void linear_expr3c() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr3c
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
@@ -314,6 +347,7 @@ __qpu__ void linear_expr3c() {
 // CHECK:             %[[VAL_8:.*]] = arith.subi %[[VAL_3]], %[[VAL_6]] : i32
 // CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_0]] : i32
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr4() {
   cudaq::qubit q;
@@ -322,6 +356,7 @@ __qpu__ void linear_expr4() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr4
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 5 : i32
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
@@ -330,6 +365,7 @@ __qpu__ void linear_expr4() {
 // CHECK:             %[[VAL_8:.*]] = arith.cmpi ne, %[[VAL_7]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr5a() {
   cudaq::qubit q;
@@ -338,6 +374,7 @@ __qpu__ void linear_expr5a() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr5a
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 5 : i32
@@ -349,6 +386,7 @@ __qpu__ void linear_expr5a() {
 // CHECK:             %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_10]](%[[VAL_7]] : i32)
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr5b() {
   cudaq::qubit q;
@@ -357,6 +395,7 @@ __qpu__ void linear_expr5b() {
     x(q);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr5b
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i32
@@ -367,6 +406,7 @@ __qpu__ void linear_expr5b() {
 // CHECK:             %[[VAL_9:.*]] = arith.cmpi ne, %[[VAL_8]], %[[VAL_2]] : i32
 // CHECK:             cc.condition %[[VAL_9]](%[[VAL_6]] : i32)
 // CHECK:           } {normalized}
+// clang-format on
 
 __qpu__ void linear_expr6() {
   cudaq::qvector q(100);
@@ -375,6 +415,7 @@ __qpu__ void linear_expr6() {
     x(q[i]);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_linear_expr6
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -396,6 +437,7 @@ __qpu__ void linear_expr6() {
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : i32
 // CHECK:             cc.continue %[[VAL_15]] : i32
 // CHECK:           } {normalized}
+// clang-format on
 
 // In cases where the number of iterations is invalid, we should normalize to
 // a count of 0.
@@ -403,9 +445,10 @@ __qpu__ void linear_expr6() {
 __qpu__ void non_iterating_loop2() {
   cudaq::qvector q(100);
   for (std::int64_t i = 1; i < -1; i++)
-    x(q[i]);   
+    x(q[i]);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_non_iterating_loop2._Z19non_iterating_loop2v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -426,6 +469,7 @@ __qpu__ void non_iterating_loop2() {
 // CHECK:           } {normalized}
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ int f2a() {
   cudaq::qubit q;
@@ -434,6 +478,7 @@ __qpu__ int f2a() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f2a._Z3f2av() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -452,6 +497,7 @@ __qpu__ int f2a() {
 // CHECK:           } {normalized}
 // CHECK:           return %[[VAL_0]] : i32
 // CHECK:         }
+// clang-format on
 
 __qpu__ int f2b() {
   cudaq::qubit q;
@@ -460,6 +506,7 @@ __qpu__ int f2b() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f2b._Z3f2bv() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -478,6 +525,7 @@ __qpu__ int f2b() {
 // CHECK:           } {normalized}
 // CHECK:           return %[[VAL_0]] : i32
 // CHECK:         }
+// clang-format on
 
 __qpu__ int f4() {
   cudaq::qubit q;
@@ -486,6 +534,7 @@ __qpu__ int f4() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f4._Z2f4v() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -505,6 +554,7 @@ __qpu__ int f4() {
 // CHECK:           } {normalized}
 // CHECK:           return %[[VAL_2]] : i32
 // CHECK:         }
+// clang-format on
 
 __qpu__ int m1(unsigned z) {
   cudaq::qubit q;
@@ -513,6 +563,7 @@ __qpu__ int m1(unsigned z) {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_m1._Z2m1j(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -533,6 +584,7 @@ __qpu__ int m1(unsigned z) {
 // CHECK:           } {normalized}
 // CHECK:           return %[[VAL_1]] : i32
 // CHECK:         }
+// clang-format on
 
 __qpu__ int m2(int z) {
   cudaq::qubit q;
@@ -541,6 +593,7 @@ __qpu__ int m2(int z) {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_m2._Z2m2i(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -563,6 +616,7 @@ __qpu__ int m2(int z) {
 // CHECK:           } {normalized}
 // CHECK:           return %[[VAL_1]] : i32
 // CHECK:         }
+// clang-format on
 
 // Dead loops: no unsigned value will ever be less than 0, so these loops will
 // never execute. Make sure they are marked "dead" by the normalizer.
@@ -570,9 +624,10 @@ __qpu__ int m2(int z) {
 __qpu__ void non_iterating_loop1() {
   cudaq::qvector q(100);
   for (std::uint64_t i = 1; i < 0; i++)
-    x(q[i]);   
+    x(q[i]);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_non_iterating_loop1._Z19non_iterating_loop1v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant false
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -591,6 +646,7 @@ __qpu__ void non_iterating_loop1() {
 // CHECK:           } {dead}
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 __qpu__ int f1a() {
   cudaq::qubit q;
@@ -599,6 +655,7 @@ __qpu__ int f1a() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f1a._Z3f1av() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant false
 // CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i32
@@ -617,6 +674,7 @@ __qpu__ int f1a() {
 // CHECK:           } {dead}
 // CHECK:           return %[[VAL_1]] : i32
 // CHECK:         }
+// clang-format on
 
 __qpu__ int f1b() {
   cudaq::qubit q;
@@ -625,6 +683,7 @@ __qpu__ int f1b() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f1b._Z3f1bv() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant false
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
@@ -644,6 +703,7 @@ __qpu__ int f1b() {
 // CHECK:           } {dead}
 // CHECK:           return %[[VAL_2]] : i32
 // CHECK:         }
+// clang-format on
 
 __qpu__ int f3() {
   cudaq::qubit q;
@@ -652,6 +712,7 @@ __qpu__ int f3() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_f3._Z2f3v() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant false
 // CHECK:           %[[VAL_1:.*]] = arith.constant 22 : i64
@@ -671,3 +732,4 @@ __qpu__ int f3() {
 // CHECK:           } {dead}
 // CHECK:           return %[[VAL_3]] : i32
 // CHECK:         }
+// clang-format on

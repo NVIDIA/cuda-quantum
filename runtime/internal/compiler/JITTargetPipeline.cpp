@@ -39,7 +39,6 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
 
   if (!pipelineConfig.overridePassPipeline.empty()) {
     passPipeline = pipelineConfig.overridePassPipeline;
-    target.updatePassPipeline(passPipeline);
     return passPipeline;
   }
 
@@ -74,8 +73,6 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
                "pipeline to {}",
                passPipeline);
   }
-
-  target.updatePassPipeline(passPipeline);
 
   return passPipeline;
 }

@@ -18,6 +18,7 @@ __qpu__ void vector_data_as_argument() {
   storeHere(ten.data(), 10);
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_vector_data_as_argument._Z23vector_data_as_argumentv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 10 : i32
 // CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.array<i32 x 10>
@@ -29,4 +30,4 @@ __qpu__ void vector_data_as_argument() {
 // CHECK:         }
 
 // CHECK:         func.func private @_Z9storeHerePii(!cc.ptr<i32>, i32)
-
+// clang-format on

@@ -33,6 +33,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-QPP: [info] [NVQIR.cpp:{{[0-9]+}}] Creating the qpp backend.
 // CHECK-QPP: [info] [DefaultExecutionManager.cpp:{{[0-9]+}}] [DefaultExecutionManager] Creating the qpp backend.
 
@@ -40,3 +41,4 @@ int main() {
 // CHECK-DM: [info] [DefaultExecutionManager.cpp:{{[0-9]+}}] [DefaultExecutionManager] Creating the dm backend.
 
 // CHECK-NOT: foo
+// clang-format on

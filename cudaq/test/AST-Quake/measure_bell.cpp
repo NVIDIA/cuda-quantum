@@ -52,19 +52,19 @@ struct bell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:               %[[SLOT:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
-// CHECK:               cc.store %[[VAL_112]], %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[LD0:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[LD0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:               %[[SLOT:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
+// CHECK:               cc.store %[[VAL_112]], %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[LD0:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[VAL_13:.*]] = cc.sequence_data %[[LD0]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
 // CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_35:.*]] = quake.discriminate %[[VAL_15]] : (!cc.measure_handle) -> i1
 // CHECK:               %[[VAL_16:.*]] = cc.alloca i1
 // CHECK:               cc.store %[[VAL_35]], %[[VAL_16]] : !cc.ptr<i1>
 // CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_16]] : !cc.ptr<i1>
-// CHECK:               %[[LD1:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[D1:.*]] = cc.stdvec_data %[[LD1]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:               %[[LD1:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[D1:.*]] = cc.sequence_data %[[LD1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
 // CHECK:               %[[VAL_18:.*]] = cc.compute_ptr %[[D1]][1] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_19:.*]] = cc.load %[[VAL_18]] : !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_39:.*]] = quake.discriminate %[[VAL_19]] : (!cc.measure_handle) -> i1
@@ -123,11 +123,11 @@ struct libertybell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:               %[[SLOT:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
-// CHECK:               cc.store %[[VAL_112]], %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[LD0:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[LD0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:               %[[SLOT:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
+// CHECK:               cc.store %[[VAL_112]], %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[LD0:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[VAL_13:.*]] = cc.sequence_data %[[LD0]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
 // CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_35:.*]] = quake.discriminate %[[VAL_15]] : (!cc.measure_handle) -> i1
@@ -191,17 +191,17 @@ struct tinkerbell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:               %[[SLOT:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
-// CHECK:               cc.store %[[VAL_112]], %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[LD0:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[LD0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
+// CHECK:               %[[SLOT:.*]] = cc.alloca !cc.sequence<!cc.measure_handle>
+// CHECK:               cc.store %[[VAL_112]], %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[LD0:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[VAL_13:.*]] = cc.sequence_data %[[LD0]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
 // CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[H0A:.*]] = cc.alloca !cc.measure_handle
 // CHECK:               cc.store %[[VAL_15]], %[[H0A]] : !cc.ptr<!cc.measure_handle>
-// CHECK:               %[[LD1:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
-// CHECK:               %[[D1:.*]] = cc.stdvec_data %[[LD1]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:               %[[LD1:.*]] = cc.load %[[SLOT]] : !cc.ptr<!cc.sequence<!cc.measure_handle>>
+// CHECK:               %[[D1:.*]] = cc.sequence_data %[[LD1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
 // CHECK:               %[[VAL_16:.*]] = cc.compute_ptr %[[D1]][1] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_16]] : !cc.ptr<!cc.measure_handle>
 // CHECK:               %[[H1A:.*]] = cc.alloca !cc.measure_handle

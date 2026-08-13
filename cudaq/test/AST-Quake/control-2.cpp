@@ -12,7 +12,7 @@
 
 struct PortableControlFormTest {
   void operator()() __qpu__ {
-     cudaq::qvector q(2);
+    cudaq::qvector q(2);
 
     cx(q[0], q[1]);
     cy(q[0], q[1]);
@@ -29,6 +29,7 @@ struct PortableControlFormTest {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__PortableControlFormTest() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_90:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
@@ -64,3 +65,4 @@ struct PortableControlFormTest {
 // CHECK:           quake.r1 (%[[VAL_90]]) [%[[VAL_20]]] %[[VAL_21]] : (f64, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

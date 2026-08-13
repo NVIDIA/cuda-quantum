@@ -8,7 +8,9 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
+// clang-format off
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s && FileCheck --check-prefix=LLVM %s < simple_qarray.ll
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -44,6 +46,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz()
 // CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4 : i32
@@ -74,7 +77,7 @@ int main() {
 // CHECK:               cc.store %[[VAL_16]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<5>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_17:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<5>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

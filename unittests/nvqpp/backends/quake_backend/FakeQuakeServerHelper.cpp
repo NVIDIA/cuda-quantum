@@ -14,6 +14,7 @@
 #include <fstream>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
 #include <thread>
 
 namespace cudaq {
@@ -26,7 +27,23 @@ public:
 
   RestHeaders getHeaders() override { return RestHeaders(); }
 
-  void initialize(BackendConfig config) override {}
+  void initialize(BackendConfig config) override { backendConfig = config; }
+
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &) override {
+    const auto iter = backendConfig.find("emulate");
+    if (iter == backendConfig.end() || iter->second != "true")
+      return {{"%QUAKE_EMULATE_SUFFIX%", ""}};
+
+    // Remote execution preserves structured control flow in the wire-set
+    // payload, then fully unrolls it on the mock server before lowering the
+    // wire set directly to QIR. Mirror that execution-time lowering for local
+    // emulation without changing the selectively unrolled client payload.
+    return {{"%QUAKE_EMULATE_SUFFIX%",
+             ",func.func(cc-loop-unroll{maximum-iterations=1024 "
+             "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
+             "allow-early-exit=true},canonicalize),lower-to-cfg"}};
+  }
 
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {

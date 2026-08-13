@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // REQUIRES: nvcc
 
 // RUN: (nvcc -c -Xcompiler -fPIC %p/cuda-1.cu -o %t.o && \
@@ -13,6 +14,7 @@
 // RUN: FileCheck %s
 
 // CHECK-LABEL: Success
+// clang-format on
 
 #include <cudaq.h>
 
@@ -24,9 +26,7 @@ struct CUDA_Quantum_Kernel {
   }
 };
 
-void cudaq_kernel() {
-  CUDA_Quantum_Kernel{}();
-}
+void cudaq_kernel() { CUDA_Quantum_Kernel{}(); }
 
 void cuda_gpu_kernel();
 

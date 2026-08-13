@@ -48,7 +48,7 @@ public:
         op.getCanonicalizationPatterns(patterns, ctx);
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
-                                         progress);
+                                         progress, unrollOnlyWireBlockingLoops);
       FrozenRewritePatternSet frozen(std::move(patterns));
       // Iterate over the loops until a fixed-point is reached. Some loops can
       // only be unrolled if other loops are unrolled first and the constants
@@ -59,7 +59,24 @@ public:
       } while (progress);
     }
 
-    if (signalFailure) {
+    if (unrollOnlyWireBlockingLoops) {
+      // In the value-semantics opt-in mode, a loop that still accesses quantum
+      // data by a dynamic index or slice (blocking wire conversion) but
+      // survived the unrolling above (e.g. a non-constant trip count) is a
+      // dead end: it can be neither kept in value semantics nor unrolled.
+      // Report each such loop.
+      op->walk([&](cudaq::cc::LoopOp loop) {
+        if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
+          return;
+        if (loopBlocksWireConversion(loop)) {
+          loop.emitOpError(
+              "loop accesses quantum data by a dynamic index or slice and "
+              "cannot be unrolled (trip count is not a compile-time constant); "
+              "it can be neither kept in value semantics nor unrolled");
+          signalPassFailure();
+        }
+      });
+    } else if (signalFailure) {
       numLoops = countLoopOps(op);
       if (numLoops) {
         op->emitOpError("did not unroll loops");

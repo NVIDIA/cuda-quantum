@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cudaq/algorithm.h>
 #include <cudaq/optimizers.h>
+#include <limits>
 #include <numeric>
 
 using namespace cudaq;
@@ -37,6 +38,13 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   EXPECT_NEAR(0.0, state.amplitude({1, 0}).real(), 1e-3);
   EXPECT_NEAR(0.0, state.amplitude({0, 1}).real(), 1e-3);
   EXPECT_NEAR(0.5, state.amplitude({1, 1}).real(), 1e-3);
+
+  // state(4, 0): row equals dimension.
+  EXPECT_ANY_THROW(state(4, 0));
+  // state(0, 4): column equals dimension.
+  EXPECT_ANY_THROW(state(0, 4));
+  // state(SIZE_MAX, 0): row exceeds dimension.
+  EXPECT_ANY_THROW(state(std::numeric_limits<std::size_t>::max(), 0));
 #else
   EXPECT_NEAR(1. / std::sqrt(2.), state[0].real(), 1e-3);
   EXPECT_NEAR(0., state[1].real(), 1e-3);
@@ -46,6 +54,11 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
   EXPECT_NEAR(0.0, state.amplitude({1, 0}).real(), 1e-3);
   EXPECT_NEAR(0.0, state.amplitude({0, 1}).real(), 1e-3);
   EXPECT_NEAR(1. / std::sqrt(2.), state.amplitude({1, 1}).real(), 1e-3);
+
+  // state[4]: index equals logical dimension.
+  EXPECT_ANY_THROW(state[4]);
+  // state[SIZE_MAX]: index exceeds logical dimension.
+  EXPECT_ANY_THROW(state[std::numeric_limits<std::size_t>::max()]);
 
   // Multiple amplitude access
   const auto amplitudes = state.amplitudes({{0, 0}, {1, 1}});

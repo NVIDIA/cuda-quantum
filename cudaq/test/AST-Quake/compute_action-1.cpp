@@ -18,12 +18,16 @@
 #endif
 
 void t() __qpu__ {
-	cudaq::qvector r(5);
-	cudaq:: CALL (
-		[&](){ t(r[0]); x(r[1]); },
-		[&](){ h(r[2]); });
+  cudaq::qvector r(5);
+  cudaq::CALL(
+      [&]() {
+        t(r[0]);
+        x(r[1]);
+      },
+      [&]() { h(r[2]); });
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_t
 // CHECK-SAME: () attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
 // CHECK:           %[[VAL_3:.*]] = cc.create_lambda {
@@ -49,4 +53,4 @@ void t() __qpu__ {
 // DAGGER:           quake.compute_action<dag> %[[VAL_3]], %[[VAL_10]] : !cc.callable<() -> ()>, !cc.callable<() -> ()>
 // DAGGER:           return
 // DAGGER:         }
-
+// clang-format on

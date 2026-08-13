@@ -36,7 +36,7 @@ using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     bool, bool)>;
 using TranslateFromMLIRFunctionExtended = std::function<mlir::LogicalResult(
     mlir::Operation *, const std::string &, llvm::raw_string_ostream &,
-    const std::string &, bool, bool, bool)>;
+    const std::string &, bool, bool, bool, bool)>;
 
 /// @brief Initialize MLIR with CUDA-Q dialects and create an internal MLIR
 /// context
@@ -79,10 +79,12 @@ public:
                                  llvm::raw_string_ostream &output,
                                  const std::string &additionalPasses,
                                  bool printIR, bool printIntermediateMLIR,
-                                 bool printStats) const {
+                                 bool printStats,
+                                 bool disableQuantumOpts = false) const {
     if (ext_function.has_value())
       return (*ext_function)(op, transport, output, additionalPasses, printIR,
-                             printIntermediateMLIR, printStats);
+                             printIntermediateMLIR, printStats,
+                             disableQuantumOpts);
     return mlir::failure();
   }
 
@@ -113,10 +115,13 @@ getEntryPointName(mlir::OwningOpRef<mlir::ModuleOp> &module);
 
 void initializeLangMLIR();
 
-/// Run pm on op. Implementation is selected at link time by
-/// RuntimeCppMLIR.cpp / RuntimePyMLIR.cpp so the host language can wrap
-/// the call with any required interpreter-lock handling.
+/// Run pm on op. Python extension uses setRunPassManagerHook to override hook
+/// (for required interpreter-lock / signal handling).
 mlir::LogicalResult runPassManager(mlir::PassManager &pm, mlir::Operation *op);
+
+using RunPassManagerHook = mlir::LogicalResult (*)(mlir::PassManager &,
+                                                   mlir::Operation *);
+void setRunPassManagerHook(RunPassManagerHook hook);
 
 /// Configure the pass manager according to environment variables
 void configurePassManagerFromEnv(mlir::PassManager &pm);

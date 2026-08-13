@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: if %oqc_avail; then nvq++ -v %s -o %t --target oqc --emulate && %t 2>&1 | FileCheck %s; fi
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
@@ -31,4 +33,6 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-NOT: reversible function __quantum__qis__x__body came after irreversible function
+// clang-format on

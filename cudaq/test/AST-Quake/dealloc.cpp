@@ -29,4 +29,3 @@ __qpu__ void magic_func(int N) {
 // CHECK:           %[[VAL_12:.*]] = quake.alloca !quake.veq<?>[%{{.*}} : i64]
 // CHECK:           quake.dealloc %[[VAL_12]] : !quake.veq<?>
 // CHECK:           return
-

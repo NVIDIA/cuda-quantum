@@ -153,10 +153,10 @@ cc::ArrayType::verify(function_ref<InFlightDiagnostic()> emitError, Type eleTy,
 }
 
 LogicalResult
-cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
-                       Type eleTy) {
+cc::SequenceType::verify(function_ref<InFlightDiagnostic()> emitError,
+                         Type eleTy) {
   if (cudaq::quake::isQuantumType(eleTy))
-    return emitError() << "cc.stdvec may not have a quake element type: "
+    return emitError() << "cc.sequence may not have a quake element type: "
                        << eleTy;
   return success();
 }
@@ -175,7 +175,7 @@ cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
 namespace cudaq::cc {
 
 Type SpanLikeType::getElementType() const {
-  return llvm::TypeSwitch<Type, Type>(*this).Case<StdvecType, CharspanType>(
+  return llvm::TypeSwitch<Type, Type>(*this).Case<SequenceType, CharspanType>(
       [](auto type) { return type.getElementType(); });
 }
 
@@ -233,7 +233,7 @@ static bool containsMeasureHandleImpl(Type ty,
     return recurse(p.getElementType());
   if (auto a = dyn_cast<ArrayType>(ty))
     return recurse(a.getElementType());
-  if (auto v = dyn_cast<StdvecType>(ty))
+  if (auto v = dyn_cast<SequenceType>(ty))
     return recurse(v.getElementType());
   if (auto s = dyn_cast<StructType>(ty)) {
     for (auto m : s.getMembers())
@@ -255,7 +255,7 @@ bool containsMeasureHandle(Type ty) {
 
 void CCDialect::registerTypes() {
   addTypes<ArrayType, CallableType, CharspanType, IndirectCallableType,
-           MeasureHandleType, PointerType, StdvecType, StructType>();
+           MeasureHandleType, PointerType, SequenceType, StructType>();
 }
 
 } // namespace cudaq::cc

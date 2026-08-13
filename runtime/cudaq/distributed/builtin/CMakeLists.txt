@@ -19,5 +19,7 @@ if (MPI_CXX_FOUND)
     add_library(${LIBRARY_NAME} SHARED mpi_comm_impl.cpp)
     target_link_libraries(${LIBRARY_NAME} PRIVATE MPI::MPI_CXX)
     target_include_directories(${LIBRARY_NAME} PRIVATE ..)
-    install(TARGETS ${LIBRARY_NAME} DESTINATION lib/plugins)
+    install(TARGETS ${LIBRARY_NAME}
+            DESTINATION lib/plugins
+            COMPONENT Runtime)
 endif()

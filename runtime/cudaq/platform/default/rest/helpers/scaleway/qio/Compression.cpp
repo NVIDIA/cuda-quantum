@@ -54,7 +54,8 @@ std::string cudaq::qio::gzipCompress(const std::string &input) {
   return outstring;
 }
 
-std::string cudaq::qio::gzipDecompress(const std::string &input) {
+std::string cudaq::qio::gzipDecompress(const std::string &input,
+                                       std::size_t maxOutputSize) {
   z_stream zs; // z_stream is zlib's control structure
   memset(&zs, 0, sizeof(zs));
 
@@ -78,6 +79,13 @@ std::string cudaq::qio::gzipDecompress(const std::string &input) {
     ret = inflate(&zs, 0);
 
     if (outstring.size() < zs.total_out) {
+      if (zs.total_out > maxOutputSize) {
+        inflateEnd(&zs);
+        std::ostringstream oss;
+        oss << "Decompressed payload exceeds maximum allowed size of "
+            << maxOutputSize << " bytes.";
+        throw(std::runtime_error(oss.str()));
+      }
       outstring.append(outbuffer, zs.total_out - outstring.size());
     }
 

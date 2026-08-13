@@ -191,9 +191,9 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
                               "std::vector element type is not supported");
         return false;
       }
-      return pushType(cc::StdvecType::get(ctx, ty));
+      return pushType(cc::SequenceType::get(ctx, ty));
     }
-    // std::vector<bool>   =>   cc.stdvec<i1>
+    // std::vector<bool>   =>   cc.sequence<i1>
     if (name == "_Bit_reference" || name == "__bit_reference" ||
         name == "__bit_const_reference") {
       // Reference to a bit in a std::vector<bool>. Promote to a value.
@@ -738,8 +738,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   }
 
   // Here we maybe have something like auto var = mz(qreg)
-  if (auto vecType = dyn_cast<cc::StdvecType>(type)) {
-    // Variable is of !cc.stdvec type.
+  if (auto vecType = dyn_cast<cc::SequenceType>(type)) {
+    // Variable is of !cc.sequence type.
     if (x->getInit()) {
       // At the very least, its a vector var = vec_init;
       auto initVec = popValue();
@@ -801,8 +801,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         attachName(meas);
       }
 
-      // Did this come from a stdvec init op? If not drop out
-      auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
+      // Did this come from a sequence init op? If not drop out
+      auto stdVecInit = initVec.getDefiningOp<cc::SequenceInitOp>();
       if (!stdVecInit)
         return true;
 
@@ -905,7 +905,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return pushValue(initValue);
   }
   auto qualTy = x->getType().getCanonicalType();
-  auto isStdvecBoolReference = [&](clang::QualType &qualTy) {
+  auto isSequenceBoolReference = [&](clang::QualType &qualTy) {
     if (auto *recTy = dyn_cast<clang::RecordType>(qualTy.getTypePtr())) {
       auto *recDecl = recTy->getDecl();
       if (isInNamespace(recDecl, "std")) {
@@ -916,7 +916,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     }
     return false;
   };
-  if (isStdvecBoolReference(qualTy) || qualTy.getTypePtr()->isReferenceType()) {
+  if (isSequenceBoolReference(qualTy) ||
+      qualTy.getTypePtr()->isReferenceType()) {
     // A similar case is when the C++ variable is a reference to a subobject.
     assert(isa<cc::PointerType>(type));
     Value cast = cc::CastOp::create(builder, loc, type, initValue);

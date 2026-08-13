@@ -105,3 +105,50 @@ func.func @test_05() {
   quake.return_wire %2#1 : !quake.wire
   return
 }
+
+// -----
+
+quake.wire_set @wires_06[10]
+
+// A gate in the for-loop step region is loop control machinery, not routable
+// quantum work, so it is rejected rather than routed.
+func.func @test_06() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires_06[0] : !quake.wire
+  // expected-error @+1 {{mapper cannot handle quantum operations in a loop condition or step region}}
+  %loop = cc.loop while ((%w = %0) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    cc.continue %bw : !quake.wire
+  } step {
+  ^bb0(%sw : !quake.wire):
+    %s = quake.t %sw : (!quake.wire) -> !quake.wire
+    cc.continue %s : !quake.wire
+  }
+  quake.return_wire %loop : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires_07[10]
+
+// A gate in the loop condition region is likewise rejected: a condition can
+// only depend on quantum state through a measurement, which is unsupported.
+func.func @test_07() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires_07[0] : !quake.wire
+  %1 = quake.borrow_wire @wires_07[1] : !quake.wire
+  // expected-error @+1 {{mapper cannot handle quantum operations in a loop condition or step region}}
+  %loop:2 = cc.loop while ((%w0 = %0, %w1 = %1) -> (!quake.wire, !quake.wire)) {
+    %g:2 = quake.x [%w0] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.condition %cond (%g#0, %g#1 : !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%bw0 : !quake.wire, %bw1 : !quake.wire):
+    cc.continue %bw0, %bw1 : !quake.wire, !quake.wire
+  }
+  quake.return_wire %loop#0 : !quake.wire
+  quake.return_wire %loop#1 : !quake.wire
+  return
+}

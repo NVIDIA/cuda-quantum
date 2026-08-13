@@ -8,10 +8,13 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Dialect/Traits.h"
 #include "cudaq/Support/SmallVector.h"
+#include "llvm/ADT/StringRef.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Types.h"
+#include <optional>
 
 //===----------------------------------------------------------------------===//
 // Generated logic
@@ -21,6 +24,15 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h.inc"
 
 namespace cudaq::quake {
+/// A single factor in a Pauli tensor product.
+enum class Pauli { I, X, Y, Z };
+
+/// An ordered Pauli tensor-product word.
+using PauliWord = llvm::SmallVector<Pauli>;
+
+/// Convert a word containing only `I`, `X`, `Y`, and `Z` to Pauli symbols.
+std::optional<PauliWord> symbolizePauliWord(llvm::StringRef value);
+
 /// \returns true if \p `ty` is a quantum value or reference.
 inline bool isQuantumType(mlir::Type ty) {
   // NB: this intentionally excludes MeasureType.
@@ -45,25 +57,28 @@ inline bool isQuantumReferenceType(mlir::Type ty) {
   return isNonStruqReferenceType(ty) || mlir::isa<cudaq::quake::StruqType>(ty);
 }
 
-/// A quake wire type is a linear type.
+/// Quake's wire and cable types are linear types.
 inline bool isLinearType(mlir::Type ty) {
   return mlir::isa<cudaq::quake::WireType, cudaq::quake::CableType>(ty);
 }
 
+/// All linear types and the ControlType are quantum value types.
 inline bool isQuantumValueType(mlir::Type ty) {
   return isLinearType(ty) || mlir::isa<cudaq::quake::ControlType>(ty);
 }
 
+/// \returns true if and only if \p ty is a reference type and it has a constant
+/// number of quantum references.
 bool isConstantQuantumRefType(mlir::Type ty);
+
+/// Get the number of qubits represented by \p ty when it is statically known.
+/// \p ty must be a quantum type.
+std::optional<std::size_t> getQubitCount(mlir::Type ty);
 
 /// Get the number of references in \p ty. \p ty must be a reference type.
 std::size_t getAllocationSize(mlir::Type ty);
 
 /// Get the number of wires in \p ty. \p ty must be a value type.
-inline std::size_t getWireCount(mlir::Type ty) {
-  if (isa<cudaq::quake::WireType, cudaq::quake::ControlType>(ty))
-    return 1;
-  return cast<cudaq::quake::CableType>(ty).getSize();
-}
+std::size_t getWireCount(mlir::Type ty);
 
 } // namespace cudaq::quake

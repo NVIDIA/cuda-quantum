@@ -116,160 +116,173 @@ void reuse7(int start, int size) __qpu__ {
   t(rest);
 }
 
+static void output_good_or_bad(bool condition) {
+  if (condition)
+    std::cout << "success\n";
+  else
+    std::cout << "failure\n";
+}
+
 int main() {
   {
+    std::cout << "Test 1\n";
     auto gateCounts = cudaq::estimate_resources(explicit_reset_after_mz);
-    if (gateCounts.count("reset") == 1)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    gateCounts.dump();
+    output_good_or_bad(gateCounts.count("reset") == 0);
+    // CHECK-LABEL: Test 1
+    // CHECK-NOT: reset
     // CHECK: success
   }
 
   {
+    std::cout << "Test 2\n";
     auto gateCountsTrue =
         cudaq::estimate_resources([]() { return true; }, auto_reset_injection);
-
+    gateCountsTrue.dump();
     // One reset is added automatically before the x gate. There are 2 X gates
     // as the conditional X after the reset is taken.
-    if (gateCountsTrue.count("reset") == 1 && gateCountsTrue.count("x") == 2)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCountsTrue.count("reset") == 1 &&
+                       gateCountsTrue.count("x") == 2);
+    // CHECK-LABEL: Test 2
+    // CHECK-DAG: reset :{{[ ]+}}1
+    // CHECK-DAG: x :{{[ ]+}}2
     // CHECK: success
   }
   {
+    std::cout << "Test 3\n";
     // The false path does not take the conditional X after the reset, hence
     // only one X gate is counted.
     auto gateCountsFalse =
         cudaq::estimate_resources([]() { return false; }, auto_reset_injection);
-    if (gateCountsFalse.count("reset") == 1 && gateCountsFalse.count("x") == 1)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    gateCountsFalse.dump();
+    output_good_or_bad(gateCountsFalse.count("reset") == 1 &&
+                       gateCountsFalse.count("x") == 1);
+    // CHECK-LABEL: Test 3
+    // CHECK-DAG: reset :{{[ ]+}}1
+    // CHECK-DAG: x :{{[ ]+}}1
     // CHECK: success
   }
-
   {
+    std::cout << "Test 4\n";
     auto gateCountsTrue =
         cudaq::estimate_resources([]() { return true; }, reuse1);
     gateCountsTrue.dump();
-    if (gateCountsTrue.count("reset") == 2 &&
-        gateCountsTrue.count_controls("x", 0) == 2)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCountsTrue.count("reset") == 2 &&
+                       gateCountsTrue.count_controls("x", 0) == 2);
+    // CHECK-LABEL: Test 4
+    // CHECK-DAG: reset :{{[ ]+}}2
+    // CHECK-DAG: cx :{{[ ]+}}1
     // CHECK: success
   }
   {
+    std::cout << "Test 5\n";
     auto gateCountsFalse =
         cudaq::estimate_resources([]() { return false; }, reuse1);
     gateCountsFalse.dump();
-    if (gateCountsFalse.count("reset") == 2 &&
-        gateCountsFalse.count_controls("x", 0) == 0)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCountsFalse.count("reset") == 2 &&
+                       gateCountsFalse.count_controls("x", 0) == 0);
+    // CHECK-LABEL: Test 5
+    // CHECK: reset :{{[ ]+}}2
     // CHECK: success
   }
 
   {
+    std::cout << "Test 6\n";
     auto gateCountsTrue =
         cudaq::estimate_resources([]() { return true; }, reuse2);
     gateCountsTrue.dump();
-    if (gateCountsTrue.count("reset") == 2 &&
-        gateCountsTrue.count_controls("x", 0) == 2)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCountsTrue.count("reset") == 2 &&
+                       gateCountsTrue.count_controls("x", 0) == 2);
+    // CHECK-LABEL: Test 6
+    // CHECK: reset :{{[ ]+}}2
     // CHECK: success
   }
   {
+    std::cout << "Test 7\n";
     auto gateCountsFalse =
         cudaq::estimate_resources([]() { return false; }, reuse2);
     gateCountsFalse.dump();
-    if (gateCountsFalse.count("reset") == 2 &&
-        gateCountsFalse.count_controls("x", 0) == 0)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCountsFalse.count("reset") == 2 &&
+                       gateCountsFalse.count_controls("x", 0) == 0);
+    // CHECK-LABEL: Test 7
+    // CHECK: reset :{{[ ]+}}2
     // CHECK: success
   }
 
   {
+    std::cout << "Test 8\n";
     auto gateCountsTrue =
         cudaq::estimate_resources([]() { return true; }, reuse3);
     gateCountsTrue.dump();
-    if (gateCountsTrue.count("reset") == 1 &&
-        gateCountsTrue.count_controls("x", 0) == 1)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCountsTrue.count("reset") == 1 &&
+                       gateCountsTrue.count_controls("x", 0) == 1);
+    // CHECK-LABEL: Test 8
+    // CHECK-DAG: reset :{{[ ]+}}1
+    // CHECK-DAG: cx :{{[ ]+}}1
     // CHECK: success
   }
   {
+    std::cout << "Test 9\n";
     auto gateCountsFalse =
         cudaq::estimate_resources([]() { return false; }, reuse3);
     gateCountsFalse.dump();
-    if (gateCountsFalse.count("reset") == 1 &&
-        gateCountsFalse.count_controls("x", 0) == 0)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCountsFalse.count("reset") == 1 &&
+                       gateCountsFalse.count_controls("x", 0) == 0);
+    // CHECK-LABEL: Test 9
     // CHECK: success
   }
 
   {
+    std::cout << "Test A\n";
     auto gateCounts = cudaq::estimate_resources(reuse4);
     gateCounts.dump();
     // Two resets
-    if (gateCounts.count("reset") == 2)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCounts.count("reset") == 2);
+    // CHECK-LABEL: Test A
+    // CHECK: reset :{{[ ]+}}2
     // CHECK: success
   }
 
   {
+    std::cout << "Test B\n";
     auto gateCounts = cudaq::estimate_resources(reuse5);
     gateCounts.dump();
     // Two resets
-    if (gateCounts.count("reset") == 2)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCounts.count("reset") == 2);
+    // CHECK-LABEL: Test B
+    // CHECK: reset :{{[ ]+}}2
     // CHECK: success
   }
 
   {
+    std::cout << "Test C\n";
     auto gateCounts = cudaq::estimate_resources(reuse6);
     gateCounts.dump();
     // 4 resets
-    if (gateCounts.count("reset") == 4)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCounts.count("reset") == 4);
+    // CHECK-LABEL: Test C
+    // CHECK: reset :{{[ ]+}}4
     // CHECK: success
   }
 
   {
+    std::cout << "Test D\n";
     auto gateCounts = cudaq::estimate_resources(no_reuse7, 1, 2);
     gateCounts.dump();
 
-    if (gateCounts.count("reset") == 0)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCounts.count("reset") == 0);
+    // CHECK-LABEL: Test D
+    // CHECK-NOT: reset
     // CHECK: success
   }
   {
+    std::cout << "Test E\n";
     auto gateCounts = cudaq::estimate_resources(reuse7, 1, 2);
     gateCounts.dump();
     // 2 resets (sliced qubits)
-    if (gateCounts.count("reset") == 2)
-      std::cout << "success\n";
-    else
-      std::cout << "failure\n";
+    output_good_or_bad(gateCounts.count("reset") == 2);
+    // CHECK-LABEL: Test E
+    // CHECK: reset :{{[ ]+}}2
     // CHECK: success
   }
   return 0;
