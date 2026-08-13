@@ -66,6 +66,7 @@ set(CUDAQ_TEST_DEPENDS
     test_argument_conversion
     test_compile_target
     test_compile_target_conditional_feedback_crash
+    test_resource_count_phase
 )
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND
