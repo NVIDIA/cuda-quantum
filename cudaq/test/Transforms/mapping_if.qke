@@ -23,7 +23,7 @@ quake.wire_set @wires[2147483647]
 // CHECK:     %[[SW0:.*]]:2 = quake.swap %[[Q0]], %[[Q1]]
 // CHECK:     %[[X:.*]]:2 = quake.x [%[[SW0]]#1] %[[Q2]]
 // CHECK-NOT: quake.swap %[[SW0]]#0, %[[X]]#0
-// CHECK:     cc.continue %[[SW0]]#0, %[[SW0]]#1, %[[X]]#1
+// CHECK:     cc.continue %[[X]]#0, %[[SW0]]#0, %[[X]]#1
 // CHECK:   }
 // The scope swap makes VQ1 and VQ2 non-adjacent. Routing the suffix from the
 // scope exit must therefore insert a new outer-block swap.
@@ -75,11 +75,13 @@ func.func @test_scope_nested() attributes {"cudaq-kernel"} {
   %1 = quake.borrow_wire @wires[1] : !quake.wire
   %2 = quake.borrow_wire @wires[2] : !quake.wire
   %3:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
-    %4:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %4:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
       %5:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-      cc.continue %5#0, %5#1 : !quake.wire, !quake.wire
+      // The middle wire provides the path through which routing makes the
+      // outer pair adjacent, so it must be forwarded from the nested scope.
+      cc.continue %5#0, %1, %5#1 : !quake.wire, !quake.wire, !quake.wire
     }
-    cc.continue %4#0, %1, %4#1 : !quake.wire, !quake.wire, !quake.wire
+    cc.continue %4#0, %4#1, %4#2 : !quake.wire, !quake.wire, !quake.wire
   }
   quake.return_wire %3#0 : !quake.wire
   quake.return_wire %3#1 : !quake.wire

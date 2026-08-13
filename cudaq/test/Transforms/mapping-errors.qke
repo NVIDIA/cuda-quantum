@@ -61,8 +61,8 @@ quake.wire_set @wires_02_scope[10]
 // Transparent scope routing does not assign or retire local quantum tracks.
 func.func @test_02_scope() {
   %0 = quake.borrow_wire @wires_02_scope[0] : !quake.wire
+  // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside an ordinary scope}}
   cc.scope {
-    // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside an ordinary scope}}
     %1 = quake.alloca !quake.ref
     quake.x %1 : (!quake.ref) -> ()
     quake.dealloc %1 : !quake.ref
@@ -80,8 +80,8 @@ quake.wire_set @wires_02_scope_borrow[10]
 // from the enclosing scope's layout.
 func.func @test_02_scope_borrow() {
   %0 = quake.borrow_wire @wires_02_scope_borrow[0] : !quake.wire
+  // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside an ordinary scope}}
   cc.scope {
-    // expected-error @+1 {{mapper cannot handle quantum allocations or borrows inside an ordinary scope}}
     %1 = quake.borrow_wire @wires_02_scope_borrow[1] : !quake.wire
     %2 = quake.x %1 : (!quake.wire) -> !quake.wire
     quake.sink %2 : !quake.wire
@@ -95,13 +95,14 @@ func.func @test_02_scope_borrow() {
 
 quake.wire_set @wires_02_scope_exit[10]
 
-// Mapping reconstructs terminal return wires at function scope. A captured
-// wire therefore must leave an ordinary scope through a scope result.
+// The mapper cannot yet track a physical lane released within a scope.
 func.func @test_02_scope_exit() {
   %0 = quake.borrow_wire @wires_02_scope_exit[0] : !quake.wire
-  // expected-error @+1 {{mapper requires every captured wire to leave an ordinary scope through a matching result}}
+  %1 = quake.borrow_wire @wires_02_scope_exit[1] : !quake.wire
+  // expected-error @+1 {{mapper cannot handle terminal wire operations inside an ordinary scope}}
   cc.scope {
     quake.return_wire %0 : !quake.wire
+    quake.sink %1 : !quake.wire
     cc.continue
   }
   return
