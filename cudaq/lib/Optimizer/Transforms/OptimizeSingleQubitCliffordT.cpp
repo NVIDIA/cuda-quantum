@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/ScalarWireTraversal.h"
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "llvm/ADT/STLExtras.h"
@@ -18,6 +18,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include <compare>
 #include <optional>
 #include <utility>
@@ -41,9 +42,19 @@ struct UnaryWireOp {
   bool isAdj;
 };
 
+struct ScopeStep {
+  Value wire;
+  OpOperand *continueOperand;
+};
+
+struct ScalarWireStep {
+  Operation *operation;
+  std::optional<ScopeStep> scopeStep;
+};
+
 struct Candidate {
   llvm::SmallVector<Operation *> operations;
-  llvm::SmallVector<cudaq::opt::ScalarWireStep> scopeSteps;
+  llvm::SmallVector<ScopeStep> scopeSteps;
   Value input;
   Value output;
   cudaq::synth::Circuit normalized;
@@ -101,28 +112,76 @@ static std::optional<UnaryWireOp> getUnaryWireOp(Operation *operation) {
                      operation->getResult(0), *gate, gateInterface.isAdj()};
 }
 
-// Follow a unique scalar-wire use to another unary gate. The shared traversal
-// owns direct def-use steps and lexical-scope forwarding; this pass only
-// decides whether the reached operation is an exact unary gate.
-static std::optional<UnaryWireOp> getNextUnaryWireOp(
-    const UnaryWireOp &current,
-    llvm::SmallVectorImpl<cudaq::opt::ScalarWireStep> &scopeSteps) {
-  std::optional<cudaq::opt::ScalarWireStep> step =
-      cudaq::opt::traverseScalarWire(
-          current.output, cudaq::opt::ScalarWireTraversalDirection::Forward);
-  while (step && step->continueOperand) {
-    scopeSteps.push_back(*step);
-    step = cudaq::opt::traverseScalarWire(
-        step->wire, cudaq::opt::ScalarWireTraversalDirection::Forward);
+// Returns whether `nested` is inside `outer` through only single-block
+// `cc.scope` operations. Any other enclosing region prevents traversal.
+static bool entersSingleBlockLexicalScopesOnly(Block *nested, Block *outer) {
+  while (nested != outer) {
+    if (!nested)
+      return false;
+    auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(nested->getParentOp());
+    if (!scope || !scope.getInitRegion().hasOneBlock())
+      return false;
+    nested = scope->getBlock();
+  }
+  return true;
+}
+
+/// Return whether an operation can be followed as a direct scalar-wire step.
+/// Calls, region operations, and terminators require control-flow semantics
+/// that this pass deliberately does not model.
+static bool isDirectScalarWireStep(Operation *operation) {
+  return !isa<CallOpInterface>(operation) && operation->getNumRegions() == 0 &&
+         !operation->hasTrait<OpTrait::IsTerminator>();
+}
+
+// Follow the unique scalar-wire use forward. A direct use reaches its user;
+// a `cc.continue` use reaches the matching result of its enclosing scope.
+static std::optional<ScalarWireStep> traverseScalarWire(Value wire) {
+  if (!isa<cudaq::quake::WireType>(wire.getType()) || !wire.hasOneUse())
+    return std::nullopt;
+
+  OpOperand *use = &*wire.getUses().begin();
+  Operation *user = use->getOwner();
+  if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(user)) {
+    auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
+    if (!scope || !scope.getInitRegion().hasOneBlock() ||
+        scope.getInitRegion().front().getTerminator() != user ||
+        cont.getNumOperands() != scope->getNumResults())
+      return std::nullopt;
+    unsigned index = use->getOperandNumber();
+    if (index >= scope->getNumResults() ||
+        !isa<cudaq::quake::WireType>(scope->getResult(index).getType()))
+      return std::nullopt;
+    Value result = scope->getResult(index);
+    if (!result.hasOneUse())
+      return std::nullopt;
+    return ScalarWireStep{scope, ScopeStep{result, use}};
+  }
+  if (!isDirectScalarWireStep(user) ||
+      !entersSingleBlockLexicalScopesOnly(user->getBlock(),
+                                          wire.getParentBlock()))
+    return std::nullopt;
+  return ScalarWireStep{user, std::nullopt};
+}
+
+// Follow a unique scalar-wire use to another unary gate.
+static std::optional<UnaryWireOp>
+getNextUnaryWireOp(const UnaryWireOp &current,
+                   llvm::SmallVectorImpl<ScopeStep> &scopeSteps) {
+  auto step = traverseScalarWire(current.output);
+  while (step && step->scopeStep) {
+    scopeSteps.push_back(*step->scopeStep);
+    step = traverseScalarWire(step->scopeStep->wire);
   }
   return step ? getUnaryWireOp(step->operation) : std::nullopt;
 }
 
 // Collect a maximal chain through exactly-once scalar-wire values. Unsupported
 // operations and non-linear wire flow terminate the chain.
-static llvm::SmallVector<UnaryWireOp> collectLinearChain(
-    Operation *operation, llvm::SmallDenseSet<Operation *> &collected,
-    llvm::SmallVectorImpl<cudaq::opt::ScalarWireStep> &scopeSteps) {
+static llvm::SmallVector<UnaryWireOp>
+collectLinearChain(Operation *operation,
+                   llvm::SmallDenseSet<Operation *> &collected,
+                   llvm::SmallVectorImpl<ScopeStep> &scopeSteps) {
   if (collected.contains(operation))
     return {};
 
@@ -250,7 +309,7 @@ static void optimizeBlock(Block &block) {
   llvm::SmallDenseSet<Operation *> collected;
 
   for (Operation &operation : block) {
-    llvm::SmallVector<cudaq::opt::ScalarWireStep> scopeSteps;
+    llvm::SmallVector<ScopeStep> scopeSteps;
     llvm::SmallVector<UnaryWireOp> chain =
         collectLinearChain(&operation, collected, scopeSteps);
     if (chain.empty())
@@ -281,7 +340,7 @@ static void optimizeBlock(Block &block) {
     // traversal order, then replace the original chain's final value with the
     // last scope result visible at that point.
     Value replacement = output;
-    for (cudaq::opt::ScalarWireStep &scopeStep : candidate.scopeSteps) {
+    for (ScopeStep &scopeStep : candidate.scopeSteps) {
       scopeStep.continueOperand->set(replacement);
       replacement = scopeStep.wire;
     }
