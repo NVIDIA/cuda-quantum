@@ -193,11 +193,12 @@ jobs:
         with:
           context: .
           file: ./docker/build/devcontainer.Dockerfile
+          # cuda-cudart-dev ships the CUDA headers CuPy JITs against at runtime.
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
             base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu24.04
             cuda_version=${{ inputs.cuda_version }}
-            cuda_packages=
+            cuda_packages=cuda-cudart-dev
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}

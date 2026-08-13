@@ -22,3 +22,5 @@ To submit to a hardware backend, you need an account with the respective provide
   - :doc:`Amazon Braket <cloud/braket>`
 
   - :doc:`Scaleway QaaS <cloud/scaleway>`
+
+  - :doc:`qBraid <cloud/qbraid>`
