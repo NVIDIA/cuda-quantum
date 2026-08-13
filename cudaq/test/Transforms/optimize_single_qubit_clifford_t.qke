@@ -9,8 +9,6 @@
 // RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
 // RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
 // RUN: cudaq-opt --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke --up-to-global-phase
-// RUN: sed -n '/EXACT-SCOPE-BEGIN$/,/EXACT-SCOPE-END$/p' %s > %t.scope.qke
-// RUN: cudaq-opt --optimize-1q-clifford-t %t.scope.qke | CircuitCheck %t.scope.qke
 
 func.func @independent_wires(%arg0: !quake.wire, %arg1: !quake.wire)
     -> (!quake.wire, !quake.wire) {
@@ -56,7 +54,7 @@ func.func @omits_w(%arg0: !quake.wire) -> !quake.wire {
 // boundary and its continue still receives the replacement wire.
 func.func @ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> !quake.wire {
+  %1 = cc.scope -> (!quake.wire) {
     %2 = quake.s %0 : (!quake.wire) -> !quake.wire
     cc.continue %2 : !quake.wire
   }
@@ -67,15 +65,15 @@ func.func @ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-LABEL: func.func @ordinary_scope
 // CHECK:         %[[S0:.*]] = quake.s %arg0
 // CHECK:         %[[S1:.*]] = quake.s %[[S0]]
-// CHECK:         %[[SCOPE:.*]] = cc.scope -> !quake.wire {
+// CHECK:         %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
 // CHECK-NEXT:      cc.continue %[[S1]]
 // CHECK-NEXT:    }
 // CHECK-NEXT:    return %[[SCOPE]]
 
 func.func @nested_ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> !quake.wire {
-    %2 = cc.scope -> !quake.wire {
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = cc.scope -> (!quake.wire) {
       %3 = quake.s %0 : (!quake.wire) -> !quake.wire
       cc.continue %3 : !quake.wire
     }
@@ -88,8 +86,8 @@ func.func @nested_ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-LABEL: func.func @nested_ordinary_scope
 // CHECK:         %[[S0:.*]] = quake.s %arg0
 // CHECK:         %[[S1:.*]] = quake.s %[[S0]]
-// CHECK:         %[[OUTER:.*]] = cc.scope -> !quake.wire {
-// CHECK-NEXT:      %[[INNER:.*]] = cc.scope -> !quake.wire {
+// CHECK:         %[[OUTER:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[INNER:.*]] = cc.scope -> (!quake.wire) {
 // CHECK-NEXT:        cc.continue %[[S1]]
 // CHECK-NEXT:      }
 // CHECK-NEXT:      cc.continue %[[INNER]]
@@ -100,7 +98,7 @@ func.func @nested_ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
 // reference allocation does not affect that def-use chain.
 func.func @scope_with_unrelated_allocation(%arg0: !quake.wire) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
-  %1 = cc.scope -> !quake.wire {
+  %1 = cc.scope -> (!quake.wire) {
     %local = quake.alloca !quake.ref
     %2 = quake.s %0 : (!quake.wire) -> !quake.wire
     quake.dealloc %local : !quake.ref
@@ -113,15 +111,56 @@ func.func @scope_with_unrelated_allocation(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-LABEL: func.func @scope_with_unrelated_allocation
 // CHECK:         %[[S0:.*]] = quake.s %arg0
 // CHECK:         %[[S1:.*]] = quake.s %[[S0]]
-// CHECK:         %[[SCOPE:.*]] = cc.scope -> !quake.wire {
+// CHECK:         %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
 // CHECK:           %[[LOCAL:.*]] = quake.alloca !quake.ref
 // CHECK-NEXT:      quake.dealloc %[[LOCAL]] : !quake.ref
 // CHECK-NEXT:      cc.continue %[[S1]]
 // CHECK-NEXT:    }
 // CHECK-NEXT:    return %[[SCOPE]]
 
+// A chain discovered inside a lexical scope can continue into the enclosing
+// block. The replacement is emitted in the scope and forwarded to its result.
+func.func @scope_exit(%arg0: !quake.wire) -> !quake.wire {
+  %0 = cc.scope -> (!quake.wire) {
+    %1 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+    cc.continue %1 : !quake.wire
+  }
+  %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @scope_exit
+// CHECK:         %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[S0:.*]] = quake.s %arg0
+// CHECK-NEXT:      %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:      cc.continue %[[S1]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[SCOPE]]
+
+// Scope forwarding matches `cc.continue` operands to scope results by index.
+// The optimized chain exits through the second result, leaving the first
+// forwarded value unchanged.
+func.func @scope_second_result(%arg0: !quake.wire, %arg1: !quake.wire) -> !quake.wire {
+  %0:2 = cc.scope -> (!quake.wire, !quake.wire) {
+    %1 = quake.t %arg1 : (!quake.wire) -> !quake.wire
+    cc.continue %arg0, %1 : !quake.wire, !quake.wire
+  }
+  %2 = quake.s %0#1 : (!quake.wire) -> !quake.wire
+  %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @scope_second_result
+// CHECK:         %[[SCOPE:.*]]:2 = cc.scope -> (!quake.wire, !quake.wire) {
+// CHECK-NEXT:      %[[S0:.*]] = quake.s %arg1
+// CHECK-NEXT:      %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:      cc.continue %arg0, %[[S1]]
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[SCOPE]]#1
+
 // An `if` is not a lexical-scope boundary, so each side remains an
-// independent chain even though the wire result is threaded positionally.
+// independent chain even though the wire result follows its matching index.
 func.func @if_boundary(%arg0: !quake.wire, %cond: i1) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
   %1:1 = cc.if (%cond) ((%arg = %0)) -> (!quake.wire) {
@@ -136,25 +175,9 @@ func.func @if_boundary(%arg0: !quake.wire, %cond: i1) -> !quake.wire {
 
 // CHECK-LABEL: func.func @if_boundary
 // CHECK:         %[[T0:.*]] = quake.t %arg0
-// CHECK:         %[[IF:.*]]:1 = cc.if
+// CHECK:         %[[IF:.*]] = cc.if
 // CHECK:           %[[S:.*]] = quake.s %{{.*}}
-// CHECK:         %[[T1:.*]] = quake.t %[[IF]]#0
-
-// EXACT-SCOPE-BEGIN
-
-func.func @semantic_scope_exact(%arg0: !quake.ref) {
-  %0 = quake.unwrap %arg0 : (!quake.ref) -> !quake.wire
-  %1 = cc.scope -> !quake.wire {
-    %2 = quake.t %0 : (!quake.wire) -> !quake.wire
-    cc.continue %2 : !quake.wire
-  }
-  %3 = quake.s %1 : (!quake.wire) -> !quake.wire
-  %4 = quake.t %3 : (!quake.wire) -> !quake.wire
-  quake.wrap %4 to %arg0 : !quake.wire, !quake.ref
-  return
-}
-
-// EXACT-SCOPE-END
+// CHECK:         %[[T1:.*]] = quake.t %[[IF]]
 
 // These ref-semantics wrappers let CircuitCheck compare the unitaries while
 // the pass still operates only on the scalar wire chains between unwrap/wrap.
