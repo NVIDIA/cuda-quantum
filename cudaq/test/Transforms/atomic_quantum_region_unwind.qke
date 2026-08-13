@@ -1,0 +1,46 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --aggressive-inlining %s | FileCheck --implicit-check-not=cc.unwind %s
+// RUN: cudaq-opt --verify-each --aggressive-inlining %s | FileCheck --check-prefix=COUNT %s
+
+func.func private @marked(%q: !quake.ref, %condition: i1) attributes {atomic_quantum_region} {
+  cc.if(%condition) {
+    quake.h %q : (!quake.ref) -> ()
+    cc.unwind_return
+  }
+  quake.x %q : (!quake.ref) -> ()
+  return
+}
+
+func.func @caller(%q: !quake.ref, %condition: i1) {
+  func.call @marked(%q, %condition) : (!quake.ref, i1) -> ()
+  quake.y %q : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @caller(
+// CHECK-SAME:                      %[[ARG0:.*]]: !quake.ref,
+// CHECK-SAME:                      %[[ARG1:.*]]: i1) {
+// CHECK:           cc.scope {
+// CHECK:             cf.cond_br %[[ARG1]], ^bb1, ^bb2
+// CHECK:           ^bb1:
+// CHECK:             quake.h %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:             cf.br ^bb3
+// CHECK:           ^bb2:
+// CHECK:             quake.x %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:             cf.br ^bb3
+// CHECK:           ^bb3:
+// CHECK:             cc.continue
+// CHECK:           } {atomic_quantum_region}
+// CHECK:           quake.y %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// COUNT-COUNT-1: atomic_quantum_region
+// COUNT-NOT: atomic_quantum_region
