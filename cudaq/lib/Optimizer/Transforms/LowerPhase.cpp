@@ -69,45 +69,6 @@ static bool isScalarGateTarget(Value value) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(value.getType());
 }
 
-struct PhasePredicate {
-  SmallVector<Value> controls;
-  SmallVector<bool> polarities;
-};
-
-/// Materialize statically known vector controls at the point where phase
-/// lowering needs scalar gate targets. Unresolved vectors remain intact for
-/// the exact anchored fallback.
-static PhasePredicate
-materializeKnownSizedControls(IRRewriter &rewriter,
-                              cudaq::quake::PhaseOp phase) {
-  PhasePredicate predicate;
-  SmallVector<bool> polarities = cudaq::opt::getControlPolarities(phase);
-  for (auto [index, control] : llvm::enumerate(phase.getControls())) {
-    if (!isa<cudaq::quake::VeqType>(control.getType())) {
-      predicate.controls.push_back(control);
-      predicate.polarities.push_back(polarities[index]);
-      continue;
-    }
-
-    auto size = cudaq::quake::getVeqSize(control);
-    if (!size) {
-      predicate.controls.push_back(control);
-      predicate.polarities.push_back(polarities[index]);
-      continue;
-    }
-
-    Value vector = control;
-    if (auto relax = control.getDefiningOp<cudaq::quake::RelaxSizeOp>())
-      vector = relax.getInputVec();
-    for (std::size_t i = 0; i < *size; ++i) {
-      predicate.controls.push_back(cudaq::quake::ExtractRefOp::create(
-          rewriter, phase.getLoc(), vector, i));
-      predicate.polarities.push_back(polarities[index]);
-    }
-  }
-  return predicate;
-}
-
 static Value getReferenceAnchor(Value anchor) {
   if (auto unwrap = anchor.getDefiningOp<cudaq::quake::UnwrapOp>())
     return unwrap.getRefValue();
@@ -220,7 +181,9 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
                                 cudaq::quake::PhaseOp phase) {
   rewriter.setInsertionPoint(phase);
 
-  PhasePredicate predicate = materializeKnownSizedControls(rewriter, phase);
+  auto predicate = cudaq::opt::expandKnownSizedControlVeqs(
+      rewriter, phase.getLoc(), phase.getControls(),
+      cudaq::opt::getControlPolarities(phase));
   if (predicate.controls.empty()) {
     rewriter.replaceOp(
         phase, cudaq::opt::getPhaseReplacements(phase, predicate.controls,
