@@ -712,8 +712,7 @@ struct WireSetToProfileQIRPostPass
 void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
                                                 StringRef profile) {
   cudaq::opt::addPhaseLifecycle(pm);
-  // ExpandControlNegations does not preserve wire results. LowerPhase directly
-  // threads the supported scalar-negative wire case without that pass.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createVerifyNoPhase());
   pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep());
   WireSetToProfileQIROptions wopt;

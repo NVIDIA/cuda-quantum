@@ -10,20 +10,22 @@
 // RUN:   "--lower-wireset-to-profile-qir=convert-to=qir-base" %s \
 // RUN:   | FileCheck --implicit-check-not=quake.phase %s
 
-quake.wire_set @phys[2]
+quake.wire_set @phys[3]
 
 func.func @negative_wire_phase()
     attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %theta = arith.constant 5.000000e-01 : f64
   %control = quake.borrow_wire @phys[0] : !quake.wire
-  %anchor = quake.borrow_wire @phys[1] : !quake.wire
+  %control_1 = quake.borrow_wire @phys[1] : !quake.wire
+  %anchor = quake.borrow_wire @phys[2] : !quake.wire
 
-  %result:2 = quake.phase (%theta) [%control neg [true]] %anchor
-      : (f64, !quake.wire, !quake.wire)
-        -> (!quake.wire, !quake.wire)
+  %result:3 = quake.phase (%theta) [%control, %control_1 neg [true, false]] %anchor
+      : (f64, !quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
 
   quake.return_wire %result#0 : !quake.wire
   quake.return_wire %result#1 : !quake.wire
+  quake.return_wire %result#2 : !quake.wire
   return
 }
 
