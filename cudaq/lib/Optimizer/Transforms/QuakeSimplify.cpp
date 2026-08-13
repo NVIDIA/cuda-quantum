@@ -10,8 +10,8 @@
 #include "QuakeOperatorCreator.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/ADT/bit.h"
 #include "llvm/Support/MathExtras.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
@@ -37,7 +37,7 @@ void filterArgs(SmallVector<Value> &args, C collection) {
       args.push_back(item);
 }
 
-#include "QuakeSimplifyCliffordT.inc"
+#include "RewriteRotationsToCliffordT.inc"
 
 // Apply some simple quantum optimizations to quake. The quake operations are
 // expected to be in the value-semantics (having wire or control type operands).
@@ -892,7 +892,7 @@ public:
       return;
 
     if (!std::isfinite(threshold) || threshold < 0.0 ||
-        (enableCliffordT &&
+        (rotationsToCliffordT &&
          (!std::isfinite(cliffordTEpsilon) || cliffordTEpsilon < 0.0))) {
       getOperation()->emitError(
           "quake-simplify requires non-negative finite thresholds");
@@ -907,9 +907,9 @@ public:
         patterns, threshold, numHermitianEliminations, numAdjointEliminations,
         numZeroRotationsEliminated, numRotationsCombined, numDoubleSRewrites,
         numDoubleTRewrites, numReduceYSXRewrites, numResetsErased);
-    if (enableCliffordT)
-      populateCliffordTRotationPatterns(patterns, cliffordTEpsilon,
-                                        numCliffordTRotations);
+    if (rotationsToCliffordT)
+      populateRotationsToCliffordTPatterns(patterns, cliffordTEpsilon,
+                                           numCliffordTRotations);
 
     if (failed(
             applyPatternsGreedily(getOperation(), std::move(patterns), config)))

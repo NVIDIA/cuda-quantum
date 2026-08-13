@@ -183,7 +183,7 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   cudaq::opt::addConvertToLinearValues(pm);
   cudaq::opt::QuakeSimplifyOptions simplifyOpts;
-  simplifyOpts.enableCliffordT = true;
+  simplifyOpts.rotationsToCliffordT = true;
   simplifyOpts.cliffordTEpsilon = epsilon;
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify(simplifyOpts));
 

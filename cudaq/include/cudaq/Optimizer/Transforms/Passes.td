@@ -1401,11 +1401,11 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     A rotation is erased when its folded angle has magnitude at or below
     `threshold`.
 
-    The optional `clifford-t` pattern family recognizes constant `r1`, `rx`,
-    `ry`, and `rz` angles at multiples of `pi/4` and emits exact named gates
-    instead of leaving those rotations for approximate synthesis. With a
-    positive `clifford-t-epsilon`, nearby angles are accepted only when their
-    operator-norm distance from the selected exact rotation is within that
+    The optional `rotations-to-clifford-t` pattern family recognizes constant
+    `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and emits exact
+    named gates instead of leaving those rotations for approximate synthesis.
+    With a positive `clifford-t-epsilon`, nearby angles are accepted only when
+    their operator-norm distance from the selected exact rotation is within that
     epsilon. The family is disabled by default because targets with native
     arbitrary rotations do not benefit from this legalization.
   }];
@@ -1413,7 +1413,8 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     Option<"threshold", "threshold", "double", /*default=*/"1e-12",
       "Erase (treat as identity) rotations whose angle, folded into its "
       "identity period, has magnitude at or below this value.">,
-    Option<"enableCliffordT", "clifford-t", "bool", /*default=*/"false",
+    Option<"rotationsToCliffordT", "rotations-to-clifford-t", "bool",
+      /*default=*/"false",
       "Enable canonicalization of pi/4 rotation classes to Clifford+T gates.">,
     Option<"cliffordTEpsilon", "clifford-t-epsilon", "double",
       /*default=*/"0.0",

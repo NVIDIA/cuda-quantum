@@ -7,10 +7,10 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --quake-simplify %s | FileCheck %s --check-prefix=OFF
-// RUN: cudaq-opt --quake-simplify='clifford-t=true clifford-t-epsilon=0' %s | \
+// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' %s | \
 // RUN:   FileCheck %s --check-prefix=EXACT \
 // RUN:     --implicit-check-not='quake.phase{{[ (]}}'
-// RUN: cudaq-opt --quake-simplify='clifford-t=true clifford-t-epsilon=1e-3' %s | \
+// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --check-prefix=THRESH \
 // RUN:     --implicit-check-not='quake.phase{{[ (]}}'
 
@@ -19,7 +19,7 @@
 // the selected test group.
 // RUN: cudaq-opt --symbol-privatize='exclude=r1_residues,r1_modulo' \
 // RUN:   --symbol-dce %s -o %t.r1.qke
-// RUN: cudaq-opt --quake-simplify='clifford-t=true clifford-t-epsilon=0' \
+// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' \
 // RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo' \
 // RUN:   --symbol-dce %s | CircuitCheck %t.r1.qke
 //
@@ -28,7 +28,7 @@
 // RUN: cudaq-opt \
 // RUN:   --symbol-privatize='exclude=rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
 // RUN:   --symbol-dce %s -o %t.axes.qke
-// RUN: cudaq-opt --quake-simplify='clifford-t=true clifford-t-epsilon=0' \
+// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' \
 // RUN:   --symbol-privatize='exclude=rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
 // RUN:   --symbol-dce %s | \
 // RUN:   CircuitCheck %t.axes.qke --up-to-global-phase
@@ -396,6 +396,27 @@ func.func @direct_control(%c: !quake.wire, %q: !quake.wire)
 // EXACT-LABEL: func.func @direct_control
 // EXACT: quake.rz
 // EXACT-NOT: quake.t
+
+// Canonical matching rounds pi/4 to the source constant float semantics. The
+// adjacent `f32` value is rejected in exact mode but accepted by the configured
+// threshold.
+func.func @source_float_semantics() {
+  %exact = arith.constant 0x3F490FDB : f32
+  %near = arith.constant 0x3F490FDC : f32
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %r0 = quake.r1 (%exact) %q0 : (f32, !quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%near) %q1 : (f32, !quake.wire) -> !quake.wire
+  quake.sink %r0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @source_float_semantics
+// EXACT: quake.t
+// EXACT: quake.r1
+// THRESH-LABEL: func.func @source_float_semantics
+// THRESH-COUNT-2: quake.t
 
 // Dynamic, nonfinite, and merely nearby constants are rejected in exact mode.
 

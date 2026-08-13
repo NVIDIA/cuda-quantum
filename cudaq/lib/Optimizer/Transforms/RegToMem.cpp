@@ -338,6 +338,8 @@ public:
       eraseWrapUsers(op);
       OP::create(rewriter, loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
                  op.getNegatedQubitControlsAttr());
+      // Recreate results only for operands that were wires. Non-wire controls
+      // and targets are already in memory form and have no result to replace.
       SmallVector<Value> unwraps;
       for (auto [original, t] : llvm::zip(op.getControls(), ctrls)) {
         if (!isa<cudaq::quake::WireType>(original.getType()))

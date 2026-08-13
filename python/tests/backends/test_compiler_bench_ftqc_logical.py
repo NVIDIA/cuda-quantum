@@ -190,7 +190,7 @@ def test_exact_clifford_t_angles_avoid_rotation_resources():
     assert ops.get('s', 0) + ops.get('sdg', 0) == 2
 
 
-def test_rotation_epsilon_controls_thresholded_canonicalization():
+def test_epsilon_controls_thresholded_canonicalization():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc()
     # pi/4 + 9e-4 fails exact matching but is inside the 1e-3 threshold.
@@ -202,7 +202,7 @@ def test_rotation_epsilon_controls_thresholded_canonicalization():
     assert exact_ops.get('t', 0) + exact_ops.get('tdg', 0) == 0
 
     cudaq.reset_target()
-    cudaq.set_target(FTQC_LOGICAL_TARGET, rotation_epsilon='1e-3')
+    cudaq.set_target(FTQC_LOGICAL_TARGET, epsilon='1e-3')
     threshold_ops = cudaq.estimate_resources(kernel).to_dict()
     assert threshold_ops.get('rz', 0) == 0
     assert threshold_ops.get('t', 0) + threshold_ops.get('tdg', 0) == 1

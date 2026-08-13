@@ -8,10 +8,13 @@
 
 constexpr double quarterTurn = llvm::numbers::pi / 4.0;
 
-/// Reconstruct the correctly rounded binary64 value of mathematical k*pi/4.
-/// IEEE quad leaves sixty guard bits beyond binary64 for this multiplication,
-/// avoiding a classification based on an already-rounded double pi/4.
-static double canonicalQuarterTurns(int64_t quarterTurns) {
+/// Reconstruct the correctly rounded value of mathematical k*pi/4 in the
+/// source floating-point semantics. IEEE quad provides guard bits for this
+/// multiplication, avoiding classification based on an already-rounded value
+/// of pi/4.
+static llvm::APFloat
+canonicalQuarterTurns(int64_t quarterTurns,
+                      const llvm::fltSemantics &semantics) {
   llvm::APFloat value(
       llvm::APFloat::IEEEquad(),
       "0.785398163397448309615660845819875721049292349843776455243736");
@@ -21,34 +24,37 @@ static double canonicalQuarterTurns(int64_t quarterTurns) {
       llvm::APFloat::rmNearestTiesToEven);
   value.multiply(factor, llvm::APFloat::rmNearestTiesToEven);
   bool losesInfo = false;
-  value.convert(llvm::APFloat::IEEEdouble(),
-                llvm::APFloat::rmNearestTiesToEven, &losesInfo);
-  return value.convertToDouble();
+  value.convert(semantics, llvm::APFloat::rmNearestTiesToEven, &losesInfo);
+  return value;
 }
 
 /// Classify an angle against the nearest k*pi/4 value. Exact mode compares the
-/// binary64 bits of the folded constant with the reconstructed canonical value.
-/// Threshold mode uses the operator-norm distance appropriate to the operation.
+/// folded constant with the canonical value rounded to the same floating-point
+/// semantics. Threshold mode uses the operator-norm distance appropriate to the
+/// operation.
 template <typename QOP>
 static std::optional<int64_t>
-classifyCliffordTAngle(double angle, double epsilon) {
-  if (!std::isfinite(angle))
+classifyCliffordTAngle(const llvm::APFloat &angle, double epsilon) {
+  const double angleAsDouble = angle.convertToDouble();
+  if (!std::isfinite(angleAsDouble))
     return std::nullopt;
 
-  const double scaled = angle / quarterTurn;
-  if (!std::isfinite(scaled) ||
-      std::abs(scaled) > static_cast<double>(llvm::maxIntN(64)))
+  const double scaled = angleAsDouble / quarterTurn;
+  constexpr double signedInt64Limit = 0x1p63;
+  if (!std::isfinite(scaled) || scaled < -signedInt64Limit ||
+      scaled >= signedInt64Limit)
     return std::nullopt;
 
   const double nearest = std::nearbyint(scaled);
   const auto quarterTurns = static_cast<int64_t>(nearest);
-  const double canonical = canonicalQuarterTurns(quarterTurns);
+  const llvm::APFloat canonical =
+      canonicalQuarterTurns(quarterTurns, angle.getSemantics());
   if (epsilon == 0.0) {
-    if (llvm::bit_cast<uint64_t>(angle) !=
-        llvm::bit_cast<uint64_t>(canonical))
+    if (!angle.bitwiseIsEqual(canonical))
       return std::nullopt;
   } else {
-    const double delta = std::abs(angle - canonical);
+    const double delta =
+        std::abs(angleAsDouble - canonical.convertToDouble());
     // For `delta = abs(theta - canonical)`, the spectral-norm distance
     // `||U(theta) - U(canonical)||_2` is `2*sin(delta/2)` for
     // `R1(theta) = diag(1, exp(i*theta))` and `2*sin(delta/4)` for axis
@@ -161,10 +167,10 @@ static Value emitSimplifiedRotation(PatternRewriter &rewriter, QOP rotation,
 }
 
 template <typename QOP>
-class CliffordTRotation : public OpRewritePattern<QOP> {
+class RewriteRotationToCliffordT : public OpRewritePattern<QOP> {
 public:
-  CliffordTRotation(MLIRContext *context, double epsilon,
-                    Pass::Statistic &stat)
+  RewriteRotationToCliffordT(MLIRContext *context, double epsilon,
+                             Pass::Statistic &stat)
       : OpRewritePattern<QOP>(context), epsilon(epsilon), stat(stat) {}
 
   LogicalResult matchAndRewrite(QOP rotation,
@@ -179,9 +185,9 @@ public:
     FloatAttr angleAttr;
     if (!matchPattern(rotation.getParameter(), m_Constant(&angleAttr)))
       return failure();
-    double angle = angleAttr.getValueAsDouble();
+    llvm::APFloat angle = angleAttr.getValue();
     if (rotation.isAdj())
-      angle = -angle;
+      angle.changeSign();
 
     const auto quarterTurns = classifyCliffordTAngle<QOP>(angle, epsilon);
     // Skip angles that are not within `epsilon` of a multiple of `pi/4`.
@@ -199,12 +205,12 @@ private:
   Pass::Statistic &stat;
 };
 
-static void populateCliffordTRotationPatterns(RewritePatternSet &patterns,
-                                              double epsilon,
-                                              Pass::Statistic &stat) {
-  patterns.add<CliffordTRotation<cudaq::quake::R1Op>,
-               CliffordTRotation<cudaq::quake::RxOp>,
-               CliffordTRotation<cudaq::quake::RyOp>,
-               CliffordTRotation<cudaq::quake::RzOp>>(
+static void populateRotationsToCliffordTPatterns(RewritePatternSet &patterns,
+                                                 double epsilon,
+                                                 Pass::Statistic &stat) {
+  patterns.add<RewriteRotationToCliffordT<cudaq::quake::R1Op>,
+               RewriteRotationToCliffordT<cudaq::quake::RxOp>,
+               RewriteRotationToCliffordT<cudaq::quake::RyOp>,
+               RewriteRotationToCliffordT<cudaq::quake::RzOp>>(
       patterns.getContext(), epsilon, stat);
 }
