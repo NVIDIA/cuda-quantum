@@ -22,7 +22,6 @@ enum class ScalarWireTraversalDirection { Forward, Backward };
 struct ScalarWireStep {
   mlir::Value wire;
   mlir::Operation *operation;
-  mlir::Block *block;
   mlir::OpOperand *continueOperand = nullptr;
 };
 

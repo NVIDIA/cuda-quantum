@@ -75,7 +75,7 @@ traverseScopeForward(OpOperand *use) {
   // Do not cross a scope result that forks after the lexical boundary.
   if (!result.hasOneUse())
     return std::nullopt;
-  return cudaq::opt::ScalarWireStep{result, scope, scope->getBlock(), use};
+  return cudaq::opt::ScalarWireStep{result, scope, use};
 }
 
 static std::optional<cudaq::opt::ScalarWireStep>
@@ -92,8 +92,7 @@ traverseScopeBackward(OpResult result, cudaq::cc::ScopeOp scope) {
   if (!isa<cudaq::quake::WireType>(operand->get().getType()) ||
       !operand->get().hasOneUse())
     return std::nullopt;
-  return cudaq::opt::ScalarWireStep{operand->get(), *cont,
-                                    continueOperation->getBlock(), operand};
+  return cudaq::opt::ScalarWireStep{operand->get(), *cont, operand};
 }
 
 std::optional<cudaq::opt::ScalarWireStep>
@@ -116,7 +115,7 @@ cudaq::opt::traverseScalarWire(Value wire,
     if (!entersSingleBlockLexicalScopesOnly(user->getBlock(),
                                             getValueBlock(wire)))
       return std::nullopt;
-    return ScalarWireStep{wire, user, user->getBlock()};
+    return ScalarWireStep{wire, user};
   }
 
   auto result = dyn_cast<OpResult>(wire);
@@ -129,5 +128,5 @@ cudaq::opt::traverseScalarWire(Value wire,
   }
   if (!isDirectScalarWireStep(result.getOwner()))
     return std::nullopt;
-  return ScalarWireStep{wire, result.getOwner(), result.getOwner()->getBlock()};
+  return ScalarWireStep{wire, result.getOwner()};
 }
