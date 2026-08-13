@@ -62,3 +62,7 @@ const cudaq::Resources &cudaq::estimate_result::get_resources() const {
 const cudaq::cudaq_json &cudaq::estimate_result::get_annotations() const {
   return impl->annotations;
 }
+
+cudaq::cudaq_json &cudaq::estimate_result::get_annotations() {
+  return impl->annotations;
+}

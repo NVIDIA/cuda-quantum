@@ -39,6 +39,7 @@ public:
 
   /// Arbitrary metadata attached by the producer of this result.
   const cudaq_json &get_annotations() const;
+  cudaq_json &get_annotations();
 };
 
 } // namespace cudaq
