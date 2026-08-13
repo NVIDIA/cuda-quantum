@@ -1721,6 +1721,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1925,13 +1928,25 @@ In CUDA-Q you declare the parity checks (*detectors*) and *logical
 observables* directly inside a kernel, then extract the DEM with
 [`cudaq::dem_from_kernel`{.code .docutils .literal .notranslate}]{.pre}
 (C++) or [`cudaq.dem_from_kernel`{.code .docutils .literal
-.notranslate}]{.pre} (Python) as text in Stim's standard [.dem file
+.notranslate}]{.pre} (Python) in Stim's standard [.dem file
 format](https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md){.reference
 .external}, which [`stim.DetectorErrorModel`{.docutils .literal
 .notranslate}]{.pre} parses back into a decoder-ready model. The
 measurements that feed the declarations are *measurement handles*
 ([[Measuring Kernels]{.doc}](measuring_kernels.html){.reference
 .internal}).
+
+In Python, [`dem_from_kernel`{.docutils .literal .notranslate}]{.pre}
+returns a [[`cudaq.DEMResult`{.xref .py .py-class .docutils .literal
+.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult "cudaq.DEMResult"){.reference
+.internal}. Its [`dem`{.docutils .literal .notranslate}]{.pre} property
+contains the [`.dem`{.docutils .literal .notranslate}]{.pre} text, and
+[`str(result)`{.docutils .literal .notranslate}]{.pre} returns the same
+text. For example, construct a Stim model with
+[`stim.DetectorErrorModel(result.dem)`{.docutils .literal
+.notranslate}]{.pre}. The result also reports the detector, observable,
+and measurement counts and, by default, contains the measurement
+matrices described below.
 
 Three kernel-side declarations are available in both C++ and Python :
 [`detector(m0,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
@@ -2035,12 +2050,13 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    # Generate the detector error model as Stim `.dem` text. A noise model must be
-    # supplied for the in-kernel `apply_noise` mechanisms to take effect. Parse the
-    # text with `stim.DetectorErrorModel(dem)` to drive a decoder.
+    # Generate the detector error model. A noise model must be supplied for the
+    # in-kernel `apply_noise` mechanisms to take effect. The result's `dem` member
+    # contains Stim `.dem` text; pass it to `stim.DetectorErrorModel(result.dem)`
+    # to drive a decoder. Converting the result to a string also returns this text.
     noise = cudaq.NoiseModel()
-    dem = cudaq.dem_from_kernel(memory_experiment, 2, noise_model=noise)
-    print(f"Memory experiment DEM:\n{dem}")
+    result = cudaq.dem_from_kernel(memory_experiment, 2, noise_model=noise)
+    print(f"Memory experiment DEM:\n{result}")
 :::
 :::
 :::
@@ -2346,16 +2362,20 @@ separated by [`^`{.docutils .literal .notranslate}]{.pre}:
 
 The DEM describes how error mechanisms flip detectors, but decoders
 often also need to know how the raw measurement record maps onto the
-detectors and logical observables. [`dem_from_kernel`{.docutils .literal
-.notranslate}]{.pre} can return that mapping alongside the DEM text as
-two sparse binary *measurement matrices*, [`m2d`{.docutils .literal
-.notranslate}]{.pre} and [`m2o`{.docutils .literal .notranslate}]{.pre}:
+detectors and logical observables. In Python, the
+[[`cudaq.DEMResult`{.xref .py .py-class .docutils .literal
+.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult "cudaq.DEMResult"){.reference
+.internal} returned by [`dem_from_kernel`{.docutils .literal
+.notranslate}]{.pre} provides that mapping as two sparse binary
+*measurement matrices*, [`m2d_matrix`{.docutils .literal
+.notranslate}]{.pre} and [`m2o_matrix`{.docutils .literal
+.notranslate}]{.pre}:
 
--   [`m2d`{.docutils .literal .notranslate}]{.pre} has shape
+-   [`m2d_matrix`{.docutils .literal .notranslate}]{.pre} has shape
     [`(num_detectors,`{.docutils .literal
     .notranslate}]{.pre}` `{.docutils .literal
     .notranslate}[`num_measurements)`{.docutils .literal
-    .notranslate}]{.pre}. Entry [`m2d[d,`{.docutils .literal
+    .notranslate}]{.pre}. Entry [`m2d_matrix[d,`{.docutils .literal
     .notranslate}]{.pre}` `{.docutils .literal
     .notranslate}[`m]`{.docutils .literal
     .notranslate}]{.pre}` `{.docutils .literal
@@ -2365,11 +2385,11 @@ two sparse binary *measurement matrices*, [`m2d`{.docutils .literal
     measurement [`m`{.docutils .literal .notranslate}]{.pre} contributes
     to detector [`d`{.docutils .literal .notranslate}]{.pre}.
 
--   [`m2o`{.docutils .literal .notranslate}]{.pre} has shape
+-   [`m2o_matrix`{.docutils .literal .notranslate}]{.pre} has shape
     [`(num_observables,`{.docutils .literal
     .notranslate}]{.pre}` `{.docutils .literal
     .notranslate}[`num_measurements)`{.docutils .literal
-    .notranslate}]{.pre}. Entry [`m2o[k,`{.docutils .literal
+    .notranslate}]{.pre}. Entry [`m2o_matrix[k,`{.docutils .literal
     .notranslate}]{.pre}` `{.docutils .literal
     .notranslate}[`m]`{.docutils .literal
     .notranslate}]{.pre}` `{.docutils .literal
@@ -2386,30 +2406,30 @@ order.
 Python
 
 ::: {.tab-content .docutils}
-Pass [`return_measurement_matrices=True`{.docutils .literal
-.notranslate}]{.pre}. The function then returns a 3-tuple
-[`(dem_text,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-.literal .notranslate}[`m2d,`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`m2o)`{.docutils .literal .notranslate}]{.pre} instead of
-a plain string, where [`m2d`{.docutils .literal .notranslate}]{.pre} and
-[`m2o`{.docutils .literal .notranslate}]{.pre} are
+Measurement matrices are computed by default. The
+[`m2d_matrix`{.docutils .literal .notranslate}]{.pre} and
+[`m2o_matrix`{.docutils .literal .notranslate}]{.pre} properties are
 [`scipy.sparse.csr_matrix`{.docutils .literal .notranslate}]{.pre}
-objects with binary entries:
+objects with binary entries. Pass
+[`return_measurement_matrices=False`{.docutils .literal
+.notranslate}]{.pre} to skip their computation; both properties will
+then be [`None`{.docutils .literal .notranslate}]{.pre}:
 
 ::: {.highlight-python .notranslate}
 ::: highlight
-    # Set return_measurement_matrices=True to also obtain the sparse
-    # measurements-to-detectors (m2d) and measurements-to-observables (m2o)
-    # matrices. The function then returns a 3-tuple instead of a plain string.
-    # Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their
-    # columns are indexed by measurement in chronological order.
-    dem_text, m2d, m2o = cudaq.dem_from_kernel(
+    # `dem_from_kernel` returns a `cudaq.DEMResult`. By default, its `m2d_matrix`
+    # and `m2o_matrix` properties contain the sparse measurements-to-detectors and
+    # measurements-to-observables matrices. Both are `scipy.sparse.csr_matrix`
+    # objects with binary entries, and their columns are indexed by measurement in
+    # chronological order. Set `return_measurement_matrices=False` to skip their
+    # computation; both properties will then be `None`.
+    result = cudaq.dem_from_kernel(
         memory_experiment,
         2,
         noise_model=noise,
-        return_measurement_matrices=True,
     )
+    m2d = result.m2d_matrix
+    m2o = result.m2o_matrix
     # m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means
     # measurement m contributes to detector d. m2o has shape
     # `(num_observables, num_measurements)` with the same convention for observables.

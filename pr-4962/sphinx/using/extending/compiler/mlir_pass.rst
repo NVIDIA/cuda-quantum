@@ -94,15 +94,15 @@ phase, equivalence under a known qubit mapping, or a bounded approximation, it
 should state that explicitly. Passes involving measurement or other
 non-unitary behavior should describe the observable behavior they preserve.
 
-Quantum optimizations that reason about gate order or quantum dependencies
-should use Quake's value form unless the transformation specifically needs
-Quake's reference semantics, for example to reason about allocation, lifetime,
-or aliasing. ``!quake.wire`` and ``!quake.cable`` are linear types, so their
-use-def chains expose how quantum state flows between operations without
-reconstructing aliases between ``!quake.ref`` and ``!quake.veq`` values. The
-:doc:`Quake semantic specification <../../../specification/quake-dialect>`
-explains the reference and value models and the boundaries formed by
-``quake.unwrap`` and ``quake.wrap``.
+Write quantum optimization passes against
+:ref:`linear-value Quake IR <quake-linear-values>` by default. Use another
+Quake form only when the optimization cannot be expressed with linear values,
+for example when it must reason about allocation, lifetime, or aliasing.
+``!quake.wire`` and ``!quake.cable`` are linear types, so their use-def chains
+expose dependencies between operations without reconstructing aliases between
+``!quake.ref`` and ``!quake.veq`` values. The :doc:`Quake semantic specification
+<../../../specification/quake-dialect>` explains the reference and value models
+and the boundaries formed by ``quake.unwrap`` and ``quake.wrap``.
 
 Quantum optimization passes should use these value chains and Quake operation
 interfaces instead of reconstructing a circuit by scanning operations. They
@@ -110,6 +110,28 @@ should preserve the exactly-once use of linear values. A pass that crosses a
 branch or region should thread quantum values through the relevant block
 arguments and region results and use the appropriate dominance, control-flow,
 and effect analyses.
+
+Optimize within blocks and across scopes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most quantum optimization passes should optimize each supported block
+independently. Local rewrite patterns may operate on a single operation or a
+directly connected use-def chain. An unsupported operation or control-flow edge
+should stop the current search, not prevent optimization elsewhere in the
+function. A pass may relate operations across branches or loops only when it
+models the relevant control flow and preserves linear wire threading on every
+path. Treat calls as boundaries unless they have been inlined or the pass
+explicitly supports optimization across calls.
+
+Ordinary ``cc.scope`` operations are the common exception. Frontend lowering
+and inlining introduce them frequently, so circuit optimizations should work
+within and across scopes when wire threading is unambiguous. This does not
+require general control-flow support. Rewrites may cross the scope boundary
+only when they do not move scoped allocations or their uses, or bypass cleanup
+performed when the scope exits.
+
+Tests should cover optimization within a block, across an ordinary scope, and
+conservative behavior at an unsupported control-flow boundary.
 
 Pipeline integration should keep related quantum optimizations together in a
 value-form portion of the pipeline. A quantum optimization should not require
