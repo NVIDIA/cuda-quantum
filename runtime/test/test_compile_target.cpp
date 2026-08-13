@@ -57,14 +57,15 @@ static void compileAndDump(mlir::MLIRContext *ctx,
 static void compileAndDumpResources(mlir::MLIRContext *ctx,
                                     const std::string &kernelName,
                                     const std::string &quake,
-                                    cudaq::CompileTarget target) {
+                                    cudaq::CompileTarget target,
+                                    cudaq::CompileOptions options) {
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(quake, ctx);
   if (!mod) {
     llvm::outs() << "FAILED TO PARSE\n";
     return;
   }
 
-  Compiler compiler(std::move(target));
+  Compiler compiler(std::move(target), std::move(options));
   auto compiled = compiler.runPassPipeline(
       kernelName, mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
@@ -224,10 +225,12 @@ void test_non_empty_pipeline(mlir::MLIRContext *ctx) {
 
 void test_resource_count_completes_phase_lifecycle(mlir::MLIRContext *ctx) {
   auto target = nonEmptyPipelineTarget("decomposition{enable-patterns=R1ToRz}");
-  target.emitResourceCounts = true;
-  target.emitTargetCode = false;
+
+  cudaq::CompileOptions options;
+  options.emitResourceCounts = true;
+  options.emitTargetCode = false;
   compileAndDumpResources(ctx, "phaseResources", phaseResourceKernel,
-                          std::move(target));
+                          std::move(target), std::move(options));
 }
 
 // CHECK-LABEL: Phase resource counts:
