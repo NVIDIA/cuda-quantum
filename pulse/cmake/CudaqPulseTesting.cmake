@@ -26,18 +26,24 @@ configure_file(
   ${CUDAQ_PULSE_BINARY_DIR}/test/lit.site.cfg.py
   @ONLY)
 
-# Run lit through the configured interpreter (`python -m lit`) rather than a
-# resolved `lit`/`llvm-lit` launcher. The cudaq-devel wheel ships an `llvm-lit`
-# whose shebang points at the wheel's build interpreter, which is absent here;
-# invoking lit via the venv interpreter guarantees a runnable launcher that
-# matches the installed wheels.
+# Locate the lit launcher from the configured interpreter's own environment.
+# lit ships only as a console script (there is no runnable `lit.__main__`), and
+# the cudaq-devel wheel's bundled `llvm-lit` carries a shebang pointing at its
+# build interpreter, which is absent here. Restrict the search to the
+# interpreter's bin directory and run the launcher through that interpreter, so
+# the launcher and its shebang always match the installed wheels.
+get_filename_component(_cudaq_pulse_python_bindir "${Python_EXECUTABLE}" DIRECTORY)
+find_program(CUDAQ_PULSE_LIT_EXECUTABLE NAMES lit llvm-lit
+  HINTS "${_cudaq_pulse_python_bindir}"
+  NO_DEFAULT_PATH
+  REQUIRED)
 set(CUDAQ_PULSE_LIT_PYTHONPATH "" CACHE PATH
     "Optional Python module path for the LLVM lit launcher")
 
 add_custom_target(check-pulse-mlir
   COMMAND ${CMAKE_COMMAND} -E env
           "PYTHONPATH=${CUDAQ_PULSE_LIT_PYTHONPATH}"
-          ${Python_EXECUTABLE} -m lit -sv
+          ${Python_EXECUTABLE} ${CUDAQ_PULSE_LIT_EXECUTABLE} -sv
           ${CUDAQ_PULSE_BINARY_DIR}/test
   DEPENDS cudaq-pulse-opt
   COMMENT "Running CUDA-Q pulse MLIR tests"
@@ -65,7 +71,7 @@ set_tests_properties(PulsePythonUnitTests PROPERTIES LABELS "pulse;unit")
 add_test(NAME PulseMLIRTests
   COMMAND ${CMAKE_COMMAND} -E env
           "PYTHONPATH=${CUDAQ_PULSE_LIT_PYTHONPATH}"
-          ${Python_EXECUTABLE} -m lit -sv
+          ${Python_EXECUTABLE} ${CUDAQ_PULSE_LIT_EXECUTABLE} -sv
           ${CUDAQ_PULSE_BINARY_DIR}/test)
 set_tests_properties(PulseMLIRTests PROPERTIES LABELS "pulse;mlir")
 
