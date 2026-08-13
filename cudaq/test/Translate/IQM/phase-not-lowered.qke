@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: not --crash cudaq-translate --convert-to=iqm %s 2>&1 | FileCheck %s
+// RUN: not cudaq-translate --convert-to=iqm %s 2>&1 | FileCheck %s
 
 module {
   func.func @phase_iqm() attributes {"cudaq-entrypoint"} {
