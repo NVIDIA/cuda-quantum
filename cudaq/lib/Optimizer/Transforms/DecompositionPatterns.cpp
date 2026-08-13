@@ -8,6 +8,8 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
+#include "PhaseUtilities.h"
+#include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"

@@ -110,19 +110,20 @@ cudaq::CompileTarget::CompileTarget(
 
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
-  std::size_t seed = cudaq::detail::hashVal(
-      t.pipelineConfig.overridePassPipeline, t.pipelineConfig.highLevelPipeline,
-      t.pipelineConfig.midLevelPipeline, t.pipelineConfig.lowLevelPipeline,
-      t.pipelineConfig.codegenTranslation, t.pipelineConfig.postCodeGenPasses,
-      t.pipelineConfig.disableQubitMapping,
-      t.pipelineConfig.replaceStateWithKernel, t.pipelineConfig.addMeasurements,
-      t.overrideAOTCompilation, t.emulate,
-      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
-      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics);
-
   // Optional spin observable: include its string representation when present.
-  if (t.pauliTermSplitObservable)
-    cudaq::detail::hashCombine(seed, t.pauliTermSplitObservable->to_string());
+  auto pauliStr =
+      t.pauliTermSplitObservable ? t.pauliTermSplitObservable->to_string() : "";
+  return cudaq::detail::hashVal(
+      t.pipelineConfig, t.overrideAOTCompilation, t.emulate,
+      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics,
+      pauliStr);
+}
 
-  return seed;
+std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
+    const cudaq::CompileTarget::PipelineConfig &pc) const noexcept {
+  return cudaq::detail::hashVal(
+      pc.overridePassPipeline, pc.highLevelPipeline, pc.midLevelPipeline,
+      pc.lowLevelPipeline, pc.codegenTranslation, pc.postCodeGenPasses,
+      pc.disableQubitMapping, pc.replaceStateWithKernel, pc.addMeasurements);
 }

@@ -39,7 +39,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/CompiledModuleTester.cpp
   ptsbe/PTSBESampleTester.cpp
   ptsbe/PTSBEMultiBackendTester.cpp
-  integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
   integration/analysis_scope_tester.cpp
 )

@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "common/AnalysisScope.h"
 #include "common/Resources.h"
-#include "nvqir/AnalysisScope.h"
 #include <functional>
 
 namespace nvqir::resource_counter {
@@ -23,14 +23,14 @@ namespace nvqir::resource_counter {
 ///
 /// Throws `std::runtime_error` if an analysis scope is already active on the
 /// current thread.
-AnalysisScope make_scope(std::function<bool()> choice);
+cudaq::detail::AnalysisScope make_scope(std::function<bool()> choice);
 
 /// @brief Snapshot of the resource counts accumulated so far.
 ///
-/// Must be called while `s` is the active resource-counter scope. The result
+/// Must be called while a resource-counter scope is active. The result
 /// is a value-typed copy; the underlying simulator state continues to evolve
 /// as more gates are dispatched.
-cudaq::Resources get_counts(AnalysisScope &s);
+cudaq::Resources get_counts();
 
 /// @brief Pre-populate the resource-counter simulator with counts harvested
 /// from an MLIR-level analysis pass (`countResourcesFromIR`).

@@ -1,0 +1,208 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --lower-phase %s | FileCheck %s
+
+// CHECK-LABEL: func.func @uncontrolled_reference
+// CHECK-NOT: quake.phase
+// CHECK-NOT: quake.r1
+func.func @uncontrolled_reference(%theta: f64, %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @one_positive_reference(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROL:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: quake.r1 (%[[THETA]]) %[[CONTROL]]
+// CHECK-NOT: quake.phase
+func.func @one_positive_reference(%theta: f64, %control: !quake.ref,
+                                  %anchor: !quake.ref) {
+  quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// The last positive scalar control is the deterministic R1 target.
+// CHECK-LABEL: func.func @multiple_positive_reference(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[C0:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[C1:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: quake.r1 (%[[THETA]]) {{\[}}%[[C0]]{{\]}} %[[C1]]
+// CHECK-NOT: quake.phase
+func.func @multiple_positive_reference(%theta: f64, %c0: !quake.ref,
+                                       %c1: !quake.ref,
+                                       %anchor: !quake.ref) {
+  quake.phase (%theta) [%c0, %c1] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A positive control is preferred as the R1 target. Other controls retain
+// their polarity.
+// CHECK-LABEL: func.func @mixed_polarity_reference(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[C0:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[C1:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: quake.r1 (%[[THETA]]) {{\[}}%[[C0]] neg [true]{{\]}} %[[C1]]
+// CHECK-NOT: quake.phase
+func.func @mixed_polarity_reference(%theta: f64, %c0: !quake.ref,
+                                    %c1: !quake.ref,
+                                    %anchor: !quake.ref) {
+  quake.phase (%theta) [%c0, %c1 neg [true, false]] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// With only negative controls, conjugate the selected target with X.
+// CHECK-LABEL: func.func @all_negative_reference(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[C0:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[C1:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: quake.x %[[C1]]
+// CHECK-NEXT: quake.r1 (%[[THETA]]) {{\[}}%[[C0]] neg [true]{{\]}} %[[C1]]
+// CHECK-NEXT: quake.x %[[C1]]
+// CHECK-NOT: quake.phase
+func.func @all_negative_reference(%theta: f64, %c0: !quake.ref,
+                                  %c1: !quake.ref,
+                                  %anchor: !quake.ref) {
+  quake.phase (%theta) [%c0, %c1 neg [true, true]] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Adjoint phase normalizes by negating the angle.
+// CHECK-LABEL: func.func @adjoint_reference(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROL:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: %[[NEG:.*]] = arith.negf %[[THETA]] : f64
+// CHECK: quake.r1 (%[[NEG]]) %[[CONTROL]]
+// CHECK-NOT: quake.phase
+func.func @adjoint_reference(%theta: f64, %control: !quake.ref,
+                             %anchor: !quake.ref) {
+  quake.phase<adj> (%theta) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// An unresolved control vector uses the exact anchored R1/Rz fallback.
+// CHECK-LABEL: func.func @vector_fallback_reference(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: %[[VECTOR_NEG:.*]] = arith.negf %[[THETA]] : f64
+// CHECK-COUNT-2: quake.r1 (%[[THETA]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
+// CHECK-COUNT-2: quake.rz (%[[VECTOR_NEG]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
+// CHECK-NOT: quake.phase
+func.func @vector_fallback_reference(%theta: f64,
+                                     %controls: !quake.veq<?>,
+                                     %anchor: !quake.ref) {
+  quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// A scalar control remains a valid R1 target when vector controls are also
+// present in the predicate, avoiding the anchored fallback.
+// CHECK-LABEL: func.func @vector_with_scalar_reference(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[VECTOR:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[SCALAR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: quake.r1 (%[[THETA]]) {{\[}}%[[VECTOR]]{{\]}} %[[SCALAR]]
+// CHECK-NOT: quake.rz
+// CHECK-NOT: quake.phase
+func.func @vector_with_scalar_reference(%theta: f64,
+                                        %vector: !quake.veq<?>,
+                                        %scalar: !quake.ref,
+                                        %anchor: !quake.ref) {
+  quake.phase (%theta) [%vector, %scalar] %anchor
+      : (f64, !quake.veq<?>, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Uncontrolled wire results bypass to their corresponding inputs.
+// CHECK-LABEL: func.func @uncontrolled_wire
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink %[[ANCHOR]] : !quake.wire
+func.func @uncontrolled_wire(%theta: f64) {
+  %anchor = quake.null_wire
+  %result = quake.phase (%theta) %anchor
+      : (f64, !quake.wire) -> !quake.wire
+  quake.sink %result : !quake.wire
+  return
+}
+
+// The control is threaded through R1 and the anchor bypasses in place.
+// CHECK-LABEL: func.func @positive_wire(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[CONTROL:.*]] = quake.null_wire
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK: %[[NEXT:.*]] = quake.r1 (%[[THETA]]) %[[CONTROL]]
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink %[[NEXT]] : !quake.wire
+// CHECK: quake.sink %[[ANCHOR]] : !quake.wire
+func.func @positive_wire(%theta: f64) {
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %result:2 = quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %result#0 : !quake.wire
+  quake.sink %result#1 : !quake.wire
+  return
+}
+
+// All-negative wire lowering threads the selected control through both Xs.
+// CHECK-LABEL: func.func @negative_wire(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[CONTROL:.*]] = quake.null_wire
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK: %[[X0:.*]] = quake.x %[[CONTROL]]
+// CHECK-NEXT: %[[R1:.*]] = quake.r1 (%[[THETA]]) %[[X0]]
+// CHECK-NEXT: %[[X1:.*]] = quake.x %[[R1]]
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink %[[X1]] : !quake.wire
+// CHECK: quake.sink %[[ANCHOR]] : !quake.wire
+func.func @negative_wire(%theta: f64) {
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %result:2 = quake.phase (%theta) [%control neg [true]] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  quake.sink %result#0 : !quake.wire
+  quake.sink %result#1 : !quake.wire
+  return
+}
+
+// The dynamic-control fallback threads a wire anchor through every gate in the
+// exact sequence.
+// CHECK-LABEL: func.func @vector_fallback_wire(
+// CHECK-SAME: %[[WIRE_THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[WIRE_CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>
+// CHECK: %[[WIRE_ANCHOR:[a-zA-Z0-9_.$-]+]] = quake.null_wire
+// CHECK: %[[WIRE_NEG:[a-zA-Z0-9_.$-]+]] = arith.negf %[[WIRE_THETA]] : f64
+// CHECK-NEXT: %[[FALLBACK_R1_0:[a-zA-Z0-9_.$-]+]] = quake.r1 (%[[WIRE_THETA]]) {{\[}}%[[WIRE_CONTROLS]]{{\]}} %[[WIRE_ANCHOR]]
+// CHECK-NEXT: %[[FALLBACK_R1_1:[a-zA-Z0-9_.$-]+]] = quake.r1 (%[[WIRE_THETA]]) {{\[}}%[[WIRE_CONTROLS]]{{\]}} %[[FALLBACK_R1_0]]
+// CHECK-NEXT: %[[FALLBACK_RZ_0:[a-zA-Z0-9_.$-]+]] = quake.rz (%[[WIRE_NEG]]) {{\[}}%[[WIRE_CONTROLS]]{{\]}} %[[FALLBACK_R1_1]]
+// CHECK-NEXT: %[[FALLBACK_RZ_1:[a-zA-Z0-9_.$-]+]] = quake.rz (%[[WIRE_NEG]]) {{\[}}%[[WIRE_CONTROLS]]{{\]}} %[[FALLBACK_RZ_0]]
+// CHECK-NOT: quake.phase
+// CHECK: quake.sink %[[FALLBACK_RZ_1]] : !quake.wire
+func.func @vector_fallback_wire(%theta: f64,
+                                %controls: !quake.veq<?>) {
+  %anchor = quake.null_wire
+  %result = quake.phase (%theta) [%controls] %anchor
+      : (f64, !quake.veq<?>, !quake.wire) -> !quake.wire
+  quake.sink %result : !quake.wire
+  return
+}
+
+// Avoiding explicit angle doubling keeps the aggregate fallback finite even at
+// the largest representable source angle.
+// CHECK-LABEL: func.func @max_f32_vector_fallback(
+// CHECK-SAME: %[[MAX_CONTROLS:[a-zA-Z0-9_.$-]+]]: !quake.veq<?>, %[[MAX_ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: %[[MAX_ANGLE:[a-zA-Z0-9_.$-]+]] = arith.constant
+// CHECK-NOT: arith.mulf
+// CHECK: %[[MAX_NEG:[a-zA-Z0-9_.$-]+]] = arith.negf %[[MAX_ANGLE]] : f32
+// CHECK-COUNT-2: quake.r1 (%[[MAX_ANGLE]]) {{\[}}%[[MAX_CONTROLS]]{{\]}} %[[MAX_ANCHOR]]
+// CHECK-COUNT-2: quake.rz (%[[MAX_NEG]]) {{\[}}%[[MAX_CONTROLS]]{{\]}} %[[MAX_ANCHOR]]
+// CHECK-NOT: quake.phase
+func.func @max_f32_vector_fallback(%controls: !quake.veq<?>,
+                                   %anchor: !quake.ref) {
+  %angle = arith.constant 3.4028234663852886e+38 : f32
+  quake.phase (%angle) [%controls] %anchor
+      : (f32, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
