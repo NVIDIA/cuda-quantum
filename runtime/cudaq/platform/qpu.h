@@ -171,6 +171,10 @@ public:
                                   const CompiledModule &module,
                                   KernelArgs args);
 
+  virtual estimate_result launchKernel(const estimate_policy &policy,
+                                       const CompiledModule &module,
+                                       KernelArgs args);
+
   virtual ptsbe::sample_policy::result_type
   launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
                KernelArgs args);
@@ -193,6 +197,8 @@ public:
   getCompileTarget(const msm_policy &policy);
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const dem_policy &policy);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const estimate_policy &policy);
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const ptsbe::sample_policy &policy);
   // Overload for currently unsupported policies (to be removed).
