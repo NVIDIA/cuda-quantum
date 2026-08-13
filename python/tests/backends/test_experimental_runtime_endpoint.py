@@ -60,8 +60,8 @@ class DemoEndpoint:
         return cudaq.ObserveResult(0.25, kwargs["spin_operator"],
                                    cudaq.SampleResult())
 
-    def dem(self, module, args, **kwargs):
-        self.calls.append(("dem", repr(args), kwargs))
+    def dem_from_kernel(self, module, args, **kwargs):
+        self.calls.append(("dem_from_kernel", repr(args), kwargs))
         self.mlir_module = module.mlir_module
         return cudaq.DEMResult(dem="error(0.125) D0 L0",
                                m2d=[[0]],
@@ -159,7 +159,7 @@ def test_dem_launch():
 
     assert len(endpoint.calls) == 1
     name, args, kwargs = endpoint.calls[0]
-    assert name == "dem"
+    assert name == "dem_from_kernel"
     assert args == "KernelArgs([1, <instance of !cc.sequence<i64>>])"
     # The noise model arrives as the very object that was passed in.
     assert kwargs["noise_model"] is noise

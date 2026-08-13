@@ -106,8 +106,8 @@ class SupportsObserve(Protocol):
 class SupportsDem(Protocol):
     """An endpoint that can serve ``cudaq.dem_from_kernel``."""
 
-    def dem(self, module: CompiledModule, args: KernelArgs,
-            **kwargs) -> DEMResult:
+    def dem_from_kernel(self, module: CompiledModule, args: KernelArgs,
+                        **kwargs) -> DEMResult:
         """Analyze a compiled kernel and return its detector error model.
 
         Keyword arguments: ``noise_model`` (:class:`NoiseModel` or ``None``)

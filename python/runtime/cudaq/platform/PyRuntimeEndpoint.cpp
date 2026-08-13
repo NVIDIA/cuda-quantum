@@ -177,7 +177,7 @@ struct PyProtocol<observe_policy> {
 
 template <>
 struct PyProtocol<dem_policy> {
-  static constexpr const char *Method = "dem";
+  static constexpr const char *Method = "dem_from_kernel";
 
   static nanobind::dict kwargs(const dem_policy &policy) {
     const auto &opts = policy.options;
