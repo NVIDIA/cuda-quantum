@@ -13,16 +13,8 @@
 
 using namespace mlir;
 
-static Block *getValueBlock(Value wire) {
-  if (auto argument = dyn_cast<BlockArgument>(wire))
-    return argument.getOwner();
-  if (auto result = dyn_cast<OpResult>(wire))
-    return result.getOwner()->getBlock();
-  return nullptr;
-}
-
-// Returns whether a direct use is nested only in single-block lexical scopes.
-// Other region operations are traversal boundaries.
+// Returns whether `nested` is inside `outer` through only single-block
+// `cc.scope` operations. Any other enclosing region prevents traversal.
 static bool entersSingleBlockLexicalScopesOnly(Block *nested, Block *outer) {
   while (nested != outer) {
     if (!nested)
@@ -113,7 +105,7 @@ cudaq::opt::traverseScalarWire(Value wire,
     // Values defined outside a lexical scope are captured implicitly. Accept
     // the use only when every intervening region is a supported scope.
     if (!entersSingleBlockLexicalScopesOnly(user->getBlock(),
-                                            getValueBlock(wire)))
+                                            wire.getParentBlock()))
       return std::nullopt;
     return ScalarWireStep{wire, user};
   }
