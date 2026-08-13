@@ -27,7 +27,7 @@ struct ScalarWireStep {
 
 /// Follows one exact scalar-wire step in either direction. It follows direct
 /// def-use links and `cc.continue` forwarding through single-block lexical
-/// scopes, with continuation operands mapped positionally to scope results.
+/// scopes, with continuation operands mapped to scope results by index.
 /// All other boundaries return `std::nullopt`. Callers decide whether the
 /// reached operation is suitable for their analysis or rewrite.
 std::optional<ScalarWireStep>
