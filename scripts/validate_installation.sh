@@ -576,7 +576,14 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     else
         pip install jupyter ipykernel notebook -q
     fi
-    
+
+    # skqd.ipynb imports mpi4py, which is not shipped in the image.
+    if [ -n "$MPI_ROOT" ] && ! python3 -c "import mpi4py" 2>/dev/null; then
+        echo "Installing mpi4py for notebooks that require it..."
+        pip install "mpi4py~=4.1" -q \
+            || echo "Warning: could not install mpi4py; notebooks importing it will fail."
+    fi
+
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages
     JUPYTER_KERNEL_NAME="cudaq_nb_validation_container"

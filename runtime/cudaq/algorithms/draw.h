@@ -28,10 +28,8 @@ namespace contrib {
 /// @brief execute the kernel functor (with optional arguments) and return the
 /// trace of the execution path.
 template <typename KernelFunctor, typename... Args>
-cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
-  // Get the platform.
-  auto &platform = cudaq::get_platform();
-
+cudaq::Trace traceFromKernel(KernelFunctor &&kernel, quantum_platform &platform,
+                             Args &&...args) {
   // This is not supported on hardware backends, but we don't want callers to
   // crash on unhandled exceptions.
   if (!platform.is_simulator()) {
@@ -55,14 +53,14 @@ cudaq::Trace traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
 /// state representation.
 template <typename KernelFunctor>
 std::string extractTrace(KernelFunctor &&kernel) {
-  return detail::draw(traceFromKernel(kernel));
+  return detail::draw(traceFromKernel(kernel, get_platform()));
 }
 
 /// @brief Execute the given kernel functor and extract the
 /// state representation as LaTeX.
 template <typename KernelFunctor>
 std::string extractTraceLatex(KernelFunctor &&kernel) {
-  return detail::getLaTeXString(traceFromKernel(kernel));
+  return detail::getLaTeXString(traceFromKernel(kernel, get_platform()));
 }
 
 // clang-format off
@@ -116,8 +114,8 @@ std::string extractTraceLatex(KernelFunctor &&kernel) {
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
 std::string draw(QuantumKernel &&kernel, Args &&...args) {
-  return detail::draw(
-      contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
+  return detail::draw(contrib::traceFromKernel(kernel, get_platform(),
+                                               std::forward<Args>(args)...));
 }
 
 template <typename QuantumKernel, typename... Args>
@@ -126,8 +124,8 @@ std::string draw(std::string format, QuantumKernel &&kernel, Args &&...args) {
   if (format == "ascii") {
     return draw(kernel, std::forward<Args>(args)...);
   } else if (format == "latex") {
-    return detail::getLaTeXString(
-        contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
+    return detail::getLaTeXString(contrib::traceFromKernel(
+        kernel, get_platform(), std::forward<Args>(args)...));
   } else {
     throw std::runtime_error(
         "Invalid format. Supported formats are 'ascii' and 'latex'.");
@@ -150,7 +148,8 @@ template <typename KernelFunctor, typename... Args>
 [[deprecated("cudaq::detail::traceFromKernel is deprecated - please use "
              "cudaq::contrib::traceFromKernel instead.")]] cudaq::Trace
 traceFromKernel(KernelFunctor &&kernel, Args &&...args) {
-  return contrib::traceFromKernel(kernel, std::forward<Args>(args)...);
+  return contrib::traceFromKernel(kernel, get_platform(),
+                                  std::forward<Args>(args)...);
 }
 
 /// @brief Execute the given kernel functor and extract the
@@ -159,7 +158,7 @@ template <typename KernelFunctor>
 [[deprecated("cudaq::detail::extractTrace is deprecated - please use "
              "cudaq::contrib::extractTrace instead.")]] std::string
 extractTrace(KernelFunctor &&kernel) {
-  return detail::draw(traceFromKernel(kernel));
+  return detail::draw(traceFromKernel(kernel, get_platform()));
 }
 
 /// @brief Execute the given kernel functor and extract the
@@ -168,7 +167,7 @@ template <typename KernelFunctor>
 [[deprecated("cudaq::detail::extractTraceLatex is deprecated - please use "
              "cudaq::contrib::extractTraceLatex instead.")]] std::string
 extractTraceLatex(KernelFunctor &&kernel) {
-  return detail::getLaTeXString(traceFromKernel(kernel));
+  return detail::getLaTeXString(traceFromKernel(kernel, get_platform()));
 }
 
 } // namespace detail
@@ -178,8 +177,8 @@ template <typename QuantumKernel, typename... Args>
 [[deprecated("cudaq::draw is deprecated - please use "
              "cudaq::contrib::draw instead.")]] std::string
 draw(QuantumKernel &&kernel, Args &&...args) {
-  return detail::draw(
-      contrib::traceFromKernel(kernel, std::forward<Args>(args)...));
+  return detail::draw(contrib::traceFromKernel(kernel, get_platform(),
+                                               std::forward<Args>(args)...));
 }
 
 template <typename QuantumKernel, typename... Args>

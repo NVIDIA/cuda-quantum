@@ -1512,8 +1512,18 @@ public:
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
 
-    // Get the actual measurement from the subtype measureQubit implementation
-    auto measureResult = measureQubit(qubitIdx);
+    // Get the actual measurement from the subtype measureQubit implementation.
+    bool measureResult = false;
+    try {
+      measureResult = measureQubit(qubitIdx);
+    } catch (std::exception &e) {
+      deferOrThrowKernelException(std::string("Exception in measureQubit: ") +
+                                  e.what());
+      return false;
+    } catch (...) {
+      deferOrThrowKernelException("Unknown exception in measureQubit");
+      return false;
+    }
 
     // Return the result
     return measureResult;

@@ -10,6 +10,7 @@
 #include "common/Resources.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "cudaq/algorithms/estimate/policy.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
@@ -38,10 +39,11 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
     };
   }
 
-  // RAII: scope is released (and the resource-counter state cleared) on
-  // every exit path, including exceptions thrown by the JIT'd kernel.
-  auto rcScope = nvqir::resource_counter::make_scope(std::move(*choice));
-  platform.with_execution_context(ctx, [&]() {
+  estimate_policy policy{
+      .kernelName = kernelName,
+      .choice = *std::move(choice),
+  };
+  auto result = detail::launch(policy, 0, ctx, platform, [&]() {
     // Pass nullptr for the compiled slot to disable JIT-artifact caching:
     // the resource-counter hooks are installed in the scope above and only
     // fire while the kernel is freshly JIT-compiled. A cached binary would
@@ -49,7 +51,7 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
     [[maybe_unused]] auto result =
         cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
   });
-  return nvqir::resource_counter::get_counts(rcScope);
+  return result.get_resources();
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {

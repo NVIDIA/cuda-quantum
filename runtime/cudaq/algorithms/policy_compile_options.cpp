@@ -15,13 +15,6 @@
 
 namespace cudaq {
 
-CompileOptions get_compile_options_impl(const other_policies &policy) {
-  const auto *ctx = cudaq::getExecutionContext();
-  CompileOptions opts;
-  opts.emitResourceCounts = ctx && ctx->name == "resource-count";
-  return opts;
-}
-
 CompileOptions get_compile_options_impl(const sample_policy &policy) {
   CompileOptions opts;
   opts.storeReorderIdx = true;
@@ -38,6 +31,13 @@ CompileOptions get_compile_options_impl(const dem_policy &policy) {
   opts.emitJit = true;
   opts.emitTargetCode = false;
   opts.skipTargetLoweringPipeline = true;
+  return opts;
+}
+
+CompileOptions get_compile_options_impl(const estimate_policy &policy) {
+  CompileOptions opts;
+  opts.emitResourceCounts = true;
+  opts.emitJit = true;
   return opts;
 }
 
