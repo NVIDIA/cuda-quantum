@@ -50,6 +50,9 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   bool wasThreadingEnabled = ctx->isMultithreadingEnabled();
   ctx->disableMultithreading();
   PassManager pm(ctx);
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
   pm.addNestedPass<func::FuncOp>(createResourceCountPreprocess(opt));
   pm.addPass(createCanonicalizerPass());
   auto pmResult = pm.run(module);

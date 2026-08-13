@@ -203,6 +203,13 @@ void cudaq::opt::registerFaultTolerantTargetPipeline() {
       });
 }
 
+void cudaq::opt::addPhaseLifecycle(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(mlir::createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
+}
+
 static void
 createTargetDeployPipeline(OpPassManager &pm,
                            const TargetDeployPipelineOptions &options) {
@@ -212,6 +219,9 @@ createTargetDeployPipeline(OpPassManager &pm,
   cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This

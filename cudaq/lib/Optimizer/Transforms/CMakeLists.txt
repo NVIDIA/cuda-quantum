@@ -83,6 +83,7 @@ add_cudaq_library(OptTransforms
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyNoPhase.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 
@@ -95,6 +96,7 @@ add_cudaq_library(OptTransforms
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
+    MLIRTransforms
     OptimBuilder
     QECDialect
     QuakeDialect

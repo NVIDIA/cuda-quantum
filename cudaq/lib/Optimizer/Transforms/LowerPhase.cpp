@@ -107,10 +107,9 @@ static bool isKnownAnchorControlAlias(Value anchor, Value control) {
 
 static void lowerWithScalarControl(IRRewriter &rewriter,
                                    cudaq::quake::PhaseOp phase, Value angle,
+                                   SmallVector<Value> controls,
                                    ArrayRef<bool> polarities,
                                    unsigned selectedControl) {
-  SmallVector<Value> controls(phase.getControls().begin(),
-                              phase.getControls().end());
   Value anchor = phase.getTarget();
   Location location = phase.getLoc();
 
@@ -152,9 +151,8 @@ static void lowerWithScalarControl(IRRewriter &rewriter,
 
 static void lowerWithAnchorFallback(IRRewriter &rewriter,
                                     cudaq::quake::PhaseOp phase, Value angle,
+                                    SmallVector<Value> controls,
                                     ArrayRef<bool> polarities) {
-  SmallVector<Value> controls(phase.getControls().begin(),
-                              phase.getControls().end());
   Value anchor = phase.getTarget();
   Location location = phase.getLoc();
   auto negatedControls =
@@ -183,45 +181,50 @@ static LogicalResult lowerPhase(IRRewriter &rewriter,
                                 cudaq::quake::PhaseOp phase) {
   rewriter.setInsertionPoint(phase);
 
-  if (phase.getControls().empty()) {
-    SmallVector<Value> controls;
-    rewriter.replaceOp(phase, cudaq::opt::getPhaseReplacements(
-                                  phase, controls, phase.getTarget()));
+  auto predicate = cudaq::opt::expandKnownSizedControlVeqs(
+      rewriter, phase.getLoc(), phase.getControls(),
+      cudaq::opt::getControlPolarities(phase));
+  if (predicate.controls.empty()) {
+    rewriter.replaceOp(
+        phase, cudaq::opt::getPhaseReplacements(phase, predicate.controls,
+                                                phase.getTarget()));
     return success();
   }
 
   Value angle = cudaq::opt::getSignedAngle(rewriter, phase);
-  SmallVector<bool> polarities = cudaq::opt::getControlPolarities(phase);
 
   // Any scalar control can become the R1 target while vector controls remain
   // in the predicate. Prefer the last positive scalar, then the last negative
   // scalar, to make the lowering deterministic.
   std::optional<unsigned> positiveScalar;
   std::optional<unsigned> scalarControl;
-  for (auto [index, control] : llvm::enumerate(phase.getControls())) {
+  for (auto [index, control] : llvm::enumerate(predicate.controls)) {
     if (!isScalarGateTarget(control))
       continue;
     scalarControl = index;
-    if (!polarities[index])
+    if (!predicate.polarities[index])
       positiveScalar = index;
   }
   std::optional<unsigned> selected =
       positiveScalar ? positiveScalar : scalarControl;
   if (selected) {
-    lowerWithScalarControl(rewriter, phase, angle, polarities, *selected);
+    lowerWithScalarControl(rewriter, phase, angle,
+                           std::move(predicate.controls), predicate.polarities,
+                           *selected);
     return success();
   }
 
   // A vector (or another non-targetable control representation) cannot serve
   // as R1's scalar target. The anchored identity is exact on the full active
   // control branch and preserves the complete ordered predicate.
-  for (Value control : phase.getControls())
+  for (Value control : predicate.controls)
     if (isKnownAnchorControlAlias(phase.getTarget(), control)) {
       phase.emitOpError(
           "cannot lower with an anchor that aliases a control operand");
       return failure();
     }
-  lowerWithAnchorFallback(rewriter, phase, angle, polarities);
+  lowerWithAnchorFallback(rewriter, phase, angle, std::move(predicate.controls),
+                          predicate.polarities);
   return success();
 }
 
