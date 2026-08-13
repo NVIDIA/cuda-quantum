@@ -57,9 +57,6 @@ static bool isDirectScalarWireStep(Operation *operation) {
          !operation->hasTrait<OpTrait::IsTerminator>();
 }
 
-/// Traverses from a `cc.continue` operand to the scope result at the same
-/// position. The returned step retains the continuation operand so callers
-/// can update lexical forwarding when rewriting the wire.
 static std::optional<cudaq::opt::ScalarWireStep>
 traverseScopeForward(OpOperand *use) {
   auto cont = dyn_cast<cudaq::cc::ContinueOp>(use->getOwner());
@@ -68,27 +65,30 @@ traverseScopeForward(OpOperand *use) {
   auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
   if (!scope || !getSingleBlockScopeContinue(scope))
     return std::nullopt;
+  // `cc.continue` forwards each operand to the scope result at the same
+  // position, so the operand number identifies the outgoing scalar wire.
   unsigned index = use->getOperandNumber();
   if (index >= scope->getNumResults() ||
       !isa<cudaq::quake::WireType>(scope->getResult(index).getType()))
     return std::nullopt;
   Value result = scope->getResult(index);
+  // Do not cross a scope result that forks after the lexical boundary.
   if (!result.hasOneUse())
     return std::nullopt;
   return cudaq::opt::ScalarWireStep{result, scope, scope->getBlock(), use};
 }
 
-/// Traverses from a scope result to the `cc.continue` operand at the same
-/// position. The returned step retains the continuation operand so callers
-/// can update lexical forwarding when rewriting the wire.
 static std::optional<cudaq::opt::ScalarWireStep>
 traverseScopeBackward(OpResult result, cudaq::cc::ScopeOp scope) {
   auto cont = getSingleBlockScopeContinue(scope);
   if (!cont || result.getResultNumber() >= cont->getNumOperands())
     return std::nullopt;
   Operation *continueOperation = cont->getOperation();
+  // Scope results and `cc.continue` operands share a positional mapping.
   OpOperand *operand =
       &continueOperation->getOpOperand(result.getResultNumber());
+  // The operand must also be a single-use scalar wire before following it
+  // into the lexical scope.
   if (!isa<cudaq::quake::WireType>(operand->get().getType()) ||
       !operand->get().hasOneUse())
     return std::nullopt;
