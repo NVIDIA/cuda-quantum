@@ -145,6 +145,13 @@ public:
 
   /// Set the runtime endpoint for the QPU with ID @p qpuId.
   void setRuntimeEndpoint(RuntimeEndpoint endpoint, std::size_t qpuId = 0);
+
+  /// Set the compile target for the platform.
+  ///
+  /// Takes precedence over the compile target the QPUs would provide. It is
+  /// dropped again whenever the platform's QPUs are replaced, i.e. on the next
+  /// target change.
+  void setCompileTarget(std::optional<CompileTarget> target);
   /// \endcond
 
   /// Return whether this platform is a simulator.
@@ -262,9 +269,6 @@ protected:
   /// override
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
-
-  /// Set the compile target for the platform.
-  void setCompileTarget(std::optional<CompileTarget> target);
 
   /// Append @p qpu to the platform's QPUs.
   QPU &addQPU(std::unique_ptr<QPU> qpu);
