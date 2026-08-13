@@ -11,6 +11,13 @@ get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
+# If MLIR_DIR is not set explicitly, we expect to find it in a sibling folder.
+if(NOT MLIR_DIR AND EXISTS "${CUDAQ_CMAKE_DIR}/../mlir/MLIRConfig.cmake")
+  set(MLIR_DIR "${CUDAQ_CMAKE_DIR}/../mlir")
+endif()
+
+find_dependency(MLIR REQUIRED CONFIG)
+
 set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQOperator REQUIRED)
 
