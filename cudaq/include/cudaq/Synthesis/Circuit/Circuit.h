@@ -113,6 +113,15 @@ public:
     return n;
   }
 
+  /// Return the exact one-qubit Clifford+T normal form in the same
+  /// matrix-multiplication order as this circuit. The result preserves exact
+  /// U(2) equality, including every scalar W phase, and has minimum T count.
+  ///
+  /// \see "Representation of Quantum Circuits with Clifford and pi/8 Gates,"
+  /// arXiv:0806.3834,
+  /// <https://arxiv.org/abs/0806.3834>.
+  Circuit normalized() const;
+
   //===--------------------------------------------------------------------===//
   // Serialization
   //===--------------------------------------------------------------------===//

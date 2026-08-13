@@ -30,7 +30,7 @@ def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
     cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='0.001')
 
     candidate = cudaq.make_kernel()
-    q = candidate.qalloc(20)
+    q = candidate.qalloc(21)
     candidate.rz(math.pi / 8, q[0])
     candidate.rz(math.pi / 8, q[0])
     candidate.rz(0.0005, q[1])
@@ -44,11 +44,14 @@ def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
     candidate.my(q[13])
     candidate.cx([q[14], q[15]], q[16])
     candidate.cz([q[17], q[18]], q[19])
+    candidate.t(q[20])
+    candidate.s(q[20])
+    candidate.t(q[20])
     for i in range(12):
         candidate.mz(q[i])
 
     reference = cudaq.make_kernel()
-    q = reference.qalloc(20)
+    q = reference.qalloc(21)
     reference.rz(math.pi / 4, q[0])
     reference.ry(0.25, q[2])
     reference.crz(0.125, q[3], q[4])
@@ -60,6 +63,8 @@ def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
     reference.my(q[13])
     reference.cx([q[14], q[15]], q[16])
     reference.cz([q[17], q[18]], q[19])
+    reference.s(q[20])
+    reference.s(q[20])
     for i in range(12):
         reference.mz(q[i])
 
