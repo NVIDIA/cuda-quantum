@@ -426,39 +426,25 @@ config:
   EXPECT_EQ(libs[1], "libdummy2.so");
 }
 
-TEST_F(ExternalBackendTester, versionFailurePreventsPluginLibraryLoad) {
-  // This test requires a numeric current CUDA-Q version to perform semver
-  // comparison. When the version is non-numeric (e.g. empty dev builds), the
-  // validator falls back to string comparison and only warns, so no throw
-  // occurs.
-  const std::string testVersion(CUDAQ_TEST_VERSION);
-  if (testVersion.empty() || !std::isdigit(testVersion.front()) ||
-      testVersion.find('.') == std::string::npos) {
-    GTEST_SKIP() << "Skipping: current CUDA-Q version '" << testVersion
-                 << "' is non-numeric; semver rejection is not tested in dev "
-                    "builds";
-  }
+TEST_F(ExternalBackendTester, versionWarningAllowsPluginLibraryLoad) {
+  auto root = tmpRoot / "pluginversiontest";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
 
-  TEST_F(ExternalBackendTester, versionWarningAllowsPluginLibraryLoad) {
-    auto root = tmpRoot / "pluginversiontest";
-    auto targetsDir = root / "targets";
-    auto libDir = root / "lib";
-    std::filesystem::create_directories(targetsDir);
-    std::filesystem::create_directories(libDir);
+  const auto pluginPath =
+      std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
+  const auto pluginFileName =
+      std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
+  std::filesystem::copy_file(pluginPath, libDir / pluginFileName,
+                             std::filesystem::copy_options::overwrite_existing);
 
-    const auto pluginPath =
-        std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
-    const auto pluginFileName =
-        std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
-    std::filesystem::copy_file(
-        pluginPath, libDir / pluginFileName,
-        std::filesystem::copy_options::overwrite_existing);
+  const auto sentinelPath = tmpRoot / "version-failure-dlopen.sentinel";
+  std::filesystem::remove(sentinelPath);
+  setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
 
-    const auto sentinelPath = tmpRoot / "version-failure-dlopen.sentinel";
-    std::filesystem::remove(sentinelPath);
-    setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
-
-    std::ofstream(targetsDir / "future-backend.yml") << R"(
+  std::ofstream(targetsDir / "future-backend.yml") << R"(
 name: future-backend
 description: Future-version plugin test
 cudaq-version: 999999.0.0
@@ -470,28 +456,28 @@ config:
     - )" << pluginFileName << R"(
 )";
 
-    cudaq::LinkedLibraryHolder holder;
-    holder.registerBackendPath(root);
+  cudaq::LinkedLibraryHolder holder;
+  holder.registerBackendPath(root);
 
-    EXPECT_FALSE(std::filesystem::exists(sentinelPath));
-    EXPECT_NO_THROW(holder.setTarget("future-backend"));
-    EXPECT_TRUE(std::filesystem::exists(sentinelPath));
-    unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
-  }
+  EXPECT_FALSE(std::filesystem::exists(sentinelPath));
+  EXPECT_NO_THROW(holder.setTarget("future-backend"));
+  EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
+}
 
-  TEST_F(ExternalBackendTester,
-         pluginRootTokenIsSubstitutedWhenTargetsAreScanned) {
-    auto root = tmpRoot / "pluginroottest";
-    auto targetsDir = root / "targets";
-    auto libDir = root / "lib";
-    auto dataDir = root / "data";
-    std::filesystem::create_directories(targetsDir);
-    std::filesystem::create_directories(libDir);
-    std::filesystem::create_directories(dataDir);
+TEST_F(ExternalBackendTester,
+       pluginRootTokenIsSubstitutedWhenTargetsAreScanned) {
+  auto root = tmpRoot / "pluginroottest";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  auto dataDir = root / "data";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+  std::filesystem::create_directories(dataDir);
 
-    const auto expectedTopology = (root / "data" / "topology.txt").string();
-    std::ofstream(dataDir / "topology.txt") << "topology\n";
-    std::ofstream(targetsDir / "my-backend.yml") << R"(
+  const auto expectedTopology = (root / "data" / "topology.txt").string();
+  std::ofstream(dataDir / "topology.txt") << "topology\n";
+  std::ofstream(targetsDir / "my-backend.yml") << R"(
 name: my-backend
 description: Plugin-root substitution test
 target-arguments: []
@@ -502,63 +488,62 @@ config:
     - "-DTOPOLOGY=%PLUGIN_ROOT%/data/topology.txt"
 )";
 
-    std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
-    cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
 
-    ASSERT_EQ(targets.count("my-backend"), 1);
-    const auto &config = targets.at("my-backend").config;
-    ASSERT_TRUE(config.BackendConfig.has_value());
-    EXPECT_EQ(config.BackendConfig->JITMidLevelPipeline,
-              "map{device=file(" + expectedTopology + ")}");
-    ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
-    EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),
-              "-DTOPOLOGY=" + expectedTopology);
-  }
+  ASSERT_EQ(targets.count("my-backend"), 1);
+  const auto &config = targets.at("my-backend").config;
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  EXPECT_EQ(config.BackendConfig->JITMidLevelPipeline,
+            "map{device=file(" + expectedTopology + ")}");
+  ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
+  EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),
+            "-DTOPOLOGY=" + expectedTopology);
+}
 
-  TEST_F(ExternalBackendTester, nativeTargetLoadsPluginLibraries) {
-    auto root = tmpRoot / "native-plugin-load";
-    auto targetsDir = root / "targets";
-    auto libDir = root / "lib";
-    std::filesystem::create_directories(targetsDir);
-    std::filesystem::create_directories(libDir);
+TEST_F(ExternalBackendTester, nativeTargetLoadsPluginLibraries) {
+  auto root = tmpRoot / "native-plugin-load";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
 
-    const auto pluginPath =
-        std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
-    const auto pluginFileName =
-        std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
-    std::filesystem::copy_file(
-        pluginPath, libDir / pluginFileName,
-        std::filesystem::copy_options::overwrite_existing);
+  const auto pluginPath =
+      std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
+  const auto pluginFileName =
+      std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
+  std::filesystem::copy_file(pluginPath, libDir / pluginFileName,
+                             std::filesystem::copy_options::overwrite_existing);
 
-    const auto sentinelPath = tmpRoot / "native-plugin-load.sentinel";
-    std::filesystem::remove(sentinelPath);
-    setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
+  const auto sentinelPath = tmpRoot / "native-plugin-load.sentinel";
+  std::filesystem::remove(sentinelPath);
+  setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
 
-    cudaq::config::TargetConfig config;
-    config.PluginLibraries.push_back(pluginFileName);
-    cudaq::detail::loadTargetPluginLibraries(
-        "native-plugin-load", targetsDir / "native-plugin-load.yml", config);
+  cudaq::config::TargetConfig config;
+  config.PluginLibraries.push_back(pluginFileName);
+  cudaq::detail::loadTargetPluginLibraries(
+      "native-plugin-load", targetsDir / "native-plugin-load.yml", config);
 
-    EXPECT_TRUE(std::filesystem::exists(sentinelPath));
-    unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
-  }
+  EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
+}
 
 #endif // CUDAQ_ENABLE_PYTHON
 
-  TEST(TargetConfigTester, pluginRootTokenSubstitutionReplacesAllOccurrences) {
-    const std::string yaml = R"(
+TEST(TargetConfigTester, pluginRootTokenSubstitutionReplacesAllOccurrences) {
+  const std::string yaml = R"(
 name: token-test
 description: Token substitution test
 config:
   jit-mid-level-pipeline: "%PLUGIN_ROOT%/a:%PLUGIN_ROOT%/b"
 )";
 
-    const auto substituted = cudaq::config::substitutePluginRoot(
-        yaml, std::filesystem::path("/opt/cudaq/plugins/token-test"));
+  const auto substituted = cudaq::config::substitutePluginRoot(
+      yaml, std::filesystem::path("/opt/cudaq/plugins/token-test"));
 
-    EXPECT_NE(substituted.find("/opt/cudaq/plugins/token-test/a"),
-              std::string::npos);
-    EXPECT_NE(substituted.find("/opt/cudaq/plugins/token-test/b"),
-              std::string::npos);
-    EXPECT_EQ(substituted.find("%PLUGIN_ROOT%"), std::string::npos);
-  }
+  EXPECT_NE(substituted.find("/opt/cudaq/plugins/token-test/a"),
+            std::string::npos);
+  EXPECT_NE(substituted.find("/opt/cudaq/plugins/token-test/b"),
+            std::string::npos);
+  EXPECT_EQ(substituted.find("%PLUGIN_ROOT%"), std::string::npos);
+}
