@@ -49,6 +49,7 @@ static bool isDirectScalarWireStep(Operation *operation) {
          !operation->hasTrait<OpTrait::IsTerminator>();
 }
 
+/// Follows a `cc.continue` operand to the corresponding enclosing scope result.
 static std::optional<cudaq::opt::ScalarWireStep>
 traverseScopeForward(OpOperand *use) {
   auto cont = dyn_cast<cudaq::cc::ContinueOp>(use->getOwner());
@@ -70,6 +71,7 @@ traverseScopeForward(OpOperand *use) {
   return cudaq::opt::ScalarWireStep{result, scope, use};
 }
 
+/// Follows a scope result to the corresponding `cc.continue` operand.
 static std::optional<cudaq::opt::ScalarWireStep>
 traverseScopeBackward(OpResult result, cudaq::cc::ScopeOp scope) {
   auto cont = getSingleBlockScopeContinue(scope);
