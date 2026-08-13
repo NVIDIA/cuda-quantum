@@ -10,6 +10,8 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
 
+EstimateResult = cudaq_runtime.EstimateResult
+
 
 # We currently have two redundant APIs for resource estimation that only
 # differ in the return type:

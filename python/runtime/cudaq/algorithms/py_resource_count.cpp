@@ -9,10 +9,11 @@
 #include "py_resource_count.h"
 #include "common/Resources.h"
 #include "common/cudaq_json.h"
-#include "nlohmann/json.hpp"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
+#include "utils/JsonNanobindAdaptors.h"
+#include "utils/OpaqueArguments.h"
 #include "cudaq/algorithms/estimate/policy.h"
+#include "cudaq/algorithms/launch.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
