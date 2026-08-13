@@ -99,10 +99,14 @@ cudaq::opt::traverseScalarWire(Value wire,
   if (direction == ScalarWireTraversalDirection::Forward) {
     OpOperand *use = &*wire.getUses().begin();
     Operation *user = use->getOwner();
+    // A `cc.continue` forwards a value defined inside a lexical scope to its
+    // corresponding scope result.
     if (isa<cudaq::cc::ContinueOp>(user))
       return traverseScopeForward(use);
     if (!isDirectScalarWireStep(user))
       return std::nullopt;
+    // Values defined outside a lexical scope are captured implicitly. Accept
+    // the use only when every intervening region is a supported scope.
     if (!entersSingleBlockLexicalScopesOnly(user->getBlock(),
                                             getValueBlock(wire)))
       return std::nullopt;
@@ -112,6 +116,8 @@ cudaq::opt::traverseScalarWire(Value wire,
   auto result = dyn_cast<OpResult>(wire);
   if (!result)
     return std::nullopt;
+  // A scope result is reached by following its corresponding `cc.continue`
+  // operand back into the lexical scope.
   if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(result.getOwner())) {
     return traverseScopeBackward(result, scope);
   }
