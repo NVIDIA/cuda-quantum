@@ -26,13 +26,11 @@ struct ScalarWireStep {
   mlir::OpOperand *continueOperand = nullptr;
 };
 
-/// Follow one exact scalar-wire step in either direction. Direct steps follow
-/// the sole use or defining operation and may enter nested single-block
-/// lexical scopes. Scope steps follow a `cc.continue` that forwards a scalar
-/// wire to the corresponding scope result. Forks, branches, loops, calls,
-/// unwinds, and every other unsupported boundary return `std::nullopt`. The
-/// helper describes value flow only; callers decide whether the reached
-/// operation is suitable for their analysis or rewrite.
+/// Follows one exact scalar-wire step in either direction. It follows direct
+/// def-use links and `cc.continue` forwarding through single-block lexical
+/// scopes, with continuation operands mapped positionally to scope results.
+/// All other boundaries return `std::nullopt`. Callers decide whether the
+/// reached operation is suitable for their analysis or rewrite.
 std::optional<ScalarWireStep>
 traverseScalarWire(mlir::Value wire, ScalarWireTraversalDirection direction);
 
