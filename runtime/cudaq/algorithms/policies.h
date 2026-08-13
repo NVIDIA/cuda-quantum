@@ -11,6 +11,7 @@
 #include "common/CompileOptions.h"
 #include "cudaq/Support/Tuple.h"
 #include "cudaq/algorithms/dem/policy.h"
+#include "cudaq/algorithms/estimate/policy.h"
 #include "cudaq/algorithms/msm/policy.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/run/policy.h"
@@ -21,15 +22,16 @@
 namespace cudaq {
 
 /// @brief Fallback policy tag used when no specific policy matches.
-struct other_policies {
-  friend CompileOptions get_compile_options_impl(const other_policies &policy);
-};
+struct other_policies {};
 
 /// @brief List of all existing launch policies.
+///
+/// Make sure to register new policies in this tuple.
 using all_policies =
     std::tuple<sample_policy, async_sample_policy, observe_policy,
                async_observe_policy, run_policy, async_run_policy,
-               msm_size_policy, msm_policy, dem_policy, ptsbe::sample_policy>;
+               msm_size_policy, msm_policy, dem_policy, ptsbe::sample_policy,
+               estimate_policy>;
 
 /// @brief Concept satisfied by any type registered in @c all_policies.
 template <typename Policy>
