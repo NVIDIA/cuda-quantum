@@ -213,3 +213,19 @@ def test_state_vector_async():
     with pytest.raises(Exception) as error:
         # Invalid qpu_id type.
         result = cudaq.get_state_async(kernel, 0.0, 0.0, qpu_id=12)
+
+
+def test_state_of_untouched_register():
+    # A register that no operation touches is still observable: sample()
+    # implicitly measures it and get_state() returns the whole register.
+
+    @cudaq.kernel
+    def allocate_only(n: int):
+        q = cudaq.qvector(n)
+
+    counts = cudaq.sample(allocate_only, 3)
+    assert counts["000"] == 1000
+
+    state = np.array(cudaq.get_state(allocate_only, 3))
+    assert state.shape == (8,)
+    assert np.isclose(state[0], 1.0)

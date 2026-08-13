@@ -1,0 +1,28 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-dealloc --dqe %s | FileCheck %s
+
+// An entry point's register is observable even when no operation uses it:
+// sample() implicitly measures it and get_state() returns it. Keep it.
+func.func @unused_register() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.veq<3>
+  return
+}
+
+// CHECK-LABEL:   func.func @unused_register()
+// CHECK:           quake.alloca !quake.veq<3>
+
+// Nothing observes a non-entry-point register, so it is still eliminated.
+func.func @unused_register_helper() {
+  %0 = quake.alloca !quake.veq<3>
+  return
+}
+
+// CHECK-LABEL:   func.func @unused_register_helper()
+// CHECK-NOT:       quake.alloca

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
@@ -27,6 +28,31 @@ using namespace mlir;
 // partially eliminate those quantum allocations. For example, a
 // `quake.extract_ref` might be a use, but itself have no users.
 
+// An entry point's whole register is observable: sample() implicitly measures
+// every allocated qubit and get_state() returns the full register. Eliminating
+// the last allocation leaves a kernel with no qubits, which yields empty sample
+// counts and a null state, so keep it.
+static bool isSoleAllocationOfEntryPoint(Operation *alloc) {
+  Operation *entry = nullptr;
+  for (Operation *p = alloc->getParentOp(); p; p = p->getParentOp())
+    if (p->hasAttr(cudaq::entryPointAttrName)) {
+      entry = p;
+      break;
+    }
+  if (!entry)
+    return false;
+  bool foundOther = false;
+  entry->walk([&](Operation *op) {
+    if (op != alloc && isa<cudaq::quake::AllocaOp, cudaq::quake::NullWireOp,
+                           cudaq::quake::BorrowWireOp>(op)) {
+      foundOther = true;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+  return !foundOther;
+}
+
 namespace {
 class RefPattern : public OpRewritePattern<cudaq::quake::AllocaOp> {
 public:
@@ -36,6 +62,8 @@ public:
   LogicalResult matchAndRewrite(cudaq::quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
     if (std::distance(alloc->getUsers().begin(), alloc->getUsers().end()) > 1)
+      return failure();
+    if (isSoleAllocationOfEntryPoint(alloc))
       return failure();
     if (alloc->use_empty()) {
       rewriter.eraseOp(alloc);
@@ -67,6 +95,8 @@ public:
     // FIXME: safety check as MLIR breaks linear type constraints underneath us.
     if (std::distance(nullWire->getUsers().begin(),
                       nullWire->getUsers().end()) != 1)
+      return failure();
+    if (isSoleAllocationOfEntryPoint(nullWire))
       return failure();
     // Wires are linear types. There must be exactly 1 use.
     auto sink = dyn_cast<cudaq::quake::SinkOp>(*nullWire->getUsers().begin());
