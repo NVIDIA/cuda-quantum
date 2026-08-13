@@ -30,9 +30,13 @@ func.func @negative_wire_phase()
 }
 
 // CHECK-LABEL: llvm.func @negative_wire_phase()
+// CHECK: %[[R1_CTL:[a-zA-Z0-9_.$-]+]] = llvm.mlir.addressof @__quantum__qis__r1__ctl : !llvm.ptr
+// CHECK: %[[ONE:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(1 : i64) : i64
 // CHECK: %[[THETA:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(5.000000e-01 : f64) : f64
-// CHECK: %[[CONTROL:[a-zA-Z0-9_.$-]+]] = llvm.inttoptr {{.*}} : i64 to !llvm.ptr
+// CHECK: %[[ZERO:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK: %[[CONTROL:[a-zA-Z0-9_.$-]+]] = llvm.inttoptr %[[ZERO]] : i64 to !llvm.ptr
+// CHECK: %[[TARGET:[a-zA-Z0-9_.$-]+]] = llvm.inttoptr %[[ONE]] : i64 to !llvm.ptr
 // CHECK: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
-// CHECK-NEXT: llvm.call @__quantum__qis__r1__body(%[[THETA]], %[[CONTROL]])
+// CHECK-NEXT: llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[ONE]], %[[ZERO]], %[[ONE]], %[[ONE]], %[[R1_CTL]], %[[THETA]], %[[CONTROL]], %[[TARGET]])
 // CHECK-NEXT: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
 // CHECK: llvm.return

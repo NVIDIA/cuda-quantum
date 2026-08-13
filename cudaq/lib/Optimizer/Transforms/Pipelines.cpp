@@ -219,6 +219,9 @@ createTargetDeployPipeline(OpPassManager &pm,
   cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This
