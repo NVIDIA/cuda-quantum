@@ -53,6 +53,7 @@ cudaq::CompileTarget get_compile_target(const Policy &policy) {
 /// This is suitable for local simulators, i.e. it will use
 /// AOT-compiled modules as-is if they exist, and otherwise JIT-compile the
 /// module as appropriate for a Python kernel.
+
 cudaq::CompileTarget
 createDefaultCompileTarget(quantum_platform *platform = nullptr);
 

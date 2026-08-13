@@ -13,9 +13,6 @@ import numpy as np
 
 import cudaq
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
 ## NOTE: 3+ qubit custom operations are lowered through the recursive Quantum
 #        Shannon Decomposition (arXiv quant-ph/0406176), which reuses the
 #        existing 2-qubit KAK and 1-qubit ZYZ decomposers as base cases. The
@@ -35,7 +32,6 @@ def check_state(matrix, state):
     assert np.isclose(matrix[:, 0], np.array(state), atol=1e-8).all()
 
 
-@skipIfValueSemantics
 def test_random_unitary_3q():
     # 3-qubit (8x8) operation: one level of QSD with a 2-qubit KAK base case.
     # yapf: disable
@@ -65,7 +61,7 @@ def test_random_unitary_3q():
     # KAK children on q[0]/q[1] interleaved with three two-control gray-code
     # multiplexors (Rz, Ry, Rz) targeting q[2]. The 12 multiplexor CNOTs are the
     # optimal gray-code count.
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def synth_kernel8():
         q = cudaq.qvector(3)
 

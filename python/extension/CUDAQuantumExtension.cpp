@@ -39,6 +39,7 @@
 #include "runtime/cudaq/operators/py_scalar_op.h"
 #include "runtime/cudaq/operators/py_spin_op.h"
 #include "runtime/cudaq/operators/py_super_op.h"
+#include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_pauli_word.h"
@@ -149,6 +150,7 @@ NB_MODULE(_quakeDialects, m) {
   bindAltLaunchKernel(cudaqRuntime, [holderPtr = holder.get()]() {
     return python::getTransportLayer(holderPtr);
   });
+  bindRuntimeEndpoint(cudaqRuntime);
   bindTestUtils(cudaqRuntime, *holder.get());
   bindCustomOpRegistry(cudaqRuntime);
   bindTrace(cudaqRuntime);

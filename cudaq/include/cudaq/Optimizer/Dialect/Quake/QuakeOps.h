@@ -106,10 +106,7 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
     return veqTy.getSize();
   if (auto relaxOp = v.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
     // RelaxSizeOp verifier guarantees input is VeqType when result is VeqType.
-    auto innerTy =
-        mlir::cast<cudaq::quake::VeqType>(relaxOp.getInputVec().getType());
-    if (innerTy.hasSpecifiedSize())
-      return innerTy.getSize();
+    return getVeqSize(relaxOp.getInputVec());
   }
   return std::nullopt;
 }

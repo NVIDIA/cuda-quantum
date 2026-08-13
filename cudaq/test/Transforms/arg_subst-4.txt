@@ -42,5 +42,5 @@ cc.arg_subst[0] {
   %18 = cc.compute_ptr %0[2] : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>) -> !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   cc.store %17, %18 : !cc.ptr<!cc.struct<{i32, f64, i8, i16}>>
   %c3_i64 = arith.constant 3 : i64
-  %19 = cc.stdvec_init %0, %c3_i64 : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>, i64) -> !cc.stdvec<!cc.struct<{i32, f64, i8, i16}>>
+  %19 = cc.sequence_init %0, %c3_i64 : (!cc.ptr<!cc.array<!cc.struct<{i32, f64, i8, i16}> x 3>>, i64) -> !cc.sequence<!cc.struct<{i32, f64, i8, i16}>>
 }

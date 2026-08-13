@@ -22,12 +22,12 @@ def QEC_DetectorOp : QECOp<"detector"> {
     Declares a parity constraint over one or more measurement results. Under
     noise-free execution the XOR of the referenced measurements is
     deterministic. Operands may be individual `!cc.measure_handle` values or a
-    `!cc.stdvec<!cc.measure_handle>` collection. This is a side-effecting
+    `!cc.sequence<!cc.measure_handle>` collection. This is a side-effecting
     declaration that informs the backend.
   }];
   let arguments = (ins
     Variadic<AnyTypeOf<[cc_MeasureHandleType,
-                        StdvecOf<[cc_MeasureHandleType]>]>>:$measurements
+                        SequenceOf<[cc_MeasureHandleType]>]>>:$measurements
   );
   let assemblyFormat = [{
     $measurements `:` type($measurements) attr-dict
@@ -38,14 +38,14 @@ def QEC_DetectorsOp : QECOp<"pair_detectors"> {
   let summary =
     "Declare N detectors by pairing previous and current measurement vectors.";
   let description = [{
-    Given two `!cc.stdvec<!cc.measure_handle>` collections of measurement
+    Given two `!cc.sequence<!cc.measure_handle>` collections of measurement
     results, declares N detectors where detector `i` is the parity of `prev[i]`
-    and `curr[i]`. `!cc.stdvec` carries no static size, so size agreement
+    and `curr[i]`. `!cc.sequence` carries no static size, so size agreement
     between `prev` and `curr` is checked at runtime.
   }];
   let arguments = (ins
-    StdvecOf<[cc_MeasureHandleType]>:$prev,
-    StdvecOf<[cc_MeasureHandleType]>:$curr
+    SequenceOf<[cc_MeasureHandleType]>:$prev,
+    SequenceOf<[cc_MeasureHandleType]>:$curr
   );
   let assemblyFormat = [{
     $prev `,` $curr `:` type($prev) `,` type($curr) attr-dict
@@ -57,12 +57,12 @@ def QEC_ObservableOp : QECOp<"observable"> {
   let description = [{
     Declares a logical observable as a binary sum of measurement results.
     Operands may be individual `!cc.measure_handle` values or a
-    `!cc.stdvec<!cc.measure_handle>` collection. The optional observable index
+    `!cc.sequence<!cc.measure_handle>` collection. The optional observable index
     defaults to 0.
   }];
   let arguments = (ins
     Variadic<AnyTypeOf<[cc_MeasureHandleType,
-                        StdvecOf<[cc_MeasureHandleType]>]>>:$measurements,
+                        SequenceOf<[cc_MeasureHandleType]>]>>:$measurements,
     DefaultValuedOptionalAttr<I64Attr, "0">:$observableIndex
   );
   let assemblyFormat = [{

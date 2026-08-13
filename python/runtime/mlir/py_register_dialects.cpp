@@ -357,26 +357,26 @@ static void registerCCDialectAndTypes(nanobind::module_ &m) {
             return wrap(callTy.getSignature());
           });
 
-  mlir_type_subclass(ccMod, "StdvecType",
+  mlir_type_subclass(ccMod, "SequenceType",
                      [](MlirType type) {
-                       return mlir::isa<cudaq::cc::StdvecType>(unwrap(type));
+                       return mlir::isa<cudaq::cc::SequenceType>(unwrap(type));
                      })
       .def_classmethod(
           "getElementType",
           [](nanobind::object cls, MlirType type) {
             auto ty = unwrap(type);
-            auto casted = dyn_cast<cudaq::cc::StdvecType>(ty);
+            auto casted = dyn_cast<cudaq::cc::SequenceType>(ty);
             if (!casted)
               throw std::runtime_error(
-                  "invalid type passed to StdvecType.getElementType(), must "
+                  "invalid type passed to SequenceType.getElementType(), must "
                   "be cc.array type.");
             return wrap(casted.getElementType());
           })
       .def_classmethod(
           "get",
           [](nanobind::object cls, MlirType elementType, MlirContext context) {
-            return wrap(cudaq::cc::StdvecType::get(unwrap(context),
-                                                   unwrap(elementType)));
+            return wrap(cudaq::cc::SequenceType::get(unwrap(context),
+                                                     unwrap(elementType)));
           },
           nanobind::arg("cls"), nanobind::arg("elementType"),
           nanobind::arg("context") = nanobind::none());

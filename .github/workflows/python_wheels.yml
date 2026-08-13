@@ -25,6 +25,11 @@ on:
         required: false
         type: boolean
         default: false
+      run_validation:
+        required: false
+        type: boolean
+        default: true
+        description: Run wheel validation. Deployments disables this; validation runs in the Validation workflow.
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
@@ -229,6 +234,7 @@ jobs:
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
+    if: inputs.run_validation
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -533,7 +539,7 @@ jobs:
     # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
     name: Validate wheel on GPU (nvidia simulator)
     needs: build_wheel
-    if: inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
+    if: inputs.run_validation && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
     runs-on: linux-amd64-gpu-a100-latest-1
     timeout-minutes: 30
     permissions:
@@ -604,7 +610,7 @@ jobs:
 
   staging:
     name: Staging
-    needs: [build_wheel, validation]
+    needs: [build_wheel]
     if: inputs.create_staging_info
     runs-on: ubuntu-latest
     permissions:
@@ -619,7 +625,8 @@ jobs:
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          artifact_name=python_${platform_id}_cu${cuda_major}_publishing # changing the artifact name requires updating other workflows
 
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
