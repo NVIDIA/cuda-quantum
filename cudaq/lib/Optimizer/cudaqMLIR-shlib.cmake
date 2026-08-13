@@ -48,7 +48,15 @@ add_library(${LIBRARY_NAME} SHARED ${_cudaq_bundle_objs})
 # 2b. Provide the namespaced alias cudaq::cudaqMLIR used downstream
 add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 
-# 2c. Pull in any required transitive dependencies.
+# 2c. Ensure the linker always prefers `libcudaqMLIR` over static libraries providing the same symbols.
+if(NOT APPLE)
+  set(_cudaq_no_as_needed
+    "LINKER:--no-as-needed" "$<TARGET_FILE:cudaq::${LIBRARY_NAME}>" "LINKER:--as-needed")
+  set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY
+    INTERFACE_LINK_OPTIONS ${_cudaq_no_as_needed})
+endif()
+
+# 2d. Pull in any required transitive dependencies.
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_link_libs})
 
 # 3. WHOLE_ARCHIVE MLIR/LLVM static libs so their full symbol set is exported
@@ -73,7 +81,7 @@ else()
 endif()
 
 install(TARGETS ${LIBRARY_NAME}
-        EXPORT cudaq-targets
-        DESTINATION lib
-        COMPONENT Runtime)
+  EXPORT cudaq-targets
+  DESTINATION lib
+  COMPONENT Runtime)
 set_target_properties(${LIBRARY_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
