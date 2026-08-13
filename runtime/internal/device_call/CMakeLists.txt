@@ -80,6 +80,15 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     "LINKER:--exclude-libs,libcudaq-realtime-udp-transport.a"
     "LINKER:--exclude-libs,libcudaq-realtime-cpu-roce-transport.a")
 
+  # Regression test: the transport archives are implementation details of this
+  # runtime's channels.  If --exclude-libs is missing, their symbols become
+  # exported and bridge providers share one copy of the transceiver code,
+  # causing silent ODR violations and teardown corruption.  Verify with nm that
+  # no cpu_udp_/cpu_roce_* dynamic symbols are exported.
+  add_test(NAME cudaq_device_call_no_exported_transport_symbols
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify_no_exported_transport_symbols.sh
+            $<TARGET_FILE:cudaq-device-call-runtime>)
+
   install(TARGETS cudaq-device-call-runtime-headers
           EXPORT cudaq-targets
           COMPONENT Development)
