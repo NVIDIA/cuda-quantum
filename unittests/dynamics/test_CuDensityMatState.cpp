@@ -416,3 +416,29 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   EXPECT_NEAR(hostOffCol(1, 0).real(), 3.0, 1e-12);
   EXPECT_NEAR(hostOffCol(1, 1).real(), 4.0, 1e-12);
 }
+
+TEST_F(CuDensityMatStateTest, SplitBatchedStatePreservesLayoutMetadata) {
+  const std::vector<int64_t> dims{2};
+  const std::vector<std::complex<double>> dm = {
+      {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}};
+
+  CuDensityMatState state1(dm.size(), cudaq::dynamics::createArrayGpu(dm));
+  state1.initialize_cudm(handle, dims, /*batchSize=*/1);
+  CuDensityMatState state2(dm.size(), cudaq::dynamics::createArrayGpu(dm));
+  state2.initialize_cudm(handle, dims, /*batchSize=*/1);
+  ASSERT_TRUE(state1.is_density_matrix());
+
+  auto batchedState = CuDensityMatState::createBatchedState(
+      handle, {&state1, &state2}, dims, /*createDensityState=*/true);
+  auto splitStates = CuDensityMatState::splitBatchedState(*batchedState);
+  ASSERT_EQ(splitStates.size(), 2);
+
+  const auto referenceTensor = state1.getTensor();
+  for (auto *splitState : splitStates) {
+    EXPECT_TRUE(splitState->is_density_matrix());
+    const auto tensor = splitState->getTensor();
+    EXPECT_EQ(tensor.extents, referenceTensor.extents);
+    EXPECT_EQ(tensor.order, referenceTensor.order);
+    delete splitState;
+  }
+}
