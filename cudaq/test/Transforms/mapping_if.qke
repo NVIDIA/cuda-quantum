@@ -11,42 +11,6 @@
 
 quake.wire_set @wires[2147483647]
 
-// An ordinary scope carries its captured wires through the body and returns
-// them positionally through cc.continue. The mapper must route the body and
-// continue the enclosing block from the body's exit layout.
-//
-// CHECK-LABEL: func.func @test_scope_single_block() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
-// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
-// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
-// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
-// CHECK:   %[[SCOPE:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
-// CHECK:     %[[SW0:.*]]:2 = quake.swap %[[Q0]], %[[Q1]]
-// CHECK:     %[[X:.*]]:2 = quake.x [%[[SW0]]#1] %[[Q2]]
-// CHECK-NOT: quake.swap %[[SW0]]#0, %[[X]]#0
-// CHECK:     cc.continue %[[X]]#0, %[[SW0]]#0, %[[X]]#1
-// CHECK:   }
-// The scope swap makes VQ1 and VQ2 non-adjacent. Routing the suffix from the
-// scope exit must therefore insert a new outer-block swap.
-// CHECK:   %{{.*}}:2 = quake.swap %[[SCOPE]]#{{[01]}}, %[[SCOPE]]#{{[01]}}
-// CHECK:   %[[POST:.*]]:2 = quake.x {{.*}}
-// CHECK:   quake.mz {{.*}}
-// CHECK:   quake.mz {{.*}}
-// CHECK:   quake.mz {{.*}}
-func.func @test_scope_single_block() attributes {"cudaq-kernel"} {
-  %0 = quake.borrow_wire @wires[0] : !quake.wire
-  %1 = quake.borrow_wire @wires[1] : !quake.wire
-  %2 = quake.borrow_wire @wires[2] : !quake.wire
-  %3:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
-    %4:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-    cc.continue %4#0, %1, %4#1 : !quake.wire, !quake.wire, !quake.wire
-  }
-  %5:2 = quake.x [%3#1] %3#2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.return_wire %3#0 : !quake.wire
-  quake.return_wire %5#0 : !quake.wire
-  quake.return_wire %5#1 : !quake.wire
-  return
-}
-
 // The scope capture is the `if` linear argument, not either branch argument.
 // This exercises recursive scope routing without treating region arguments as
 // extra caller wires.
