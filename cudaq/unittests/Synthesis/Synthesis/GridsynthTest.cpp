@@ -293,11 +293,11 @@ TEST(GridsynthZeroTTest, QuarterTurnsAreZeroTAtTightEpsilon) {
 // Statistics
 // ============================================================
 
-// θ = π/53 at this tolerance is sensitive to the factoring stream: different
+// π/53 at this tolerance is sensitive to the factoring stream: different
 // seeds return different (equally valid) circuits, which is what makes it
 // usable as a probe of the RNG state.
 static constexpr const char *kSeedSensitiveTheta =
-    "0.0592753331809301553291385543080283073437157347056713317192357";
+    "0.0592753330865998724238234600618774129093805547051906758674517847";
 static constexpr const char *kSeedSensitiveEpsilon = "1e-20";
 
 using cudaq::synth::GridsynthOutcome;
