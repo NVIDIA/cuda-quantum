@@ -370,7 +370,7 @@ function show_help {
 	Enable/disable kernel execution pass.
 
 -f[no-]inject-implicit-output
-	Enable/disable injection of implicit cc.log_output operations.
+	Enable/disable injection of implicit quake.log_output operations.
 
 -f[no-]add-dealloc
 	Enable/disable insertion of quantum deallocation operations.
