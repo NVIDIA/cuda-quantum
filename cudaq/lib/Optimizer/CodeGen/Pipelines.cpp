@@ -89,6 +89,13 @@ createTargetCodegenPipeline(OpPassManager &pm,
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
+    // Erase compiler-generated log_output ops after wire conversion.
+    // addConvertToLinearValues (via memtoreg's LogOutputOpPattern) has
+    // already threaded the wires through the log_output op (unwrap → log →
+    // wrap), so erasing here correctly threads the wire past the op before
+    // it is removed.
+    pm.addNestedPass<func::FuncOp>(
+        cudaq::opt::createEraseCompilerGeneratedLogOutput());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }
