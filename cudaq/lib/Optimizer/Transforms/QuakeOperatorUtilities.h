@@ -40,8 +40,7 @@ getControlPolarities(mlir::ValueRange controls,
 
 template <typename Op>
 inline llvm::SmallVector<bool> getControlPolarities(Op op) {
-  return getControlPolarities(op.getControls(),
-                              op.getNegatedQubitControls());
+  return getControlPolarities(op.getControls(), op.getNegatedQubitControls());
 }
 
 /// Return true when any control vector cannot be expanded into a statically
