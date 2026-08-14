@@ -990,53 +990,20 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   {
     PassManager pm(context);
     pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
-    cudaq::opt::addAggressiveInlining(pm);
-    pm.addPass(createCanonicalizerPass());
-    pm.addPass(cudaq::opt::createApplySpecialization());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addPass(cudaq::opt::createExpandMeasurementsPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-    pm.addPass(cudaq::opt::createQuakePropagateMetadata());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
-    pm.addPass(cudaq::opt::createGenerateKernelExecution());
-    pm.addPass(createSymbolDCEPass());
+    cudaq::opt::addKernelBuilderJITPrepPipeline(pm);
     if (failed(pm.run(module)))
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");
   }
   {
-    // Start a new pipeline. We want the above pipeline to completely flush it's
-    // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
-    // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
+    // A new pass manager, so the pipeline above fully flushes its rewrites
+    // before we lower to a raw CFG form.
     PassManager pm(context);
     pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-    cudaq::opt::addLowerToCFG(pm);
-    // We want quantum allocations to stay where they are if
-    // we are simulating and have user-provided state vectors.
-    // This check could be better / smarter probably, in tandem
-    // with some synth strategy to rewrite initState with circuit
-    // synthesis result
-    if (stateVectorStorage.empty())
-      pm.addNestedPass<func::FuncOp>(
-          cudaq::opt::createCombineQuantumAllocations());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(createCSEPass());
-    // Route through the modern QIR API pipeline so QEC ops added by the C++
-    // builder lower to their runtime entries. The legacy `createConvertToQIR`
-    // (a single-shot Quake -> LLVM pass scoped to QIR version 0.1) carries
-    // no QEC patterns. The `createCCToLLVM` step that the legacy pass folded in
-    // is now scheduled explicitly.
-    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full");
-    pm.addPass(cudaq::opt::createCCToLLVM());
-    pm.addPass(createCanonicalizerPass());
+    // This check could be better probably, in tandem with some synth
+    // strategy to rewrite initState with circuit synthesis result.
+    cudaq::opt::addKernelBuilderJITLoweringPipeline(
+        pm, /*combineQuantumAllocations=*/stateVectorStorage.empty());
 
     auto printEachPass =
         cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
