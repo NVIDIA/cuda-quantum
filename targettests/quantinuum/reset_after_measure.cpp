@@ -130,7 +130,7 @@ int main() {
     gateCounts.dump();
     output_good_or_bad(gateCounts.count("reset") == 1);
     // CHECK-LABEL: Test 1
-    // CHECK: reset
+    // CHECK-NOT: reset
     // CHECK: success
   }
 

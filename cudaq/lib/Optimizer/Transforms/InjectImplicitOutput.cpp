@@ -8,7 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Dominance.h"
@@ -74,10 +74,24 @@ public:
       return alloc.getResult();
     };
 
-    // λ to create a quake.log_output marked as compiler-generated.
+    // λ to create compiler-generated log_output ops for a single value.
+    // Passes /*compilerGenerated=*/true to the builder so the attribute is
+    // stored as a first-class op attribute rather than a discardable side attr.
     auto emitLogOutput = [&](OpBuilder &b, Location l, Value v) {
-      auto op = cudaq::quake::LogOutputOp::create(b, l, ValueRange{v});
-      op->setAttr(cudaq::runtime::compilerGeneratedOutput, b.getUnitAttr());
+      if (isa<cudaq::quake::RefType>(v.getType())) {
+        cudaq::quake::LogOutputOp::create(b, l, ValueRange{v},
+                                          /*compilerGenerated=*/true);
+        return;
+      }
+      assert(isa<cudaq::quake::VeqType>(v.getType()));
+      Value size = cudaq::quake::VeqSizeOp::create(b, l, b.getI64Type(), v);
+      cudaq::opt::factory::createInvariantLoop(
+          b, l, size, [&](OpBuilder &ib, Location il, Region &, Block &body) {
+            Value idx = body.getArgument(0);
+            Value ref = cudaq::quake::ExtractRefOp::create(ib, il, v, idx);
+            cudaq::quake::LogOutputOp::create(ib, il, ValueRange{ref},
+                                              /*compilerGenerated=*/true);
+          });
     };
 
     DominanceInfo dom(funcOp);

@@ -48,10 +48,20 @@ module {
 // CHECK:         quake.h %[[Q0]]
 // CHECK:         cf.br ^[[EXIT:.*]]
 
-// Exit block: log_output ops in declaration order, then return.
+// Exit block: ref gets a direct log_output; each veq gets a loop that
+// extract_ref's every element and log_output's it individually.
 // CHECK:       ^[[EXIT]]:
 // CHECK:         quake.log_output %[[Q0]] : (!quake.ref) -> ()
-// CHECK:         quake.log_output %[[Q1]] : (!quake.veq<4>) -> ()
-// CHECK:         quake.log_output %[[Q2]] : (!quake.veq<?>) -> ()
-// CHECK:         quake.log_output %[[Q3S]] : (!quake.veq<4>) -> ()
+// CHECK:         %[[SZ1:.*]] = quake.veq_size %[[Q1]] : (!quake.veq<4>) -> i64
+// CHECK:         cc.loop while
+// CHECK:           quake.extract_ref %[[Q1]]
+// CHECK:           quake.log_output
+// CHECK:         %[[SZ2:.*]] = quake.veq_size %[[Q2]] : (!quake.veq<?>) -> i64
+// CHECK:         cc.loop while
+// CHECK:           quake.extract_ref %[[Q2]]
+// CHECK:           quake.log_output
+// CHECK:         %[[SZ3:.*]] = quake.veq_size %[[Q3S]] : (!quake.veq<4>) -> i64
+// CHECK:         cc.loop while
+// CHECK:           quake.extract_ref %[[Q3S]]
+// CHECK:           quake.log_output
 // CHECK:         return
