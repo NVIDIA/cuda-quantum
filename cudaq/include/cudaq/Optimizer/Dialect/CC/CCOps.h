@@ -22,6 +22,8 @@
 #include "mlir/Interfaces/LoopLikeInterface.h"
 
 namespace cudaq::cc {
+inline constexpr char atomicQuantumRegionAttrName[] = "atomic_quantum_region";
+
 constexpr int kInterleavedArgumentConstantBitWidth = 29;
 using InterleavedArgumentConstantIndex =
     llvm::PointerEmbeddedInt<std::int32_t,
