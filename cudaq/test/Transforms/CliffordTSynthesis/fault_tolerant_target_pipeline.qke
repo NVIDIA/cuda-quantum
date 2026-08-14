@@ -19,9 +19,10 @@
 
 // End-to-end test of the registered `cudaq-fault-tolerant-target` pipeline
 // (UnitarySynthesis -> ApplyOpSpecialization -> ConstantPropagation ->
-// exact-angle simplification -> CliffordTSynthesis -> Decomposition to
-// {h,s,t,x,z,cnot}). After the whole pipeline runs, no rotation ops survive
-// anywhere and the body is expressed in the fault-tolerant basis.
+// exact-angle simplification -> global phase normalization/lowering ->
+// CliffordTSynthesis -> Decomposition to {h,s,t,x,z,cnot}). After the whole
+// pipeline runs, no rotation or global phase ops survive anywhere and the body is
+// expressed in the fault-tolerant basis.
 
 func.func @kernel() -> !quake.measure {
   %q = quake.alloca !quake.ref

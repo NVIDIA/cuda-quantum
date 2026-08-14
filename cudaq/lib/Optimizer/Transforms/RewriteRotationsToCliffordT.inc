@@ -87,26 +87,30 @@ static Value emitSimplifiedRotation(PatternRewriter &rewriter, QOP rotation,
       llvm::is_one_of<QOP, cudaq::quake::RxOp,
                       cudaq::quake::RyOp>::value;
 
-  // ========================================================================
-  // QUAKE.PHASE HANDOFF -- NVIDIA/cuda-quantum#4976
-  // ========================================================================
   // Non-`R1` rotations (`Rx`, `Ry`, and `Rz`) need a scalar
   // exp(-i*k*pi/8) to make their named-gate replacements exactly equal rather
   // than equal up to global phase.
-  // Uncomment this handoff when quake.phase becomes available.
-  //
-  // if constexpr (!std::is_same_v<QOP, cudaq::quake::R1Op>) {
-  //   const double phaseAngle = -quarterTurns * quarterTurn / 2.0;
-  //   auto phaseValue = arith::ConstantFloatOp::create(
-  //       rewriter, location,
-  //       cast<FloatType>(rotation.getParameter().getType()), phaseAngle);
-  //   SmallVector<Value> noControls;
-  //   creator.create<cudaq::quake::PhaseOp>(
-  //       location, ValueRange{phaseValue}, noControls, target);
-  // }
-  //
-  // Run control specialization before this rewrite, then run
-  // normalize-phase-placement and lower-phase before target lowering.
+  if constexpr (!std::is_same_v<QOP, cudaq::quake::R1Op>) {
+    const FloatType phaseType =
+        cast<FloatType>(rotation.getParameter().getType());
+    const llvm::APFloat phaseAngle = [&] {
+      // Compute the canonical angle in the source semantics.
+      llvm::APFloat value = canonicalQuarterTurns(
+          quarterTurns, phaseType.getFloatSemantics());
+      // Divide the angle by two.
+      value =
+          llvm::scalbn(value, -1, llvm::APFloat::rmNearestTiesToEven);
+      // Negate it for the required phase.
+      value.changeSign();
+      return value;
+    }();
+    const FloatAttr phaseAttr = rewriter.getFloatAttr(phaseType, phaseAngle);
+    const Value phaseValue = arith::ConstantOp::create(
+        rewriter, location, phaseType, phaseAttr);
+    SmallVector<Value> noControls;
+    creator.create<cudaq::quake::PhaseOp>(
+        location, ValueRange{phaseValue}, noControls, target);
+  }
 
   // Conjugate the remaining X/Y classes into the Z basis.
   if (needsBasisChange) {

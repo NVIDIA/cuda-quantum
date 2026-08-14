@@ -186,6 +186,8 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   simplifyOpts.rotationsToCliffordT = true;
   simplifyOpts.cliffordTEpsilon = epsilon;
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify(simplifyOpts));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
 
   // Restore the memory-semantics form accepted by the existing decomposition
   // and synthesis pipeline.

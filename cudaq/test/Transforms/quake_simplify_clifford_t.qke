@@ -8,30 +8,20 @@
 
 // RUN: cudaq-opt --quake-simplify %s | FileCheck %s --check-prefix=OFF
 // RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' %s | \
-// RUN:   FileCheck %s --check-prefix=EXACT \
-// RUN:     --implicit-check-not='quake.phase{{[ (]}}'
+// RUN:   FileCheck %s --check-prefix=EXACT
 // RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=1e-3' %s | \
-// RUN:   FileCheck %s --check-prefix=THRESH \
-// RUN:     --implicit-check-not='quake.phase{{[ (]}}'
+// RUN:   FileCheck %s --check-prefix=THRESH
 
 // `--symbol-privatize` makes every kernel not listed in `exclude` private, so
 // `--symbol-dce` can remove unrelated kernels and `CircuitCheck` compares only
 // the selected test group.
-// RUN: cudaq-opt --symbol-privatize='exclude=r1_residues,r1_modulo' \
-// RUN:   --symbol-dce %s -o %t.r1.qke
-// RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' \
-// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo' \
-// RUN:   --symbol-dce %s | CircuitCheck %t.r1.qke
-//
-// TODO(NVIDIA/cuda-quantum#4976): Remove `--up-to-global-phase` once the
-// simplifier emits `quake.phase` for Rx, Ry, and Rz.
 // RUN: cudaq-opt \
-// RUN:   --symbol-privatize='exclude=rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
-// RUN:   --symbol-dce %s -o %t.axes.qke
+// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
+// RUN:   --symbol-dce %s -o %t.exact.qke
 // RUN: cudaq-opt --quake-simplify='rotations-to-clifford-t=true clifford-t-epsilon=0' \
-// RUN:   --symbol-privatize='exclude=rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
+// RUN:   --symbol-privatize='exclude=r1_residues,r1_modulo,rx_residues,rx_modulo,ry_residues,ry_modulo,rz_residues,rz_modulo' \
 // RUN:   --symbol-dce %s | \
-// RUN:   CircuitCheck %t.axes.qke --up-to-global-phase
+// RUN:   CircuitCheck %t.exact.qke
 
 // All eight R1 residues are strict equalities and map directly to the named
 // Clifford+T gates.
@@ -165,6 +155,10 @@ func.func @rx_residues() {
 }
 
 // EXACT-LABEL: func.func @rx_residues
+// EXACT: %[[RX_PHASE_ANGLE:.*]] = arith.constant -0.39269908169872414 : f64
+// EXACT: %[[RX_PHASE:.*]] = quake.phase (%[[RX_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[RX_H:.*]] = quake.h %[[RX_PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-COUNT-6: quake.phase
 // EXACT-NOT: quake.rx
 
 func.func @ry_residues() {
@@ -204,6 +198,10 @@ func.func @ry_residues() {
 }
 
 // EXACT-LABEL: func.func @ry_residues
+// EXACT: %[[RY_PHASE_ANGLE:.*]] = arith.constant -0.39269908169872414 : f64
+// EXACT: %[[RY_PHASE:.*]] = quake.phase (%[[RY_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[RY_S:.*]] = quake.s<adj> %[[RY_PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-COUNT-6: quake.phase
 // EXACT-NOT: quake.ry
 
 func.func @rz_residues() {
@@ -243,6 +241,10 @@ func.func @rz_residues() {
 }
 
 // EXACT-LABEL: func.func @rz_residues
+// EXACT: %[[RZ_PHASE_ANGLE:.*]] = arith.constant -0.39269908169872414 : f64
+// EXACT: %[[RZ_PHASE:.*]] = quake.phase (%[[RZ_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: %[[RZ_T:.*]] = quake.t %[[RZ_PHASE]] : (!quake.wire) -> !quake.wire
+// EXACT-COUNT-6: quake.phase
 // EXACT-NOT: quake.rz
 
 // The same out-of-range quarter-turn counts must reduce modulo eight.
@@ -283,6 +285,10 @@ func.func @rx_modulo() {
 }
 
 // EXACT-LABEL: func.func @rx_modulo
+// EXACT: %[[RX_MOD_PHASE_ANGLE:.*]] = arith.constant 3.1415926535897931 : f64
+// EXACT: %[[RX_MOD_PHASE:.*]] = quake.phase (%[[RX_MOD_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-COUNT-7: quake.phase
+// EXACT: quake.sink %[[RX_MOD_PHASE]] : !quake.wire
 // EXACT-NOT: quake.rx
 
 func.func @ry_modulo() {
@@ -322,6 +328,7 @@ func.func @ry_modulo() {
 }
 
 // EXACT-LABEL: func.func @ry_modulo
+// EXACT-COUNT-8: quake.phase
 // EXACT-NOT: quake.ry
 
 func.func @rz_modulo() {
@@ -361,6 +368,24 @@ func.func @rz_modulo() {
 }
 
 // EXACT-LABEL: func.func @rz_modulo
+// EXACT-COUNT-8: quake.phase
+// EXACT-NOT: quake.rz
+
+// Test the accuracy of the phase correction for a rotation angle sensitive to
+// one-ULP rounding.
+func.func @phase_source_rounding() {
+  // Eleven quarter turns (`11*pi/4`) rounded to `f64` makes the phase
+  // correction sensitive to one-ULP rounding.
+  %angle = arith.constant 8.639379797371932 : f64
+  %q = quake.null_wire
+  %r = quake.rz (%angle) %q : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r : !quake.wire
+  return
+}
+
+// EXACT-LABEL: func.func @phase_source_rounding
+// EXACT: %[[ROUNDING_PHASE_ANGLE:.*]] = arith.constant -4.319689898685966 : f64
+// EXACT: %[[ROUNDING_PHASE:.*]] = quake.phase (%[[ROUNDING_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
 // EXACT-NOT: quake.rz
 
 // Adjoint is folded into the sign, and a negative source literal reaches the
@@ -381,7 +406,10 @@ func.func @adjoint_and_negative() {
 }
 
 // EXACT-LABEL: func.func @adjoint_and_negative
-// EXACT-COUNT-3: quake.t<adj>
+// EXACT: %[[ADJ_PHASE_ANGLE:.*]] = arith.constant 0.39269908169872414 : f64
+// EXACT-COUNT-2: quake.t<adj>
+// EXACT: %[[ADJ_PHASE:.*]] = quake.phase (%[[ADJ_PHASE_ANGLE]]) %{{.*}} : (f64, !quake.wire) -> !quake.wire
+// EXACT-NEXT: quake.t<adj> %[[ADJ_PHASE]] : (!quake.wire) -> !quake.wire
 // EXACT-NOT: quake.r
 
 // A directly controlled rotation is never matched.
@@ -405,18 +433,27 @@ func.func @source_float_semantics() {
   %near = arith.constant 0x3F490FDC : f32
   %q0 = quake.null_wire
   %q1 = quake.null_wire
+  %q2 = quake.null_wire
   %r0 = quake.r1 (%exact) %q0 : (f32, !quake.wire) -> !quake.wire
   %r1 = quake.r1 (%near) %q1 : (f32, !quake.wire) -> !quake.wire
+  %r2 = quake.rz (%exact) %q2 : (f32, !quake.wire) -> !quake.wire
   quake.sink %r0 : !quake.wire
   quake.sink %r1 : !quake.wire
+  quake.sink %r2 : !quake.wire
   return
 }
 
 // EXACT-LABEL: func.func @source_float_semantics
+// EXACT: %[[F32_PHASE_ANGLE:.*]] = arith.constant -0.392699093 : f32
 // EXACT: quake.t
 // EXACT: quake.r1
+// EXACT: %[[F32_PHASE:.*]] = quake.phase (%[[F32_PHASE_ANGLE]]) %{{.*}} : (f32, !quake.wire) -> !quake.wire
+// EXACT-NEXT: quake.t %[[F32_PHASE]] : (!quake.wire) -> !quake.wire
 // THRESH-LABEL: func.func @source_float_semantics
+// THRESH: %[[F32_PHASE_ANGLE:.*]] = arith.constant -0.392699093 : f32
 // THRESH-COUNT-2: quake.t
+// THRESH: %[[F32_PHASE:.*]] = quake.phase (%[[F32_PHASE_ANGLE]]) %{{.*}} : (f32, !quake.wire) -> !quake.wire
+// THRESH-NEXT: quake.t %[[F32_PHASE]] : (!quake.wire) -> !quake.wire
 
 // Dynamic, nonfinite, and merely nearby constants are rejected in exact mode.
 

@@ -1428,8 +1428,11 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     `threshold`.
 
     The optional `rotations-to-clifford-t` pattern family recognizes constant
-    `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and emits exact
-    named gates instead of leaving those rotations for approximate synthesis.
+    `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and replaces them
+    with named-gate sequences instead of leaving them for approximate synthesis.
+    The replacement is exact, with no global-phase difference from the original
+    rotation. When needed, this includes injecting a `quake.phase` bookkeeping
+    operation.
     With a positive `clifford-t-epsilon`, nearby angles are accepted only when
     their operator-norm distance from the selected exact rotation is within that
     epsilon. The family is disabled by default because targets with native
