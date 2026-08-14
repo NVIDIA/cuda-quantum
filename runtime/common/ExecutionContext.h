@@ -25,32 +25,6 @@ class SimulationState;
 class ExecutionManager;
 class KernelArgs;
 
-/// @brief Options forwarded to
-/// `stim::ErrorAnalyzer::circuit_to_detector_error_model` when generating a
-/// Detector Error Model (DEM) from a kernel.
-struct dem_options {
-  /// Decompose hyper-edge error mechanisms into pairs of two-detector edges.
-  bool decompose_errors = false;
-  /// Fold loop bodies in the circuit for a more compact DEM.
-  bool fold_loops = false;
-  /// Allow detectors whose parity is not determined by the circuit.
-  bool allow_gauge_detectors = false;
-  /// Threshold (in [0,1]) for approximating disjoint-error products.
-  /// Set to 0 to disable approximation.
-  double approximate_disjoint_errors_threshold = 0.0;
-  /// When decomposition fails for an error mechanism, insert it into the DEM
-  /// undecomposed (as a hyper-edge) instead of raising an exception.
-  /// Only relevant when decompose_errors is true.
-  bool ignore_decomposition_failures = false;
-  /// Prevent the decomposer from introducing remnant edges that would otherwise
-  /// be needed to satisfy the decomposition.
-  bool block_decomposition_from_introducing_remnant_edges = false;
-
-  /// When true, the DEM execution also populates
-  /// `ExecutionContext::measurement_matrices`.
-  bool return_measurement_matrices = false;
-};
-
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
 class ExecutionContext {
@@ -138,11 +112,6 @@ public:
   /// @brief The ID of the QPU that this execution context is running on.
   std::size_t qpuId = 0;
 
-  /// @brief A buffer containing the return value of a kernel invocation.
-  /// Note: this is only needed for invocation not able to return a
-  /// `sample_result`.
-  std::vector<char> invocationResultBuffer;
-
   /// @brief The number of trajectories to be used for an expectation
   /// calculation on simulation backends that support trajectory simulation.
   std::optional<std::size_t> numberTrajectories = std::nullopt;
@@ -166,40 +135,15 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
-  bool allowCompiledModuleCaching = false;
-
-  bool useParametricJit = false;
-
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.
   ExecutionManager *executionManager = nullptr;
 
-  /// @brief For performance, a launcher may cache the JIT execution engine and
-  /// use it for multiple discrete calls.
-  std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
-
   /// @brief Dispatcher towards the policy specific launch.
   std::function<void(const AnyModule &module, const KernelArgs &args)>
       executeKernelApi;
 
-  /// @brief Slot for the detector error model, as `.dem` text.
-  std::string dem_text;
-
-  /// @brief Options forwarded to the Stim ErrorAnalyzer when generating a DEM.
-  dem_options dem_opts;
-
-  /// @brief Sparse m2d/m2o matrix data; populated when
-  /// `dem_opts.return_measurement_matrices` is true. See
-  /// `cudaq::M2DSparseMatrix` and `cudaq::M2OSparseMatrix` for the
-  /// public-facing types.
-  struct MeasurementMatrices {
-    std::size_t num_measurements = 0;
-    std::vector<std::vector<std::size_t>>
-        det_rows; // det_rows[d] = measurement indices for detector d
-    std::vector<std::vector<std::size_t>>
-        obs_rows; // obs_rows[k] = measurement indices for observable k
-  } measurement_matrices;
   /// @endcond
 
   /// @brief Captures an exception raised by the kernel while it runs on a
@@ -213,12 +157,11 @@ public:
   std::exception_ptr deferredKernelException;
 
   /// @brief True while a JIT/AOT-compiled kernel frame is executing on this
-  /// thread (set by the launcher around the kernel invocation; see
-  /// QPU::InKernelLaunchScope). The simulator only defers exceptions into
-  /// `deferredKernelException` while this is set. Outside the kernel frame
-  /// (for example, gate application during sample/observe finalization) there
-  /// is no JIT frame for an exception to unwind through, so it is thrown
-  /// directly, preserving the behavior callers see on all platforms.
+  /// thread. The simulator only defers exceptions into
+  /// `deferredKernelException` while this is set. Outside the kernel frame (for
+  /// example, gate application during sample/observe finalization) there is no
+  /// JIT frame for an exception to unwind through, so it is thrown directly,
+  /// preserving the behavior callers see on all platforms.
   bool inKernelLaunch = false;
 };
 
@@ -245,6 +188,11 @@ bool isLastBatch();
 
 /// @brief Get the ID of the current QPU.
 std::size_t getCurrentQpuId();
+
+/// @brief Re-throw an exception the kernel deferred during execution, if any.
+/// Call immediately after invoking a compiled kernel, from the C++ frame above
+/// the JIT/AOT boundary. No-op when nothing was deferred.
+void rethrowDeferredKernelException();
 
 namespace detail {
 /// Set the execution context for the current thread.

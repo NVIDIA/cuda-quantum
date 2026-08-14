@@ -110,7 +110,7 @@ struct Qernel {
 // CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<1>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<1>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

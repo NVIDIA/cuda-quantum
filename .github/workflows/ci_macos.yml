@@ -34,11 +34,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Check for stable CUDA-Q changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      stable: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout changed-path action
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/actions/check-changed-paths
+            .github/research-preview-paths.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths-ignore-file: .github/research-preview-paths.txt
+
   # ============================================================================
   # Metadata: Retrieve PR info and commit hashes
   # ============================================================================
   metadata:
     name: Retrieve PR info
+    needs: changes
+    if: needs.changes.outputs.stable == 'true'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -120,8 +145,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          submodules: true
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git submodule update --init --recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -198,7 +226,7 @@ jobs:
     needs: [devdeps, metadata]
     strategy:
       matrix:
-        python_version: ['3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.12', '3.13', '3.14']
       fail-fast: false
     runs-on: macos-26
     permissions:
@@ -214,8 +242,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          submodules: true
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git submodule update --init --recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -304,7 +335,7 @@ jobs:
     needs: wheel
     strategy:
       matrix:
-        python_version: ['3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.12', '3.13', '3.14']
       fail-fast: false
     runs-on: macos-26
 
@@ -368,8 +399,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          submodules: true
+
+      - name: Initialize submodules (with retry)
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry git submodule update --init --recursive
 
       - name: Set up Python
         uses: actions/setup-python@v6

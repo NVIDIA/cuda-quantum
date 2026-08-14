@@ -6,8 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .preallocated_qubits_context import PreallocatedQubitsContext
-
 # Default ports for each mock QPU backend
 MOCK_QPU_PORTS = {
     "quantinuum": 62440,
@@ -22,6 +20,7 @@ MOCK_QPU_PORTS = {
     "scaleway": 62450,
     "tii": 62451,
     "qbraid": 62452,
+    "echo": 62454,
 }
 
 

@@ -289,10 +289,12 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto findLookupValue = [&](Value v) -> Value {
-      if (auto id = analysis.idFromValue(v))
-        return allocas[*id];
+      // Check whether `v` is a quake.unwrap first, to avoid address clashes in
+      // `analysis`
       if (auto u = v.template getDefiningOp<cudaq::quake::UnwrapOp>())
         return u.getRefValue();
+      if (auto id = analysis.idFromValue(v))
+        return allocas[*id];
       return v;
     };
     auto collect = [&](auto values) {
@@ -336,13 +338,21 @@ public:
       eraseWrapUsers(op);
       OP::create(rewriter, loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
                  op.getNegatedQubitControlsAttr());
+      // Recreate results only for operands that were wires. Non-wire controls
+      // and targets are already in memory form and have no result to replace.
       SmallVector<Value> unwraps;
-      for (auto t : ctrls)
+      for (auto [original, t] : llvm::zip(op.getControls(), ctrls)) {
+        if (!isa<cudaq::quake::WireType>(original.getType()))
+          continue;
         unwraps.push_back(
             cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
-      for (auto t : targs)
+      }
+      for (auto [original, t] : llvm::zip(op.getTargets(), targs)) {
+        if (!isa<cudaq::quake::WireType>(original.getType()))
+          continue;
         unwraps.push_back(
             cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
+      }
       rewriter.replaceOp(op, unwraps);
     }
     return success();

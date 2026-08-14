@@ -43,9 +43,13 @@ add_openmp_configurations(${LIBRARY_NAME} OPERATOR_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${OPERATOR_DEPENDENCIES})
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-operator-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-operator-targets
+        DESTINATION lib
+        COMPONENT Runtime)
 
 install(EXPORT cudaq-operator-targets
         FILE CUDAQOperatorTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)

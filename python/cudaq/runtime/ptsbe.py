@@ -108,18 +108,18 @@ def sample(kernel,
         results = []
         for argSet in argSets:
             processedArgs, module = decorator.prepare_call(*argSet)
-            compiled = decorator.cachedCompiledModule()
+            cache = decorator.compiledModuleCache()
             result = cudaq_runtime.ptsbe.sample_impl(
-                decorator.uniqName, module, compiled, shots_count, noise_model,
+                decorator.uniqName, module, cache, shots_count, noise_model,
                 max_trajectories, sampling_strategy, shot_allocation,
                 return_execution_data, include_sequential_data, *processedArgs)
             results.append(result)
         return results
 
     processedArgs, module = decorator.prepare_call(*args)
-    compiled = decorator.cachedCompiledModule()
+    cache = decorator.compiledModuleCache()
     return cudaq_runtime.ptsbe.sample_impl(
-        decorator.uniqName, module, compiled, shots_count, noise_model,
+        decorator.uniqName, module, cache, shots_count, noise_model,
         max_trajectories, sampling_strategy, shot_allocation,
         return_execution_data, include_sequential_data, *processedArgs)
 
@@ -167,8 +167,9 @@ def sample_async(kernel,
     processedArgs, module = decorator.prepare_call(*args)
 
     impl = cudaq_runtime.ptsbe.sample_async_impl(
-        decorator.uniqName, module, shots_count, noise_model, max_trajectories,
-        sampling_strategy, shot_allocation, return_execution_data,
-        include_sequential_data, *processedArgs)
+        decorator.uniqName, module, decorator.compiledModuleCache(),
+        shots_count, noise_model, max_trajectories, sampling_strategy,
+        shot_allocation, return_execution_data, include_sequential_data,
+        *processedArgs)
 
     return AsyncSampleResult(impl, module)

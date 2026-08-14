@@ -1,0 +1,199 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --quake-simplify='threshold=0' %s | \
+// RUN:   FileCheck %s --check-prefixes=CHECK,EXACT
+// RUN: cudaq-opt --quake-simplify %s | \
+// RUN:   FileCheck %s --check-prefixes=CHECK,APPROX
+
+// A zero-angle rotation is erased. In memory semantics the op produces no
+// result, so the body keeps only the alloca and the return.
+func.func @zero_angle() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.0 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @zero_angle
+// CHECK-NOT:     quake.rz
+
+// In value semantics the input wire is threaded straight through to the users
+// of the erased op.
+func.func @zero_angle_wire() {
+  %0 = quake.null_wire
+  %a = arith.constant 0.0 : f64
+  %1 = quake.rz (%a) %0 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @zero_angle_wire
+// CHECK:         %[[W:.*]] = quake.null_wire
+// CHECK:         quake.sink %[[W]] : !quake.wire
+// CHECK-NOT:     quake.rz
+
+// A single full turn is the identity only up to an overall -1 for the axis
+// rotations, and that phase is observable if the function is specialized into
+// a controlled variant, so they keep their exact 4*pi period. r1(2*pi) = I
+// exactly and is erased.
+func.func @full_turn(%q: !quake.ref) {
+  %a = arith.constant 6.2831853071795862 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @full_turn
+// CHECK:         quake.rz
+// CHECK:         quake.rx
+// CHECK:         quake.ry
+// CHECK-NOT:     quake.r1
+
+// The entry point attribute says a kernel may be launched directly, not that
+// this is such a launch, so it buys the global phase nothing.
+func.func @entry_point(%q: !quake.ref) attributes {"cudaq-entrypoint"} {
+  %a = arith.constant 6.2831853071795862 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @entry_point
+// CHECK:         quake.rz
+// CHECK-NOT:     quake.r1
+
+// Two full turns are exactly the identity for every rotation.
+func.func @two_full_turns(%q: !quake.ref) {
+  %a = arith.constant 12.566370614359172 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @two_full_turns
+// CHECK-NOT:     quake.rz
+// CHECK-NOT:     quake.r1
+
+// phased_rx(theta, phi) rotates by theta about the cos(phi)x + sin(phi)y axis,
+// so a zero angle is the identity whatever the axis parameter says.
+func.func @phased_rx_zero_angle(%q: !quake.ref) {
+  %a = arith.constant 0.0 : f64
+  %b = arith.constant 1.5707963267948966 : f64
+  quake.phased_rx (%a, %b) %q : (f64, f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @phased_rx_zero_angle
+// CHECK-NOT:     quake.phased_rx
+
+// A control is what makes that -1 observable: ctrl-rz(2*pi) = diag(1, 1, -1,
+// -1) is a phase on the control, not the identity. The exact period covers
+// that case with no special handling of controls.
+func.func @controlled(%c: !quake.ref, %q: !quake.ref) {
+  %a = arith.constant 6.2831853071795862 : f64
+  %b = arith.constant 12.566370614359172 : f64
+  quake.rz (%a) [%c] %q : (f64, !quake.ref, !quake.ref) -> ()
+  quake.rz (%b) [%c] %q : (f64, !quake.ref, !quake.ref) -> ()
+  quake.r1 (%a) [%c] %q : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// The 2*pi rz survives; the 4*pi rz and the 2*pi r1 are erased.
+// CHECK-LABEL: func.func @controlled
+// CHECK:         quake.rz ({{.*}}) [
+// CHECK-NOT:     quake.rz
+// CHECK-NOT:     quake.r1
+
+// A half turn folds to itself and is not the identity.
+func.func @half_turn(%q: !quake.ref) {
+  %a = arith.constant 3.1415926535897931 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @half_turn
+// CHECK:         quake.rz
+
+// A non-constant angle is left untouched.
+func.func @dynamic(%q: !quake.ref, %a: f64) {
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic
+// CHECK:         quake.rz
+
+// A small but nonzero angle is below the default threshold, so it is erased.
+// At a threshold of 0 only bit-exact identities go.
+func.func @tiny(%q: !quake.ref) {
+  %a = arith.constant 1.0e-15 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @tiny
+// EXACT:         quake.rz
+// APPROX-NOT:    quake.rz
+
+// One ulp under two full turns folds to a small negative residual, which the
+// default threshold treats as the identity. This is the case it exists for.
+func.func @near_two_full_turns(%q: !quake.ref) {
+  %a = arith.constant 12.56637061435917 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @near_two_full_turns
+// EXACT:         quake.rz
+// APPROX-NOT:    quake.rz
+
+// An angle above the threshold is untouched in either mode.
+func.func @big(%q: !quake.ref) {
+  %a = arith.constant 0.5 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @big
+// CHECK:         quake.rz
+
+// The angle may use any float type. A type narrower than f64 widens exactly,
+// so the test sees the same value the original precision holds.
+func.func @zero_angle_f32(%q: !quake.ref) {
+  %a = arith.constant 0.0 : f32
+  quake.rz (%a) %q : (f32, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @zero_angle_f32
+// CHECK-NOT:     quake.rz
+
+// A full turn in f32 is off the exact value by about 1e-7, which is well above
+// the threshold used here, so even r1 survives in both modes.
+func.func @full_turn_f32(%q: !quake.ref) {
+  %a = arith.constant 6.28318548 : f32
+  quake.r1 (%a) %q : (f32, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @full_turn_f32
+// CHECK:         quake.r1
+
+// An angle wider than f64 is left alone rather than rounded: at a threshold of
+// 0 the rounding itself could manufacture an identity out of a nonzero angle.
+func.func @wide_float(%q: !quake.ref) {
+  %a = arith.constant 0x00000000000000000000000000000001 : f128
+  quake.rz (%a) %q : (f128, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @wide_float
+// CHECK:         quake.rz

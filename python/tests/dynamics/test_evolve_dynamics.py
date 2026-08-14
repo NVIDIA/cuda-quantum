@@ -244,6 +244,54 @@ def test_precision_info():
     assert target.get_precision() == cudaq.SimulationPrecision.fp64
 
 
+@pytest.mark.parametrize("order", ["C", "F"])
+def test_evolve_density_matrix_complex_input_observable_cudm(order):
+    from cudaq.operators import spin
+
+    rho = np.array([[0.5, 0.25j], [-0.25j, 0.5]],
+                   dtype=np.complex128,
+                   order=order)
+    initial_state = cudaq.State.from_data(rho)
+
+    result = cudaq.evolve(
+        0.0 * spin.x(0),
+        {0: 2},
+        Schedule([0.0], ["time"]),
+        initial_state,
+        observables=[spin.y(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+
+    expectation_values = result.expectation_values()
+    assert expectation_values is not None
+    assert np.isclose(expectation_values[0][0].expectation(), -0.5)
+
+
+def test_evolve_density_matrix_numpy_readback_cudm():
+    from cudaq.operators import spin
+
+    initial_state = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    result = cudaq.evolve(
+        spin.x(0),
+        {0: 2},
+        Schedule(np.linspace(0.0, np.pi / 4.0, 101), ["time"]),
+        initial_state,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+    )
+
+    expected = np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=np.complex128)
+    # The default integrator contributes about 1e-2 numerical error, while the
+    # transposed layout differs by O(1).
+    np.testing.assert_allclose(np.array(result.final_state()),
+                               expected,
+                               atol=1e-2)
+
+
 def test_evolve_density_matrix_numpy_layout_cudm():
     from cudaq.operators import spin
 
@@ -299,7 +347,7 @@ def test_evolve_density_matrix_cupy_strided_layout_cudm():
     base = cp.array([[1.0 + 0.0j, 2.0 + 0.0j], [3.0 + 0.0j, 4.0 + 0.0j]],
                     dtype=cp.complex128)
     cases = [
-        ("c_order", base, cp.asnumpy(base)),  # Already C-contiguous, no copy
+        ("c_order", base, cp.asnumpy(base)),
         ("fortran_order", cp.asfortranarray(base), cp.asnumpy(base)),
         ("transpose_view", base.T, cp.asnumpy(base.T)),
     ]
@@ -320,26 +368,43 @@ def test_evolve_density_matrix_cupy_strided_layout_cudm():
         np.testing.assert_allclose(final_arr, expected, atol=1e-12)
 
 
-def test_evolve_density_matrix_cupy_contiguous_no_regression_cudm():
-    """C-contiguous 2D CuPy array should go through the GPU path directly
-    without being copied back to host."""
-    rho = cp.array([[1.0 + 0.0j, 0.0j], [0.0j, 0.0j]], dtype=cp.complex128)
-    assert rho.flags["C_CONTIGUOUS"]
-    expected = cp.asnumpy(rho)
+@pytest.mark.parametrize("layout",
+                         ["c_order", "fortran_order", "transpose_view"])
+def test_evolve_density_matrix_cupy_complex_input_observable_cudm(layout):
+    from cudaq.operators import spin
 
-    state = cudaq.State.from_data(rho)
-    evolution_result = cudaq.evolve(
-        0.0 * boson.number(0),
+    base = cp.array([[0.5, 0.25j], [-0.25j, 0.5]], dtype=cp.complex128)
+    if layout == "c_order":
+        rho = base
+    elif layout == "fortran_order":
+        rho = cp.asfortranarray(base)
+    else:
+        rho = cp.array(base.T, order="C").T
+
+    initial_state = cudaq.State.from_data(rho)
+    result = cudaq.evolve(
+        0.0 * spin.x(0),
         {0: 2},
-        Schedule([0.0], ["t"]),
-        state,
-        observables=[],
+        Schedule([0.0], ["time"]),
+        initial_state,
+        observables=[spin.y(0)],
         collapse_operators=[],
-        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
     )
 
-    final_arr = np.array(evolution_result.final_state())
-    np.testing.assert_allclose(final_arr, expected, atol=1e-12)
+    expectation_values = result.expectation_values()
+    assert expectation_values is not None
+    assert np.isclose(expectation_values[0][0].expectation(), -0.5)
+
+
+def test_from_data_density_matrix_to_cupy_layout_cudm():
+    rho = cp.array([[0.5, 0.25j], [-0.25j, 0.5]], dtype=cp.complex128)
+    state = cudaq.State.from_data(rho)
+
+    cupy_state = cudaq.to_cupy(state)[0]
+
+    cp.testing.assert_allclose(cupy_state, rho, atol=1e-12)
 
 
 @pytest.mark.parametrize("layout",
@@ -377,6 +442,12 @@ def test_from_data_cupy_2d_non_square_rejected():
         cudaq.State.from_data(rho)
 
 
+def test_from_data_cupy_complex64_rejected_cudm():
+    rho = cp.eye(2, dtype=cp.complex64)
+    with pytest.raises(RuntimeError, match="complex128"):
+        cudaq.State.from_data(rho)
+
+
 def test_evolve_from_data_random_density_matrix_preserved_cudm():
     np.random.seed(42)
     N = 64
@@ -405,6 +476,50 @@ def test_evolve_from_data_random_density_matrix_preserved_cudm():
         rho,
         atol=1e-6,
         err_msg="final state should match initial density matrix")
+
+
+def test_batched_density_matrix_layout_matches_single_cudm():
+    """A state split out of a batch must look like a non-batched state.
+
+    Batching should change execution and storage aggregation only, not the
+    shape or storage order reported for each returned state.
+    """
+    np.random.seed(7)
+    N = 4
+    A = np.random.rand(N, N) + 1j * np.random.rand(N, N)
+    rho = A @ A.conj().T
+    rho /= np.trace(rho)
+
+    hamiltonian = 2 * np.pi * 0.1 * boson.number(0)
+    dimensions = {0: N}
+    schedule = Schedule(np.linspace(0.0, 1.0, 11), ["t"])
+    collapse_operators = [0.05 * boson.annihilate(0)]
+
+    def evolve(hamiltonians, initial_states, collapse):
+        return cudaq.evolve(
+            hamiltonians,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[],
+            collapse_operators=collapse,
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        )
+
+    single = evolve(hamiltonian, cudaq.State.from_data(rho), collapse_operators)
+    batched = evolve([hamiltonian, hamiltonian],
+                     [cudaq.State.from_data(rho),
+                      cudaq.State.from_data(rho)],
+                     [collapse_operators, collapse_operators])
+
+    single_state = single.final_state()
+    single_arr = np.array(single_state)
+    assert single_arr.shape == (N, N)
+
+    for result in batched:
+        batched_arr = np.array(result.final_state())
+        assert batched_arr.shape == single_arr.shape
+        np.testing.assert_allclose(batched_arr, single_arr, atol=1e-6)
 
 
 def test_user_provided_stepper_scipy():

@@ -147,6 +147,15 @@ public:
   /// @return A new CuDensityMatState representing the density matrix.
   CuDensityMatState to_density_matrix() const;
 
+  /// @brief Convert an uninitialized global state vector to a density matrix.
+  /// @return A new initialized CuDensityMatState representing the density
+  /// matrix.
+  CuDensityMatState
+  to_density_matrix(const std::vector<int64_t> &hilbertSpaceDims) const;
+
+  /// @brief Return the number of elements in the current storage buffer.
+  std::size_t get_element_count() const { return dimension; }
+
   /// @brief Get the underlying implementation (if any).
   /// @return The underlying state implementation.
   cudensitymatState_t get_impl() const;

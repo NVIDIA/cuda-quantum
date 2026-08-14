@@ -96,6 +96,25 @@ __qpu__ int measurement_result_loop_expected_1_loop() {
   return result;
 }
 
+// Expected remaining payload loop: the fixed-wire loop. The measurement
+// handle is carried between iterations, so execution-time lowering must give
+// each dynamically executed measurement a distinct QIR result slot.
+__qpu__ int measurement_handle_carry_expected_1_loop() {
+  cudaq::qubit q;
+  auto previous = mz(q);
+  int encoded = 0;
+
+  for (int i = 0; i < 2; ++i) {
+    auto current = mz(q);
+    if (i == 1)
+      encoded = (previous ? 1 : 0) | (current ? 2 : 0);
+    previous = current;
+    x(q);
+  }
+
+  return encoded;
+}
+
 // Expected remaining payload loops: outer, group, classical accumulation, and
 // measurement-result accumulation. The quantum-data loop over `q[wire]` is
 // unrolled for static wire IDs.
@@ -261,6 +280,10 @@ int main() {
 
   if (!checkResults(cudaq::run(3, measurement_result_loop_expected_1_loop), 5,
                     "measurement_result_loop_expected_1_loop"))
+    return 1;
+
+  if (!checkResults(cudaq::run(3, measurement_handle_carry_expected_1_loop), 2,
+                    "measurement_handle_carry_expected_1_loop"))
     return 1;
 
   if (!checkResults(cudaq::run(3, nested_mixed_loop_payload_expected_4_loops),

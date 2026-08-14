@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 #include "execution_manager.h"
+#include "common/AnalysisScope.h"
 #include "common/ExecutionContext.h"
-#include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
@@ -52,10 +53,43 @@ void ExecutionManager::configureExecutionContext(const sample_policy &policy) {
 }
 
 void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
-  if (auto *ctx = getExecutionContext())
+  if (auto *ctx = getExecutionContext()) {
     configureExecutionContext(*ctx);
-
+  }
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(const run_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(
+    const msm_size_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(const msm_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(const dem_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(
+    const ptsbe::sample_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
+void ExecutionManager::configureExecutionContext(
+    const estimate_policy &policy) {
+  assert(cudaq::detail::AnalysisScope::is_active());
+}
+
+estimate_result
+ExecutionManager::finalizeExecutionContext(const estimate_policy &policy) {
+  assert(cudaq::detail::AnalysisScope::is_active());
+  return nvqir::resource_counter::get_counts();
 }
 
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
@@ -66,6 +100,13 @@ void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
         [&](observe_result &&r) {
           ctx.result = r.raw_data();
           ctx.expectationValue = r.expectation();
+        },
+        [&](run_result &&r) {},
+        [&](msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
+        [&](msm_result &&r) {
+          ctx.result = std::move(r.samples);
+          ctx.msm_probabilities = std::move(r.probabilities);
+          ctx.msm_prob_err_id = std::move(r.probability_error_ids);
         },
         [&](policies::void_result &&r) {});
   });

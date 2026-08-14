@@ -105,7 +105,7 @@ public:
   // with:
   // ```
   //   %1 = ... : !quake.veq<4>
-  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
   LogicalResult matchAndRewrite(cudaq::quake::MzOp measure,
@@ -128,7 +128,7 @@ public:
       analysis.resultQubitVals[offset] =
           std::make_pair(idx, std::to_string(idx));
 
-      auto resultType = cudaq::cc::StdvecType::get(measure.getType(0));
+      auto resultType = cudaq::cc::SequenceType::get(measure.getType(0));
       if (measure == analysis.lastMeasurement) {
         rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
             measure, TypeRange{resultType}, ValueRange{veq},
@@ -161,12 +161,12 @@ public:
   //   %1 = ... : !quake.veq<4>
   //   %2 = quake.subveq %1, %c1, %c2 : (!quake.veq<4>, i32, i32) ->
   //        !quake.veq<2>
-  //   %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+  //   %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
   // ```
   // with:
   // ```
   //   %1 = ... : !quake.veq<4>
-  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
+  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
   LogicalResult matchAndRewrite(cudaq::quake::MzOp measure,

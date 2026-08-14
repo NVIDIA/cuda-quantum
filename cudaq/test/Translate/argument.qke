@@ -18,9 +18,9 @@ module
 
 func.func private @anchor(!cc.ptr<none>, i64)
 
-func.func @__nvqpp__mlirgen__test_0(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) {
-  %0 = cc.stdvec_data %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-  %1 = cc.stdvec_size %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> i64
+func.func @__nvqpp__mlirgen__test_0(%arg0: !cc.sequence<!cc.struct<{i32, f64}>>) {
+  %0 = cc.sequence_data %arg0 : (!cc.sequence<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+  %1 = cc.sequence_size %arg0 : (!cc.sequence<!cc.struct<{i32, f64}>>) -> i64
   %2 = cc.cast %0 : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<none>
   call @anchor(%2, %1) : (!cc.ptr<none>, i64) -> ()
   return
@@ -66,15 +66,15 @@ func.func @test_0(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @__nvqpp__mlirgen__test_1(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) {
-  %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<i16>
-  %1 = cc.stdvec_data %0 : (!cc.stdvec<i16>) -> !cc.ptr<!cc.array<i16 x ?>>
-  %2 = cc.stdvec_size %0 : (!cc.stdvec<i16>) -> i64
+func.func @__nvqpp__mlirgen__test_1(%arg0 : !cc.struct<{!cc.sequence<i16>, !cc.sequence<f32>}>) {
+  %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.sequence<i16>, !cc.sequence<f32>}>) -> !cc.sequence<i16>
+  %1 = cc.sequence_data %0 : (!cc.sequence<i16>) -> !cc.ptr<!cc.array<i16 x ?>>
+  %2 = cc.sequence_size %0 : (!cc.sequence<i16>) -> i64
   %3 = cc.cast %1 : (!cc.ptr<!cc.array<i16 x ?>>) -> !cc.ptr<none>
   call @anchor(%3, %2) : (!cc.ptr<none>, i64) -> ()
-  %4 = cc.extract_value %arg0[1] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<f32>
-  %5 = cc.stdvec_data %4 : (!cc.stdvec<f32>) -> !cc.ptr<!cc.array<f32 x ?>>
-  %6 = cc.stdvec_size %4 : (!cc.stdvec<f32>) -> i64
+  %4 = cc.extract_value %arg0[1] : (!cc.struct<{!cc.sequence<i16>, !cc.sequence<f32>}>) -> !cc.sequence<f32>
+  %5 = cc.sequence_data %4 : (!cc.sequence<f32>) -> !cc.ptr<!cc.array<f32 x ?>>
+  %6 = cc.sequence_size %4 : (!cc.sequence<f32>) -> i64
   %7 = cc.cast %5 : (!cc.ptr<!cc.array<f32 x ?>>) -> !cc.ptr<none>
   call @anchor(%7, %6) : (!cc.ptr<none>, i64) -> ()
   return
@@ -137,9 +137,9 @@ func.func @test_1(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @__nvqpp__mlirgen__test_2(%arg0: !cc.stdvec<!cc.struct<{i32, f64}>>) {
-  %0 = cc.stdvec_data %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
-  %1 = cc.stdvec_size %arg0 : (!cc.stdvec<!cc.struct<{i32, f64}>>) -> i64
+func.func @__nvqpp__mlirgen__test_2(%arg0: !cc.sequence<!cc.struct<{i32, f64}>>) {
+  %0 = cc.sequence_data %arg0 : (!cc.sequence<!cc.struct<{i32, f64}>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
+  %1 = cc.sequence_size %arg0 : (!cc.sequence<!cc.struct<{i32, f64}>>) -> i64
   %2 = cc.cast %0 : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<none>
   call @anchor(%2, %1) : (!cc.ptr<none>, i64) -> ()
   return
@@ -185,15 +185,15 @@ func.func @test_2(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         ret void
 // CHECK:       }
 
-func.func @__nvqpp__mlirgen__test_3(%arg0 : !cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) {
-  %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<i16>
-  %1 = cc.stdvec_data %0 : (!cc.stdvec<i16>) -> !cc.ptr<i16>
-  %2 = cc.stdvec_size %0 : (!cc.stdvec<i16>) -> i64
+func.func @__nvqpp__mlirgen__test_3(%arg0 : !cc.struct<{!cc.sequence<i16>, !cc.sequence<f32>}>) {
+  %0 = cc.extract_value %arg0[0] : (!cc.struct<{!cc.sequence<i16>, !cc.sequence<f32>}>) -> !cc.sequence<i16>
+  %1 = cc.sequence_data %0 : (!cc.sequence<i16>) -> !cc.ptr<i16>
+  %2 = cc.sequence_size %0 : (!cc.sequence<i16>) -> i64
   %3 = cc.cast %1 : (!cc.ptr<i16>) -> !cc.ptr<none>
   call @anchor(%3, %2) : (!cc.ptr<none>, i64) -> ()
-  %5 = cc.extract_value %arg0[1] : (!cc.struct<{!cc.stdvec<i16>, !cc.stdvec<f32>}>) -> !cc.stdvec<f32>
-  %6 = cc.stdvec_data %5 : (!cc.stdvec<f32>) -> !cc.ptr<f32>
-  %7 = cc.stdvec_size %5 : (!cc.stdvec<f32>) -> i64
+  %5 = cc.extract_value %arg0[1] : (!cc.struct<{!cc.sequence<i16>, !cc.sequence<f32>}>) -> !cc.sequence<f32>
+  %6 = cc.sequence_data %5 : (!cc.sequence<f32>) -> !cc.ptr<f32>
+  %7 = cc.sequence_size %5 : (!cc.sequence<f32>) -> i64
   %8 = cc.cast %6 : (!cc.ptr<f32>) -> !cc.ptr<none>
   call @anchor(%8, %7) : (!cc.ptr<none>, i64) -> ()
   return

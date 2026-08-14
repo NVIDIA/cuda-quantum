@@ -11,10 +11,10 @@ When building from source, use the matching `fpga/nv_hsb_ip` RTL source from the
 same HSB repository checkout.
 
 More details about how the `Holoscan Sensor Bridge` (`HSB`) IP can be incorporated
-can be found [here](https://docs.nvidia.com/holoscan/sensor-bridge/latest/fpga_index.html)
+can be found [here](https://docs.nvidia.com/holoscan/sensor-bridge/fpga-ip/ip-integration)
 
 Furthermore, for this experiment, we need the Integrated Logic Analyzer (`ILA`)
-to keep the captured measurements. See the "Hololink IP:
+to keep the captured measurements. See the "HSB IP:
 Connecting an `APB` `ILA` for Debug" section below.
 
 > **Note:** For this experiment, we recommend using NVIDIA ConnectX-7 NIC
@@ -27,7 +27,7 @@ the capabilities required.
 2. Setup the host to run the experiment.
 Mainly the IP address of the NIC needs to be set to `192.168.0.101`.
 More details can be found at the
-*Data Channel Enumeration and IP Address Configuration* section of [this document](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html)
+*Data Channel Enumeration and IP Address Configuration* section of [this document](https://docs.nvidia.com/holoscan/sensor-bridge/applications/architecture#datachannel-enumeration-and-ip-address-configuration)
 3. Download the accompanying software from the [released RFSoC PYNQ source](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/main/fpga/pynq)
 
    Then generate the docker:
@@ -43,7 +43,7 @@ If using an integrated GPU configuration, please use the `--igpu` option.
 To run the test, here is an example for 32B messages reported in the paper:
 
 ```sh
-python3 ./examples/gpu_roce_loopback.py --frame-size=32 --hololink=192.168.0.2 --rx-ibv-name=mlx5_0 --tx-ibv-name=mlx5_0 --mtu=256
+python3 ./examples/gpu_roce_loopback.py --frame-size=32 --hsb-ip=192.168.0.2 --rx-ibv-name=mlx5_0 --tx-ibv-name=mlx5_0 --mtu=256
 ```
 
 > **Note:** The `rx-ibv-name` and `tx-ibv-name` arguments in the above command
@@ -58,15 +58,15 @@ python3 latency_calc.py
 
 > **Note:** These two python scripts can be found next to the Verilog source code.
 
-## Hololink IP: Connecting an `APB` `ILA` for Debug
+## HSB IP: Connecting an `APB` `ILA` for Debug
 
 This guide describes how to attach an Integrated Logic Analyzer (`ILA`)
-to one of the Hololink IP's `APB` register interfaces for real-time signal capture
+to one of the HSB IP's `APB` register interfaces for real-time signal capture
 and debugging over Ethernet.
 
 ### Overview
 
-The Hololink IP exposes multiple `APB` register interfaces via the `REG_INST`
+The HSB IP exposes multiple `APB` register interfaces via the `REG_INST`
 parameter (defined in `HOLOLINK_def.svh`).
 These interfaces can be used to connect custom user logic, including `ILA`'s,
 for monitoring internal signals.
@@ -75,9 +75,9 @@ In this example, we connect the `s_apb_ila` module to **`APB[2]`**
 and configure it to capture `PTP` timestamps, frame information,
 and other debug signals.
 
-### `APB` Interface Signals from Hololink
+### `APB` Interface Signals from the HSB IP
 
-The Hololink IP provides the following `APB` signals for user register interfaces:
+The HSB IP provides the following `APB` signals for user register interfaces:
 
 ```systemverilog
 // From HOLOLINK_top outputs
@@ -125,7 +125,7 @@ apb_s2m ila_apb_s2m;
 
 ### Step 3: Instantiate the `s_apb_ila` Module
 
-The `s_apb_ila` module is part of the Hololink IP library (`lib_apb/s_apb_ila.sv`).
+The `s_apb_ila` module is part of the HSB IP library (`lib_apb/s_apb_ila.sv`).
 
 ```systemverilog
 localparam ILA_DATA_WIDTH = 256;
@@ -155,17 +155,17 @@ s_apb_ila #(
 
 ### Step 4: Connect `APB[2]` to the `ILA`
 
-Map the Hololink `APB` signals to the `ILA`'s struct interface:
+Map the HSB `APB` signals to the `ILA`'s struct interface:
 
 ```systemverilog
-// APB Master-to-Slave signals (from Hololink to ILA)
+// APB Master-to-Slave signals (from the HSB IP to ILA)
 assign ila_apb_m2s.psel    = apb_psel[2];     // Select APB interface 2
 assign ila_apb_m2s.penable = apb_penable;
 assign ila_apb_m2s.paddr   = apb_paddr;
 assign ila_apb_m2s.pwdata  = apb_pwdata;
 assign ila_apb_m2s.pwrite  = apb_pwrite;
 
-// APB Slave-to-Master signals (from ILA back to Hololink)
+// APB Slave-to-Master signals (from ILA back to the HSB IP)
 assign apb_pready[2] = ila_apb_s2m.pready;
 assign apb_prdata[2] = ila_apb_s2m.prdata;
 assign apb_pserr[2]  = ila_apb_s2m.pserr;
@@ -197,14 +197,14 @@ assign ila_wr_data[255:142] = 'h123456789ABCDEF;                // Debug pattern
 | Bits | Width | Signal | Description |
 |------|-------|--------|-------------|
 | [63:0] | 64 | `ptp_ts` | `PTP` timestamp extracted from sensor TX data |
-| [127:64] | 64 | `{ptp_sec, ptp_nsec}` | Synchronized `PTP` time (seconds + nanoseconds) from Hololink |
+| [127:64] | 64 | `{ptp_sec, ptp_nsec}` | Synchronized `PTP` time (seconds + nanoseconds) from the HSB IP |
 | [139:128] | 12 | `frame_cnt` | Frame counter extracted from sensor TX data |
 | [140] | 1 | `sof` | Start of frame indicator |
 | [141] | 1 | `eof` | End of frame indicator |
 | [255:142] | 114 | Debug pattern | Fixed pattern for debugging |
 
 > **Note:** `ptp_sec_sync_usr` and `ptp_nsec_sync_usr` are the `PTP` time outputs
-from Hololink (`o_ptp_sec`, `o_ptp_nanosec`) synchronized to
+from the HSB IP (`o_ptp_sec`, `o_ptp_nanosec`) synchronized to
 the host interface clock domain.
 
 ---
@@ -268,4 +268,4 @@ tied high to always accept data:
 ---
 
 Once integrated, the `ILA` data can be accessed via `APB` register
-reads from the host over Ethernet using the Hololink control plane.
+reads from the host over Ethernet using the HSB control plane.

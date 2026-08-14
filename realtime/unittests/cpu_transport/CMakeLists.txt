@@ -10,7 +10,7 @@
 # CPU RoCE transport test binaries + helpers (Phase 1)
 #
 # Test artifacts that consume cudaq-realtime-cpu-roce-transport:
-#   - hsb_bridge_cpu              GPU-less bridge binary; mirrors hololink_bridge
+#   - hsb_bridge_cpu              GPU-less bridge binary; mirrors gpu_roce_bridge
 #                                 but uses CpuRoceTransceiver +
 #                                 CUDAQ_DISPATCH_HOST_CALL.
 #   - hsb_test_cpu.sh             Orchestration script (built artifact; copy at
@@ -40,7 +40,6 @@ if (TARGET cudaq-realtime-udp-transport)
     Threads::Threads
   )
 
-  add_dependencies(CudaqRealtimeUnitTests test_udp_transceiver)
   gtest_discover_tests(test_udp_transceiver
     TEST_PREFIX "test_udp_transceiver."
   )

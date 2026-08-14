@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -60,10 +61,7 @@ struct QuakeToCCPass : public cudaq::opt::impl::QuakeToCCBase<QuakeToCCPass> {
     QuakeTypeConverter quakeTypeConverter;
     cudaq::opt::populateQuakeToCCPatterns(quakeTypeConverter, patterns);
     ConversionTarget target(*context);
-    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           cf::ControlFlowDialect, func::FuncDialect,
-                           LLVM::LLVMDialect>();
-    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
+    cudaq::opt::setQuakeToCCLegality(target);
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
@@ -105,6 +103,9 @@ struct QuakeToCCPrepPass
 } // namespace
 
 void cudaq::opt::addLowerToCCPipeline(mlir::OpPassManager &pm) {
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  pm.addPass(cudaq::opt::createVerifyNoPhase());
   pm.addPass(cudaq::opt::createQuakeToCCPrep());
   pm.addPass(cudaq::opt::createQuakeToCC());
 }

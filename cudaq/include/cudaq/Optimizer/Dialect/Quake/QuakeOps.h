@@ -9,9 +9,9 @@
 #pragma once
 
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Common/Traits.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/Dialect/Traits.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -94,10 +94,7 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
     return veqTy.getSize();
   if (auto relaxOp = v.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
     // RelaxSizeOp verifier guarantees input is VeqType when result is VeqType.
-    auto innerTy =
-        mlir::cast<cudaq::quake::VeqType>(relaxOp.getInputVec().getType());
-    if (innerTy.hasSpecifiedSize())
-      return innerTy.getSize();
+    return getVeqSize(relaxOp.getInputVec());
   }
   return std::nullopt;
 }

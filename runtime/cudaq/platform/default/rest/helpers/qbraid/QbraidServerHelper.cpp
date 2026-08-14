@@ -74,6 +74,12 @@ public:
 
     parseConfigForCommonParams(config);
 
+    // qBraid brokers multiple paradigms under one target, so reject devices
+    // that can't run gate-based (QASM/QIR) programs. Skipped under emulation.
+    const bool emulate = getValueOrDefault(config, "emulate", "") == "true";
+    if (!emulate && !backendConfig["api_key"].empty())
+      validateDeviceParadigm(backendConfig["device_id"]);
+
     cudaq::info("qBraid configuration initialized:");
     for (const auto &[key, value] : backendConfig) {
       if (key == "api_key") {
@@ -360,6 +366,44 @@ private:
     headers["Content-Type"] = "application/json";
     headers["User-Agent"] = backendConfig.at("user_agent");
     return headers;
+  }
+
+  /// @brief Throws if @p deviceId is not a gate-model device, per its qBraid
+  /// metadata (GET /devices/{qrn}). Lookup failures are non-fatal: we log and
+  /// defer to the backend, which rejects incompatible programs at submission.
+  void validateDeviceParadigm(const std::string &deviceId) {
+    nlohmann::json deviceJson;
+    try {
+      RestClient client;
+      auto headers = getHeaders();
+      const auto devicePath = backendConfig.at("url") + "/devices/" + deviceId;
+      cudaq::info("Verifying device paradigm via {}", devicePath);
+      deviceJson = client.get("", devicePath, headers, true);
+    } catch (const std::exception &e) {
+      cudaq::info("Could not verify paradigm for device '{}' ({}); deferring "
+                  "compatibility check to job submission.",
+                  deviceId, e.what());
+      return;
+    }
+
+    // qBraid v2 wraps the device document under a `data` envelope.
+    if (!deviceJson.contains("data") ||
+        !deviceJson["data"].contains("paradigm") ||
+        !deviceJson["data"]["paradigm"].is_string()) {
+      cudaq::info("Device metadata for '{}' contained no paradigm field; "
+                  "skipping paradigm validation.",
+                  deviceId);
+      return;
+    }
+
+    const auto paradigm = deviceJson["data"]["paradigm"].get<std::string>();
+    if (paradigm != "gate_model") {
+      throw std::runtime_error(
+          "qBraid device '" + deviceId + "' has paradigm '" + paradigm +
+          "', which cannot run gate-based CUDA-Q kernels. The 'qbraid' target "
+          "supports only gate-model devices.");
+    }
+    cudaq::info("Device '{}' paradigm is gate_model.", deviceId);
   }
 
   /// @brief Helper method to retrieve the value of an environment variable.

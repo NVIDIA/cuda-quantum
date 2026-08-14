@@ -9,7 +9,7 @@
 #include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Common/InlinerInterface.h"
+#include "cudaq/Optimizer/Dialect/InlinerInterface.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/InitAllPasses.h"

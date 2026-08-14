@@ -34,7 +34,7 @@ __qpu__ std::vector<bool> kernel() {
 // clang-format off
 // CHECK-LABEL:   quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel._Z6kernelv() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel._Z6kernelv() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       quake.alloca
 // CHECK-NOT:       quake.unwrap
@@ -91,7 +91,7 @@ __qpu__ std::vector<bool> kernel() {
 // CHECK:           cc.store %[[BYTE3]], %[[PTR3]] : !cc.ptr<i8>
 // CHECK:           %[[COPY_SRC:.*]] = cc.cast %[[BITS]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
 // CHECK:           %[[COPY:.*]] = call @__nvqpp_vectorCopyCtor(%[[COPY_SRC]], %[[CONSTANT_1]], %[[CONSTANT_0]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
-// CHECK:           %[[RESULT:.*]] = cc.stdvec_init %[[COPY]], %[[CONSTANT_1]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
+// CHECK:           %[[RESULT:.*]] = cc.sequence_init %[[COPY]], %[[CONSTANT_1]] : (!cc.ptr<i8>, i64) -> !cc.sequence<i1>
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       quake.alloca
 // CHECK-NOT:       quake.unwrap
@@ -103,7 +103,7 @@ __qpu__ std::vector<bool> kernel() {
 // CHECK:           quake.return_wire %[[W1]] : !quake.wire
 // CHECK:           quake.return_wire %[[W2]] : !quake.wire
 // CHECK:           quake.return_wire %[[W3]] : !quake.wire
-// CHECK:           return %[[RESULT]] : !cc.stdvec<i1>
+// CHECK:           return %[[RESULT]] : !cc.sequence<i1>
 // CHECK:         }
 // clang-format on
 
@@ -121,7 +121,7 @@ __qpu__ std::vector<bool> rectangular_flattened_index() {
 }
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_rectangular_flattened_index._Z27rectangular_flattened_indexv() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_rectangular_flattened_index._Z27rectangular_flattened_indexv() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-NOT:       cc.loop
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
 // CHECK:           %[[Q0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
@@ -183,7 +183,7 @@ __qpu__ std::vector<bool> grandparent_bound_separator() {
 // The grandparent-dependent separator case should unroll the outer and inner
 // loops while preserving the non-blocking middle loop as fixed-wire loops.
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_grandparent_bound_separator._Z27grandparent_bound_separatorv() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_grandparent_bound_separator._Z27grandparent_bound_separatorv() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK-NOT:       {{quake\.alloca|quake\.extract_ref|quake\.subveq|!quake\.ref|!quake\.veq}}
 // CHECK:           %[[Q0:.*]] = quake.borrow_wire @wires[0] : !quake.wire
 // CHECK:           %[[Q1:.*]] = quake.borrow_wire @wires[1] : !quake.wire

@@ -10,8 +10,10 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
+#include <filesystem>
 #include <functional>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/function.h>
@@ -160,6 +162,15 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "get_targets", [&]() { return holder.getTargets(); },
       "Return all available `cudaq.Target` instances on the current system.");
   mod.def(
+      "register_backend_path",
+      [&](const std::string &pkgRoot) {
+        holder.registerBackendPath(std::filesystem::path(pkgRoot));
+      },
+      "Register an external plugin package root with the CUDA-Q runtime. "
+      "The directory must exist and contain a `targets/` subdirectory; every "
+      "YAML found there is made available as a target. Raises `RuntimeError` "
+      "(with the offending path in the message) on validation failure.");
+  mod.def(
       "set_target",
       [&](const cudaq::RuntimeTarget &target, nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
@@ -210,6 +221,16 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         // Perform cleanup of registered callbacks, which might be Python
         // objects.
         g_callbacks.clear();
+      }));
+
+  // An async task holds a clone of its kernel's MLIR module and may call back
+  // into Python, but the queues are only joined at static destruction, after
+  // the interpreter and the global MLIR context are gone.
+  nanobind::module_::import_("atexit").attr("register")(
+      nanobind::cpp_function([]() {
+        // Drop the GIL: a task finishing up may need it.
+        nanobind::gil_scoped_release release;
+        detail::shutdownExecutionQueues();
       }));
 }
 

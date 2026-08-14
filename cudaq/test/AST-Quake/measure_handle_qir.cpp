@@ -43,7 +43,7 @@ struct VectorReturn {
 };
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorReturn() -> !cc.stdvec<i1>
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__VectorReturn() -> !cc.sequence<i1>
 // CHECK:           %[[V_C3:.*]] = arith.constant 3 : i64
 // CHECK:           %[[V_ARR:.*]] = call @__quantum__rt__qubit_allocate_array(%[[V_C3]])
 // CHECK:           cc.loop while
@@ -62,7 +62,7 @@ struct VectorReturn {
 // CHECK:             cc.store %[[V_BB]], %[[V_SP]]
 // CHECK:           %[[V_BUFP:.*]] = cc.cast %[[V_BUF]] : (!cc.ptr<!cc.array<i8 x 3>>) -> !cc.ptr<i8>
 // CHECK:           %[[V_HEAP:.*]] = call @__nvqpp_vectorCopyCtor(%[[V_BUFP]], %[[V_C3]], %{{.*}})
-// CHECK:           %[[V_VEC:.*]] = cc.stdvec_init %[[V_HEAP]], %[[V_C3]]
-// CHECK:           return %[[V_VEC]] : !cc.stdvec<i1>
+// CHECK:           %[[V_VEC:.*]] = cc.sequence_init %[[V_HEAP]], %[[V_C3]]
+// CHECK:           return %[[V_VEC]] : !cc.sequence<i1>
 // CHECK:         }
 // clang-format on

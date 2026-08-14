@@ -26,4 +26,4 @@ if (CMAKE_COMPILER_IS_GNUCXX
   target_compile_options(cudaq-chemistry PRIVATE --param=evrp-mode=legacy)
 endif()
 
-install(TARGETS cudaq-chemistry DESTINATION lib)
+install(TARGETS cudaq-chemistry DESTINATION lib COMPONENT Runtime)

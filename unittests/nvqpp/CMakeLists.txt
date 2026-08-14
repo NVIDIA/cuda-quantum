@@ -39,7 +39,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/CompiledModuleTester.cpp
   ptsbe/PTSBESampleTester.cpp
   ptsbe/PTSBEMultiBackendTester.cpp
-  integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
   integration/analysis_scope_tester.cpp
 )
@@ -127,6 +126,8 @@ create_tests_with_backend(dm "")
 create_tests_with_backend(stim "")
 
 if (cuStateVec_FOUND)
+  add_subdirectory(custatevec)
+
   find_program(NVIDIA_SMI "nvidia-smi")
   if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
     # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.
@@ -338,32 +339,6 @@ target_link_libraries(test_photonics
   gtest_main)
 cudaq_gtest_discover_tests(test_photonics PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
-add_executable(test_ptsbe ${CUDAQ_GTEST_MAIN}
-  ptsbe/KrausSelectionTester.cpp
-  ptsbe/KrausTrajectoryTester.cpp
-  ptsbe/ShotAllocationTester.cpp
-  ptsbe/PTSBEInterfaceTester.cpp
-  ptsbe/TraceConversionTester.cpp
-  ptsbe/MergeTasksWithTrajectoryTester.cpp
-  ptsbe/ExecutePTSBETester.cpp
-  ptsbe/PTSSamplingStrategyTester.cpp
-  ptsbe/NoiseExtractorTester.cpp
-  ptsbe/TrajectoryDeduplicationTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_ptsbe PRIVATE -Wl,--no-as-needed)
-endif()
-target_include_directories(test_ptsbe PRIVATE .)
-target_link_libraries(test_ptsbe
-  PRIVATE
-  cudaq
-  cudaq-platform-default
-  cudaq-mlir-runtime
-  nvqir
-  nvqir-qpp
-  fmt::fmt-header-only
-  gtest_main)
-cudaq_gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
-
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)
 if (MPI_CXX_FOUND)
@@ -429,7 +404,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
       if (MPI_CXX_FOUND)
         add_executable(test_dynamics_mpi_batching mqpu/dynamics_mpi_batching_tester.cpp)
         if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-          target_link_options(test_dynamics_mpi_batching PRIVATE -Wl,--no-as-needed)
+          target_link_options(test_dynamics_mpi_batching PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
         endif()
         target_compile_definitions(test_dynamics_mpi_batching PRIVATE -DCUDAQ_ANALOG_TARGET)
         target_link_libraries(test_dynamics_mpi_batching
@@ -496,6 +471,7 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-operator
     cudaq-chemistry
     cudaq-pyscf
+    cudaq-builder
     gtest_main)
   cudaq_gtest_discover_tests(test_domains
     TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)

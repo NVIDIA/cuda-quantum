@@ -8,10 +8,13 @@
 
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set (CMAKE_CXX_FLAGS
-     "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported")
-# clear any flags for static linking
-SET(CMAKE_EXE_LINKER_FLAGS "")
-SET(CMAKE_SHARED_LINKER_FLAGS "")
+     "${CMAKE_CXX_FLAGS} -Wno-attributes -Wno-ctad-maybe-unsupported -Wno-deprecated-declarations")
+# clear any flags for static linking, only keeping linker selection flags
+foreach(_flags_var IN ITEMS CMAKE_EXE_LINKER_FLAGS CMAKE_SHARED_LINKER_FLAGS)
+  string(REGEX MATCHALL "-fuse-ld=[^ ]+|-B[^ ]+" _linker_selection "${${_flags_var}}")
+  string(JOIN " " ${_flags_var} ${_linker_selection})
+endforeach()
+unset(_linker_selection)
 
 # These unit test executables instantiate `__qpu__` kernel functor structs and
 # call `cudaq::sample(myKernel)` directly from C++ test code, with no `nvq++`
@@ -51,9 +54,10 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA::cudart_static
       gtest_main)
 
-  cudaq_gtest_discover_tests(test_device_call_dispatch
-    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
-    DISCOVERY_TIMEOUT 120)
+  add_test(NAME test_device_call_dispatch COMMAND test_device_call_dispatch)
+  set_tests_properties(test_device_call_dispatch PROPERTIES
+    LABELS "gpu_required;realtime"
+    RESOURCE_LOCK "gpu")
 
   # Pure-HOST_CALL host dispatch must work without a visible CUDA device. The
   # binary hides every device from itself (CUDA_VISIBLE_DEVICES="" in its own
@@ -85,7 +89,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     # host-dispatch.a contains relocatable device code (host_dispatcher.cu); the
     # final link must run the CUDA device-link step even though this target has
     # no .cu sources. Same "bridge as .cpp with CUDA device linking" pattern as
-    # the realtime hololink/hsb bridge tools.
+    # the realtime gpu_roce/hsb bridge tools.
     set_target_properties(cpu_roce_test_daemon PROPERTIES
       LINKER_LANGUAGE CUDA
       CUDA_SEPARABLE_COMPILATION ON
@@ -223,11 +227,6 @@ add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
 target_link_libraries(test_nvqir_verify
   PRIVATE
     cudaq
-    MLIRIR
-    MLIRMathDialect
-    MLIRParser
-    MLIRSupport
-    MLIROptLib
     cudaq-qir-verifier
     cudaq-platform-default
     gtest_main)
@@ -243,9 +242,21 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
+add_executable(test_quantum_platform main.cpp common/QuantumPlatformTester.cpp)
+target_include_directories(test_quantum_platform PRIVATE .)
+target_link_libraries(test_quantum_platform
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  nvqir
+  gtest_main)
+cudaq_gtest_discover_tests(test_quantum_platform DISCOVERY_TIMEOUT 120)
+
+add_subdirectory(qis)
 add_subdirectory(nvqpp)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
 add_subdirectory(backends)
+add_subdirectory(ptsbe)
 

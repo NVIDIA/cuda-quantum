@@ -53,7 +53,7 @@ function(add_backend_unittest_executable target)
 
   add_executable(${target} ${ARG_SOURCES})
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(${target} PRIVATE -Wl,--no-as-needed)
+    target_link_options(${target} PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
 
   if(ARG_BACKEND)

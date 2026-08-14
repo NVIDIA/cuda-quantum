@@ -160,7 +160,7 @@ struct QIRAPITypeConverter : public TypeConverter {
       return IntegerType::get(ty.getContext(), 64);
     });
     // Recursively convert handle / quake types nested in CC array and
-    // stdvec types so that container-shaped function signatures, allocations,
+    // sequence types so that container-shaped function signatures, allocations,
     // and pointers see consistent post-conversion element types.
     addConversion([&](cudaq::cc::ArrayType ty) -> Type {
       Type newEleTy = convertType(ty.getElementType());
@@ -170,11 +170,11 @@ struct QIRAPITypeConverter : public TypeConverter {
         return cudaq::cc::ArrayType::get(newEleTy);
       return cudaq::cc::ArrayType::get(ty.getContext(), newEleTy, ty.getSize());
     });
-    addConversion([&](cudaq::cc::StdvecType ty) -> Type {
+    addConversion([&](cudaq::cc::SequenceType ty) -> Type {
       Type newEleTy = convertType(ty.getElementType());
       if (newEleTy == ty.getElementType())
         return ty;
-      return cudaq::cc::StdvecType::get(ty.getContext(), newEleTy);
+      return cudaq::cc::SequenceType::get(ty.getContext(), newEleTy);
     });
   }
 
@@ -468,13 +468,13 @@ struct ApplyNoiseOpRewrite
       SmallVector<Value> args;
       const bool pushASpan =
           adaptor.getParameters().size() == 1 &&
-          isa<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset));
+          isa<cudaq::cc::SequenceType>(getInitialType(noise, paramOffset));
       const bool usingDouble = [&]() {
         if (adaptor.getParameters().empty())
           return true;
         Type param0Ty = getInitialType(noise, paramOffset);
         if (pushASpan)
-          return cast<cudaq::cc::StdvecType>(param0Ty).getElementType() ==
+          return cast<cudaq::cc::SequenceType>(param0Ty).getElementType() ==
                  rewriter.getF64Type();
         return cast<cudaq::cc::PointerType>(param0Ty).getElementType() ==
                rewriter.getF64Type();
@@ -504,15 +504,15 @@ struct ApplyNoiseOpRewrite
       args.push_back(
           arith::ConstantIntOp::create(rewriter, loc, numTargets, 64));
       if (pushASpan) {
-        Value stdvec = adaptor.getParameters()[0];
-        auto stdvecTy =
-            cast<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset));
+        Value sequence = adaptor.getParameters()[0];
+        auto sequenceTy =
+            cast<cudaq::cc::SequenceType>(getInitialType(noise, paramOffset));
         auto dataTy = cudaq::cc::PointerType::get(
-            cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
+            cudaq::cc::ArrayType::get(sequenceTy.getElementType()));
         args.push_back(
-            cudaq::cc::StdvecDataOp::create(rewriter, loc, dataTy, stdvec));
-        args.push_back(cudaq::cc::StdvecSizeOp::create(
-            rewriter, loc, rewriter.getI64Type(), stdvec));
+            cudaq::cc::SequenceDataOp::create(rewriter, loc, dataTy, sequence));
+        args.push_back(cudaq::cc::SequenceSizeOp::create(
+            rewriter, loc, rewriter.getI64Type(), sequence));
       } else {
         args.append(adaptor.getParameters().begin(),
                     adaptor.getParameters().end());
@@ -547,22 +547,22 @@ struct ApplyNoiseOpRewrite
     // already the case, we just append the operands.
     SmallVector<Value> args;
     if (adaptor.getParameters().size() == 1 &&
-        isa<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset))) {
+        isa<cudaq::cc::SequenceType>(getInitialType(noise, paramOffset))) {
       Value svp = adaptor.getParameters()[0];
       // Convert the device-side span back to a host-side vector so that C++
       // doesn't crash.
-      auto stdvecTy =
-          cast<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset));
+      auto sequenceTy =
+          cast<cudaq::cc::SequenceType>(getInitialType(noise, paramOffset));
       auto *ctx = rewriter.getContext();
-      auto ptrTy = cudaq::cc::PointerType::get(stdvecTy.getElementType());
+      auto ptrTy = cudaq::cc::PointerType::get(sequenceTy.getElementType());
       auto ptrArrTy = cudaq::cc::PointerType::get(
-          cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
+          cudaq::cc::ArrayType::get(sequenceTy.getElementType()));
       auto hostVecTy = cudaq::cc::ArrayType::get(ctx, ptrTy, 3);
       auto hostVec = cudaq::cc::AllocaOp::create(rewriter, loc, hostVecTy);
       Value startPtr =
-          cudaq::cc::StdvecDataOp::create(rewriter, loc, ptrArrTy, svp);
+          cudaq::cc::SequenceDataOp::create(rewriter, loc, ptrArrTy, svp);
       auto i64Ty = rewriter.getI64Type();
-      Value len = cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, svp);
+      Value len = cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, svp);
       Value endPtr = cudaq::cc::ComputePtrOp::create(
           rewriter, loc, ptrTy, startPtr,
           ArrayRef<cudaq::cc::ComputePtrArg>{len});
@@ -611,7 +611,7 @@ struct ApplyNoiseOpRewrite
     for (auto [qb, oa] : llvm::zip(adaptor.getQubits(), origQubitTys)) {
       if (isa<cudaq::quake::VeqType>(oa)) {
         auto svec = func::CallOp::create(rewriter, loc, qirArrTy,
-                                         cudaq::opt::QISConvertArrayToStdvec,
+                                         cudaq::opt::QISConvertArrayToSequence,
                                          ValueRange{qb});
         qb = svec.getResult(0);
         converted.push_back(qb);
@@ -623,7 +623,7 @@ struct ApplyNoiseOpRewrite
                                               *noise.getNoiseFunc(), args);
     for (auto v : converted)
       func::CallOp::create(rewriter, loc, TypeRange{},
-                           cudaq::opt::QISFreeConvertedStdvec, ValueRange{v});
+                           cudaq::opt::QISFreeConvertedSequence, ValueRange{v});
     return success();
   }
 };
@@ -1197,6 +1197,17 @@ struct WrapOpErase : public OpConversionPattern<cudaq::quake::WrapOp> {
   }
 };
 
+struct WrapNewOpErase : public OpConversionPattern<cudaq::quake::WrapNewOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::WrapNewOp wrap, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOp(wrap, adaptor.getWireValue());
+    return success();
+  }
+};
+
 struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -1327,7 +1338,7 @@ struct ExpPauliOpPattern
   matchAndRewrite(cudaq::quake::ExpPauliOp pauli, Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = pauli.getLoc();
-    // Make sure that apply-control-negations pass was run.
+    // Make sure that expand-control-negations pass was run.
     if (adaptor.getNegatedQubitControls())
       return pauli->emitOpError("negated control qubits not allowed.");
     SmallVector<Value> controls;
@@ -1648,21 +1659,20 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
 
   // If we see a `quake.apply` operation at this point, something has gone wrong
   // and we were unable to autogenerate the function that we should be calling.
-  // Reaching codegen means the kernel is fully processed, so a lingering apply
-  // is unambiguously unlowerable (e.g. its callee was only forward-declared and
-  // never supplied a body; see issue #4268). Emit a diagnostic here, then
-  // replace the apply with a trap and the results with poison values so the IR
-  // remains well formed.
   LogicalResult
   matchAndRewrite(cudaq::quake::ApplyOp apply, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     if (auto callee = apply.getCallee())
-      apply.emitError("could not generate the specialized form of kernel '")
+      apply.emitWarning("could not generate the specialized form of kernel '")
           << callee->getRootReference().getValue()
-          << "'; its body was not available (it may be only forward-declared)";
+          << "'; its body was either unavailable (it may be only "
+             "forward-declared) or could not be inverted. Executing this code "
+             "path will trap";
     else
-      apply.emitError("could not generate the specialized form of an applied "
-                      "kernel; its body was not available");
+      apply.emitWarning(
+          "could not generate the specialized form of an applied kernel; its "
+          "body was either unavailable or could not be inverted. Executing "
+          "this code path will trap");
     auto loc = apply.getLoc();
     Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
     func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
@@ -1675,6 +1685,33 @@ struct ApplyOpTrap : public OpConversionPattern<cudaq::quake::ApplyOp> {
     rewriter.replaceOp(apply, values);
     return success();
   }
+};
+
+struct CustomUnitaryCallOpTrap
+    : public OpConversionPattern<cudaq::quake::CustomUnitaryCallOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::quake::CustomUnitaryCallOp custom, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (reported.insert(custom.getGenerator().getRootReference()).second)
+      custom.emitError(
+          "custom operation was not lowered to a constant unitary matrix. Code "
+          "generation requires a constant matrix from the array-conversion / "
+          "get-concrete-matrix pipeline (skipped by nvq++ "
+          "'-fno-array-conversion', or failed to materialize a constant)");
+    auto loc = custom.getLoc();
+    Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+    func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
+                         ValueRange{zero});
+    SmallVector<Value> values;
+    for (auto r : custom.getResults())
+      values.push_back(cudaq::cc::PoisonOp::create(rewriter, loc, r.getType()));
+    rewriter.replaceOp(custom, values);
+    return success();
+  }
+
+  mutable llvm::SmallDenseSet<StringAttr> reported;
 };
 
 struct CallByRefOpRewrite
@@ -1810,7 +1847,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     };
     auto qirFunctionName = M::quakeToFuncName(op);
 
-    // Make sure that apply-control-negations pass was run.
+    // Make sure that expand-control-negations pass was run.
     if (adaptor.getNegatedQubitControls())
       return op.emitOpError("negated control qubits not allowed.");
 
@@ -2116,14 +2153,14 @@ using UndefOpPattern = OpInterfacePattern<cudaq::cc::UndefOp>;
 using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
 using CastOpPattern = OpInterfacePattern<cudaq::cc::CastOp>;
 using SelectOpPattern = OpInterfacePattern<arith::SelectOp>;
-// Pointer-arithmetic and `stdvec` accessors carry pointer/`stdvec` types whose
-// element types may need conversion (notably `!cc.measure_handle` -> `i64`).
-// Without explicit patterns the type converter inserts unrealized casts on
-// their results that the partial conversion cannot resolve.
+// Pointer-arithmetic and `sequence` accessors carry pointer/`sequence` types
+// whose element types may need conversion (notably `!cc.measure_handle` ->
+// `i64`). Without explicit patterns the type converter inserts unrealized casts
+// on their results that the partial conversion cannot resolve.
 using ComputePtrOpPattern = OpInterfacePattern<cudaq::cc::ComputePtrOp>;
-using StdvecDataOpPattern = OpInterfacePattern<cudaq::cc::StdvecDataOp>;
-using StdvecInitOpPattern = OpInterfacePattern<cudaq::cc::StdvecInitOp>;
-using StdvecSizeOpPattern = OpInterfacePattern<cudaq::cc::StdvecSizeOp>;
+using SequenceDataOpPattern = OpInterfacePattern<cudaq::cc::SequenceDataOp>;
+using SequenceInitOpPattern = OpInterfacePattern<cudaq::cc::SequenceInitOp>;
+using SequenceSizeOpPattern = OpInterfacePattern<cudaq::cc::SequenceSizeOp>;
 
 struct InstantiateCallablePattern
     : public OpConversionPattern<cudaq::cc::InstantiateCallableOp> {
@@ -2231,25 +2268,26 @@ struct CallableClosurePattern
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns.insert<
-      AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
-      CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
-      CallIndirectOpPattern, CallOpPattern, CallNoInlineOpPattern,
-      CallVarargOpPattern, CastOpPattern, CondBranchOpPattern,
-      ComputePtrOpPattern, CreateLambdaPattern, FuncConstantPattern,
-      FuncSignaturePattern, FuncToPtrPattern, InstantiateCallablePattern,
-      LoadOpPattern, PoisonOpPattern, SelectOpPattern, StdvecDataOpPattern,
-      StdvecInitOpPattern, StdvecSizeOpPattern, StoreOpPattern, UndefOpPattern>(
+  patterns.insert<AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
+                  CallableFuncPattern, CallCallableOpPattern,
+                  CallIndirectCallableOpPattern, CallIndirectOpPattern,
+                  CallOpPattern, CallNoInlineOpPattern, CallVarargOpPattern,
+                  CastOpPattern, CondBranchOpPattern, ComputePtrOpPattern,
+                  CreateLambdaPattern, FuncConstantPattern,
+                  FuncSignaturePattern, FuncToPtrPattern,
+                  InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
+                  SelectOpPattern, SequenceDataOpPattern, SequenceInitOpPattern,
+                  SequenceSizeOpPattern, StoreOpPattern, UndefOpPattern>(
       typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
-  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, GetMemberOpRewrite,
-                  MakeStruqOpRewrite, ReturnOpPattern, RelaxSizeOpErase,
-                  UnwrapOpErase, VeqSizeOpRewrite, WrapOpErase>(typeConverter,
-                                                                ctx);
+  patterns.insert<ApplyOpTrap, CallByRefOpRewrite, CustomUnitaryCallOpTrap,
+                  GetMemberOpRewrite, MakeStruqOpRewrite, ReturnOpPattern,
+                  RelaxSizeOpErase, UnwrapOpErase, VeqSizeOpRewrite,
+                  WrapOpErase, WrapNewOpErase>(typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2269,12 +2307,12 @@ static Type getQIRResultPtrType(const TypeConverter *converter,
 // Compute a `(Result**, i64 size)` pair for a variadic measurement-handle
 // operand list. Three shapes are handled:
 //
-//   1. Single `!cc.stdvec<i64>` operand — pass through `(data, size)`
+//   1. Single `!cc.sequence<i64>` operand — pass through `(data, size)`
 //      with no copy.
 //   2. All `i64` (scalar) operands — allocate a `Result*[N]` buffer and
 //      store each operand cast to `Result*`. Count is statically known.
-//   3. Mixed scalar + stdvec, or multiple vectors — allocate a dynamic-
-//      size `Result*[total]` buffer and copy each stdvec via a counted
+//   3. Mixed scalar + sequence, or multiple vectors — allocate a dynamic-
+//      size `Result*[total]` buffer and copy each sequence via a counted
 //      `cc.loop` while storing each scalar at the running offset.
 static std::pair<Value, Value>
 packMeasurementHandles(Location loc, ConversionPatternRewriter &rewriter,
@@ -2282,15 +2320,16 @@ packMeasurementHandles(Location loc, ConversionPatternRewriter &rewriter,
   auto i64Ty = rewriter.getI64Type();
   auto ptrToPtrTy = cudaq::cc::PointerType::get(resultPtrTy);
 
-  // Single-stdvec fast path: zero-copy pass-through.
+  // Single-sequence fast path: zero-copy pass-through.
   if (operands.size() == 1 &&
-      isa<cudaq::cc::StdvecType>(operands.front().getType())) {
+      isa<cudaq::cc::SequenceType>(operands.front().getType())) {
     Value vec = operands.front();
-    auto stdvecTy = cast<cudaq::cc::StdvecType>(vec.getType());
+    auto sequenceTy = cast<cudaq::cc::SequenceType>(vec.getType());
     auto dataPtrTy = cudaq::cc::PointerType::get(
-        cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
-    Value data = cudaq::cc::StdvecDataOp::create(rewriter, loc, dataPtrTy, vec);
-    Value size = cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, vec);
+        cudaq::cc::ArrayType::get(sequenceTy.getElementType()));
+    Value data =
+        cudaq::cc::SequenceDataOp::create(rewriter, loc, dataPtrTy, vec);
+    Value size = cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, vec);
     Value asPtrPtr = cudaq::cc::CastOp::create(rewriter, loc, ptrToPtrTy, data);
     return {asPtrPtr, size};
   }
@@ -2324,7 +2363,7 @@ packMeasurementHandles(Location loc, ConversionPatternRewriter &rewriter,
     Value contribution =
         isa<IntegerType>(v.getType())
             ? one
-            : cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, v)
+            : cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, v)
                   .getResult();
     totalSize = arith::AddIOp::create(rewriter, loc, totalSize, contribution);
   }
@@ -2341,13 +2380,14 @@ packMeasurementHandles(Location loc, ConversionPatternRewriter &rewriter,
       cudaq::cc::StoreOp::create(rewriter, loc, resultPtr, dest);
       offset = arith::AddIOp::create(rewriter, loc, offset, one);
     } else {
-      auto stdvecTy = cast<cudaq::cc::StdvecType>(v.getType());
-      auto eltTy = stdvecTy.getElementType();
+      auto sequenceTy = cast<cudaq::cc::SequenceType>(v.getType());
+      auto eltTy = sequenceTy.getElementType();
       auto dataPtrTy =
           cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eltTy));
       Value srcData =
-          cudaq::cc::StdvecDataOp::create(rewriter, loc, dataPtrTy, v);
-      Value srcSize = cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, v);
+          cudaq::cc::SequenceDataOp::create(rewriter, loc, dataPtrTy, v);
+      Value srcSize =
+          cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, v);
       Value baseOffset = offset;
       cudaq::opt::factory::createInvariantLoop(
           rewriter, loc, srcSize,
@@ -2372,17 +2412,17 @@ packMeasurementHandles(Location loc, ConversionPatternRewriter &rewriter,
   return {bufAsPtrPtr, totalSize};
 }
 
-// Helper to extract `(Result**, size)` from a single stdvec operand.
-static std::pair<Value, Value> unpackStdvec(Location loc,
-                                            ConversionPatternRewriter &rewriter,
-                                            Type resultPtrTy, Value vec) {
+// Helper to extract `(Result**, size)` from a single sequence operand.
+static std::pair<Value, Value>
+unpackSequence(Location loc, ConversionPatternRewriter &rewriter,
+               Type resultPtrTy, Value vec) {
   auto i64Ty = rewriter.getI64Type();
   auto ptrToPtrTy = cudaq::cc::PointerType::get(resultPtrTy);
-  auto stdvecTy = cast<cudaq::cc::StdvecType>(vec.getType());
+  auto sequenceTy = cast<cudaq::cc::SequenceType>(vec.getType());
   auto dataPtrTy = cudaq::cc::PointerType::get(
-      cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
-  Value data = cudaq::cc::StdvecDataOp::create(rewriter, loc, dataPtrTy, vec);
-  Value size = cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, vec);
+      cudaq::cc::ArrayType::get(sequenceTy.getElementType()));
+  Value data = cudaq::cc::SequenceDataOp::create(rewriter, loc, dataPtrTy, vec);
+  Value size = cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, vec);
   Value asPtrPtr = cudaq::cc::CastOp::create(rewriter, loc, ptrToPtrTy, data);
   return {asPtrPtr, size};
 }
@@ -2437,9 +2477,9 @@ struct PairDetectorsOpConversion
     auto resultPtrTy =
         getQIRResultPtrType(getTypeConverter(), rewriter.getContext());
     auto [prevBuf, prevSize] =
-        unpackStdvec(loc, rewriter, resultPtrTy, adaptor.getPrev());
+        unpackSequence(loc, rewriter, resultPtrTy, adaptor.getPrev());
     auto [currBuf, currSize] =
-        unpackStdvec(loc, rewriter, resultPtrTy, adaptor.getCurr());
+        unpackSequence(loc, rewriter, resultPtrTy, adaptor.getCurr());
     rewriter.replaceOpWithNewOp<func::CallOp>(
         op, TypeRange{}, cudaq::opt::QIRPairDetectors,
         ValueRange{prevBuf, prevSize, currBuf, currSize});
@@ -2720,16 +2760,17 @@ struct QuakeToQIRAPIPass
         cudaq::cc::NoInlineCallOp, cudaq::cc::VarargCallOp,
         cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
         cudaq::cc::CastOp, cudaq::cc::ComputePtrOp, cudaq::cc::FuncToPtrOp,
-        cudaq::cc::StoreOp, cudaq::cc::LoadOp, cudaq::cc::StdvecDataOp,
-        cudaq::cc::StdvecInitOp, cudaq::cc::StdvecSizeOp>([&](Operation *op) {
-      for (auto opnd : op->getOperands())
-        if (needsTypeConversion(opnd.getType()))
-          return false;
-      for (auto res : op->getResults())
-        if (needsTypeConversion(res.getType()))
-          return false;
-      return true;
-    });
+        cudaq::cc::StoreOp, cudaq::cc::LoadOp, cudaq::cc::SequenceDataOp,
+        cudaq::cc::SequenceInitOp, cudaq::cc::SequenceSizeOp>(
+        [&](Operation *op) {
+          for (auto opnd : op->getOperands())
+            if (needsTypeConversion(opnd.getType()))
+              return false;
+          for (auto res : op->getResults())
+            if (needsTypeConversion(res.getType()))
+              return false;
+          return true;
+        });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
@@ -2739,7 +2780,7 @@ struct QuakeToQIRAPIPass
   // Returns true iff `ty` (or some type nested inside it) requires conversion
   // by `QIRAPITypeConverter`. The recursion descends through CC container
   // types that the converter rewrites (`cc.ptr`, `cc.callable`,
-  // `cc.indirect_callable`, function types, `cc.array`, `cc.stdvec`) and the
+  // `cc.indirect_callable`, function types, `cc.array`, `cc.sequence`) and the
   // leaf check covers Quake types and `!cc.measure_handle` (the IR alias of
   // `cudaq::measure_handle`, lowered to `i64`).
   static bool needsTypeConversion(Type ty) {
@@ -2751,7 +2792,7 @@ struct QuakeToQIRAPIPass
       return needsTypeConversion(cty.getSignature());
     if (auto aty = dyn_cast<cudaq::cc::ArrayType>(ty))
       return needsTypeConversion(aty.getElementType());
-    if (auto sty = dyn_cast<cudaq::cc::StdvecType>(ty))
+    if (auto sty = dyn_cast<cudaq::cc::SequenceType>(ty))
       return needsTypeConversion(sty.getElementType());
     if (auto fty = dyn_cast<FunctionType>(ty)) {
       for (auto t : fty.getInputs())
@@ -2846,9 +2887,11 @@ struct QuakeToQIRAPIPrepPass
     {
       auto *ctx = &getContext();
       RewritePatternSet patterns(ctx);
+      ConversionTarget target(*ctx);
+      cudaq::opt::setQuakeToCCPrepLegality(target);
       QIRAPITypeConverter typeConverter(opaquePtr);
       cudaq::opt::populateQuakeToCCPrepPatterns(patterns);
-      if (failed(applyPatternsGreedily(module, std::move(patterns)))) {
+      if (failed(applyPartialConversion(module, target, std::move(patterns)))) {
         signalPassFailure();
         return;
       }

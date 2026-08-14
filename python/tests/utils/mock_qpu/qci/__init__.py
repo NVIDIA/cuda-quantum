@@ -16,7 +16,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import PlainTextResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
-from .. import get_backend_port, PreallocatedQubitsContext
+from .. import get_backend_port
 
 # Define the REST Server App
 app = FastAPI()
@@ -139,9 +139,7 @@ async def postJob(job: JobRequest,
     # NOTE: This uses QIR v1.0
     qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
     for i in range(shots):
-        with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
-            kernel()
-        shot_log = cudaq.testing.getAndClearOutputLog()
+        shot_log = cudaq.testing.runKernel(numQubitsRequired, kernel)
         if i > 0:
             qir_log += "START\n"
         qir_log += shot_log
@@ -198,5 +196,6 @@ async def get_job_results(job_id: str):
 
 
 def startServer(port):
+    cudaq.set_random_seed(13)
     import uvicorn
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
