@@ -12,7 +12,8 @@
 // RUN: if %qci_avail; then nvq++ -v %s -o %t --target qci --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2>&1 | FileCheck --check-prefixes=CHECK,QIR_ADAPTIVE %s; fi
 // clang-format on
 
-// Note: iqm (and others) that don't use QIR should not be included in this test.
+// Note: iqm (and others) that don't use QIR should not be included in this
+// test.
 
 #include <cudaq.h>
 #include <iostream>

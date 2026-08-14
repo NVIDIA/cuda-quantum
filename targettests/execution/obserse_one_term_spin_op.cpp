@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: if %oqc_avail; then nvq++ --target oqc --emulate %s -o %t && %t | FileCheck %s; fi
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -39,7 +41,9 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL: Attention
 // CHECK-NOT: Energy is 0.000000
 // CHECK: Energy is 0.8
 // CHECK-LABEL: At ease
+// clang-format on

@@ -24,10 +24,13 @@ function(add_cudaq_hybrid_test TEST_NAME)
     PUBLIC
       cudaq-mlir-runtime
       cudaq
-      cudaq-platform-default)
+      cudaq-platform-default
+      cudaqMLIR)
 
   set_property(TARGET ${TEST_NAME} PROPERTY FOLDER test)
 endfunction()
 
 add_cudaq_hybrid_test(test_argument_conversion)
 add_cudaq_hybrid_test(test_compile_target)
+add_cudaq_hybrid_test(test_compile_target_conditional_feedback_crash)
+add_cudaq_hybrid_test(test_resource_count_phase)

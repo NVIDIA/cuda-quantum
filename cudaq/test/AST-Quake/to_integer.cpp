@@ -10,8 +10,8 @@
 // RUN: cudaq-quake %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
 #include "cudaq/qis/qubit_qis.h"
+#include <cudaq.h>
 
 void external_call_to_keep_result(std::int64_t results_int) {}
 

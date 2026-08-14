@@ -30,7 +30,13 @@ class Type;
 namespace cudaq_internal::compiler {
 
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
+///
+/// \param isEntryPoint True when the JIT module defines a complete execution
+/// boundary. A nested direct-callable module may still carry `cudaq-entrypoint`
+/// as a code-generation root; passing false prevents it from clearing runtime
+/// state owned by its caller.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
-                                 llvm::StringRef convertTo);
+                                 llvm::StringRef convertTo, bool isEntryPoint,
+                                 bool disableQuantumOpts = false);
 
 } // namespace cudaq_internal::compiler

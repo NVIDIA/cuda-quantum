@@ -11,13 +11,13 @@
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ std::vector<std::vector<int>> vec_of_vec() { 
+__qpu__ std::vector<std::vector<int>> vec_of_vec() {
   // expected-error@+2 {{unhandled vector element type is not yet supported}}
   // expected-error@+1 {{statement not supported in qpu kernel}}
   return {{1, 2}, {3, 4}};
 }
 
 int main() {
-  auto const result1 = cudaq::run(10, vec_of_vec); 
+  auto const result1 = cudaq::run(10, vec_of_vec);
   return 0;
 }

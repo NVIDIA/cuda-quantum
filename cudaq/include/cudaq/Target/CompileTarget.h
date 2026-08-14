@@ -16,11 +16,7 @@
 namespace cudaq {
 
 /// Target properties used to define the compilation pipeline.
-class CompileTarget {
-public:
-  /// Hook to update the pass pipeline before compilation.
-  virtual void updatePassPipeline(std::string &passPipeline) const {}
-
+struct CompileTarget {
   /// Whether to recompile the kernel in the presence of an AOT-compiled module.
   ///
   /// If this is `false` and an AOT-compiled kernel (in the form of a function
@@ -48,14 +44,6 @@ public:
     /// Optional pass pipeline to run after code generation.
     std::string postCodeGenPasses;
 
-    /// Whether to skip the target lowering compilation pipeline.
-    ///
-    /// Local analysis contexts set this to true: they JIT the kernel directly
-    /// for an analysis simulator. The target lowering pipeline would otherwise
-    /// erase operations such as noise or QEC, or fail to legalize them during
-    /// code generation.
-    bool skipTargetLoweringPipeline = false;
-
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
 
@@ -67,6 +55,14 @@ public:
 
     /// Whether to run the add-measurements pass.
     bool addMeasurements = false;
+
+    /// Whether the pipeline is empty.
+    bool empty() const {
+      return overridePassPipeline.empty() && highLevelPipeline.empty() &&
+             midLevelPipeline.empty() && lowLevelPipeline.empty();
+    }
+
+    bool operator==(const PipelineConfig &other) const = default;
   };
 
   /// Pipeline configuration, populated by the constructor.
@@ -75,38 +71,11 @@ public:
   /// Whether to emulate execution locally.
   bool emulate = false;
 
-  /// Issue a warning if named measurements are contained in the kernel.
-  bool warnNamedMeasurements = false;
-
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
 
   /// Whether device calls are supported by the target.
   bool supportDeviceCalls = false;
-
-  /// Whether to retrieve mapping reorder indices from MLIR and store it as
-  /// compiled metadata.
-  bool storeReorderIdx = false;
-
-  /// Whether to generate resource counts.
-  ///
-  /// When true, the compiler will generate resource counts during compilation
-  /// and simplify the IR to remove all quantum operations already accounted
-  /// for in the counts.
-  bool emitResourceCounts = false;
-
-  /// Whether to create local JIT artifacts even when not emulating the target.
-  ///
-  /// Analysis contexts that execute locally, but are entered through a remote
-  /// platform, use this to run the kernel under the analysis simulator instead
-  /// of submitting it to the remote executor.
-  bool emitJit = false;
-
-  /// Whether to translate MLIR artifacts into target transport code.
-  ///
-  /// Local analysis contexts can set this to false when they only need the JIT
-  /// artifact and do not need a QIR/QASM payload for the remote backend.
-  bool emitTargetCode = true;
 
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
@@ -126,14 +95,22 @@ public:
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   CompileTarget(config::TargetConfig targetConfig,
-                std::map<std::string, std::string> runtimeConfig, bool emulate);
+                std::map<std::string, std::string> runtimeConfig, bool emulate,
+                std::map<std::string, std::string> pipelineSubstitutions = {});
 
   CompileTarget() = default;
-  CompileTarget(const CompileTarget &) = default;
-  CompileTarget(CompileTarget &&) = default;
-  CompileTarget &operator=(const CompileTarget &) = default;
-  CompileTarget &operator=(CompileTarget &&) = default;
-  virtual ~CompileTarget() = default;
+
+  bool operator==(const CompileTarget &other) const = default;
 };
 
 } // namespace cudaq
+
+template <>
+struct std::hash<cudaq::CompileTarget> {
+  std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
+};
+template <>
+struct std::hash<cudaq::CompileTarget::PipelineConfig> {
+  std::size_t
+  operator()(const cudaq::CompileTarget::PipelineConfig &pc) const noexcept;
+};

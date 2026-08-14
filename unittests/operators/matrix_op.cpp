@@ -730,15 +730,17 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
                                   utils::number_matrix(dimensions[1]));
           ;
         };
-    cudaq::matrix_handler::define("custom_op0", {-1, -1}, func0);
-    cudaq::matrix_handler::define("custom_op1", {-1, -1}, func1);
+    cudaq::matrix_handler::define("custom_degrees_op0", {-1, -1}, func0);
+    cudaq::matrix_handler::define("custom_degrees_op1", {-1, -1}, func1);
 
-    cudaq::matrix_handler::define("custom_op2", {3, 3}, func0);
-    cudaq::matrix_handler::define("custom_op3", {-1, 2}, func1);
+    cudaq::matrix_handler::define("custom_degrees_op2", {3, 3}, func0);
+    cudaq::matrix_handler::define("custom_degrees_op3", {-1, 2}, func1);
   }
 
-  auto custom_op0 = cudaq::matrix_handler::instantiate("custom_op0", {1, 3});
-  auto custom_op1 = cudaq::matrix_handler::instantiate("custom_op1", {0, 1});
+  auto custom_op0 =
+      cudaq::matrix_handler::instantiate("custom_degrees_op0", {1, 3});
+  auto custom_op1 =
+      cudaq::matrix_handler::instantiate("custom_degrees_op1", {0, 1});
 
   ASSERT_ANY_THROW(op1.to_matrix());
   ASSERT_ANY_THROW(op1.to_matrix({{1, 2}}));
@@ -755,8 +757,10 @@ TEST(OperatorExpressions, checkMatrixOpsDegreeVerification) {
   ASSERT_NO_THROW((custom_op0 * custom_op1).to_matrix(dimensions));
   ASSERT_NO_THROW((custom_op0 + custom_op1).to_matrix(dimensions));
 
-  auto custom_op2 = cudaq::matrix_handler::instantiate("custom_op2", {1, 3});
-  auto custom_op3 = cudaq::matrix_handler::instantiate("custom_op3", {0, 1});
+  auto custom_op2 =
+      cudaq::matrix_handler::instantiate("custom_degrees_op2", {1, 3});
+  auto custom_op3 =
+      cudaq::matrix_handler::instantiate("custom_degrees_op3", {0, 1});
 
   dimensions = {{0, 2}};
   ASSERT_NO_THROW(custom_op2.to_matrix());

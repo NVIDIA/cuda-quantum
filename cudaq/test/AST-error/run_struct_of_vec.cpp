@@ -11,9 +11,7 @@
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ std::vector<std::vector<int>> vec_of_vec() { 
-  return {{1, 2}, {3, 4}}; 
-}
+__qpu__ std::vector<std::vector<int>> vec_of_vec() { return {{1, 2}, {3, 4}}; }
 
 struct Foo {
   int bar;
@@ -21,14 +19,17 @@ struct Foo {
 };
 
 struct Quark {
-  Foo operator()() __qpu__ { // expected-error{{kernel result type not supported}}
+  // clang-format off
+  // expected-error@+2{{kernel result type not supported}}
+  // clang-format on
+  Foo operator()() __qpu__ {
     cudaq::qvector q(3);
     return {747, cudaq::to_bools(mz(q))};
   }
 };
 
 int main() {
-  auto const result1 = cudaq::run(10, vec_of_vec); 
+  auto const result1 = cudaq::run(10, vec_of_vec);
   auto const result2 = cudaq::run(10, Quark{});
   return 0;
 }

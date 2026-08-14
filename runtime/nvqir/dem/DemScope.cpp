@@ -15,6 +15,8 @@
 #include <unordered_set>
 #include <utility>
 
+extern "C" void __quantum__rt__clear_result_maps();
+
 namespace nvqir::dem {
 
 namespace {
@@ -49,12 +51,24 @@ void ensurePluginLoaded(const std::string &plugin_name) {
 
 } // namespace
 
-AnalysisScope make_scope(std::string plugin_name) {
+cudaq::detail::AnalysisScope make_scope(std::string plugin_name) {
   ensurePluginLoaded(plugin_name);
 
-  return AnalysisScope::from_plugin(
+  // Result handles belong to the complete DEM execution, not to any nested
+  // callable it invokes. Reset them at this analysis boundary so AOT and JIT
+  // entry points have the same lifecycle and exception paths cannot leak
+  // handles into a later analysis.
+  auto clearResultMaps = [](CircuitSimulator &) {
+    __quantum__rt__clear_result_maps();
+  };
+  return cudaq::detail::AnalysisScope::from_plugin(
       "dem", std::move(plugin_name),
-      {.on_enter = [](CircuitSimulator &sim) { sim.endExecution(); }});
+      {.on_enter =
+           [clearResultMaps](CircuitSimulator &sim) {
+             clearResultMaps(sim);
+             sim.endExecution();
+           },
+       .on_exit = clearResultMaps});
 }
 
 } // namespace nvqir::dem

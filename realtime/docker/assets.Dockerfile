@@ -52,17 +52,16 @@ ENV CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 # [<ToolchainConfiguration]
 
 ## [nvComp] 
-# For Hololink
+# For HSB
 RUN dnf -y install nvcomp pkgconfig
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 
 # [CMake]
-# Hololink requires a newer CMake version
-ARG CMAKE_VERSION=3.31.11
+ARG CMAKE_VERSION=4.0.7
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).sh -O cmake-install.sh && \
-    bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
-   
+    bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
+
 # [Holoscan SDK]
 ARG HOLOSCAN_SDK_VERSION=4.0.0.1
 ENV HOLOSCAN_SDK_INSTALL_PREFIX=/opt/nvidia/holoscan
@@ -83,6 +82,8 @@ RUN wget https://www.mellanox.com/downloads/DOCA/DOCA_v${DOCA_VERSION}/host/doca
 
 ## [CUDAQ Realtime Source]
 ADD realtime /cuda-quantum/realtime
+# Needed by realtime/unittests; the standalone build has no top-level cmake dir.
+ADD cmake/modules/CUDAQGtestDiscovery.cmake /cuda-quantum/cmake/modules/CUDAQGtestDiscovery.cmake
 
 # [HSB]
 ARG cuda_native_arg="80-real;90"
@@ -96,7 +97,7 @@ RUN cd / && git clone -b ${hsb_version} https://github.com/nvidia-holoscan/holos
 # [CUDAQ Realtime]
 RUN cd /cuda-quantum/realtime && \
     mkdir -p build && cd build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/realtime_assets && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release -DCUDAQ_REALTIME_BUILD_TESTS=ON -DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=ON -DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=/holoscan-sensor-bridge -DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=/holoscan-sensor-bridge/build/ -DCMAKE_INSTALL_PREFIX=/realtime_assets && \
     make -j$(nproc) install
 
 # [Install makeself]

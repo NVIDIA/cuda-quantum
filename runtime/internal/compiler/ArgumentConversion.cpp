@@ -92,13 +92,13 @@ static Value genConstant(OpBuilder &builder, const std::string &v,
   auto cast = cudaq::cc::CastOp::create(builder, loc, i8PtrTy, strLit);
   auto size = arith::ConstantIntOp::create(builder, loc, v.size(), 64);
   auto chSpanTy = cudaq::cc::CharspanType::get(ctx);
-  return cudaq::cc::StdvecInitOp::create(builder, loc, chSpanTy, cast, size);
+  return cudaq::cc::SequenceInitOp::create(builder, loc, chSpanTy, cast, size);
 }
 
 // Forward declare aggregate type builder as they can be recursive.
-static Value genRecursiveSpan(OpBuilder &, cudaq::cc::StdvecType, void *,
+static Value genRecursiveSpan(OpBuilder &, cudaq::cc::SequenceType, void *,
                               ModuleOp, llvm::DataLayout &, bool);
-static Value genConstant(OpBuilder &, cudaq::cc::StdvecType, void *, ModuleOp,
+static Value genConstant(OpBuilder &, cudaq::cc::SequenceType, void *, ModuleOp,
                          llvm::DataLayout &, bool);
 static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *, ModuleOp,
                          llvm::DataLayout &, bool);
@@ -515,7 +515,7 @@ genConstant(OpBuilder &builder, const cudaq::state *v, llvm::DataLayout &layout,
       "Invalid cudaq::state* encountered in argument synthesis.");
 }
 
-static bool isSupportedRecursiveSpan(cudaq::cc::StdvecType ty) {
+static bool isSupportedRecursiveSpan(cudaq::cc::SequenceType ty) {
   Type eleTy = ty.getElementType();
   while (auto ty = dyn_cast<cudaq::cc::SpanLikeType>(eleTy))
     eleTy = ty.getElementType();
@@ -566,7 +566,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         return genConstant(builder, static_cast<cudaq::pauli_word *>(p)->str(),
                            substMod);
       })
-      .Case([&](cudaq::cc::StdvecType ty) {
+      .Case([&](cudaq::cc::SequenceType ty) {
         return genConstant(builder, ty, p, substMod, layout, boolVecBitPacked);
       })
       .Case([&](cudaq::cc::StructType ty) {
@@ -584,7 +584,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
 // Get the size of \p eleTy on the host side in bytes.
 static std::size_t getHostSideElementSize(Type eleTy,
                                           llvm::DataLayout &layout) {
-  if (isa<cudaq::cc::StdvecType>(eleTy))
+  if (isa<cudaq::cc::SequenceType>(eleTy))
     return sizeof(std::vector<int>);
   if (isa<cudaq::cc::CharspanType>(eleTy)) {
     // char span type is a std::string on host side.
@@ -601,7 +601,7 @@ static std::size_t getHostSideElementSize(Type eleTy,
 /// Set \p boolVecBitPacked when an `i1` vector arg is a host
 /// `std::vector<bool>` (bit-packed; not the `{begin, end, capacity}` triple).
 ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
-                                    cudaq::cc::StdvecType vecTy, void *p,
+                                    cudaq::cc::SequenceType vecTy, void *p,
                                     llvm::DataLayout &layout,
                                     bool boolVecBitPacked = false) {
   auto eleTy = vecTy.getElementType();
@@ -626,7 +626,7 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
     return {};
   unsigned stepBy = 0;
   std::function<Attribute(char *)> genAttr;
-  if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
+  if (auto innerTy = dyn_cast<cudaq::cc::SequenceType>(eleTy)) {
     stepBy = sizeof(VectorType);
     genAttr = [&, innerTy](char *p) -> Attribute {
       return genRecursiveConstantArray(builder, innerTy, p, layout,
@@ -694,7 +694,7 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
 }
 
 static Type convertRecursiveSpanType(Type ty) {
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+  if (auto vecTy = dyn_cast<cudaq::cc::SequenceType>(ty))
     return cudaq::cc::ArrayType::get(
         convertRecursiveSpanType(vecTy.getElementType()));
   if (auto cspanTy = dyn_cast<cudaq::cc::CharspanType>(ty))
@@ -706,7 +706,7 @@ static Type convertRecursiveSpanType(Type ty) {
 /// `cc.reify_span` operation. This higher level semantics helps facilitate
 /// constant propagation through the recursive span structure. The reify
 /// operation will be lowered to more primitive ops on an as-needed basis.
-Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
+Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::SequenceType ty, void *p,
                        ModuleOp substMod, llvm::DataLayout &layout,
                        bool boolVecBitPacked = false) {
   ArrayAttr constants =
@@ -717,7 +717,7 @@ Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
     auto zero = arith::ConstantIntOp::create(builder, loc, 0, 64);
     auto ptr = cudaq::cc::CastOp::create(
         builder, loc, cudaq::cc::PointerType::get(ty.getElementType()), zero);
-    return cudaq::cc::StdvecInitOp::create(builder, loc, ty, ptr, zero);
+    return cudaq::cc::SequenceInitOp::create(builder, loc, ty, ptr, zero);
   }
   auto arrTy = convertRecursiveSpanType(ty);
   auto conArr =
@@ -725,7 +725,7 @@ Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
   return cudaq::cc::ReifySpanOp::create(builder, loc, ty, conArr);
 }
 
-Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
+Value genConstant(OpBuilder &builder, cudaq::cc::SequenceType vecTy, void *p,
                   ModuleOp substMod, llvm::DataLayout &layout,
                   bool boolVecBitPacked = false) {
   if (isSupportedRecursiveSpan(vecTy))
@@ -759,7 +759,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
     cursor += eleSize;
   }
   auto size = arith::ConstantIntOp::create(builder, loc, vecSize, 64);
-  return cudaq::cc::StdvecInitOp::create(builder, loc, vecTy, buffer, size);
+  return cudaq::cc::SequenceInitOp::create(builder, loc, vecTy, buffer, size);
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
@@ -980,7 +980,7 @@ void cudaq_internal::compiler::ArgumentConverter::gen(
                                   dataLayout, kernelName, substModule, *this);
               return {};
             })
-            .Case([&](cudaq::cc::StdvecType ty) {
+            .Case([&](cudaq::cc::SequenceType ty) {
               return buildSubst(ty, argPtr, substModule, dataLayout,
                                 boolVecBitPacked);
             })
@@ -1110,4 +1110,21 @@ bool cudaq_internal::compiler::mergeAllCallableClosures(
     }
   }
   return true;
+}
+
+bool cudaq_internal::compiler::retainCallableArguments(
+    std::span<void *const> &rawArgs, std::vector<void *> &closureArgs,
+    mlir::func::FuncOp funcOp) {
+  bool isFullySpecialized = true;
+
+  FunctionType fromFuncTy = funcOp.getFunctionType();
+  closureArgs = std::vector(rawArgs.begin(), rawArgs.end());
+  for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
+    if (!isa<cudaq::cc::CallableType>(ty)) {
+      isFullySpecialized = false;
+      closureArgs[i] = nullptr;
+    }
+  }
+  rawArgs = closureArgs;
+  return isFullySpecialized;
 }

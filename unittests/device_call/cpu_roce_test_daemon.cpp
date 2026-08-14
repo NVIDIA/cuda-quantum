@@ -39,7 +39,7 @@
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/host_dispatcher.h"
+#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -423,32 +423,35 @@ int main(int argc, char **argv) {
 
   // [7] Wire the host dispatcher to the transceiver rings (3-thread layout,
   //     identical to hsb_bridge_cpu but tx_mode=Write on the transceiver).
-  std::atomic<int> dispatcher_shutdown{0};
+  volatile int dispatcher_shutdown = 0;
   std::uint64_t packets_dispatched = 0;
-  cudaq_host_dispatch_loop_ctx_t dctx{};
-  dctx.ringbuffer.rx_flags_host = reinterpret_cast<volatile uint64_t *>(
+  cudaq_ringbuffer_t ring{};
+  ring.rx_flags_host = reinterpret_cast<volatile uint64_t *>(
       cpu_roce_get_rx_ring_flag_addr(xcvr));
-  dctx.ringbuffer.tx_flags_host = reinterpret_cast<volatile uint64_t *>(
+  ring.tx_flags_host = reinterpret_cast<volatile uint64_t *>(
       cpu_roce_get_tx_ring_flag_addr(xcvr));
-  dctx.ringbuffer.rx_data_host =
+  ring.rx_data_host =
       reinterpret_cast<uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
-  dctx.ringbuffer.tx_data_host =
+  ring.tx_data_host =
       reinterpret_cast<uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
-  dctx.ringbuffer.rx_stride_sz = cfg.page_size;
-  dctx.ringbuffer.tx_stride_sz = cfg.page_size;
-  dctx.config.num_slots = cfg.num_pages;
-  dctx.config.slot_size = static_cast<uint32_t>(cfg.page_size);
-  dctx.config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
-  dctx.config.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
-  dctx.config.skip_tx_markers = 1;
-  dctx.function_table.entries = entries;
-  dctx.function_table.count = 4;
-  dctx.shutdown_flag = &dispatcher_shutdown;
-  dctx.stats_counter = &packets_dispatched;
-  dctx.skip_stream_sweep = true;
+  ring.rx_stride_sz = cfg.page_size;
+  ring.tx_stride_sz = cfg.page_size;
+  cudaq_dispatcher_config_t dcfg{};
+  dcfg.num_slots = cfg.num_pages;
+  dcfg.slot_size = static_cast<uint32_t>(cfg.page_size);
+  dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
+  dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+  dcfg.skip_tx_markers = 1;
+  cudaq_function_table_t table{};
+  table.entries = entries;
+  table.count = 4;
 
-  std::thread dispatcher_thread(
-      [&dctx]() { cudaq_host_dispatcher_loop(&dctx); });
+  // HOST_CALL-only table -> the ring loop runs the handler inline with a NULL
+  // engine (no graph workers, nothing to sweep).
+  std::thread dispatcher_thread([&]() {
+    cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, /*engine=*/nullptr,
+                                  &dispatcher_shutdown, &packets_dispatched);
+  });
   std::thread xcvr_monitor([xcvr]() { cpu_roce_blocking_monitor(xcvr); });
 
   std::cout << "Daemon running (timeout=" << cfg.timeout_sec << "s)..."
@@ -467,7 +470,8 @@ int main(int argc, char **argv) {
   }
 
   // [9] Orderly shutdown.
-  dispatcher_shutdown.store(1, std::memory_order_release);
+  dispatcher_shutdown = 1;
+  __sync_synchronize();
   if (dispatcher_thread.joinable())
     dispatcher_thread.join();
   cpu_roce_close(xcvr);

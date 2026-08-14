@@ -13,6 +13,7 @@
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
@@ -165,9 +166,9 @@ insertResultMapCleanupOperations(Operation *module,
   }
 }
 
-cudaq::JitEngine
-cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
-                                          llvm::StringRef convertTo) {
+cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
+    ModuleOp &moduleOp, llvm::StringRef convertTo, bool isEntryPoint,
+    bool disableQuantumOpts) {
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createJITEngine");
@@ -179,7 +180,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
   opts.transformer = std::move(transformerTemp);
   opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   auto llvmModuleBuilderTemp =
-      [convertTo = convertTo.str()](
+      [convertTo = convertTo.str(), isEntryPoint, disableQuantumOpts](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
@@ -195,6 +196,9 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
             })
             .wasInterrupted();
 
+    bool noValueSemantics = disableQuantumOpts ||
+                            module->hasAttr(cudaq::runtime::disableQuantumOpts);
+
     // Even though we're not lowering all the way to a real QIR profile for
     // this emulated path, we need to pass in `convertTo` to mimic the
     // non-emulated path.
@@ -203,17 +207,9 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
       profileName = convertTo;
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
     } else {
-      cudaq::opt::addAOTPipelineConvertToQIR(pm);
-    }
-
-    auto enablePrintMLIREachPass =
-        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-    auto disableThreading =
-        cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-    if (enablePrintMLIREachPass || disableThreading) {
-      module->getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
-        pm.enableIRPrinting();
+      cudaq::opt::addAOTPipelineConvertToQIR(pm, {},
+                                             /*useValueSemantics=*/
+                                             !noValueSemantics);
     }
 
     std::string error_msg;
@@ -250,7 +246,12 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
     const auto entryPointFuncs = collectEntryPointFunctions(module);
     if (containsWireSet)
       insertWireSetSetupAndCleanupOperations(module, entryPointFuncs);
-    insertResultMapCleanupOperations(module, entryPointFuncs);
+    // Direct-callable JIT modules also carry `cudaq-entrypoint` because the
+    // lowering pipeline needs a code-generation root. They can nevertheless
+    // execute inside another kernel, whose measurement handles must remain
+    // valid until the outer execution completes.
+    if (isEntryPoint)
+      insertResultMapCleanupOperations(module, entryPointFuncs);
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)

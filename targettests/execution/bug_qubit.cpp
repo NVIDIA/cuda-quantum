@@ -37,12 +37,12 @@ struct simple_x {
   }
 };
 
-// clang-format on
+// clang-format off
 // MLIR-LABEL:   func.func @__nvqpp__mlirgen__simple_x()
 // MLIR-NOT:       quake.alloca !quake.ref
 // MLIR:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 // MLIR-NEXT:      %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
-// clang-format off
+// clang-format on
 
 int main() {
   auto result = cudaq::sample(simple_x{});

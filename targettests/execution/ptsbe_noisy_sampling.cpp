@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
+// clang-format on
 
 // Integration tests for PTSBE noisy sampling with nvq++-compiled kernels.
 
@@ -151,8 +153,7 @@ bool testInlineNoise() {
   auto gateCount =
       data.count_instructions(cudaq::ptsbe::TraceInstructionType::Gate);
   if (gateCount != 1) {
-    printf("INLINE FAIL: expected 1 gate, got %lu\n",
-           (unsigned long)gateCount);
+    printf("INLINE FAIL: expected 1 gate, got %lu\n", (unsigned long)gateCount);
     return false;
   }
 
@@ -196,8 +197,7 @@ bool testParameterizedKernel() {
   auto gateCount =
       data.count_instructions(cudaq::ptsbe::TraceInstructionType::Gate);
   if (gateCount != 2) {
-    printf("PARAM FAIL: expected 2 gates, got %lu\n",
-           (unsigned long)gateCount);
+    printf("PARAM FAIL: expected 2 gates, got %lu\n", (unsigned long)gateCount);
     return false;
   }
 
@@ -311,8 +311,10 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK: GHZ_PASS
 // CHECK: INLINE_PASS
 // CHECK: PARAM_PASS
 // CHECK: IMPLICIT_MZ_PASS
 // CHECK: ASYNC_PASS
+// clang-format on

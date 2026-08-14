@@ -10,7 +10,11 @@
 
 include(CMakeFindDependencyMacro)
 
-find_dependency(CUDAToolkit REQUIRED)
+# CUDAToolkit is only a dependency when the installed build had CUDA; a
+# CUDA-less build exports only the CPU-only targets (e.g. the UDP transport).
+if(@CUDA_FOUND@)
+  find_dependency(CUDAToolkit REQUIRED)
+endif()
 find_dependency(Threads REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/cudaq-realtime-targets.cmake")

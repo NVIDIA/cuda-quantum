@@ -55,13 +55,13 @@ func.func @__nvqpp__mlirgen__function_loop_payload_stress() -> i64 attributes {"
     cc.continue %i : i64
   }
 
-  %meas = quake.mz %q : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
-  %bits = quake.discriminate %meas : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-  %result = call @__nvqpp_cudaqConvertToInteger(%bits) : (!cc.stdvec<i1>) -> i64
+  %meas = quake.mz %q : (!quake.veq<4>) -> !cc.sequence<!quake.measure>
+  %bits = quake.discriminate %meas : (!cc.sequence<!quake.measure>) -> !cc.sequence<i1>
+  %result = call @__nvqpp_cudaqConvertToInteger(%bits) : (!cc.sequence<i1>) -> i64
   return %result : i64
 }
 
-func.func private @__nvqpp_cudaqConvertToInteger(!cc.stdvec<i1>) -> i64
+func.func private @__nvqpp_cudaqConvertToInteger(!cc.sequence<i1>) -> i64
 
 // PRESERVE-LABEL: func.func @__nvqpp__mlirgen__function_loop_payload_stress
 // PRESERVE:         cc.loop while

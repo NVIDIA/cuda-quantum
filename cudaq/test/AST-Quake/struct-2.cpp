@@ -23,19 +23,21 @@ struct Qernel0 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel0(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>)
-// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>>
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.struct<"ProductOfVector" {!cc.stdvec<i32>, !cc.stdvec<f64>} [384,8]>>) -> !cc.ptr<!cc.stdvec<i32>>
-// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.stdvec<i32>>
-// CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>)
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>>
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.struct<"ProductOfVector" {!cc.sequence<i32>, !cc.sequence<f64>} [384,8]>>) -> !cc.ptr<!cc.sequence<i32>>
+// CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<!cc.sequence<i32>>
+// CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<i32>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct Pi0 {
   int m1;
@@ -60,6 +62,7 @@ struct Qernel1 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel1(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<"ProductOfPis" {!cc.struct<"Pi0" {i32, f32} [64,4]>, !cc.struct<"Pi1" {i8, f64} [128,8]>} [192,8]>)
 // CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<"ProductOfPis" {!cc.struct<"Pi0" {i32, f32} [64,4]>, !cc.struct<"Pi1" {i8, f64} [128,8]>} [192,8]>
@@ -70,6 +73,7 @@ struct Qernel1 {
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<i8>
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 struct Product {
   short m1;
@@ -86,13 +90,14 @@ struct Qernel2 {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel2(
-// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<!cc.struct<"Product" {i16, f32} [64,4]>>)
-// CHECK:           %[[VAL_1:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<!cc.struct<"Product" {i16, f32} [64,4]>>) -> !cc.ptr<!cc.array<!cc.struct<"Product" {i16, f32} [64,4]> x ?>>
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.sequence<!cc.struct<"Product" {i16, f32} [64,4]>>)
+// CHECK:           %[[VAL_1:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<!cc.struct<"Product" {i16, f32} [64,4]>>) -> !cc.ptr<!cc.array<!cc.struct<"Product" {i16, f32} [64,4]> x ?>>
 // CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!cc.array<!cc.struct<"Product" {i16, f32} [64,4]> x ?>>) -> !cc.ptr<i16>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i16>
 // CHECK:           %[[VAL_5:.*]] = cc.alloca i16
 // CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<i16>
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

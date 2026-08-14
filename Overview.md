@@ -143,7 +143,7 @@ This folder contains the implementation of the `cudaq-translate` tool. This tool
 takes as input a Quake file and lowers that representation to QIR or Base
 Profile QIR.
 
-### `tools/nvqpp`
+### `tools/nvq++`
 
 This folder contains the `nvq++` compiler tool. This tool is a bash script that
 orchestrates the workflow necessary to map CUDA-Q C++ to MLIR and ultimately

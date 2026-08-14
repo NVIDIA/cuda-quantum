@@ -64,7 +64,7 @@ KernelBuilderType convertArgumentTypeToMLIR(int &e) {
 
 KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx, Float64Type::get(ctx));
+    return cudaq::cc::SequenceType::get(ctx, Float64Type::get(ctx));
   });
 }
 
@@ -75,20 +75,20 @@ KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e) {
 
 KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 32));
+    return cudaq::cc::SequenceType::get(ctx, mlir::IntegerType::get(ctx, 32));
   });
 }
 
 KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 64));
+    return cudaq::cc::SequenceType::get(ctx, mlir::IntegerType::get(ctx, 64));
   });
 }
 
 /// Map a std::vector<float> to a KernelBuilderType
 KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx, Float32Type::get(ctx));
+    return cudaq::cc::SequenceType::get(ctx, Float32Type::get(ctx));
   });
 }
 
@@ -96,8 +96,8 @@ KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e) {
 KernelBuilderType
 convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx,
-                                      ComplexType::get(Float64Type::get(ctx)));
+    return cudaq::cc::SequenceType::get(
+        ctx, ComplexType::get(Float64Type::get(ctx)));
   });
 }
 
@@ -105,8 +105,8 @@ convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e) {
 KernelBuilderType
 convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(ctx,
-                                      ComplexType::get(Float32Type::get(ctx)));
+    return cudaq::cc::SequenceType::get(
+        ctx, ComplexType::get(Float32Type::get(ctx)));
   });
 }
 
@@ -122,7 +122,7 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
 
 KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::StdvecType::get(cudaq::cc::CharspanType::get(ctx));
+    return cudaq::cc::SequenceType::get(cudaq::cc::CharspanType::get(ctx));
   });
 }
 
@@ -185,8 +185,8 @@ initializeBuilder(MLIRContext *context,
 }
 void deleteBuilder(ImplicitLocOpBuilder *builder) { delete builder; }
 
-bool isArgStdVec(std::vector<QuakeValue> &args, std::size_t idx) {
-  return args[idx].isStdVec();
+bool isArgSequence(std::vector<QuakeValue> &args, std::size_t idx) {
+  return args[idx].isSequence();
 }
 
 void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
@@ -505,12 +505,12 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
   auto type = value.getType();
   auto context = builder.getContext();
 
-  if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
+  if (auto sequenceTy = dyn_cast<cc::SequenceType>(type)) {
     // get the size
-    auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
-    Value initials = cc::StdvecDataOp::create(builder, ptrTy, value);
+    auto ptrTy = cc::PointerType::get(sequenceTy.getElementType());
+    Value initials = cc::SequenceDataOp::create(builder, ptrTy, value);
     auto i64Ty = builder.getI64Type();
-    Value size = cc::StdvecSizeOp::create(builder, i64Ty, value);
+    Value size = cc::SequenceSizeOp::create(builder, i64Ty, value);
     auto stateTy = cc::PointerType::get(cudaq::quake::StateType::get(context));
     auto state =
         cudaq::quake::CreateStateOp::create(builder, stateTy, initials, size);
@@ -797,12 +797,12 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
     strAttr = builder.getStringAttr(regName);
 
   // `mz`/`mx`/`my` produce a `!cc.measure_handle` (or
-  // `!cc.stdvec<!cc.measure_handle>` when the target is a vector).
+  // `!cc.sequence<!cc.measure_handle>` when the target is a vector).
   // Discrimination is deferred to consumer sites, matching the AST-bridge
   // behavior.
   Type measTy = cc::MeasureHandleType::get(builder.getContext());
   if (!isa<cudaq::quake::RefType>(type))
-    measTy = cc::StdvecType::get(measTy);
+    measTy = cc::SequenceType::get(measTy);
   Value handle;
   if (strAttr)
     handle =
@@ -913,7 +913,7 @@ std::string name(std::string_view kernelName) {
 bool isQubitType(Type ty) {
   if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(ty))
     return true;
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+  if (auto vecTy = dyn_cast<cudaq::cc::SequenceType>(ty))
     return isQubitType(vecTy.getElementType());
   return false;
 }
@@ -1000,7 +1000,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
     pm.addPass(cudaq::opt::createQuakePropagateMetadata());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -1038,13 +1038,13 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addPass(cudaq::opt::createCCToLLVM());
     pm.addPass(createCanonicalizerPass());
 
-    auto enablePrintMLIREachPass =
-        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+    auto printEachPass =
+        cudaq::getEnvPrintEachPassMode("CUDAQ_MLIR_PRINT_EACH_PASS");
     auto disableThreading =
         cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-    if (enablePrintMLIREachPass || disableThreading) {
+    if (printEachPass != cudaq::PrintEachPassMode::None || disableThreading) {
       module->getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
+      if (printEachPass == cudaq::PrintEachPassMode::All)
         pm.enableIRPrinting();
     }
 

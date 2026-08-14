@@ -35,7 +35,7 @@ __constant__ std::uint32_t g_dispatch_shared_ring_mode = 0;
 /// (dispatch_kernel_with_graph).  A tail self-relaunch is a fresh kernel
 /// invocation, so a local current_slot would reset to 0 every relaunch (i.e.
 /// every decode/shot) and rescan the ring from the start -- which, against an
-/// open-loop producer like the Hololink RX kernel that fills slots strictly in
+/// open-loop producer like the GpuRoceTransceiver RX kernel that fills slots strictly in
 /// order (window N -> slot N % num_slots), lets the scan grab a slot out of
 /// send order and races the flag-clear against slot reuse (observed as a rare
 /// duplicate-enqueue + dropped-get_corrections).  Holding the cursor here lets
@@ -43,6 +43,18 @@ __constant__ std::uint32_t g_dispatch_shared_ring_mode = 0;
 /// consumption across relaunches.  Reset to 0 by cudaq_create_dispatch_graph_*
 /// at setup; only tid 0 of the (single-block) scheduler reads/writes it.
 __device__ std::size_t g_graph_dispatch_cursor = 0;
+
+// Trigger-path debug state (see cudaq_dispatch_get_trigger_debug):
+// rc of the most recent device-side fire-and-forget of the triggered
+// graph, count of fires, and count of tail self-relaunches actually
+// reached.  A wedge signature of {rc=0, fires=N, tails=N-1} means the
+// child launched but never completed (tail launch waits on
+// fire-and-forget children) -- e.g. a cooperative grid that cannot
+// become co-resident.  {rc!=0} means the device-side launch
+// itself failed.
+__device__ int g_dispatch_trigger_rc = -1000; // -1000: never fired
+__device__ unsigned long long g_dispatch_trigger_fires = 0;
+__device__ unsigned long long g_dispatch_tail_relaunches = 0;
 
 /// @brief Lookup function entry in table by function_id.
 __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
@@ -61,8 +73,8 @@ __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
 /// This kernel does not contain any device-side graph launch code, avoiding
 /// compatibility issues on systems where cudaGraphLaunch is not supported.
 ///
-/// Supports symmetric RX/TX data buffers for Hololink compatibility:
-/// - RX data address comes from rx_flags[slot] (set by Hololink RX kernel)
+/// Supports symmetric RX/TX data buffers for GpuRoceTransceiver compatibility:
+/// - RX data address comes from rx_flags[slot] (set by GpuRoceTransceiver RX kernel)
 /// - TX response is written to tx_data + slot * tx_stride_sz
 /// - tx_flags[slot] is set to the TX slot address
 ///
@@ -322,7 +334,7 @@ __global__ void dispatch_kernel_device_call_only(
           }
         }
         if (rx_value != 0) {
-          // RX data address comes from rx_flags (set by Hololink RX kernel
+          // RX data address comes from rx_flags (set by GpuRoceTransceiver RX kernel
           // or host test harness to the address of the RX data slot)
           void* rx_slot = reinterpret_cast<void*>(rx_value);
           RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
@@ -392,7 +404,7 @@ __global__ void dispatch_kernel_device_call_only(
 /// This kernel includes device-side graph launch code and requires compute capability >= 9.0.
 /// NOTE: Graph launch code is conditionally compiled based on __CUDA_ARCH__.
 ///
-/// Supports symmetric RX/TX data buffers for Hololink compatibility.
+/// Supports symmetric RX/TX data buffers for GpuRoceTransceiver compatibility.
 template <typename KernelType>
 __global__ void dispatch_kernel_with_graph(
     volatile std::uint64_t* rx_flags,
@@ -486,8 +498,17 @@ __global__ void dispatch_kernel_with_graph(
               // empty result).
               if (status == CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH) {
                 if (triggered_graph_exec != nullptr) {
-                  cudaGraphLaunch(triggered_graph_exec,
-                                  cudaStreamGraphFireAndForget);
+                  // Record the device-side launch result and fire count so a
+                  // wedged pipeline can be diagnosed from the host (see
+                  // cudaq_dispatch_get_trigger_debug); previously this rc was
+                  // dropped, making trigger failures indistinguishable from a
+                  // hung triggered graph.
+                  cudaError_t trigger_rc = cudaGraphLaunch(
+                      triggered_graph_exec, cudaStreamGraphFireAndForget);
+                  cudaq::realtime::g_dispatch_trigger_rc =
+                      static_cast<int>(trigger_rc);
+                  ++cudaq::realtime::g_dispatch_trigger_fires;
+                  __threadfence_system();
                   s_relaunch = true;
                 }
                 status = 0;
@@ -557,6 +578,8 @@ __global__ void dispatch_kernel_with_graph(
   // budget -- so the path can fire an unbounded number of follow-up graphs
   // across relaunches.  On shutdown we fall through without relaunching.
   if (s_relaunch && tid == 0) {
+    ++cudaq::realtime::g_dispatch_tail_relaunches;
+    __threadfence_system();
     // Persist the cursor so the relaunched kernel resumes at the next slot
     // (strict FIFO), not slot 0.  Fence so the store is visible to the
     // relaunched invocation.
@@ -871,5 +894,43 @@ extern "C" cudaError_t cudaq_destroy_dispatch_graph(
   }
   
   delete context;
+  return err;
+}
+
+// Host-side reader for the trigger-path debug state above (declared in
+// cudaq_realtime.h).  Values are copied with asynchronous
+// cudaMemcpyFromSymbolAsync on a private non-blocking stream: a legacy
+// default-stream copy would synchronize against the resident dispatch
+// graph and deadlock, so this is safe while the scheduler is live or
+// wedged.
+extern "C" CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_dispatch_get_trigger_debug(int *trigger_rc,
+                                 unsigned long long *trigger_fires,
+                                 unsigned long long *tail_relaunches) {
+  // Async copies on a private non-blocking stream: the legacy default
+  // stream would synchronize with the (persistent, possibly wedged)
+  // scheduler graph and deadlock the caller -- this reader must be safe to
+  // call WHILE the scheduler is live or stuck.
+  cudaStream_t stream = nullptr;
+  cudaError_t err = cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
+  if (err != cudaSuccess)
+    return err;
+  if (err == cudaSuccess && trigger_rc)
+    err = cudaMemcpyFromSymbolAsync(trigger_rc,
+                                    cudaq::realtime::g_dispatch_trigger_rc,
+                                    sizeof(*trigger_rc), 0,
+                                    cudaMemcpyDeviceToHost, stream);
+  if (err == cudaSuccess && trigger_fires)
+    err = cudaMemcpyFromSymbolAsync(trigger_fires,
+                                    cudaq::realtime::g_dispatch_trigger_fires,
+                                    sizeof(*trigger_fires), 0,
+                                    cudaMemcpyDeviceToHost, stream);
+  if (err == cudaSuccess && tail_relaunches)
+    err = cudaMemcpyFromSymbolAsync(
+        tail_relaunches, cudaq::realtime::g_dispatch_tail_relaunches,
+        sizeof(*tail_relaunches), 0, cudaMemcpyDeviceToHost, stream);
+  if (err == cudaSuccess)
+    err = cudaStreamSynchronize(stream);
+  cudaStreamDestroy(stream);
   return err;
 }

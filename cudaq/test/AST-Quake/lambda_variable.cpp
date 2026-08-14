@@ -68,7 +68,7 @@ struct test3_caller {
 // This is a template case (`auto`), so use the specialization that `callback`
 // is resolved to in the AST.
 struct test4_callee {
-   void operator()(cudaq::signature<void(cudaq::qubit &)> auto &&callback,
+  void operator()(cudaq::signature<void(cudaq::qubit &)> auto &&callback,
                   cudaq::qvector<> &s) __qpu__ {
     callback(s[0]);
     callback(s[1]);

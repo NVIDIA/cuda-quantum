@@ -54,3 +54,9 @@ set_tests_properties(pycudaq-mlir PROPERTIES
   PROCESSORS ${NPROC})
 
 add_subdirectory(phase_folding)
+
+# Erase generated phase-folding tests on `make clean` so stale files from
+# prior runs don't leak into the test suite (e.g. seeds skipped by lit.cfg.py).
+set_property(DIRECTORY APPEND PROPERTY
+  ADDITIONAL_CLEAN_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/generated)

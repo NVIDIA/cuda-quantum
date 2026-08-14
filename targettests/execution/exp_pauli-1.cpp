@@ -6,10 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ --target quantinuum %s -o %t && %t || echo "passed" 2>&1 | FileCheck %s
+// clang-format on
 
-#include <cudaq.h>
 #include <cstdio>
+#include <cudaq.h>
 
 struct Qernel_A {
   void operator()(std::vector<double> angles,

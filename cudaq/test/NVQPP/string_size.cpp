@@ -11,9 +11,9 @@
 #include <cudaq.h>
 
 __qpu__ void qernel() {
-   cudaq::qvector qv(2);
-   h(qv);
-   x<cudaq::ctrl>(qv[0], qv[1]);
+  cudaq::qvector qv(2);
+  h(qv);
+  x<cudaq::ctrl>(qv[0], qv[1]);
 }
 
 // CHECK-LABEL:  module

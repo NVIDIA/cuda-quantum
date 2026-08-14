@@ -173,9 +173,11 @@ inline std::string get_quake(std::string &&functionName) {
 
 /// @brief Set a custom noise model for simulation. The caller must also call
 /// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
+[[deprecated("please use launch arguments or launch options.")]]
 void set_noise(const cudaq::noise_model &model);
 
 /// @brief Remove an existing noise model from simulation.
+[[deprecated("please use launch arguments or launch options.")]]
 void unset_noise();
 
 /// @brief Set a seed for any random number

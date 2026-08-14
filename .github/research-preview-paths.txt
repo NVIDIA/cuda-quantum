@@ -1,0 +1,8 @@
+# Ignore-list of repository-relative path prefixes owned by research-preview
+# packages. The stable CUDA-Q CI workflows (ci, ci_macos, codeql, repo_checks)
+# pass this file as `paths-ignore-file`, so a change that touches only these
+# prefixes does not trigger the full stable CI suite. It is also the single
+# source of truth for the paths a preview's own scoped workflow watches (see
+# .github/workflows/pulse.yml). Only add a preview here once it has dedicated,
+# scoped CI coverage.
+pulse/

@@ -12,7 +12,7 @@
 #include "nvqir/Gates.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/operators/matrix.h"
-#include <iostream>
+#include "cudaq/platform.h"
 
 namespace cudaq::contrib {
 
@@ -148,7 +148,8 @@ inline complex_matrix unitary_from_trace(const Trace &trace) {
 /// @returns The full system unitary as a complex_matrix.
 template <typename QuantumKernel, typename... Args>
 complex_matrix get_unitary_cmat(QuantumKernel &&kernel, Args &&...args) {
-  auto trace = traceFromKernel(kernel, std::forward<Args>(args)...);
+  auto trace =
+      traceFromKernel(kernel, get_platform(), std::forward<Args>(args)...);
   return unitary_from_trace(trace);
 }
 

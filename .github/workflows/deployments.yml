@@ -35,9 +35,9 @@ on:
         description: Build and include macOS wheels and installer.
         required: false
         default: true
-      run_publishing_after:
+      run_validation_after:
         type: boolean
-        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
+        description: When this deployment completes successfully, also trigger the Validation workflow.
         required: false
         default: false
   workflow_run:
@@ -161,23 +161,12 @@ jobs:
           echo "environment=$environment" >> $GITHUB_OUTPUT
 
       - name: Upload deployment info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deployment_info # changing the artifact name requires updating other workflows
           path: deployment_info.txt
           retention-days: 30
           if-no-files-found: error
-
-      - name: Upload publishing flag
-        if: github.event_name == 'workflow_dispatch'
-        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
-      - name: Upload publishing_requested artifact
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: publishing_requested
-          path: publishing_requested.txt
-          retention-days: 1
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -222,7 +211,7 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps:
@@ -256,7 +245,7 @@ jobs:
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
 
   source_build:
@@ -287,7 +276,7 @@ jobs:
       pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
       checkout_submodules: true
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
 
   openmpi:
@@ -312,7 +301,7 @@ jobs:
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ompi
 
   dispatch:
@@ -322,7 +311,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         with:
           # We want this dispatch to trigger additional workflows.
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -353,7 +342,7 @@ jobs:
               }
             }
 
-  # This job is needed only when using the cloudposse GitHub action to read
+  # This job is needed only when using the matrix-outputs action to read
   # the output of a matrix job. This is a workaround due to current GitHub
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
@@ -367,7 +356,12 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -399,10 +393,10 @@ jobs:
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-ext
 
-  # This job is needed only when using the cloudposse GitHub action to read
+  # This job is needed only when using the matrix-outputs action to read
   # the output of a matrix job. This is a workaround due to current GitHub
   # limitations that may not be needed if the work started here concludes:
   # https://github.com/actions/runner/pull/2477
@@ -415,7 +409,12 @@ jobs:
       json: "${{ steps.read_json.outputs.result }}"
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment
@@ -444,12 +443,12 @@ jobs:
           docker context use builder_context
 
       - name: Setup buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
 
       - name: Login to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -501,7 +500,7 @@ jobs:
           echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
 
       - name: Write matrix outputs
-        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: stitched_devdeps_images
           matrix-key: cu${{ matrix.cuda }}
@@ -527,8 +526,10 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
+      cudaq_enable_projects: 'cudaq;runtime;python;realtime'
       build_docs: ${{ matrix.cuda_version == '12.6' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
       environment: ghcr-deployment
+      run_validation: false # validation runs in the Validation workflow
 
   digest_config:
     name: Aggregate digests
@@ -539,9 +540,14 @@ jobs:
       json: "${{ steps.read.outputs.result }}"
 
     steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
       - name: Read matrix outputs
         id: read
-        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: docker_images
 
@@ -570,19 +576,19 @@ jobs:
           docker context use builder_context
 
       - name: Setup buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
 
       - name: Login to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Log in to NGC
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: nvcr.io
           username: '$oauthtoken'
@@ -696,9 +702,6 @@ jobs:
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
           fi
 
-          suffix="-base"
-          image_tag="${image_tag}${suffix}"
-
           stitched_tag="${registry}:${image_tag}"
 
           echo "Stitching release image with tag: $stitched_tag"
@@ -707,7 +710,7 @@ jobs:
           retry docker buildx imagetools create --tag "$stitched_tag" $refs
           digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
-          stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
+          stitched_output=$(echo "$stitched_output" | jq --arg key "release-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
           echo "$stitched_output" | tee stitched_digests.json
 
       - name: Read stitched_digests.json
@@ -716,7 +719,7 @@ jobs:
           echo "json=$(jq -c . stitched_digests.json)" | tee -a $GITHUB_OUTPUT
 
       - name: Write matrix outputs
-        uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+        uses: ./.github/actions/matrix-outputs-write
         with:
           matrix-step-name: stitched_cudaq_images
           matrix-key: cu${{ matrix.cuda }}
@@ -733,15 +736,20 @@ jobs:
       cudaq_json: "${{ steps.read_cudaq.outputs.result }}"
 
     steps:
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
       - name: Read matrix outputs (devdeps)
         id: read_devdeps
-        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: stitched_devdeps_images
 
       - name: Read matrix outputs (CUDA-Q)
         id: read_cudaq
-        uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        uses: ./.github/actions/matrix-outputs-read
         with:
           matrix-step-name: stitched_cudaq_images
 
@@ -778,7 +786,7 @@ jobs:
           artifact_name="image_cu${cuda_major}_publishing"            
           info_file="$artifact_name.txt"
 
-          key="base-cu${cuda_major}"
+          key="release-cu${cuda_major}"
           cudaq_reference=$(echo "$STITCHED_CUDAQ_JSON" | jq -r --arg cuda "cu${cuda}" --arg key "$key" '.json[$cuda][$key]')
 
           key="dev-cu${cuda_major}"
@@ -798,7 +806,6 @@ jobs:
             echo "cuda-quantum-devdeps-image: ${devdeps_reference}"
             echo "platforms: ${platforms}"
             echo "cuda-version: ${cuda}"
-            cat .github/workflows/config/gitlab_commits.txt
           } | tee "$info_file"
           echo "Created $info_file"
 
@@ -806,7 +813,7 @@ jobs:
           echo "info_file=$info_file" >> $GITHUB_OUTPUT          
 
       - name: Upload ${{ steps.summary.outputs.artifact_name }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.summary.outputs.artifact_name }}
           path: ${{ steps.summary.outputs.info_file }}
@@ -820,7 +827,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        python_version: ['3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.12', '3.13', '3.14']
         cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
@@ -833,6 +840,7 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       create_staging_info:  ${{ matrix.python_version == '3.11' }} # staging info is the same for all python versions
+      run_validation: false # validation runs in the Validation workflow
 
   binaries:
     name: Create CUDA Quantum installer
@@ -854,6 +862,7 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment
+      run_validation: false # validation runs in the Validation workflow
 
   macos_ci:
     name: macOS CI
@@ -866,16 +875,18 @@ jobs:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
       cudaq_version: ${{ inputs.create_release }}
 
-  trigger_publishing:
-    name: Trigger Publishing
+  # Validation also runs automatically via its workflow_run trigger on
+  # Deployments; this job is the opt-in path for manual dispatches.
+  trigger_validation:
+    name: Trigger Validation
     needs: [summary, python_wheels, binaries]
-    if: inputs.run_publishing_after
+    if: inputs.run_validation_after
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
-      - name: Trigger Publishing workflow
-        uses: actions/github-script@v7
+      - name: Trigger Validation workflow
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           script: |
@@ -883,7 +894,7 @@ jobs:
             const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'publishing.yml',
+              workflow_id: 'validation.yml',
               ref: context.ref.replace('refs/heads/', ''),
               inputs: {
                 deployment_id: context.runId.toString(),

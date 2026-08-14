@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --quake-to-qir %s | FileCheck %s
+// RUN: cudaq-opt --quake-to-qir --canonicalize %s | FileCheck %s
 
 module attributes {
     quake.mangled_name_map = {
@@ -34,23 +34,29 @@ module attributes {
   }
 }
 
-// CHECK-LABEL:   llvm.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
-// CHECK:           %[[VAL_0:.*]] = llvm.mlir.constant(0 : i64) : i64
-// CHECK:           %[[VAL_1:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK:           %[[VAL_2:.*]] = llvm.mlir.constant(1.000000e+00 : f64) : f64
-// CHECK:           %[[VAL_3:.*]] = llvm.mlir.constant(262144 : i64) : i64
-// CHECK:           %[[VAL_4:.*]] = llvm.mlir.constant(2 : i64) : i64
-// CHECK:           %[[VAL_5:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[VAL_4]]) : (i64) -> !llvm.ptr
-// CHECK:           llvm.br ^bb1(%[[VAL_0]] : i64)
-// CHECK:         ^bb1(%[[VAL_6:.*]]: i64):
-// CHECK:           %[[VAL_7:.*]] = llvm.icmp "slt" %[[VAL_6]], %[[VAL_3]] : i64
-// CHECK:           llvm.cond_br %[[VAL_7]], ^bb2, ^bb3
-// CHECK:         ^bb2:
-// CHECK:           %[[VAL_16:.*]] = llvm.mlir.addressof @__quantum__qis__r1__ctl : !llvm.ptr
-// CHECK:           %[[VAL_17:.*]] = llvm.mlir.constant(1 : i64) : i64
-// CHECK:           %[[VAL_18:.*]] = llvm.alloca %[[VAL_17]] x i64 {{.*}} : (i64) -> !llvm.ptr
-// CHECK:           llvm.call @invokeRotationWithControlQubits({{.*}}) vararg(!llvm.func<void (f64, i64, ptr, ptr, ...)>)
+// CHECK-LABEL:   llvm.func @__nvqpp__mlirgen__kernel()
+// CHECK-DAG:       %[[MLIR_0:.*]] = llvm.mlir.addressof @__quantum__qis__r1__ctl : !llvm.ptr
+// CHECK-DAG:       %[[MLIR_1:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK-DAG:       %[[MLIR_2:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK-DAG:       %[[MLIR_3:.*]] = llvm.mlir.constant(1.000000e+00 : f64) : f64
+// CHECK-DAG:       %[[MLIR_4:.*]] = llvm.mlir.constant(262144 : i64) : i64
+// CHECK-DAG:       %[[MLIR_5:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__qubit_allocate_array(%[[MLIR_5]]) : (i64) -> !llvm.ptr
+// CHECK:           llvm.br ^bb1(%[[MLIR_1]] : i64)
+// CHECK:         ^bb1(%[[VAL_0:.*]]: i64):
+// CHECK:           %[[ICMP_0:.*]] = llvm.icmp "slt" %[[VAL_0]], %[[MLIR_4]] : i64
+// CHECK:           llvm.cond_br %[[ICMP_0]], ^bb2(%[[VAL_0]] : i64), ^bb3
+// CHECK:         ^bb2(%[[VAL_1:.*]]: i64):
+// CHECK:           %[[CALL_1:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_0]], %[[MLIR_1]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           %[[LOAD_0:.*]] = llvm.load %[[CALL_1]] : !llvm.ptr -> !llvm.ptr
+// CHECK:           %[[CALL_2:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_0]], %[[MLIR_2]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           %[[LOAD_1:.*]] = llvm.load %[[CALL_2]] : !llvm.ptr -> !llvm.ptr
+// CHECK:           %[[ALLOCA_0:.*]] = llvm.alloca %[[MLIR_2]] x i64 {alignment = 8 : i64} : (i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[MLIR_1]], %[[ALLOCA_0]] : i64, !llvm.ptr
+// CHECK:           llvm.call @invokeRotationWithControlQubits(%[[MLIR_3]], %[[MLIR_2]], %[[ALLOCA_0]], %[[MLIR_0]], %[[LOAD_0]], %[[LOAD_1]]) vararg(!llvm.func<void (f64, i64, ptr, ptr, ...)>) : (f64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           %[[ADD_0:.*]] = llvm.add %[[VAL_1]], %[[MLIR_2]] : i64
+// CHECK:           llvm.br ^bb1(%[[ADD_0]] : i64)
 // CHECK:         ^bb3:
-// CHECK:           llvm.call @__quantum__rt__qubit_release_array(%[[VAL_5]]) : (!llvm.ptr) -> ()
+// CHECK:           llvm.call @__quantum__rt__qubit_release_array(%[[CALL_0]]) : (!llvm.ptr) -> ()
 // CHECK:           llvm.return
 // CHECK:         }

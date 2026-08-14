@@ -24,7 +24,7 @@ class SimulationState;
 enum class InitialState { ZERO, UNIFORM };
 
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
-// Note: tensor data is expected in column-major.
+/// @note Each tensor must be contiguous and stored in column-major order.
 using TensorStateData =
     std::vector<std::pair<const void *, std::vector<std::size_t>>>;
 /// @brief state_data is a variant type
@@ -108,9 +108,12 @@ public:
   /// vector of Tensors. Each tensor tracks its data pointer
   /// and the tensor extents.
   struct Tensor {
+    enum class storage_order { unspecified, row_major, column_major };
+
     void *data = nullptr;
     std::vector<std::size_t> extents;
     precision fp_precision;
+    storage_order order = storage_order::unspecified;
     std::size_t get_rank() const { return extents.size(); }
     std::size_t get_num_elements() const {
       std::size_t num = 1;

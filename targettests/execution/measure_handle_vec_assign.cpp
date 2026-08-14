@@ -33,7 +33,7 @@ __qpu__ std::vector<bool> outer_outlives_inner() {
     x(innerQ[1]);            // |01>
     auto inner = mz(innerQ); // inner == [0, 1]
     outer = inner;           // requires deep-copy semantics
-  }                          // inner buffer/qubits go out of scope here
+  } // inner buffer/qubits go out of scope here
   return cudaq::to_bools(outer);
 }
 

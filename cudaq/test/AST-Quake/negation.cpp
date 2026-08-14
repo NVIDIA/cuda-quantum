@@ -17,6 +17,7 @@ struct NegationOperatorTest {
   }
 };
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__NegationOperatorTest()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
@@ -24,4 +25,4 @@ struct NegationOperatorTest {
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_1]], %[[VAL_2]] neg [true, false]] %[[VAL_3]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
-
+// clang-format on

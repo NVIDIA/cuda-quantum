@@ -23,9 +23,7 @@
 // function in computing expected values of provided spin_ops.
 
 struct ansatz {
-  auto operator()() __qpu__ {
-    cudaq::qvector q(1);
-  }
+  auto operator()() __qpu__ { cudaq::qvector q(1); }
 };
 
 int main() {

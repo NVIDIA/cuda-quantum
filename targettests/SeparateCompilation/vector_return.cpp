@@ -61,10 +61,11 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK: na ... BATMAN!
 // CHECK: 1
 // CHECK: 2
 // CHECK: 3
 // CHECK: 8
 // CHECK: -9
-
+// clang-format on

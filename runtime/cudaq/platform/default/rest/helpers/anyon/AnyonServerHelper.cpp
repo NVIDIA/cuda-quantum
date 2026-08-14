@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "AnyonHelper.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
@@ -105,9 +106,9 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
 
-  /// @brief Update `passPipeline` with architecture-specific pass options
-  void updatePassPipeline(const std::filesystem::path &platformPath,
-                          std::string &passPipeline) override;
+  /// @brief Return architecture-specific pipeline placeholder substitutions.
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) override;
 };
 
 ServerJobPayload
@@ -259,20 +260,13 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   }
 
   // For each shot, we concatenate the measurements results of all qubits.
-  auto begin = results.begin();
-  auto nShots = begin.value().get<std::vector<std::string>>().size();
-  std::vector<std::string> bitstrings(nShots);
-  for (auto r : idx) {
-    // If allNamesPresent == false, that means we are running local mock server
-    // tests which don't support the full QIR output recording functions. Just
-    // use the first key in that case.
-    auto bitResults =
-        mockServer ? results.at(begin.key()).get<std::vector<std::string>>()
-                   : results.at(output_names[r].registerName)
-                         .get<std::vector<std::string>>();
-    for (size_t i = 0; auto &bit : bitResults)
-      bitstrings[i++] += bit;
-  }
+  std::vector<std::string> orderedRegisterNames;
+  orderedRegisterNames.reserve(idx.size());
+  for (auto r : idx)
+    orderedRegisterNames.push_back(mockServer ? results.begin().key()
+                                              : output_names[r].registerName);
+  auto bitstrings = cudaq::utils::anyon::combineRegisterResults(
+      results, orderedRegisterNames);
 
   cudaq::CountsDictionary counts;
   for (auto &b : bitstrings)
@@ -449,8 +443,8 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey,
   return hwConfig;
 }
 
-void AnyonServerHelper::updatePassPipeline(
-    const std::filesystem::path &platformPath, std::string &passPipeline) {
+std::map<std::string, std::string> AnyonServerHelper::getPipelineSubstitutions(
+    const std::filesystem::path &platformPath) {
   std::string qgate_type = "cgate";
   if (machine.starts_with("berkeley")) {
     qgate_type = "pgate";
@@ -459,13 +453,10 @@ void AnyonServerHelper::updatePassPipeline(
   } else {
     printf("Unidentified machine type %s\n", machine.c_str());
   }
-  passPipeline =
-      std::regex_replace(passPipeline, std::regex("%Q_GATE%"), qgate_type);
 
   std::string pathToFile = platformPath / std::string("mapping/anyon") /
                            (machine + std::string(".txt"));
-  passPipeline =
-      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+  return {{"%Q_GATE%", qgate_type}, {"%QPU_ARCH%", pathToFile}};
 }
 
 } // namespace cudaq

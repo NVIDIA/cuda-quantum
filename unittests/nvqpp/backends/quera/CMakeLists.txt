@@ -17,4 +17,4 @@ add_backend_unittest_executable(test_quera
   cudaq-serverhelper-quera
   )
 
-gtest_discover_tests(test_quera DISCOVERY_TIMEOUT 120)
+cudaq_gtest_discover_tests(test_quera DISCOVERY_TIMEOUT 120)

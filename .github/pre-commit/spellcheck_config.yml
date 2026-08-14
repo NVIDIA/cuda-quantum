@@ -10,7 +10,7 @@ matrix:
   sources:
   # Exclude third-party code (tpls/), build artifacts, and signed skill bundles
   # (skills/ content is fixed by skill.oms.sig and must not be modified).
-  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md|!skills/**/*.md'
+  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md|!**/build/**/*.md|!skills/**/*.md'
   glob_flags: N|G|B
   expect_match: false
   aspell:
@@ -111,8 +111,8 @@ matrix:
 
 - name: html
   sources:
-  # Exclude third-party code (tpls/) and auto-generated templates
-  - '**/*.html|!tpls/**/*.html|!docs/sphinx/_templates/**/*.html'
+  # Exclude third-party code, build artifacts, and auto-generated templates
+  - '**/*.html|!tpls/**/*.html|!_skbuild/**/*.html|!build/**/*.html|!build_*/**/*.html|!**/build/**/*.html|!docs/sphinx/_templates/**/*.html'
   glob_flags: N|G|B
   expect_match: true
   aspell:
@@ -139,7 +139,7 @@ matrix:
 - name: cxx_headers
   sources:
   # Exclude test directories, third-party code (tpls/), vendored nlopt, and build artifacts
-  - '**/*.h|!cudaq/test/**/*.h|!targettests/**/*.h|!tpls/**/*.h|!runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src/**/*.h|!_skbuild/**/*.h|!build/**/*.h|!build_*/**/*.h'
+  - '**/*.h|!cudaq/test/**/*.h|!targettests/**/*.h|!tpls/**/*.h|!runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src/**/*.h|!_skbuild/**/*.h|!build/**/*.h|!build_*/**/*.h|!realtime/build/**/*.h'
   glob_flags: N|G|B
   expect_match: false
   aspell:
@@ -227,6 +227,12 @@ matrix:
       context_visible_first: true
       escapes: '\\[\\`~]'
       delimiters:
+      # Ignore LLVM lit RUN/XFAIL/REQUIRES/UNSUPPORTED directives
+      - open: '\/{2}\s*(RUN|XFAIL|REQUIRES|UNSUPPORTED)\b'
+        close: '$'
+      # Ignore LLVM FileCheck directives (e.g. // CHECK:, // MOCK-YAML:)
+      - open: '\/{2}\s*[A-Z][-A-Z]*:'
+        close: '$'
       # Ignore comments of the form `// namespace ...` since they are used to annotate the closing namespace
       - open: '\/{2}\s*namespace\s+'
         close: '($|\s)'
@@ -264,7 +270,7 @@ matrix:
   sources:
   # Exclude test directories, third-party code (tpls/), build artifacts, sphinx config,
   # and files with f-string syntax that pyspelling's parser can't handle
-  - '**/*.py|!python/tests/**/*.py|!cudaq/test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!_skbuild/**/*.py|!build/**/*.py|!build_*/**/*.py|!_version.py|!docs/sphinx/conf.py'
+  - '**/*.py|!python/tests/**/*.py|!cudaq/test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!_skbuild/**/*.py|!build/**/*.py|!build_*/**/*.py|!realtime/build/**/*.py|!_version.py|!docs/sphinx/conf.py'
   glob_flags: N|G|B
   expect_match: false
   aspell:

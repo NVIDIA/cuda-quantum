@@ -15,12 +15,12 @@ add_cudaq_library(OptTransforms
   AddMeasurements.cpp
   AddMetadata.cpp
   AggressiveInlining.cpp
-  ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
   CableRoughIn.cpp
   ClassicalOptimization.cpp
+  CliffordTSynthesis.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstantPropagation.cpp
@@ -35,6 +35,7 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
+  ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
@@ -49,26 +50,31 @@ add_cudaq_library(OptTransforms
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
+  LowerPhase.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
+  NormalizePhasePlacement.cpp
   ObserveAnsatz.cpp
+  OptimizeSingleQubitCliffordT.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
+  PruneNegligibleRotations.cpp
   PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp
+  RealtimeDeviceCall.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
+  RepairLinearType.cpp
   ReplaceStateWithKernel.cpp
   ResetBeforeReuse.cpp
-  ResourceCount.cpp
   ResourceCountPreprocess.cpp
   RunSemanticsHackery.cpp
   SROA.cpp
@@ -77,6 +83,7 @@ add_cudaq_library(OptTransforms
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyNoPhase.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 
@@ -89,6 +96,7 @@ add_cudaq_library(OptTransforms
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
+    MLIRTransforms
     OptimBuilder
     QECDialect
     QuakeDialect
@@ -98,3 +106,13 @@ target_include_directories(OptTransforms SYSTEM
   PRIVATE ${CMAKE_SOURCE_DIR}/tpls/eigen
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
+
+check_registered_mlir_lib(OptTransforms)
+
+target_link_libraries(OptTransforms PRIVATE cudaq-synth)
+target_include_directories(obj.OptTransforms SYSTEM PRIVATE
+  $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set_source_files_properties(CliffordTSynthesis.cpp PROPERTIES
+    COMPILE_OPTIONS "-Wno-maybe-uninitialized")
+endif()

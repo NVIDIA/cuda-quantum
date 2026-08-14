@@ -29,8 +29,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Check for stable CUDA-Q changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      stable: ${{ steps.filter.outputs.matched }}
+    steps:
+      - name: Checkout changed-path action
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/actions/check-changed-paths
+            .github/research-preview-paths.txt
+          sparse-checkout-cone-mode: false
+
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths-ignore-file: .github/research-preview-paths.txt
+
   metadata:
     name: Retrieve PR info
+    needs: changes
+    if: needs.changes.outputs.stable == 'true'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -132,7 +157,7 @@ jobs:
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
       matrix_step_name: dev_environment_devdeps
 
@@ -161,7 +186,7 @@ jobs:
         nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       environment: ghcr-ci
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
       matrix_step_name: dev_environment_wheeldeps
 
@@ -190,7 +215,7 @@ jobs:
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
-      # needed only for the cloudposse GitHub action
+      # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
       matrix_step_name: dev_environment_source_build
 
@@ -203,7 +228,12 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment_devdeps
@@ -215,7 +245,12 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment_wheeldeps
@@ -228,7 +263,12 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-read
         id: read_json
         with:
           matrix-step-name: dev_environment_source_build
@@ -293,7 +333,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        python_version: ['3.11', '3.13']
+        python_version: ['3.11', '3.13', '3.14']
         cuda_version: ["12.6", "13.0"]
       fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/python_wheels.yml
@@ -315,7 +355,7 @@ jobs:
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
-      python_versions: "['3.11', '3.13']"
+      python_versions: "['3.11', '3.13', '3.14']"
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: 'pycudaq-*'
 
@@ -353,6 +393,7 @@ jobs:
       contents: read
       actions: read
     needs:
+      - changes
       - metadata
       - devdeps
       - wheeldeps
@@ -371,7 +412,9 @@ jobs:
     # concurrency rule). Otherwise the "fail on cancelled needs" check below
     # would surface a phantom `CI Summary failed` on the PR rollup for a run
     # that was actually preempted, not broken.
-    if: ${{ !cancelled() }}
+    if: >-
+      ${{ !cancelled() && (needs.changes.result != 'success' ||
+          needs.changes.outputs.stable == 'true') }}
     env:
       GH_TOKEN: ${{ github.token }}
       NEEDS_JSON: ${{ toJSON(needs) }}
@@ -658,9 +701,18 @@ jobs:
   clean_up:
     name: Prepare cache clean-up
     runs-on: ubuntu-latest
-    needs: [metadata, config_devdeps, config_wheeldeps, config_source_build, build_and_test, docker_image, wheeldeps, python_wheels]
+    needs:
+      - changes
+      - metadata
+      - config_devdeps
+      - config_wheeldeps
+      - config_source_build
+      - build_and_test
+      - docker_image
+      - wheeldeps
+      - python_wheels
     # We need to clean up even if the workflow is cancelled or fails.
-    if: always()
+    if: always() && needs.changes.outputs.stable == 'true'
 
     steps:
       - name: Save cache keys and metadata
@@ -679,7 +731,7 @@ jobs:
           echo "pr-base: ${{ needs.metadata.outputs.pull_request_base }}" >> metadata.txt
 
       - name: Upload cache keys
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cache_keys_ci
           path: cache_keys.txt
@@ -687,7 +739,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: metadata_ci
           path: metadata.txt

@@ -9,62 +9,38 @@
 #include "run.h"
 #include "common/RecordLogParser.h"
 #include "common/Timing.h"
+#include "cudaq/algorithms/launch.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 
-cudaq::detail::RunResultSpan cudaq::detail::runTheKernel(
-    std::function<void()> &&kernel, quantum_platform &platform,
-    const std::string &kernel_name, const std::string &original_name,
-    std::size_t shots,
-    const cudaq_internal::compiler::LayoutInfoType &layoutInfo,
-    std::size_t qpu_id, bool allowCaching) {
-  ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
-  // 1. Clear the outputLog.
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  circuitSimulator->outputLog.clear();
+cudaq::detail::RunResultSpan cudaq::detail::convertToRunResultSpan(
+    const std::string &outputLog,
+    const cudaq_internal::compiler::LayoutInfoType &layoutInfo) {
 
-  // Some platforms do not support run yet, emit error.
-  if (!platform.get_codegen_config().outputLog)
-    throw std::runtime_error("`run` is not yet supported on this target.");
-
-  // 2. Launch the kernel on the QPU.
-  if (platform.is_remote() || platform.is_emulated()) {
-    // In a remote simulator execution or hardware emulation environment, set
-    // the `run` context name and number of iterations (shots)
-    cudaq::ExecutionContext ctx("run", shots, qpu_id);
-    ctx.allowCompiledModuleCaching = allowCaching;
-    // Launch the kernel a single time to post the 'run' request to the remote
-    // server or emulation executor.
-    platform.with_execution_context(ctx, std::move(kernel));
-    // Retrieve the result output log.
-    // FIXME: this currently assumes all the shots are good.
-    std::string remoteOutputLog(ctx.invocationResultBuffer.begin(),
-                                ctx.invocationResultBuffer.end());
-    circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else {
-    cudaq::ExecutionContext ctx("run", 1, qpu_id);
-    ctx.allowCompiledModuleCaching = allowCaching;
-    for (std::size_t i = 0; i < shots; ++i) {
-      // Set the execution context since as noise model is attached to this
-      // context.
-      platform.with_execution_context(ctx, std::move(kernel));
-    }
-  }
-
-  // 3. Pass the outputLog to the parser (target-specific?)
+  // 1. Pass the outputLog to the parser (target-specific?)
   cudaq::RecordLogParser parser(layoutInfo);
-  parser.parse(circuitSimulator->outputLog);
+  parser.parse(outputLog);
 
-  // 4. Get the buffer and length of buffer (in bytes) from the parser.
+  // 2. Get the buffer and length of buffer (in bytes) from the parser.
   auto *origBuffer = parser.getBufferPtr();
   std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
+  std::size_t resultCount = parser.getResultCount();
 
-  // 5. Clear the outputLog (?)
-  circuitSimulator->outputLog.clear();
+  // Validate that the buffer size is consistent with the successful shot count.
+  if (resultCount > 0 && bufferSize % resultCount != 0)
+    throw std::runtime_error(
+        "run: the number of result bytes (" + std::to_string(bufferSize) +
+        ") is not evenly divisible by the number of decoded results (" +
+        std::to_string(resultCount) + ").");
+  char *buffer = nullptr;
+  if (bufferSize != 0) {
+    buffer = static_cast<char *>(malloc(bufferSize));
+    if (!buffer)
+      throw std::runtime_error("run: result buffer allocation failed.");
+    std::memcpy(buffer, origBuffer, bufferSize);
+  }
 
-  // 6. Pass the span back as a RunResultSpan. NB: it is the responsibility of
+  // 3. Pass the span back as a RunResultSpan. NB: it is the responsibility of
   // the caller to free the buffer.
-  return {buffer, bufferSize};
+  return {buffer, bufferSize, resultCount};
 }

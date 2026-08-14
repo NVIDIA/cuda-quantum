@@ -13,8 +13,8 @@
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cassert>
-#include <cudaq.h>
 #include <cstdio>
+#include <cudaq.h>
 
 // Kernel that measures 7 out of 9 qubits using mixed bases.
 // Deterministic bits: q0=0(mz), q1=1(mz), q4=0(mz), q6=1(mz).

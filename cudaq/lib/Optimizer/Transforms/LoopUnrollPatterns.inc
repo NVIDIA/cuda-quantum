@@ -29,16 +29,111 @@ unrollLoopByValue(cudaq::cc::LoopOp loop,
   return *resultOpt;
 }
 
-static bool exceedsThresholdValue(cudaq::cc::LoopOp loop,
-                                  std::size_t threshold) {
+static bool exceedsThresholdValue(cudaq::cc::LoopOp loop, std::size_t threshold,
+                                  bool emitWarning = true) {
   auto components = cudaq::opt::getLoopComponents(loop);
   if (components->hasAlwaysTrueCondition()) {
-    loop->emitWarning("Loop condition is always true. This loop is not "
-                      "supported in a kernel.");
+    if (emitWarning)
+      loop->emitWarning("Loop condition is always true. This loop is not "
+                        "supported in a kernel.");
     return true;
   }
   auto upperBound = unrollLoopByValue(loop, *components);
   return upperBound >= threshold;
+}
+
+static bool loopCanBeUnrolled(cudaq::cc::LoopOp loop, bool allowBreak,
+                              std::size_t threshold,
+                              bool emitWarning = true) {
+  if (!allowBreak && !cudaq::opt::isaCountedLoop(loop))
+    return false;
+  if (allowBreak && !cudaq::opt::isaIndefiniteCountedLoop(loop))
+    return false;
+  return !exceedsThresholdValue(loop, threshold, emitWarning);
+}
+
+static bool valueDependsOnRegionBlockArgument(Value value, Region &region) {
+  if (!value)
+    return false;
+  if (auto arg = dyn_cast<BlockArgument>(value))
+    return arg.getOwner()->getParent() == &region;
+  Operation *defOp = value.getDefiningOp();
+  if (!defOp)
+    return false;
+  for (Value operand : defOp->getOperands())
+    if (valueDependsOnRegionBlockArgument(operand, region))
+      return true;
+  return false;
+}
+
+static bool loopTripCountDependsOnRegionArgs(cudaq::cc::LoopOp loop,
+                                             Region &region) {
+  auto components = cudaq::opt::getLoopComponents(loop);
+  if (!components)
+    return false;
+  auto depends = [&](Value value) {
+    return valueDependsOnRegionBlockArgument(value, region);
+  };
+  return depends(components->initialValue) ||
+         depends(components->compareValue) || depends(components->stepValue) ||
+         (components->addendValue && depends(components->addendValue)) ||
+         (components->scaleValue && depends(components->scaleValue));
+}
+
+/// Returns true if \p loop accesses quantum data with a dynamic
+/// (non-constant) index or slice and therefore blocks conversion to value
+/// (wire) semantics: it contains a `quake.extract_ref` with a dynamic index or
+/// a `quake.subveq` with a dynamic bound in its own body. The walk does NOT
+/// descend into nested `cc.loop` ops -- a nested loop is classified (and
+/// unrolled) on its own, and once it is unrolled its accesses become
+/// constant-index, at which point this loop no longer blocks. This lets a
+/// purely-repeating outer loop stay rolled while inner index-dependent loops
+/// are unrolled. A loop with only constant-index references/slices (or only
+/// `!quake.wire` values) does not block: mem2reg can thread those qubits as
+/// loop iter-args.
+static bool loopBlocksWireConversion(cudaq::cc::LoopOp loop) {
+  bool found = false;
+  loop->walk<mlir::WalkOrder::PreOrder>([&](Operation *op) -> WalkResult {
+    if (op != loop.getOperation() && isa<cudaq::cc::LoopOp>(op))
+      return WalkResult::skip(); // nested loops are handled separately
+    if (auto ext = dyn_cast<cudaq::quake::ExtractRefOp>(op))
+      if (ext.getRawIndex() == cudaq::quake::ExtractRefOp::kDynamicIndex) {
+        found = true;
+        return WalkResult::interrupt();
+      }
+    if (auto sub = dyn_cast<cudaq::quake::SubVeqOp>(op))
+      if (!sub.hasConstantLowerBound() || !sub.hasConstantUpperBound()) {
+        found = true;
+        return WalkResult::interrupt();
+      }
+    return WalkResult::advance();
+  });
+  return found;
+}
+
+static bool loopHasParentDependentWireBlockingNestedLoop(
+    cudaq::cc::LoopOp loop) {
+  bool found = false;
+  Region &body = loop.getBodyRegion();
+  loop->walk<mlir::WalkOrder::PreOrder>([&](Operation *op) -> WalkResult {
+    if (op == loop.getOperation())
+      return WalkResult::advance();
+    auto nested = dyn_cast<cudaq::cc::LoopOp>(op);
+    if (!nested)
+      return WalkResult::advance();
+    if (loopBlocksWireConversion(nested) &&
+        loopTripCountDependsOnRegionArgs(nested, body)) {
+      found = true;
+      return WalkResult::interrupt();
+    }
+    return WalkResult::advance();
+  });
+  return found;
+}
+
+static bool loopMustUnrollForWireConversion(cudaq::cc::LoopOp loop) {
+  return loopBlocksWireConversion(loop) ||
+         loopHasParentDependentWireBlockingNestedLoop(loop);
 }
 
 namespace {
@@ -55,9 +150,9 @@ namespace {
 /// specific number of times, even if that number is only known at runtime.
 struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
   explicit UnrollCountedLoop(MLIRContext *ctx, std::size_t t, bool sf, bool ab,
-                             unsigned &p)
+                             unsigned &p, bool unrollOnlyWireBlocking = false)
       : OpRewritePattern(ctx), threshold(t), signalFailure(sf), allowBreak(ab),
-        progress(p) {}
+        progress(p), unrollOnlyWireBlockingLoops(unrollOnlyWireBlocking) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::LoopOp loop,
                                 PatternRewriter &rewriter) const override {
@@ -67,6 +162,21 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // Check for cases that are clearly not going to be unrolled.
     if (loop->hasAttr(cudaq::opt::DeadLoopAttr))
       return failure();
+    // Opt-in selective unrolling for value-semantics pipelines: a loop that
+    // does not itself index or slice qubits dynamically is left rolled unless
+    // it must be unrolled first to make a nested wire-blocking loop's trip
+    // count constant. Otherwise its qubits can be threaded as wire iter-args.
+    if (unrollOnlyWireBlockingLoops) {
+      // Filter out loops that cannot be unrolled before doing the more
+      // expensive quantum-access walks below. These skips are intentionally
+      // quiet: the final selective-mode validation diagnoses any remaining
+      // wire-blocking loops.
+      if (!loopCanBeUnrolled(loop, allowBreak, threshold,
+                             /*emitWarning=*/false))
+        return failure();
+      if (!loopMustUnrollForWireConversion(loop))
+        return failure();
+    }
     if (!allowBreak && !cudaq::opt::isaCountedLoop(loop)) {
       if (signalFailure)
         loop.emitOpError("not a simple counted loop");
@@ -212,5 +322,6 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
   bool signalFailure;
   bool allowBreak;
   unsigned &progress;
+  bool unrollOnlyWireBlockingLoops;
 };
 } // namespace

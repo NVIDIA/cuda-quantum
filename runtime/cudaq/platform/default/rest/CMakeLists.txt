@@ -34,7 +34,7 @@ target_link_libraries(cudaq-rest-qpu
     cudaq-platform-default
     nvqir
     ZLIB::ZLIB
+    cudaqMLIR
     ${AWSSDK_LINK_LIBRARIES})
 
-install(TARGETS cudaq-rest-qpu DESTINATION lib)
-
+install(TARGETS cudaq-rest-qpu DESTINATION lib COMPONENT Runtime)

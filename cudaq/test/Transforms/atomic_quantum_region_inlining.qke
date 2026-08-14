@@ -1,0 +1,91 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --aggressive-inlining %s | FileCheck --implicit-check-not="call @" %s
+// RUN: cudaq-opt --verify-each --aggressive-inlining %s | FileCheck --check-prefix=COUNT %s
+
+module attributes {quake.mangled_name_map = {marked = "indirect_marked"}} {
+  func.func private @marked(%q: !quake.ref) attributes {atomic_quantum_region} {
+    quake.h %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func private @ordinary(%q: !quake.ref) {
+    quake.x %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func private @nested(%q: !quake.ref) attributes {atomic_quantum_region} {
+    func.call @marked(%q) : (!quake.ref) -> ()
+    quake.y %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func private @marked_feedback(%q: !quake.ref) attributes {atomic_quantum_region} {
+    %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+    %bit = quake.discriminate %measurement : (!quake.measure) -> i1
+    cc.if(%bit) {
+      quake.z %q : (!quake.ref) -> ()
+    }
+    return
+  }
+
+  func.func private @ordinary_feedback(%q: !quake.ref) {
+    %measurement = quake.mz %q : (!quake.ref) -> !quake.measure
+    %bit = quake.discriminate %measurement : (!quake.measure) -> i1
+    cc.if(%bit) {
+      quake.z %q : (!quake.ref) -> ()
+    }
+    return
+  }
+
+  func.func private @indirect_marked(!quake.ref)
+
+  func.func @caller(%q: !quake.ref) {
+    func.call @marked(%q) : (!quake.ref) -> ()
+    func.call @ordinary(%q) : (!quake.ref) -> ()
+    func.call @nested(%q) : (!quake.ref) -> ()
+    func.call @marked_feedback(%q) : (!quake.ref) -> ()
+    func.call @ordinary_feedback(%q) : (!quake.ref) -> ()
+    func.call @indirect_marked(%q) : (!quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @caller(
+// CHECK-SAME:                      %[[ARG0:.*]]: !quake.ref) {
+// CHECK:           cc.scope {
+// CHECK:             quake.h %[[ARG0]] : (!quake.ref) -> ()
+// CHECK:           } {atomic_quantum_region}
+// CHECK-NEXT:      quake.x %[[ARG0]] : (!quake.ref) -> ()
+// CHECK-NEXT:      cc.scope {
+// CHECK-NEXT:        cc.scope {
+// CHECK-NEXT:          quake.h %[[ARG0]] : (!quake.ref) -> ()
+// CHECK-NEXT:        } {atomic_quantum_region}
+// CHECK-NEXT:        quake.y %[[ARG0]] : (!quake.ref) -> ()
+// CHECK-NEXT:      } {atomic_quantum_region}
+// CHECK-NEXT:      cc.scope {
+// CHECK-NEXT:        %[[MZ_0:.*]] = quake.mz %[[ARG0]] : (!quake.ref) -> !quake.measure
+// CHECK-NEXT:        %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
+// CHECK-NEXT:        cc.if(%[[DISCRIMINATE_0]]) {
+// CHECK-NEXT:          quake.z %[[ARG0]] : (!quake.ref) -> ()
+// CHECK-NEXT:        }
+// CHECK-NEXT:      } {atomic_quantum_region}
+// CHECK-NEXT:      %[[MZ_1:.*]] = quake.mz %[[ARG0]] : (!quake.ref) -> !quake.measure
+// CHECK-NEXT:      %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[MZ_1]] : (!quake.measure) -> i1
+// CHECK-NEXT:      cc.if(%[[DISCRIMINATE_1]]) {
+// CHECK-NEXT:        quake.z %[[ARG0]] : (!quake.ref) -> ()
+// CHECK-NEXT:      }
+// CHECK-NEXT:      cc.scope {
+// CHECK-NEXT:        quake.h %[[ARG0]] : (!quake.ref) -> ()
+// CHECK-NEXT:      } {atomic_quantum_region}
+// CHECK-NEXT:      return
+// CHECK-NEXT:    }
+
+// COUNT-COUNT-5: atomic_quantum_region
+// COUNT-NOT: atomic_quantum_region

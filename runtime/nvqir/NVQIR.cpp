@@ -9,7 +9,7 @@
 #include "CircuitSimulator.h"
 #include "NVQIRUtil.h"
 #include "QIRTypes.h"
-#include "common/ExecutionContext.h"
+#include "common/AnalysisScope.h"
 #include "common/PluginUtils.h"
 #include "common/Trace.h"
 #include "cudaq/qis/qudit.h"
@@ -88,16 +88,12 @@ void __nvqir__setSimulatorInitCallback(void (*callback)()) {
 
 namespace nvqir {
 
-// Defined in AnalysisScope.cpp; non-null when a `nvqir::AnalysisScope` is
-// active on the current thread.
-extern thread_local CircuitSimulator *activeAnalysisSimulator;
-
 /// @brief Return the single simulation backend pointer, create if not created
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
-  if (activeAnalysisSimulator)
-    return activeAnalysisSimulator;
+  if (auto *analysisSim = cudaq::detail::AnalysisScope::active_simulator())
+    return analysisSim;
 
   if (simulator)
     return simulator;
@@ -782,8 +778,8 @@ void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
 }
 
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
-  auto *ctx = cudaq::getExecutionContext();
-  if (ctx && ctx->name == "run") {
+  if (nvqir::getCircuitSimulatorInternal()->getExecutionContextType() ==
+      cudaq::detail::ExecutionContextType::run) {
 
     std::string regName(reinterpret_cast<const char *>(name));
     auto qI = qubitToSizeT(measRes2QB[r]);

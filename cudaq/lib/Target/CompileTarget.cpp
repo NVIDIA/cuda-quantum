@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/Support/Hash.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <cctype>
 
@@ -44,25 +45,34 @@ static void substitutePipelinePlaceholders(
   }
 }
 
+/// Replace literal placeholder keys in a pipeline stage string.
+static void applyPipelineSubstitutions(
+    std::string &pipeline,
+    const std::map<std::string, std::string> &pipelineSubstitutions) {
+  for (const auto &[key, value] : pipelineSubstitutions) {
+    std::string::size_type pos = 0;
+    while ((pos = pipeline.find(key, pos)) != std::string::npos) {
+      pipeline.replace(pos, key.size(), value);
+      pos += value.size();
+    }
+  }
+}
+
 cudaq::CompileTarget::CompileTarget(
     config::TargetConfig targetConfig,
-    std::map<std::string, std::string> runtimeConfig, bool emulate_)
+    std::map<std::string, std::string> runtimeConfig, bool emulate_,
+    std::map<std::string, std::string> pipelineSubstitutions)
     : emulate(emulate_) {
-  if (!targetConfig.BackendConfig.has_value()) {
-    pipelineConfig.skipTargetLoweringPipeline = true;
-    return;
-  }
+  const config::BackendEndConfigEntry defaultConfig;
 
-  const auto &backendConfig = *targetConfig.BackendConfig;
-  if (!backendConfig.hasPassPipeline()) {
-    pipelineConfig.skipTargetLoweringPipeline = true;
-  }
-
+  const auto &backendConfig =
+      targetConfig.BackendConfig.value_or(defaultConfig);
   auto prepPipeline = [&](const std::string &stage,
                           const std::string &stageName) {
     std::string pipeline = stage;
     if (!pipeline.empty()) {
       substitutePipelinePlaceholders(pipeline, runtimeConfig);
+      applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
       CUDAQ_INFO("{:<27} {}", stageName + ":", pipeline);
     }
     return pipeline;
@@ -96,4 +106,24 @@ cudaq::CompileTarget::CompileTarget(
     pipelineConfig.disableQubitMapping = true;
     CUDAQ_INFO("{:<27} {}\n", "disable_qubit_mapping:", "true");
   }
+}
+
+std::size_t std::hash<cudaq::CompileTarget>::operator()(
+    const cudaq::CompileTarget &t) const noexcept {
+  // Optional spin observable: include its string representation when present.
+  auto pauliStr =
+      t.pauliTermSplitObservable ? t.pauliTermSplitObservable->to_string() : "";
+  return cudaq::detail::hashVal(
+      t.pipelineConfig, t.overrideAOTCompilation, t.emulate,
+      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics,
+      pauliStr);
+}
+
+std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
+    const cudaq::CompileTarget::PipelineConfig &pc) const noexcept {
+  return cudaq::detail::hashVal(
+      pc.overridePassPipeline, pc.highLevelPipeline, pc.midLevelPipeline,
+      pc.lowLevelPipeline, pc.codegenTranslation, pc.postCodeGenPasses,
+      pc.disableQubitMapping, pc.replaceStateWithKernel, pc.addMeasurements);
 }

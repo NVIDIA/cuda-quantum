@@ -62,8 +62,8 @@ def containsMeasureHandle(ty, _seen=None):
         return containsMeasureHandle(cc.PointerType.getElementType(ty), _seen)
     if cc.ArrayType.isinstance(ty):
         return containsMeasureHandle(cc.ArrayType.getElementType(ty), _seen)
-    if cc.StdvecType.isinstance(ty):
-        return containsMeasureHandle(cc.StdvecType.getElementType(ty), _seen)
+    if cc.SequenceType.isinstance(ty):
+        return containsMeasureHandle(cc.SequenceType.getElementType(ty), _seen)
     if cc.StructType.isinstance(ty):
         return any(
             containsMeasureHandle(t, _seen) for t in cc.StructType.getTypes(ty))
@@ -118,7 +118,7 @@ class Color:
 
 # Name of module attribute to recover the name of the entry-point for the python
 # kernel decorator.  The associated StringAttr is *without* the `nvqppPrefix`.
-cudaq__unique_attr_name = "cc.python_uniqued"
+cudaq__unique_attr_name = "quake.python_uniqued"
 
 
 def recover_func_op(module, name):
@@ -217,15 +217,58 @@ def recover_value_of_or_none(name, frame=None):
         del frame
 
 
-def is_recovered_value_ok(result):
+def _annotations_of_namespace(namespace):
+    annotations = namespace.get('__annotations__')
+    if annotations is not None:
+        return annotations
+    # Python 3.14 (PEP 649) evaluates annotations lazily: the namespace holds
+    # an `__annotate__` function and `__annotations__` only appears in the
+    # dict once accessed as a module/class attribute.
+    annotate = namespace.get('__annotate__')
+    if annotate is None:
+        return {}
     try:
-        if result != None:
-            return True
-    except ValueError:
-        # `nd.array` values raise `ValueError` with the above `if result` but
-        # are otherwise legit here.
-        return True
-    return False
+        return annotate(1)  # 1 = `annotationlib.Format.VALUE`
+    except Exception:
+        return {}
+
+
+def recover_annotation_of_or_none(name, frame=None):
+    """
+    Recover the type annotation of the symbol `name` from the enclosing
+    context, mirroring the frame walk of `recover_value_of_or_none`. Only
+    annotations stored in a `namespace's` `__annotations__` (e.g. a module-level
+    `name: list[float] = []`) are recoverable.
+    """
+    if '.' in name:
+        return None
+
+    try:
+        if frame is None:
+            frame = inspect.currentframe()
+            while frame is not None and get_module_name(frame).startswith(
+                    "cudaq.kernel"):
+                frame = frame.f_back
+
+        while frame is not None:
+            for namespace in (frame.f_locals, frame.f_globals):
+                if name in namespace:
+                    annotation = _annotations_of_namespace(namespace).get(name)
+                    if isinstance(annotation, str):
+                        try:
+                            annotation = eval(annotation, frame.f_globals,
+                                              frame.f_locals)
+                        except Exception:
+                            return None
+                    return annotation
+            frame = frame.f_back
+        return None
+    finally:
+        del frame
+
+
+def is_recovered_value_ok(result):
+    return result is not None
 
 
 def recover_value_of(name, frame=None):
@@ -417,7 +460,7 @@ def mlirTypeFromAnnotation(annotation,
 
             if annotation.value.id in ['numpy', 'np']:
                 if annotation.attr in ['array', 'ndarray']:
-                    return cc.StdvecType.get(F64Type.get())
+                    return cc.SequenceType.get(F64Type.get())
                 if annotation.attr == 'complex128':
                     return ComplexType.get(F64Type.get())
                 if annotation.attr == 'complex64':
@@ -484,7 +527,7 @@ def mlirTypeFromAnnotation(annotation,
                                                ctx,
                                                raiseError=raiseError,
                                                cudaqAliases=cudaqAliases)
-            return cc.StdvecType.get(listEleTy)
+            return cc.SequenceType.get(listEleTy)
 
         if isinstance(annotation,
                       ast.Subscript) and (annotation.value.id == 'tuple' or
@@ -654,38 +697,48 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         pyEleTy = get_args(argType)
         if len(pyEleTy) == 1:
             eleTy = mlirTypeFromPyType(pyEleTy[0], ctx)
-            return cc.StdvecType.get(eleTy, ctx)
+            return cc.SequenceType.get(eleTy, ctx)
         argType = list
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
-            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
+            return cc.SequenceType.get(mlirTypeFromPyType(float, ctx), ctx)
         if argType != np.ndarray:
             if kwargs['argInstance'] == None:
-                return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
+                return cc.SequenceType.get(mlirTypeFromPyType(float, ctx), ctx)
 
         argInstance = kwargs['argInstance']
         argTypeToCompareTo = kwargs[
             'argTypeToCompareTo'] if 'argTypeToCompareTo' in kwargs else None
 
         if len(argInstance) == 0:
+            if isinstance(argInstance, np.ndarray):
+                eleTy = mlirTypeFromPyType(argInstance.dtype.type, ctx)
+                for _ in range(argInstance.ndim - 1):
+                    eleTy = cc.SequenceType.get(eleTy, ctx)
+                return cc.SequenceType.get(eleTy, ctx)
+
             if argTypeToCompareTo == None:
                 emitFatalError('Cannot infer runtime argument type')
 
-            eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-            return cc.StdvecType.get(eleTy, ctx)
+            eleTy = cc.SequenceType.getElementType(argTypeToCompareTo)
+            return cc.SequenceType.get(eleTy, ctx)
 
         if isinstance(argInstance[0], list):
-            return cc.StdvecType.get(
+            return cc.SequenceType.get(
                 mlirTypeFromPyType(
                     type(argInstance[0]),
                     ctx,
                     argInstance=argInstance[0],
-                    argTypeToCompareTo=cc.StdvecType.getElementType(
-                        argTypeToCompareTo)), ctx)
+                    argTypeToCompareTo=(
+                        cc.SequenceType.getElementType(argTypeToCompareTo)
+                        if argTypeToCompareTo is not None else None)), ctx)
 
-        return cc.StdvecType.get(mlirTypeFromPyType(type(argInstance[0]), ctx),
-                                 ctx)
+        if isinstance(argInstance[0], str):
+            return cc.SequenceType.get(cc.CharspanType.get(ctx), ctx)
+
+        return cc.SequenceType.get(
+            mlirTypeFromPyType(type(argInstance[0]), ctx), ctx)
 
     if get_origin(argType) == tuple:
         eleTypes = []
@@ -756,9 +809,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
     if 'argInstance' not in kwargs:
         if argType == list[int]:
-            return cc.StdvecType.get(mlirTypeFromPyType(int, ctx), ctx)
+            return cc.SequenceType.get(mlirTypeFromPyType(int, ctx), ctx)
         if argType == list[float]:
-            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
+            return cc.SequenceType.get(mlirTypeFromPyType(float, ctx), ctx)
 
     emitFatalError(
         f"Cannot handle conversion of python type {argType} to MLIR type.")
@@ -805,8 +858,8 @@ def mlirTypeToPyType(argType):
     if cc.MeasureHandleType.isinstance(argType):
         return measure_handle
 
-    if cc.StdvecType.isinstance(argType):
-        eleTy = cc.StdvecType.getElementType(argType)
+    if cc.SequenceType.isinstance(argType):
+        eleTy = cc.SequenceType.getElementType(argType)
         if cc.CharspanType.isinstance(eleTy):
             return list[pauli_word]
 

@@ -10,6 +10,7 @@
 #include "common/EigenDense.h"
 #include "cudaq/simulators.h"
 #include <iostream>
+#include <limits>
 
 namespace {
 /// Create a shared pointer that calls destroyState at destruction.
@@ -63,6 +64,16 @@ std::complex<double>
 state::operator()(const std::initializer_list<std::size_t> &indices,
                   std::size_t tensorIdx) const {
   std::vector<std::size_t> idxVec(indices.begin(), indices.end());
+  if (internal->isArrayLike()) {
+    // Array-like element extraction is indexed against the selected tensor's
+    // rank and per-axis extents. Hence, check indices against storage bounds.
+    const auto tensor = internal->getTensor(tensorIdx);
+    if (idxVec.size() != tensor.extents.size())
+      throw std::runtime_error("Invalid number of state indices.");
+    for (std::size_t i = 0; i < idxVec.size(); ++i)
+      if (idxVec[i] >= tensor.extents[i])
+        throw std::out_of_range("State index out of bounds.");
+  }
   return (*internal)(tensorIdx, idxVec);
 }
 
@@ -71,6 +82,11 @@ std::complex<double> state::operator[](std::size_t idx) const {
   std::size_t numElements = internal->getNumElements();
 
   if (!internal->isArrayLike()) {
+    // Non-array-like tensor-network states are indexed in the logical N-qubit
+    // basis; their component-tensor element counts are not logical bounds.
+    constexpr auto indexBits = std::numeric_limits<std::size_t>::digits;
+    if (numQubits < indexBits && idx >= (std::size_t{1} << numQubits))
+      throw std::out_of_range("State index out of bounds.");
     // Use amplitude accessor if linear indexing is not supported, e.g., tensor
     // network state.
     std::vector<int> basisState(numQubits, 0);
@@ -90,6 +106,11 @@ std::complex<double> state::operator[](std::size_t idx) const {
     }
     return internal->getAmplitude(basisState);
   }
+
+  // numElements is a valid flat-storage bound only for array-like state
+  // representations, including qubit and non-qubit state vectors.
+  if (idx >= numElements)
+    throw std::out_of_range("State index out of bounds.");
 
   std::size_t newIdx = 0;
   if (std::log2(numElements) / numQubits > 1) {

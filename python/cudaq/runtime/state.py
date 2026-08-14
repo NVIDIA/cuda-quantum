@@ -47,7 +47,7 @@ def get_state(kernel, *args):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.get_state_impl(decorator.uniqName, module,
-                                        decorator.cachedCompiledModule(),
+                                        decorator.compiledModuleCache(),
                                         *processedArgs)
 
 
@@ -76,6 +76,7 @@ def get_state_async(kernel, *args, qpu_id=0):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.get_state_async_impl(decorator.uniqName, module,
+                                              decorator.compiledModuleCache(),
                                               qpu_id, *processedArgs)
 
 
@@ -104,5 +105,8 @@ def to_cupy(state, dtype=None):
         sizeBytes = tensor.get_num_elements() * tensor.get_element_size()
         mem = cp.cuda.UnownedMemory(tensor.data(), sizeBytes, owner=state)
         memptr = cp.cuda.MemoryPointer(mem, offset=0)
-        arrays.append(cp.ndarray(tensor.extents, dtype=dtype, memptr=memptr))
+        order = ('F' if tensor.storage_order
+                 == cudaq_runtime.TensorStorageOrder.COLUMN_MAJOR else 'C')
+        arrays.append(
+            cp.ndarray(tensor.extents, dtype=dtype, memptr=memptr, order=order))
     return arrays

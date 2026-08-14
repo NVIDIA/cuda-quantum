@@ -1,0 +1,23 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Two disconnected islands: a size-5 line (0-1-2-3-4) and a size-4 line
+// (5-6-7-8). Best-fit-decreasing packing of the virtual components {3,2,2,2}
+// strands a pair on this device (it puts the 3 on the size-4 island), even
+// though {3+2, 2+2} packs cleanly. See issue #4878.
+
+Number of nodes: 9
+0 --> {1}
+1 --> {0, 2}
+2 --> {1, 3}
+3 --> {2, 4}
+4 --> {3}
+5 --> {6}
+6 --> {5, 7}
+7 --> {6, 8}
+8 --> {7}

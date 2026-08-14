@@ -26,8 +26,9 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
   }
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_apply_pauli
-// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !cc.stdvec<i8>) attributes
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !cc.sequence<i8>) attributes
 // CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 90 : i32
 // CHECK-DAG:           %[[VAL_3:.*]] = arith.constant 89 : i32
 // CHECK-DAG:           %[[VAL_4:.*]] = arith.constant 88 : i32
@@ -38,12 +39,12 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:             cc.store %[[VAL_5]], %[[VAL_7]] : !cc.ptr<i64>
 // CHECK:             cc.loop while {
 // CHECK:               %[[VAL_8:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-// CHECK:               %[[VAL_9:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<i8>) -> i64
+// CHECK:               %[[VAL_9:.*]] = cc.sequence_size %[[VAL_1]] : (!cc.sequence<i8>) -> i64
 // CHECK:               %[[VAL_10:.*]] = arith.cmpi ult, %[[VAL_8]], %[[VAL_9]] : i64
 // CHECK:               cc.condition %[[VAL_10]]
 // CHECK:             } do {
 // CHECK:               %[[VAL_11:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-// CHECK:               %[[VAL_12:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:               %[[VAL_12:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_13:.*]] = cc.compute_ptr %[[VAL_12]][%[[VAL_11]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:               %[[VAL_14:.*]] = cc.load %[[VAL_13]] : !cc.ptr<i8>
 // CHECK:               %[[VAL_15:.*]] = cc.cast {{.*}}%[[VAL_14]] : (i8) -> i32
@@ -54,7 +55,7 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:                 quake.x %[[VAL_18]] : (!quake.ref) -> ()
 // CHECK:               }
 // CHECK:               %[[VAL_19:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-// CHECK:               %[[VAL_20:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:               %[[VAL_20:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_21:.*]] = cc.compute_ptr %[[VAL_20]][%[[VAL_19]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:               %[[VAL_22:.*]] = cc.load %[[VAL_21]] : !cc.ptr<i8>
 // CHECK:               %[[VAL_23:.*]] = cc.cast {{.*}}%[[VAL_22]] : (i8) -> i32
@@ -65,7 +66,7 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:                 quake.y %[[VAL_26]] : (!quake.ref) -> ()
 // CHECK:               }
 // CHECK:               %[[VAL_27:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-// CHECK:               %[[VAL_28:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:               %[[VAL_28:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:               %[[VAL_29:.*]] = cc.compute_ptr %[[VAL_28]][%[[VAL_27]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 // CHECK:               %[[VAL_30:.*]] = cc.load %[[VAL_29]] : !cc.ptr<i8>
 // CHECK:               %[[VAL_31:.*]] = cc.cast {{.*}}%[[VAL_30]] : (i8) -> i32
@@ -84,4 +85,4 @@ __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
-
+// clang-format on

@@ -6,7 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
+// clang-format on
 
 // Tests qvector initialization from a cudaq::state created in host code with a
 // large number of qubits (19 qubits = 524288 elements).
@@ -14,9 +16,7 @@
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void test(cudaq::state *inState) {
-  cudaq::qvector q(inState);
-}
+__qpu__ void test(cudaq::state *inState) { cudaq::qvector q(inState); }
 
 void printCounts(cudaq::sample_result &result) {
   std::vector<std::string> values{};

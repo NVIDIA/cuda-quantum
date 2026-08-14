@@ -19,6 +19,7 @@ int main() {
   };
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Z4mainE3$_0(
 // CHECK-SAME:         %[[VAL_0:.*]]: f64) attributes
 // CHECK:           %[[VAL_1:.*]] = cc.alloca f64
@@ -32,3 +33,4 @@ int main() {
 // CHECK:           quake.exp_pauli (%[[VAL_5]]) %[[VAL_2]] to "XXXY" : (f64, !quake.veq<4>) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

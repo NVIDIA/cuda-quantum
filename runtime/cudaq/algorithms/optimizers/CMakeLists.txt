@@ -6,5 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(nlopt)
-add_subdirectory(ensmallen)
+if (CUDAQ_ENABLE_NLOPT)
+  add_subdirectory(nlopt)
+endif()
+if (CUDAQ_ENABLE_ENSMALLEN)
+  add_subdirectory(ensmallen)
+endif()

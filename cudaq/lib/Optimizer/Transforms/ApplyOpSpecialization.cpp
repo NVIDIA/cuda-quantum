@@ -9,6 +9,7 @@
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/Characteristics.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
@@ -316,6 +317,9 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     }
     auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
+    auto calleeAttr = FlatSymbolRefAttr::get(ctx, calleeName);
+    if (!SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply, calleeAttr))
+      return failure();
     auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
@@ -335,7 +339,7 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
     }
     LLVM_DEBUG(llvm::dbgs() << "replacing: " << apply << '\n');
     [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<func::CallOp>(
-        apply, apply.getResultTypes(), calleeName, newArgs);
+        apply, apply.getResultTypes(), calleeAttr, newArgs);
     LLVM_DEBUG(llvm::dbgs() << "with " << result << '\n');
     return success();
   }
@@ -404,6 +408,16 @@ public:
       auto func = dyn_cast<func::FuncOp>(global);
       assert(func && "global must be a FuncOp");
       auto &variant = variantIter->second;
+
+      // A forward-declared kernel has no body to specialize. Attempting to
+      // clone the empty region and read its entry block crashes the compiler
+      // (issue #4268). Do not fail the pass here: this pass cannot assume it
+      // has full program information, and the body may still be supplied later
+      // in the pipeline (e.g. at JIT time). Leave the quake.apply ops in place;
+      // any that survive to codegen are diagnosed by ApplyOpTrap, the point at
+      // which a lingering apply is unambiguously unlowerable.
+      if (func.getBody().empty())
+        continue;
 
       if (variant.needsControlVariant)
         createControlVariantOf(func);
@@ -475,6 +489,9 @@ public:
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), inTys, module);
     newFunc.setPrivate();
+    if (auto atomicRegion =
+            func->getAttr(cudaq::cc::atomicQuantumRegionAttrName))
+      newFunc->setAttr(cudaq::cc::atomicQuantumRegionAttrName, atomicRegion);
     IRMapping mapping;
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
@@ -496,7 +513,8 @@ public:
 
         // This is a quantum op. It should be updated with an additional control
         // argument, `newCond`.
-        auto arrAttr = cast<DenseI32ArrayAttr>(op->getAttr(segmentSizes));
+        auto arrAttr = cast<DenseI32ArrayAttr>(
+            op->getAttr(cudaq::runtime::operandSegmentSizes));
         SmallVector<std::int32_t> arrRef{arrAttr.asArrayRef().begin(),
                                          arrAttr.asArrayRef().end()};
         SmallVector<Value> operands(op->getOperands().begin(),
@@ -507,7 +525,19 @@ public:
         ++arrRef[1];
         auto newArrAttr = DenseI32ArrayAttr::get(ctx, arrRef);
         NamedAttrList attrs(op->getAttrs());
-        attrs.set(segmentSizes, newArrAttr);
+        attrs.set(cudaq::runtime::operandSegmentSizes, newArrAttr);
+
+        if (auto quantumOp = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
+          if (auto oldPolarities = quantumOp.getNegatedControls()) {
+            SmallVector<bool> newPolarities{
+                false}; // control from `ApplyOp` is always positive
+            newPolarities.append(oldPolarities->begin(), oldPolarities->end());
+
+            attrs.set("negated_qubit_controls",
+                      builder.getDenseBoolArrayAttr(newPolarities));
+          }
+        }
+
         OperationState res(op->getLoc(), op->getName().getStringRef(), operands,
                            op->getResultTypes(), attrs);
         // FIXME: Quake quantum gates do have results.
@@ -583,6 +613,9 @@ public:
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), funcTy.getInputs(), module);
     newFunc.setPrivate();
+    if (auto atomicRegion =
+            func->getAttr(cudaq::cc::atomicQuantumRegionAttrName))
+      newFunc->setAttr(cudaq::cc::atomicQuantumRegionAttrName, atomicRegion);
     IRMapping mapping;
     funcBody.cloneInto(&newFunc.getBody(), mapping);
     reverseTheOpsInTheBlock(loc, newFunc.getBody().front().getTerminator(),
@@ -804,7 +837,8 @@ public:
       bool opWasNegated = false;
       IRMapping mapper;
       LLVM_DEBUG(llvm::dbgs() << "moving quantum op: " << *op << ".\n");
-      auto arrAttr = cast<DenseI32ArrayAttr>(op->getAttr(segmentSizes));
+      auto arrAttr = cast<DenseI32ArrayAttr>(
+          op->getAttr(cudaq::runtime::operandSegmentSizes));
       // Walk over any floating-point parameters to `op` and negate them.
       for (auto iter = op->getOperands().begin(),
                 endIter = op->getOperands().begin() + arrAttr[0];
@@ -858,8 +892,5 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "After apply specialization:\n"
                             << module << "\n\n");
   }
-
-  // MLIR dependency: internal name used by tablegen.
-  static constexpr char segmentSizes[] = "operand_segment_sizes";
 };
 } // namespace

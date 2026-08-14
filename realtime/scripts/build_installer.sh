@@ -140,8 +140,8 @@ cp "$this_file_dir/demo_docker.sh" "$staging_dir/payload/demo.sh"
 chmod a+x "$staging_dir/payload/demo.sh"
 cp "$this_file_dir/demo.Dockerfile" "$staging_dir/payload/demo.Dockerfile"
 
-# Copy the `unittests/utils`, which contains a reference implementation of the hololink wrapper, 
-# which is used by the install script to verify hololink functionality.
+# Copy the `unittests/utils`, which contains a reference implementation of the gpu_roce wrapper, 
+# which is used by the install script to verify gpu_roce bridge functionality.
 # Also, resolve any symlinks in the utils directory to avoid issues with makeself.
 if [ -d "$this_file_dir/../unittests/utils" ]; then
   mkdir -p "$staging_dir/payload/utils"
@@ -165,4 +165,8 @@ makeself "${makeself_args[@]}" \
 
 echo ""
 echo "Done! Installer created: $output_dir/$installer_name"
-echo "To install: bash $output_dir/$installer_name --accept"
+echo "To install (default: $default_target):"
+echo "  sudo bash $output_dir/$installer_name --accept"
+echo ""
+echo "To install to a custom location (no sudo required):"
+echo "  bash $output_dir/$installer_name --accept -- --installpath \$HOME/.cudaq_realtime"

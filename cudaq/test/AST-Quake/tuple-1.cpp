@@ -29,6 +29,7 @@ int main1() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_prepQubit
 // CHECK-SAME:        (%[[VAL_0:.*]]: !cc.struct<{i32, f64} [128,8]>, %[[VAL_1:.*]]: !quake.ref)
 // CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<{i32, f64} [128,8]>
@@ -55,9 +56,10 @@ int main1() {
 // CHECK:           call @__nvqpp__mlirgen__function_prepQubit{{.*}}(%[[VAL_10]], %[[VAL_6]]) : (!cc.struct<{i32, f64} [128,8]>, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on
 
 void prepQubit2(std::tuple<bool, float, unsigned> basis,
-               cudaq::qubit &q) __qpu__ {}
+                cudaq::qubit &q) __qpu__ {}
 
 void RzArcTan22(bool input, std::tuple<bool, float, unsigned> basis) __qpu__ {
   cudaq::qubit aux;
@@ -74,6 +76,7 @@ int main2() {
   return 0;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_prepQubit2
 // CHECK-SAME:        (%[[VAL_0:.*]]: !cc.struct<{[[TUP:.*, .*, .*]]}{{.*}}>, %[[VAL_1:.*]]: !quake.ref)
 // CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<{[[TUP]]}{{.*}}>
@@ -101,3 +104,4 @@ int main2() {
 // CHECK:           call @__nvqpp__mlirgen__function_prepQubit2{{.*}}(%[[VAL_10]], %[[VAL_6]]) : (!cc.struct<{[[TUP]]}{{.*}}>, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
+// clang-format on

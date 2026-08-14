@@ -8,13 +8,13 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include <cudaq.h>
 #include <cstddef>
+#include <cudaq.h>
 
 __qpu__ std::size_t kernel1(std::size_t arg) {
-   cudaq::qubit q1;
-   x(q1);
-   return arg;
+  cudaq::qubit q1;
+  x(q1);
+  return arg;
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel1._Z7kernel1m(
@@ -30,9 +30,9 @@ __qpu__ std::size_t kernel1(std::size_t arg) {
 typedef unsigned char tiny;
 
 __qpu__ tiny kernel2(tiny arg) {
-   cudaq::qubit q1;
-   x(q1);
-   return arg;
+  cudaq::qubit q1;
+  x(q1);
+  return arg;
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel2._Z7kernel2h(
@@ -48,9 +48,9 @@ __qpu__ tiny kernel2(tiny arg) {
 using big = long double;
 
 __qpu__ big kernel3(big arg) {
-   cudaq::qubit q1;
-   x(q1);
-   return arg;
+  cudaq::qubit q1;
+  x(q1);
+  return arg;
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel3._Z7kernel3e(

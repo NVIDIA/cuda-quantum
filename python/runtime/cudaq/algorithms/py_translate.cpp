@@ -13,13 +13,10 @@
 #include "utils/OpaqueArguments.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/platform/default/python/QPU.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
-#include "mlir/Pass/PassManager.h"
-#include "mlir/Target/LLVMIR/Export.h"
 
 using namespace mlir;
 
@@ -55,11 +52,12 @@ static std::string translate_impl(const std::string &shortName,
   auto opaques =
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
+  auto options = cudaq::get_compile_options(cudaq::other_policies{});
   return StringSwitch<std::function<std::string()>>(formatPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
-                                                       format);
+                                                       format, options);
              })
       .Case("openqasm2",
             [&]() {
@@ -82,29 +80,4 @@ static std::string translate_impl(const std::string &shortName,
 void cudaq::bindPyTranslate(nanobind::module_ &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
-  // Internal translation to QIR for testing and internal use. Not intended to
-  // be a public API.
-  mod.def(
-      "_lower_to_qir",
-      [](MlirModule module) -> std::string {
-        const std::string format = "qir";
-        auto mod = unwrap(module);
-        PassManager pm(mod.getContext());
-        pm.addInstrumentation(
-            std::make_unique<cudaq::TracePassInstrumentation>());
-        cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
-        if (failed(pm.run(mod)))
-          throw std::runtime_error("Conversion to " + format + " failed.");
-        llvm::LLVMContext llvmContext;
-        std::unique_ptr<llvm::Module> llvmModule =
-            translateModuleToLLVMIR(mod, llvmContext);
-        if (!llvmModule)
-          return "{translation failed}";
-        std::string result;
-        llvm::raw_string_ostream os(result);
-        llvmModule->print(os, nullptr);
-        os.flush();
-        return result;
-      },
-      "[Internal] Lower to QIR.");
 }

@@ -11,7 +11,7 @@
 #include "cudaq.h"
 
 __qpu__ void bell() {
-    cudaq::qubit q, r;
-    h(q);
-    x<cudaq::ctrl>(q,r);
+  cudaq::qubit q, r;
+  h(q);
+  x<cudaq::ctrl>(q, r);
 }

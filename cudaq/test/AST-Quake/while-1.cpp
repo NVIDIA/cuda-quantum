@@ -10,7 +10,7 @@
 
 #include <cudaq.h>
 
-void uma(cudaq::qubit&,cudaq::qubit&,cudaq::qubit&);
+void uma(cudaq::qubit &, cudaq::qubit &, cudaq::qubit &);
 
 __qpu__ void test1(cudaq::qview<> a, cudaq::qview<> b) {
   uint32_t i = a.size();
@@ -42,6 +42,7 @@ __qpu__ double test4(cudaq::qview<> a, cudaq::qview<> b) {
   return trouble;
 }
 
+// clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test1.
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<?>)
 // CHECK:           %[[VAL_2:.*]] = arith.constant true
@@ -158,3 +159,4 @@ __qpu__ double test4(cudaq::qview<> a, cudaq::qview<> b) {
 // CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           return %[[VAL_21]] : f64
 // CHECK:         }
+// clang-format on

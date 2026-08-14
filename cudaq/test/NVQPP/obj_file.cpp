@@ -11,4 +11,3 @@
 #include <cudaq.h>
 
 int plain_old_function() { return 0; }
-

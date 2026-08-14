@@ -32,6 +32,16 @@ CUDAQ_TEST(MeasureCountsTester, checkCount) {
   EXPECT_EQ(0, mc.count("1111"));
 }
 
+CUDAQ_TEST(MeasureCountsTester, checkMarginalIndexBounds) {
+  ExecutionResult r{CountsDictionary{{"00", 400}, {"11", 600}}};
+  cudaq::sample_result result(r);
+  // Both valid boundary indices must remain accepted.
+  EXPECT_NO_THROW(result.get_marginal({0}));
+  EXPECT_NO_THROW(result.get_marginal({1}));
+  // Index 2 equals the bitstring width and is therefore out of bounds.
+  EXPECT_ANY_THROW(result.get_marginal({2}));
+}
+
 CUDAQ_TEST(MeasureCountsTester, checkExpValZ) {
   ExecutionResult r{CountsDictionary{{"0", 400}, {"1", 600}}};
   cudaq::sample_result mc(r);
@@ -63,4 +73,46 @@ CUDAQ_TEST(MeasureCountsTester, checkMeasureCountsSerialize) {
   mm.deserialize(data);
 
   EXPECT_TRUE(mm == mc);
+}
+
+CUDAQ_TEST(MeasureCountsTester, checkDeserializeRejectsMalformed) {
+  {
+    std::vector<std::size_t> data = {255};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {1, static_cast<std::size_t>('a')};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {0, 255};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {0, 1, /*value*/ 1,
+                                     /*length*/ static_cast<std::size_t>(-1),
+                                     /*count*/ 1};
+    cudaq::sample_result mm;
+    EXPECT_ANY_THROW(mm.deserialize(data));
+  }
+
+  {
+    std::vector<std::size_t> data = {255};
+    ExecutionResult rr;
+    EXPECT_ANY_THROW(rr.deserialize(data));
+  }
+}
+
+CUDAQ_TEST(MeasureCountsTester, checkDeserializeAcceptsValid) {
+  ExecutionResult r{CountsDictionary{{"01", 400}, {"11", 600}}};
+  auto data = r.serialize();
+  ExecutionResult rr;
+  EXPECT_NO_THROW(rr.deserialize(data));
+  EXPECT_TRUE(rr == r);
 }
