@@ -54,14 +54,13 @@ def test_qpu_call_return_vector():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__func_achat..
 # CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.sequence<i1> attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant false
+# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
 # CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 # CHECK:           %[[VAL_5:.*]] = cc.sequence_size %[[VAL_3]] : (!cc.sequence<i1>) -> i64
 # CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-# CHECK:           %[[VAL_7:.*]] = call @malloc(%[[VAL_5]]) : (i64) -> !cc.ptr<i8>
-# CHECK:           call @llvm.memcpy.p0.p0.i64(%[[VAL_7]], %[[VAL_6]], %[[VAL_5]], %[[VAL_1]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+# CHECK:           %[[VAL_7:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_6]], %[[VAL_5]], %[[VAL_1]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
 # CHECK:           %[[VAL_8:.*]] = cc.sequence_init %[[VAL_7]], %[[VAL_5]] : (!cc.ptr<i8>, i64) -> !cc.sequence<i1>
 # CHECK:           return %[[VAL_8]] : !cc.sequence<i1>
 # CHECK:         }
