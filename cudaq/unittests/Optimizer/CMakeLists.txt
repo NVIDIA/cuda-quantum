@@ -19,7 +19,7 @@ add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
     LINKED_LIBS
         MLIRArithDialect
         MLIRFuncDialect
-        MLIRFuncInlinerExtension
+        MLIRTransforms
         MLIRParser
         MLIRPass
         QuakeDialect
