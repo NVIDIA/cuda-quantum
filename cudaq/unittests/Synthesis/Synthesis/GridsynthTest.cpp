@@ -8,10 +8,12 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <cmath>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <thread>
 
 #include "Math/Diophantine.h"
 #include "cudaq/Synthesis/Math/Real.h"
@@ -288,7 +290,7 @@ TEST(GridsynthZeroTTest, QuarterTurnsAreZeroTAtTightEpsilon) {
 }
 
 // ============================================================
-// RNG seeding
+// Statistics
 // ============================================================
 
 // θ = π/53 at this tolerance is sensitive to the factoring stream: different
@@ -297,6 +299,81 @@ TEST(GridsynthZeroTTest, QuarterTurnsAreZeroTAtTightEpsilon) {
 static constexpr const char *kSeedSensitiveTheta =
     "0.0592753331809301553291385543080283073437157347056713317192357";
 static constexpr const char *kSeedSensitiveEpsilon = "1e-20";
+
+using cudaq::synth::GridsynthOutcome;
+using cudaq::synth::GridsynthStats;
+
+static GridsynthStats stats_for(const char *theta, const char *epsilon) {
+  GridsynthStats stats;
+  llvm::FailureOr<Circuit> ignored = cudaq::synth::gridsynth(
+      Real(theta), Real(epsilon),
+      cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
+      cudaq::synth::details::DEFAULT_FACTORING_TIMEOUT_MS, std::nullopt,
+      &stats);
+  (void)ignored;
+  return stats;
+}
+
+TEST(GridsynthStatsTest, CountsTheWorkOfASuccessfulSearch) {
+  GridsynthStats stats = stats_for(kSeedSensitiveTheta, "1e-15");
+
+  EXPECT_EQ(stats.outcome, GridsynthOutcome::Success);
+  EXPECT_GT(stats.candidates_enumerated, 0);
+  EXPECT_GT(stats.diophantine_calls, 0);
+  EXPECT_EQ(stats.diophantine_successes, 1)
+      << "the search returns on the first solvable candidate";
+  EXPECT_LE(stats.k_reached, stats.k_max);
+
+  // Every enumerated candidate is either dropped by the residue gate or
+  // handed to the solver; nothing else consumes one.
+  EXPECT_EQ(stats.candidates_enumerated,
+            stats.candidates_residue_rejected + stats.diophantine_calls);
+}
+
+TEST(GridsynthStatsTest, ReportsTheZeroTShortcutRatherThanASearch) {
+  GridsynthStats stats = stats_for("0.5", "0.3");
+
+  EXPECT_EQ(stats.outcome, GridsynthOutcome::ZeroTShortcut);
+  EXPECT_EQ(stats.candidates_enumerated, 0)
+      << "the shortcut must return before any enumeration";
+}
+
+TEST(GridsynthStatsTest, ReportsInvalidInput) {
+  EXPECT_EQ(stats_for("0.5", "-1").outcome, GridsynthOutcome::InvalidInput);
+  EXPECT_EQ(stats_for("nan", "1e-10").outcome, GridsynthOutcome::InvalidInput);
+}
+
+// The counters have to be readable from another thread while the search is
+// still running -- a call that has to be killed for running too long is
+// precisely the one worth measuring, and it never reaches its return.
+TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
+  GridsynthStats stats;
+  std::atomic<bool> done{false};
+
+  std::thread worker([&] {
+    llvm::FailureOr<Circuit> ignored = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real("1e-30"),
+        cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
+        cudaq::synth::details::DEFAULT_FACTORING_TIMEOUT_MS, std::nullopt,
+        &stats);
+    (void)ignored;
+    done = true;
+  });
+
+  // Sample until the search reports progress or finishes. Reading a counter
+  // mid-update can only yield a stale value, never a torn one, since these are
+  // word-sized and only ever increase.
+  int64_t observed = 0;
+  while (!done && observed == 0)
+    observed = stats.candidates_enumerated;
+
+  worker.join();
+  EXPECT_GT(stats.candidates_enumerated, 0);
+}
+
+// ============================================================
+// RNG seeding
+// ============================================================
 
 static std::string synthesize_with(std::optional<uint64_t> seed) {
   llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(

@@ -11,6 +11,7 @@
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
+#include "cudaq/Synthesis/Synthesis/GridsynthStats.h"
 #include "llvm/Support/LogicalResult.h"
 
 #include <cmath>
@@ -86,11 +87,14 @@ mpfr_prec_t required_precision(const Real &epsilon);
 /// timeouts are wall-clock, a run that hits one stays machine-dependent -- so
 /// reproducing a result across hosts also means giving the budgets enough room
 /// not to bind.
+/// @param stats                  Optional out-parameter; when non-null it is
+///                               overwritten with the work this call performed.
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(
     const Real &theta, const Real &epsilon,
     int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
     int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS,
-    std::optional<uint64_t> seed = std::nullopt);
+    std::optional<uint64_t> seed = std::nullopt,
+    GridsynthStats *stats = nullptr);
 
 /// End-to-end `gridsynth` entry point: search for a DOmegaUnitary via
 /// `gridsynth_unitary`, then realize it as an explicit Clifford+T circuit
@@ -100,6 +104,7 @@ llvm::FailureOr<Circuit> gridsynth(
     const Real &theta, const Real &epsilon,
     int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
     int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS,
-    std::optional<uint64_t> seed = std::nullopt);
+    std::optional<uint64_t> seed = std::nullopt,
+    GridsynthStats *stats = nullptr);
 
 } // namespace cudaq::synth

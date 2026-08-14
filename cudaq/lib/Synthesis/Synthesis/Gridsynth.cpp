@@ -317,12 +317,21 @@ mpfr_prec_t details::required_precision(const Real &epsilon) {
 // gridsynth_unitary
 //===----------------------------------------------------------------------===//
 
-llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
-                                                 const Real &epsilon,
-                                                 int32_t diophantine_timeout_ms,
-                                                 int32_t factoring_timeout_ms,
-                                                 std::optional<uint64_t> seed) {
+llvm::FailureOr<DOmegaUnitary>
+gridsynth_unitary(const Real &theta, const Real &epsilon,
+                  int32_t diophantine_timeout_ms, int32_t factoring_timeout_ms,
+                  std::optional<uint64_t> seed, GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN_SUB("gridsynth_unitary");
+
+  // Counters are written straight into the caller's struct when one is
+  // supplied, so they stay readable while the search is still running -- a run
+  // that has to be killed for taking too long is exactly the one whose
+  // counters matter, and one published only on return would be lost. When no
+  // struct is supplied they land in a scratch object instead, which keeps the
+  // uninstrumented path free of per-candidate branches.
+  GridsynthStats scratch;
+  GridsynthStats &local = stats ? *stats : scratch;
+  auto publish = [&](GridsynthOutcome outcome) { local.outcome = outcome; };
   LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << "\n";
              cudaq::synth::dbgs() << "eps=" << epsilon << "\n";
              cudaq::synth::dbgs() << "diophantine_timeout="
@@ -343,10 +352,12 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 
   // Reject NaN / infinity / non-positive inputs here.
   if (!theta.is_finite()) {
+    publish(GridsynthOutcome::InvalidInput);
     CUDAQ_SYNTH_CLOSE_FAILURE("theta must be finite");
     return llvm::failure();
   }
   if (!epsilon.is_finite() || !(epsilon > 0)) {
+    publish(GridsynthOutcome::InvalidInput);
     CUDAQ_SYNTH_CLOSE_FAILURE("epsilon must be finite and strictly positive");
     return llvm::failure();
   }
@@ -355,6 +366,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   // epsilon-region construction below confined to epsilon < 2*sin(pi/16).
   if (std::optional<DOmegaUnitary> clifford =
           nearest_zero_t_unitary(theta, epsilon)) {
+    publish(GridsynthOutcome::ZeroTShortcut);
     CUDAQ_SYNTH_CLOSE_SUCCESS("zero-T Clifford within epsilon");
     return *clifford;
   }
@@ -365,6 +377,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<EpsilonRegion> region_or =
       EpsilonRegion::create(theta, epsilon);
   if (llvm::failed(region_or)) {
+    publish(GridsynthOutcome::DegenerateEpsilonRegion);
     CUDAQ_SYNTH_CLOSE_FAILURE("degenerate epsilon-region");
     return llvm::failure();
   }
@@ -380,6 +393,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<UprightResult> transformed_or =
       to_upright(region_or->ellipse(), UnitDisk::as_ellipse());
   if (llvm::failed(transformed_or)) {
+    publish(GridsynthOutcome::PreprocessingFailed);
     CUDAQ_SYNTH_CLOSE_FAILURE("to_upright preprocessing failed");
     return llvm::failure();
   }
@@ -410,6 +424,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 
   llvm::FailureOr<GridOp> opG_inv_or = inv(transformed.opG);
   if (llvm::failed(opG_inv_or)) {
+    publish(GridsynthOutcome::PreprocessingFailed);
     CUDAQ_SYNTH_CLOSE_FAILURE("inv(opG) failed");
     return llvm::failure();
   }
@@ -423,6 +438,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   // (Lemma 7.3), so scanning k from 0 upwards finds the T-optimal
   // approximation.
   const int64_t k_max = details::max_denominator_exponent(epsilon);
+  local.k_max = k_max;
   LLVM_DEBUG(cudaq::synth::dbgs() << "k_max=" << k_max << '\n');
 
   Integer k = 0;
@@ -432,7 +448,9 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 
     TdgpStepper stepper(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
                         transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened);
+    local.k_reached = static_cast<int64_t>(k);
     for (const DOmega &z : stepper) {
+      local.candidates_enumerated++;
       // Step 2(a): residue gate.
       //
       // If conj(z) * z has residue 0 (i.e. is even in the Z[omega] residue
@@ -445,17 +463,21 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
       //
       // Compute conj(z) * z once and reuse.
       DOmega z_conj_z = z.conj() * z;
-      if (z_conj_z.residue() == 0)
+      if (z_conj_z.residue() == 0) {
+        local.candidates_residue_rejected++;
         continue;
+      }
 
       // Step 2(b-c): solve conj(t) * t = xi for xi = 1 - conj(z) * z in
       // D[sqrt(2)]. DSqrt2::from_domega is well-defined because conj(z) * z
       // is real and lies in D[sqrt(2)] for any z in D[omega].
       DSqrt2 xi = DSqrt2(1) - DSqrt2::from_domega(z_conj_z);
+      local.diophantine_calls++;
       llvm::FailureOr<DOmega> w_or =
           diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
 
       if (llvm::succeeded(w_or)) {
+        local.diophantine_successes++;
         // We now have z and w with conj(z) * z + conj(w) * w = 1, so
         // U = [[ z, -conj(w) ], [ w, conj(z) ]] (equation (12), n = 0) is a
         // valid Clifford+T unitary approximating R_z(theta).
@@ -480,6 +502,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
         else
           u_approx = DOmegaUnitary(z_reduced, mul_by_omega(w_reduced), 0);
 
+        publish(GridsynthOutcome::Success);
         std::string k_str = std::to_string(static_cast<int64_t>(k));
         CUDAQ_SYNTH_CLOSE_SUCCESS("Diophantine succeeded at k=" + k_str);
         CUDAQ_SYNTH_CLOSE_SUCCESS("synthesized at k=" + k_str);
@@ -497,6 +520,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   // wide margin, so the search is not converging: the Diophantine solver is
   // starving on its timeouts rather than closing in. Report that instead of
   // scanning k forever..
+  publish(GridsynthOutcome::KExhausted);
   CUDAQ_SYNTH_CLOSE_FAILURE("k exceeded k_max without a solution");
   return llvm::failure();
 }
@@ -508,13 +532,15 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                                    int32_t diophantine_timeout_ms,
                                    int32_t factoring_timeout_ms,
-                                   std::optional<uint64_t> seed) {
+                                   std::optional<uint64_t> seed,
+                                   GridsynthStats *stats) {
   CUDAQ_SYNTH_OPEN("gridsynth");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "theta=" << theta << ", eps=" << epsilon << '\n');
 
-  llvm::FailureOr<DOmegaUnitary> u_or = gridsynth_unitary(
-      theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms, seed);
+  llvm::FailureOr<DOmegaUnitary> u_or =
+      gridsynth_unitary(theta, epsilon, diophantine_timeout_ms,
+                        factoring_timeout_ms, seed, stats);
   if (llvm::failed(u_or)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("synthesis failed");
     return llvm::failure();
