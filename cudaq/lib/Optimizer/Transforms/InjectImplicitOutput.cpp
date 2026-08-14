@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Dominance.h"
@@ -78,20 +77,16 @@ public:
     // Passes /*compilerGenerated=*/true to the builder so the attribute is
     // stored as a first-class op attribute rather than a discardable side attr.
     auto emitLogOutput = [&](OpBuilder &b, Location l, Value v) {
-      if (isa<cudaq::quake::RefType>(v.getType())) {
-        cudaq::quake::LogOutputOp::create(b, l, ValueRange{v},
-                                          /*compilerGenerated=*/true);
-        return;
-      }
-      assert(isa<cudaq::quake::VeqType>(v.getType()));
-      Value size = cudaq::quake::VeqSizeOp::create(b, l, b.getI64Type(), v);
-      cudaq::opt::factory::createInvariantLoop(
-          b, l, size, [&](OpBuilder &ib, Location il, Region &, Block &body) {
-            Value idx = body.getArgument(0);
-            Value ref = cudaq::quake::ExtractRefOp::create(ib, il, v, idx);
-            cudaq::quake::LogOutputOp::create(ib, il, ValueRange{ref},
-                                              /*compilerGenerated=*/true);
-          });
+      // Emit a single log_output for the value regardless of whether it is a
+      // ref or a veq.  Using log_output %veq directly (rather than a per-
+      // element loop) is essential: the DQE pass recognises log_output as the
+      // keep-alive signal for a veq alloca.  A loop of extract_ref + log_output
+      // %ref would hide the veq from DQE, causing the alloca to be treated as
+      // dead and eliminated.  log_output %veq also avoids the null-wire double-
+      // use issue in memtoreg because LogOutputOpPattern only fires on !ref
+      // operands (hasNonVectorReference returns false for veq).
+      cudaq::quake::LogOutputOp::create(b, l, ValueRange{v},
+                                        /*compilerGenerated=*/true);
     };
 
     DominanceInfo dom(funcOp);

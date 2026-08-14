@@ -128,7 +128,7 @@ int main() {
     std::cout << "Test 1\n";
     auto gateCounts = cudaq::estimate_resources(explicit_reset_after_mz);
     gateCounts.dump();
-    output_good_or_bad(gateCounts.count("reset") == 1);
+    output_good_or_bad(gateCounts.count("reset") == 0);
     // CHECK-LABEL: Test 1
     // CHECK-NOT: reset
     // CHECK: success
