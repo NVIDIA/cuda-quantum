@@ -334,9 +334,12 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 
   // Reseed once for the whole search rather than per candidate: the candidates
   // share one random stream, so re-seeding inside the loop would make every
-  // candidate replay the same factoring attempts.
+  // candidate replay the same factoring attempts. The guard restores the
+  // previous state on the way out, so a seeded call leaves later unseeded ones
+  // drawing from entropy as they would have anyway.
+  std::optional<ScopedFactoringRngSeed> seedGuard;
   if (seed)
-    seed_factoring_rng(*seed);
+    seedGuard.emplace(*seed);
 
   // Reject NaN / infinity / non-positive inputs here.
   if (!theta.is_finite()) {

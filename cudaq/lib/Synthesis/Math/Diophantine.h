@@ -13,6 +13,7 @@
 #include "llvm/Support/LogicalResult.h"
 
 #include <cstdint>
+#include <memory>
 
 namespace cudaq::synth {
 
@@ -54,8 +55,8 @@ llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
                                            int32_t diophantine_timeout,
                                            int32_t factoring_timeout);
 
-/// Reseed the calling thread's random state used by the Pollard-rho factoring
-/// heuristic.
+/// Seeds the calling thread's Pollard-rho factoring RNG for the lifetime of
+/// this object, restoring the previous random state on destruction.
 ///
 /// The state is otherwise seeded once per thread from `std::random_device`, so
 /// two runs of the same input explore different factoring attempts and can
@@ -63,9 +64,27 @@ llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
 /// replayable, which is a prerequisite for benchmark numbers being evidence
 /// rather than a single draw from a wide distribution.
 ///
+/// Restoring on scope exit keeps a seeded run from leaking determinism into
+/// whatever runs next: without it, every later unseeded call on the same
+/// thread would continue the seeded stream rather than the entropy-derived
+/// one, so an unseeded result would silently depend on what ran before it.
+///
 /// Affects only the calling thread. Determinism additionally requires that the
 /// run not be cut short by a wall-clock budget, since those remain
 /// machine-dependent.
-void seed_factoring_rng(uint64_t seed);
+class ScopedFactoringRngSeed {
+public:
+  explicit ScopedFactoringRngSeed(uint64_t seed);
+  ~ScopedFactoringRngSeed();
+
+  ScopedFactoringRngSeed(const ScopedFactoringRngSeed &) = delete;
+  ScopedFactoringRngSeed &operator=(const ScopedFactoringRngSeed &) = delete;
+
+private:
+  /// Copy of the random state as it was on construction. Opaque here so the
+  /// GMP headers stay out of this interface.
+  struct SavedState;
+  std::unique_ptr<SavedState> saved;
+};
 
 } // namespace cudaq::synth

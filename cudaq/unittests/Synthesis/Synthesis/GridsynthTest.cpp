@@ -9,8 +9,11 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstdint>
+#include <optional>
 #include <string>
 
+#include "Math/Diophantine.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
@@ -282,6 +285,58 @@ TEST(GridsynthZeroTTest, QuarterTurnsAreZeroTAtTightEpsilon) {
               Real("1e-30"))
         << "theta=" << theta;
   }
+}
+
+// ============================================================
+// RNG seeding
+// ============================================================
+
+// θ = π/53 at this tolerance is sensitive to the factoring stream: different
+// seeds return different (equally valid) circuits, which is what makes it
+// usable as a probe of the RNG state.
+static constexpr const char *kSeedSensitiveTheta =
+    "0.0592753331809301553291385543080283073437157347056713317192357";
+static constexpr const char *kSeedSensitiveEpsilon = "1e-20";
+
+static std::string synthesize_with(std::optional<uint64_t> seed) {
+  llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+      Real(kSeedSensitiveTheta), Real(kSeedSensitiveEpsilon),
+      cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
+      cudaq::synth::details::DEFAULT_FACTORING_TIMEOUT_MS, seed);
+  EXPECT_TRUE(llvm::succeeded(result));
+  return llvm::succeeded(result) ? result->to_string() : std::string();
+}
+
+TEST(GridsynthSeedTest, SameSeedReproducesTheCircuit) {
+  EXPECT_EQ(synthesize_with(1234), synthesize_with(1234));
+}
+
+TEST(GridsynthSeedTest, DifferentSeedsExploreDifferentStreams) {
+  EXPECT_NE(synthesize_with(1234), synthesize_with(4321));
+}
+
+// A seeded call must leave the thread's random state where it found it.
+// Otherwise every later unseeded call continues the seeded stream instead of
+// the entropy-derived one, and an unseeded result silently depends on what ran
+// before it in the same process.
+//
+// Both halves run under an outer seed so the unseeded calls are comparable at
+// all; the only difference between them is the seeded call in the middle.
+TEST(GridsynthSeedTest, SeededCallRestoresThePreviousRandomState) {
+  std::string without_intervening_call;
+  {
+    cudaq::synth::ScopedFactoringRngSeed outer(2026);
+    without_intervening_call = synthesize_with(std::nullopt);
+  }
+
+  std::string with_intervening_call;
+  {
+    cudaq::synth::ScopedFactoringRngSeed outer(2026);
+    synthesize_with(999);
+    with_intervening_call = synthesize_with(std::nullopt);
+  }
+
+  EXPECT_EQ(without_intervening_call, with_intervening_call);
 }
 
 // A NaN threshold silently rejects every grid candidate, so an unvalidated

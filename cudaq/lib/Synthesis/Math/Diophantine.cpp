@@ -16,6 +16,7 @@
 #include <cassert>
 #include <chrono>
 #include <cmath>
+#include <memory>
 #include <random>
 #include <variant>
 #include <vector>
@@ -1102,8 +1103,30 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 // Public API: RNG seeding
 //===----------------------------------------------------------------------===//
 
-void cudaq::synth::seed_factoring_rng(uint64_t seed) {
+/// Snapshot of a gmp_randstate_t. GMP offers no assignment, so restoring means
+/// clearing the live state and re-initializing it from this copy.
+struct cudaq::synth::ScopedFactoringRngSeed::SavedState {
+  gmp_randstate_t state;
+
+  explicit SavedState(const gmp_randstate_t &source) {
+    gmp_randinit_set(state, source);
+  }
+
+  ~SavedState() { gmp_randclear(state); }
+
+  SavedState(const SavedState &) = delete;
+  SavedState &operator=(const SavedState &) = delete;
+};
+
+cudaq::synth::ScopedFactoringRngSeed::ScopedFactoringRngSeed(uint64_t seed)
+    : saved(std::make_unique<SavedState>(global_rng().state)) {
   gmp_randseed_ui(global_rng().state, static_cast<unsigned long>(seed));
+}
+
+cudaq::synth::ScopedFactoringRngSeed::~ScopedFactoringRngSeed() {
+  gmp_randstate_t &live = global_rng().state;
+  gmp_randclear(live);
+  gmp_randinit_set(live, saved->state);
 }
 
 //===----------------------------------------------------------------------===//
