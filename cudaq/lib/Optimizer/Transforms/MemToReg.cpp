@@ -323,8 +323,15 @@ public:
   /// Wrap all active quantum-ref bindings back into their refs and cancel them.
   /// Used when an operation may alias any qubit through a veq whose membership
   /// cannot be precisely determined.
+  ///
+  /// If \p triggeringOp is non-null, any binding whose current wire value is
+  /// already a direct operand of \p triggeringOp is skipped.  Wrapping such a
+  /// wire would give it two uses (the wrap and the op), violating wire
+  /// linearity — the op itself is about to "consume" that wire.
   void wrapAndCancelAllQuantumBindings(Block *block, OpBuilder &builder,
-                                       Location loc) {
+                                       Location loc,
+                                       SmallPtrSetImpl<Operation *> &cleanUps,
+                                       Operation *triggeringOp = nullptr) {
     if (!rMap.count(block))
       return;
     SmallVector<std::pair<MemRef, SSAReg>> toCancel;
@@ -336,7 +343,21 @@ public:
       toCancel.push_back({ref, wire});
     }
     for (auto [ref, wire] : toCancel) {
-      cudaq::quake::WrapOp::create(builder, loc, wire, ref);
+      // Skip bindings whose wire is already consumed by the triggering op
+      // itself.
+      if (triggeringOp && llvm::is_contained(triggeringOp->getOperands(), wire))
+        continue;
+
+      // Alloca refs whose defining op is in cleanUps are being SSI-promoted.
+      // Wrapping them back is pointless. Keep the binding active.
+      if (auto *defOp = ref.getDefiningOp())
+        if (cleanUps.count(defOp))
+          continue;
+
+      auto wrapOp = cudaq::quake::WrapOp::create(builder, loc, wire, ref);
+      // Add the wrap to cleanUps so the wrap is erased if its def came from a
+      // extract_ref whose underlying alloca is later cleaned up.
+      cleanUps.insert(wrapOp);
       rMap[block][ref] = SSAReg{};
     }
   }
@@ -1010,7 +1031,8 @@ public:
               Location loc = op->getLoc();
               auto concat = v.getDefiningOp<cudaq::quake::ConcatOp>();
               if (!concat) {
-                dataFlow.wrapAndCancelAllQuantumBindings(block, builder, loc);
+                dataFlow.wrapAndCancelAllQuantumBindings(block, builder, loc,
+                                                         cleanUps, op);
                 continue;
               }
               bool fallback = false;
@@ -1019,8 +1041,19 @@ public:
                   break;
                 if (isa<cudaq::quake::RefType>(arg.getType())) {
                   if (auto wire = dataFlow.lookupBinding(block, arg)) {
-                    cudaq::quake::WrapOp::create(builder, loc, wire, arg);
-                    dataFlow.cancelBinding(block, arg);
+                    if (!llvm::is_contained(op->getOperands(), wire)) {
+                      // Skip alloca refs being SSA-promoted (same logic as
+                      // wrapAndCancelAllQuantumBindings).
+                      bool allocaInCleanUps =
+                          arg.getDefiningOp() &&
+                          cleanUps.count(arg.getDefiningOp());
+                      if (!allocaInCleanUps) {
+                        auto wrapOp = cudaq::quake::WrapOp::create(builder, loc,
+                                                                   wire, arg);
+                        cleanUps.insert(wrapOp);
+                        dataFlow.cancelBinding(block, arg);
+                      }
+                    }
                   }
                 } else if (auto veqTy =
                                dyn_cast<cudaq::quake::VeqType>(arg.getType())) {
@@ -1031,7 +1064,8 @@ public:
                 }
               }
               if (fallback)
-                dataFlow.wrapAndCancelAllQuantumBindings(block, builder, loc);
+                dataFlow.wrapAndCancelAllQuantumBindings(block, builder, loc,
+                                                         cleanUps, op);
             }
           }
 
