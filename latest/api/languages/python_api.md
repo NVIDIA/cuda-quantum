@@ -1741,6 +1741,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.ObserveResult){.reference
                 .internal}
@@ -2836,130 +2839,70 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
 :   Generate a detector error model (DEM) from a CUDA-Q kernel.
 
-    Runs [`kernel`{.code .docutils .literal .notranslate}]{.pre} under
-    [`dem_policy`{.code .docutils .literal .notranslate}]{.pre} with a
-    thread-local Stim analysis scope, then returns Stim's standard
-    [`.dem`{.code .docutils .literal .notranslate}]{.pre} text via
-    [`stim::DetectorErrorModel::str()`{.code .docutils .literal
-    .notranslate}]{.pre}. The active CUDA-Q target is unaffected.
+    Returns a [[`cudaq.DEMResult`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.DEMResult "cudaq.DEMResult"){.reference
+    .internal} carrying the DEM text, count fields, and (by default) the
+    measurement matrices.
+
+    [`str(result)`{.docutils .literal .notranslate}]{.pre} returns the
+    DEM text so existing print calls are unchanged.
+    [`stim.DetectorErrorModel(result.dem)`{.docutils .literal
+    .notranslate}]{.pre} replaces the previous
+    [`stim.DetectorErrorModel(result)`{.docutils .literal
+    .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} to analyze.
+    :   -   **kernel** -- The kernel to analyze.
 
-        -   **\*arguments** -- Concrete argument values forwarded to the
-            kernel invocation.
+        -   **\*arguments** -- Forwarded to the kernel.
 
-        -   **noise_model** ([[`NoiseModel`{.xref .py .py-class
-            .docutils .literal
-            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
-            .internal}, optional) -- Noise model layered on top of any
-            [`apply_noise`{.code .docutils .literal .notranslate}]{.pre}
-            ops already present in the kernel.
+        -   **noise_model** -- Optional noise model.
 
         -   **decompose_errors**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Decompose hyper-edge error
-            mechanisms into pairs of two-detector edges. Default
-            [`False`{.docutils .literal .notranslate}]{.pre}.
+            .external}) -- Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **fold_loops**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Fold loop bodies in the circuit
-            for a more compact DEM. Default [`False`{.docutils .literal
+            .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **allow_gauge_detectors**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Allow detectors whose parity is
-            not determined by the circuit. Default [`False`{.docutils
-            .literal .notranslate}]{.pre}.
+            .external}) -- Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **approximate_disjoint_errors_threshold**
             ([*float*](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Threshold for approximating
-            disjoint-error products; set to [`0`{.docutils .literal
-            .notranslate}]{.pre} to disable. Default [`0.0`{.docutils
-            .literal .notranslate}]{.pre}.
+            .external}) -- Default [`0.0`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **ignore_decomposition_failures**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- When decomposition fails for an
-            error mechanism, insert it into the DEM undecomposed (as a
-            hyper-edge) instead of raising an exception. Only relevant
-            when [`decompose_errors`{.docutils .literal
-            .notranslate}]{.pre} is [`True`{.docutils .literal
-            .notranslate}]{.pre}. Default [`False`{.docutils .literal
+            .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **block_decomposition_from_introducing_remnant_edges**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- Prevent the decomposer from
-            introducing remnant edges. Default [`False`{.docutils
-            .literal .notranslate}]{.pre}.
+            .external}) -- Default [`False`{.docutils .literal
+            .notranslate}]{.pre}.
 
         -   **return_measurement_matrices**
             ([*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
-            .external}*,* *optional*) -- When True, also return the
-            sparse measurements-to-detectors (m2d) and
-            measurements-to-observables (m2o) matrices alongside the DEM
-            text. Default [`False`{.docutils .literal
+            .external}) -- When [`False`{.docutils .literal
+            .notranslate}]{.pre}, [`m2d_matrix`{.docutils .literal
+            .notranslate}]{.pre} / [`m2o_matrix`{.docutils .literal
+            .notranslate}]{.pre} will be [`None`{.docutils .literal
+            .notranslate}]{.pre}. Default [`True`{.docutils .literal
             .notranslate}]{.pre}.
 
     Returns[:]{.colon}
 
-    :   a UTF-8 string in Stim's standard [`.dem`{.code .docutils
-        .literal .notranslate}]{.pre} file format. Consumers that need a
-        structured DEM can parse it with
-        [`stim.DetectorErrorModel(text)`{.code .docutils .literal
-        .notranslate}]{.pre}.
-
-        If [`return_measurement_matrices`{.code .docutils .literal
-        .notranslate}]{.pre} is True: a tuple [`(dem_text,`{.docutils
-        .literal .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m2d,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m2o)`{.docutils .literal .notranslate}]{.pre}
-        where both matrices are [`scipy.sparse.csr_matrix`{.docutils
-        .literal .notranslate}]{.pre} with binary entries.
-        [`m2d`{.docutils .literal .notranslate}]{.pre} has shape
-        [`(num_detectors,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`num_measurements)`{.docutils .literal
-        .notranslate}]{.pre}: entry [`m2d[d,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m]`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`==`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
-        measurement [`m`{.docutils .literal .notranslate}]{.pre}
-        contributes to detector [`d`{.docutils .literal
-        .notranslate}]{.pre}. [`m2o`{.docutils .literal
-        .notranslate}]{.pre} has shape [`(num_observables,`{.docutils
-        .literal .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`num_measurements)`{.docutils .literal
-        .notranslate}]{.pre}: entry [`m2o[k,`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`m]`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`==`{.docutils .literal
-        .notranslate}]{.pre}` `{.docutils .literal
-        .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} means
-        measurement [`m`{.docutils .literal .notranslate}]{.pre}
-        contributes to observable [`k`{.docutils .literal
-        .notranslate}]{.pre}. Measurement indices are chronological.
-
-    Return type[:]{.colon}
-
-    :   If [`return_measurement_matrices`{.code .docutils .literal
-        .notranslate}]{.pre} is False (default)
+    :   [[`cudaq.DEMResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.DEMResult "cudaq.DEMResult"){.reference
+        .internal}
 :::
 
 ::: {#cudaq-contrib .section}
@@ -6009,7 +5952,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0xdbf70a0\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 
@@ -6784,6 +6727,61 @@ discriminated bits into an integer.)
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncSampleResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[impl]{.pre}]{.n}*, *[[mod]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.AsyncSampleResult "Permalink to this definition"){.headerlink}
 
 :   
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[DEMResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.DEMResult "Permalink to this definition"){.headerlink}
+
+:   
+
+    *[property]{.pre}[ ]{.w}*[[annotations]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.annotations "Permalink to this definition"){.headerlink}
+
+    :   Read-only metadata dict set by backends.
+
+    *[property]{.pre}[ ]{.w}*[[dem]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.dem "Permalink to this definition"){.headerlink}
+
+    :   DEM text in Stim's [`.dem`{.docutils .literal
+        .notranslate}]{.pre} format.
+
+    [[from_matrices]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.DEMResult.from_matrices "Permalink to this definition"){.headerlink}
+
+    :   
+
+    *[property]{.pre}[ ]{.w}*[[m2d]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2d "Permalink to this definition"){.headerlink}
+
+    :   Measurement-to-detector row lists (neutral C++ form).
+
+    *[property]{.pre}[ ]{.w}*[[m2d_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2d_matrix "Permalink to this definition"){.headerlink}
+
+    :   scipy CSR matrix (num_detectors x num_measurements), or None
+        when matrices were not requested.
+
+    *[property]{.pre}[ ]{.w}*[[m2o]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2o "Permalink to this definition"){.headerlink}
+
+    :   Measurement-to-observable row lists (neutral C++ form).
+
+    *[property]{.pre}[ ]{.w}*[[m2o_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.m2o_matrix "Permalink to this definition"){.headerlink}
+
+    :   scipy CSR matrix (num_observables x num_measurements), or None
+        when matrices were not requested.
+
+    *[property]{.pre}[ ]{.w}*[[matrices_computed]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.matrices_computed "Permalink to this definition"){.headerlink}
+
+    :   True when m2d / m2o were populated.
+
+    *[property]{.pre}[ ]{.w}*[[num_detectors]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.num_detectors "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> int
+
+    *[property]{.pre}[ ]{.w}*[[num_measurements]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.num_measurements "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> int
+
+    *[property]{.pre}[ ]{.w}*[[num_observables]{.pre}]{.sig-name .descname}[¶](#cudaq.DEMResult.num_observables "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> int
 
 ```{=html}
 <!-- -->

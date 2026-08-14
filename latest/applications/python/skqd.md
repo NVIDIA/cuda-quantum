@@ -1750,6 +1750,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -2499,7 +2502,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![03765e410d6c43eb82467de1cc4dfa93](../../_images/speedup.png){.no-scaled-link
+![7c7b9e19c8d54725bc83527d571833ba](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2513,9 +2516,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![a38149190460404b938259a687f9b19f](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![67dfa99e6c4b4f31ac57561355780a9d](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![be5e7bf3f2f940b0b97f218dfafe167d](../../_images/efficiency.jpeg){.no-scaled-link
+![885424f0fc04408294400aa0d7adbd7a](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

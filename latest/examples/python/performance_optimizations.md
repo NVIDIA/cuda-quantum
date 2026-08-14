@@ -1765,6 +1765,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1986,14 +1989,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![4cc3d2f986704a58b89cadbda098b9c0](../../_images/gate-fuse.png)
+![ba35e969e7ec4e6a984e776116755769](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![cd52a8a97cef45099a98c7269325fe88](../../_images/gatefusion.png)
+![db5fe293cf76408aa958fa207cc933e7](../../_images/gatefusion.png)
 :::
 :::
 :::

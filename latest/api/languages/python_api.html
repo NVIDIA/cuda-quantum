@@ -994,6 +994,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.DEMResult"><code class="docutils literal notranslate"><span class="pre">DEMResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
@@ -1718,54 +1719,29 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <dt class="sig sig-object py" id="cudaq.dem_from_kernel">
 <span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">dem_from_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">dem_kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.dem_from_kernel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a detector error model (DEM) from a CUDA-Q kernel.</p>
-<p>Runs <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> under <code class="code docutils literal notranslate"><span class="pre">dem_policy</span></code> with a thread-local Stim analysis
-scope, then returns Stim’s standard <code class="code docutils literal notranslate"><span class="pre">.dem</span></code> text via
-<code class="code docutils literal notranslate"><span class="pre">stim::DetectorErrorModel::str()</span></code>. The active CUDA-Q target is
-unaffected.</p>
+<p>Returns a <a class="reference internal" href="#cudaq.DEMResult" title="cudaq.DEMResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.DEMResult</span></code></a> carrying the DEM text, count fields, and
+(by default) the measurement matrices.</p>
+<p><code class="docutils literal notranslate"><span class="pre">str(result)</span></code> returns the DEM text so existing print calls are unchanged.
+<code class="docutils literal notranslate"><span class="pre">stim.DetectorErrorModel(result.dem)</span></code> replaces the previous
+<code class="docutils literal notranslate"><span class="pre">stim.DetectorErrorModel(result)</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to analyze.</p></li>
-<li><p><strong>*arguments</strong> – Concrete argument values forwarded to the kernel invocation.</p></li>
-<li><p><strong>noise_model</strong> (<a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a>, optional) – Noise model layered on
-top of any <code class="code docutils literal notranslate"><span class="pre">apply_noise</span></code> ops already present in the kernel.</p></li>
-<li><p><strong>decompose_errors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Decompose hyper-edge error
-mechanisms into pairs of two-detector edges. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
-<li><p><strong>fold_loops</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Fold loop bodies in the circuit for a
-more compact DEM. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
-<li><p><strong>allow_gauge_detectors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Allow detectors whose parity
-is not determined by the circuit. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
-<li><p><strong>approximate_disjoint_errors_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a><em>, </em><em>optional</em>) – Threshold
-for approximating disjoint-error products; set to <code class="docutils literal notranslate"><span class="pre">0</span></code> to
-disable. Default <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p></li>
-<li><p><strong>ignore_decomposition_failures</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – When decomposition
-fails for an error mechanism, insert it into the DEM undecomposed
-(as a hyper-edge) instead of raising an exception. Only relevant
-when <code class="docutils literal notranslate"><span class="pre">decompose_errors</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
-<li><p><strong>block_decomposition_from_introducing_remnant_edges</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – Prevent the decomposer from introducing remnant edges.
-Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
-<li><p><strong>return_measurement_matrices</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – When True, also return
-the sparse measurements-to-detectors (m2d) and
-measurements-to-observables (m2o) matrices alongside the DEM text.
-Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>kernel</strong> – The kernel to analyze.</p></li>
+<li><p><strong>*arguments</strong> – Forwarded to the kernel.</p></li>
+<li><p><strong>noise_model</strong> – Optional noise model.</p></li>
+<li><p><strong>decompose_errors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>fold_loops</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>allow_gauge_detectors</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>approximate_disjoint_errors_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Default <code class="docutils literal notranslate"><span class="pre">0.0</span></code>.</p></li>
+<li><p><strong>ignore_decomposition_failures</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>block_decomposition_from_introducing_remnant_edges</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></li>
+<li><p><strong>return_measurement_matrices</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – When <code class="docutils literal notranslate"><span class="pre">False</span></code>, <code class="docutils literal notranslate"><span class="pre">m2d_matrix</span></code> /
+<code class="docutils literal notranslate"><span class="pre">m2o_matrix</span></code> will be <code class="docutils literal notranslate"><span class="pre">None</span></code>. Default <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><p>a UTF-8 string in
-Stim’s standard <code class="code docutils literal notranslate"><span class="pre">.dem</span></code> file format. Consumers that need a structured DEM
-can parse it with <code class="code docutils literal notranslate"><span class="pre">stim.DetectorErrorModel(text)</span></code>.</p>
-<p>If <code class="code docutils literal notranslate"><span class="pre">return_measurement_matrices</span></code> is True: a tuple
-<code class="docutils literal notranslate"><span class="pre">(dem_text,</span> <span class="pre">m2d,</span> <span class="pre">m2o)</span></code> where both matrices are
-<code class="docutils literal notranslate"><span class="pre">scipy.sparse.csr_matrix</span></code> with binary entries.
-<code class="docutils literal notranslate"><span class="pre">m2d</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_detectors,</span> <span class="pre">num_measurements)</span></code>: entry
-<code class="docutils literal notranslate"><span class="pre">m2d[d,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to detector <code class="docutils literal notranslate"><span class="pre">d</span></code>.
-<code class="docutils literal notranslate"><span class="pre">m2o</span></code> has shape <code class="docutils literal notranslate"><span class="pre">(num_observables,</span> <span class="pre">num_measurements)</span></code>: entry
-<code class="docutils literal notranslate"><span class="pre">m2o[k,</span> <span class="pre">m]</span> <span class="pre">==</span> <span class="pre">1</span></code> means measurement <code class="docutils literal notranslate"><span class="pre">m</span></code> contributes to observable <code class="docutils literal notranslate"><span class="pre">k</span></code>.
-Measurement indices are chronological.</p>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>If <code class="code docutils literal notranslate"><span class="pre">return_measurement_matrices</span></code> is False (default)</p>
+<dd class="field-even"><p><a class="reference internal" href="#cudaq.DEMResult" title="cudaq.DEMResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.DEMResult</span></code></a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -3672,7 +3648,7 @@ on multiple degrees of freedom.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.State.from_data">
-<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0xdbf70a0&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -4221,6 +4197,76 @@ vs. the number of experiments (<code class="code docutils literal notranslate"><
 <dt class="sig sig-object py" id="cudaq.AsyncSampleResult">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">AsyncSampleResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">impl</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.AsyncSampleResult" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.DEMResult">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">DEMResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.DEMResult" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.annotations">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">annotations</span></span><a class="headerlink" href="#cudaq.DEMResult.annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read-only metadata dict set by backends.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.dem">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dem</span></span><a class="headerlink" href="#cudaq.DEMResult.dem" title="Permalink to this definition">¶</a></dt>
+<dd><p>DEM text in Stim’s <code class="docutils literal notranslate"><span class="pre">.dem</span></code> format.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cudaq.DEMResult.from_matrices">
+<span class="sig-name descname"><span class="pre">from_matrices</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.DEMResult.from_matrices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.m2d">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">m2d</span></span><a class="headerlink" href="#cudaq.DEMResult.m2d" title="Permalink to this definition">¶</a></dt>
+<dd><p>Measurement-to-detector row lists (neutral C++ form).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.m2d_matrix">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">m2d_matrix</span></span><a class="headerlink" href="#cudaq.DEMResult.m2d_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>scipy CSR matrix (num_detectors x num_measurements), or None when matrices were not requested.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.m2o">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">m2o</span></span><a class="headerlink" href="#cudaq.DEMResult.m2o" title="Permalink to this definition">¶</a></dt>
+<dd><p>Measurement-to-observable row lists (neutral C++ form).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.m2o_matrix">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">m2o_matrix</span></span><a class="headerlink" href="#cudaq.DEMResult.m2o_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>scipy CSR matrix (num_observables x num_measurements), or None when matrices were not requested.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.matrices_computed">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">matrices_computed</span></span><a class="headerlink" href="#cudaq.DEMResult.matrices_computed" title="Permalink to this definition">¶</a></dt>
+<dd><p>True when m2d / m2o were populated.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.num_detectors">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_detectors</span></span><a class="headerlink" href="#cudaq.DEMResult.num_detectors" title="Permalink to this definition">¶</a></dt>
+<dd><p>(self) -&gt; int</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.num_measurements">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_measurements</span></span><a class="headerlink" href="#cudaq.DEMResult.num_measurements" title="Permalink to this definition">¶</a></dt>
+<dd><p>(self) -&gt; int</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.DEMResult.num_observables">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">num_observables</span></span><a class="headerlink" href="#cudaq.DEMResult.num_observables" title="Permalink to this definition">¶</a></dt>
+<dd><p>(self) -&gt; int</p>
+</dd></dl>
+
+</dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.ObserveResult">

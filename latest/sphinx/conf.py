@@ -120,7 +120,8 @@ exclude_patterns = [
     'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
-    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md'
+    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
+    'examples/plugins/mlir_extension/README.md',
 ]
 
 compiler_developer_docs = (
@@ -242,6 +243,10 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'numpy.ndarray[]'),
+    # numpy documents NDArray as py:data, so the py:class reference that
+    # autodoc generates for the annotation cannot resolve via intersphinx
+    ('py:class', 'NDArray'),
+    ('py:class', 'numpy.typing.NDArray'),
     # FIXME: remove these after adding proper documentation
     # (also reexamine why some of the ones above are ignored)
     ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),

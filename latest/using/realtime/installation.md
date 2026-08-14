@@ -1728,6 +1728,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -2032,6 +2035,19 @@ Using Holoscan Sensor Bridge
     ::: {.highlight-console .notranslate}
     ::: highlight
         ./install_cuda_quantum_realtime_cu13.arm64  --accept
+    :::
+    :::
+
+    The default installation location is
+    [`/opt/nvidia/cudaq/realtime`{.docutils .literal
+    .notranslate}]{.pre}, which usually requires [`sudo`{.docutils
+    .literal .notranslate}]{.pre}. To install somewhere else, pass
+    [`--installpath`{.docutils .literal .notranslate}]{.pre} to the
+    installer. For example,
+
+    ::: {.highlight-console .notranslate}
+    ::: highlight
+        ./install_cuda_quantum_realtime_cu13.arm64 --accept -- --installpath $HOME/.cudaq_realtime
     :::
     :::
 

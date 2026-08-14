@@ -1726,6 +1726,9 @@ latest
             -   [[`AsyncSampleResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
+            -   [[`DEMResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.DEMResult){.reference
+                .internal}
             -   [[`ObserveResult`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
@@ -1969,6 +1972,8 @@ alt="../../_images/qpus.png" /></a>
 
     -   [[Scaleway QaaS]{.doc}](cloud/scaleway.html){.reference
         .internal}
+
+    -   [[qBraid]{.doc}](cloud/qbraid.html){.reference .internal}
 :::
 :::
 :::
