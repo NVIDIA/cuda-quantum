@@ -25,6 +25,8 @@ header:
     - '**/*.svg'
     - 'skills/**/*.sig'  # signed skill bundle manifests; cannot carry a header
     - 'skills/**/evals/**'  # skill eval datasets/fixtures (evals.json is JSON; no header possible)
+    - '**/py.typed'  # PEP 561 typing marker; must stay empty, cannot carry a header
+    - 'pulse/pyrightconfig.json'  # pyright JSON config; a comment header would break check-json
     - '**/.*'
     - '**/.*/**'
     - '**/Doxyfile.in'
