@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -19,6 +20,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Interfaces/CallInterfaces.h"
+#include <cmath>
 #include <compare>
 #include <optional>
 #include <utility>
@@ -252,8 +254,8 @@ buildMatrixProduct(llvm::ArrayRef<UnaryWireOp> operations) {
   return circuit;
 }
 
-// Prefer lower T-count, then fewer emitted Clifford gates. Scalar W phases
-// are not emitted as Quake operations.
+// Prefer lower T-count, then fewer emitted Clifford gates. Scalar W phases do
+// not contribute to the gate-count cost.
 static CircuitCost emittedCost(const cudaq::synth::Circuit &circuit) {
   std::size_t emittedGateCount = 0;
   for (cudaq::synth::Gate gate : circuit)
@@ -297,7 +299,14 @@ static Value emitCircuit(OpBuilder &builder, Location location, Value input,
       current = emitGate<cudaq::quake::XOp>(builder, location, current);
       break;
     case cudaq::synth::Gate::W:
-      // TODO: emit an anchored `quake.phase(pi/4)` once Quake supports it.
+      Value angle =
+          cudaq::opt::factory::createF64Constant(location, builder, M_PI_4);
+      auto phase = cudaq::quake::PhaseOp::create(
+          builder, location, TypeRange{current.getType()}, /*is_adj=*/false,
+          ValueRange{angle}, /*controls=*/ValueRange{},
+          /*targets=*/ValueRange{current},
+          /*negated_qubit_controls=*/DenseBoolArrayAttr{});
+      current = phase.getWires()[0];
       break;
     }
   }
@@ -365,16 +374,7 @@ static void optimizeRegion(Region &region) {
 }
 
 void OptimizeSingleQubitCliffordTPass::runOnOperation() {
-  // TODO: Support controlled quake.apply after Quake can represent scalar W
-  // phase factors.
   ModuleOp module = getOperation();
-  WalkResult result = module.walk([](cudaq::quake::ApplyOp apply) {
-    return apply.getControls().empty() ? WalkResult::advance()
-                                       : WalkResult::interrupt();
-  });
-  if (result.wasInterrupted())
-    return;
-
   for (func::FuncOp function : module.getOps<func::FuncOp>())
     optimizeRegion(function.getBody());
 }
