@@ -109,6 +109,12 @@ createTargetCodegenPipeline(OpPassManager &pm,
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
+  // Erase any compiler-generated log_output ops that remain after wire
+  // conversion (or were never converted in the ref-semantics path).  These
+  // bookkeeping ops from inject-implicit-output have no JIT lowering in the
+  // simulation targets and must be removed before return-to-output-log runs.
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
   cudaq::opt::ReturnToOutputLogOptions opts;
   // Only allow dynamic results with full QIR (local simulator targets).
   auto tgt = StringRef(options.target).split(':').first;
