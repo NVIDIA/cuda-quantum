@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "QuakeOperatorUtilities.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"

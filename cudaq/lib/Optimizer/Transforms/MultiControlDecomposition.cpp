@@ -8,6 +8,7 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"

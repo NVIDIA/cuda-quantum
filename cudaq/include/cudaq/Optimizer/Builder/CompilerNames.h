@@ -20,4 +20,6 @@ static constexpr const char pythonUniqueAttrName[] = "quake.python_uniqued";
 
 static constexpr const char disableQuantumOpts[] = "quake.noOptimization";
 
+static constexpr const char operandSegmentSizes[] = "operandSegmentSizes";
+
 } // namespace cudaq::runtime
