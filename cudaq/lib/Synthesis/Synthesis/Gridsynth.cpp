@@ -22,6 +22,7 @@
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -439,6 +440,18 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
   // approximation.
   const int64_t k_max = details::max_denominator_exponent(epsilon);
   local.k_max = k_max;
+  local.working_precision_bits =
+      static_cast<int64_t>(Real::get_default_precision());
+
+  // Enumeration time is a residual: k-loop time minus solve time. The stepper
+  // cannot be timed directly, as it advances inside the range-for.
+  using Clock = std::chrono::steady_clock;
+  const Clock::time_point loop_start = Clock::now();
+  auto elapsed_ns = [&] {
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() -
+                                                                loop_start)
+        .count();
+  };
   LLVM_DEBUG(cudaq::synth::dbgs() << "k_max=" << k_max << '\n');
 
   Integer k = 0;
@@ -449,6 +462,7 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
     TdgpStepper stepper(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
                         transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened);
     local.k_reached = static_cast<int64_t>(k);
+    local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
     for (const DOmega &z : stepper) {
       local.candidates_enumerated++;
       // Step 2(a): residue gate.
@@ -473,8 +487,13 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
       // is real and lies in D[sqrt(2)] for any z in D[omega].
       DSqrt2 xi = DSqrt2(1) - DSqrt2::from_domega(z_conj_z);
       local.diophantine_calls++;
+      const Clock::time_point solve_start = Clock::now();
       llvm::FailureOr<DOmega> w_or =
           diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
+      local.diophantine_ns +=
+          std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() -
+                                                               solve_start)
+              .count();
 
       if (llvm::succeeded(w_or)) {
         local.diophantine_successes++;
@@ -502,6 +521,7 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
         else
           u_approx = DOmegaUnitary(z_reduced, mul_by_omega(w_reduced), 0);
 
+        local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
         publish(GridsynthOutcome::Success);
         std::string k_str = std::to_string(static_cast<int64_t>(k));
         CUDAQ_SYNTH_CLOSE_SUCCESS("Diophantine succeeded at k=" + k_str);
@@ -520,6 +540,7 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
   // wide margin, so the search is not converging: the Diophantine solver is
   // starving on its timeouts rather than closing in. Report that instead of
   // scanning k forever..
+  local.enumeration_ns = elapsed_ns() - local.diophantine_ns;
   publish(GridsynthOutcome::KExhausted);
   CUDAQ_SYNTH_CLOSE_FAILURE("k exceeded k_max without a solution");
   return llvm::failure();

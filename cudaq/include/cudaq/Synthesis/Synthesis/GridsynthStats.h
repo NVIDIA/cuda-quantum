@@ -86,6 +86,16 @@ struct GridsynthStats {
   /// not per-candidate effort.
   int64_t diophantine_calls = 0;
   int64_t diophantine_successes = 0;
+
+  /// MPFR working precision, in bits, the call ran at. Enumeration cost scales
+  /// with this, so it is the denominator for any comparison of per-k cost
+  /// across tolerances.
+  int64_t working_precision_bits = 0;
+
+  /// Wall-clock nanoseconds spent enumerating candidates and solving their
+  /// Diophantine equations. The shipped budget controls only move the second.
+  int64_t enumeration_ns = 0;
+  int64_t diophantine_ns = 0;
 };
 
 } // namespace cudaq::synth

@@ -330,6 +330,15 @@ TEST(GridsynthStatsTest, CountsTheWorkOfASuccessfulSearch) {
             stats.candidates_residue_rejected + stats.diophantine_calls);
 }
 
+TEST(GridsynthStatsTest, SplitsTimeBetweenEnumerationAndSolving) {
+  GridsynthStats stats = stats_for(kSeedSensitiveTheta, "1e-15");
+
+  ASSERT_EQ(stats.outcome, GridsynthOutcome::Success);
+  EXPECT_GT(stats.working_precision_bits, 0);
+  EXPECT_GT(stats.enumeration_ns, 0);
+  EXPECT_GT(stats.diophantine_ns, 0);
+}
+
 TEST(GridsynthStatsTest, ReportsTheZeroTShortcutRatherThanASearch) {
   GridsynthStats stats = stats_for("0.5", "0.3");
 
