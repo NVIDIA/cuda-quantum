@@ -8,19 +8,21 @@
 
 
 // RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3' %s | \
-// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
+// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:     --implicit-check-not='quake.phase'
 // RUN: cudaq-opt --pass-pipeline='builtin.module(cudaq-fault-tolerant-target{epsilon=1e-3 fail-on-controlled-rotation=true},inline,func.func(memtoreg,quake-simplify,canonicalize,dqe,regtomem),symbol-dce)' %s | \
 // RUN:   FileCheck %s --check-prefix=FLAT \
 // RUN:   --implicit-check-not='func.call' \
 // RUN:   --implicit-check-not='func.func private @__cliffordt_' \
-// RUN:   --implicit-check-not='quake.r{{[xyz1]}}'
+// RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:   --implicit-check-not='quake.phase'
 
 // End-to-end test of the registered `cudaq-fault-tolerant-target` pipeline
 // (UnitarySynthesis -> ApplyOpSpecialization -> ConstantPropagation ->
+// exact-angle simplification -> global phase normalization/lowering ->
 // CliffordTSynthesis -> Decomposition to {h,s,t,x,z,cnot}). After the whole
-// pipeline runs, no rotation ops survive anywhere and the body is expressed in
-// the fault-tolerant basis. gridsynth output is stochastic, so we assert only
-// structural invariants.
+// pipeline runs, no rotation or global phase ops survive anywhere and the body is
+// expressed in the fault-tolerant basis.
 
 func.func @kernel() -> !quake.measure {
   %q = quake.alloca !quake.ref
@@ -31,20 +33,15 @@ func.func @kernel() -> !quake.measure {
   return %m : !quake.measure
 }
 
-// The constant rotation is synthesized into a Clifford+T helper (dozens of T
-// gates) and the kernel calls it. Every gate is in the {h,s,t,x,z,cnot} basis.
-// CHECK-LABEL: func.func private @__cliffordt_rz_
-// CHECK-COUNT-15: quake.t
-
+// The exact rotation is simplified directly to a named gate before gridsynth.
 // CHECK-LABEL: func.func @kernel
 // CHECK:         quake.alloca
-// CHECK:         call @__cliffordt_rz_
+// CHECK-NEXT:    quake.t
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.mz
+// CHECK-NOT:     call @__cliffordt_rz_
 
-// Rx and Ry are reduced to Rz (+ Clifford) by the pipeline's decomposition
-// step before synthesis, so they too end up as Clifford+T with no surviving
-// rotation ops. The kernel is marked as an entry point so the decomposition
-// pass processes it (it only decomposes entry points or functions taking
-// qubit arguments).
+// Rx and Ry exact rotations are also simplified directly to named gates.
 func.func @kernel_rx_ry() -> !quake.measure attributes {"cudaq-entrypoint"} {
   %q = quake.alloca !quake.ref
   %a = arith.constant 0.7853981633974483 : f64
@@ -56,13 +53,59 @@ func.func @kernel_rx_ry() -> !quake.measure attributes {"cudaq-entrypoint"} {
 
 // CHECK-LABEL: func.func @kernel_rx_ry
 // CHECK:         quake.alloca
-// CHECK:         call @__cliffordt_rz_
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.t
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.s<adj>
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.t
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.s
+// CHECK-NEXT:    quake.mz
+// CHECK-NOT:     call @__cliffordt_rz_
 
-// The benchmark boundary inlines the shared angle helper at every call site
-// and deletes the helper symbol before resource counting.
+// A non-exact angle still reaches synthesis and produces an outlined helper.
+// The flattened pipeline must inline it before resource counting.
+func.func @kernel_inexact() -> !quake.measure {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.125 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// CHECK-LABEL: func.func @kernel_inexact
+// CHECK:         quake.alloca
+// CHECK:         call @__cliffordt_rz_
+// CHECK:         quake.mz
+
+// `exp_pauli(theta, Z)` lowers through `Rz(-2*theta)`. Constant folding must
+// expose `-pi/4` to exact-angle simplification before `gridsynth` runs.
+func.func @kernel_exp_pauli() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %q = quake.alloca !quake.veq<1>
+  %angle = arith.constant 0.39269908169872414 : f64
+  quake.exp_pauli (%angle) %q to "Z" : (f64, !quake.veq<1>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @kernel_exp_pauli
+// CHECK:         %[[QUBIT:.*]] = quake.alloca !quake.ref
+// CHECK-NEXT:    quake.t<adj> %[[QUBIT]]
+// CHECK-NEXT:    quake.dealloc %[[QUBIT]]
+// CHECK-NEXT:    return
+// CHECK-NOT:     quake.exp_pauli
+// CHECK-NOT:     call @__cliffordt_rz_
+
+// The benchmark boundary inlines synthesized angle helpers at every call site
+// and deletes the helper symbols before resource counting.
 // FLAT-LABEL: func.func @kernel
 // FLAT:         quake.t
 // FLAT:         quake.mz
 // FLAT-LABEL: func.func @kernel_rx_ry
 // FLAT:         quake.t
 // FLAT:         quake.mz
+// FLAT-LABEL: func.func @kernel_inexact
+// FLAT:         quake.t
+// FLAT:         quake.mz
+// FLAT-LABEL: func.func @kernel_exp_pauli
+// FLAT:         quake.t<adj>

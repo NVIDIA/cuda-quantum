@@ -9,11 +9,17 @@
 name: compiler-bench-ftqc-logical
 description: "Logical FTQC benchmark target lowering to a pre-synthesis Clifford+T and rotation basis for resource counting"
 
+target-arguments:
+  - key: epsilon
+    required: false
+    type: string
+    help-string: "Operator-norm tolerance for rewriting rotations near discrete Clifford+T angles. Defaults to zero (exact mode)."
+
 config:
   nvqir-simulation-backend: qpp
-  # Target mid-level stage: enforce the logical basis while the circuit uses
-  # memory semantics, then enter value semantics once for local gate
-  # simplification. The basis preserves T-family gates and unresolved
-  # single-qubit rotations for layer-one FTQC metrics.
-  jit-mid-level-pipeline: "decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(quake-simplify),optimize-1q-clifford-t,func.func(canonicalize,dqe,regtomem)"
-  
+  # Enforce the logical basis while the circuit uses memory semantics. Apply
+  # specialization materializes controlled callable uses, then the shared
+  # linear-value pipeline prepares exact-angle simplification. The final
+  # decomposition removes unresolved R1 gates while preserving arbitrary axis
+  # rotations for layer-one FTQC metrics.
+  jit-mid-level-pipeline: "decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)},apply-op-specialization,func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(quake-simplify{rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:0%},normalize-phase-placement,lower-phase),optimize-1q-clifford-t,func.func(canonicalize,dqe,regtomem),decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)}"

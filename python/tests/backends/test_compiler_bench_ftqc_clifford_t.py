@@ -99,3 +99,17 @@ def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
     boundary_t_count = (boundary_operations.get('t', 0) +
                         boundary_operations.get('tdg', 0))
     assert boundary_t_count > 0
+
+
+def test_exact_clifford_t_angle_avoids_approximate_synthesis():
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc()
+    kernel.rz(math.pi / 4, q)
+
+    operations = cudaq.estimate_resources(kernel).to_dict()
+    t_count = operations.get('t', 0) + operations.get('tdg', 0)
+
+    assert set(operations).issubset(ALLOWED_CLIFFORD_T_OPS)
+    assert t_count == 1

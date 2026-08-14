@@ -179,6 +179,19 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addPass(cudaq::opt::createApplySpecialization());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
+  cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition", "U3ToRotations"});
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
+  cudaq::opt::addConvertToLinearValues(pm);
+  cudaq::opt::QuakeSimplifyOptions simplifyOpts;
+  simplifyOpts.rotationsToCliffordT = true;
+  simplifyOpts.cliffordTEpsilon = epsilon;
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify(simplifyOpts));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+
+  // Restore the memory-semantics form accepted by the existing decomposition
+  // and synthesis pipeline.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
   // Reduce Rx, Ry, and R1 rotations to Rz + Clifford so that Clifford+T
   // synthesis only has to handle Rz. These are the shared decomposition
   // patterns.

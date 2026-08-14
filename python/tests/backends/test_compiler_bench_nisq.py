@@ -192,3 +192,17 @@ def test_routing_ring():
 
     # On ring 0-1-2-3-4-0, q0 and q4 are adjacent.
     assert resources.gate_count_for_arity(2) == 1
+
+
+def test_exact_clifford_t_angle_remains_native_rotation():
+    """NISQ keeps native rotations instead of opting into Clifford+T."""
+    cudaq.set_target(NISQ_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc()
+    kernel.rz(0.7853981633974483, q)
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert ops.get('rz', 0) == 1
+    assert ops.get('s', 0) == 0
+    assert ops.get('t', 0) == 0
