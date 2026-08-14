@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "QuakeOperatorUtilities.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
@@ -57,7 +58,7 @@ public:
         op, op.getResultTypes(), op.getIsAdjAttr(), op.getParameters(),
         expandedControls.controls, op.getTargets(), negatedControlsAttr);
 
-    newOp->setAttr("operand_segment_sizes", segmentSizes);
+    newOp->setAttr(cudaq::runtime::operandSegmentSizes, segmentSizes);
 
     return success();
   }
