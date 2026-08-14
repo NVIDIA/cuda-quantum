@@ -315,6 +315,11 @@ static void optimizeBlock(Block &block) {
     if (chain.empty())
       continue;
 
+    // A single exact gate cannot improve the T-count or emitted gate count
+    // used by this pass, so it does not need normal-form construction.
+    if (chain.size() == 1)
+      continue;
+
     cudaq::synth::Circuit inputCircuit = buildMatrixProduct(chain);
     cudaq::synth::Circuit normalized = inputCircuit.normalized();
     if (emittedCost(normalized) >= inputCost(chain))
