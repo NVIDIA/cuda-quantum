@@ -235,7 +235,8 @@ def OptimizeSingleQubitCliffordT
 
     Rewrites exact, uncontrolled one-qubit Clifford+T chains on scalar
     `!quake.wire` values to Matsumoto-Amano normal form. Supports chains
-    through single-block `cc.scope`. Other control flow remains a boundary.
+    through single-block `cc.scope`. Scalar normal-form phases are emitted as
+    anchored `quake.phase` operations, preserving the exact unitary.
 
     The normal form is defined by K. Matsumoto and K. Amano, "Representation
     of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,
