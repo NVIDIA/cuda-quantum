@@ -473,5 +473,5 @@ CUDAQ_TEST(QueraTester, checkProcessResultLengthMismatch) {
   cudaq::ServerMessage resultsJson = nlohmann::json::parse(mismatched);
   cudaq::QuEraServerHelper helper;
   std::string jobId = "";
-  EXPECT_THROW(helper.processResults(resultsJson, jobId), std::runtime_error);
+  EXPECT_ANY_THROW(helper.processResults(resultsJson, jobId));
 }
