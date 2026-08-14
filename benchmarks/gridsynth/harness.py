@@ -92,7 +92,7 @@ def _run_cudaq(theta: str, epsilon: str, options: dict[str, Any]) -> dict:
     from cudaq import synth
 
     kwargs = {}
-    for key in ("diophantine_timeout_ms", "factoring_timeout_ms"):
+    for key in ("diophantine_timeout_ms", "factoring_timeout_ms", "seed"):
         if key in options:
             kwargs[key] = options[key]
 
@@ -285,17 +285,34 @@ def main(argv: list[str] | None = None) -> int:
                         action="store_true",
                         help="Sweep the per-candidate budget settings "
                         "instead of using the shipped defaults.")
+    parser.add_argument("--seeds",
+                        default=None,
+                        help="Comma-separated RNG seeds. Each option set is "
+                        "run once per seed. Default: unseeded (system "
+                        "entropy), which is not replayable.")
+    parser.add_argument("--epsilons",
+                        default=None,
+                        help="Comma-separated tolerances, overriding the "
+                        "corpus grid entirely.")
     parser.add_argument("--limit",
                         type=int,
                         default=None,
                         help="Run only the first N cases (smoke testing).")
     args = parser.parse_args(argv)
 
-    epsilons = list(corpus.EPSILONS)
-    if args.deep:
-        epsilons += corpus.DEEP_EPSILONS
+    if args.epsilons:
+        epsilons = [e.strip() for e in args.epsilons.split(",") if e.strip()]
+    else:
+        epsilons = list(corpus.EPSILONS)
+        if args.deep:
+            epsilons += corpus.DEEP_EPSILONS
 
     option_sets = TIMEOUT_SWEEP if args.sweep_timeouts else [{}]
+    if args.seeds:
+        seeds = [int(s) for s in args.seeds.split(",")]
+        option_sets = [{
+            **options, "seed": seed
+        } for options in option_sets for seed in seeds]
     implementations = args.implementations.split(",")
 
     unknown = set(implementations) - set(IMPLEMENTATIONS)
@@ -315,9 +332,10 @@ def main(argv: list[str] | None = None) -> int:
         result = run_case(case, args.timeout)
         results.append(result)
         elapsed = "     -" if result.seconds is None else f"{result.seconds * 1000:6.1f}ms"
+        tag = " ".join(f"{k}={v}" for k, v in sorted(case.options.items()))
         print(
             f"[{index:5d}/{len(cases)}] {case.angle:<28s} {case.epsilon:<6s} "
-            f"{elapsed}  T={result.t_count}  {result.outcome}",
+            f"{tag:<48s} {elapsed}  T={result.t_count}  {result.outcome}",
             flush=True)
 
     payload = {

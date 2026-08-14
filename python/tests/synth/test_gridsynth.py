@@ -101,6 +101,35 @@ def test_gridsynth_keyword_timeouts():
     assert _is_valid_gate_string(str(seq))
 
 
+def test_gridsynth_same_seed_reproduces_the_sequence():
+    theta, epsilon = math.pi / 53, 1e-20
+    first = synth.gridsynth(theta, epsilon, seed=1234)
+    second = synth.gridsynth(theta, epsilon, seed=1234)
+    assert str(first) == str(second)
+
+
+def test_gridsynth_seed_is_independent_of_the_timeouts():
+    theta, epsilon = math.pi / 53, 1e-20
+    tight = synth.gridsynth(theta,
+                            epsilon,
+                            diophantine_timeout_ms=200,
+                            factoring_timeout_ms=50,
+                            seed=99)
+    loose = synth.gridsynth(theta,
+                            epsilon,
+                            diophantine_timeout_ms=2000,
+                            factoring_timeout_ms=500,
+                            seed=99)
+    assert str(tight) == str(loose)
+
+
+def test_gridsynth_unseeded_stays_valid():
+    theta, epsilon = math.pi / 53, 1e-15
+    seq = synth.gridsynth(theta, epsilon)
+    assert _is_valid_gate_string(str(seq))
+    assert synth.rz_error(theta, str(seq)) <= epsilon
+
+
 def test_cliffordt_sequence_str_and_sequence_protocol():
     seq = synth.gridsynth(math.pi / 4, 1e-4)
     s = str(seq)
