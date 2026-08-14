@@ -81,7 +81,7 @@ inline bool mayPhaseAnchorAliasControl(mlir::Value anchor,
   return phaseOperandsMayShareRoot(anchor, control);
 }
 
-/// Return whether an unmaterialized static target may alias a control.
+/// Return whether an un-materialized static target may alias a control.
 ///
 /// Any shared aggregate root is rejected before materializing an
 /// ExtractRefOp. Different vector indices are not enough to prove distinct
@@ -102,8 +102,9 @@ inline bool mayPhaseAnchorAliasControl(const StaticQubitTarget &anchor,
 
 /// Return whether a phase predicate may repeat or overlap a quantum reference.
 ///
-/// Repeated or overlapping controls do not form a safely lowerable predicate.
-/// This remains a conservative structural check, not a general alias analysis.
+/// Repeated or overlapping controls do not form a predicate that can be safely
+/// lowered. This remains a conservative structural check, not a general alias
+/// analysis.
 inline bool hasPotentiallyAliasedPhaseControls(mlir::ValueRange controls) {
   for (mlir::Value control : controls) {
     llvm::SmallVector<mlir::Value> roots;
