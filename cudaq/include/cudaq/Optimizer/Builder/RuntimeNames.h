@@ -86,4 +86,8 @@ static constexpr const char pythonUniqueAttrName[] = "quake.python_uniqued";
 
 static constexpr const char disableQuantumOpts[] = "quake.noOptimization";
 
+/// MLIR tablegen-generated name for the operand-segment-sizes attribute on ops
+/// that use the AttrSizedOperandSegments trait.
+static constexpr const char operandSegmentSizes[] = "operandSegmentSizes";
+
 } // namespace cudaq::runtime

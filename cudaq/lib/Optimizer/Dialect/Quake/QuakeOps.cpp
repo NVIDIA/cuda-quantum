@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -343,7 +344,7 @@ void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
                         (*this)->getResultTypes());
   p.printOptionalAttrDict(
       (*this)->getAttrs(),
-      {"operand_segment_sizes", "is_adj", getCalleeAttrNameStr()});
+      {cudaq::runtime::operandSegmentSizes, "is_adj", getCalleeAttrNameStr()});
 }
 
 ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
@@ -383,7 +384,7 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(calleeOperand.size()),
                            static_cast<int32_t>(controlOperands.size()),
@@ -427,8 +428,9 @@ void cudaq::quake::ApplyNoiseOp::print(OpAsmPrinter &p) {
   SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(operandTys, (*this)->getResultTypes());
-  p.printOptionalAttrDict((*this)->getAttrs(),
-                          {"operand_segment_sizes", getNoiseFuncAttrName()});
+  p.printOptionalAttrDict(
+      (*this)->getAttrs(),
+      {cudaq::runtime::operandSegmentSizes, getNoiseFuncAttrName()});
 }
 
 ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
@@ -462,7 +464,7 @@ ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(keyOperand.size()),
                            static_cast<int32_t>(parameterOperands.size()),
