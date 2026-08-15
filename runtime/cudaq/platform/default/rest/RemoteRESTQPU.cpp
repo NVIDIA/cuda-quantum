@@ -14,12 +14,28 @@
 
 static std::vector<cudaq::KernelExecution>
 runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
-  if (module.getMlirArtifacts().empty())
+  auto mlirArtifacts = module.getMlirArtifacts();
+  if (mlirArtifacts.empty())
     CUDAQ_ERROR("QPU does not support launching a "
                 "CompiledModule without MLIR artifacts.");
 
   cudaq_internal::compiler::Compiler compiler(std::move(target), {});
-  return compiler.emitKernelExecutions(module);
+
+  // Pre-compiled modules (e.g. Python kernels) have been through the generic
+  // aot-prep-pipeline but NOT through the target's jit-mid-level-pipeline.
+  // Apply the target's full pipeline to each MLIR artifact now so that
+  // target-specific passes (e.g. add-wireset + assign-wire-indices for the
+  // quake_fake backend) are applied before the IR is serialized and sent to
+  // the server.
+  std::vector<cudaq::KernelExecution> allCodes;
+  for (const auto &[name, artifact] : mlirArtifacts) {
+    auto compiled =
+        compiler.runPassPipeline(name, artifact.getOpaqueModulePtr(), {},
+                                 /*isEntryPoint=*/true, artifact.getContext());
+    auto codes = compiler.emitKernelExecutions(compiled);
+    allCodes.insert(allCodes.end(), codes.begin(), codes.end());
+  }
+  return allCodes;
 }
 
 using namespace cudaq;
@@ -105,7 +121,18 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
         compiler.runPassPipeline(source.getName(), mlirArt.getOpaqueModulePtr(),
                                  args, true, mlirArt.getContext());
   } else {
-    compiled = std::get<CompiledModule>(module);
+    // Pre-compiled module: apply the target's pipeline (same reason as in
+    // runCodegen — the aot-prep-pipeline doesn't run the target's
+    // jit-mid-level-pipeline).
+    const auto &precompiled = std::get<CompiledModule>(module);
+    if (precompiled.getMlirArtifacts().empty())
+      CUDAQ_ERROR("QPU does not support launching a "
+                  "CompiledModule without MLIR artifacts.");
+    const auto &[artName, artifact] =
+        precompiled.getMlirArtifacts().front();
+    compiled = compiler.runPassPipeline(
+        artName, artifact.getOpaqueModulePtr(), args,
+        /*isEntryPoint=*/true, artifact.getContext());
   }
   CUDAQ_INFO("launching remote rest kernel ({})", compiled.getName());
 
