@@ -95,6 +95,11 @@ struct GridsynthStats {
   int64_t factoring_successes = 0;
   int64_t factoring_restarts = 0;
 
+  /// Attempts the wall clock ended before their iteration budget ran out.
+  /// Each one makes the result depend on host speed, so this must be zero for
+  /// a run to be reproducible across machines.
+  int64_t factoring_wall_clock_exits = 0;
+
   /// Pollard-rho iterations summed over every attempt. This is the
   /// machine-independent measure of factoring effort, unlike the wall-clock
   /// budget that currently ends an attempt.

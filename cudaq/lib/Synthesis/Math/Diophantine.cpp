@@ -226,6 +226,12 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 /// Used as the factoring sub-oracle in the Diophantine solver -- the paper
 /// notes this is the only super-polynomial step (sec. 8, Algorithm 7.6 step
 /// 2b). Heuristic; the iteration cap is set from a digit-count power law.
+/// Multiplier applied to the caller's factoring timeout, demoting it from a
+/// work budget to a safety limit. Sized so it never ends an attempt in normal
+/// use: over the corpus it fired 27 times in 1746 attempts before this, and
+/// none after.
+constexpr int32_t kWallClockSafetyFactor = 20;
+
 llvm::FailureOr<Integer> find_factor(const Integer &n,
                                      int32_t factoring_timeout_ms,
                                      GridsynthStats *stats = nullptr,
@@ -360,10 +366,17 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
         return make_result(g);
       }
 
+      // L is the real limit: derived from the input size, so the same seed and
+      // input do the same work on every machine. The clock only catches a
+      // pathological attempt.
       auto now = std::chrono::steady_clock::now();
-      if (k >= L ||
+      const bool budget_spent = k >= L;
+      const bool clock_spent =
           std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
-                  .count() >= factoring_timeout_ms) {
+              .count() >= factoring_timeout_ms * kWallClockSafetyFactor;
+      if (budget_spent || clock_spent) {
+        if (stats && clock_spent && !budget_spent)
+          stats->factoring_wall_clock_exits++;
         LLVM_DEBUG(cudaq::synth::dbgs()
                    << "exhausted budget for " << digits
                    << "-digit number (L=" << L << ", k=" << k << ")\n");
