@@ -31,23 +31,28 @@ runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
     CUDAQ_ERROR("QPU does not support launching a "
                 "CompiledModule without MLIR artifacts.");
 
-  // Python kernels have only been through the generic aot-prep-pipeline; they
-  // have NOT been through the target's jit-mid-level-pipeline.  When the
-  // target defines a non-empty midLevelPipeline (e.g. quake_fake requires
-  // add-wireset + assign-wire-indices to produce a payload the server
-  // accepts), apply the full target pipeline now before serializing.
+  // For Python kernels the aot-prep-pipeline has been applied but NOT the
+  // target's jit-mid-level-pipeline.  runPassPipeline is needed in two cases:
+  //   1. The target sends raw Quake MLIR (codegenTranslation == "nop", e.g.
+  //      quake_fake) and requires wireset/borrow-wire ops from the mid-level.
+  //   2. The target runs locally via emulation and needs a JIT artifact.  The
+  //      aot-prep-pipeline never creates a JIT (emitJit defaults to false), so
+  //      the cached CompiledModule has no JIT; we must produce one here.
   //
   // C++ kernels compiled by nvq++ have already been through the full pipeline
-  // and must NOT be reprocessed — doing so would double-apply passes like
-  // memtoreg and assign-wire-indices, causing failures.
-  const bool needsPipeline =
-      !target.pipelineConfig.midLevelPipeline.empty() &&
+  // and must NOT be reprocessed — doing so would double-apply passes.
+  const bool isPython =
       !mlirArtifacts.empty() &&
       isPythonKernel(mlirArtifacts.front().second.getOpaqueModulePtr());
+  const bool needsWireset =
+      target.pipelineConfig.codegenTranslation == "nop" &&
+      !target.pipelineConfig.midLevelPipeline.empty();
+  const bool needsJit = target.emulate;
 
-  cudaq_internal::compiler::Compiler compiler(std::move(target), {});
-
-  if (needsPipeline) {
+  if (isPython && (needsWireset || needsJit)) {
+    cudaq::CompileOptions opts;
+    opts.emitJit = needsJit; // create JIT only when emulation requires it
+    cudaq_internal::compiler::Compiler compiler(std::move(target), opts);
     std::vector<cudaq::KernelExecution> allCodes;
     for (const auto &[name, artifact] : mlirArtifacts) {
       auto compiled = compiler.runPassPipeline(
@@ -59,6 +64,7 @@ runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
     return allCodes;
   }
 
+  cudaq_internal::compiler::Compiler compiler(std::move(target), {});
   return compiler.emitKernelExecutions(module);
 }
 
