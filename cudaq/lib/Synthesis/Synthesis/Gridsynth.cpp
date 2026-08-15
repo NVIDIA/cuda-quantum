@@ -488,8 +488,8 @@ gridsynth_unitary(const Real &theta, const Real &epsilon,
       DSqrt2 xi = DSqrt2(1) - DSqrt2::from_domega(z_conj_z);
       local.diophantine_calls++;
       const Clock::time_point solve_start = Clock::now();
-      llvm::FailureOr<DOmega> w_or =
-          diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
+      llvm::FailureOr<DOmega> w_or = diophantine_dyadic(
+          xi, diophantine_timeout_ms, factoring_timeout_ms, &local);
       local.diophantine_ns +=
           std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() -
                                                                solve_start)

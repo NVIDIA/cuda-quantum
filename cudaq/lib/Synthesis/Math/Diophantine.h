@@ -10,6 +10,7 @@
 
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
+#include "cudaq/Synthesis/Synthesis/GridsynthStats.h"
 #include "llvm/Support/LogicalResult.h"
 
 #include <cstdint>
@@ -51,9 +52,11 @@ namespace cudaq::synth {
 /// @param factoring_timeout   Wall-clock budget per Pollard-rho attempt, ms.
 /// @return t in D[omega] with conj(t) * t = xi, or failure() if no solution
 ///         is found within the budgets.
+/// @param stats  Optional; when non-null its factoring counters accumulate.
 llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
                                            int32_t diophantine_timeout,
-                                           int32_t factoring_timeout);
+                                           int32_t factoring_timeout,
+                                           GridsynthStats *stats = nullptr);
 
 /// Seeds the calling thread's Pollard-rho factoring RNG for the lifetime of
 /// this object, restoring the previous random state on destruction.

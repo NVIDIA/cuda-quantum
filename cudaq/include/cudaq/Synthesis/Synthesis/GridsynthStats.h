@@ -87,6 +87,19 @@ struct GridsynthStats {
   int64_t diophantine_calls = 0;
   int64_t diophantine_successes = 0;
 
+  /// Integer-factoring attempts made by the Diophantine solver, and how many
+  /// returned a factor. `factoring_restarts` counts re-rolls on a composite
+  /// that a previous attempt failed to split (the work the per-composite
+  /// restart cap bounds).
+  int64_t factoring_calls = 0;
+  int64_t factoring_successes = 0;
+  int64_t factoring_restarts = 0;
+
+  /// Pollard-rho iterations summed over every attempt. This is the
+  /// machine-independent measure of factoring effort, unlike the wall-clock
+  /// budget that currently ends an attempt.
+  int64_t factoring_iterations_total = 0;
+
   /// MPFR working precision, in bits, the call ran at. Enumeration cost scales
   /// with this, so it is the denominator for any comparison of per-k cost
   /// across tolerances.

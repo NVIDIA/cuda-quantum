@@ -339,6 +339,18 @@ TEST(GridsynthStatsTest, SplitsTimeBetweenEnumerationAndSolving) {
   EXPECT_GT(stats.diophantine_ns, 0);
 }
 
+TEST(GridsynthStatsTest, CountsFactoringWork) {
+  GridsynthStats stats = stats_for(kSeedSensitiveTheta, "1e-15");
+
+  ASSERT_EQ(stats.outcome, GridsynthOutcome::Success);
+  EXPECT_GT(stats.factoring_calls, 0);
+  EXPECT_LE(stats.factoring_successes, stats.factoring_calls);
+  EXPECT_GE(stats.factoring_restarts, 0);
+  // Rho iterations are the machine-independent measure of effort, so they
+  // must be attributed even when an attempt fails to split its input.
+  EXPECT_GT(stats.factoring_iterations_total, 0);
+}
+
 TEST(GridsynthStatsTest, ReportsTheZeroTShortcutRatherThanASearch) {
   GridsynthStats stats = stats_for("0.5", "0.3");
 
