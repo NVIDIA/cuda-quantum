@@ -6,27 +6,39 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
-// RUN: nvq++ -DCASE1 %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,AOT
-// RUN: nvq++ -DCASE2 %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,AOT
-// RUN: nvq++ -DCASE3 %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,AOT
-// RUN: nvq++ --target quantinuum --emulate -DCASE1 %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
-// RUN: nvq++ --target quantinuum --emulate -DCASE2 %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
-// We don't run CASE3 with emulation on because compilation takes several minutes
+// FIXME: This is several distinct tests. Split it into multiple files as it is
+// slow and serializing it like this makes it a long pole test.
+
+// RUN: nvq++ -DCASE1 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN: nvq++ -DCASE2 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN: nvq++ -DCASE3 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN:   FileCheck %s --check-prefixes=CHECK,AOT
+// RUN: nvq++ --target quantinuum --emulate -DCASE1 %s -o %t && \
+// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
+// RUN: nvq++ --target quantinuum --emulate -DCASE2 %s -o %t && \
+// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE
+
+// We don't run CASE3 with emulation on because compilation takes several
+// minutes
 
 // CHECK: Launching kernel with estimate policy
 // CHECK: Launching kernel in sync mode with policy resource-count
 // CHECK: No compiled module found. Compiling.
 
-// When using AOT compilation, we expect no JIT compilation, with all gate tracing happening at runtime
-// AOT: No JIT compilation required. Using AOT-compiled module as-is. 
+// When using AOT compilation, we expect no JIT compilation, with all gate
+// tracing happening at runtime
+
+// AOT: No JIT compilation required. Using AOT-compiled module as-is.
 // AOT: Applying x with 1 controls
 
-// When using JIT compilation, we expect JIT compilation, but all tracing gets folded away at JIT compile time
+// When using JIT compilation, we expect JIT compilation, but all tracing gets
+// folded away at JIT compile time
+
 // EMULATE: JIT high level:
 // EMULATE: Pass pipeline for
 // EMULATE-NOT: Applying x with 1 controls
-// clang-format on
 
 #include <cassert>
 #include <cudaq.h>
