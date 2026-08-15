@@ -44,14 +44,15 @@ runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
   // If the target has a mid-level pipeline and the module has not yet been
   // processed by it (no quake.wire_set → pre-compiled Python kernel), apply
   // the full target pipeline now.  C++ kernels compiled by nvq++ already carry
-  // a quake.wire_set from their AOT compilation and must not be processed again.
+  // a quake.wire_set from their AOT compilation and must not be processed
+  // again.
   std::vector<cudaq::KernelExecution> allCodes;
   for (const auto &[name, artifact] : mlirArtifacts) {
     if (targetNeedsMidLevel &&
         !moduleContainsWireSet(artifact.getOpaqueModulePtr())) {
-      auto compiled =
-          compiler.runPassPipeline(name, artifact.getOpaqueModulePtr(), {},
-                                   /*isEntryPoint=*/true, artifact.getContext());
+      auto compiled = compiler.runPassPipeline(
+          name, artifact.getOpaqueModulePtr(), {},
+          /*isEntryPoint=*/true, artifact.getContext());
       auto codes = compiler.emitKernelExecutions(compiled);
       allCodes.insert(allCodes.end(), codes.begin(), codes.end());
     } else {
