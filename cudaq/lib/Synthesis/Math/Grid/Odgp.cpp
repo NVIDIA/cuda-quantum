@@ -260,6 +260,21 @@ OdgpStepper::~OdgpStepper() {
   }
 }
 
+// Steps allowed before the stepper declares its range exhausted.
+//
+// The a-range is finite but can be astronomically wide (spans past 1e15 are
+// routine at k=100) which is harmless only because a solution normally turns
+// up within a few steps. On an instance with none, the scan walks the whole
+// span and never finishes. gridsynth(pi/4, 1e-15) hung on exactly that.
+static constexpr int64_t kMaxFruitlessSteps = 1 << 16;
+
+bool OdgpStepper::out_of_budget() {
+  if (++fruitless_steps_ < kMaxFruitlessSteps)
+    return false;
+  close_reason_ = "scan limit reached without a solution";
+  return true;
+}
+
 const ZSqrt2 *OdgpStepper::next() {
   if (exhausted_)
     return nullptr;
@@ -292,6 +307,10 @@ const ZSqrt2 *OdgpStepper::next() {
       ++yielded_;
       return &last_sol_;
     }
+    if (out_of_budget()) {
+      exhausted_ = true;
+      return nullptr;
+    }
     post_yield_update();
     if (b_ > b_hi_) {
       ++a_;
@@ -306,8 +325,10 @@ const ZSqrt2 *OdgpStepper::next() {
 bool OdgpStepper::setup_current_a() {
   // Walk a_ forward until we find an outer index whose refined b-range is
   // non-empty, materialising the per-a line state for it. Returns false if
-  // a_ ran past a_max_ without finding a usable line.
+  // a_ ran past a_max_ without finding a usable line, or ran out of budget.
   while (a_ <= a_max_) {
+    if (out_of_budget())
+      return false;
     Integer b_lo = ceil_to_integer(Real::sqrt2() * (a_ - cur_J_r_) / 2);
     Integer b_hi_local = floor_to_integer(Real::sqrt2() * (a_ - cur_J_l_) / 2);
     if (b_hi_local < b_lo) {

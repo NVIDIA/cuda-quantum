@@ -98,6 +98,11 @@ private:
   bool started_ = false;
   bool exhausted_ = false;
 
+  // Steps taken without producing a solution. Accumulated across calls. The
+  // scan alternates between next() and setup_current_a(), each doing only a
+  // few steps per call, so a per-loop budget would never trip.
+  int64_t fruitless_steps_ = 0;
+
   // Buffer aliased by the pointer returned from next().
   ZSqrt2 last_sol_;
 
@@ -108,6 +113,7 @@ private:
 
   bool setup_current_a();
   void post_yield_update();
+  bool out_of_budget();
   bool b_in_bounds() const;
 
   void cache_interval_bounds(const Interval &I, const Interval &J);
