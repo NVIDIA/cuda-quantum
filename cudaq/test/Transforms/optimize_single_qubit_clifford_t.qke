@@ -105,6 +105,47 @@ func.func @ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-NEXT:    }
 // CHECK-NEXT:    return %[[SCOPE]]
 
+// An atomic scope is a chain boundary, but a chain contained entirely in its
+// body remains eligible and continues to forward its normalized wire.
+func.func @atomic_scope_internal(%arg0: !quake.wire) -> !quake.wire {
+  %0 = cc.scope -> (!quake.wire) {
+    %1 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+    %2 = quake.s %1 : (!quake.wire) -> !quake.wire
+    %3 = quake.t %2 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  } {atomic_quantum_region}
+  return %0 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @atomic_scope_internal
+// CHECK:         %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[S0:.*]] = quake.s %arg0
+// CHECK-NEXT:      %[[S1:.*]] = quake.s %[[S0]]
+// CHECK-NEXT:      cc.continue %[[S1]] : !quake.wire
+// CHECK-NEXT:    } {atomic_quantum_region}
+// CHECK-NEXT:    return %[[SCOPE]] : !quake.wire
+
+// Neither direct entry nor `cc.continue` exit may merge an otherwise linear
+// chain across an atomic scope.
+func.func @atomic_scope_boundary(%arg0: !quake.wire) -> !quake.wire {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = quake.s %0 : (!quake.wire) -> !quake.wire
+    cc.continue %2 : !quake.wire
+  } {atomic_quantum_region}
+  %3 = quake.t %1 : (!quake.wire) -> !quake.wire
+  return %3 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @atomic_scope_boundary
+// CHECK-NEXT:    %[[T0:.*]] = quake.t %arg0 : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// CHECK-NEXT:      %[[S:.*]] = quake.s %[[T0]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      cc.continue %[[S]] : !quake.wire
+// CHECK-NEXT:    } {atomic_quantum_region}
+// CHECK-NEXT:    %[[T1:.*]] = quake.t %[[SCOPE]] : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    return %[[T1]] : !quake.wire
+
 func.func @nested_ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
   %1 = cc.scope -> (!quake.wire) {

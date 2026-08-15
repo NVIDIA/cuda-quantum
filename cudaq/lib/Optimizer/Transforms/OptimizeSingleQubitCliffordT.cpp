@@ -121,7 +121,8 @@ static bool entersSingleBlockLexicalScopesOnly(Block *nested, Block *outer) {
     if (!nested)
       return false;
     auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(nested->getParentOp());
-    if (!scope || !scope.getInitRegion().hasOneBlock())
+    if (!scope || scope.getAtomicQuantumRegionAttr() ||
+        !scope.getInitRegion().hasOneBlock())
       return false;
     nested = scope->getBlock();
   }
@@ -146,7 +147,8 @@ static std::optional<ScalarWireStep> traverseScalarWire(Value wire) {
   Operation *user = use->getOwner();
   if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(user)) {
     auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
-    if (!scope || !scope.getInitRegion().hasOneBlock() ||
+    if (!scope || scope.getAtomicQuantumRegionAttr() ||
+        !scope.getInitRegion().hasOneBlock() ||
         scope.getInitRegion().front().getTerminator() != user ||
         cont.getNumOperands() != scope->getNumResults())
       return std::nullopt;
