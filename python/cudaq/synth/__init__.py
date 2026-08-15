@@ -138,7 +138,7 @@ def gridsynth(theta,
             from the system entropy source, so repeated calls on the same
             input explore different factoring attempts and their runtimes
             can differ by orders of magnitude. Pass an `int` to make a run
-            replayable. Reproducibility also requires that neither timeout
+            `replayable`. Reproducibility also requires that neither timeout
             fire, since those are wall-clock and machine-dependent.
 
     Returns:

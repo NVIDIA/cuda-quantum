@@ -37,7 +37,7 @@ enum class GridsynthOutcome : uint8_t {
   /// the region construction to produce a usable ellipse.
   DegenerateEpsilonRegion,
 
-  /// Upright preprocessing of the region failed, so the search never started.
+  /// Upright `preprocessing` of the region failed, so the search never started.
   /// Distinct from a degenerate region: the region was built, the grid
   /// operator derived from it was not usable.
   PreprocessingFailed,
@@ -51,7 +51,7 @@ enum class GridsynthOutcome : uint8_t {
 /// Counters describing the work one `gridsynth` call performed.
 ///
 /// Passed in by non-owning pointer and left untouched when null, so an
-/// uninstrumented call pays nothing. Plain (non-atomic) counters: one call is
+/// `uninstrumented` call pays nothing. Plain (non-atomic) counters: one call is
 /// single-threaded, and the per-thread RNG makes concurrent calls independent.
 ///
 /// Counters are updated as the search runs rather than assembled at the end,

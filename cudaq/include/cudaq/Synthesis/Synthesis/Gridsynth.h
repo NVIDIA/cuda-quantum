@@ -82,11 +82,9 @@ mpfr_prec_t required_precision(const Real &epsilon);
 /// @param seed                   Seed for the factoring RNG. Unset draws from
 ///                               `std::random_device`, as before.
 ///
-/// Passing `seed` makes the search replayable: the same seed and the same
+/// Passing `seed` makes the search `replayable`. The same seed and the same
 /// options yield the same result, provided neither timeout fires. Because the
-/// timeouts are wall-clock, a run that hits one stays machine-dependent -- so
-/// reproducing a result across hosts also means giving the budgets enough room
-/// not to bind.
+/// timeouts are wall-clock, a run that hits one stays machine-dependent.
 /// @param stats                  Optional out-parameter; when non-null it is
 ///                               overwritten with the work this call performed.
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(

@@ -64,7 +64,7 @@ llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
 /// The state is otherwise seeded once per thread from `std::random_device`, so
 /// two runs of the same input explore different factoring attempts and can
 /// differ in runtime by orders of magnitude. Seeding explicitly makes a run
-/// replayable, which is a prerequisite for benchmark numbers being evidence
+/// `replayable`, which is a prerequisite for benchmark numbers being evidence
 /// rather than a single draw from a wide distribution.
 ///
 /// Restoring on scope exit keeps a seeded run from leaking determinism into
