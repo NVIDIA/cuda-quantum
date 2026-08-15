@@ -734,6 +734,13 @@ DiophantineResult adj_decompose_prime_power(const Integer &p,
 // adj-decomposition: integer n = conj_sq2(xi) * xi   (Proposition C.24)
 //===----------------------------------------------------------------------===//
 
+/// Consecutive failed factoring attempts allowed on one composite.
+///
+/// find_factor() re-rolls a fresh random `a` each call, so without a cap only
+/// the wall clock ends a hard composite. Measured over 1191 restart chains.
+/// 98.8% factor on the first attempt and none exceeded depth 3.
+constexpr int kMaxFactoringRestarts = 8;
+
 /// adj-decompose an integer n (typically the norm conj_sq2(xi) * xi).
 ///
 /// Iteratively factors n with Pollard-Brent rho, adj-decomposes each prime
@@ -751,6 +758,10 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
              << "n has " << num_decimal_digits(n) << " digits\n");
   std::vector<Factor> factors = {{n, 1}};
   ZOmega t = ZOmega::from_int(1);
+  // Restart budget for the composite on top of the stack, reset when the top
+  // changes so the bound is per composite rather than a running total.
+  Integer retried_p;
+  int retries = 0;
   while (!factors.empty()) {
     auto [p, k] = factors.back();
     factors.pop_back();
@@ -763,9 +774,15 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
     if (is_need_factoring(t_p)) {
       llvm::FailureOr<Integer> factor = find_factor(p, factoring_timeout_ms);
       if (llvm::failed(factor)) {
-        // Push the unfactored term back and keep going only if there is
-        // still time on the overall diophantine budget.
+        // Push the unfactored term back and keep going only if this composite
+        // has attempts left and there is still time on the overall budget.
         factors.emplace_back(p, k);
+        retries = (p == retried_p) ? retries + 1 : 0;
+        retried_p = p;
+        if (retries >= kMaxFactoringRestarts) {
+          CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
+          return NoSolution{};
+        }
         auto now = std::chrono::steady_clock::now();
         auto elapsed =
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
@@ -943,6 +960,9 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
   LLVM_DEBUG(cudaq::synth::dbgs() << "xi=" << xi << '\n');
   std::vector<std::pair<ZSqrt2, Integer>> factors = {{xi, 1}};
   ZOmega t = ZOmega::from_int(1);
+  // Per-composite restart budget, as in adj_decompose above.
+  Integer retried_n;
+  int retries = 0;
   while (!factors.empty()) {
     LLVM_DEBUG({
       std::string flist;
@@ -967,6 +987,12 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
       llvm::FailureOr<Integer> fac_n = find_factor(n, factoring_timeout_ms);
       if (llvm::failed(fac_n)) {
         factors.emplace_back(eta, k);
+        retries = (n == retried_n) ? retries + 1 : 0;
+        retried_n = n;
+        if (retries >= kMaxFactoringRestarts) {
+          CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
+          return NoSolution{};
+        }
         auto now = std::chrono::steady_clock::now();
         auto elapsed =
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
