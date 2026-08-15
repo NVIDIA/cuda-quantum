@@ -10,7 +10,20 @@
 #include "common/CompiledModule.h"
 #include "common/KernelExecution.h"
 #include "cudaq_internal/compiler/Compiler.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/algorithms/policy_cpos.h"
+#include "mlir/IR/BuiltinOps.h"
+
+/// Return true if \p modulePtr already contains a quake.wire_set — indicating
+/// that the target's jit-mid-level-pipeline has already been applied (e.g. by
+/// the nvq++ AOT compilation step for C++ kernels).
+static bool moduleContainsWireSet(const void *modulePtr) {
+  auto mod = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
+  return mod
+      ->walk<mlir::WalkOrder::PreOrder>(
+          [](cudaq::quake::WireSetOp) { return mlir::WalkResult::interrupt(); })
+      .wasInterrupted();
+}
 
 static std::vector<cudaq::KernelExecution>
 runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
@@ -21,14 +34,22 @@ runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
 
   cudaq_internal::compiler::Compiler compiler(std::move(target), {});
 
-  // Pre-compiled modules (e.g. Python kernels) have been through the generic
-  // aot-prep-pipeline but NOT through the target's jit-mid-level-pipeline.
-  // Apply the target's full pipeline to each MLIR artifact now so that
+  // C++ kernels compiled by nvq++ have already been through the full
+  // jit-mid-level-pipeline (which adds quake.wire_set, borrow_wire, etc.).
+  // Python kernels, however, have only been through the generic
+  // aot-prep-pipeline and have NOT had the target's mid-level pipeline applied.
+  // For the latter case, run the target's full pipeline now so that
   // target-specific passes (e.g. add-wireset + assign-wire-indices for the
-  // quake_fake backend) are applied before the IR is serialized and sent to
-  // the server.
+  // quake_fake backend) are applied before the IR is serialized.
   std::vector<cudaq::KernelExecution> allCodes;
   for (const auto &[name, artifact] : mlirArtifacts) {
+    if (moduleContainsWireSet(artifact.getOpaqueModulePtr())) {
+      // Already processed by the target pipeline — emit directly.
+      auto codes = compiler.emitKernelExecutions(module);
+      allCodes.insert(allCodes.end(), codes.begin(), codes.end());
+      break; // emitKernelExecutions handles all artifacts at once
+    }
+    // Not yet processed — apply the target's pipeline first.
     auto compiled =
         compiler.runPassPipeline(name, artifact.getOpaqueModulePtr(), {},
                                  /*isEntryPoint=*/true, artifact.getContext());
@@ -121,18 +142,20 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
         compiler.runPassPipeline(source.getName(), mlirArt.getOpaqueModulePtr(),
                                  args, true, mlirArt.getContext());
   } else {
-    // Pre-compiled module: apply the target's pipeline (same reason as in
-    // runCodegen — the aot-prep-pipeline doesn't run the target's
-    // jit-mid-level-pipeline).
     const auto &precompiled = std::get<CompiledModule>(module);
     if (precompiled.getMlirArtifacts().empty())
       CUDAQ_ERROR("QPU does not support launching a "
                   "CompiledModule without MLIR artifacts.");
-    const auto &[artName, artifact] =
-        precompiled.getMlirArtifacts().front();
-    compiled = compiler.runPassPipeline(
-        artName, artifact.getOpaqueModulePtr(), args,
-        /*isEntryPoint=*/true, artifact.getContext());
+    const auto &[artName, artifact] = precompiled.getMlirArtifacts().front();
+    if (moduleContainsWireSet(artifact.getOpaqueModulePtr())) {
+      // Already processed by the target pipeline (C++ AOT path).
+      compiled = precompiled;
+    } else {
+      // Python kernel: apply the target's full pipeline now.
+      compiled = compiler.runPassPipeline(
+          artName, artifact.getOpaqueModulePtr(), args,
+          /*isEntryPoint=*/true, artifact.getContext());
+    }
   }
   CUDAQ_INFO("launching remote rest kernel ({})", compiled.getName());
 
