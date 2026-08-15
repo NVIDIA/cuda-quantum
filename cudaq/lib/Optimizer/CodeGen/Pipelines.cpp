@@ -89,16 +89,11 @@ createTargetCodegenPipeline(OpPassManager &pm,
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
-    // Erase compiler-generated log_output ops after wire conversion.
-    // addConvertToLinearValues (via memtoreg's LogOutputOpPattern) has
-    // already threaded the wires through the log_output op (unwrap → log →
-    // wrap), so erasing here correctly threads the wire past the op before
-    // it is removed.
-    pm.addNestedPass<func::FuncOp>(
-        cudaq::opt::createEraseCompilerGeneratedLogOutput());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
 
   cudaq::opt::addPhaseLifecycle(pm);
   // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
@@ -109,12 +104,6 @@ createTargetCodegenPipeline(OpPassManager &pm,
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
-  // Erase any compiler-generated log_output ops that remain after wire
-  // conversion (or were never converted in the ref-semantics path).  These
-  // bookkeeping ops from inject-implicit-output have no JIT lowering in the
-  // simulation targets and must be removed before return-to-output-log runs.
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createEraseCompilerGeneratedLogOutput());
   cudaq::opt::ReturnToOutputLogOptions opts;
   // Only allow dynamic results with full QIR (local simulator targets).
   auto tgt = StringRef(options.target).split(':').first;
