@@ -10,19 +10,18 @@
 #include "common/CompiledModule.h"
 #include "common/KernelExecution.h"
 #include "cudaq_internal/compiler/Compiler.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "mlir/IR/BuiltinOps.h"
 
-/// Return true if \p modulePtr already contains a quake.wire_set — indicating
-/// that the target's jit-mid-level-pipeline has already been applied (e.g. by
-/// the nvq++ AOT compilation step for C++ kernels).
-static bool moduleContainsWireSet(const void *modulePtr) {
+/// Return true if \p modulePtr is a Python-compiled kernel.  Python kernels
+/// carry the `quake.python_uniqued` attribute (set by the Python bridge) and
+/// have only been through the generic `aot-prep-pipeline`.  C++ kernels
+/// compiled by nvq++ do not carry this attribute and have already been through
+/// the full target-specific pipeline (including any jit-mid-level-pipeline).
+static bool isPythonKernel(const void *modulePtr) {
   auto mod = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
-  return mod
-      ->walk<mlir::WalkOrder::PreOrder>(
-          [](cudaq::quake::WireSetOp) { return mlir::WalkResult::interrupt(); })
-      .wasInterrupted();
+  return mod->hasAttr(cudaq::runtime::pythonUniqueAttrName);
 }
 
 static std::vector<cudaq::KernelExecution>
@@ -32,37 +31,35 @@ runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
     CUDAQ_ERROR("QPU does not support launching a "
                 "CompiledModule without MLIR artifacts.");
 
-  // Determine whether this target requires the jit-mid-level-pipeline to have
-  // been applied (indicated by a non-empty midLevelPipeline config).  Most
-  // targets only need the generic aot-prep-pipeline; quake_fake-style targets
-  // additionally require add-wireset / assign-wire-indices.
-  const bool targetNeedsMidLevel =
-      !target.pipelineConfig.midLevelPipeline.empty();
+  // Python kernels have only been through the generic aot-prep-pipeline; they
+  // have NOT been through the target's jit-mid-level-pipeline.  When the
+  // target defines a non-empty midLevelPipeline (e.g. quake_fake requires
+  // add-wireset + assign-wire-indices to produce a payload the server
+  // accepts), apply the full target pipeline now before serializing.
+  //
+  // C++ kernels compiled by nvq++ have already been through the full pipeline
+  // and must NOT be reprocessed — doing so would double-apply passes like
+  // memtoreg and assign-wire-indices, causing failures.
+  const bool needsPipeline =
+      !target.pipelineConfig.midLevelPipeline.empty() &&
+      !mlirArtifacts.empty() &&
+      isPythonKernel(mlirArtifacts.front().second.getOpaqueModulePtr());
 
   cudaq_internal::compiler::Compiler compiler(std::move(target), {});
 
-  // If the target has a mid-level pipeline and the module has not yet been
-  // processed by it (no quake.wire_set → pre-compiled Python kernel), apply
-  // the full target pipeline now.  C++ kernels compiled by nvq++ already carry
-  // a quake.wire_set from their AOT compilation and must not be processed
-  // again.
-  std::vector<cudaq::KernelExecution> allCodes;
-  for (const auto &[name, artifact] : mlirArtifacts) {
-    if (targetNeedsMidLevel &&
-        !moduleContainsWireSet(artifact.getOpaqueModulePtr())) {
+  if (needsPipeline) {
+    std::vector<cudaq::KernelExecution> allCodes;
+    for (const auto &[name, artifact] : mlirArtifacts) {
       auto compiled = compiler.runPassPipeline(
           name, artifact.getOpaqueModulePtr(), {},
           /*isEntryPoint=*/true, artifact.getContext());
       auto codes = compiler.emitKernelExecutions(compiled);
       allCodes.insert(allCodes.end(), codes.begin(), codes.end());
-    } else {
-      // Already processed or target does not require mid-level pipeline.
-      auto codes = compiler.emitKernelExecutions(module);
-      allCodes.insert(allCodes.end(), codes.begin(), codes.end());
-      break; // emitKernelExecutions processes all artifacts at once
     }
+    return allCodes;
   }
-  return allCodes;
+
+  return compiler.emitKernelExecutions(module);
 }
 
 using namespace cudaq;
