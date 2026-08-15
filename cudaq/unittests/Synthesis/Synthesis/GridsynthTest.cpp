@@ -36,6 +36,20 @@ static int t_count_upper_bound(double epsilon) {
   return static_cast<int>(std::ceil(4.0 * std::log2(1.0 / epsilon))) + 20;
 }
 
+// Restores the default precision on scope exit so a test that raises it
+// cannot leak the change into the rest of the suite.
+class ScopedPrecision {
+public:
+  explicit ScopedPrecision(mpfr_prec_t prec)
+      : saved_(Real::get_default_precision()) {
+    Real::set_default_precision(prec);
+  }
+  ~ScopedPrecision() { Real::set_default_precision(saved_); }
+
+private:
+  mpfr_prec_t saved_;
+};
+
 // ============================================================
 // Parametrized accuracy test
 // ============================================================
@@ -351,6 +365,36 @@ TEST(GridsynthStatsTest, CountsFactoringWork) {
   EXPECT_GT(stats.factoring_iterations_total, 0);
 }
 
+// The factoring budget is an iteration count, not a duration, so a completed
+// run must not depend on host speed. The counter catches a regression even
+// where the circuit happens to come out the same either way.
+TEST(GridsynthDeterminismTest, WallClockDoesNotDecideTheOutcome) {
+  // Deep enough that the solver does real factoring work.
+  const char *epsilon = "1e-25";
+  ScopedPrecision precision(
+      cudaq::synth::details::required_precision(Real(epsilon)));
+
+  auto synthesize = [&](int32_t factoring_timeout_ms, GridsynthStats &stats) {
+    llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real(epsilon),
+        cudaq::synth::details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
+        factoring_timeout_ms, uint64_t{4242}, &stats);
+    EXPECT_TRUE(llvm::succeeded(result));
+    return llvm::succeeded(result) ? result->to_string() : std::string();
+  };
+
+  GridsynthStats tight_stats, loose_stats;
+  std::string tight = synthesize(20, tight_stats);
+  std::string loose = synthesize(5000, loose_stats);
+
+  EXPECT_EQ(tight, loose) << "same seed produced different circuits under "
+                             "different wall-clock budgets";
+  EXPECT_EQ(tight_stats.factoring_wall_clock_exits, 0);
+  EXPECT_EQ(loose_stats.factoring_wall_clock_exits, 0);
+  // Not vacuous: this input really does factor.
+  EXPECT_GT(tight_stats.factoring_iterations_total, 0);
+}
+
 TEST(GridsynthStatsTest, ReportsTheZeroTShortcutRatherThanASearch) {
   GridsynthStats stats = stats_for("0.5", "0.3");
 
@@ -528,20 +572,6 @@ TEST(GridsynthPrecisionTest, RequiredPrecisionIsBoundedAtBothExtremes) {
 // ============================================================
 // Working-precision changes
 // ============================================================
-
-// Restores the default precision on scope exit so a test that raises it
-// cannot leak the change into the rest of the suite.
-class ScopedPrecision {
-public:
-  explicit ScopedPrecision(mpfr_prec_t prec)
-      : saved_(Real::get_default_precision()) {
-    Real::set_default_precision(prec);
-  }
-  ~ScopedPrecision() { Real::set_default_precision(saved_); }
-
-private:
-  mpfr_prec_t saved_;
-};
 
 // Synthesis caches precision-dependent constants (sqrt(2)/2, the powers of
 // lambda) in function-local statics. A loose-epsilon run materializes them at
