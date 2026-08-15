@@ -825,6 +825,8 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
         if (elapsed >= diophantine_timeout_ms) {
+          if (stats)
+            stats->diophantine_wall_clock_exits++;
           CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
           return NoSolution{};
         }
@@ -1038,6 +1040,8 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
         if (elapsed >= diophantine_timeout_ms) {
+          if (stats)
+            stats->diophantine_wall_clock_exits++;
           CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
           return NoSolution{};
         }

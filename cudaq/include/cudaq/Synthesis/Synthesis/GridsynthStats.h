@@ -100,6 +100,10 @@ struct GridsynthStats {
   /// a run to be reproducible across machines.
   int64_t factoring_wall_clock_exits = 0;
 
+  /// Candidate solves the wall clock abandoned, one level up from
+  /// factoring_wall_clock_exits. Also must be zero to be reproducible.
+  int64_t diophantine_wall_clock_exits = 0;
+
   /// Pollard-rho iterations summed over every attempt. This is the
   /// machine-independent measure of factoring effort, unlike the wall-clock
   /// budget that currently ends an attempt.

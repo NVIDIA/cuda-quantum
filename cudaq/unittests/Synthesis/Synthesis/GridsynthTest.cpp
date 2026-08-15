@@ -391,6 +391,9 @@ TEST(GridsynthDeterminismTest, WallClockDoesNotDecideTheOutcome) {
                              "different wall-clock budgets";
   EXPECT_EQ(tight_stats.factoring_wall_clock_exits, 0);
   EXPECT_EQ(loose_stats.factoring_wall_clock_exits, 0);
+  // The enclosing per-candidate clock must not decide anything either.
+  EXPECT_EQ(tight_stats.diophantine_wall_clock_exits, 0);
+  EXPECT_EQ(loose_stats.diophantine_wall_clock_exits, 0);
   // Not vacuous: this input really does factor.
   EXPECT_GT(tight_stats.factoring_iterations_total, 0);
 }
