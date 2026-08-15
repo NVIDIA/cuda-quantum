@@ -224,11 +224,11 @@ concatResultIndex(cudaq::quake::ConcatOp concat, std::size_t operandPos) {
 namespace {
 /// When individual `!quake.ref` `alloca`s are aliased into a `veq` via
 /// `quake.concat` and then also used directly by gate or measurement `ops` that
-/// appear *after* the `concat` in the same block, this pattern is deployed to
-/// replace each such post-`concat` direct use of an `alloca` `ref` with a fresh
-/// `quake.extract_ref` `op` from the `concat` result at the correct index,
-/// making every post-`concat` qubit access go through the `veq` and eliminate
-/// `use-def` chain aliasing via the `concat` `op`.
+/// appear *after* the `concat` — either in the same block or inside a nested
+/// region of an op that follows the concat — this pattern replaces each such
+/// direct use with a fresh `quake.extract_ref` from the `concat` result at the
+/// correct index, making every post-`concat` qubit access go through the `veq`
+/// and eliminating use-def chain aliasing via the `concat` op.
 class ConcatAllocaAliasPattern
     : public OpRewritePattern<cudaq::quake::ConcatOp> {
 public:
@@ -241,6 +241,27 @@ public:
     bool modified = false;
     auto refTy = cudaq::quake::RefType::get(rewriter.getContext());
 
+    // Returns true if `user` is dominated by `concat`.  This covers:
+    //   (a) same-block uses that come after the concat, and
+    //   (b) uses inside nested regions of ops that come after the concat.
+    auto dominatedByConcat = [&](Operation *user) -> bool {
+      // Walk up the parent-op chain until we reach concatBlock.
+      Block *block = user->getBlock();
+      while (block != concatBlock) {
+        Operation *parentOp = block->getParentOp();
+        if (!parentOp)
+          return false;
+        block = parentOp->getBlock();
+        if (!block)
+          return false;
+        // If we found concatBlock, check that the containing op follows concat.
+        if (block == concatBlock)
+          return concat->isBeforeInBlock(parentOp);
+      }
+      // Same block as concat — just check ordering.
+      return concat->isBeforeInBlock(user);
+    };
+
     for (auto [pos, operand] : llvm::enumerate(concat.getTargets())) {
       if (operand.getType() != refTy ||
           !operand.getDefiningOp<cudaq::quake::AllocaOp>())
@@ -251,18 +272,16 @@ public:
         continue;
       std::size_t veqIdx = *maybeIdx;
 
-      // Replace every direct use of this alloca that (a) is in the same block,
-      // (b) comes after the concat, and (c) is not the concat itself or a
-      // dealloc (deallocs manage lifetime, not qubit state).
+      // Replace every direct use of this alloca that (a) is dominated by the
+      // concat (same block after, or nested in an op after), and (b) is not the
+      // concat itself or a dealloc (deallocs manage lifetime, not qubit state).
       for (OpOperand &use : llvm::make_early_inc_range(operand.getUses())) {
         auto *user = use.getOwner();
         if (user == concat.getOperation())
           continue;
         if (isa<cudaq::quake::DeallocOp>(user))
           continue;
-        if (user->getBlock() != concatBlock)
-          continue;
-        if (!concat->isBeforeInBlock(user))
+        if (!dominatedByConcat(user))
           continue;
 
         rewriter.setInsertionPoint(user);
