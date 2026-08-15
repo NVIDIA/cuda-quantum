@@ -253,5 +253,10 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
+  // IQM mapping can itself create phase bookkeeping. Lower it again, then
+  // remap LowerPhase's R1/Rz output to IQM's native gate set.
+  cudaq::opt::addPhaseLifecycle(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
   pm.addPass(createVerifyNoPhase());
 }
