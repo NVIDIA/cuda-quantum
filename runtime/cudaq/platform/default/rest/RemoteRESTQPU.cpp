@@ -41,17 +41,30 @@ runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
   //
   // C++ kernels compiled by nvq++ have already been through the full pipeline
   // and must NOT be reprocessed — doing so would double-apply passes.
+  // Determine what the module needs that the aot-prep-pipeline didn't provide:
+  //   • needsWireset: target sends raw Quake MLIR (codegenTranslation=="nop")
+  //     and the server requires add-wireset / assign-wire-indices ops.
+  //   • needsJit: target runs locally via emulation and a JIT artifact is
+  //     required for cudaq::sample / run.  The aot-prep-pipeline produces
+  //     compiled modules with emitJit=false, so there is no JIT yet.
+  //
+  // If the module already has a JIT (e.g. compileModule was called earlier in
+  // the same launch with emitJit=true from the policy options), we must NOT
+  // call runPassPipeline again — that would double-apply mapping/decomposition
+  // passes and produce wrong results.
+  //
+  // C++ kernels compiled by nvq++ have been through the full pipeline already
+  // and must not be reprocessed.
   const bool isPython =
       !mlirArtifacts.empty() &&
       isPythonKernel(mlirArtifacts.front().second.getOpaqueModulePtr());
-  const bool needsWireset =
-      target.pipelineConfig.codegenTranslation == "nop" &&
-      !target.pipelineConfig.midLevelPipeline.empty();
-  const bool needsJit = target.emulate;
+  const bool needsWireset = target.pipelineConfig.codegenTranslation == "nop" &&
+                            !target.pipelineConfig.midLevelPipeline.empty();
+  const bool needsJit = target.emulate && !module.getJit().has_value();
 
   if (isPython && (needsWireset || needsJit)) {
     cudaq::CompileOptions opts;
-    opts.emitJit = needsJit; // create JIT only when emulation requires it
+    opts.emitJit = needsJit;
     cudaq_internal::compiler::Compiler compiler(std::move(target), opts);
     std::vector<cudaq::KernelExecution> allCodes;
     for (const auto &[name, artifact] : mlirArtifacts) {
