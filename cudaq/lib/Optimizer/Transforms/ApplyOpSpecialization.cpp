@@ -760,7 +760,8 @@ public:
       // for gates such as U3 and PhasedRx).
       const bool isPhase = isa<cudaq::quake::PhaseOp>(op);
       if (isPhase) {
-        auto arrAttr = cast<DenseI32ArrayAttr>(op->getAttr(segmentSizes));
+        auto arrAttr = cast<DenseI32ArrayAttr>(
+            op->getAttr(cudaq::runtime::operandSegmentSizes));
         for (Value parameter : op->getOperands().take_front(arrAttr[0]))
           mapper.map(parameter,
                      arith::NegFOp::create(builder, loc, parameter.getType(),

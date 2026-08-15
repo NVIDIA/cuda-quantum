@@ -1,0 +1,44 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+//                                                                            //
+// This source code and the accompanying materials are made available under    //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// The first inlining round canonicalizes cc.callable_func to a direct call,
+// which must be inlined before control specialization. One round must retain
+// the diagnostic; two rounds must preserve the control on the quantum work.
+
+// RUN: not cudaq-opt --aggressive-inlining --apply-op-specialization %s 2>&1 | FileCheck %s --check-prefix=ONE
+// RUN: cudaq-opt --aggressive-inlining --aggressive-inlining --apply-op-specialization %s | FileCheck %s --check-prefix=TWO
+
+module {
+  func.func private @__nvqpp__callable.thunk.lambda.0(%closure: !cc.callable<(!quake.ref) -> ()>, %q: !quake.ref) attributes {"cudaq-kernel"} {
+    quake.x %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func private @wrapper(%q: !quake.ref) attributes {"cudaq-kernel"} {
+    %closure = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0() : () -> !cc.callable<(!quake.ref) -> ()>
+    %fn = cc.callable_func %closure : (!cc.callable<(!quake.ref) -> ()>) -> ((!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ())
+    func.call_indirect %fn(%closure, %q) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+    return
+  }
+
+  func.func @main() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %control = quake.alloca !quake.ref
+    %target = quake.alloca !quake.ref
+    quake.apply @wrapper [%control] %target : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+
+// ONE: error: Unhandled controlled quantum kernel call in control variant generation
+
+// TWO-LABEL: func.func private @wrapper.ctrl(
+// TWO-SAME: %[[CTRL:.*]]: !quake.veq<?>, %{{.*}}: !quake.ref)
+// TWO-NOT: call @__nvqpp__callable.thunk.lambda
+// TWO-NOT: call_indirect
+// TWO: quake.x [%[[CTRL]]] %{{.*}} : (!quake.veq<?>, !quake.ref) -> ()
+// TWO-NOT: call @__nvqpp__callable.thunk.lambda
+// TWO-NOT: call_indirect
