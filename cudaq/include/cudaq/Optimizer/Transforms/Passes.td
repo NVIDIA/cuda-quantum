@@ -1075,6 +1075,17 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
     ```
   }];
 
+  let options = [
+    Option<"unsafeQuantumAlloc", "unsafe-quantum-alloc", "bool",
+           /*default=*/"false",
+           "When true, suppress adding the cc.no_qubit_combine attribute when "
+           "lowering a cc.scope that contains a quantum allocation.  This is "
+           "unsafe in general (the subsequent combine-quantum-alloc pass may "
+           "combine allocations across scope boundaries), but useful when "
+           "lower-to-cfg is followed immediately by combine-quantum-alloc and "
+           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
+  ];
+
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
 }
 

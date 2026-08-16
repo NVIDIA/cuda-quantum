@@ -30,7 +30,8 @@ using namespace mlir;
 namespace {
 class RewriteScope : public OpRewritePattern<cudaq::cc::ScopeOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  RewriteScope(MLIRContext *ctx, bool suppressNoQubitCombine = false)
+      : OpRewritePattern(ctx), suppressNoQubitCombine(suppressNoQubitCombine) {}
 
   /// Rewrites a scope construct like
   /// ```mlir
@@ -56,7 +57,7 @@ public:
     auto *initBlock = rewriter.getInsertionBlock();
     Value stackSave;
     auto ptrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-    if (scopeOp.hasQuantumAllocation())
+    if (scopeOp.hasQuantumAllocation() && !suppressNoQubitCombine)
       if (auto fn = scopeOp->getParentOfType<func::FuncOp>())
         fn->setAttr(cudaq::opt::disableQubitCombineAttrName,
                     UnitAttr::get(scopeOp.getContext()));
@@ -98,6 +99,8 @@ public:
     rewriter.replaceOp(scopeOp, scopeResults);
     return success();
   }
+
+  bool suppressNoQubitCombine;
 };
 
 class RewriteLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
@@ -302,7 +305,8 @@ public:
     auto *op = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<RewriteLoop, RewriteScope, RewriteIf, RewriteReturn>(ctx);
+    patterns.insert<RewriteLoop, RewriteIf, RewriteReturn>(ctx);
+    patterns.insert<RewriteScope>(ctx, unsafeQuantumAlloc);
     ConversionTarget target(*ctx);
     target.addIllegalOp<cudaq::cc::ScopeOp, cudaq::cc::LoopOp, cudaq::cc::IfOp,
                         cudaq::cc::ConditionOp, cudaq::cc::ContinueOp,
