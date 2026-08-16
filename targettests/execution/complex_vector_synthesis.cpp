@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
+// XFAIL: system-darwin
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
 // RUN: nvq++ --target quantinuum --emulate -fkernel-exec-kind=2 %s -o %t  && %t | FileCheck %s

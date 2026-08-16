@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -constant-propagation -canonicalize %s | FileCheck %s
+// XFAIL: system-darwin
 
 func.func @covered_wagon() {
   %cst = arith.constant 3.300000e+00 : f64

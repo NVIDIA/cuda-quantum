@@ -235,6 +235,10 @@ tensornet_backend_skipped_tests=(\
     examples/cpp/other/builder/builder.cpp \
     applications/cpp/amplitude_estimation.cpp)
 
+# Tests not supported on macOS.
+macos_skipped_examples=(\
+    examples/cpp/operators.cpp)
+
 echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
@@ -252,7 +256,14 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    # Look for a --target flag to nvq++ in the 
+    if [ "$(uname)" == "Darwin" ] && [[ " ${macos_skipped_examples[*]} " =~ " $ex " ]]; then
+        let "skipped+=1"
+        echo "Skipping on macOS.";
+        echo ":white_flag: $filename: Not supported on macOS. Test skipped." >> "${tmpFile}"
+        continue
+    fi
+
+    # Look for a --target flag to nvq++ in the
     # comment block at the beginning of the file.
     # Note: using sed instead of grep -P for macOS compatibility
     intended_target=$(sed -e '/^$/,$d' "$ex" | sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' | head -1)

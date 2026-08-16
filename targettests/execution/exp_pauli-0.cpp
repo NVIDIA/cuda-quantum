@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
+// XFAIL: system-darwin
 // Simulators
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 //

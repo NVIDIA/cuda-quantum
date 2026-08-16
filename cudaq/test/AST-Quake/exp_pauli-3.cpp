@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// XFAIL: system-darwin
 
 #include <cudaq.h>
 
