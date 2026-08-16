@@ -371,6 +371,13 @@ public:
     for (Value v : veqsToCancel) {
       OpBuilder builder(op);
       Location loc = op->getLoc();
+      // A veq defined by a standalone alloca or by an init_state (which
+      // initializes a separate alloca) occupies an independent qubit range
+      // with no overlap with individually tracked ref allocas.  No binding
+      // cancellation is needed for those cases.
+      if (auto *defOp = v.getDefiningOp())
+        if (isa<cudaq::quake::AllocaOp, cudaq::quake::InitializeStateOp>(defOp))
+          continue;
       auto concat = v.getDefiningOp<cudaq::quake::ConcatOp>();
       if (!concat) {
         wrapAndCancelAllQuantumBindings(block, builder, loc, cleanUps, op);
