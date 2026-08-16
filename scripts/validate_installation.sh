@@ -235,10 +235,6 @@ tensornet_backend_skipped_tests=(\
     examples/cpp/other/builder/builder.cpp \
     applications/cpp/amplitude_estimation.cpp)
 
-# Tests not supported on macOS.
-macos_skipped_examples=(\
-    examples/cpp/operators.cpp)
-
 echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
@@ -255,13 +251,6 @@ do
     echo "Testing $filename:"
     echo "Source: $ex"
     let "samples+=1"
-
-    if [ "$(uname)" == "Darwin" ] && [[ " ${macos_skipped_examples[*]} " =~ " $ex " ]]; then
-        let "skipped+=1"
-        echo "Skipping on macOS.";
-        echo ":white_flag: $filename: Not supported on macOS. Test skipped." >> "${tmpFile}"
-        continue
-    fi
 
     # Look for a --target flag to nvq++ in the
     # comment block at the beginning of the file.

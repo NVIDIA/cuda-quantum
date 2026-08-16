@@ -73,12 +73,13 @@ public:
     if (!buffer)
       return failure();
 
+    auto dict = pauli->getDiscardableAttrDictionary();
     auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), pauli.getIsAdjAttr(),
         pauli.getParameters(), pauli.getControls(), pauli.getTargets(),
         pauli.getNegatedQubitControlsAttr(), Value{},
         buffer.getStringLiteralAttr());
-    newPauli->setDiscardableAttrs(pauli->getDiscardableAttrDictionary());
+    newPauli->setDiscardableAttrs(std::move(dict));
     return success();
   }
 };

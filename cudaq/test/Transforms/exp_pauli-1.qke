@@ -7,7 +7,6 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --convert-to-qir-api=api=base-profile --cse %s | FileCheck %s
-// XFAIL: system-darwin
 
 func.func @ep_0() {
   %0 = quake.alloca !quake.ref
