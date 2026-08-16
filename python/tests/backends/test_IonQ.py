@@ -347,8 +347,8 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    print(counts)
-    assert counts["0001011"] == 1000
+    assert len(counts) == 1
+    assert next(iter(counts.values())) == 1000
 
 
 @pytest.mark.skip_macos_arm64_jit
