@@ -346,8 +346,7 @@ struct LowerToCFGOptions : public PassPipelineOptions<LowerToCFGOptions> {
       *this, "unsafe-quantum-alloc",
       llvm::cl::desc(
           "Suppress adding cc.no_qubit_combine when lowering a cc.scope "
-          "with quantum allocations.  Safe only when combine-quantum-alloc "
-          "and factor-quantum-alloc follow immediately."),
+          "with quantum allocations.  Useful for certain special pipelines."),
       llvm::cl::init(false)};
 };
 } // namespace
