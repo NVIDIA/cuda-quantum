@@ -5,9 +5,10 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.    //
 // ========================================================================== //
 
-// The first inlining round canonicalizes cc.callable_func to a direct call,
-// which must be inlined before control specialization. One round must retain
-// the diagnostic; two rounds must preserve the control on the quantum work.
+// The first inlining round's cleanup canonicalizes cc.callable_func to a
+// direct call only after its inliner has finished. That call must be inlined
+// before control specialization. One round must retain the diagnostic; two
+// rounds must preserve the control on the quantum work.
 
 // RUN: not cudaq-opt --aggressive-inlining --apply-op-specialization %s 2>&1 | FileCheck %s --check-prefix=ONE
 // RUN: cudaq-opt --aggressive-inlining --aggressive-inlining --apply-op-specialization %s | FileCheck %s --check-prefix=TWO
