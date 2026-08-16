@@ -340,6 +340,26 @@ void cudaq::opt::addLowerToCFG(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConvertToCFG());
 }
 
+namespace {
+struct LowerToCFGOptions : public PassPipelineOptions<LowerToCFGOptions> {
+  PassOptions::Option<bool> unsafeQuantumAlloc{
+      *this, "unsafe-quantum-alloc",
+      llvm::cl::desc(
+          "Suppress adding cc.no_qubit_combine when lowering a cc.scope "
+          "with quantum allocations.  Safe only when combine-quantum-alloc "
+          "and factor-quantum-alloc follow immediately."),
+      llvm::cl::init(false)};
+};
+} // namespace
+
 void cudaq::opt::registerToCFGPipeline() {
-  PassPipelineRegistration<>("lower-to-cfg", "Convert to CFG.", addLowerToCFG);
+  PassPipelineRegistration<LowerToCFGOptions>(
+      "lower-to-cfg", "Convert to CFG.",
+      [](OpPassManager &pm, const LowerToCFGOptions &opts) {
+        pm.addPass(cudaq::opt::createConvertToCFGPrep());
+        cudaq::opt::ConvertToCFGOptions passOpts;
+        passOpts.unsafeQuantumAlloc = opts.unsafeQuantumAlloc;
+        pm.addNestedPass<func::FuncOp>(
+            cudaq::opt::createConvertToCFG(passOpts));
+      });
 }
