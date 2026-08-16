@@ -112,7 +112,7 @@ def test_Ionq_state_synthesis():
     s = cudaq.get_state(init, 2)
     s = cudaq.get_state(kernel, s)
     counts = cudaq.sample(kernel, s)
-    assert '1' in counts
+    assert '10' in counts
     assert len(counts) == 1
 
 
