@@ -542,8 +542,8 @@ LogicalResult cudaq::quake::BorrowWireOp::verify() {
 
 void cudaq::quake::ConcatOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ConcatSizePattern, ConcatNoOpPattern, UselessConcatOpPattern>(
-      context);
+  patterns.add<ConcatSizePattern, ConcatNoOpPattern, UselessConcatOpPattern,
+               ConcatFlattenPattern>(context);
 }
 
 LogicalResult cudaq::quake::ConcatOp::verify() {
