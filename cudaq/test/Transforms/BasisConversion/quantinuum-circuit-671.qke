@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --quantinuum-gate-set-mapping %s | FileCheck %s
+// RUN: cudaq-opt --quantinuum-gate-set-mapping %s | CircuitCheck %s
 
 module {
   // CHECK-LABEL: func.func  @__nvqpp__mlirgen____nvqppBuilderKernel_367535629127
@@ -27,46 +28,67 @@ module {
     // CHECK: quake.h
     quake.h %3 : (!quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.t [%1] %4 : (!quake.ref, !quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.t [%2] %4 : (!quake.ref, !quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.t [%2] %4 : (!quake.ref, !quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.t [%3] %4 : (!quake.ref, !quake.ref) -> ()
     // CHECK: quake.x 
     // CHECK-NEXT: quake.x 
@@ -75,24 +97,33 @@ module {
     // CHECK: quake.h
     quake.h %1 : (!quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.r1 (%cst_0) [%2] %1 : (f64, !quake.ref, !quake.ref) -> ()
     // CHECK: quake.h
     quake.h %2 : (!quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.r1 (%cst_0) [%3] %2 : (f64, !quake.ref, !quake.ref) -> ()
     // CHECK: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     // CHECK-NEXT: quake.x 
     // CHECK-NEXT: quake.rz
+    // CHECK: quake.phase
     quake.r1 (%cst) [%3] %1 : (f64, !quake.ref, !quake.ref) -> ()
     // CHECK: quake.h
     quake.h %3 : (!quake.ref) -> ()
