@@ -113,8 +113,42 @@ typedef struct {
   cudaq_status_t (*launch)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
 
+  // Version 2 fields.
+  cudaq_status_t (*get_cpu_dataplane)(cudaq_realtime_bridge_handle_t,
+                                      cudaq_cpu_dataplane_t *out);
+  cudaq_status_t (*get_endpoint_info)(cudaq_realtime_bridge_handle_t, char *buf,
+                                      size_t buf_len);
+  cudaq_status_t (*get_ring_geometry)(cudaq_realtime_bridge_handle_t,
+                                      uint32_t *out_num_slots,
+                                      uint32_t *out_slot_size);
+
+  // Version 3 field.
+  cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
+                                       cudaq_function_entry_t *function_table,
+                                       size_t func_count);
+
 } cudaq_realtime_bridge_interface_t;
 ```
+
+### Interface versioning
+
+Set `version` to `CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION`. The loader accepts
+any provider reporting a version in `[1, CURRENT]` and rejects newer ones, so a
+provider built against an older header keeps working: fields after `disconnect`
+are read only from providers reporting version >= 2, and `set_function_table`
+only from providers reporting version >= 3. A provider that does not implement
+an optional capability sets that entry to `NULL`, and the corresponding
+`cudaq_bridge_*` call then returns `CUDAQ_ERR_UNSUPPORTED` instead of
+dispatching into the provider.
+
+`set_function_table` (version 3) hands the provider the dispatcher's function
+table (`cudaq_function_entry_t` array + entry count). It is a registration
+hook only: the dispatcher still passes the same table to the launch function at
+`cudaq_dispatcher_start`, so a transport that does not need the table -- as
+none of the bundled providers do -- simply leaves the entry `NULL`. Callers
+should treat `CUDAQ_ERR_UNSUPPORTED` from
+`cudaq_bridge_set_function_table` as an expected result that can be safely
+ignored, not as a fatal error.
 
 At runtime, when a `CUDAQ_PROVIDER_EXTERNAL` is requested in `cudaq_bridge_create`,
 CUDA-Q will retrieve the environment variable `CUDAQ_REALTIME_BRIDGE_LIB`
@@ -224,6 +258,13 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       provider_name_bridge_connect,
       provider_name_bridge_launch,
       provider_name_bridge_disconnect,
+      // Optional capabilities: implement the ones this transport supports and
+      // leave the rest NULL (the matching cudaq_bridge_* call then returns
+      // CUDAQ_ERR_UNSUPPORTED).
+      /*get_cpu_dataplane=*/nullptr,
+      /*get_endpoint_info=*/nullptr,
+      /*get_ring_geometry=*/nullptr,
+      /*set_function_table=*/nullptr,
   };
   return &cudaq_provider_name_bridge_interface;
 }

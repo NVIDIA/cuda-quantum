@@ -63,5 +63,23 @@ TEST(UdpBridgeProvider, LoadsAndCreatesPlainBridgeWithoutCudaRuntime) {
             CUDAQ_OK);
   EXPECT_NE(std::strstr(endpoint, "transport=udp"), nullptr);
 
+  // The v3 set_function_table slot is NULL for this provider (the dispatcher
+  // owns dispatch, so the transport never reads the table): a well-formed
+  // registration must report the capability as unsupported rather than
+  // succeeding, so a caller can tell "registered" from "ignored".
+  cudaq_function_entry_t entries[1] = {};
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, entries, 1),
+            CUDAQ_ERR_UNSUPPORTED);
+
+  // Argument validation happens ahead of the capability lookup.
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, nullptr, 1),
+            CUDAQ_ERR_INVALID_ARG);
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, entries, 0),
+            CUDAQ_ERR_INVALID_ARG);
+
   EXPECT_EQ(cudaq_bridge_destroy(bridge), CUDAQ_OK);
+
+  // An unknown handle (here: the destroyed one) is rejected.
+  EXPECT_EQ(cudaq_bridge_set_function_table(bridge, entries, 1),
+            CUDAQ_ERR_INVALID_ARG);
 }

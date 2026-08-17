@@ -192,14 +192,27 @@ cudaq_bridge_get_ring_geometry(cudaq_realtime_bridge_handle_t bridge,
                                uint32_t *out_num_slots,
                                uint32_t *out_slot_size);
 
+/// @brief Hand the provider the same function table the dispatcher will run
+/// (`cudaq_function_entry_t` array + entry count, mirroring the
+/// `cudaq_unified_launch_fn_t` arguments).  Registration only: the provider
+/// records the pointer and count for its own use (e.g. pre-staging or schema
+/// validation) -- the dispatcher still passes the identical table to the
+/// launch function at `cudaq_dispatcher_start`.
+cudaq_status_t
+cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
+                                cudaq_function_entry_t *function_table,
+                                size_t func_count);
+
 /// Version 2 adds the capability queries after `disconnect`:
-/// `get_cpu_dataplane`, `get_endpoint_info`, and `get_ring_geometry`.  The
-/// loader accepts providers reporting any version in [1, CURRENT]; fields
+/// `get_cpu_dataplane`, `get_endpoint_info`, and `get_ring_geometry`.
+/// Version 3 adds `set_function_table` after those.  The loader accepts
+/// providers reporting any version in [1, CURRENT]; fields
 /// beyond `disconnect` are only read from providers reporting version >= 2
-/// (a v1 provider's struct may simply end at `disconnect`).  A v2 provider
+/// (a v1 provider's struct may simply end at `disconnect`), and the version-3
+/// field only from providers reporting version >= 3.  A v2+ provider
 /// sets entries it does not support to NULL; the corresponding API calls
 /// return CUDAQ_ERR_UNSUPPORTED.
-#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 2
+#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 3
 
 /// @brief Interface struct for transport layer providers.  Each provider must
 /// implement this interface and provide a `getter` function
@@ -239,6 +252,18 @@ typedef struct {
   cudaq_status_t (*get_ring_geometry)(cudaq_realtime_bridge_handle_t,
                                       uint32_t *out_num_slots,
                                       uint32_t *out_slot_size);
+
+  //--------------------------------------------------------------------------
+  // Version 3 fields.  Read only when `version >= 3`; NULL when the provider
+  // does not consume the capability (the API wrapper then returns
+  // CUDAQ_ERR_UNSUPPORTED).
+  //--------------------------------------------------------------------------
+
+  /// Registers the dispatcher's function table with the transport; see
+  /// cudaq_bridge_set_function_table.
+  cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
+                                       cudaq_function_entry_t *function_table,
+                                       size_t func_count);
 
 } cudaq_realtime_bridge_interface_t;
 
