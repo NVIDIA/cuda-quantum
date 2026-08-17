@@ -249,3 +249,146 @@ func.func @kernel_used_axis_wire(%q: !quake.wire) {
   quake.sink %0#1 : !quake.wire
   return
 }
+
+// -----
+
+// CHECK: Preprocessing h(0) for 1 counts
+// CHECK: Preprocessing x(1) for 1 counts
+// CHECK-LABEL:   func.func @kernel_wire_bell() {
+// CHECK:       %[[VAL_0:.*]] = quake.null_wire
+// CHECK:       %[[VAL_1:.*]] = quake.null_wire
+// CHECK-NOT:   quake.h
+// CHECK-NOT:   quake.x
+// CHECK:       %{{.*}}, %[[VAL_2:.*]] = quake.mz %[[VAL_0]] :
+// CHECK:       %{{.*}}, %[[VAL_3:.*]] = quake.mz %[[VAL_1]] :
+// CHECK:       quake.sink %[[VAL_2]]
+// CHECK:       quake.sink %[[VAL_3]]
+// CHECK:       return
+// CHECK:   }
+
+// In value (linear) form a pre-counted operation still threads wires to its
+// users. Forward the incoming wires to the results before erasing it, or the
+// operation is destroyed while its results are still in use.
+func.func @kernel_wire_bell() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+  %c:2 = quake.x [%h] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %m0, %w0m = quake.mz %c#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1m = quake.mz %c#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %w0m : !quake.wire
+  quake.sink %w1m : !quake.wire
+  return
+}
+
+// -----
+
+// CHECK: Preprocessing h(0) for 1 counts
+// CHECK: Preprocessing x(1) for 1 counts
+// CHECK-LABEL:   func.func @kernel_wire_reset() {
+// CHECK:       %[[VAL_0:.*]] = quake.null_wire
+// CHECK:       %[[VAL_1:.*]] = quake.null_wire
+// CHECK:       %[[VAL_2:.*]] = quake.reset %[[VAL_0]] :
+// CHECK:       quake.sink %[[VAL_2]]
+// CHECK:       quake.sink %[[VAL_1]]
+// CHECK:       return
+// CHECK:   }
+
+// A reset is not pre-counted, so the control wire of the `x` reaches its origin
+// only by walking back through it.
+func.func @kernel_wire_reset() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+  %r = quake.reset %h : (!quake.wire) -> !quake.wire
+  %c:2 = quake.x [%r] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %c#0 : !quake.wire
+  quake.sink %c#1 : !quake.wire
+  return
+}
+
+// -----
+
+// CHECK: Preprocessing x(1) for 1 counts
+// CHECK-LABEL:   func.func @kernel_ctrl_form() {
+// CHECK:       %[[VAL_0:.*]] = quake.null_wire
+// CHECK:       %[[VAL_1:.*]] = quake.null_wire
+// CHECK:       %[[VAL_2:.*]] = quake.to_ctrl %[[VAL_0]] :
+// CHECK:       %[[VAL_3:.*]] = quake.from_ctrl %[[VAL_2]] :
+// CHECK:       quake.sink %[[VAL_3]]
+// CHECK:       quake.sink %[[VAL_1]]
+// CHECK:       return
+// CHECK:   }
+
+// A control of type `!quake.control` threads no wire through the operation, so
+// the single result corresponds to the target wire.
+func.func @kernel_ctrl_form() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %c = quake.to_ctrl %w0 : (!quake.wire) -> !quake.control
+  %w1a = quake.x [%c] %w1 : (!quake.control, !quake.wire) -> !quake.wire
+  %w0b = quake.from_ctrl %c : (!quake.control) -> !quake.wire
+  quake.sink %w0b : !quake.wire
+  quake.sink %w1a : !quake.wire
+  return
+}
+
+// -----
+
+// CHECK: Preprocessing h(0) for 1 counts
+// CHECK: Preprocessing x(1) for 1 counts
+// CHECK-LABEL:   func.func @kernel_wire_unwrap() {
+// CHECK:       %{{.*}} = quake.alloca !quake.veq<2>
+// CHECK-NOT:   quake.h
+// CHECK-NOT:   quake.x
+// CHECK:       return
+// CHECK:   }
+
+// Mixed memory and value form: `unwrap` bridges a reference to a wire, so the
+// qubit indices still resolve back to the enclosing qvector.
+func.func @kernel_wire_unwrap() {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  %w0 = quake.unwrap %1 : (!quake.ref) -> !quake.wire
+  %w1 = quake.unwrap %2 : (!quake.ref) -> !quake.wire
+  %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+  %c:2 = quake.x [%h] %w1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.wrap %c#0 to %1 : !quake.wire, !quake.ref
+  quake.wrap %c#1 to %2 : !quake.wire, !quake.ref
+  return
+}
+
+// -----
+
+// CHECK: Preprocessing h(0) for 4 counts
+// CHECK-LABEL:   func.func @kernel_wire_loop() {
+// CHECK:       %[[VAL_0:.*]] = quake.null_wire
+// CHECK-NOT:   cc.loop
+// CHECK-NOT:   quake.h
+// CHECK:       quake.sink %[[VAL_0]]
+// CHECK:       return
+// CHECK:   }
+
+// A gate in an invariant loop body is counted once per iteration. Forwarding
+// its wire lets the now empty loop fold away.
+func.func @kernel_wire_loop() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %w0 = quake.null_wire
+  %r:2 = cc.loop while ((%i = %c0, %w = %w0) -> (i64, !quake.wire)) {
+    %cmp = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %cmp (%i, %w : i64, !quake.wire)
+  } do {
+    ^bb0(%i: i64, %w: !quake.wire):
+      %h = quake.h %w : (!quake.wire) -> !quake.wire
+      cc.continue %i, %h : i64, !quake.wire
+  } step {
+    ^bb0(%i: i64, %w: !quake.wire):
+      %n = arith.addi %i, %c1 : i64
+      cc.continue %n, %w : i64, !quake.wire
+  }
+  quake.sink %r#1 : !quake.wire
+  return
+}

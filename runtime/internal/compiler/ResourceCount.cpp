@@ -32,6 +32,13 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   if (unresolvedVeq)
     return failure();
 
+  // In value (linear) form there are no allocations: qubits are introduced
+  // either as virtual wires or as the finite set of wires a wire set defines.
+  module.walk([&](cudaq::quake::NullWireOp) { allocated++; });
+  module.walk([&](cudaq::quake::WireSetOp wireSet) {
+    allocated += wireSet.getCardinality();
+  });
+
   // All qubit sizes are statically known — proceed to count gates and erase
   // them from the IR so the subsequent JIT compiles a near-empty module.
   cudaq::Resources counts;

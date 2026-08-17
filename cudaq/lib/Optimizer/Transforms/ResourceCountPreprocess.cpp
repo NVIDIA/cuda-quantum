@@ -48,8 +48,46 @@ struct ResourceCountPreprocessPass
     return base;
   }
 
+  /// Walk a wire back to the value that introduced it. Quantum operations in
+  /// value (linear) form thread wires through, so a wire result denotes the
+  /// same qubit as the incoming wire in the matching position. `unwrap` bridges
+  /// from reference form, so continue the search on the reference it wraps.
+  /// Returns the original value unchanged for anything else, including
+  /// reference form values.
+  Value getWireOrigin(Value v) {
+    while (true) {
+      auto *def = v.getDefiningOp();
+      if (!def)
+        return v;
+      if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(def)) {
+        v = unwrap.getRefValue();
+        continue;
+      }
+      SmallVector<Value> incoming;
+      ValueRange wires;
+      if (auto opi = dyn_cast<cudaq::quake::OperatorInterface>(def)) {
+        wires = opi.getWires();
+        incoming = getIncomingWires(opi.getControls(), opi.getTargets());
+      } else if (auto meas =
+                     dyn_cast<cudaq::quake::MeasurementInterface>(def)) {
+        wires = meas.getWires();
+        incoming = getIncomingWires(ValueRange{}, meas.getTargets());
+      } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(def)) {
+        wires = reset.getWires();
+        incoming = getIncomingWires(ValueRange{}, reset.getTargets());
+      } else {
+        return v;
+      }
+      auto iter = llvm::find(wires, v);
+      if (iter == wires.end() || incoming.size() != wires.size())
+        return v;
+      v = incoming[std::distance(wires.begin(), iter)];
+    }
+  }
+
   /// Resolve a quake value to a globally unique qubit index.
-  std::optional<std::size_t> resolveQubitIndex(Value v) {
+  std::optional<std::size_t> resolveQubitIndex(Value value) {
+    Value v = getWireOrigin(value);
     // extract_ref from a qvector: base offset + local index.
     if (auto extractRef = v.getDefiningOp<cudaq::quake::ExtractRefOp>())
       if (extractRef.hasConstantIndex())
@@ -57,9 +95,11 @@ struct ResourceCountPreprocessPass
     // Wire semantics: concrete physical index from routing.
     if (auto borrow = v.getDefiningOp<cudaq::quake::BorrowWireOp>())
       return static_cast<std::size_t>(borrow.getIdentity());
-    // Single-qubit alloca: assign a unique index by declaration order.
-    if (v.getDefiningOp<cudaq::quake::AllocaOp>() &&
-        isa<cudaq::quake::RefType>(v.getType())) {
+    // Single-qubit alloca or a virtual null wire: assign a unique index by
+    // declaration order.
+    if (v.getDefiningOp<cudaq::quake::NullWireOp>() ||
+        (v.getDefiningOp<cudaq::quake::AllocaOp>() &&
+         isa<cudaq::quake::RefType>(v.getType()))) {
       auto it = qubitIndexMap.find(v);
       if (it != qubitIndexMap.end())
         return it->second;
@@ -68,6 +108,30 @@ struct ResourceCountPreprocessPass
       return idx;
     }
     return std::nullopt;
+  }
+
+  /// Collect the incoming wires of an operation in the order that matches its
+  /// wire results, which is controls first and then targets. Operands that are
+  /// not wires (ref, veq, control) do not thread a wire through the operation
+  /// and thus have no corresponding result.
+  static SmallVector<Value> getIncomingWires(ValueRange controls,
+                                             ValueRange targets) {
+    SmallVector<Value> wires;
+    for (auto range : {controls, targets})
+      for (Value v : range)
+        if (isa<cudaq::quake::WireType>(v.getType()))
+          wires.push_back(v);
+    return wires;
+  }
+
+  /// In value (linear) form each wire result of an operation is the outgoing
+  /// value of the corresponding incoming wire. Forward the incoming wires to
+  /// the uses of the results so the wire chain stays intact once the
+  /// pre-counted operation is erased. Reference form has no wire results and
+  /// is a no-op here.
+  static void forwardWires(ValueRange incoming, ValueRange wires) {
+    for (auto [in, out] : llvm::zip(incoming, wires))
+      out.replaceAllUsesWith(in);
   }
 
   bool preCount(Operation *op, size_t to_add) {
@@ -106,6 +170,11 @@ struct ResourceCountPreprocessPass
     auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
 
     if (!opi)
+      return false;
+
+    auto wires = opi.getWires();
+    auto incomingWires = getIncomingWires(opi.getControls(), opi.getTargets());
+    if (incomingWires.size() != wires.size())
       return false;
 
     auto name = op->getName().stripDialect();
@@ -148,6 +217,7 @@ struct ResourceCountPreprocessPass
                    << " for " << to_add << " counts\n";
 
     countGate(name.str(), controlIndices, targetIndices, to_add);
+    forwardWires(incomingWires, wires);
     to_erase.insert(op);
     return true;
   }
