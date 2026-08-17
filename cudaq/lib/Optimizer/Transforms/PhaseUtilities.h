@@ -55,4 +55,39 @@ getPhaseReplacements(cudaq::quake::PhaseOp phase, mlir::ValueRange controls,
   return replacements;
 }
 
+struct PhaseCorrection {
+  llvm::SmallVector<mlir::Value> controls;
+  mlir::Value anchor;
+};
+
+/// Emit an exact phase correction and return the latest wire values.
+///
+/// The correction is emitted immediately after the replacement that requires
+/// it. A literal zero is omitted. Nonzero constant multiples of 2*pi are left
+/// to PhaseOp's canonicalizer so that there is a single implementation of its
+/// floating-point tolerance policy.
+inline PhaseCorrection
+emitPhaseCorrection(mlir::OpBuilder &rewriter, mlir::Location location,
+                    mlir::Value phase, mlir::ValueRange controls,
+                    mlir::DenseBoolArrayAttr negatedControls,
+                    mlir::Value anchor) {
+  PhaseCorrection result{llvm::SmallVector<mlir::Value>(controls), anchor};
+
+  if (auto constant = phase.getDefiningOp<mlir::arith::ConstantOp>())
+    if (auto angle = mlir::dyn_cast<mlir::FloatAttr>(constant.getValue());
+        angle && angle.getValue().isZero())
+      return result;
+
+  auto resultTypes =
+      getWireResultTypes(rewriter, result.controls, mlir::ValueRange{anchor});
+  auto phaseOp = cudaq::quake::PhaseOp::create(
+      rewriter, location, resultTypes, /*is_adj=*/false,
+      mlir::ValueRange{phase}, result.controls, mlir::ValueRange{anchor},
+      negatedControls);
+  llvm::SmallVector<mlir::Value> targets{anchor};
+  threadWireResults(phaseOp, result.controls, targets);
+  result.anchor = targets.front();
+  return result;
+}
+
 } // namespace cudaq::opt
