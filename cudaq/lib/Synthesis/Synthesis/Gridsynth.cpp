@@ -560,8 +560,24 @@ llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "theta=" << theta << ", eps=" << epsilon << '\n');
 
+  // The search runs at Real's global default precision, which belongs to the
+  // caller. Too low for the requested epsilon it fails, hangs, or returns a
+  // circuit outside tolerance, so raise it here rather than trusting callers.
+  const mpfr_prec_t needed = details::required_precision(epsilon);
+  std::optional<ScopedDefaultPrecision> raised;
+  Real theta_hi(theta), epsilon_hi(epsilon);
+  if (Real::get_default_precision() < needed) {
+    raised.emplace(needed);
+    // A Real keeps the precision it was built with, so the caller's copies
+    // would cap the search even inside the raised scope. Widening is exact.
+    theta_hi = Real();
+    epsilon_hi = Real();
+    mpfr_set(theta_hi.get_mpfr(), theta.get_mpfr(), MPFR_RNDN);
+    mpfr_set(epsilon_hi.get_mpfr(), epsilon.get_mpfr(), MPFR_RNDN);
+  }
+
   llvm::FailureOr<DOmegaUnitary> u_or =
-      gridsynth_unitary(theta, epsilon, diophantine_timeout_ms,
+      gridsynth_unitary(theta_hi, epsilon_hi, diophantine_timeout_ms,
                         factoring_timeout_ms, seed, stats);
   if (llvm::failed(u_or)) {
     CUDAQ_SYNTH_CLOSE_FAILURE("synthesis failed");
