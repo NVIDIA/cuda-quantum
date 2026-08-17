@@ -62,43 +62,49 @@ void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   executor->setServerHelper(serverHelper.get());
 }
 
-KernelThunkResultType
-cudaq::OrcaRemoteRESTQPU::launchKernelCommon(const std::string &kernelName,
-                                             void *args) {
+cudaq::CompileTarget
+cudaq::OrcaRemoteRESTQPU::getCompileTarget(const orca::sample_policy &) {
+  CompileTarget target;
+  target.overrideAOTCompilation = false;
+  return target;
+}
 
+cudaq::detail::future
+cudaq::OrcaRemoteRESTQPU::launchKernelCommon(const CompiledModule &module,
+                                             KernelArgs args) {
+  const auto &kernelName = module.getName();
   CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
              kernelName, qpu_id);
 
-  auto ctx = getExecutionContext();
-
   // TODO future iterations of this should support non-void return types.
-  if (!ctx)
-    throw std::runtime_error("Remote rest execution can only be performed "
-                             "via cudaq::sample() or cudaq::observe().");
+  if (kernelName != orca::sample_policy::kernelName)
+    throw std::runtime_error(kernelName + " is not supported on this target");
 
-  orca::TBIParameters params = *((struct orca::TBIParameters *)args);
-  std::size_t shots = params.n_samples;
+  auto packed = args.getPacked();
+  if (!packed || packed->data.size() < sizeof(orca::TBIParameters))
+    throw std::runtime_error("Orca launch requires packed TBI parameters.");
 
-  ctx->shots = shots;
+  auto params =
+      *reinterpret_cast<const orca::TBIParameters *>(packed->data.data());
+  return executor->execute(params, kernelName);
+}
 
-  if (!(ctx->name == "sample" || ctx->name == "extract-state" ||
-        ctx->name == "tracer"))
-    throw std::runtime_error(ctx->name + " is not supported on this target");
-
-  detail::future future;
-  future = executor->execute(params, kernelName);
-
+cudaq::orca::async_sample_policy::result_type
+cudaq::OrcaRemoteRESTQPU::launchKernel(const orca::async_sample_policy &,
+                                       const CompiledModule &module,
+                                       KernelArgs args) {
   // Keep this asynchronous if requested
-  if (ctx->asyncExec) {
-    ctx->futureResult = future;
-    return {};
-  }
+  return async_sample_result(launchKernelCommon(module, args));
+}
 
+cudaq::orca::sample_policy::result_type
+cudaq::OrcaRemoteRESTQPU::launchKernel(const orca::sample_policy &,
+                                       const CompiledModule &module,
+                                       KernelArgs args) {
   // Otherwise make this synchronous
-  ctx->result = future.get();
-
+  auto result = launchKernelCommon(module, args).get();
   // TODO: support dynamic result types.
-  return {};
+  return result;
 }
 
 void cudaq::OrcaRemoteRESTQPU::enqueue(cudaq::QuantumTask &task) {

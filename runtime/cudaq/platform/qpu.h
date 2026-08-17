@@ -143,6 +143,14 @@ public:
                                            const CompiledModule &module,
                                            KernelArgs args);
 
+  virtual orca::sample_policy::result_type
+  launchKernel(const orca::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
+  virtual orca::async_sample_policy::result_type
+  launchKernel(const orca::async_sample_policy &policy,
+               const CompiledModule &module, KernelArgs args);
+
   virtual observe_result launchKernel(const observe_policy &policy,
                                       const CompiledModule &module,
                                       KernelArgs args);
@@ -201,6 +209,8 @@ public:
   getCompileTarget(const estimate_policy &policy);
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const ptsbe::sample_policy &policy);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const orca::sample_policy &policy);
   // Overload for currently unsupported policies (to be removed).
   [[nodiscard]] virtual CompileTarget
   getCompileTarget(const other_policies &policy, ExecutionContext *context);

@@ -43,8 +43,9 @@ inline bool is_simulator_platform() {
 }
 
 template <typename Policy>
-cudaq::CompileTarget get_compile_target(const Policy &policy) {
-  return getQuantumPlatformInternal()->getCompileTarget(policy);
+cudaq::CompileTarget get_compile_target(const Policy &policy,
+                                        std::size_t qpu_id = 0) {
+  return getQuantumPlatformInternal()->getCompileTarget(policy, qpu_id);
 }
 
 /// Get the default compile target configuration for the given platform

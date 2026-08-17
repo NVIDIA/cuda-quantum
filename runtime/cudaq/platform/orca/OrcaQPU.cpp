@@ -10,43 +10,37 @@
 // #include "common/ExecutionContext.h"
 // #include "common/Future.h"
 #include "orca_qpu.h"
+#include "cudaq/algorithms/launch.h"
 #include "cudaq/platform.h"
 
 namespace cudaq::orca {
 
 cudaq::sample_result runSampling(TBIParameters &parameters,
                                  std::size_t qpu_id = 0) {
-  std::size_t shots = parameters.n_samples;
-  cudaq::ExecutionContext ctx("sample", shots, qpu_id);
-
+  sample_policy policy;
+  ExecutionContext ctx(sample_policy::name, parameters.n_samples, qpu_id);
   auto &platform = cudaq::get_platform();
-
-  platform.with_execution_context(ctx, [&]() {
-    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
-        "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
+  return detail::launch(policy, qpu_id, ctx, platform, [&]() {
+    [[maybe_unused]] auto dynamicResult =
+        cudaq::altLaunchKernel(sample_policy::kernelName, nullptr, &parameters,
+                               sizeof(TBIParameters), 0);
   });
-
-  return ctx.result;
 }
 
 async_sample_result runAsyncSampling(TBIParameters &parameters,
                                      std::size_t qpu_id = 0) {
-  std::size_t shots = parameters.n_samples;
-  cudaq::ExecutionContext ctx("sample", shots, qpu_id);
-
   // Indicate that this is an async exec
-  cudaq::detail::future futureResult;
-  ctx.asyncExec = true;
-
-  auto &platform = get_platform();
-  platform.with_execution_context(ctx, [&]() {
-    [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
-        "orca_launch", nullptr, &parameters, sizeof(TBIParameters), 0);
-  });
+  async_sample_policy policy{sample_policy{}};
+  async_sample_result futureResult;
+  ExecutionContext ctx(sample_policy::name, parameters.n_samples, qpu_id);
+  auto &platform = cudaq::get_platform();
   // If we have a non-null future, set it
-  futureResult = ctx.futureResult;
-
-  return async_sample_result(std::move(futureResult));
+  futureResult = detail::launch(policy, qpu_id, ctx, platform, [&]() {
+    [[maybe_unused]] auto dynamicResult =
+        cudaq::altLaunchKernel(sample_policy::kernelName, nullptr, &parameters,
+                               sizeof(TBIParameters), 0);
+  });
+  return futureResult;
 }
 
 cudaq::sample_result sample(std::vector<std::size_t> &input_state,

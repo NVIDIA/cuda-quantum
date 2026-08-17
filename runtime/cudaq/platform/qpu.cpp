@@ -43,6 +43,20 @@ async_sample_result cudaq::QPU::launchKernel(const async_sample_policy &policy,
       "This QPU does not support launching the async_sample_policy.");
 }
 
+orca::sample_policy::result_type
+cudaq::QPU::launchKernel(const orca::sample_policy &policy,
+                         const CompiledModule &module, KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the orca::sample_policy.");
+}
+
+orca::async_sample_policy::result_type
+cudaq::QPU::launchKernel(const orca::async_sample_policy &policy,
+                         const CompiledModule &module, KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the orca::async_sample_policy.");
+}
+
 observe_result cudaq::QPU::launchKernel(const observe_policy &policy,
                                         const CompiledModule &module,
                                         KernelArgs args) {
@@ -140,6 +154,10 @@ cudaq::CompileTarget cudaq::QPU::getCompileTarget(const msm_policy &) {
 
 cudaq::CompileTarget
 cudaq::QPU::getCompileTarget(const ptsbe::sample_policy &) {
+  return getCompileTarget(other_policies{}, nullptr);
+}
+
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const orca::sample_policy &) {
   return getCompileTarget(other_policies{}, nullptr);
 }
 
