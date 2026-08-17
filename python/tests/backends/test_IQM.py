@@ -370,11 +370,13 @@ def test_IQM_qubit_order_named_measurements():
 
         # In the circuit the names of the variables will be used instead of
         # auto generated names.
+        # `result_one` is deliberately used twice to test that name conflicts
+        # are handled by the transpiler.
         result_one = mz(qvector[0])
         result_two = mz(qvector[1])
         result_three = mz(qvector[2])
         result_four = mz(qvector[3])
-        result_fife = mz(qvector[4])
+        result_one = mz(qvector[4])
         result_six = mz(qvector[5])
         result_seven = mz(qvector[6])
         result_eight = mz(qvector[7])

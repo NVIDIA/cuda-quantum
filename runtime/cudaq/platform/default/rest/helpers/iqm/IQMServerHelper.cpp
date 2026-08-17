@@ -303,7 +303,9 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
       counts_batch = client.get(
           iqmServerBaseUrl,
           "api/v1/jobs/" + jobId + "/artifacts/measurement_counts", headers);
-      if (counts_batch.is_null()) {
+      if (counts_batch.is_null() || counts_batch.empty() ||
+          counts_batch.type() != nlohmann::json::value_t::array ||
+          counts_batch[0].type() != nlohmann::json::value_t::object) {
         throw std::runtime_error("No counts in the response");
       }
     } catch (const std::exception &e) {
@@ -314,15 +316,20 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     // Walk over the measurements and build a map for looking up on which qubit
     // the measurement with a given key is done. This is then appended to the
     // artifacts.
-    nlohmann::json mkey2qubit;
-    auto instructions =
-        getJobResponse["metadata"]["request"]["circuits"][0]["instructions"];
-    for (auto instruction : instructions) {
-      if (instruction["name"] == "measure") {
-        mkey2qubit[instruction["args"]["key"]] = instruction["qubits"][0];
+    try {
+      nlohmann::json mkey2qubit;
+      auto instructions =
+          getJobResponse["metadata"]["request"]["circuits"][0]["instructions"];
+      for (auto instruction : instructions) {
+        if (instruction["name"] == "measure") {
+          mkey2qubit[instruction["args"]["key"]] = instruction["qubits"][0];
+        }
       }
+      counts_batch[0]["mkeys2qubit"] = mkey2qubit;
+    } catch (const std::exception &e) {
+      throw std::runtime_error("Unable to find circuit of job " + jobId + ": " +
+                               std::string(e.what()));
     }
-    counts_batch[0]["mkeys2qubit"] = mkey2qubit;
 
     CUDAQ_INFO("Artifacts: {}", counts_batch.dump());
 
@@ -343,6 +350,9 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
   std::vector<ExecutionResult> srs;
 
   for (auto &result : postJobResponse.get<std::vector<ServerMessage>>()) {
+    if (!result.contains("measurement_keys")) {
+      throw std::runtime_error("measurement_keys field missing in results");
+    }
     if (!result.contains("mkeys2qubit")) {
       throw std::runtime_error("mkeys2qubit field missing in results");
     }
@@ -361,6 +371,12 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
       // keys must not be empty and declared in the circuit
       if (key.empty() || mkeyLoci.count(key) == 0) {
         throw std::runtime_error("Undeclared measurement key received: " + key);
+      }
+      if (mKeys.count(mkeyLoci[key]) != 0) {
+        // Must never happen as the "measurement_keys" in the circuit must be
+        // unique. If the same name is used the transpiler adds a suffix.
+        throw std::runtime_error("Duplicate measurement key in results: " +
+                                 key);
       }
       mKeys[mkeyLoci[key]] = i++;
     }
