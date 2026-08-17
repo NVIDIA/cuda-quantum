@@ -12,7 +12,6 @@ from cudaq.util import trace
 
 EstimateResult = cudaq_runtime.EstimateResult
 
-
 # We currently have two redundant APIs for resource estimation that only
 # differ in the return type:
 #  - the older `estimate_resources()` functions return `Resources` types
