@@ -2395,6 +2395,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
   }
 
   void runOnOperation() override {
+    auto func = getOperation();
+    if (func->hasAttr("mapping_v2p"))
+      return;
+
     if (deviceBypass)
       return;
 
@@ -2403,7 +2407,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     if (!deviceInstance)
       return;
 
-    auto func = getOperation();
     if (func.empty())
       return;
     auto &blocks = func.getBlocks();
