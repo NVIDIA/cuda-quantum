@@ -87,9 +87,8 @@ void Resources::appendInstruction(const std::string &name,
   for (auto q : allQubits)
     perQubitDepth[q] = newDepth;
 
-  // Track T depth using the same dependency propagation as total circuit
-  // depth. A non-T operation carries the latest T layer across all operands;
-  // a T or T-dagger operation starts the next T layer on its operands.
+  // Propagate T depth through dependencies. T and T-dagger begin a new layer;
+  // other operations carry forward the deepest incoming layer.
   std::size_t maxTDepth = 0;
   for (auto q : allQubits)
     maxTDepth = std::max(maxTDepth, perQubitTDepth[q]);
@@ -124,6 +123,13 @@ std::size_t Resources::getCircuitDepth() const {
   return maxDepth;
 }
 
+std::size_t Resources::getTDepth() const {
+  std::size_t maxDepth = 0;
+  for (auto &[qubit, depth] : perQubitTDepth)
+    maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
 std::size_t Resources::getGateCountByArity(std::size_t arity) const {
   auto it = gateCountByArity.find(arity);
   return it != gateCountByArity.end() ? it->second : 0;
@@ -135,13 +141,6 @@ std::size_t Resources::getDepthByArity(std::size_t arity) const {
     return 0;
   std::size_t maxDepth = 0;
   for (auto &[qubit, depth] : it->second)
-    maxDepth = std::max(maxDepth, depth);
-  return maxDepth;
-}
-
-std::size_t Resources::getTDepth() const {
-  std::size_t maxDepth = 0;
-  for (auto &[qubit, depth] : perQubitTDepth)
     maxDepth = std::max(maxDepth, depth);
   return maxDepth;
 }

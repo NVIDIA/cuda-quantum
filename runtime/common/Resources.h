@@ -102,17 +102,15 @@ public:
   /// @brief Return the circuit depth (longest gate chain on any qubit).
   std::size_t getCircuitDepth() const;
 
+  /// @brief Return the maximum number of T and T-dagger operations along any
+  /// qubit dependency path.
+  std::size_t getTDepth() const;
+
   /// @brief Return gate count for a specific qubit arity.
   std::size_t getGateCountByArity(std::size_t arity) const;
 
   /// @brief Return circuit depth for a specific qubit arity.
   std::size_t getDepthByArity(std::size_t arity) const;
-
-  /// @brief Return the dependency-aware depth of T-family operations.
-  ///
-  /// This counts T and T-dagger layers while propagating dependencies through
-  /// every operation that touches the affected qubits.
-  std::size_t getTDepth() const;
 
   /// @brief Return total gate count for all multi-qubit gates (arity >= 2).
   std::size_t getMultiQubitGateCount() const;
@@ -141,8 +139,7 @@ private:
   /// @brief Per-qubit depth map for all gates.
   std::unordered_map<std::size_t, std::size_t> perQubitDepth;
 
-  /// @brief Per-qubit T-family depth map. Non-T operations propagate the
-  /// current depth across their operands; T-family operations add one layer.
+  /// @brief Maximum T depth reaching each qubit.
   std::unordered_map<std::size_t, std::size_t> perQubitTDepth;
 
   /// @brief Gate counts by qubit arity: {arity -> count}.
