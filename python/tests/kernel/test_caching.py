@@ -12,9 +12,6 @@ import pytest
 
 import cudaq
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
 
 def assert_owns_compiled_module_cache(kernel):
     """A launch installs one stable cache object on its kernel owner."""
@@ -101,6 +98,11 @@ def test_cache_mode_get_unitary():
     u2 = cudaq.get_unitary(h_kernel)
     np.testing.assert_allclose(u1, u2)
     assert_owns_compiled_module_cache(h_kernel)
+    # get_unitary compiles without value semantics while sample compiles with
+    # them. Both share this one cache; the target hash keys the two artifacts
+    # apart, so neither can stand in for the other regardless of call order.
+    cudaq.sample(h_kernel)
+    np.testing.assert_allclose(cudaq.get_unitary(h_kernel), u1)
 
 
 def test_cache_mode_run():
@@ -155,11 +157,11 @@ def test_builder_wrapper_shares_builder_cache():
     assert kernel._compiled_module_cache is cache
 
 
-@skipIfValueSemantics
 def test_builder_mutation_discards_compiled_module_cache():
     """Extending a compiled builder cannot reuse code for its old body."""
 
     kernel = cudaq.make_kernel()
+    kernel.disable_quantum_optimization()
     qubit = kernel.qalloc()
 
     assert cudaq.sample(kernel, shots_count=1).count("0") == 1
@@ -175,15 +177,11 @@ def test_builder_mutation_discards_compiled_module_cache():
 # Per-kernel cache isolation.
 # ---------------------------------------------------------------------------
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
 
-
-@skipIfValueSemantics
 def test_independent_caches_per_kernel():
     """Two kernels must not share a compiled-module cache."""
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def all_zero():
         cudaq.qvector(3)
 
@@ -243,7 +241,6 @@ def test_synthesized_kernel_correctness():
     assert cudaq.sample(all_one, 4, shots_count=1).count("1111") == 1
 
 
-@skipIfValueSemantics
 def test_redefined_kernel_does_not_hit_stale_cache():
     """Rebinding a kernel name yields a fresh decorator and a fresh JIT."""
 
@@ -258,7 +255,7 @@ def test_redefined_kernel_does_not_hit_stale_cache():
     # Rebind the same Python name to a kernel with a different body. Under a
     # per-name (rather than per-decorator) cache this would still run the
     # all-ones body.
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         cudaq.qvector(3)
 

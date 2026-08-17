@@ -92,6 +92,13 @@ dem_result cudaq::QPU::launchKernel(const dem_policy &policy,
       "This QPU does not support launching the dem_policy.");
 }
 
+estimate_result cudaq::QPU::launchKernel(const estimate_policy &policy,
+                                         const CompiledModule &module,
+                                         KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the estimate_policy.");
+}
+
 ptsbe::sample_policy::result_type
 cudaq::QPU::launchKernel(const ptsbe::sample_policy &policy,
                          const CompiledModule &module, KernelArgs args) {
@@ -117,6 +124,10 @@ cudaq::CompileTarget cudaq::QPU::getCompileTarget(const run_policy &) {
 cudaq::CompileTarget cudaq::QPU::getCompileTarget(const dem_policy &) {
   throw std::runtime_error(
       "This QPU does not support detector error model generation.");
+}
+
+cudaq::CompileTarget cudaq::QPU::getCompileTarget(const estimate_policy &) {
+  throw std::runtime_error("This QPU does not support resource estimation.");
 }
 
 cudaq::CompileTarget cudaq::QPU::getCompileTarget(const msm_size_policy &) {

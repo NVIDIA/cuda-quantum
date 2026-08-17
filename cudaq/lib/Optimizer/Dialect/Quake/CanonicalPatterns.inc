@@ -27,10 +27,12 @@ struct AdjustAdjointExpPauliPattern
     if (!pauli.getParameters().empty())
       negp.push_back(arith::NegFOp::create(rewriter, pauli.getLoc(),
                                            pauli.getParameters()[0]));
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto dict = pauli->getDiscardableAttrDictionary();
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
         pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
         pauli.getPauli(), pauli.getPauliLiteralAttr());
+    newPauli->setDiscardableAttrs(std::move(dict));
     return success();
   }
 };
@@ -38,12 +40,12 @@ struct AdjustAdjointExpPauliPattern
 // Bind an exp_pauli operation to its constant pauli word.
 //
 //   %a = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
-//   %4 = cc.stdvec_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
+//   %4 = cc.sequence_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
 //           !cc.charspan
 //   quake.exp_pauli (%c) %q to %4 : (f64, !quake.ref, !cc.charspan) -> ()
 //   ─────────────────────────────────────────────────────────────────────
 //   %a = cc.string_literal "IZ" : !cc.ptr<!cc.array<i8 x 3>>
-//   %4 = cc.stdvec_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
+//   %4 = cc.sequence_init %a, %c3 : (!cc.ptr<!cc.array<i8 x 3>>, i64) ->
 //           !cc.charspan  // DCE?
 //   quake.exp_pauli (%c) %q to "IZ" : (f64, !quake.ref) -> ()
 //
@@ -65,17 +67,19 @@ public:
     auto pauliWord = pauli.getPauli();
     if (!pauliWord)
       return failure();
-    auto vecInit = pauliWord.getDefiningOp<cudaq::cc::StdvecInitOp>();
+    auto vecInit = pauliWord.getDefiningOp<cudaq::cc::SequenceInitOp>();
     Value litVal = vecInit ? vecInit.getBuffer() : pauliWord;
     auto buffer = litVal.getDefiningOp<cudaq::cc::CreateStringLiteralOp>();
     if (!buffer)
       return failure();
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
+    auto dict = pauli->getDiscardableAttrDictionary();
+    auto newPauli = rewriter.replaceOpWithNewOp<cudaq::quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), pauli.getIsAdjAttr(),
         pauli.getParameters(), pauli.getControls(), pauli.getTargets(),
         pauli.getNegatedQubitControlsAttr(), Value{},
         buffer.getStringLiteralAttr());
+    newPauli->setDiscardableAttrs(std::move(dict));
     return success();
   }
 };
@@ -710,6 +714,205 @@ struct KillDeadWrapPattern : public OpRewritePattern<cudaq::quake::WrapOp> {
     if (auto unwrap =
             wrap.getWireValue().getDefiningOp<cudaq::quake::UnwrapOp>())
       rewriter.eraseOp(wrap);
+    return success();
+  }
+};
+
+/// Return true when the two phase operations describe the same ordered
+/// control predicate. An omitted polarity attribute is equivalent to an
+/// all-positive control list.
+static bool haveMatchingPhasePolarities(cudaq::quake::PhaseOp first,
+                                        cudaq::quake::PhaseOp second) {
+  auto firstControls = first.getControls();
+  auto secondControls = second.getControls();
+  if (firstControls.size() != secondControls.size())
+    return false;
+
+  auto firstNegations = first.getNegatedQubitControls();
+  auto secondNegations = second.getNegatedQubitControls();
+  for (std::size_t i = 0, e = firstControls.size(); i != e; ++i) {
+    bool firstIsNegated = firstNegations && (*firstNegations)[i];
+    bool secondIsNegated = secondNegations && (*secondNegations)[i];
+    if (firstIsNegated != secondIsNegated)
+      return false;
+  }
+  return true;
+}
+
+/// Check that all operands on the second operation are either the corresponding
+/// wire result from the first, or the identical non-wire operand. Wire results
+/// are ordered by controls followed by targets.
+static bool isDirectlyThreadedPhase(cudaq::quake::PhaseOp first,
+                                    cudaq::quake::PhaseOp second) {
+  auto firstControls = first.getControls();
+  auto secondControls = second.getControls();
+  auto firstTargets = first.getTargets();
+  auto secondTargets = second.getTargets();
+  if (firstControls.size() != secondControls.size() ||
+      firstTargets.size() != secondTargets.size())
+    return false;
+
+  unsigned resultIndex = 0;
+  auto matchesOperand = [&](Value firstOperand, Value secondOperand) {
+    if (isa<cudaq::quake::WireType>(firstOperand.getType())) {
+      if (!isa<cudaq::quake::WireType>(secondOperand.getType()) ||
+          resultIndex >= first.getNumResults() ||
+          secondOperand != first.getResult(resultIndex))
+        return false;
+      ++resultIndex;
+      return true;
+    }
+    return !isa<cudaq::quake::WireType>(secondOperand.getType()) &&
+           firstOperand == secondOperand;
+  };
+
+  for (auto [firstControl, secondControl] :
+       llvm::zip(firstControls, secondControls))
+    if (!matchesOperand(firstControl, secondControl))
+      return false;
+  for (auto [firstTarget, secondTarget] :
+       llvm::zip(firstTargets, secondTargets))
+    if (!matchesOperand(firstTarget, secondTarget))
+      return false;
+  return resultIndex == first.getNumResults() && 
+    llvm::all_of(first.getWires(),
+      [](Value wire) { return wire.hasOneUse(); });
+}
+
+struct EraseZeroPhasePattern : public OpRewritePattern<cudaq::quake::PhaseOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::PhaseOp phase,
+                                PatternRewriter &rewriter) const override {
+    auto constant = phase.getParameter().getDefiningOp<arith::ConstantOp>();
+    if (!constant)
+      return failure();
+    auto angle = dyn_cast<FloatAttr>(constant.getValue());
+    if (!angle)
+      return failure();
+
+    llvm::APFloat remainder = angle.getValue();
+    if (!remainder.isFinite())
+      return failure();
+
+    llvm::APFloat twoPi(
+        remainder.getSemantics(),
+        "6.283185307179586476925286766559005768394338798750211641949889");
+
+    // Reducing in the source semantics alone can misclassify enormous values:
+    // a rounded 2*pi approximation multiplied by a large power of two has an
+    // exact zero remainder in that format even when its phase is far from one.
+    // Require a candidate to be at least as close to identity as the source
+    // format's canonical one-cycle representation.
+    double phi = remainder.convertToDouble();
+    double canonicalTwoPi = twoPi.convertToDouble();
+    double tolerance =
+        std::hypot(std::cos(canonicalTwoPi) - 1.0, std::sin(canonicalTwoPi));
+    double phaseDistance = std::hypot(std::cos(phi) - 1.0, std::sin(phi));
+    if (!std::isfinite(phi) || phaseDistance > tolerance)
+      return failure();
+
+    remainder.remainder(twoPi);
+    if (!remainder.isZero())
+      return failure();
+
+    SmallVector<Value> wireInputs;
+    for (Value control : phase.getControls())
+      if (isa<cudaq::quake::WireType>(control.getType()))
+        wireInputs.push_back(control);
+    for (Value target : phase.getTargets())
+      if (isa<cudaq::quake::WireType>(target.getType()))
+        wireInputs.push_back(target);
+    if (wireInputs.size() != phase.getNumResults())
+      return failure();
+
+    rewriter.replaceOp(phase, wireInputs);
+    return success();
+  }
+};
+
+struct MergeAdjacentPhasePattern
+    : public OpRewritePattern<cudaq::quake::PhaseOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::PhaseOp phase,
+                                PatternRewriter &rewriter) const override {
+    auto *previous = phase->getPrevNode();
+    if (!previous)
+      return failure();
+    auto input = dyn_cast<cudaq::quake::PhaseOp>(previous);
+    if (!input || !haveMatchingPhasePolarities(input, phase) ||
+        !isDirectlyThreadedPhase(input, phase))
+      return failure();
+
+    auto firstAngle = input.getParameter();
+    auto secondAngle = phase.getParameter();
+    if (firstAngle.getType() != secondAngle.getType())
+      return failure();
+
+    auto loc = phase.getLoc();
+    auto adjoint = phase.getIsAdjAttr();
+    Value mergedAngle;
+    if (input.isAdj() == phase.isAdj()) {
+      mergedAngle =
+          arith::AddFOp::create(rewriter, loc, firstAngle, secondAngle);
+    } else if (input.isAdj()) {
+      mergedAngle =
+          arith::SubFOp::create(rewriter, loc, secondAngle, firstAngle);
+    } else {
+      adjoint = input.getIsAdjAttr();
+      mergedAngle =
+          arith::SubFOp::create(rewriter, loc, firstAngle, secondAngle);
+    }
+
+    rewriter.replaceOpWithNewOp<cudaq::quake::PhaseOp>(
+        phase, phase.getResultTypes(), adjoint, ValueRange{mergedAngle},
+        input.getControls(), input.getTargets(),
+        input.getNegatedQubitControlsAttr());
+    rewriter.eraseOp(input);
+    return success();
+  }
+};
+template <typename OP>
+struct MergeRotationPattern : public OpRewritePattern<OP> {
+  using Base = OpRewritePattern<OP>;
+  using Base::Base;
+
+  LogicalResult matchAndRewrite(OP rotate,
+                                PatternRewriter &rewriter) const override {
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
+    if (rotate.getTarget(0).getType() != wireTy ||
+        !rotate.getControls().empty() || rotate.getNegatedQubitControls())
+      return failure();
+    auto input = rotate.getTarget(0).template getDefiningOp<OP>();
+    if (!input || !input.getControls().empty() ||
+        input.getNegatedQubitControls())
+      return failure();
+
+    // At this point, we have
+    //   %input  = quake.rotate %angle1, %wire
+    //   %rotate = quake.rotate %angle2, %input
+    // Replace those ops with
+    //   %new    = quake.rotate (%angle1 + %angle2), %wire
+    auto loc = rotate.getLoc();
+    auto angle1 = input.getParameter(0);
+    auto angle2 = rotate.getParameter(0);
+    if (angle1.getType() != angle2.getType())
+      return failure();
+    auto adjAttr = rotate.getIsAdjAttr();
+    auto newAngle = [&]() -> Value {
+      if (input.isAdj() == rotate.isAdj())
+        return arith::AddFOp::create(rewriter, loc, angle1, angle2);
+      // One is adjoint, so it should be subtracted from the other.
+      if (input.isAdj())
+        return arith::SubFOp::create(rewriter, loc, angle2, angle1);
+      adjAttr = input.getIsAdjAttr();
+      return arith::SubFOp::create(rewriter, loc, angle1, angle2);
+    }();
+    rewriter.replaceOpWithNewOp<OP>(rotate, rotate.getResultTypes(), adjAttr,
+                                    ValueRange{newAngle}, ValueRange{},
+                                    ValueRange{input.getTarget(0)},
+                                    rotate.getNegatedQubitControlsAttr());
     return success();
   }
 };

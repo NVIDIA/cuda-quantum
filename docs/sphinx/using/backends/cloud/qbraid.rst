@@ -104,6 +104,4 @@ Submitting
     ``--qbraid-machine`` with a qBraid simulator device ID (for example,
     ``qbraid:qbraid:sim:qir-sv``).
 
-To see a complete example for using qBraid's backends, take a look at our
-:doc:`Python examples <../../examples/examples>` and
-:doc:`C++ examples <../../examples/examples>`.
+To see a complete example, take a look at :ref:`qBraid examples <qbraid-examples>`.

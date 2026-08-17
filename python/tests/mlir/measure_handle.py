@@ -75,7 +75,7 @@ def test_scalar_my_emits_handle():
 # CHECK:         }
 
 
-def test_vector_mz_emits_stdvec_of_handles():
+def test_vector_mz_emits_sequence_of_handles():
 
     @cudaq.kernel
     def kernel_vector_mz():
@@ -88,7 +88,7 @@ def test_vector_mz_emits_stdvec_of_handles():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_vector_mz
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "hs" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "hs" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -308,8 +308,8 @@ def test_or_short_circuits_second_discriminate():
 # ---------------------------------------------------------------------------
 # `cudaq.to_bools` (vector discrimination) and composition with
 # `cudaq.to_integer`. The vector discriminate lowers to a single
-# `quake.discriminate` taking `!cc.stdvec<!cc.measure_handle>` and
-# producing `!cc.stdvec<i1>`.
+# `quake.discriminate` taking `!cc.sequence<!cc.measure_handle>` and
+# producing `!cc.sequence<i1>`.
 # ---------------------------------------------------------------------------
 
 
@@ -324,11 +324,11 @@ def test_to_bools_lowers_to_vectorized_discriminate():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_to_bools
-# CHECK-SAME:      -> !cc.stdvec<i1>
+# CHECK-SAME:      -> !cc.sequence<i1>
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-# CHECK:           return %{{.*}} : !cc.stdvec<i1>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+# CHECK:           return %{{.*}} : !cc.sequence<i1>
 # CHECK:         }
 
 
@@ -345,10 +345,10 @@ def test_to_integer_composes_with_to_bools():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_to_integer
 # CHECK-SAME:      -> i64
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
-# CHECK:           cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<i1>) -> i64
-# CHECK:           cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.sequence<!cc.measure_handle>) -> !cc.sequence<i1>
+# CHECK:           cc.sequence_size %[[VAL_2]] : (!cc.sequence<i1>) -> i64
+# CHECK:           cc.sequence_data %[[VAL_2]] : (!cc.sequence<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return %{{.*}} : i64
 # CHECK:         }
@@ -376,7 +376,7 @@ def test_builder_scalar_mz_emits_handle():
 # CHECK:         }
 
 
-def test_builder_vector_mz_emits_stdvec_of_handles():
+def test_builder_vector_mz_emits_sequence_of_handles():
     kernel = cudaq.make_kernel()
     qv = kernel.qalloc(3)
     kernel.h(qv)
@@ -387,7 +387,7 @@ def test_builder_vector_mz_emits_stdvec_of_handles():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:      () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "vectorHandle" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "vectorHandle" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
@@ -467,9 +467,9 @@ def test_handle_vector_cross_round_reassignment():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_handle_vec_cross_round
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           cc.loop while
-# CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:             cc.continue {{.*}}%[[MNEW]], %[[MNEW]]
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return

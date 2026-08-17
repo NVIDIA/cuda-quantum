@@ -629,6 +629,41 @@ public:
     return success();
   }
 };
+
+/// The log_output operation is also an oddball like the reset operation.
+class LogOutputOpPattern : public OpRewritePattern<cudaq::quake::LogOutputOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::LogOutputOp op,
+                                PatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
+    auto qrefTy = cudaq::quake::RefType::get(rewriter.getContext());
+
+    SmallVector<Value> refArgs;
+    SmallVector<Value> newArgs;
+    for (Value arg : op.getArgs()) {
+      if (arg.getType() == qrefTy) {
+        Value wire = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, arg);
+        newArgs.push_back(wire);
+        refArgs.push_back(arg);
+      } else {
+        newArgs.push_back(arg);
+      }
+    }
+
+    auto newOp = cudaq::quake::LogOutputOp::create(rewriter, loc, newArgs);
+    for (auto namedAttr : op->getAttrs())
+      newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
+
+    for (auto [ref, wireResult] : llvm::zip(refArgs, newOp.getOuts()))
+      cudaq::quake::WrapOp::create(rewriter, loc, wireResult, ref);
+
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
 } // namespace
 
 template <typename OP>
@@ -1276,10 +1311,12 @@ public:
     auto func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern>(ctx);
+    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern,
+                    LogOutputOpPattern>(ctx);
     ConversionTarget target(*ctx);
     target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                                 cudaq::quake::DeallocOp>(
+                                 cudaq::quake::DeallocOp,
+                                 cudaq::quake::LogOutputOp>(
         [](Operation *op) { return !cudaq::quake::hasNonVectorReference(op); });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();

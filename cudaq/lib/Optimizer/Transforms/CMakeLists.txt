@@ -43,6 +43,7 @@ add_cudaq_library(OptTransforms
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
   GlobalizeArrayValues.cpp
+  InjectImplicitOutput.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
@@ -50,13 +51,16 @@ add_cudaq_library(OptTransforms
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
+  LowerPhase.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
+  NormalizePhasePlacement.cpp
   ObserveAnsatz.cpp
+  OptimizeSingleQubitCliffordT.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
@@ -80,6 +84,7 @@ add_cudaq_library(OptTransforms
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyNoPhase.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 
@@ -92,6 +97,7 @@ add_cudaq_library(OptTransforms
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
+    MLIRTransforms
     OptimBuilder
     QECDialect
     QuakeDialect
@@ -102,7 +108,7 @@ target_include_directories(OptTransforms SYSTEM
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
 )
 
-register_cudaq_mlir_lib(OptTransforms)
+check_registered_mlir_lib(OptTransforms)
 
 target_link_libraries(OptTransforms PRIVATE cudaq-synth)
 target_include_directories(obj.OptTransforms SYSTEM PRIVATE

@@ -106,7 +106,7 @@ struct C {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -197,7 +197,7 @@ struct D {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -287,7 +287,7 @@ struct E {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb7:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return
 // clang-format on
@@ -379,7 +379,7 @@ struct F {
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb8:
 // CHECK:           call @_Z2g4v() : () -> ()
-// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_28:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<2>) -> !cc.sequence<!cc.measure_handle>
 // CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 // CHECK:           return
 // clang-format on

@@ -1199,7 +1199,7 @@ def test_call_kernel_expressions():
     counts = cudaq.sample(kernel)
     counts.dump()
     assert len(counts) == 1
-    assert '1' in counts
+    assert '00100' in counts
 
     @cudaq.kernel(defer_compilation=False)
     def kernelThatTakesIntAndFloat(qubits: cudaq.qview, qbit: int, val: float):

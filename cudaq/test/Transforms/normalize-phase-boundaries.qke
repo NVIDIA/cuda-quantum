@@ -1,0 +1,101 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --normalize-phase-placement %s | FileCheck %s
+
+// A phase must not move into or across a region because that can change how
+// often the correction executes.
+// CHECK-LABEL: func.func @region_boundary
+// CHECK: quake.phase
+// CHECK-NEXT: cc.if
+// CHECK: }
+// CHECK-NEXT: quake.phase
+func.func @region_boundary(%a: f64, %b: f64, %condition: i1,
+                           %control: !quake.ref, %anchor: !quake.ref) {
+  quake.phase (%a) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  cc.if(%condition) {
+    quake.h %anchor : (!quake.ref) -> ()
+  }
+  quake.phase (%b) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Blocks nested inside a region are nevertheless normalized independently.
+// CHECK-LABEL: func.func @nested_region
+// CHECK: cc.if
+// CHECK: quake.h
+// CHECK-NEXT: quake.phase
+// CHECK-NEXT: }
+func.func @nested_region(%theta: f64, %condition: i1) {
+  %control = quake.alloca !quake.ref
+  %anchor = quake.alloca !quake.ref
+  %other = quake.alloca !quake.ref
+  cc.if(%condition) {
+    quake.phase (%theta) [%control] %anchor
+        : (f64, !quake.ref, !quake.ref) -> ()
+    quake.h %other : (!quake.ref) -> ()
+  }
+  quake.dealloc %other : !quake.ref
+  quake.dealloc %anchor : !quake.ref
+  quake.dealloc %control : !quake.ref
+  return
+}
+
+// A loop region is a placement boundary even when it executes no iterations.
+// CHECK-LABEL: func.func @loop_boundary
+// CHECK: quake.phase
+// CHECK-NEXT: cc.loop
+// CHECK: quake.phase
+// CHECK-NOT: quake.phase
+func.func @loop_boundary(%a: f64, %b: f64, %control: !quake.ref,
+                         %anchor: !quake.ref) {
+  quake.phase (%a) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  cc.loop while {
+    %false = arith.constant false
+    cc.condition %false
+  } do {
+    cc.continue
+  } step {
+  }
+  quake.phase (%b) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// A phase result used on both CFG edges cannot be reconnected unambiguously,
+// so placement must leave it before even an otherwise independent unitary.
+// CHECK-LABEL: func.func @ambiguous_wire_boundary
+// CHECK: %[[PHASE:.*]]:2 = quake.phase
+// CHECK-NEXT: %[[OTHER:.*]] = quake.h
+// CHECK-NEXT: cf.cond_br
+func.func @ambiguous_wire_boundary(%theta: f64, %condition: i1) {
+  %control = quake.null_wire
+  %anchor = quake.null_wire
+  %other = quake.null_wire
+  %phase:2 = quake.phase (%theta) [%control] %anchor
+      : (f64, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire)
+  %next = quake.h %other : (!quake.wire) -> !quake.wire
+  cf.cond_br %condition,
+      ^left(%phase#0, %phase#1 : !quake.wire, !quake.wire),
+      ^right(%phase#0, %phase#1 : !quake.wire, !quake.wire)
+^left(%left_control: !quake.wire, %left_anchor: !quake.wire):
+  quake.sink %left_control : !quake.wire
+  quake.sink %left_anchor : !quake.wire
+  cf.br ^exit
+^right(%right_control: !quake.wire, %right_anchor: !quake.wire):
+  quake.sink %right_control : !quake.wire
+  quake.sink %right_anchor : !quake.wire
+  cf.br ^exit
+^exit:
+  quake.sink %next : !quake.wire
+  return
+}

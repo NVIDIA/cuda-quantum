@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -531,6 +532,8 @@ public:
   void runOnOperation() override {
     auto func = dyn_cast<func::FuncOp>(getOperation());
     if (!func)
+      return;
+    if (func->hasAttr(cudaq::runtime::disableQuantumOpts))
       return;
 
     // Collect CNOTs first to avoid iterator invalidation: combineRotations

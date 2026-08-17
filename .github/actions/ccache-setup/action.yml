@@ -24,7 +24,9 @@ runs:
         oras_version="1.2.2"
         os=$(uname -s | tr '[:upper:]' '[:lower:]')
         arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
-        curl -sLO "https://github.com/oras-project/oras/releases/download/v${oras_version}/oras_${oras_version}_${os}_${arch}.tar.gz"
+        curl -fsSLO --retry 5 --retry-all-errors --retry-delay 2 \
+          --connect-timeout 10 --max-time 120 \
+          "https://github.com/oras-project/oras/releases/download/v${oras_version}/oras_${oras_version}_${os}_${arch}.tar.gz"
         sudo tar -xzf oras_*.tar.gz -C /usr/local/bin/ oras
         rm -f oras_*.tar.gz
 

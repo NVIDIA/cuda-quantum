@@ -130,11 +130,6 @@ def test_named_measurement():
     assert 'val' not in counts.register_names
 
 
-skipIfValueSemantics = pytest.mark.skipif(True,
-                                          reason="broken in value semantics")
-
-
-@skipIfValueSemantics
 def test_measurement_order():
     """ Test for if the "explicit measurements" option is enabled, the global 
         register contains the concatenated measurements in the order they were
@@ -163,6 +158,7 @@ def test_measurement_order():
             mz(q[0])
             mz(q[2])
             reset(q)
+        ry(12 * np.pi, q)
 
     counts = cudaq.sample(kernel_with_loop)
     assert counts["000"] == 1000  # due to reset

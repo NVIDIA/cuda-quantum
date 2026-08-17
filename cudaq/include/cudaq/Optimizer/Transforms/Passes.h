@@ -35,6 +35,12 @@ void registerMappingPipeline();
 void registerToCFGPipeline();
 void registerFaultTolerantTargetPipeline();
 
+/// Convert supported Quake IR to explicit linear values. This splits
+/// fixed-size allocations, expands vector controls, and threads reusable
+/// controls through their uses.
+void addConvertToLinearValues(mlir::OpPassManager &pm);
+void registerConvertToLinearValuesPipeline();
+
 /// This pipeline is run on every kernel decorator immediately after its
 /// definition has been processed by the Python bridge. It converts the
 /// `ModuleOp` to a target agnostic form which is amenable to further lowering,
@@ -58,6 +64,11 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// UnitarySynthesis
 /// ApplyOpSpecialization
 /// constant propagation
+/// `exp-pauli` and U3 decomposition
+/// quantum deallocation insertion and linear-value conversion
+/// `thresholded` exact-angle simplification
+/// register-to-memory conversion
+/// rotation-to-`Rz` decomposition
 /// CliffordTSynthesis
 /// Decomposition to the {H, S, T, X, Z, CNOT} basis
 ///
@@ -72,7 +83,11 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// idempotent on already-lowered IR, so the duplication is safe.
 ///
 /// Opt-in only. This helper is not added to default target pipelines.
-void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
+void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
+                           bool failOnControlledRotation = false);
+/// Append the common pipeline that expands, normalizes, and lowers
+/// `quake.phase` operations before final code generation.
+void addPhaseLifecycle(mlir::OpPassManager &pm);
 
 void registerAOTPipelines();
 void registerJITPipelines();

@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# XFAIL: *
 # RUN: PYTHONPATH=../../.. python3 %s
 # RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate
 

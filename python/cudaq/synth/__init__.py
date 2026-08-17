@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from ._cudaq_synth import gridsynth as _gridsynth
+from ._cudaq_synth import _normalized
 from ._cudaq_synth import rz_error as _rz_error
 
 __all__ = ["CliffordTSequence", "gridsynth", "rz_error"]
@@ -98,6 +99,14 @@ class CliffordTSequence:
             elif gate == "X":
                 kernel.x(qubit)
         return kernel
+
+    def normalized(self) -> "CliffordTSequence":
+        """Return this sequence in exact `Matsumoto-Amano` normal form.
+
+        The result keeps matrix-multiplication order and preserves the full
+        U(2) operator, including scalar W phase factors.
+        """
+        return CliffordTSequence(_normalized(str(self)))
 
 
 def gridsynth(theta,

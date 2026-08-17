@@ -25,6 +25,11 @@ on:
         required: false
         type: boolean
         default: false
+      run_validation:
+        required: false
+        type: boolean
+        default: true
+        description: Run wheel validation. Deployments disables this; validation runs in the Validation workflow.
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
@@ -229,6 +234,7 @@ jobs:
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
+    if: inputs.run_validation
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -311,6 +317,47 @@ jobs:
             # i.e. all tests in this file were skipped.
             if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
               echo "::error file=python_wheel.yml::Python backend tests failed with status $pytest_status."
+              exit 1
+            fi
+
+      - name: Validate license compliance
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: wheel_validation:local
+          shell: bash
+          volume: ${{ github.workspace }}/scripts:/tmp/scripts:ro
+          run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+
+            if command -v dnf > /dev/null; then
+              retry dnf install -y --nobest --setopt=install_weak_deps=False binutils
+            elif command -v apt-get > /dev/null; then
+              retry apt-get update && retry apt-get install -y --no-install-recommends binutils
+            elif command -v zypper > /dev/null; then
+              retry zypper --non-interactive install binutils
+            fi
+            if ! command -v nm > /dev/null && ! command -v readelf > /dev/null && ! command -v objdump > /dev/null; then
+              echo "::error file=python_wheels.yml::Failed to install binutils; the scan for statically linked GMP/MPFR copies would silently be skipped."
+              exit 1
+            fi
+
+            python_exe=$(command -v python${{ inputs.python_version }})
+            if [ -z "$python_exe" ]; then
+              echo "::error file=python_wheels.yml::python${{ inputs.python_version }} not found in the validation image."
+              exit 1
+            fi
+            mkdir -p /tmp/pyshim
+            printf '#!/bin/sh\nexec "%s" "$@"\n' "$python_exe" > /tmp/pyshim/python3
+            chmod +x /tmp/pyshim/python3
+            export PATH="/tmp/pyshim:$PATH"
+            if ! python3 -c "import cudaq" > /dev/null 2>&1; then
+              echo "::error file=python_wheels.yml::cudaq is not importable via the python3 used for license validation."
+              exit 1
+            fi
+
+            bash /tmp/scripts/validate_license_compliance.sh --wheel
+            if [ $? -ne 0 ]; then
+              echo "::error file=python_wheels.yml::License compliance validation failed for the built wheel."
               exit 1
             fi
 
@@ -492,7 +539,7 @@ jobs:
     # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
     name: Validate wheel on GPU (nvidia simulator)
     needs: build_wheel
-    if: inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
+    if: inputs.run_validation && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
     runs-on: linux-amd64-gpu-a100-latest-1
     timeout-minutes: 30
     permissions:
@@ -563,7 +610,7 @@ jobs:
 
   staging:
     name: Staging
-    needs: [build_wheel, validation]
+    needs: [build_wheel]
     if: inputs.create_staging_info
     runs-on: ubuntu-latest
     permissions:
@@ -578,7 +625,8 @@ jobs:
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          artifact_name=python_${platform_id}_cu${cuda_major}_publishing # changing the artifact name requires updating other workflows
 
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT

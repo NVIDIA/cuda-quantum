@@ -192,15 +192,15 @@ def test_kernel_adjoint_list_args():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK-SAME:      (%[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint"
-# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_0]] : (!cc.stdvec<f64>) -> ()
+# CHECK-SAME:      (%[[VAL_0:.*]]: !cc.sequence<f64>) attributes {"cudaq-entrypoint"
+# CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_0]] : (!cc.sequence<f64>) -> ()
 # CHECK:           return
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
-# CHECK-SAME:      (%[[VAL_0:.*]]: !cc.stdvec<f64>) {{.*}}{
+# CHECK-SAME:      (%[[VAL_0:.*]]: !cc.sequence<f64>) {{.*}}{
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
+# CHECK:           %[[VAL_2:.*]] = cc.sequence_data %[[VAL_0]] : (!cc.sequence<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 # CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<f64>
 # CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_4]] : !cc.ptr<f64>
 # CHECK:           quake.rx (%[[VAL_3]]) %[[VAL_1]] : (f64, !quake.ref) -> ()
@@ -302,7 +302,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           } {invariant}
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_3]] : (!quake.veq<?>) -> ()
-# CHECK:           %[[VAL_13:.*]] = quake.mz %0 : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[VAL_13:.*]] = quake.mz %0 : (!quake.veq<?>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           return
 # CHECK:         }
 

@@ -68,8 +68,8 @@ func.func @test_nested_loop_unroll() {
     %25 = arith.addi %arg0, %c1_i64 : i64
     cc.continue %25 : i64
   } {invariant}
-  %7 = cc.stdvec_init %5, %c2_i64 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
-  %8 = cc.stdvec_size %7 : (!cc.stdvec<i64>) -> i64
+  %7 = cc.sequence_init %5, %c2_i64 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
+  %8 = cc.sequence_size %7 : (!cc.sequence<i64>) -> i64
   %9 = arith.subi %8, %c1_i64 : i64
   %10:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
     %25 = arith.cmpi slt, %arg0, %9 : i64
@@ -125,7 +125,7 @@ func.func @test_nested_loop_unroll() {
     %25 = arith.addi %arg0, %c1_i64 : i64
     cc.continue %25 : i64
   } {invariant}
-  %16 = cc.stdvec_init %14, %10#1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+  %16 = cc.sequence_init %14, %10#1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
   %17 = cc.alloca i64[%11 : i64]
   %18:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
     %25 = arith.cmpi slt, %arg0, %10#1 : i64
@@ -155,7 +155,7 @@ func.func @test_nested_loop_unroll() {
     %25 = arith.addi %arg0, %c1_i64 : i64
     cc.continue %25 : i64
   } {invariant}
-  %21 = cc.stdvec_init %19, %10#1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+  %21 = cc.sequence_init %19, %10#1 : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.sequence<i64>
   %22:2 = cc.loop while ((%arg0 = %c0_i64, %arg1 = %c0_i64) -> (i64, i64)) {
     %25 = arith.cmpi slt, %arg0, %9 : i64
     cc.condition %25(%arg0, %arg1 : i64, i64)
@@ -167,13 +167,13 @@ func.func @test_nested_loop_unroll() {
       cc.condition %27(%arg2, %arg3 : i64, i64)
     } do {
     ^bb0(%arg2: i64, %arg3: i64):
-      %27 = cc.stdvec_data %16 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+      %27 = cc.sequence_data %16 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
       %28 = cc.compute_ptr %27[%arg3] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
-      %29 = cc.stdvec_data %7 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+      %29 = cc.sequence_data %7 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
       %30 = cc.compute_ptr %29[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
       %31 = cc.load %30 : !cc.ptr<i64>
       cc.store %31, %28 : !cc.ptr<i64>
-      %32 = cc.stdvec_data %21 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+      %32 = cc.sequence_data %21 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
       %33 = cc.compute_ptr %32[%arg3] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
       %34 = cc.compute_ptr %29[%arg2] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
       %35 = cc.load %34 : !cc.ptr<i64>
@@ -191,16 +191,16 @@ func.func @test_nested_loop_unroll() {
     %25 = arith.addi %arg0, %c1_i64 : i64
     cc.continue %25, %arg1 : i64, i64
   } {invariant}
-  %23 = cc.stdvec_size %16 : (!cc.stdvec<i64>) -> i64
+  %23 = cc.sequence_size %16 : (!cc.sequence<i64>) -> i64
   %24 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
     %25 = arith.cmpi slt, %arg0, %23 : i64
     cc.condition %25(%arg0 : i64)
   } do {
   ^bb0(%arg0: i64):
-    %25 = cc.stdvec_data %16 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+    %25 = cc.sequence_data %16 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
     %26 = cc.compute_ptr %25[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
     %27 = cc.load %26 : !cc.ptr<i64>
-    %28 = cc.stdvec_data %21 : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+    %28 = cc.sequence_data %21 : (!cc.sequence<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
     %29 = cc.compute_ptr %28[%arg0] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
     %30 = cc.load %29 : !cc.ptr<i64>
     %31 = arith.cmpi slt, %27, %30 : i64

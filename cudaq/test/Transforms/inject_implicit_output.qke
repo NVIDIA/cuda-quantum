@@ -1,0 +1,57 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --inject-implicit-output %s | FileCheck %s
+
+// Test a kernel with a mix of quake.alloca types: a single !quake.ref, a
+// statically-sized !quake.veq<N>, a dynamically-sized !quake.veq<?>, and a
+// !quake.veq<N> followed by a quake.init_state (where the log_output should
+// use the init_state result rather than the raw alloca).
+
+module {
+  func.func @__nvqpp__mlirgen__test_kernel(%arg0 : i64) attributes {"cudaq-entrypoint"} {
+    // Single qubit ref.
+    %q0 = quake.alloca !quake.ref
+
+    // Statically-sized veq.
+    %q1 = quake.alloca !quake.veq<4>
+
+    // Dynamically-sized veq.
+    %q2 = quake.alloca !quake.veq<?>[%arg0 : i64]
+
+    // veq with initialize_state — log_output should use the init_state result.
+    %0 = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
+    %q3 = quake.alloca !quake.veq<4>
+    %q3s = quake.init_state %q3, %0 : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+
+    quake.h %q0 : (!quake.ref) -> ()
+    return
+  }
+
+  cc.global constant private @__nvqpp__rodata_init_0 (dense<[1.0, 0.0, 0.5, 0.5]> : tensor<4xf64>) : !cc.array<f64 x 4>
+}
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__test_kernel(
+// CHECK-SAME:      %[[ARG:.*]]: i64)
+
+// Allocations appear before the gate.
+// CHECK:         %[[Q0:.*]] = quake.alloca !quake.ref
+// CHECK:         %[[Q1:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         %[[Q2:.*]] = quake.alloca !quake.veq<?>[%[[ARG]] : i64]
+// CHECK:         %[[Q3:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         %[[Q3S:.*]] = quake.init_state %[[Q3]], {{.*}} : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+// CHECK:         quake.h %[[Q0]]
+// CHECK:         cf.br ^[[EXIT:.*]]
+
+// Exit block: log_output ops in declaration order, then return.
+// CHECK:       ^[[EXIT]]:
+// CHECK:         quake.log_output %[[Q0]] : (!quake.ref) -> ()
+// CHECK:         quake.log_output %[[Q1]] : (!quake.veq<4>) -> ()
+// CHECK:         quake.log_output %[[Q2]] : (!quake.veq<?>) -> ()
+// CHECK:         quake.log_output %[[Q3S]] : (!quake.veq<4>) -> ()
+// CHECK:         return

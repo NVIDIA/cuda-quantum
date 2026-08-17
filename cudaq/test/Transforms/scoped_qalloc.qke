@@ -45,7 +45,7 @@ module {
     }
     %3 = arith.addi %0, %1 : i64
     %4 = arith.addi %3, %2 : i64
-    cc.log_output %4 : i64
+    quake.log_output %4 : (i64) -> ()
     return
   }
 }

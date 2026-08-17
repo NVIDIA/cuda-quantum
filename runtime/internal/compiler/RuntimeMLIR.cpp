@@ -11,6 +11,7 @@
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
@@ -429,7 +430,8 @@ static LogicalResult
 qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
                               llvm::raw_string_ostream &output,
                               const std::string &additionalPasses, bool printIR,
-                              bool printIntermediateMLIR, bool printStats) {
+                              bool printIntermediateMLIR, bool printStats,
+                              bool disableQuantumOpts = false) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   auto config = cudaq::parseCodeGenTranslation(qirProfile);
@@ -451,7 +453,8 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
           return WalkResult::interrupt();
         }).wasInterrupted();
 
-  bool disableQuantumOpt = op->hasAttr(cudaq::runtime::disableQuantumOpts);
+  bool noValueSemantics =
+      disableQuantumOpts || op->hasAttr(cudaq::runtime::disableQuantumOpts);
   std::string profileName;
   if (containsWireSet) {
     profileName = config.profile;
@@ -460,7 +463,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
     profileName = qirProfile;
     cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName,
                                            /*useValueSemantics=*/
-                                           !disableQuantumOpt);
+                                           !noValueSemantics);
   }
 
   if (!additionalPasses.empty() &&
@@ -632,10 +635,11 @@ static void registerToQIRTranslation() {
       [](Operation *op, const std::string &transportTriple,                    \
          llvm::raw_string_ostream &output,                                     \
          const std::string &additionalPasses, bool printIR,                    \
-         bool printIntermediateMLIR, bool printStats) {                        \
+         bool printIntermediateMLIR, bool printStats,                          \
+         bool disableQuantumOpts) {                                            \
         return qirProfileTranslationFunction(                                  \
             transportTriple, op, output, additionalPasses, printIR,            \
-            printIntermediateMLIR, printStats);                                \
+            printIntermediateMLIR, printStats, disableQuantumOpts);            \
       })
 
   CREATE_QIR_REGISTRATION(regBase, "qir-base");

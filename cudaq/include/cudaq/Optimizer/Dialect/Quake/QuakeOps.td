@@ -1108,7 +1108,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
     AnyQTargetType:$targets
   );
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
   let hasVerifier = 1;
 
@@ -1137,15 +1137,15 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   // The classical result of a measurement is one of:
   //   - !quake.measure                   (the legacy SSA result),
   //   - !cc.measure_handle               (the cudaq::measure_handle alias),
-  //   - !cc.stdvec<!quake.measure>       (vector of legacy results),
-  //   - !cc.stdvec<!cc.measure_handle>   (vector of handles).
+  //   - !cc.sequence<!quake.measure>       (vector of legacy results),
+  //   - !cc.sequence<!cc.measure_handle>   (vector of handles).
   // The handle forms are emitted by the bridge for `cudaq::measure_handle`
   // callers (overloads of `mz`/`mx`/`my`) and are lowered to `i64` by
   // `--convert-to-qir-api`'s `TypeConverter`.
   let results = (outs
     AnyTypeOf<[MeasureType, cc_MeasureHandleType,
-               StdvecOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
-    Variadic<WireType>:$wires
+               SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
+    Variadic<AnyQLinearType>:$wires
   );
 
   let assemblyFormat = [{
@@ -1222,8 +1222,8 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
     Multiple applications of discriminate on the same scalar measurement
     handle yield the same result, so the scalar form is treated as pure.
 
-    The vector form (`!cc.stdvec<!cc.measure_handle>` or
-    `!cc.stdvec<!quake.measure>`) operates on a `(data_ptr, size)`
+    The vector form (`!cc.sequence<!cc.measure_handle>` or
+    `!cc.sequence<!quake.measure>`) operates on a `(data_ptr, size)`
     descriptor that aliases mutable backing storage; storing a new handle
     into a slot through that storage changes the result of a subsequent
     discriminate of the same descriptor. The vector form therefore
@@ -1234,10 +1234,10 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
 
   let arguments = (ins
     AnyTypeOf<[MeasureType, cc_MeasureHandleType,
-               StdvecOf<[MeasureType, cc_MeasureHandleType]>]>:$measurement
+               SequenceOf<[MeasureType, cc_MeasureHandleType]>]>:$measurement
   );
   let results = (outs
-    AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>
+    AnyTypeOf<[AnySignlessInteger, SequenceOf<[AnySignlessInteger]>]>
   );
 
   let assemblyFormat = [{
@@ -1265,7 +1265,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   ));
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let builders = [
@@ -1397,7 +1397,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
     OptionalAttr<StrAttr>:$pauliLiteral
   );
   let results = (outs
-    Variadic<WireType>:$wires
+    Variadic<AnyQLinearType>:$wires
   );
 
   let assemblyFormat = [{
@@ -1544,6 +1544,21 @@ def HOp : OneTargetOp<"h", [Hermitian]> {
      └───┘
     ```
   }];
+}
+
+def PhaseOp : OneTargetParamOp<"phase", [Rotation]> {
+  let summary = "phase correction attached to quantum dataflow";
+  let description = [{
+    Represents a scalar phase correction. With no controls, it denotes
+    `exp(i phi) I`, a global phase. With controls, it applies that phase only
+    to the branch satisfying the ordered control predicate. The scalar target
+    is solely an ordering and wire-flow anchor and does not affect the
+    represented unitary. Producers must choose an anchor outside the control
+    predicate so that an exact anchored lowering remains available for
+    non-scalar controls.
+  }];
+
+  let hasCanonicalizer = 1;
 }
 
 def PhasedRxOp : QuakeOperator<"phased_rx",
@@ -1963,6 +1978,59 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
   let assemblyFormat = [{
      $numQubitsFunc `,` $initFunc `:` qualified(type(results)) attr-dict
   }];
+}
+
+//===----------------------------------------------------------------------===//
+// LogOutputOp
+//===----------------------------------------------------------------------===//
+
+def quake_LogOutputOp : QuakeOp<"log_output"> {
+  let summary = "Marks a value in the IR as observable.";
+  let description = [{
+    This operation is a high-level \e abstraction for the necessary and
+    sufficient functionality to log output results to a \e virtual output device
+    produced by a well-defined CUDA-Q kernel. \e How this to be accomplished and
+    the details thereof are not the concern of Quake. The presence of this
+    operation explicitly denotes that a \e value in Quake is \e observable in
+    the computational sense. This restricts the types of optimizations that may
+    be applied; such as, the value cannot be trivially erased.
+
+    The semantics of this operation are very clear. Arguments are considered
+    observable and live, and this operation \e explicitly denotes I/O
+    side-effects.
+
+    The lowering of this operation is heavily context dependent. The target and
+    launch policies of an entry-point kernel will interplay with an abstract
+    virtual output stream from the virtual device. Different policies are fully
+    expected to adapt the virtual output stream to data structures pertinent to
+    the launch policy itself. Each policy (or the absence of policy) defines
+    different data structures (I/O) as defined in the CUDA-Q specification.
+
+    This operation explicitly threads linear types.
+
+    Do not read this overly literally. Using this operation on a value of
+    quantum type simply does \e not mean that a qubit is anything more than
+    "of interest". A physical qubit isn't something one can email.
+  }];
+
+  let arguments = (ins
+    Variadic<AnyType>:$args,
+    UnitAttr:$compilerGenerated
+  );
+  let results = (outs Variadic<AnyQLinearType>:$outs);
+  let hasVerifier = 1;
+  let builders = [
+    OpBuilder<(ins "mlir::ValueRange":$args,
+                   CArg<"bool", "false">:$compilerGenerated), [{
+      llvm::SmallVector<mlir::Type> resultTypes;
+      for (mlir::Value v : args)
+        if (cudaq::quake::isLinearType(v.getType()))
+          resultTypes.push_back(v.getType());
+      build($_builder, $_state, resultTypes, args, compilerGenerated);
+    }]>
+  ];
+  let assemblyFormat =
+      "$args `:` functional-type(operands, results) attr-dict";
 }
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_OPS

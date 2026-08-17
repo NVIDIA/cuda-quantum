@@ -124,6 +124,7 @@ should_skip_install_validation_target() {
     "opt-test.yml"
     "compiler-bench-nisq.yml"
     "compiler-bench-ftqc-logical.yml"
+    "compiler-bench-ftqc-clifford-t.yml"
   )
 
   for skipped_target_config in "${skipped_target_configs[@]}"; do
@@ -251,7 +252,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    # Look for a --target flag to nvq++ in the 
+    # Look for a --target flag to nvq++ in the
     # comment block at the beginning of the file.
     # Note: using sed instead of grep -P for macOS compatibility
     intended_target=$(sed -e '/^$/,$d' "$ex" | sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' | head -1)
@@ -575,7 +576,14 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     else
         pip install jupyter ipykernel notebook -q
     fi
-    
+
+    # skqd.ipynb imports mpi4py, which is not shipped in the image.
+    if [ -n "$MPI_ROOT" ] && ! python3 -c "import mpi4py" 2>/dev/null; then
+        echo "Installing mpi4py for notebooks that require it..."
+        pip install "mpi4py~=4.1" -q \
+            || echo "Warning: could not install mpi4py; notebooks importing it will fail."
+    fi
+
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages
     JUPYTER_KERNEL_NAME="cudaq_nb_validation_container"
