@@ -24,8 +24,6 @@ static constexpr const char launchKernelStreamlinedFuncName[] =
     "streamlinedLaunchKernel";
 static constexpr const char launchKernelHybridFuncName[] = "hybridLaunchKernel";
 
-static constexpr const char mangledNameMap[] = "quake.mangled_name_map";
-
 static constexpr const char deviceCodeHolderAdd[] =
     "__cudaq_deviceCodeHolderAdd";
 
@@ -56,7 +54,6 @@ static constexpr const char cudaqAHKPrefixName[] =
 // Host-side helper functions for working with `cudaq::pauli_word` or a
 // `std::string`. These include both fully dynamic and binding time (library
 // build time) helper functions.
-static constexpr const char sizeofStringAttrName[] = "cc.sizeof_string";
 static constexpr const char getPauliWordSize[] =
     "_ZNK5cudaq10pauli_word11_nvqpp_sizeEv";
 static constexpr const char getPauliWordData[] =
@@ -67,8 +64,6 @@ static constexpr const char bindingInitializeString[] =
     "__nvqpp_initializeStringFromSpan";
 static constexpr const char bindingDeconstructString[] =
     "__nvqpp_deconstructString";
-static constexpr const char enableCudaqRun[] = "quake.cudaq_run";
-
 // Runtime layer of a `device_call` application based on CUDA-Q Realtime.
 static constexpr const char deviceCallAcquireRealtimeFrame[] =
     "__cudaq_device_call_acquire_realtime_frame";
@@ -81,9 +76,5 @@ static constexpr const char extractDevPtr[] =
 
 // Garbage collection for arrays created during kernel execution.
 static constexpr const char cleanupArrays[] = "__nvqpp_cleanup_arrays";
-
-static constexpr const char pythonUniqueAttrName[] = "quake.python_uniqued";
-
-static constexpr const char disableQuantumOpts[] = "quake.noOptimization";
 
 } // namespace cudaq::runtime

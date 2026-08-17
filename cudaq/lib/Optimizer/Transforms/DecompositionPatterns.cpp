@@ -9,6 +9,7 @@
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
+#include "QuakeOperatorCreator.h"
 #include "QuakeOperatorUtilities.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -16,6 +17,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TypeName.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include <optional>
@@ -63,197 +65,6 @@ inline bool containsControlTypes(cudaq::quake::OperatorInterface op) {
     return isa<cudaq::quake::ControlType>(v.getType());
   });
 }
-
-namespace {
-/// @brief This is a wrapper class for `PatternRewriter::create<>()` for
-/// `QuakeOperator`s. If the controls and targets are `cudaq::quake::WireType`,
-/// then this wrapper class's methods update the controls and targets in the
-/// `create` calls to the corresponding wires in the output. If they are NOT
-/// `WireType`, then the creates behave the exact same as a regular
-/// `PatternRewriter`.
-class QuakeOperatorCreator {
-public:
-  QuakeOperatorCreator(PatternRewriter &rewriter) : rewriter(rewriter) {}
-
-  /// Construct a resultType (suitable to be pass into the `TypeRange wires`
-  /// builder for cases when you have one input ValueRange.
-  SmallVector<Type> getResultType(ValueRange operands) {
-    std::size_t numOutputWires = llvm::count_if(operands, [](const Value &v) {
-      return isa<cudaq::quake::WireType>(v.getType());
-    });
-
-    return SmallVector<Type>(
-        numOutputWires, cudaq::quake::WireType::get(rewriter.getContext()));
-  }
-
-  /// Construct a resultType (suitable to be pass into the `TypeRange wires`
-  /// builder for cases when you have two input ValueRanges.
-  SmallVector<Type> getResultType(ValueRange operands1, ValueRange operands2) {
-    std::size_t numOutputWires =
-        llvm::count_if(operands1,
-                       [](const Value &v) {
-                         return isa<cudaq::quake::WireType>(v.getType());
-                       }) +
-        llvm::count_if(operands2, [](const Value &v) {
-          return isa<cudaq::quake::WireType>(v.getType());
-        });
-
-    return SmallVector<Type>(
-        numOutputWires, cudaq::quake::WireType::get(rewriter.getContext()));
-  }
-
-  /// Pluck out the values from \p newValues whose type is `WireType` and
-  /// replace all the \p op uses with those values.
-  void selectWiresAndReplaceUses(Operation *op, ValueRange newValues) {
-    SmallVector<Value, 4> newWireValues;
-    for (const auto &v : newValues)
-      if (isa<cudaq::quake::WireType>(v.getType()))
-        newWireValues.push_back(v);
-    assert(op->getResults().size() == newWireValues.size() &&
-           "incorrect number of output wires provided");
-    op->replaceAllUsesWith(newWireValues);
-  }
-
-  /// Pluck out the values from \p controls and \p target whose type is
-  /// `WireType` and replace all the \p op uses with those values.
-  void selectWiresAndReplaceUses(Operation *op, ValueRange controls,
-                                 Value target) {
-    SmallVector<Value, 4> newWireValues;
-    for (const auto &v : controls)
-      if (isa<cudaq::quake::WireType>(v.getType()))
-        newWireValues.push_back(v);
-    if (isa<cudaq::quake::WireType>(target.getType()))
-      newWireValues.push_back(target);
-    assert(op->getResults().size() == newWireValues.size() &&
-           "incorrect number of output wires provided");
-    op->replaceAllUsesWith(newWireValues);
-  }
-
-  template <typename OpTy>
-  OpTy create(Location location, Value &target) {
-    OpTy op;
-    op = OpTy::create(rewriter, location, getResultType(target), false,
-                      ValueRange{}, ValueRange{}, target, DenseBoolArrayAttr{});
-    auto resultWires = op.getWires();
-    auto resultIt = resultWires.begin();
-    auto resultWiresEnd = resultWires.end();
-    if (isa<cudaq::quake::WireType>(target.getType()) &&
-        resultIt != resultWiresEnd)
-      target = *resultIt;
-    return op;
-  }
-
-  template <typename OpTy>
-  OpTy create(Location location, bool is_adj, Value &target) {
-    OpTy op;
-    op = OpTy::create(rewriter, location, getResultType(target), is_adj,
-                      ValueRange{}, ValueRange{}, target, DenseBoolArrayAttr{});
-    auto resultWires = op.getWires();
-    auto resultIt = resultWires.begin();
-    auto resultWiresEnd = resultWires.end();
-    if (isa<cudaq::quake::WireType>(target.getType()) &&
-        resultIt != resultWiresEnd)
-      target = *resultIt;
-    return op;
-  }
-
-  template <typename OpTy>
-  OpTy create(Location location, Value &control, Value &target) {
-    OpTy op;
-    op = OpTy::create(rewriter, location, getResultType(control, target), false,
-                      ValueRange{}, control, target, DenseBoolArrayAttr{});
-    auto resultWires = op.getWires();
-    auto resultIt = resultWires.begin();
-    auto resultWiresEnd = resultWires.end();
-    if (isa<cudaq::quake::WireType>(control.getType()) &&
-        resultIt != resultWiresEnd)
-      control = *resultIt++;
-    if (isa<cudaq::quake::WireType>(target.getType()) &&
-        resultIt != resultWiresEnd)
-      target = *resultIt;
-    return op;
-  }
-
-  template <typename OpTy>
-  OpTy create(Location location, bool is_adj, ValueRange parameters,
-              SmallVectorImpl<Value> &controls, Value &target) {
-    OpTy op;
-    op = OpTy::create(rewriter, location, getResultType(controls, target),
-                      is_adj, parameters, controls, target,
-                      DenseBoolArrayAttr{});
-    auto resultWires = op.getWires();
-    auto resultIt = resultWires.begin();
-    auto resultWiresEnd = resultWires.end();
-    for (auto &c : controls)
-      if (isa<cudaq::quake::WireType>(c.getType()) &&
-          resultIt != resultWiresEnd)
-        c = *resultIt++;
-    if (isa<cudaq::quake::WireType>(target.getType()) &&
-        resultIt != resultWiresEnd)
-      target = *resultIt;
-    return op;
-  }
-
-  template <typename OpTy>
-  OpTy create(Location location, ValueRange parameters,
-              SmallVectorImpl<Value> &controls, Value &target) {
-    OpTy op;
-    op =
-        OpTy::create(rewriter, location, getResultType(controls, target), false,
-                     parameters, controls, target, DenseBoolArrayAttr{});
-    auto resultWires = op.getWires();
-    auto resultIt = resultWires.begin();
-    auto resultWiresEnd = resultWires.end();
-    for (auto &c : controls)
-      if (isa<cudaq::quake::WireType>(c.getType()) &&
-          resultIt != resultWiresEnd)
-        c = *resultIt++;
-    if (isa<cudaq::quake::WireType>(target.getType()) &&
-        resultIt != resultWiresEnd)
-      target = *resultIt;
-    return op;
-  }
-
-  template <typename OpTy>
-  OpTy create(Location location, SmallVectorImpl<Value> &controls,
-              Value &target) {
-    OpTy op;
-    op =
-        OpTy::create(rewriter, location, getResultType(controls, target), false,
-                     ValueRange{}, controls, target, DenseBoolArrayAttr{});
-    auto resultWires = op.getWires();
-    auto resultIt = resultWires.begin();
-    auto resultWiresEnd = resultWires.end();
-    for (auto &c : controls)
-      if (isa<cudaq::quake::WireType>(c.getType()) &&
-          resultIt != resultWiresEnd)
-        c = *resultIt++;
-    if (isa<cudaq::quake::WireType>(target.getType()) &&
-        resultIt != resultWiresEnd)
-      target = *resultIt;
-    return op;
-  }
-
-  template <typename OpTy>
-  OpTy create(Location location, SmallVectorImpl<Value> &targets) {
-    OpTy op;
-    op =
-        OpTy::create(rewriter, location, getResultType(targets), false,
-                     ValueRange{}, ValueRange{}, targets, DenseBoolArrayAttr{});
-    auto resultWires = op.getWires();
-    auto resultIt = resultWires.begin();
-    auto resultWiresEnd = resultWires.end();
-    for (auto &t : targets)
-      if (isa<cudaq::quake::WireType>(t.getType()) &&
-          resultIt != resultWiresEnd)
-        t = *resultIt++;
-    return op;
-  }
-
-private:
-  PatternRewriter &rewriter;
-};
-} // namespace
 
 std::optional<std::size_t>
 cudaq::getKnownNumControls(cudaq::quake::OperatorInterface op) {
@@ -363,6 +174,8 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
 //===----------------------------------------------------------------------===//
 
 namespace {
+using cudaq::opt::decomp::QuakeOperatorCreator;
+
 // quake.h target
 // ───────────────────────────────────
 // quake.phased_rx(π/2, π/2) target
@@ -644,9 +457,7 @@ struct ExpPauliDecomposition
 REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition,
                                {"exp_pauli", "rx", "h", "x(1)", "rz"});
 
-// Naive mapping of R1 to Rz, ignoring the global phase.
-// This is only expected to work with full inlining and
-// quake apply specialization.
+// Exact mapping of R1 to Rz plus its phase residue.
 struct R1ToRzType; // forward declare the pattern type, defined in the macro
                    // below
 struct R1ToRz
@@ -656,16 +467,52 @@ struct R1ToRz
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
-    if (r1Op.isAdj() || !r1Op.getControls().empty())
+    if (!isEnabled(cudaq::getKnownNumControls(r1Op)))
       return failure();
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
-        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
-        r1Op.getTargets());
+    Location location = r1Op.getLoc();
+    SmallVector<Value> controls(r1Op.getControls());
+    SmallVector<Value> targets(r1Op.getTargets());
+
+    // PhaseOp requires a scalar anchor. Do not partially rewrite an aggregate
+    // R1 because selecting one arbitrary `veq` element would represent the
+    // wrong phase for the _aggregate_ operation.
+
+    if (targets.empty() || !isa<cudaq::quake::RefType, cudaq::quake::WireType>(
+                               targets.back().getType()))
+      return rewriter.notifyMatchFailure(
+          r1Op,
+          "R1ToRz requires a scalar target to anchor its phase correction");
+
+    auto resultTypes =
+        cudaq::opt::getWireResultTypes(rewriter, controls, targets);
+    auto rz = cudaq::quake::RzOp::create(
+        rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
+        r1Op.getParameters(), controls, targets,
+        r1Op.getNegatedQubitControlsAttr());
+    cudaq::opt::threadWireResults(rz, controls, targets);
+
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing a `0 / 2` first would hide the zero behind an arith.divf
+    // until a later canonicalization pass.
+    Value phase = r1Op.getParameter();
+    if (!matchPattern(phase, m_AnyZeroFloat())) {
+      phase = createDivF(location, phase, 2.0, rewriter);
+      if (r1Op.isAdj())
+        phase = arith::NegFOp::create(rewriter, location, phase);
+    }
+
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, location, phase, controls, r1Op.getNegatedQubitControlsAttr(),
+        targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(r1Op, cudaq::opt::getWireValues(controls, targets));
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"});
+REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"}, {"r1(n)", "rz(n)"});
 
 // Naive mapping of R1 to U3
 // quake.r1(λ) [control] target

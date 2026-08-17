@@ -56,6 +56,13 @@ Setup
 
         ./install_cuda_quantum_realtime_cu13.arm64  --accept
 
+    The default installation location is ``/opt/nvidia/cudaq/realtime``, which usually requires ``sudo``.
+    To install somewhere else, pass ``--installpath`` to the installer. For example,
+
+    .. code-block:: console
+
+        ./install_cuda_quantum_realtime_cu13.arm64 --accept -- --installpath $HOME/.cudaq_realtime
+
   - Follow the instructions given by the installer for post-installation steps to set environment variables.
 
   - Program the FPGA with HSB.

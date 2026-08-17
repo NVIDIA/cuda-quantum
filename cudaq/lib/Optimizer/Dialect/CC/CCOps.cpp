@@ -2081,6 +2081,9 @@ struct EraseScopeWhenNotNeeded : public OpRewritePattern<cudaq::cc::ScopeOp> {
 
   LogicalResult matchAndRewrite(cudaq::cc::ScopeOp scope,
                                 PatternRewriter &rewriter) const override {
+    if (scope.getAtomicQuantumRegionAttr())
+      return failure();
+
     if (scope.hasAllocation())
       return failure();
 

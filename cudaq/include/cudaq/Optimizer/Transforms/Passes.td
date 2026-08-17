@@ -233,9 +233,10 @@ def OptimizeSingleQubitCliffordT
     Consumes and produces the scalar linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
 
-    Rewrites block-local chains of exact, uncontrolled one-qubit Clifford+T
-    operations on scalar `!quake.wire` values to Matsumoto-Amano normal form.
-    The pass leaves unsupported operations and wire-flow boundaries unchanged.
+    Rewrites exact, uncontrolled one-qubit Clifford+T chains on scalar
+    `!quake.wire` values to Matsumoto-Amano normal form. Supports chains
+    through single-block `cc.scope`. Scalar normal-form phases are emitted as
+    anchored `quake.phase` operations, preserving the exact unitary.
 
     The normal form is defined by K. Matsumoto and K. Amano, "Representation
     of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,
@@ -831,6 +832,17 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
   }];
 }
 
+def InjectImplicitOutput : Pass<"inject-implicit-output", "mlir::func::FuncOp"> {
+  let summary = "Inject quake.log_output ops for implicitly output quantum values.";
+  let description = [{
+    This pass inserts `quake.log_output` operations for each `quake.alloca` at
+    the top level of a `func.func`. The log_output ops are added to a new exit
+    block that all return ops are redirected through, preserving the declaration
+    order of the allocations. Unlike `add-dealloc`, this pass does not recurse
+    into nested regions.
+  }];
+}
+
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
 // new FuncOps.
 def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
@@ -1063,6 +1075,17 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
       // exit loop
     ```
   }];
+
+  let options = [
+    Option<"unsafeQuantumAlloc", "unsafe-quantum-alloc", "bool",
+           /*default=*/"false",
+           "When true, suppress adding the cc.no_qubit_combine attribute when "
+           "lowering a cc.scope that contains a quantum allocation.  This is "
+           "unsafe in general (the subsequent combine-quantum-alloc pass may "
+           "combine allocations across scope boundaries), but useful when "
+           "lower-to-cfg is followed immediately by combine-quantum-alloc and "
+           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
+  ];
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
 }
@@ -1426,11 +1449,29 @@ def QuakeSimplify : Pass<"quake-simplify"> {
 
     A rotation is erased when its folded angle has magnitude at or below
     `threshold`.
+
+    The optional `rotations-to-clifford-t` pattern family recognizes constant
+    `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and replaces them
+    with named-gate sequences instead of leaving them for approximate synthesis.
+    The replacement is exact, with no global-phase difference from the original
+    rotation. When needed, this includes injecting a `quake.phase` bookkeeping
+    operation.
+    With a positive `clifford-t-epsilon`, nearby angles are accepted only when
+    their operator-norm distance from the selected exact rotation is within that
+    epsilon. The family is disabled by default because targets with native
+    arbitrary rotations do not benefit from this legalization.
   }];
   let options = [
     Option<"threshold", "threshold", "double", /*default=*/"1e-12",
       "Erase (treat as identity) rotations whose angle, folded into its "
       "identity period, has magnitude at or below this value.">,
+    Option<"rotationsToCliffordT", "rotations-to-clifford-t", "bool",
+      /*default=*/"false",
+      "Enable canonicalization of pi/4 rotation classes to Clifford+T gates.">,
+    Option<"cliffordTEpsilon", "clifford-t-epsilon", "double",
+      /*default=*/"0.0",
+      "Operator-norm epsilon for snapping rotations to a neighboring pi/4 "
+      "class. Zero enables bit-exact matching only.">,
   ];
   let statistics = [
     Statistic<"numHermitianEliminations", "hermitian-eliminations",
@@ -1449,6 +1490,8 @@ def QuakeSimplify : Pass<"quake-simplify"> {
               "Number of YSX -> S rewrites">,
     Statistic<"numResetsErased", "resets-erased",
               "Number of redundant resets erased (double-reset or reset-before-sink)">,
+    Statistic<"numCliffordTRotations", "clifford-t-rotations",
+              "Number of rotations canonicalized to Clifford+T gates">,
   ];
 }
 
@@ -1851,6 +1894,15 @@ def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
     Option<"hoistOnly", "hoist-only", "bool", /*default=*/"false",
       "Hoist the variables only.">
   ];
+}
+
+def VerifyNoPhase : Pass<"verify-no-phase", "mlir::ModuleOp"> {
+  let summary =
+      "Verify that phase bookkeeping was eliminated before code generation";
+  let description = [{
+    Emits an error if any `quake.phase` operation survives to the final
+    code-generation boundary.
+  }];
 }
 
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {

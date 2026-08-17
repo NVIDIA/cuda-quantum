@@ -8,8 +8,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Default installation location: /opt/nvidia/cudaq/realtime
-install_dir=/opt/nvidia/cudaq/realtime
+# Installation location: the directory this script was installed into, which is
+# /opt/nvidia/cudaq/realtime unless the installer was given --installpath.
+install_dir="$(cd "$(dirname "$(realpath "${BASH_SOURCE[0]}")")" && pwd)"
 
 # Check LD_LIBRARY_PATH contains the install_dir/lib path
 if [[ ":$LD_LIBRARY_PATH:" != *":$install_dir/lib:"* ]]; then

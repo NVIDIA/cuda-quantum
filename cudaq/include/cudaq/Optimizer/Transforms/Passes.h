@@ -65,6 +65,11 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// UnitarySynthesis
 /// ApplyOpSpecialization
 /// constant propagation
+/// `exp-pauli` and U3 decomposition
+/// quantum deallocation insertion and linear-value conversion
+/// `thresholded` exact-angle simplification
+/// register-to-memory conversion
+/// rotation-to-`Rz` decomposition
 /// CliffordTSynthesis
 /// Decomposition to the {H, S, T, X, Z, CNOT} basis
 ///
@@ -81,6 +86,9 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// Opt-in only. This helper is not added to default target pipelines.
 void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
                            bool failOnControlledRotation = false);
+/// Append the common pipeline that expands, normalizes, and lowers
+/// `quake.phase` operations before final code generation.
+void addPhaseLifecycle(mlir::OpPassManager &pm);
 
 void registerAOTPipelines();
 void registerJITPipelines();

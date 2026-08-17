@@ -48,7 +48,6 @@ def test_exp_pauli_individual_qubits():
     def test(theta: float):
         q = cudaq.qvector(3)
         exp_pauli(theta, "YX", q[0], q[2])
-        ry(12 * np.pi, q)
 
     counts = cudaq.sample(test, math.pi / 2.0)
     assert len(counts) == 1

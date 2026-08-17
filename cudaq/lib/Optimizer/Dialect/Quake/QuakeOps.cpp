@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -135,7 +137,7 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, ResetOp, SinkOp,
-             ReturnWireOp>(op);
+             ReturnWireOp, LogOutputOp>(op);
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {
@@ -343,7 +345,7 @@ void cudaq::quake::ApplyOp::print(OpAsmPrinter &p) {
                         (*this)->getResultTypes());
   p.printOptionalAttrDict(
       (*this)->getAttrs(),
-      {"operand_segment_sizes", "is_adj", getCalleeAttrNameStr()});
+      {cudaq::runtime::operandSegmentSizes, "is_adj", getCalleeAttrNameStr()});
 }
 
 ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
@@ -383,7 +385,7 @@ ParseResult cudaq::quake::ApplyOp::parse(OpAsmParser &parser,
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(calleeOperand.size()),
                            static_cast<int32_t>(controlOperands.size()),
@@ -427,8 +429,9 @@ void cudaq::quake::ApplyNoiseOp::print(OpAsmPrinter &p) {
   SmallVector<Type> operandTys{(*this)->getOperandTypes().begin(),
                                (*this)->getOperandTypes().end()};
   p.printFunctionalType(operandTys, (*this)->getResultTypes());
-  p.printOptionalAttrDict((*this)->getAttrs(),
-                          {"operand_segment_sizes", getNoiseFuncAttrName()});
+  p.printOptionalAttrDict(
+      (*this)->getAttrs(),
+      {cudaq::runtime::operandSegmentSizes, getNoiseFuncAttrName()});
 }
 
 ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
@@ -462,7 +465,7 @@ ParseResult cudaq::quake::ApplyNoiseOp::parse(OpAsmParser &parser,
   if (parser.parseType(applyTy) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
-  result.addAttribute("operand_segment_sizes",
+  result.addAttribute(cudaq::runtime::operandSegmentSizes,
                       parser.getBuilder().getDenseI32ArrayAttr(
                           {static_cast<int32_t>(keyOperand.size()),
                            static_cast<int32_t>(parameterOperands.size()),
@@ -1492,6 +1495,22 @@ INSTANTIATE_CALLBACKS(PhaseOp)
 
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_VERIFY)
 WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
+
+//===----------------------------------------------------------------------===//
+// LogOutputOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::quake::LogOutputOp::verify() {
+  SmallVector<Type> expected;
+  for (Value v : getArgs())
+    if (isLinearType(v.getType()))
+      expected.push_back(v.getType());
+  auto actual = getOuts().getTypes();
+  if (SmallVector<Type>(actual) != expected)
+    return emitOpError("result types must mirror wire/cable operand types "
+                       "in left-to-right order");
+  return success();
+}
 
 //===----------------------------------------------------------------------===//
 // Generated logic

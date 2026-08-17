@@ -1,0 +1,38 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --aggressive-inlining %s | FileCheck %s
+
+// A statically known callable is initially represented as func.constant plus
+// func.call_indirect after lambda lifting. Convert it before the inliner so
+// the callable body is available to control and adjoint specialization.
+
+module {
+  func.func private @callable_thunk(
+      %closure: !cc.callable<(!quake.ref) -> ()>, %q: !quake.ref)
+      attributes {"cudaq-kernel"} {
+    quake.x %q : (!quake.ref) -> ()
+    return
+  }
+
+  func.func @main() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %closure = cc.instantiate_callable @callable_thunk() : () -> !cc.callable<(!quake.ref) -> ()>
+    %fn = func.constant @callable_thunk : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+    %q = quake.alloca !quake.ref
+    func.call_indirect %fn(%closure, %q) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK-LABEL: func.func @main()
+// CHECK-NOT:   call @
+// CHECK-NOT:   call_indirect
+// CHECK:       quake.alloca !quake.ref
+// CHECK:       quake.x {{.*}} : (!quake.ref) -> ()
+// CHECK-NOT:   call @
+// CHECK-NOT:   call_indirect

@@ -7,13 +7,19 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/RuntimeNames.h"
+#include "QuakeOperatorCreator.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/Support/MathExtras.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include <cmath>
+#include <cstdint>
+#include <optional>
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKESIMPLIFY
@@ -30,6 +36,8 @@ void filterArgs(SmallVector<Value> &args, C collection) {
     if (cudaq::quake::isQuantumValueType(item.getType()))
       args.push_back(item);
 }
+
+#include "RewriteRotationsToCliffordT.inc"
 
 // Apply some simple quantum optimizations to quake. The quake operations are
 // expected to be in the value-semantics (having wire or control type operands).
@@ -842,39 +850,69 @@ private:
 };
 
 namespace {
+
+static void populateDefaultPatterns(RewritePatternSet &patterns,
+                                    double threshold,
+                                    Pass::Statistic &numHermitianEliminations,
+                                    Pass::Statistic &numAdjointEliminations,
+                                    Pass::Statistic &numZeroRotationsEliminated,
+                                    Pass::Statistic &numRotationsCombined,
+                                    Pass::Statistic &numDoubleSRewrites,
+                                    Pass::Statistic &numDoubleTRewrites,
+                                    Pass::Statistic &numReduceYSXRewrites,
+                                    Pass::Statistic &numResetsErased) {
+  auto *context = patterns.getContext();
+  patterns.add<HermitianElimination<cudaq::quake::HOp>,
+               HermitianElimination<cudaq::quake::SwapOp>,
+               HermitianElimination<cudaq::quake::XOp>,
+               HermitianElimination<cudaq::quake::YOp>,
+               HermitianElimination<cudaq::quake::ZOp>>(
+      context, numHermitianEliminations);
+  patterns.add<AdjointElimination<cudaq::quake::SOp>,
+               AdjointElimination<cudaq::quake::TOp>>(context,
+                                                      numAdjointEliminations);
+  patterns.add<DoubleSOp>(context, numDoubleSRewrites);
+  patterns.add<DoubleTOp>(context, numDoubleTRewrites);
+  patterns.add<EraseDoubleReset, EraseResetSink>(context, numResetsErased);
+  patterns.add<ReduceYSX>(context, numReduceYSXRewrites);
+  patterns.add<
+      RotationCombine<cudaq::quake::R1Op>, RotationCombine<cudaq::quake::RxOp>,
+      RotationCombine<cudaq::quake::RyOp>, RotationCombine<cudaq::quake::RzOp>,
+      RotationCombine<cudaq::quake::PhasedRxOp>>(
+      context, threshold, numZeroRotationsEliminated, numRotationsCombined);
+}
+
 class QuakeSimplifyPass
     : public cudaq::opt::impl::QuakeSimplifyBase<QuakeSimplifyPass> {
 public:
   using QuakeSimplifyBase::QuakeSimplifyBase;
 
   void runOnOperation() override {
-    auto *ctx = &getContext();
-    auto *op = getOperation();
-    if (op->hasAttr(cudaq::runtime::disableQuantumOpts))
+    if (getOperation()->hasAttr(cudaq::runtime::disableQuantumOpts))
       return;
+
+    if (!std::isfinite(threshold) || threshold < 0.0 ||
+        (rotationsToCliffordT &&
+         (!std::isfinite(cliffordTEpsilon) || cliffordTEpsilon < 0.0))) {
+      getOperation()->emitError(
+          "quake-simplify requires non-negative finite thresholds");
+      signalPassFailure();
+      return;
+    }
+
     GreedyRewriteConfig config;
     config.setRegionSimplificationLevel(GreedySimplifyRegionLevel::Disabled);
-    RewritePatternSet patterns(ctx);
-    patterns.add<HermitianElimination<cudaq::quake::HOp>,
-                 HermitianElimination<cudaq::quake::SwapOp>,
-                 HermitianElimination<cudaq::quake::XOp>,
-                 HermitianElimination<cudaq::quake::YOp>,
-                 HermitianElimination<cudaq::quake::ZOp>>(
-        ctx, numHermitianEliminations);
-    patterns.add<AdjointElimination<cudaq::quake::SOp>,
-                 AdjointElimination<cudaq::quake::TOp>>(ctx,
-                                                        numAdjointEliminations);
-    patterns.add<DoubleSOp>(ctx, numDoubleSRewrites);
-    patterns.add<DoubleTOp>(ctx, numDoubleTRewrites);
-    patterns.add<EraseDoubleReset, EraseResetSink>(ctx, numResetsErased);
-    patterns.add<ReduceYSX>(ctx, numReduceYSXRewrites);
-    patterns.add<RotationCombine<cudaq::quake::R1Op>,
-                 RotationCombine<cudaq::quake::RxOp>,
-                 RotationCombine<cudaq::quake::RyOp>,
-                 RotationCombine<cudaq::quake::RzOp>,
-                 RotationCombine<cudaq::quake::PhasedRxOp>>(
-        ctx, threshold, numZeroRotationsEliminated, numRotationsCombined);
-    if (failed(applyPatternsGreedily(op, std::move(patterns), config)))
+    RewritePatternSet patterns(&getContext());
+    populateDefaultPatterns(
+        patterns, threshold, numHermitianEliminations, numAdjointEliminations,
+        numZeroRotationsEliminated, numRotationsCombined, numDoubleSRewrites,
+        numDoubleTRewrites, numReduceYSXRewrites, numResetsErased);
+    if (rotationsToCliffordT)
+      populateRotationsToCliffordTPatterns(patterns, cliffordTEpsilon,
+                                           numCliffordTRotations);
+
+    if (failed(
+            applyPatternsGreedily(getOperation(), std::move(patterns), config)))
       signalPassFailure();
   }
 };

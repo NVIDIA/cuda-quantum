@@ -34,42 +34,42 @@ def test_argument_int():
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def kernel(n: np.int8):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def kernel(n: np.int16):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def kernel(n: np.int32):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def kernel(n: np.int64):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def kernel(n: np.int64):
         qubits = cudaq.qvector(n)
 
     counts = cudaq.sample(kernel, 2)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
 
 def test_adjoint():
@@ -82,7 +82,7 @@ def test_adjoint():
         t.adj(q)
 
     counts = cudaq.sample(single_adjoint_test)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def qvector_adjoint_test():
@@ -91,7 +91,7 @@ def test_adjoint():
         t.adj(q)
 
     counts = cudaq.sample(qvector_adjoint_test)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def rotation_adjoint_test():
@@ -103,7 +103,7 @@ def test_adjoint():
         ry.adj(1.1, q)
 
     counts = cudaq.sample(rotation_adjoint_test)
-    assert len(counts) == 0
+    assert len(counts) == 1
 
     @cudaq.kernel
     def test_kernel_adjoint(q: cudaq.qview):
@@ -121,7 +121,7 @@ def test_adjoint():
 
     counts = cudaq.sample(test_caller)
     assert len(counts) == 1
-    assert '11' in counts
+    assert '101' in counts
 
     # Testing whether cudaq.adjoint works on a qualified name
 
@@ -1170,7 +1170,6 @@ def test_control_operations_1():
         q = cudaq.qvector(4)
         x.ctrl(q[0], q[1])
         cx(q[0], q[1])
-        ry(12 * np.pi, q)
 
     print(test)
     counts = cudaq.sample(test)
@@ -2103,7 +2102,6 @@ def test_reset():
         q = cudaq.qubit()
         x(q)
         reset(q)
-        ry(12 * math.pi, q)
 
     counts = cudaq.sample(single_qubit)
     assert counts['0'] == 1000

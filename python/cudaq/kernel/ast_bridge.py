@@ -879,6 +879,13 @@ class PyASTBridge(ast.NodeVisitor):
             'arctan', 'sqrt', 'ceil', 'floor', 'exp', 'log'
         ]
 
+    def __isSupportedMathFunction(self, id):
+        # Python `math` module functions that are supported in the CUDA-Q MLIR translation.
+        return id in [
+            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'ceil',
+            'floor', 'exp', 'log'
+        ]
+
     def __isSupportedVectorFunction(self, id):
         return id in ['front', 'back', 'append']
 
@@ -2485,7 +2492,20 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(node.value,
                       ast.Name) and not node.value.id in self.symbolTable:
 
-            if node.value.id in ['np', 'numpy', 'math']:
+            if node.value.id == 'math':
+                if node.attr == 'pi':
+                    self.pushValue(self.getConstantFloat(np.pi))
+                elif node.attr == 'e':
+                    self.pushValue(self.getConstantFloat(np.e))
+                elif self.__isSupportedMathFunction(node.attr):
+                    return
+                else:
+                    self.emitFatalError(
+                        "{}.{} is not supported".format(node.value.id,
+                                                        node.attr), node)
+                return
+
+            if node.value.id in ['np', 'numpy']:
                 if node.attr == 'complex64':
                     self.pushValue(self.getComplexType(width=32))
                 elif node.attr == 'complex128':
@@ -3626,7 +3646,10 @@ class PyASTBridge(ast.NodeVisitor):
 
             if isinstance(node.func.value, ast.Name):
 
-                if node.func.value.id in ['numpy', 'np']:
+                namespace = node.func.value.id
+                if (namespace in ['numpy', 'np'] or
+                    (namespace == 'math' and
+                     self.__isSupportedMathFunction(node.func.attr))):
 
                     value = self.__groupValues(node.args, [1])
 
@@ -3673,8 +3696,15 @@ class PyASTBridge(ast.NodeVisitor):
 
                     # Promote argument's types for `numpy.func` calls to match
                     # python's semantics
-                    if self.__isSupportedNumpyFunction(node.func.attr):
+                    if self.__isSupportedNumpyFunction(node.func.attr) or (
+                            namespace == 'math' and
+                            self.__isSupportedMathFunction(node.func.attr)):
                         if ComplexType.isinstance(value.type):
+                            # Python `math` doesn't support complex numbers, but `numpy` does.
+                            if namespace == 'math':
+                                self.emitFatalError(
+                                    f"math.{node.func.attr} does not accept "
+                                    "complex arguments.", node)
                             value = self.changeOperandToType(
                                 self.getComplexType(), value)
                         elif IntegerType.isinstance(value.type):
@@ -3773,7 +3803,15 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"numpy call ({node.func.attr}) is not "
                                 f"supported for complex numbers", node)
                             return
-                        self.pushValue(math.CeilOp(value).result)
+                        result = math.CeilOp(value).result
+                        if namespace == 'math':
+                            # Python's `math.ceil` returns an integer, so cast
+                            # the result to an integer type.
+                            result = self.changeOperandToType(
+                                self.getIntegerType(),
+                                result,
+                                allowDemotion=True)
+                        self.pushValue(result)
                         return
                     if node.func.attr == 'floor':
                         if ComplexType.isinstance(value.type):
@@ -3781,11 +3819,23 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"numpy call ({node.func.attr}) is not "
                                 f"supported for complex numbers", node)
                             return
-                        self.pushValue(math.FloorOp(value).result)
+                        result = math.FloorOp(value).result
+                        if namespace == 'math':
+                            # Python's `math.floor` returns an integer, so cast
+                            # the result to an integer type.
+                            result = self.changeOperandToType(
+                                self.getIntegerType(),
+                                result,
+                                allowDemotion=True)
+                        self.pushValue(result)
                         return
 
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
+
+                if namespace == 'math':
+                    self.emitFatalError(
+                        f"unsupported math call ({node.func.attr})", node)
 
                 if self.isCudaqName(node.func.value.id):
                     if node.func.attr == 'complex':
@@ -5828,6 +5878,19 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.FloorDivSIOp(left, right).result)
                 return
+            elif (F64Type.isinstance(left.type) or
+                  F32Type.isinstance(left.type)):
+                # Python float floor division is not equivalent to applying
+                # floor to the quotient: 1.0 // 0.1 is 9.0, while
+                # math.floor(1.0 / 0.1) is 10. Matching Python therefore
+                # requires a remainder-based correction, leading to complex IR
+                # for these edge cases. Instead, direct users to
+                # `math.floor(...)` or `numpy.floor(...)`.
+                self.emitFatalError(
+                    "floor division with floating-point operands is not "
+                    "supported; use integer operands or math.floor(...), "
+                    "numpy.floor(...), or np.floor(...) instead",
+                    self.currentNode)
             else:
                 self.emitFatalError("unhandled BinOp.FloorDiv types",
                                     self.currentNode)

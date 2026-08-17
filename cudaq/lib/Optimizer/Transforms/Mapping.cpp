@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
@@ -2120,7 +2121,11 @@ Operation *findNonTerminalMeasuredWireUse(func::FuncOp func) {
       if (!isa<cudaq::quake::WireType>(result.getType()))
         continue;
       for (Operation *user : result.getUsers())
-        if (!isa<cudaq::quake::ReturnWireOp, cudaq::quake::SinkOp>(user)) {
+        // quake.log_output is a transparent wire pass-through (compiler-
+        // generated bookkeeping that is erased before codegen); treat it
+        // like a sink so it doesn't trigger a false mid-circuit diagnosis.
+        if (!isa<cudaq::quake::ReturnWireOp, cudaq::quake::SinkOp,
+                 cudaq::quake::LogOutputOp>(user)) {
           found = measOp;
           return WalkResult::interrupt();
         }

@@ -252,7 +252,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    # Look for a --target flag to nvq++ in the 
+    # Look for a --target flag to nvq++ in the
     # comment block at the beginning of the file.
     # Note: using sed instead of grep -P for macOS compatibility
     intended_target=$(sed -e '/^$/,$d' "$ex" | sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' | head -1)
