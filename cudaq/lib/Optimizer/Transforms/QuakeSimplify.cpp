@@ -10,6 +10,7 @@
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
@@ -842,9 +843,8 @@ public:
                                   replacementTargets);
 
     if (!prev0.isAdj()) {
-      Value pi = arith::ConstantFloatOp::create(
-          rewriter, qop.getLoc(), rewriter.getF64Type(),
-          APFloat(3.14159265358979323846));
+      Value pi = cudaq::opt::factory::createPiConstant(qop.getLoc(), rewriter,
+                                                       rewriter.getF64Type());
       auto correction = cudaq::opt::emitPhaseCorrection(
           rewriter, qop.getLoc(), pi, replacementControls,
           prev.getNegatedQubitControlsAttr(), replacementTargets.back());
