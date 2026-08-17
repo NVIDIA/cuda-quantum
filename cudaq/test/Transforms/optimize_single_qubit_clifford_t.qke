@@ -133,15 +133,15 @@ func.func @atomic_scope_permitted(%inside: !quake.wire, %outer: !quake.wire,
 }
 
 // CHECK-LABEL: func.func @atomic_scope_permitted
-// CHECK:         %[[OUTER_S0:.*]] = quake.s %outer
+// CHECK:         %[[OUTER_S0:.*]] = quake.s %arg1
 // CHECK-NEXT:    %[[OUTER_S1:.*]] = quake.s %[[OUTER_S0]]
 // CHECK-NEXT:    %[[INSIDE:.*]] = cc.scope -> (!quake.wire) {
-// CHECK-NEXT:      %[[INSIDE_S0:.*]] = quake.s %inside
+// CHECK-NEXT:      %[[INSIDE_S0:.*]] = quake.s %arg0
 // CHECK-NEXT:      %[[INSIDE_S1:.*]] = quake.s %[[INSIDE_S0]]
 // CHECK-NEXT:      cc.continue %[[INSIDE_S1]] : !quake.wire
 // CHECK-NEXT:    } {atomic_quantum_region}
 // CHECK-NEXT:    %[[NESTED:.*]] = cc.scope -> (!quake.wire) {
-// CHECK-NEXT:      %[[NESTED_S0:.*]] = quake.s %nested
+// CHECK-NEXT:      %[[NESTED_S0:.*]] = quake.s %arg2
 // CHECK-NEXT:      %[[NESTED_S1:.*]] = quake.s %[[NESTED_S0]]
 // CHECK-NEXT:      %[[ORDINARY:.*]] = cc.scope -> (!quake.wire) {
 // CHECK-NEXT:        cc.continue %[[NESTED_S1]] : !quake.wire
@@ -170,14 +170,14 @@ func.func @atomic_scope_boundaries(%entry: !quake.wire, %exit: !quake.wire)
 }
 
 // CHECK-LABEL: func.func @atomic_scope_boundaries
-// CHECK-NEXT:    %[[ENTRY_T:.*]] = quake.t %entry : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:    %[[ENTRY_T:.*]] = quake.t %arg0 : (!quake.wire) -> !quake.wire
 // CHECK-NEXT:    %[[ENTRY_SCOPE:.*]] = cc.scope -> (!quake.wire) {
 // CHECK-NEXT:      %[[ENTRY_S:.*]] = quake.s %[[ENTRY_T]] : (!quake.wire) -> !quake.wire
 // CHECK-NEXT:      %[[ENTRY_INNER_T:.*]] = quake.t %[[ENTRY_S]] : (!quake.wire) -> !quake.wire
 // CHECK-NEXT:      cc.continue %[[ENTRY_INNER_T]] : !quake.wire
 // CHECK-NEXT:    } {atomic_quantum_region}
 // CHECK-NEXT:    %[[EXIT_SCOPE:.*]] = cc.scope -> (!quake.wire) {
-// CHECK-NEXT:      %[[EXIT_T:.*]] = quake.t %exit : (!quake.wire) -> !quake.wire
+// CHECK-NEXT:      %[[EXIT_T:.*]] = quake.t %arg1 : (!quake.wire) -> !quake.wire
 // CHECK-NEXT:      %[[EXIT_S:.*]] = quake.s %[[EXIT_T]] : (!quake.wire) -> !quake.wire
 // CHECK-NEXT:      cc.continue %[[EXIT_S]] : !quake.wire
 // CHECK-NEXT:    } {atomic_quantum_region}
