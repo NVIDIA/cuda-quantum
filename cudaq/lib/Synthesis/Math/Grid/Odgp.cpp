@@ -121,11 +121,6 @@ const LambdaPowers &get_lambda_powers(const Integer &n) {
   return cache[idx];
 }
 
-/// Below this absolute slope the linear bound-refinement is treated as
-/// degenerate and the range-intersection step is skipped (the bounds are
-/// determined entirely by the base value).
-constexpr double SLOPE_ZERO_TOLERANCE = 1e-40;
-
 } // namespace
 
 //===----------------------------------------------------------------------===//
@@ -457,24 +452,38 @@ void OdgpStepper::init_current_values(const Integer &b_adj) {
 void OdgpStepper::refine_range_against_bounds(
     const mpfr_t &bound_lo, const mpfr_t &bound_hi, const mpfr_t &slope,
     const mpfr_t &base, Integer &range_lo, Integer &range_hi) {
-  // Near-zero slope: there is no b that materially changes the value, so
-  // either every b is in-bounds (no refinement) or none is (empty range).
-  mpfr_abs(scratch1_, slope, MPFR_RNDN);
-  if (mpfr_cmp_d(scratch1_, SLOPE_ZERO_TOLERANCE) <= 0) {
+  // Zero slope: no b changes the value, so either every b is in-bounds (no
+  // refinement) or none is (empty range). Only an exactly-zero slope qualifies
+  // (what a slope is worth depends on the b-range it runs over, and a slope
+  // of 7e-47 still moves the value by 0.2 once b reaches 1e45, as it does at
+  // deep epsilon).
+  if (mpfr_zero_p(slope)) {
     if (mpfr_cmp(base, bound_lo) < 0 || mpfr_cmp(base, bound_hi) > 0)
       range_hi = range_lo - Integer(1);
     return;
   }
 
+  // (bound - base) / slope, clamped before it becomes an integer. A small slope
+  // makes the exact quotient far wider than the range it is about to be
+  // intersected with. Clamping to one past the bound keeps a quotient that
+  // falls outside the range able to empty it below.
+  auto quotient_to_integer = [&](mpfr_rnd_t rnd) {
+    if (mpfr_cmp_z(scratch2_, range_lo.get_mpz_t()) < 0)
+      return range_lo - Integer(1);
+    if (mpfr_cmp_z(scratch2_, range_hi.get_mpz_t()) > 0)
+      return range_hi + Integer(1);
+    Integer out;
+    mpfr_get_z(out.get_mpz_t(), scratch2_, rnd);
+    return out;
+  };
+
   mpfr_sub(scratch2_, bound_lo, base, MPFR_RNDN);
   mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
-  Integer lo_new;
-  mpfr_get_z(lo_new.get_mpz_t(), scratch2_, MPFR_RNDU);
+  Integer lo_new = quotient_to_integer(MPFR_RNDU);
 
   mpfr_sub(scratch2_, bound_hi, base, MPFR_RNDN);
   mpfr_div(scratch2_, scratch2_, slope, MPFR_RNDN);
-  Integer hi_new;
-  mpfr_get_z(hi_new.get_mpz_t(), scratch2_, MPFR_RNDD);
+  Integer hi_new = quotient_to_integer(MPFR_RNDD);
 
   // Negative slope inverts the [lo, hi] mapping computed above.
   if (mpfr_sgn(slope) < 0)

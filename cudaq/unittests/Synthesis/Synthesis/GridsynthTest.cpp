@@ -607,4 +607,34 @@ TEST(GridsynthPrecisionTest, TightEpsilonAfterLooseEpsilonStaysWithinEpsilon) {
       << " after a lower-precision run poisoned the constant caches";
 }
 
+// ============================================================
+// Deep epsilon at odd multiples of pi/4
+// ============================================================
+
+// Odd multiples of pi/4 leave the per-b slope in the ODGP bound refinement at
+// ~1e-47 while b runs to ~1e45. Judging that slope against an absolute
+// threshold emptied every range, so the x-direction anchor found no solution
+// and the search returned KExhausted below epsilon 1e-32.
+TEST(GridsynthDeepEpsilonTest, SynthesizesOddMultiplesOfPiOverFour) {
+  const std::string epsilon_str("1e-33");
+  ScopedPrecision high(
+      cudaq::synth::details::required_precision(Real(epsilon_str)));
+
+  for (const char *theta_str : // pi/4, 3pi/4, 5pi/4
+       {"0.78539816339744830961566084581987572104929234984377645524374",
+        "2.35619449019234492884698253745962716314787704953132936573121",
+        "3.92699081698724154807830422909937860524646174921888227621868"}) {
+    const std::string theta(theta_str);
+    llvm::FailureOr<Circuit> result =
+        cudaq::synth::gridsynth(Real(theta), Real(epsilon_str));
+    ASSERT_TRUE(llvm::succeeded(result)) << "no circuit for theta=" << theta;
+
+    const std::string err_str =
+        cudaq::synth::rz_gate_sequence_error(theta, *result);
+    EXPECT_LE(Real(err_str), Real(epsilon_str))
+        << "error " << err_str << " exceeds epsilon " << epsilon_str
+        << " for theta=" << theta;
+  }
+}
+
 } // namespace
