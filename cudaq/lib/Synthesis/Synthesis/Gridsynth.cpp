@@ -179,7 +179,6 @@ public:
   /// with the half-plane dot(u(t), z) >= d (a linear in t, sign-dependent).
   std::optional<std::pair<Real, Real>>
   intersect(const DOmega &u0, const DOmega &v) const override {
-    static const Real tolerance(1e-30);
     using Roots = std::pair<Real, Real>;
 
     // Unit-disk intersection: |u(t)|^2 <= 1 reduces to a*t^2 + b*t + c <= 0.
@@ -198,7 +197,11 @@ public:
     Real z_dot_v = z_x * v.real() + z_y * v.imag();
     Real rhs = dot_threshold - (z_x * u0.real() + z_y * u0.imag());
 
-    if (z_dot_v > tolerance) {
+    // Only an exactly-zero z.v counts as parallel: any threshold would be an
+    // absolute one on a quantity that scales with |v| = 1/sqrt(2)^k, and the
+    // parallel branch returns the whole disk chord instead of the sliver the
+    // half-plane cuts from it, flooding the TDGP with candidates to reject.
+    if (z_dot_v > 0) {
       // Positive slope: clip t from below by rhs / z_dot_v.
       Real t_min = std::max(t0, rhs / z_dot_v);
       if (t_min > t1)
@@ -206,7 +209,7 @@ public:
       return std::make_pair(t_min, t1);
     }
 
-    if (z_dot_v < -tolerance) {
+    if (z_dot_v < 0) {
       // Negative slope: the inequality flips, so clip t from above.
       Real t_max = std::min(t1, rhs / z_dot_v);
       if (t0 > t_max)
@@ -214,10 +217,8 @@ public:
       return std::make_pair(t0, t_max);
     }
 
-    // z . v ~= 0: the ray is (numerically) parallel to the boundary line.
-    // The half-plane is then satisfied for every t (if rhs <= 0) or for no
-    // t at all.
-    if (rhs <= tolerance)
+    // z . v == 0: the half-plane is satisfied for every t, or for none.
+    if (rhs <= 0)
       return std::make_pair(t0, t1);
     return std::nullopt;
   }
