@@ -1,0 +1,37 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --cse --normalize-phase-placement --lower-phase --canonicalize --verify-no-phase %s | FileCheck %s --implicit-check-not=quake.apply --implicit-check-not=quake.phase
+
+// Model the helper after R1-to-Rz decomposition but before control
+// specialization. The specialized Rz retains the added control, while the
+// phase correction is lowered to an uncontrolled R1 on that control.
+func.func private @r1_helper(%theta: f64, %anchor: !quake.ref) {
+  %two = arith.constant 2.000000e+00 : f64
+  quake.rz (%theta) %anchor : (f64, !quake.ref) -> ()
+  %half = arith.divf %theta, %two : f64
+  quake.phase (%half) %anchor : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func @control_added_later(%theta: f64, %outer: !quake.ref,
+                               %anchor: !quake.ref) {
+  quake.apply @r1_helper [%outer] %theta, %anchor
+      : (!quake.ref, f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @control_added_later(
+// CHECK-SAME: %[[THETA:.*]]: f64, %[[OUTER:.*]]: !quake.ref,
+// CHECK-SAME: %[[ANCHOR:.*]]: !quake.ref
+// CHECK: %[[TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK: %[[CONTROLS:.*]] = quake.concat %[[OUTER]] : (!quake.ref) -> !quake.veq<1>
+// CHECK: quake.rz (%[[THETA]]) {{\[}}%[[CONTROLS]]{{\]}} %[[ANCHOR]]
+// CHECK: %[[HALF:.*]] = arith.divf %[[THETA]], %[[TWO]] : f64
+// CHECK: quake.r1 (%[[HALF]]) %[[OUTER]]
+// CHECK: return

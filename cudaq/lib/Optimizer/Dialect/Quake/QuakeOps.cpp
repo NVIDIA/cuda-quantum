@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -136,7 +137,7 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
   return isa<OperatorInterface, MeasurementInterface, ResetOp, SinkOp,
-             ReturnWireOp>(op);
+             ReturnWireOp, LogOutputOp>(op);
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {
@@ -1494,6 +1495,22 @@ INSTANTIATE_CALLBACKS(PhaseOp)
 
 BUILTIN_GATE_OPS(INSTANTIATE_OPERATOR_VERIFY)
 WIRE_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
+
+//===----------------------------------------------------------------------===//
+// LogOutputOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult cudaq::quake::LogOutputOp::verify() {
+  SmallVector<Type> expected;
+  for (Value v : getArgs())
+    if (isLinearType(v.getType()))
+      expected.push_back(v.getType());
+  auto actual = getOuts().getTypes();
+  if (SmallVector<Type>(actual) != expected)
+    return emitOpError("result types must mirror wire/cable operand types "
+                       "in left-to-right order");
+  return success();
+}
 
 //===----------------------------------------------------------------------===//
 // Generated logic

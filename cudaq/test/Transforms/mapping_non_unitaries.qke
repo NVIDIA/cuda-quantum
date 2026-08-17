@@ -20,6 +20,7 @@
 // RUN: cudaq-opt --qubit-mapping=device=grid\(3,3\) %s | FileCheck %s
 // RUN: cudaq-opt --qubit-mapping=device=grid\(1,5\) %s | FileCheck %s
 // RUN: cudaq-opt --qubit-mapping=device=grid\(5,1\) %s | FileCheck %s
+// RUN: cudaq-opt --qubit-mapping=device=path\(5\) --qubit-mapping=device=path\(5\) %s | FileCheck --check-prefix=IDEMPOTENT %s
 
 quake.wire_set @wires[2147483647]
 
@@ -54,3 +55,4 @@ func.func @test_measurement() {
 
 // STAR52-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [0, 1, 2], mapping_v2p = [0, 1, 2]} {
 // STAR50-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [2, 1, 0], mapping_v2p = [2, 1, 0]} {
+// IDEMPOTENT-LABEL: func.func @test_measurement() attributes {mapping_reorder_idx = [0, 2, 1], mapping_v2p = [0, 2, 1]} {

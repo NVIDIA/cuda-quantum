@@ -11,6 +11,7 @@
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"

@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --inject-implicit-output --erase-implicit-output %s | \
+// RUN:   FileCheck %s
+
+// Same kernel as inject_implicit_output.qke. After inject-implicit-output adds
+// the compiler-generated quake.log_output ops and erase-cg-log-output removes
+// them, the exit block should contain only the return.
+
+module {
+  func.func @__nvqpp__mlirgen__test_kernel(%arg0 : i64) attributes {"cudaq-entrypoint"} {
+    %q0 = quake.alloca !quake.ref
+
+    %q1 = quake.alloca !quake.veq<4>
+
+    %q2 = quake.alloca !quake.veq<?>[%arg0 : i64]
+
+    %0 = cc.address_of @__nvqpp__rodata_init_0 : !cc.ptr<!cc.array<f64 x 4>>
+    %q3 = quake.alloca !quake.veq<4>
+    %q3s = quake.init_state %q3, %0 : (!quake.veq<4>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<4>
+
+    quake.h %q0 : (!quake.ref) -> ()
+    return
+  }
+
+  cc.global constant private @__nvqpp__rodata_init_0 (dense<[1.0, 0.0, 0.5, 0.5]> : tensor<4xf64>) : !cc.array<f64 x 4>
+}
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__test_kernel(
+// CHECK-SAME:      %[[ARG:.*]]: i64)
+// CHECK:         quake.h
+// CHECK:         cf.br ^[[EXIT:.*]]
+// CHECK:       ^[[EXIT]]:
+// CHECK-NOT:     quake.log_output
+// CHECK:         return

@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/Pass/PassManager.h"
@@ -65,6 +66,23 @@ public:
     }();
     LLVM_DEBUG(llvm::dbgs() << "Processing: " << mod << '\n');
     mod.walk([&](Operation *op) {
+      // Lambda lifting expresses a statically-known callable as a
+      // func.constant followed by func.call_indirect. Convert that form before
+      // inlining so the callable body can be specialized.
+      if (auto indirect = dyn_cast<func::CallIndirectOp>(op)) {
+        if (auto constant =
+                indirect.getCallee().getDefiningOp<func::ConstantOp>()) {
+          OpBuilder rewriter(indirect);
+          auto direct = func::CallOp::create(
+              rewriter, indirect.getLoc(), indirect.getResultTypes(),
+              constant.getValue(), indirect.getArgOperands(),
+              indirect.getArgAttrsAttr(), indirect.getResAttrsAttr());
+          indirect->replaceAllUsesWith(direct->getResults());
+          indirect->erase();
+          op = direct.getOperation();
+        }
+      }
+
       auto call = dyn_cast<CallOpInterface>(op);
       if (!call)
         return;
@@ -94,10 +112,16 @@ public:
         cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, mod);
         auto directAttr = FlatSymbolRefAttr::get(ctx, directName);
         call.setCalleeFromCallable(directAttr);
+        calleeAttr = directAttr;
         LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
       }
 
       if (!isa<cudaq::cc::DeviceCallOp, cudaq::cc::NoInlineCallOp>(op)) {
+        auto calleeFunc = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+            call, calleeAttr);
+        const bool isAtomicQuantumRegion =
+            calleeFunc &&
+            calleeFunc->hasAttr(cudaq::cc::atomicQuantumRegionAttrName);
         // Move the call into a scope so as to preserve any live-ranges for
         // allocated resources.
         auto loc = call.getLoc();
@@ -108,6 +132,8 @@ public:
               builder.insert(clone);
               cudaq::cc::ContinueOp::create(builder, loc, clone->getResults());
             });
+        if (isAtomicQuantumRegion)
+          scope.setAtomicQuantumRegionAttr(rewriter.getUnitAttr());
         LLVM_DEBUG(llvm::dbgs() << "Call moved into scope " << scope << '\n');
         op->replaceAllUsesWith(scope);
         op->erase();
@@ -152,14 +178,16 @@ public:
 static void defaultInlinerOptPipeline(OpPassManager &pm) {}
 
 /// Run the passes in the correct order.
-/// 1) Convert calls between kernels to direct calls (on the QPU).
-/// 2) Aggressively inline all calls.
-/// 3) Detect if kernel inlining has failed and left behind calls to kernels.
+/// 1) Lower unwind control flow before creating call-site scopes.
+/// 2) Convert calls between kernels to direct calls (on the QPU).
+/// 3) Aggressively inline all calls.
+/// 4) Detect if kernel inlining has failed and left behind calls to kernels.
 /// Such a failure is most likely a sign that there is a cycle in the call
 /// graph. [This check is a bad idea: this should be deferred to final codegen
 /// when translating the final Quake IR.]
 void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   llvm::StringMap<OpPassManager> opPipelines;
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
   if (fatalChecks)
@@ -168,6 +196,7 @@ void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   // the original called function returning a span to the calling function as
   // they are now the same function.
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseVectorCopyCtor());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }

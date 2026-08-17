@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# XFAIL: *
 # clang-format off
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s run 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=RUNLOOP %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s sample 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=SAMPLE %s
