@@ -608,6 +608,31 @@ TEST(GridsynthPrecisionTest, TightEpsilonAfterLooseEpsilonStaysWithinEpsilon) {
 }
 
 // ============================================================
+// Near-miss angles
+// ============================================================
+
+// theta just below pi/4 used to run forever: the line-intersection filter
+// judged |z.v| against an absolute 1e-30, so deep-k rays read as parallel and
+// it returned the whole disk chord rather than the sliver. The value is the
+// double nearest pi/4.
+TEST(GridsynthNearMissTest, SynthesizesJustBelowPiOverFour) {
+  const std::string epsilon_str("1e-20");
+  ScopedPrecision high(
+      cudaq::synth::details::required_precision(Real(epsilon_str)));
+
+  const std::string theta(
+      "0.78539816339744827899949086713604629039764404296875");
+  llvm::FailureOr<Circuit> result =
+      cudaq::synth::gridsynth(Real(theta), Real(epsilon_str));
+  ASSERT_TRUE(llvm::succeeded(result));
+
+  const std::string err_str =
+      cudaq::synth::rz_gate_sequence_error(theta, *result);
+  EXPECT_LE(Real(err_str), Real(epsilon_str))
+      << "error " << err_str << " exceeds epsilon " << epsilon_str;
+}
+
+// ============================================================
 // Deep epsilon at odd multiples of pi/4
 // ============================================================
 
