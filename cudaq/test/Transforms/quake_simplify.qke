@@ -299,7 +299,7 @@ func.func @simp8() -> (i1, i1) {
 // CHECK:           return %[[VAL_9]], %[[VAL_10]] : i1, i1
 // CHECK:         }
 
-// Uncontrolled YSX remains exact until the late phase-lowering boundary.
+// Uncontrolled YSX is rewritten exactly as S followed by phase(pi).
 func.func @simp9() {
   %0 = quake.null_wire
   %1 = quake.y %0 : (!quake.wire) -> !quake.wire
