@@ -92,6 +92,11 @@ ExecutionManager::finalizeExecutionContext(const estimate_policy &policy) {
   return nvqir::resource_counter::get_counts();
 }
 
+void ExecutionManager::configureExecutionContext(const orca::sample_policy &) {
+  throw std::runtime_error(
+      "Orca sampling is not supported by this execution manager.");
+}
+
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
   policies::withPolicy(ctx.name, [&](auto policy) {
     policies::visitResult(

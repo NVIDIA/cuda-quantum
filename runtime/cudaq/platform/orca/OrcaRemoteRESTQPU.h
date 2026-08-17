@@ -89,28 +89,25 @@ public:
   /// specific target backend configuration file.
   void setTargetBackend(const std::string &backend) override;
 
-  [[nodiscard]] KernelThunkResultType
-  launchKernelCommon(const std::string &kernelName, void *args);
+  using QPU::getCompileTarget;
+  using QPU::launchKernel;
+
+  [[nodiscard]] detail::future launchKernelCommon(const CompiledModule &module,
+                                                  KernelArgs args);
 
   CompileTarget
   getCompileTarget(bool skipPipelineSubstitutions = false) override {
-    return {
-        .supportExplicitMeasurements = false,
-    };
+    return {.overrideAOTCompilation = false};
   }
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
-  [[nodiscard]] KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args) override {
-    if (!std::holds_alternative<SourceModule>(module))
-      throw std::runtime_error(
-          "OrcaRemoteRESTQPU does not support pre-compiled module launch.");
+  [[nodiscard]] orca::sample_policy::result_type
+  launchKernel(const orca::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args) override;
 
-    const auto &src = std::get<SourceModule>(module);
-    auto packed = args.getPacked();
-    void *argData = packed ? packed->data.data() : nullptr;
-    return launchKernelCommon(src.getName(), argData);
-  }
+  [[nodiscard]] orca::async_sample_policy::result_type
+  launchKernel(const orca::async_sample_policy &policy,
+               const CompiledModule &module, KernelArgs args) override;
 };
 } // namespace cudaq
