@@ -233,9 +233,10 @@ def OptimizeSingleQubitCliffordT
     Consumes and produces the scalar linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
 
-    Rewrites block-local chains of exact, uncontrolled one-qubit Clifford+T
-    operations on scalar `!quake.wire` values to Matsumoto-Amano normal form.
-    The pass leaves unsupported operations and wire-flow boundaries unchanged.
+    Rewrites exact, uncontrolled one-qubit Clifford+T chains on scalar
+    `!quake.wire` values to Matsumoto-Amano normal form. Supports chains
+    through single-block `cc.scope`. Scalar normal-form phases are emitted as
+    anchored `quake.phase` operations, preserving the exact unitary.
 
     The normal form is defined by K. Matsumoto and K. Amano, "Representation
     of Quantum Circuits with Clifford and pi/8 Gates," arXiv:0806.3834,

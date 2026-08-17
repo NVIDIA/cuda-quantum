@@ -7,6 +7,8 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -17,6 +19,8 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/Interfaces/CallInterfaces.h"
+#include <cmath>
 #include <compare>
 #include <optional>
 #include <utility>
@@ -40,8 +44,19 @@ struct UnaryWireOp {
   bool isAdj;
 };
 
+struct ScopeStep {
+  Value wire;
+  OpOperand *continueOperand;
+};
+
+struct ScalarWireStep {
+  Operation *operation;
+  std::optional<ScopeStep> scopeStep;
+};
+
 struct Candidate {
   llvm::SmallVector<Operation *> operations;
+  llvm::SmallVector<ScopeStep> scopeSteps;
   Value input;
   Value output;
   cudaq::synth::Circuit normalized;
@@ -99,11 +114,78 @@ static std::optional<UnaryWireOp> getUnaryWireOp(Operation *operation) {
                      operation->getResult(0), *gate, gateInterface.isAdj()};
 }
 
-// Collect a maximal same-block chain through single-use scalar-wire values.
-// Unsupported operations and non-linear wire flow terminate the chain.
+// Returns whether `nested` is inside `outer` through only single-block
+// `cc.scope` operations. Any other enclosing region prevents traversal.
+static bool entersSingleBlockLexicalScopesOnly(Block *nested, Block *outer) {
+  while (nested != outer) {
+    if (!nested)
+      return false;
+    auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(nested->getParentOp());
+    if (!scope || scope.getAtomicQuantumRegionAttr() ||
+        !scope.getInitRegion().hasOneBlock())
+      return false;
+    nested = scope->getBlock();
+  }
+  return true;
+}
+
+/// Return whether an operation can be followed as a direct scalar-wire step.
+/// Calls, region operations, and terminators require control-flow semantics
+/// that this pass deliberately does not model.
+static bool isDirectScalarWireStep(Operation *operation) {
+  return !isa<CallOpInterface>(operation) && operation->getNumRegions() == 0 &&
+         !operation->hasTrait<OpTrait::IsTerminator>();
+}
+
+// Follow the unique scalar-wire use forward. A direct use reaches its user;
+// a `cc.continue` use reaches the matching result of its enclosing scope.
+static std::optional<ScalarWireStep> traverseScalarWire(Value wire) {
+  if (!isa<cudaq::quake::WireType>(wire.getType()) || !wire.hasOneUse())
+    return std::nullopt;
+
+  OpOperand *use = &*wire.getUses().begin();
+  Operation *user = use->getOwner();
+  if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(user)) {
+    auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
+    if (!scope || scope.getAtomicQuantumRegionAttr() ||
+        !scope.getInitRegion().hasOneBlock() ||
+        scope.getInitRegion().front().getTerminator() != user ||
+        cont.getNumOperands() != scope->getNumResults())
+      return std::nullopt;
+    unsigned index = use->getOperandNumber();
+    if (index >= scope->getNumResults() ||
+        !isa<cudaq::quake::WireType>(scope->getResult(index).getType()))
+      return std::nullopt;
+    Value result = scope->getResult(index);
+    if (!result.hasOneUse())
+      return std::nullopt;
+    return ScalarWireStep{scope, ScopeStep{result, use}};
+  }
+  if (!isDirectScalarWireStep(user) ||
+      !entersSingleBlockLexicalScopesOnly(user->getBlock(),
+                                          wire.getParentBlock()))
+    return std::nullopt;
+  return ScalarWireStep{user, std::nullopt};
+}
+
+// Follow a unique scalar-wire use to another unary gate.
+static std::optional<UnaryWireOp>
+getNextUnaryWireOp(const UnaryWireOp &current,
+                   llvm::SmallVectorImpl<ScopeStep> &scopeSteps) {
+  auto step = traverseScalarWire(current.output);
+  while (step && step->scopeStep) {
+    scopeSteps.push_back(*step->scopeStep);
+    step = traverseScalarWire(step->scopeStep->wire);
+  }
+  return step ? getUnaryWireOp(step->operation) : std::nullopt;
+}
+
+// Collect a maximal chain through exactly-once scalar-wire values. Unsupported
+// operations and non-linear wire flow terminate the chain.
 static llvm::SmallVector<UnaryWireOp>
-collectLinearChain(Operation *operation, Block &block,
-                   llvm::SmallDenseSet<Operation *> &collected) {
+collectLinearChain(Operation *operation,
+                   llvm::SmallDenseSet<Operation *> &collected,
+                   llvm::SmallVectorImpl<ScopeStep> &scopeSteps) {
   if (collected.contains(operation))
     return {};
 
@@ -118,10 +200,9 @@ collectLinearChain(Operation *operation, Block &block,
     collected.insert(current->operation);
     if (!current->output.hasOneUse())
       break;
-    Operation *next = *current->output.getUsers().begin();
-    std::optional<UnaryWireOp> nextGate = getUnaryWireOp(next);
-    if (!nextGate || next->getBlock() != &block ||
-        nextGate->input != current->output)
+    std::optional<UnaryWireOp> nextGate =
+        getNextUnaryWireOp(*current, scopeSteps);
+    if (!nextGate)
       break;
     current = nextGate;
   }
@@ -175,8 +256,8 @@ buildMatrixProduct(llvm::ArrayRef<UnaryWireOp> operations) {
   return circuit;
 }
 
-// Prefer lower T-count, then fewer emitted Clifford gates. Scalar W phases
-// are not emitted as Quake operations.
+// Prefer lower T-count, then fewer emitted Clifford gates. Scalar W phases do
+// not contribute to the gate-count cost.
 static CircuitCost emittedCost(const cudaq::synth::Circuit &circuit) {
   std::size_t emittedGateCount = 0;
   for (cudaq::synth::Gate gate : circuit)
@@ -220,7 +301,14 @@ static Value emitCircuit(OpBuilder &builder, Location location, Value input,
       current = emitGate<cudaq::quake::XOp>(builder, location, current);
       break;
     case cudaq::synth::Gate::W:
-      // TODO: emit an anchored `quake.phase(pi/4)` once Quake supports it.
+      Value angle =
+          cudaq::opt::factory::createF64Constant(location, builder, M_PI_4);
+      auto phase = cudaq::quake::PhaseOp::create(
+          builder, location, TypeRange{current.getType()}, /*is_adj=*/false,
+          ValueRange{angle}, /*controls=*/ValueRange{},
+          /*targets=*/ValueRange{current},
+          /*negated_qubit_controls=*/DenseBoolArrayAttr{});
+      current = phase.getWires()[0];
       break;
     }
   }
@@ -232,9 +320,15 @@ static void optimizeBlock(Block &block) {
   llvm::SmallDenseSet<Operation *> collected;
 
   for (Operation &operation : block) {
+    llvm::SmallVector<ScopeStep> scopeSteps;
     llvm::SmallVector<UnaryWireOp> chain =
-        collectLinearChain(&operation, block, collected);
+        collectLinearChain(&operation, collected, scopeSteps);
     if (chain.empty())
+      continue;
+
+    // A single exact gate cannot improve the T-count or emitted gate count
+    // used by this pass, so it does not need normal-form construction.
+    if (chain.size() == 1)
       continue;
 
     cudaq::synth::Circuit inputCircuit = buildMatrixProduct(chain);
@@ -245,6 +339,7 @@ static void optimizeBlock(Block &block) {
     Candidate candidate;
     candidate.input = chain.front().input;
     candidate.output = chain.back().output;
+    candidate.scopeSteps = std::move(scopeSteps);
     candidate.normalized = std::move(normalized);
     for (const UnaryWireOp &gate : chain)
       candidate.operations.push_back(gate.operation);
@@ -257,7 +352,15 @@ static void optimizeBlock(Block &block) {
     OpBuilder builder(candidate.operations.front());
     Value output = emitCircuit(builder, candidate.operations.front()->getLoc(),
                                candidate.input, candidate.normalized);
-    candidate.output.replaceAllUsesWith(output);
+    // Thread the normalized output through lexical-scope forwarding in
+    // traversal order, then replace the original chain's final value with the
+    // last scope result visible at that point.
+    Value replacement = output;
+    for (ScopeStep &scopeStep : candidate.scopeSteps) {
+      scopeStep.continueOperand->set(replacement);
+      replacement = scopeStep.wire;
+    }
+    candidate.output.replaceAllUsesWith(replacement);
     for (Operation *operation : llvm::reverse(candidate.operations))
       operation->erase();
   }
@@ -265,24 +368,15 @@ static void optimizeBlock(Block &block) {
 
 static void optimizeRegion(Region &region) {
   for (Block &block : region) {
+    optimizeBlock(block);
     for (Operation &operation : block)
       for (Region &nested : operation.getRegions())
         optimizeRegion(nested);
-    optimizeBlock(block);
   }
 }
 
 void OptimizeSingleQubitCliffordTPass::runOnOperation() {
-  // TODO: Support controlled quake.apply after Quake can represent scalar W
-  // phase factors.
   ModuleOp module = getOperation();
-  WalkResult result = module.walk([](cudaq::quake::ApplyOp apply) {
-    return apply.getControls().empty() ? WalkResult::advance()
-                                       : WalkResult::interrupt();
-  });
-  if (result.wasInterrupted())
-    return;
-
   for (func::FuncOp function : module.getOps<func::FuncOp>())
     optimizeRegion(function.getBody());
 }
