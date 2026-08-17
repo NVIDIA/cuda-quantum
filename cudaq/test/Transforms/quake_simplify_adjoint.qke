@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
 // All rights reserved.                                                        //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -127,10 +127,10 @@ func.func @track_controlled_ysx() {
 // LOWER:           quake.s
 // LOWER:           quake.r1
 
-// Exercise the interference shape from the phase-tracking design: the outer
-// control is put into and taken out of the X basis around the controlled YSX
-// sequence. CircuitCheck's strict comparison makes a dropped relative pi phase
-// observable in the resulting control unitary.
+// The required pi correction adds -1 only when the control is |1>.
+// Without it, the result differs by Z on the control wire. The surrounding
+// H gates transform that difference into X (H Z H = X), which CircuitCheck
+// can observe.
 func.func @controlled_ysx_interference() {
   %control = quake.null_wire
   %target = quake.null_wire
