@@ -831,6 +831,17 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
   }];
 }
 
+def InjectImplicitOutput : Pass<"inject-implicit-output", "mlir::func::FuncOp"> {
+  let summary = "Inject quake.log_output ops for implicitly output quantum values.";
+  let description = [{
+    This pass inserts `quake.log_output` operations for each `quake.alloca` at
+    the top level of a `func.func`. The log_output ops are added to a new exit
+    block that all return ops are redirected through, preserving the declaration
+    order of the allocations. Unlike `add-dealloc`, this pass does not recurse
+    into nested regions.
+  }];
+}
+
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
 // new FuncOps.
 def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
@@ -1063,6 +1074,17 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
       // exit loop
     ```
   }];
+
+  let options = [
+    Option<"unsafeQuantumAlloc", "unsafe-quantum-alloc", "bool",
+           /*default=*/"false",
+           "When true, suppress adding the cc.no_qubit_combine attribute when "
+           "lowering a cc.scope that contains a quantum allocation.  This is "
+           "unsafe in general (the subsequent combine-quantum-alloc pass may "
+           "combine allocations across scope boundaries), but useful when "
+           "lower-to-cfg is followed immediately by combine-quantum-alloc and "
+           "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
+  ];
 
   let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
 }

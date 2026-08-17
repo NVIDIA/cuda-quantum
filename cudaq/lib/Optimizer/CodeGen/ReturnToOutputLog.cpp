@@ -26,7 +26,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-class ReturnRewrite : public OpRewritePattern<cudaq::cc::LogOutputOp> {
+class ReturnRewrite : public OpRewritePattern<cudaq::quake::LogOutputOp> {
 public:
   ReturnRewrite(MLIRContext *ctx, bool allowDynamic)
       : OpRewritePattern(ctx), allowDynamic(allowDynamic) {}
@@ -34,7 +34,7 @@ public:
   // This is where the heavy lifting is done. We take the return op's operand(s)
   // and convert them to calls to the QIR output logging functions with the
   // appropriate label information.
-  LogicalResult matchAndRewrite(cudaq::cc::LogOutputOp log,
+  LogicalResult matchAndRewrite(cudaq::quake::LogOutputOp log,
                                 PatternRewriter &rewriter) const override {
     auto loc = log.getLoc();
     // For each operand, generate a QIR logging call.

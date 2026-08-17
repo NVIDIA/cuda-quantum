@@ -92,6 +92,8 @@ createTargetCodegenPipeline(OpPassManager &pm,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createDeadQuantumElimination());
   }
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
 
   cudaq::opt::addPhaseLifecycle(pm);
   // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
@@ -155,6 +157,8 @@ void cudaq::opt::registerCodegenForQIRPipeline() {
 
 void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
     OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
   pm.addPass(createLambdaLifting());
   // Run most of the passes from hardware pipelines.
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -186,6 +190,8 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());
@@ -196,6 +202,8 @@ void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
 }
 
 void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
   pm.addNestedPass<func::FuncOp>(createExpandMeasurementsPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createLoopNormalize());

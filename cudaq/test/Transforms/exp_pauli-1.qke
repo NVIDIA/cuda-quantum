@@ -59,8 +59,8 @@ func.func @ep_1() {
 // CHECK-DAG:       %[[WORD_STORAGE:.*]] = cc.alloca !cc.array<!cc.struct<{!cc.ptr<i8>, i64}> x 1>
 // CHECK:           %[[QUBIT_ARRAY_ADDR:.*]] = cc.address_of @ep_1.rodata_0 : !cc.ptr<!cc.array<i64 x 3>>
 // CHECK:           %[[QUBIT_ARRAY:.*]] = cc.cast %[[QUBIT_ARRAY_ADDR]] : (!cc.ptr<!cc.array<i64 x 3>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
-// CHECK:           %[[WORD:.*]] = cc.string_literal "XYZ" : !cc.ptr<!cc.array<i8 x 4>>
-// CHECK:           %[[WORD_DATA:.*]] = cc.cast %[[WORD]] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
+// CHECK:           %[[WORD:.*]] = cc.address_of @cstr.58595A00 : !cc.ptr<!llvm.array<4 x i8>>
+// CHECK:           %[[WORD_DATA:.*]] = cc.cast %[[WORD]] : (!cc.ptr<!llvm.array<4 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[WORD_DATA_ADDR:.*]] = cc.cast %[[WORD_STORAGE]] : (!cc.ptr<!cc.array<!cc.struct<{!cc.ptr<i8>, i64}> x 1>>) -> !cc.ptr<!cc.ptr<i8>>
 // CHECK:           cc.store %[[WORD_DATA]], %[[WORD_DATA_ADDR]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[WORD_SIZE_ADDR:.*]] = cc.compute_ptr %[[WORD_STORAGE]][0, 1] : (!cc.ptr<!cc.array<!cc.struct<{!cc.ptr<i8>, i64}> x 1>>) -> !cc.ptr<i64>

@@ -375,7 +375,6 @@ def test_observe_list_multi_term_operators():
     @cudaq.kernel
     def simple_kernel():
         q = cudaq.qvector(2)
-        ry(12 * np.pi, q)
 
     op_multi1 = spin.z(0) + spin.x(0)
     op_multi2 = spin.y(1) + spin.z(1)

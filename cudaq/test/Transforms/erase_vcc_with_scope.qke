@@ -134,7 +134,7 @@ func.func @__nvqpp__mlirgen__function_repro._Z5reprov.run() attributes {"cudaq-e
     quake.dealloc %1 : !quake.veq<8>
     cc.continue %15#0 : i32
   }
-  cc.log_output %0 : i32
+  quake.log_output %0 : (i32) -> ()
   return
 }
 func.func private @malloc(i64) -> !cc.ptr<i8>

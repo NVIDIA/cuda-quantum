@@ -668,6 +668,15 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
   auto location = mlir::FileLineColLoc::get(contextPtr, "<builder>", 1, 1);
   mlir::ImplicitLocOpBuilder builder(location, contextPtr);
 
+  if (!func)
+    throw std::runtime_error(
+        "lowerQuakeCodeBuildModule: could not find entry function '" +
+        kernelName +
+        "' in the module. This code looks up the entry function by "
+        "kernel name, but the caller may have passed an artifact key "
+        "(e.g. a Pauli term id) instead of the module's actual kernel "
+        "name.");
+
   // FIXME this should be added to the builder.
   if (!func->hasAttr(cudaq::entryPointAttrName))
     func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());

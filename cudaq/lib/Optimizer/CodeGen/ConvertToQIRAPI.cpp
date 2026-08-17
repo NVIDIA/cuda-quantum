@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -2262,6 +2262,7 @@ struct CallableClosurePattern
 };
 
 //===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 // Patterns that are common to all QIR conversions.
 //===----------------------------------------------------------------------===//
 
@@ -2707,6 +2708,9 @@ struct QuakeToQIRAPIPass
     target.addIllegalDialect<cudaq::quake::QuakeDialect,
                              cudaq::codegen::CodeGenDialect,
                              cudaq::qec::QECDialect>();
+    // quake.log_output is lowered by ReturnToOutputLog (which runs after this
+    // pass), not by QuakeToQIRAPI, so mark it legal to pass through unchanged.
+    target.addLegalOp<cudaq::quake::LogOutputOp>();
     target.addLegalOp<cudaq::codegen::MaterializeConstantArrayOp>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
       return !needsTypeConversion(fn.getFunctionType()) &&
@@ -3108,15 +3112,20 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
                                             bool opaquePtr) {
   QuakeToQIRAPIPrepOptions prepApiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPIPrep(prepApiOpt));
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedLogOutput());
+  // Fuse SSI blocks after erasure of all fake quake.log_output.
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createLowerToCG());
   QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPI(apiOpt));
   pm.addPass(cudaq::opt::createQirInsertArrayRecord());
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createCanonicalizerPass());
   QuakeToQIRAPIFinalOptions finalApiOpt{.api = api.str()};
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addPass(cudaq::opt::createQuakeToQIRAPIFinal(finalApiOpt));
-  pm.addPass(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
 
 namespace {

@@ -8,7 +8,7 @@
 
 #include "PassDetails.h"
 #include "QuakeOperatorCreator.h"
-#include "cudaq/Optimizer/Builder/RuntimeNames.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
