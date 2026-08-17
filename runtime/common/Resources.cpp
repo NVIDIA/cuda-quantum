@@ -87,6 +87,17 @@ void Resources::appendInstruction(const std::string &name,
   for (auto q : allQubits)
     perQubitDepth[q] = newDepth;
 
+  // Track T depth using the same dependency propagation as total circuit
+  // depth. A non-T operation carries the latest T layer across all operands;
+  // a T or T-dagger operation starts the next T layer on its operands.
+  std::size_t maxTDepth = 0;
+  for (auto q : allQubits)
+    maxTDepth = std::max(maxTDepth, perQubitTDepth[q]);
+  const auto isTFamily = name == "t" || name == "tdg";
+  const auto newTDepth = maxTDepth + (isTFamily ? 1 : 0);
+  for (auto q : allQubits)
+    perQubitTDepth[q] = newTDepth;
+
   // Track gate count and depth by arity (total qubit count = controls +
   // targets, distinct from nControls used in the Instruction key).
   auto arity = allQubits.size();
@@ -124,6 +135,13 @@ std::size_t Resources::getDepthByArity(std::size_t arity) const {
     return 0;
   std::size_t maxDepth = 0;
   for (auto &[qubit, depth] : it->second)
+    maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
+std::size_t Resources::getTDepth() const {
+  std::size_t maxDepth = 0;
+  for (auto &[qubit, depth] : perQubitTDepth)
     maxDepth = std::max(maxDepth, depth);
   return maxDepth;
 }
@@ -183,6 +201,7 @@ void Resources::clear() {
   numQubits = 0;
   totalGates = 0;
   perQubitDepth.clear();
+  perQubitTDepth.clear();
   gateCountByArity.clear();
   perQubitDepthByArity.clear();
 }

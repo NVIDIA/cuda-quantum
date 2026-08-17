@@ -82,6 +82,8 @@ This includes all gate counts.)#")
            nanobind::arg("arity"),
            "Get circuit depth considering only gates of a specific qubit "
            "arity. Returns 0 if no gates of that arity exist.")
+      .def_prop_ro("t_depth", &Resources::getTDepth,
+                   "The dependency-aware depth of T and T-dagger gates.\n")
       .def_prop_ro("multi_qubit_gate_count", &Resources::getMultiQubitGateCount,
                    "Total count of gates with 2 or more qubits.\n")
       .def_prop_ro("multi_qubit_depth", &Resources::getMultiQubitDepth,
