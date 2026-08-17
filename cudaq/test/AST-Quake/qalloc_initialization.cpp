@@ -481,7 +481,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_33:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_32]], ptr nonnull @cstr.00)
 // QIR:         %[[VAL_33_PTR:.*]] = inttoptr i64 %[[VAL_33]] to ptr
 // QIR:         %[[VAL_36:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_33_PTR]])
-// QIR:         %[[VAL_41:.*]] = call ptr @malloc(i64 %[[VAL_13]])
+// QIR:         %[[VAL_41:.*]] = call {{(noalias noundef )?}}ptr @malloc(i64 %[[VAL_13]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_41]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_13]], i1 false)
 // QIR:         %[[VAL_43:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_41]], 0
 // QIR:         %[[VAL_44:.*]] = insertvalue { ptr, i64 } %[[VAL_43]], i64 %[[VAL_13]], 1
@@ -517,7 +517,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_33:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_32]], ptr nonnull @cstr.00)
 // QIR:         %[[VAL_33_PTR:.*]] = inttoptr i64 %[[VAL_33]] to ptr
 // QIR:         %[[VAL_36:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_33_PTR]])
-// QIR:         %[[VAL_41:.*]] = call ptr @malloc(i64 %[[VAL_13]])
+// QIR:         %[[VAL_41:.*]] = call {{(noalias noundef )?}}ptr @malloc(i64 %[[VAL_13]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_41]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_13]], i1 false)
 // QIR:         %[[VAL_43:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_41]], 0
 // QIR:         %[[VAL_44:.*]] = insertvalue { ptr, i64 } %[[VAL_43]], i64 %[[VAL_13]], 1
@@ -569,7 +569,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_54:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_53]], ptr nonnull @cstr.00)
 // QIR:         %[[VAL_54_PTR:.*]] = inttoptr i64 %[[VAL_54]] to ptr
 // QIR:         %[[VAL_57:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_54_PTR]])
-// QIR:         %[[VAL_62:.*]] = call ptr @malloc(i64 %[[VAL_34]])
+// QIR:         %[[VAL_62:.*]] = call {{(noalias noundef )?}}ptr @malloc(i64 %[[VAL_34]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_62]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_34]], i1 false)
 // QIR:         %[[VAL_64:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_62]], 0
 // QIR:         %[[VAL_65:.*]] = insertvalue { ptr, i64 } %[[VAL_64]], i64 %[[VAL_34]], 1
@@ -654,7 +654,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_31:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_30]], ptr nonnull @cstr.00)
 // QIR:         %[[VAL_31_PTR:.*]] = inttoptr i64 %[[VAL_31]] to ptr
 // QIR:         %[[VAL_34:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_31_PTR]])
-// QIR:         %[[VAL_39:.*]] = call ptr @malloc(i64 %[[VAL_11]])
+// QIR:         %[[VAL_39:.*]] = call {{(noalias noundef )?}}ptr @malloc(i64 %[[VAL_11]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_39]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_11]], i1 false)
 // QIR:         %[[VAL_41:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_39]], 0
 // QIR:         %[[VAL_42:.*]] = insertvalue { ptr, i64 } %[[VAL_41]], i64 %[[VAL_11]], 1
@@ -685,7 +685,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_31:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_30]], ptr nonnull @cstr.00)
 // QIR:         %[[VAL_31_PTR:.*]] = inttoptr i64 %[[VAL_31]] to ptr
 // QIR:         %[[VAL_34:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_31_PTR]])
-// QIR:         %[[VAL_39:.*]] = call ptr @malloc(i64 %[[VAL_11]])
+// QIR:         %[[VAL_39:.*]] = call {{(noalias noundef )?}}ptr @malloc(i64 %[[VAL_11]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_39]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_11]], i1 false)
 // QIR:         %[[VAL_41:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_39]], 0
 // QIR:         %[[VAL_42:.*]] = insertvalue { ptr, i64 } %[[VAL_41]], i64 %[[VAL_11]], 1
