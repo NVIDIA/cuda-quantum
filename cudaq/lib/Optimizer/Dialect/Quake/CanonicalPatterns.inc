@@ -398,6 +398,44 @@ struct ConcatSizePattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
   }
 };
 
+// %i = quake.concat %a, %b     : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// %o = quake.concat %x, %i, %y : (!quake.ref, !quake.veq<2>,
+//                                 !quake.ref) -> !quake.veq<4>
+// ─────────────────────────────────────────────────────────────────────────
+// %o = quake.concat %x, %a, %b, %y : (!quake.ref, !quake.ref, !quake.ref,
+//                                     !quake.ref) -> !quake.veq<4>
+//
+// Flattens one level of concat-of-concat. This enables downstream DCE of the
+// inner concat once it has no remaining uses.
+struct ConcatFlattenPattern : public OpRewritePattern<cudaq::quake::ConcatOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::ConcatOp concat,
+                                PatternRewriter &rewriter) const override {
+    bool anyInner = false;
+    SmallVector<Value> flatArgs;
+    for (Value arg : concat.getTargets()) {
+      auto inner = arg.getDefiningOp<cudaq::quake::ConcatOp>();
+      if (!inner) {
+        flatArgs.push_back(arg);
+        continue;
+      }
+      auto innerTy = dyn_cast<cudaq::quake::VeqType>(inner.getType());
+      if (!innerTy) {
+        flatArgs.push_back(arg);
+        continue;
+      }
+      flatArgs.append(inner.getTargets().begin(), inner.getTargets().end());
+      anyInner = true;
+    }
+    if (!anyInner)
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(
+        concat, concat.getType(), flatArgs);
+    return success();
+  }
+};
+
 // %0 = quake.alloca !quake.veq<2>
 // %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
 // %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
@@ -774,9 +812,9 @@ static bool isDirectlyThreadedPhase(cudaq::quake::PhaseOp first,
        llvm::zip(firstTargets, secondTargets))
     if (!matchesOperand(firstTarget, secondTarget))
       return false;
-  return resultIndex == first.getNumResults() && 
-    llvm::all_of(first.getWires(),
-      [](Value wire) { return wire.hasOneUse(); });
+  return resultIndex == first.getNumResults() &&
+         llvm::all_of(first.getWires(),
+                      [](Value wire) { return wire.hasOneUse(); });
 }
 
 struct EraseZeroPhasePattern : public OpRewritePattern<cudaq::quake::PhaseOp> {

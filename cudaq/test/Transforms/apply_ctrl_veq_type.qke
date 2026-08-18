@@ -15,14 +15,17 @@
 // 2. A controlled apply to thunk_kernel with a constant argument triggers
 // constant propagation which would un-relax the veq type back to !quake.veq<2>
 // 3. The thunk calls inner_kernel which expects !quake.veq<?>
-// 4. When the .ctrl variant is created, the inner call has a type mismatch
+// 4. Inlining must run before apply specialization so the controlled variant
+//    contains the quantum operations that need the added predicate.
 //
-// The fix: Don't specialize (un-relax) veq types when the function has inner
-// func.call operations, since those callees still expect the dynamic type.
-// An alternative fix would be to recursively specialize all callees in the
-// call tree, but that would increase code size.
+// Apply specialization diagnoses a surviving quantum func.call because adding
+// controls only to the wrapper would silently leave the callee uncontrolled.
 
-// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+// RUN: cudaq-opt --aggressive-inlining \
+// RUN:   --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(hw-jit-prep-pipeline)' %s | \
+// RUN:   FileCheck %s --check-prefix=JIT-PREP
+// RUN: cudaq-opt --pass-pipeline='builtin.module(aot-prep-pipeline)' %s | FileCheck %s --check-prefix=AOT-PREP
 
 module {
   // Inner kernel that expects dynamic veq type
@@ -55,7 +58,8 @@ module {
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: !quake.veq<2>) {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1.000000e-01 : f64
 // CHECK:           %[[VAL_3:.*]] = quake.relax_size %[[VAL_1]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           call @inner_kernel(%[[VAL_3]], %[[VAL_2]]) : (!quake.veq<?>, f64) -> ()
+// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.rx (%[[VAL_2]]) [%[[VAL_0]]] %[[VAL_4]] : (f64, !quake.veq<?>, !quake.ref) -> ()
 
 // CHECK-LABEL:   func.func @inner_kernel(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64)
@@ -64,7 +68,8 @@ module {
 
 // CHECK-LABEL:   func.func @thunk_kernel(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %[[VAL_1:.*]]: f64)
-// CHECK:           call @inner_kernel(%[[VAL_0]], %[[VAL_1]]) : (!quake.veq<?>, f64) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.rx (%[[VAL_1]]) %[[VAL_2]] : (f64, !quake.ref) -> ()
 
 // CHECK-LABEL:   func.func @main_kernel()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
@@ -76,4 +81,17 @@ module {
 // CHECK-LABEL:   func.func private @thunk_kernel.0(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<2>)
 // CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_0]] : (!quake.veq<2>) -> !quake.veq<?>
-// CHECK:           call @inner_kernel(%[[VAL_2]], %{{.*}}) : (!quake.veq<?>, f64) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<?>) -> !quake.ref
+// CHECK:           quake.rx (%{{.*}}) %[[VAL_3]] : (f64, !quake.ref) -> ()
+
+// JIT-PREP-LABEL: func.func @main_kernel()
+// JIT-PREP-NOT:   func.call
+// JIT-PREP:       %[[CONTROLS:.*]] = quake.concat %{{.*}} : (!quake.ref) -> !quake.veq<1>
+// JIT-PREP:       quake.rx (%{{.*}}) [%[[CONTROLS]]] %{{.*}} : (f64, !quake.veq<1>, !quake.ref) -> ()
+// JIT-PREP-NOT:   func.call
+
+// AOT-PREP-LABEL: func.func @main_kernel()
+// AOT-PREP-NOT:   func.call
+// AOT-PREP:       %[[CONTROLS:.*]] = quake.concat %{{.*}} : (!quake.ref) -> !quake.veq<1>
+// AOT-PREP:       quake.rx (%{{.*}}) [%[[CONTROLS]]] %{{.*}} : (f64, !quake.veq<1>, !quake.ref) -> ()
+// AOT-PREP-NOT:   func.call

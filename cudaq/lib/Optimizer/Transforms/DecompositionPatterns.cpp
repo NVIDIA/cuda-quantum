@@ -17,6 +17,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TypeName.h"
+#include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include <optional>
@@ -456,9 +457,7 @@ struct ExpPauliDecomposition
 REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition,
                                {"exp_pauli", "rx", "h", "x(1)", "rz"});
 
-// Naive mapping of R1 to Rz, ignoring the global phase.
-// This is only expected to work with full inlining and
-// quake apply specialization.
+// Exact mapping of R1 to Rz plus its phase residue.
 struct R1ToRzType; // forward declare the pattern type, defined in the macro
                    // below
 struct R1ToRz
@@ -468,16 +467,52 @@ struct R1ToRz
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
-    if (r1Op.isAdj() || !r1Op.getControls().empty())
+    if (!isEnabled(cudaq::getKnownNumControls(r1Op)))
       return failure();
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
-        r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
-        r1Op.getTargets());
+    Location location = r1Op.getLoc();
+    SmallVector<Value> controls(r1Op.getControls());
+    SmallVector<Value> targets(r1Op.getTargets());
+
+    // PhaseOp requires a scalar anchor. Do not partially rewrite an aggregate
+    // R1 because selecting one arbitrary `veq` element would represent the
+    // wrong phase for the _aggregate_ operation.
+
+    if (targets.empty() || !isa<cudaq::quake::RefType, cudaq::quake::WireType>(
+                               targets.back().getType()))
+      return rewriter.notifyMatchFailure(
+          r1Op,
+          "R1ToRz requires a scalar target to anchor its phase correction");
+
+    auto resultTypes =
+        cudaq::opt::getWireResultTypes(rewriter, controls, targets);
+    auto rz = cudaq::quake::RzOp::create(
+        rewriter, location, resultTypes, r1Op.getIsAdjAttr(),
+        r1Op.getParameters(), controls, targets,
+        r1Op.getNegatedQubitControlsAttr());
+    cudaq::opt::threadWireResults(rz, controls, targets);
+
+    // Preserve a literal zero so emitPhaseCorrection can omit the correction.
+    // Constructing a `0 / 2` first would hide the zero behind an arith.divf
+    // until a later canonicalization pass.
+    Value phase = r1Op.getParameter();
+    if (!matchPattern(phase, m_AnyZeroFloat())) {
+      phase = createDivF(location, phase, 2.0, rewriter);
+      if (r1Op.isAdj())
+        phase = arith::NegFOp::create(rewriter, location, phase);
+    }
+
+    auto correction = cudaq::opt::emitPhaseCorrection(
+        rewriter, location, phase, controls, r1Op.getNegatedQubitControlsAttr(),
+        targets.back());
+    controls = std::move(correction.controls);
+    targets.back() = correction.anchor;
+
+    rewriter.replaceOp(r1Op, cudaq::opt::getWireValues(controls, targets));
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"});
+REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"}, {"r1(n)", "rz(n)"});
 
 // Naive mapping of R1 to U3
 // quake.r1(λ) [control] target
