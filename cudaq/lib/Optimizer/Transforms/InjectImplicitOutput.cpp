@@ -36,6 +36,11 @@ public:
       return;
     if (!funcOp->hasAttr(cudaq::entryPointAttrName))
       return;
+    // A kernel with function results already has explicit output. In
+    // particular, cudaq::run() will create the corresponding log_output ops
+    // when it builds the run entry point.
+    if (funcOp.getFunctionType().getNumResults() != 0)
+      return;
     // If the kernel already contains any quake.log_output ops at the top level,
     // it has output: do not inject implicit output.
     //

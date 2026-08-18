@@ -33,6 +33,14 @@ module {
     return
   }
 
+  // A return value is explicit output, so no quantum output should be added.
+  func.func @__nvqpp__mlirgen__returning_kernel() -> i32 attributes {"cudaq-entrypoint"} {
+    %c0_i32 = arith.constant 0 : i32
+    %q = quake.alloca !quake.veq<4>
+    quake.h %q : (!quake.veq<4>) -> ()
+    return %c0_i32 : i32
+  }
+
   cc.global constant private @__nvqpp__rodata_init_0 (dense<[1.0, 0.0, 0.5, 0.5]> : tensor<4xf64>) : !cc.array<f64 x 4>
 }
 
@@ -55,3 +63,11 @@ module {
 // CHECK:         quake.log_output %[[Q2]] : (!quake.veq<?>) -> ()
 // CHECK:         quake.log_output %[[Q3S]] : (!quake.veq<4>) -> ()
 // CHECK:         return
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__returning_kernel() -> i32
+// CHECK:         %[[C0:.*]] = arith.constant 0 : i32
+// CHECK:         %[[Q:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         quake.h %[[Q]]
+// CHECK-NOT:     quake.log_output
+// CHECK-NOT:     cf.br
+// CHECK:         return %[[C0]] : i32
