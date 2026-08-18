@@ -680,11 +680,14 @@ class PyKernel(object):
         """
         self.clearCache()
         with self.insertPoint, self.loc:
+            otherResTy = []
             if isinstance(target, cc.CreateLambdaOp):
                 otherFuncCloned = target
                 otherModule = self.module
-                otherFTy = FunctionType(
-                    TypeAttr(target.attributes['function_type']).value).inputs
+                lambdaTy = FunctionType(
+                    TypeAttr(target.attributes['function_type']).value)
+                otherFTy = lambdaTy.inputs
+                otherResTy = lambdaTy.results
             else:
                 otherFuncCloned, otherModule = self.__cloneOrGetFunction(
                     target.name, self.module, target)
@@ -726,7 +729,10 @@ class PyKernel(object):
                                   otherFuncCloned.name.value),
                               is_adj=isAdjoint)
             elif isinstance(otherFuncCloned, cc.CreateLambdaOp):
-                cc.CallCallableOp([], otherFuncCloned, mlirValues)
+                # The result of the call is unused here (`apply_call` applies
+                # the callee for its effects), but `cc.call_callable` must
+                # still match the coarity of the callable's signature.
+                cc.CallCallableOp(otherResTy, otherFuncCloned, mlirValues)
             else:
                 func.CallOp(otherFuncCloned, mlirValues)
 
@@ -1479,7 +1485,7 @@ class PyKernel(object):
                         v = self.__getMLIRValueFromPythonArg(arg)
                     vs.append(v)
                 if funcTy.results:
-                    call = func.CallOp(fn, vs).result
+                    call = func.CallOp(fn, vs)
                     cc.ReturnOp(call.results)
                 else:
                     func.CallOp(fn, vs)
