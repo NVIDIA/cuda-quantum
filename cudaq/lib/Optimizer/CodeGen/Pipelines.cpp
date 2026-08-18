@@ -155,6 +155,39 @@ void cudaq::opt::registerCodegenForQIRPipeline() {
       });
 }
 
+void cudaq::opt::addKernelBuilderJITPrepPipeline(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createUnwindLowering());
+  addAggressiveInlining(pm);
+  pm.addPass(createCanonicalizerPass());
+  pm.addPass(createApplySpecialization());
+  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(createQuakeAddMetadata());
+  pm.addPass(createQuakePropagateMetadata());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addPass(createGenerateDeviceCodeLoader({.jitTime = true}));
+  pm.addPass(createGenerateKernelExecution());
+  pm.addPass(createSymbolDCEPass());
+}
+
+void cudaq::opt::addKernelBuilderJITLoweringPipeline(
+    OpPassManager &pm, bool combineQuantumAllocations) {
+  addLowerToCFG(pm);
+  if (combineQuantumAllocations)
+    pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  addConvertToQIRAPIPipeline(pm, "full");
+  pm.addPass(createCCToLLVM());
+  pm.addPass(createCanonicalizerPass());
+}
+
 void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
     OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(

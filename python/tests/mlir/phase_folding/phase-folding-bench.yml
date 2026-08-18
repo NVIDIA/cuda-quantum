@@ -12,5 +12,5 @@ description: "Phase folding optimization pass for compiler benchmarking/testing"
 config:
   nvqir-simulation-backend: qpp
   # Phase folding pass (default options)
-  jit-mid-level-pipeline: "phase-folding-pipeline"
+  jit-mid-level-pipeline: "func.func(factor-quantum-alloc,canonicalize,cse,dqe,memtoreg{quantum=1},phase-folding,canonicalize,cse,regtomem,combine-quantum-alloc)"
   library-mode: false

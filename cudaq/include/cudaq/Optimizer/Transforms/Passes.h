@@ -29,7 +29,6 @@ namespace cudaq::opt {
 void addAggressiveInlining(mlir::OpPassManager &pm, bool fatalCheck = false);
 void registerAggressiveInliningPipeline();
 
-void registerPhaseFoldingPipeline();
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
