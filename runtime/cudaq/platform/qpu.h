@@ -87,9 +87,6 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return whether this QPU supports explicit measurements
-  virtual bool supportsExplicitMeasurements() { return true; }
-
   /// @brief Return the remote capabilities for this platform.
   virtual RemoteCapabilities getRemoteCapabilities() const {
     return RemoteCapabilities(/*initValues=*/false);

@@ -723,9 +723,11 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
     });
   }
 
-  options.emulate = cudaq::is_emulated_platform();
-  options.emitJit = !cudaq::is_remote_platform();
-  options.boolVecBitPacked = !cudaq::is_remote_platform();
+  const bool isEmulated = cudaq::is_emulated_platform();
+  const bool isRemote = cudaq::is_remote_platform();
+  options.emulate = isEmulated;
+  options.emitJit |= !isRemote;
+  options.boolVecBitPacked = !isRemote && !isEmulated;
 
   return {*std::move(target), std::move(options)};
 }

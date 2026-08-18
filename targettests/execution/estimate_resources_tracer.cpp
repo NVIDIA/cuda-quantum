@@ -24,6 +24,9 @@
 // minutes
 
 // CHECK: Launching kernel with estimate policy
+
+// EMULATE: JIT high level:
+
 // CHECK: Launching kernel in sync mode with policy resource-count
 // CHECK: No compiled module found. Compiling.
 
@@ -36,7 +39,6 @@
 // When using JIT compilation, we expect JIT compilation, but all tracing gets
 // folded away at JIT compile time
 
-// EMULATE: JIT high level:
 // EMULATE: Pass pipeline for
 // EMULATE-NOT: Applying x with 1 controls
 

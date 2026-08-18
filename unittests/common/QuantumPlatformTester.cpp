@@ -475,23 +475,37 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   TestPlatform platform;
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
-  expectOverrideDisabled([&] { platform.is_simulator(); }, "is_simulator");
   expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
                          "get_remote_capabilities");
 }
 
 // The launch preamble queries these on every kernel run, so they must not
-// throw when an endpoint override is set. Instead they warn and report safe
-// defaults, since there is no backing QPU to forward to.
+// throw when an endpoint override is set.
 TEST(QuantumPlatformDisableEndpointOverrideTester,
      capabilityQueriesReturnDefaultsWhenEndpointSet) {
   TestPlatform platform;
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
+  EXPECT_TRUE(platform.is_simulator());
   EXPECT_FALSE(platform.is_remote());
   EXPECT_FALSE(platform.is_emulated());
-  EXPECT_FALSE(platform.supports_explicit_measurements());
+  EXPECT_TRUE(platform.supports_explicit_measurements());
   EXPECT_EQ(platform.get_noise(), nullptr);
+}
+
+// The endpoint's own flags are reported, not the (now detached) QPU's.
+TEST(QuantumPlatformDisableEndpointOverrideTester,
+     capabilityQueriesReportEndpointFlags) {
+  TestPlatform platform;
+  RuntimeEndpoint endpoint{.impl = 0};
+  endpoint.isSimulator = false;
+  endpoint.isRemote = true;
+  endpoint.isEmulated = true;
+  platform.setRuntimeEndpoint(std::move(endpoint), /*qpuId=*/0);
+
+  EXPECT_FALSE(platform.is_simulator());
+  EXPECT_TRUE(platform.is_remote());
+  EXPECT_TRUE(platform.is_emulated());
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester, drawThrowsWhenEndpointSet) {
@@ -501,7 +515,7 @@ TEST(QuantumPlatformDisableEndpointOverrideTester, drawThrowsWhenEndpointSet) {
   auto kernel = [] {};
   expectOverrideDisabled(
       [&] { (void)cudaq::contrib::traceFromKernel(kernel, platform); },
-      "is_simulator");
+      "Policy 'tracer'");
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,
@@ -520,10 +534,10 @@ TEST(QuantumPlatformDisableEndpointOverrideTester, perQpuIsolation) {
   TestPlatform platform(2);
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/1);
 
-  expectOverrideDisabled([&] { platform.is_simulator(1); }, "is_simulator");
+  expectOverrideDisabled([&] { platform.get_remote_capabilities(1); },
+                         "get_remote_capabilities");
 
-  EXPECT_NO_THROW(platform.is_simulator(0));
-  EXPECT_TRUE(platform.is_simulator(0));
+  EXPECT_NO_THROW(platform.get_remote_capabilities(0));
 }
 
 TEST(QuantumPlatformDisableEndpointOverrideTester,

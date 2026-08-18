@@ -275,7 +275,8 @@ std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
 
 bool quantum_platform::supports_explicit_measurements(
     std::size_t qpu_id) const {
-  auto ct = getCompileTarget(other_policies{}, qpu_id);
+  auto ct = getCompileTarget(other_policies{}, qpu_id,
+                             /*skipPipelineSubstitutions=*/true);
   return ct.supportExplicitMeasurements;
 }
 

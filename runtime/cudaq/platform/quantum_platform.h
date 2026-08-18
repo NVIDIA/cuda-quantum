@@ -227,14 +227,15 @@ public:
 
   template <typename Policy>
   [[nodiscard]] cudaq::CompileTarget
-  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) const {
+  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0,
+                   bool skipPipelineSubstitutions = false) const {
     validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
     if (compileTarget.has_value()) {
       return compileTarget.value();
     }
     // Fallback to old behaviour: query the QPU for its compile target.
     auto &qpu = platformQPUs[qpu_id];
-    bool skipPipelineSubstitutions = std::is_same_v<Policy, cudaq::dem_policy>;
+    skipPipelineSubstitutions |= std::is_same_v<Policy, cudaq::dem_policy>;
     return qpu->getCompileTarget(skipPipelineSubstitutions);
   }
 

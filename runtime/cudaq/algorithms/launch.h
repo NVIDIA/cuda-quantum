@@ -74,9 +74,11 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
     options = cudaq::get_compile_options(policy);
     target = platform.getCompileTarget(policy, qpu_id);
   }
-  options.emulate = platform.is_emulated(qpu_id);
-  options.emitJit = !platform.is_remote(qpu_id);
-  options.boolVecBitPacked = !platform.is_remote(qpu_id);
+  const bool isEmulated = platform.is_emulated(qpu_id);
+  const bool isRemote = platform.is_remote(qpu_id);
+  options.emulate = isEmulated;
+  options.emitJit |= !isRemote;
+  options.boolVecBitPacked = !isRemote && !isEmulated;
 
   ctx.executeKernelApi = [&qpu, &result, &policy, &target, &options](
                              const AnyModule &module, const KernelArgs &args) {
