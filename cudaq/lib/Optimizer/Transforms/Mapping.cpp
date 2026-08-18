@@ -2396,7 +2396,14 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
   void runOnOperation() override {
     auto func = getOperation();
-    if (func->hasAttr("mapping_v2p"))
+    bool usesMappedWireSet =
+        func.walk<WalkOrder::PreOrder>([](cudaq::quake::BorrowWireOp borrowOp) {
+              return borrowOp.getSetName() == mappedWireSetName
+                         ? WalkResult::interrupt()
+                         : WalkResult::advance();
+            })
+            .wasInterrupted();
+    if (usesMappedWireSet)
       return;
 
     if (deviceBypass)

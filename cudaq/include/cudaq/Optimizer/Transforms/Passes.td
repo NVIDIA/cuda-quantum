@@ -1104,6 +1104,11 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     performs mapping of the qubits by inserting the necessary swap operations
     into the Quake IR.
 
+    The output is Mapped Quake IR. The module contains a topology-aware
+    `quake.wire_set @mapped_wireset`, and mapped functions borrow their device
+    qubits from it. A function that already borrows from `@mapped_wireset` is
+    not mapped again.
+
     Note 1: this pass requires strictly value semantics (in the form of wire
     sets) for any quantum operations. It will throw an error if any memory
     reference semantics are present on quantum operations.
