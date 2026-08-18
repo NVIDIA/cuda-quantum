@@ -114,7 +114,7 @@ struct CommutationResult {
 /// instrument representations, or infer overlapping-support semantics from
 /// different custom definitions or dynamic Pauli words.
 /// Pass pipelines can establish the supported form by running
-/// `linear-ctrl-form` after `memtoreg`.
+/// `convert-to-linear-values`.
 ///
 /// `DoesNotCommute` is returned only for the limited cases where an available
 /// rule proves that the operations do not commute. `Indeterminate` means that

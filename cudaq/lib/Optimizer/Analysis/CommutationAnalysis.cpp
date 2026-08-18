@@ -81,11 +81,11 @@ static CommutationResult indeterminate(CommutationReason reason) {
   return {CommutationStatus::Indeterminate, reason};
 }
 
-static OperationPair getCanonicalPair(Operation *lhs, Operation *rhs) {
+static OperationPair getCanonicalCacheKey(Operation *lhs, Operation *rhs) {
   // std::less provides a total order for unrelated pointers. The order has no
   // semantic meaning; it only makes the symmetric cache key canonical.
   if (std::less<Operation *>{}(rhs, lhs))
-    std::swap(lhs, rhs);
+    return {rhs, lhs};
   return {lhs, rhs};
 }
 
@@ -204,7 +204,8 @@ static bool haveSameCustomUnitaryDefinition(Operation *lhs, Operation *rhs) {
   return false;
 }
 
-// Prove that two views describe the same action on the same qubits.
+// Recognize matching structural operations or exact adjoints on the same
+// qubits.
 static bool haveSameOperation(const OperationView &lhs,
                               const OperationView &rhs) {
   if (!lhs.operatorInterface || !rhs.operatorInterface)
@@ -283,7 +284,8 @@ static std::optional<PauliAction> getPauliAction(const OperationView &view) {
   return action;
 }
 
-// Compute whether shared Pauli factors contain an odd number of mismatches.
+// Compute whether shared Pauli factors contain an odd number of anti-commuting
+// nonidentity pairs.
 static bool hasOddPauliAnticommutationParity(const PauliAction &lhs,
                                              const PauliAction &rhs) {
   const auto *smaller = &lhs.terms;
@@ -301,8 +303,8 @@ static bool hasOddPauliAnticommutationParity(const PauliAction &lhs,
   return hasOddParity;
 }
 
-// Operations with no shared control or target qubit commute independently of
-// their gate semantics.
+// Supported operations with no shared control or target qubit commute because
+// their induced maps act on disjoint quantum factors.
 static bool haveDisjointQuantumSupport(const OperationView &lhs,
                                        const OperationView &rhs) {
   const auto *smaller = &lhs.roles;
@@ -409,8 +411,7 @@ static bool haveMutuallyExclusiveControls(const OperationView &lhs,
   return false;
 }
 
-// Operators on disjoint qubits commute because
-// (A tensor I)(I tensor B) = A tensor B = (I tensor B)(A tensor I).
+// Maps on disjoint quantum factors compose independently in either order.
 static std::optional<CommutationResult>
 tryDisjointSupport(const OperationView &lhs, const OperationView &rhs) {
   if (haveDisjointQuantumSupport(lhs, rhs))
@@ -507,10 +508,10 @@ tryPauliParity(const OperationView &lhs, const OperationView &rhs) {
 // action D on that control satisfies DP = PD for either polarity, so the proof
 // holds for every input state. This applies when every shared qubit is only a
 // control of the other operation, never one of its targets.
-// TODO: This rule cannot recognize a control basis established by surrounding
-// basis changes, such as H-C(U)-H. Sequence-level basis tracking would cover
-// those cases, while reusable per-operand commuting-basis properties would
-// avoid hard-coding the supported individual operations.
+// This rule cannot recognize a control basis established by surrounding basis
+// changes, such as H-C(U)-H. Sequence-level basis tracking would cover those
+// cases, while reusable per-operand commuting-basis properties would avoid
+// hard-coding the supported individual operations.
 static std::optional<CommutationResult>
 tryDiagonalOnControls(const OperationView &lhs, const OperationView &rhs) {
   if (diagonalOverlapsOnlyControls(lhs, rhs) ||
@@ -727,7 +728,7 @@ CommutationResult CommutationAnalysis::getResult(Operation *lhs,
   if (lhs->getBlock() != block || rhs->getBlock() != block)
     return indeterminate(CommutationReason::DifferentBlocks);
 
-  OperationPair key = getCanonicalPair(lhs, rhs);
+  OperationPair key = getCanonicalCacheKey(lhs, rhs);
   auto cached = cache.find(key);
   if (cached != cache.end())
     return cached->second;

@@ -75,15 +75,17 @@ inline bool isQuakeOperation(mlir::Operation *op) {
 
 namespace cudaq::quake {
 namespace detail {
-/// Ordered scalar-wire inputs and the results that carry the same qubits.
+/// Scalar-wire inputs and the results that carry the same qubits by position.
 struct ScalarWireFlow {
   mlir::SmallVector<mlir::Value> inputs;
   mlir::SmallVector<mlir::Value> results;
 };
 
-/// Return the one-to-one scalar-wire flow for an effect-free operator,
-/// measurement, or reset without regions. Unsupported forms and mismatched
-/// input and result shapes return no value.
+/// Return the one-to-one scalar-wire flow for a memory-effect-free operator,
+/// measurement, or reset that owns no regions and has no successors.
+/// Operator inputs contain controls followed by targets in interface order.
+/// Measurement and reset inputs contain targets in interface order.
+/// Unsupported forms and mismatched input and result shapes return no value.
 std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
 } // namespace detail
 
@@ -110,23 +112,6 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
     return getVeqSize(relaxOp.getInputVec());
   }
   return std::nullopt;
-}
-
-/// Returns an operator's wire operands: its wire controls, then its wire
-/// targets. In value form an operator returns one wire result per wire operand
-/// in this same order, so `getWireOperands(op)[i]` and `op.getWires()[i]` are
-/// the same qubit before and after \p op. An operator in memory form names its
-/// qubits by reference instead, so both lists come back empty.
-inline mlir::SmallVector<mlir::Value>
-getWireOperands(cudaq::quake::OperatorInterface op) {
-  mlir::SmallVector<mlir::Value> wires;
-  for (mlir::Value control : op.getControls())
-    if (isa<cudaq::quake::WireType>(control.getType()))
-      wires.push_back(control);
-  for (mlir::Value target : op.getTargets())
-    if (isa<cudaq::quake::WireType>(target.getType()))
-      wires.push_back(target);
-  return wires;
 }
 
 /// Returns true if and only if any quantum operand has type `!quake.ref`.

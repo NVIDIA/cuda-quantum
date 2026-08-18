@@ -31,7 +31,7 @@ static void propagateQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
 
 // Build block-local qubit identities in program order. Block arguments and
 // null wires introduce IDs, repeated borrows reuse their (wire set, identity)
-// ID, and supported scalar-wire operators propagate IDs.
+// ID, and supported scalar-wire operations propagate IDs.
 static void buildQubitIdMap(Block &block,
                             llvm::DenseMap<Value, QubitId> &qubitIds) {
   QubitId nextQubitId = 0;
