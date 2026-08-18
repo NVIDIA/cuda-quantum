@@ -53,15 +53,21 @@ mlir_symbols='^_?_Z(T[VIS])?N?K?[0-9]*4(llvm|mlir)'
 # are deliberately not part of libcudaqMLIR.
 not_provided_by_cudaqmlir='^_?_Z(T[VIS])?N?K?[0-9]*4mlir6python'
 
+NM="${NM:-nm}"
+if ! command -v "$NM" >/dev/null 2>&1; then
+    echo "check_mlir_symbols: '$NM' not found; set NM to an nm or llvm-nm" >&2
+    exit 2
+fi
+
 if [ "$(uname)" = "Darwin" ]; then
-    undefined_of() { nm -u "$1"; }
-    defined_of() { nm -gU "$1" | awk '{print $NF}'; }
-    strong_exports_of() { nm -gU -m "$1" | awk '!/ weak external /{print $NF}'; }
+    undefined_of() { "$NM" -u "$1"; }
+    defined_of() { "$NM" -gU "$1" | awk '{print $NF}'; }
+    strong_exports_of() { "$NM" -gU -m "$1" | awk '!/ weak external /{print $NF}'; }
 else
-    undefined_of() { nm -D --undefined-only "$1" | awk '{print $NF}'; }
-    defined_of() { nm -D --defined-only "$1" | awk '{print $NF}'; }
+    undefined_of() { "$NM" -D --undefined-only "$1" | awk '{print $NF}'; }
+    defined_of() { "$NM" -D --defined-only "$1" | awk '{print $NF}'; }
     strong_exports_of() {
-        nm -D --defined-only --extern-only "$1" | awk '$2 ~ /^[TDBRiSG]$/ {print $NF}'
+        "$NM" -D --defined-only --extern-only "$1" | awk '$2 ~ /^[TDBRiSG]$/ {print $NF}'
     }
 fi
 

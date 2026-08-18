@@ -51,7 +51,9 @@ add_library(cudaq::${LIBRARY_NAME} ALIAS ${LIBRARY_NAME})
 # 2c. Ensure the linker always prefers `libcudaqMLIR` over static libraries providing the same symbols.
 if(NOT APPLE)
   set(_cudaq_no_as_needed
-    "LINKER:--no-as-needed" "$<TARGET_FILE:cudaq::${LIBRARY_NAME}>" "LINKER:--as-needed")
+    "LINKER:--push-state,--no-as-needed"
+    "$<TARGET_FILE:cudaq::${LIBRARY_NAME}>"
+    "LINKER:--pop-state")
   set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY
     INTERFACE_LINK_OPTIONS ${_cudaq_no_as_needed})
 endif()

@@ -122,9 +122,24 @@ foreach(_candidate
   endif()
 endforeach()
 
+if(CMAKE_NM AND NOT CUDAQ_NM)
+  set(CUDAQ_NM "${CMAKE_NM}" CACHE FILEPATH
+    "nm used to verify the MLIR/LLVM symbol closure")
+endif()
+find_program(CUDAQ_NM
+  NAMES nm llvm-nm
+  HINTS "${LLVM_TOOLS_BINARY_DIR}" "$ENV{LLVM_INSTALL_PREFIX}/bin"
+  DOC "nm used to verify the MLIR/LLVM symbol closure")
+
+if(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE AND NOT CUDAQ_NM)
+  message(STATUS
+    "Neither nm nor llvm-nm found: skipping the MLIR/LLVM symbol closure check.")
+endif()
+
 function(cudaq_check_mlir_symbol_closure name)
   cmake_parse_arguments(ARG "" "" "PROVIDERS" ${ARGN})
-  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT)
+  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT
+      OR NOT CUDAQ_NM)
     return()
   endif()
   set(_providers)
@@ -134,7 +149,8 @@ function(cudaq_check_mlir_symbol_closure name)
     endif()
   endforeach()
   add_custom_command(TARGET ${name} POST_BUILD
-    COMMAND bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
+    COMMAND ${CMAKE_COMMAND} -E env "NM=${CUDAQ_NM}"
+    bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
     "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>" ${_providers}
     COMMENT "Checking MLIR/LLVM symbol closure of ${name}"
     VERBATIM)
