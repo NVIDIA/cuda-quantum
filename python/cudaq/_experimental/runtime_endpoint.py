@@ -78,7 +78,7 @@ class RuntimeEndpoint(Protocol):
 
 
 @runtime_checkable
-class SupportsSample(RuntimeEndpoint):
+class SupportsSample(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.sample``."""
 
     def sample(self, module: CompiledModule, args: KernelArgs,
@@ -92,7 +92,7 @@ class SupportsSample(RuntimeEndpoint):
 
 
 @runtime_checkable
-class SupportsObserve(RuntimeEndpoint):
+class SupportsObserve(RuntimeEndpoint, Protocol):
     """An endpoint that can serve ``cudaq.observe``."""
 
     def observe(self, module: CompiledModule, args: KernelArgs,
