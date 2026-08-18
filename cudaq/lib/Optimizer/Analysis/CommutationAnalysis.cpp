@@ -780,14 +780,16 @@ bool CommutationAnalysis::prepareIdentityPreservingReplacement(
   if (!operation || operation->getBlock() != block ||
       !qubitIdentity->replacementPreservesIdentities(*operation, replacement))
     return false;
-  cache.clear();
+  clearCachedRelations();
   return true;
 }
+
+void CommutationAnalysis::clearCachedRelations() { cache.clear(); }
 
 void CommutationAnalysis::eraseOperation(Operation *operation) {
   if (!operation || operation->getBlock() != block)
     return;
-  cache.clear();
+  clearCachedRelations();
   qubitIdentity->eraseOperation(*operation);
 }
 

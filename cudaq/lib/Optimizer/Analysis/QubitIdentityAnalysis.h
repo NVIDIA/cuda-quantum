@@ -64,9 +64,10 @@ public:
   bool haveSameOrderedQubitIdentities(mlir::ValueRange lhs,
                                       mlir::ValueRange rhs) const;
 
-  /// Propagate result identities for a supported all-wire operation.
-  /// Classical-only operations succeed without changing identity state.
-  /// Return false for unsupported or ambiguous quantum propagation.
+  /// Register a supported scalar-wire operation only when every input identity
+  /// is known. A classical-only insertion succeeds without changing identity
+  /// state only when it is not call-like, owns no regions, and is
+  /// memory-effect-free. Return false for every other insertion.
   bool registerOperation(mlir::Operation &operation);
 
   /// Return true when result arity is unchanged and each quantum result is

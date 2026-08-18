@@ -324,11 +324,10 @@ public:
 
   void notifyOperationModified(Operation *operation) override {
     RewriterBase::ForwardingListener::notifyOperationModified(operation);
-    // A use rewired by a validated identity-preserving replacement changes the
-    // operand value but not the virtual qubit it denotes, and every commutation
-    // rule reads only identities, roles, polarity, and semantics. Such a user
-    // therefore needs no invalidation; the notification is consumed only so it
-    // is not mistaken for an unexplained in-place change.
+    // updateReplacement already validated quantum identities and cleared
+    // relation caches in affected analyzed blocks. Consume each expected
+    // callback without further invalidation so it is not mistaken for an
+    // unexplained in-place change.
     auto pending = pendingIdentityPreservingUsers.find(operation);
     if (pending != pendingIdentityPreservingUsers.end()) {
       assert(pending->second != 0 && "pending replacement count underflow");
@@ -374,20 +373,9 @@ private:
     if (analysis == matcher.impl->analyses.end())
       return;
 
-    // Quantum rewiring is incrementally maintainable only after identity
-    // validation. A used classical result can feed an operator parameter or
-    // Pauli value, so its user semantics may change even when every quantum
-    // identity is unchanged.
-    for (Value result : operation->getResults()) {
-      if (!result.use_empty() &&
-          !cudaq::quake::isQuantumType(result.getType())) {
-        discardBlock(operation->getBlock());
-        return;
-      }
-    }
-
     // A validated replacement preserves qubit identity state and clears cached
-    // relations. Failure requires block fallback.
+    // relations. Modification notifications cover every rewired quantum or
+    // classical use. Failure requires block fallback.
     if (!analysis->second->prepareIdentityPreservingReplacement(operation,
                                                                 replacement)) {
       discardBlock(operation->getBlock());
@@ -395,11 +383,23 @@ private:
     }
 
     // RewriterBase emits exactly one modification notification per replaced
-    // use. Count quantum uses per owner so a multi-result replacement into one
+    // use. Count result uses per owner so a multi-result replacement into one
     // user consumes every callback without suppressing anything afterward.
-    for (Value result : operation->getResults())
-      for (OpOperand &use : result.getUses())
-        ++pendingIdentityPreservingUsers[use.getOwner()];
+    // A user in another analyzed block keeps its proved qubit identities, but
+    // relations involving its changed classical or quantum operand must be
+    // recomputed before its expected notification is consumed.
+    for (Value result : operation->getResults()) {
+      for (OpOperand &use : result.getUses()) {
+        Operation *owner = use.getOwner();
+        Block *ownerBlock = owner->getBlock();
+        if (!ownerBlock)
+          continue;
+        auto ownerAnalysis = matcher.impl->analyses.find(ownerBlock);
+        if (ownerAnalysis != matcher.impl->analyses.end())
+          ownerAnalysis->second->clearCachedRelations();
+        ++pendingIdentityPreservingUsers[owner];
+      }
+    }
   }
 
   void discardBlock(Block *block) {

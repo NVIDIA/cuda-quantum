@@ -191,6 +191,8 @@ private:
   /// Validate an identity-preserving replacement and clear cached relations.
   bool prepareIdentityPreservingReplacement(mlir::Operation *operation,
                                             mlir::ValueRange replacement);
+  /// Clear cached relations without changing proved qubit identities.
+  void clearCachedRelations();
   /// Clear cached relations, then remove an operation's result identities.
   void eraseOperation(mlir::Operation *operation);
 

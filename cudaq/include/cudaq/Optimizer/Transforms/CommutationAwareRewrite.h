@@ -62,7 +62,7 @@ struct CommutationAwareRewriteStatistics {
 /// `convert-to-linear-values`.
 ///
 /// The consumer owns the accepted endpoint's algebraic identity, so the
-/// endpoint needs no commutation proof. The matcher instead proves complete
+/// endpoint needs no commutation proof. The search instead proves complete
 /// frontier alignment, linear use-def threading, and distinct logical operand
 /// roles. Single-wire endpoints establish distinctness structurally;
 /// multi-wire endpoints require a known identity for every role. Traversable
@@ -147,8 +147,8 @@ public:
   CommutationAwareRewriteMatcher &getMatcher();
 
   /// Return stable event counts for incremental-maintenance verification.
-  /// Counts cover this driver's single rewrite invocation and any `matcher`
-  /// queries made before it.
+  /// Counts cover this driver's single rewrite invocation and any endpoint
+  /// search queries made before it.
   CommutationAwareRewriteStatistics getStatistics() const;
 
   /// Apply the owned pattern set to one region whose parent is isolated from

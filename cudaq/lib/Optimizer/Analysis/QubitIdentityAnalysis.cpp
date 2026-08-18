@@ -153,6 +153,10 @@ bool QubitIdentityAnalysis::haveSameOrderedQubitIdentities(
 }
 
 bool QubitIdentityAnalysis::registerOperation(Operation &operation) {
+  if (isa<CallOpInterface>(operation) || operation.getNumRegions() != 0 ||
+      !isMemoryEffectFree(&operation))
+    return false;
+
   if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
     return registerQubitIds(qubitIds, *flow);
 
