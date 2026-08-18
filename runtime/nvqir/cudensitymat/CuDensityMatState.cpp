@@ -62,8 +62,9 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
   }
 
   cuDoubleComplex dotResult;
-  const auto status = cublasZdotc(
-      dynamics::Context::getCurrentContext()->getCublasHandle(), dimension,
+  const auto status = cublasZdotc_64(
+      dynamics::Context::getCurrentContext()->getCublasHandle(),
+      static_cast<int64_t>(dimension),
       static_cast<const cuDoubleComplex *>(devicePtr), 1,
       static_cast<const cuDoubleComplex *>(otherData), 1, &dotResult);
   if (stagedData)
