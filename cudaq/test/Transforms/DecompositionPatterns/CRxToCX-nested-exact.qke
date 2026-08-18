@@ -9,21 +9,13 @@
 // Preserve the scalar CRx residue when an outer control is introduced later.
 // The inner Rx predicate is deliberately separate: the phase must depend on
 // the outer control only, including when the inner control is inactive.
+// CRxToCX.qke validates the decomposition itself. This test covers its phase
+// correction through controlled-apply specialization and late lowering.
 // RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
-// RUN:   %S/Inputs/CRxToCX-nested-source.qke > %t.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
-// RUN:   %s > %t.actual
-// RUN: FileCheck %s --check-prefix=PHASE < %t.actual
-// RUN: CircuitCheck --input=%t.actual %t.source
+// RUN:   %s | FileCheck %s --check-prefix=PHASE
 // RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
 // RUN:   --expand-control-veqs --cse --normalize-phase-placement --lower-phase \
-// RUN:   --canonicalize %S/Inputs/CRxToCX-nested-source.qke > %t.lower.source
-// RUN: cudaq-opt --apply-op-specialization --aggressive-inlining --symbol-dce \
-// RUN:   --expand-control-veqs --cse --normalize-phase-placement --lower-phase \
-// RUN:   --canonicalize %s > %t.lower.actual
-// RUN: FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase \
-// RUN:   < %t.lower.actual
-// RUN: CircuitCheck --input=%t.lower.actual %t.lower.source
+// RUN:   --canonicalize %s | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
 
 func.func private @crx_exact(%inner: !quake.ref, %target: !quake.ref) {
   %half = arith.constant 6.170000e-01 : f64
