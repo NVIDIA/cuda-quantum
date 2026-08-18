@@ -23,5 +23,8 @@ cudaq::RuntimeEndpoint cudaq::RuntimeEndpoint::wrapQPU(cudaq::QPU &qpu) {
   ep.dispatch = detail::DispatchTable<all_policies>::create(
       []<typename P>() { return &forwardLaunchKernelToQpu<P>; });
   ep.impl = &qpu;
+  ep.isSimulator = qpu.isSimulator();
+  ep.isRemote = qpu.isRemote();
+  ep.isEmulated = qpu.isEmulated();
   return ep;
 }

@@ -67,7 +67,18 @@ __all__ = [
 
 
 @runtime_checkable
-class SupportsSample(Protocol):
+class RuntimeEndpoint(Protocol):
+    """A runtime endpoint is a Python object that can serve kernel launches.
+    
+    Implement one or several of the children protocols for each supported launch policy.
+    """
+    is_simulator: bool = True
+    is_remote: bool = False
+    is_emulated: bool = False
+
+
+@runtime_checkable
+class SupportsSample(RuntimeEndpoint):
     """An endpoint that can serve ``cudaq.sample``."""
 
     def sample(self, module: CompiledModule, args: KernelArgs,
@@ -81,7 +92,7 @@ class SupportsSample(Protocol):
 
 
 @runtime_checkable
-class SupportsObserve(Protocol):
+class SupportsObserve(RuntimeEndpoint):
     """An endpoint that can serve ``cudaq.observe``."""
 
     def observe(self, module: CompiledModule, args: KernelArgs,

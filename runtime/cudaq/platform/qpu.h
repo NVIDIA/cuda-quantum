@@ -182,28 +182,9 @@ public:
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
-  /// Get the compile target of the QPU for the given policy.
-  ///
-  /// By default, fall back to other_policies compile target.
+  /// Get the compile target of the QPU.
   [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const sample_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const observe_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const run_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const msm_size_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const msm_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const dem_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const estimate_policy &policy);
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const ptsbe::sample_policy &policy);
-  // Overload for currently unsupported policies (to be removed).
-  [[nodiscard]] virtual CompileTarget
-  getCompileTarget(const other_policies &policy, ExecutionContext *context);
+  getCompileTarget(bool skipPipelineSubstitutions = false);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.

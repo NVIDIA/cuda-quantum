@@ -34,19 +34,12 @@ public:
   /// Number of times `launchKernel(sample_policy)` was called on this QPU.
   std::size_t sampleLaunchCount = 0;
 
-  CompileTarget getCompileTarget(const sample_policy &) override {
+  CompileTarget
+  getCompileTarget(bool skipPipelineSubstitutions = false) override {
     CompileTarget ct;
-    ct.pipelineConfig.highLevelPipeline = "custom_sample";
+    ct.pipelineConfig.highLevelPipeline = "custom_pipeline";
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
-    return ct;
-  }
-
-  CompileTarget getCompileTarget(const other_policies &,
-                                 ExecutionContext *) override {
-    CompileTarget ct;
-    ct.pipelineConfig.highLevelPipeline = "custom_other";
-    ct.fullySpecialize = false;
     return ct;
   }
 
@@ -186,7 +179,7 @@ TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
   sample_policy policy{.kernelName = "test_kernel"};
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_sample");
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_pipeline");
   EXPECT_FALSE(ct.fullySpecialize);
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
@@ -208,7 +201,7 @@ TEST(QuantumPlatformCompileTargetTester, otherPoliciesFallsBackToQpuWhenUnset) {
   other_policies policy;
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_other");
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_pipeline");
 }
 
 TEST(QuantumPlatformCompileTargetTester, otherPoliciesUsesPlatformOverride) {
@@ -238,7 +231,7 @@ TEST(QuantumPlatformCompileTargetTester, clearingOverrideFallsBackToQpu) {
   platform.setCompileTarget(std::nullopt);
 
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_sample");
+  EXPECT_EQ(ct.pipelineConfig.highLevelPipeline, "custom_pipeline");
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
 
@@ -351,13 +344,15 @@ TEST(QuantumPlatformRuntimeEndpointTester, recreatingQpusResetsCompileTarget) {
   sample_policy policy{.kernelName = "test_kernel"};
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 42});
   // The installed default describes a local simulator, unlike the test QPU's.
-  ASSERT_TRUE(platform.getCompileTarget(policy).isLocalSimulator);
+  ASSERT_NE(platform.getCompileTarget(policy).pipelineConfig.highLevelPipeline,
+            "custom_pipeline");
 
   platform.resetQpus();
 
   // Back to the QPU's own compile target.
   auto ct = platform.getCompileTarget(policy);
-  EXPECT_FALSE(ct.isLocalSimulator);
+  ASSERT_EQ(platform.getCompileTarget(policy).pipelineConfig.highLevelPipeline,
+            "custom_pipeline");
   EXPECT_TRUE(ct.overrideAOTCompilation);
 }
 
@@ -481,7 +476,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
   expectOverrideDisabled([&] { platform.is_simulator(); }, "is_simulator");
-  expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
   expectOverrideDisabled([&] { platform.get_remote_capabilities(); },
                          "get_remote_capabilities");
 }
@@ -517,7 +511,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   EXPECT_NO_THROW(platform.set_noise(nullptr));
   EXPECT_TRUE(platform.is_simulator());
   EXPECT_FALSE(platform.is_remote());
-  EXPECT_EQ(platform.get_num_qubits(), 30u);
 
   auto kernel = [] {};
   EXPECT_NO_THROW((void)cudaq::contrib::traceFromKernel(kernel, platform));
@@ -538,7 +531,6 @@ TEST(QuantumPlatformDisableEndpointOverrideTester,
   TestPlatform platform;
   platform.setRuntimeEndpoint(RuntimeEndpoint{.impl = 0}, /*qpuId=*/0);
 
-  expectOverrideDisabled([&] { platform.get_num_qubits(); }, "get_num_qubits");
   expectOverrideDisabled([&] { platform.set_noise(nullptr); },
                          "Using noise models");
 }

@@ -60,11 +60,9 @@ runCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
       isPythonKernel(mlirArtifacts.front().second.getOpaqueModulePtr());
   const bool needsWireset = target.pipelineConfig.codegenTranslation == "nop" &&
                             !target.pipelineConfig.midLevelPipeline.empty();
-  const bool needsJit = target.emulate && !module.getJit().has_value();
 
-  if (isPython && (needsWireset || needsJit)) {
+  if (isPython && needsWireset) {
     cudaq::CompileOptions opts;
-    opts.emitJit = needsJit;
     cudaq_internal::compiler::Compiler compiler(std::move(target), opts);
     std::vector<cudaq::KernelExecution> allCodes;
     for (const auto &[name, artifact] : mlirArtifacts) {
@@ -89,7 +87,7 @@ sample_result RemoteRESTQPU::launchKernel(const sample_policy &policy,
                                           KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
 
-  auto target = getCompileTarget(policy);
+  auto target = getCompileTarget();
   auto codes = runCodegen(module, std::move(target));
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
@@ -99,7 +97,7 @@ RemoteRESTQPU::launchKernel(const async_sample_policy &policy,
                             const CompiledModule &module, KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
 
-  auto target = getCompileTarget(policy.inner);
+  auto target = getCompileTarget();
   auto codes = runCodegen(module, std::move(target));
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
@@ -109,7 +107,7 @@ observe_result RemoteRESTQPU::launchKernel(const observe_policy &policy,
                                            KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
 
-  auto target = getCompileTarget(policy);
+  auto target = getCompileTarget();
   auto codes = runCodegen(module, std::move(target));
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
@@ -119,7 +117,7 @@ run_result RemoteRESTQPU::launchKernel(const run_policy &policy,
                                        KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
 
-  auto target = getCompileTarget(policy);
+  auto target = getCompileTarget();
   auto codes = runCodegen(module, std::move(target));
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
@@ -129,7 +127,7 @@ async_run_result RemoteRESTQPU::launchKernel(const async_run_policy &policy,
                                              KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
 
-  auto target = getCompileTarget(policy.inner);
+  auto target = getCompileTarget();
   auto codes = runCodegen(module, std::move(target));
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
@@ -139,16 +137,15 @@ RemoteRESTQPU::launchKernel(const async_observe_policy &policy,
                             const CompiledModule &module, KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
 
-  auto target = getCompileTarget(policy.inner);
+  auto target = getCompileTarget();
   auto codes = runCodegen(module, std::move(target));
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
 KernelThunkResultType
 RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
-  auto *ctx = getExecutionContext();
   CompiledModule compiled;
-  auto target = getCompileTarget(other_policies{}, ctx);
+  auto target = getCompileTarget();
   CompileOptions options = cudaq::get_compile_options(other_policies{});
   cudaq_internal::compiler::Compiler compiler(std::move(target),
                                               std::move(options));

@@ -60,9 +60,8 @@ static void applyPipelineSubstitutions(
 
 cudaq::CompileTarget::CompileTarget(
     config::TargetConfig targetConfig,
-    std::map<std::string, std::string> runtimeConfig, bool emulate_,
-    std::map<std::string, std::string> pipelineSubstitutions)
-    : emulate(emulate_) {
+    std::map<std::string, std::string> runtimeConfig,
+    std::map<std::string, std::string> pipelineSubstitutions) {
   const config::BackendEndConfigEntry defaultConfig;
 
   const auto &backendConfig =
@@ -110,14 +109,12 @@ cudaq::CompileTarget::CompileTarget(
 
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
-  // Optional spin observable: include its string representation when present.
-  auto pauliStr =
-      t.pauliTermSplitObservable ? t.pauliTermSplitObservable->to_string() : "";
   return cudaq::detail::hashVal(
-      t.pipelineConfig, t.overrideAOTCompilation, t.emulate,
+      t.pipelineConfig, t.overrideAOTCompilation,
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
-      t.fullySpecialize, t.isLocalSimulator, t.argumentSynthChangeSemantics,
-      pauliStr);
+      t.supportExplicitMeasurements, t.supportObservableMeasurements,
+      t.supportSampleWithoutMeasurements, t.fullySpecialize,
+      t.argumentSynthChangeSemantics);
 }
 
 std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
@@ -125,5 +122,5 @@ std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
   return cudaq::detail::hashVal(
       pc.overridePassPipeline, pc.highLevelPipeline, pc.midLevelPipeline,
       pc.lowLevelPipeline, pc.codegenTranslation, pc.postCodeGenPasses,
-      pc.disableQubitMapping, pc.replaceStateWithKernel, pc.addMeasurements);
+      pc.disableQubitMapping, pc.replaceStateWithKernel);
 }

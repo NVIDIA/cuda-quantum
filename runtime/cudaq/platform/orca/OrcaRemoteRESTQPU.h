@@ -75,9 +75,6 @@ public:
   /// @brief Return true if the current backend is a simulator
   bool isSimulator() override { return emulate; }
 
-  /// @brief Return true if the current backend supports explicit measurements
-  bool supportsExplicitMeasurements() override { return false; }
-
   /// @brief Provide the number of shots
   void setShots(int _nShots) override { nShots = _nShots; }
 
@@ -93,6 +90,13 @@ public:
 
   [[nodiscard]] KernelThunkResultType
   launchKernelCommon(const std::string &kernelName, void *args);
+
+  CompileTarget
+  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+    auto ct = QPU::getCompileTarget(skipPipelineSubstitutions);
+    ct.supportExplicitMeasurements = false;
+    return ct;
+  }
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.

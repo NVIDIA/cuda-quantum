@@ -26,8 +26,8 @@ static void setQubitMappingBypass(std::string &pipeline) {
   pipeline = std::regex_replace(pipeline, qubitMapping, replacement);
 }
 
-std::string
-cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
+std::string cudaq_internal::compiler::getPassPipeline(
+    const cudaq::CompileTarget &target, const cudaq::CompileOptions &options) {
   const auto &pipelineConfig = target.pipelineConfig;
   const std::string allowEarlyExit =
       pipelineConfig.codegenTranslation.starts_with("qir-adaptive") ? "true"
@@ -42,7 +42,7 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
     return passPipeline;
   }
 
-  if (target.emulate)
+  if (options.emulate)
     appendPipelineStage(passPipeline, "emul-jit-prep-pipeline{erase-noise=true "
                                       "allow-early-exit=" +
                                           allowEarlyExit + noLoopUnroll + "}");
@@ -51,8 +51,8 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
                                           allowEarlyExit + noLoopUnroll + "}");
 
   const std::string lowerDeviceCalls =
-      (pipelineConfig.codegenTranslation == "nop" && !target.emulate) ? "false"
-                                                                      : "true";
+      (pipelineConfig.codegenTranslation == "nop" && !options.emulate) ? "false"
+                                                                       : "true";
   const std::string deployStage =
       pipelineConfig.codegenTranslation == "nop"
           ? "jit-deploy-pipeline{no-loop-unroll=true}"

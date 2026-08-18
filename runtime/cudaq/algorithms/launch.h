@@ -65,8 +65,21 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
 
   typename Policy::result_type result;
   auto &qpu = platform.getRuntimeEndpoint(qpu_id);
-  ctx.executeKernelApi = [&qpu, &result, &policy](const AnyModule &module,
-                                                  const KernelArgs &args) {
+  cudaq::CompileTarget target;
+  cudaq::CompileOptions options;
+  if constexpr (requires { policy.inner; }) {
+    options = cudaq::get_compile_options(policy.inner);
+    target = platform.getCompileTarget(policy.inner, qpu_id);
+  } else {
+    options = cudaq::get_compile_options(policy);
+    target = platform.getCompileTarget(policy, qpu_id);
+  }
+  options.emulate = platform.is_emulated(qpu_id);
+  options.emitJit = !platform.is_remote(qpu_id);
+  options.boolVecBitPacked = !platform.is_remote(qpu_id);
+
+  ctx.executeKernelApi = [&qpu, &result, &policy, &target, &options](
+                             const AnyModule &module, const KernelArgs &args) {
     CompiledModule compiled;
     if (const auto *source = std::get_if<SourceModule>(&module)) {
 #ifdef CUDAQ_DISABLE_JIT_COMPILER
@@ -76,17 +89,6 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
-      cudaq::CompileTarget target;
-      cudaq::CompileOptions options;
-      if constexpr (requires { policy.inner; }) {
-        options = cudaq::get_compile_options(policy.inner);
-        target = cudaq::get_compile_target(policy.inner);
-      } else {
-        options = cudaq::get_compile_options(policy);
-        target = cudaq::get_compile_target(policy);
-      }
-      // TODO: remove this call by moving flags out of the target
-      cudaq::propagateTargetOptionsToCompileOptions(target, options);
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
                                                          /*isEntryPoint=*/true);

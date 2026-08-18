@@ -131,12 +131,11 @@ createDefaultCompileTarget(quantum_platform *platform = nullptr) {
     targetConfig = rt->config;
     runtimeConfig = rt->runtimeConfig;
   }
-  cudaq::CompileTarget ct(targetConfig, runtimeConfig, platform->is_emulated());
+  cudaq::CompileTarget ct(targetConfig, runtimeConfig);
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
 
   ct.fullySpecialize = !isLocalSimulator;
-  ct.isLocalSimulator = isLocalSimulator;
   ct.supportDeviceCalls = true;
   ct.argumentSynthChangeSemantics = false;
   ct.pipelineConfig.codegenTranslation = "qir:";
@@ -242,29 +241,29 @@ std::optional<QubitConnectivity> quantum_platform::connectivity() {
 }
 
 bool quantum_platform::is_simulator(std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  disableRuntimeEndpointOverride(qpu_id, "is_simulator");
+  validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
+  if (hasRuntimeEndpointOverride(qpu_id)) {
+    return runtimeEndpoints[qpu_id]->isSimulator;
+  }
+  // Fallback to QPU
   return platformQPUs[qpu_id]->isSimulator();
 }
 
 bool quantum_platform::is_remote(std::size_t qpu_id) const {
+  validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
   if (hasRuntimeEndpointOverride(qpu_id)) {
-    CUDAQ_WARN(
-        "quantum_platform::is_remote is currently not supported for custom "
-        "runtime endpoints");
-    return false;
+    return runtimeEndpoints[qpu_id]->isRemote;
   }
-  validateQpuId(qpu_id);
+  // Fallback to QPU
   return platformQPUs[qpu_id]->isRemote();
 }
 
 bool quantum_platform::is_emulated(std::size_t qpu_id) const {
+  validateQpuId(qpu_id, /*acceptRuntimeEndpoints=*/true);
   if (hasRuntimeEndpointOverride(qpu_id)) {
-    CUDAQ_WARN("quantum_platform::is_emulated is currently not supported for "
-               "custom runtime endpoints");
-    return false;
+    return runtimeEndpoints[qpu_id]->isEmulated;
   }
-  validateQpuId(qpu_id);
+  // Fallback to QPU
   return platformQPUs[qpu_id]->isEmulated();
 }
 
@@ -276,13 +275,8 @@ std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
 
 bool quantum_platform::supports_explicit_measurements(
     std::size_t qpu_id) const {
-  if (hasRuntimeEndpointOverride(qpu_id)) {
-    CUDAQ_WARN("quantum_platform::supports_explicit_measurements is currently "
-               "not supported for custom runtime endpoints");
-    return false;
-  }
-  validateQpuId(qpu_id);
-  return platformQPUs[qpu_id]->supportsExplicitMeasurements();
+  auto ct = getCompileTarget(other_policies{}, qpu_id);
+  return ct.supportExplicitMeasurements;
 }
 
 void quantum_platform::launchVQE(const std::string kernelName,

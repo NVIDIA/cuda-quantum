@@ -231,6 +231,9 @@ static RuntimeEndpoint makeRuntimeEndpoint(nanobind::object obj) {
         }
       });
   endpoint.impl = makeEndpointHandle(std::move(obj));
+  endpoint.isSimulator = nanobind::cast<bool>(obj.attr("is_simulator"));
+  endpoint.isRemote = nanobind::cast<bool>(obj.attr("is_remote"));
+  endpoint.isEmulated = nanobind::cast<bool>(obj.attr("is_emulated"));
   return endpoint;
 }
 

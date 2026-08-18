@@ -81,18 +81,6 @@ protected:
   /// @brief The target configuration
   cudaq::config::TargetConfig targetConfig;
 
-  CompileTarget createCompileTarget(bool skipPipelineSubstitutions = false) {
-    std::map<std::string, std::string> pipelineSubstitutions{};
-    if (!skipPipelineSubstitutions)
-      pipelineSubstitutions =
-          serverHelper->getPipelineSubstitutions(platformPath);
-    CompileTarget target(targetConfig, backendConfig, emulate,
-                         pipelineSubstitutions);
-    target.pipelineConfig.replaceStateWithKernel = true;
-    target.overrideAOTCompilation = true;
-    return target;
-  }
-
 public:
   // This class overrides `launchKernel(dem_policy)` and
   // `launchKernel(estimate_policy)` (local analyses, shared by all remote
@@ -118,9 +106,6 @@ public:
   /// @brief Return true if the current backend is a simulator
   /// @return
   bool isSimulator() override { return emulate; }
-
-  /// @brief Return true if the current backend supports explicit measurements
-  bool supportsExplicitMeasurements() override { return false; }
 
   /// Provide the number of shots
   void setShots(int _nShots) override {
@@ -236,43 +221,19 @@ public:
                                         serverHelper, executor);
   }
 
-  using QPU::getCompileTarget;
-  CompileTarget getCompileTarget(const other_policies &,
-                                 ExecutionContext *ctx) override {
-    if (!ctx)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    return createCompileTarget();
-  }
-
-  CompileTarget getCompileTarget(const sample_policy &policy) override {
-    auto ct = createCompileTarget();
-    ct.pipelineConfig.addMeasurements = true;
-    return ct;
-  }
-
-  CompileTarget getCompileTarget(const observe_policy &policy) override {
-    auto target = createCompileTarget();
-    target.pauliTermSplitObservable = policy.spin;
+  CompileTarget
+  getCompileTarget(bool skipPipelineSubstitutions = false) override {
+    std::map<std::string, std::string> pipelineSubstitutions{};
+    if (!skipPipelineSubstitutions)
+      pipelineSubstitutions =
+          serverHelper->getPipelineSubstitutions(platformPath);
+    CompileTarget target(targetConfig, backendConfig, pipelineSubstitutions);
+    target.pipelineConfig.replaceStateWithKernel = true;
+    target.overrideAOTCompilation = true;
+    target.supportExplicitMeasurements = false;
+    target.supportObservableMeasurements = false;
+    target.supportSampleWithoutMeasurements = false;
     return target;
-  }
-
-  CompileTarget getCompileTarget(const run_policy &) override {
-    return createCompileTarget();
-  }
-
-  /// Build a local JIT artifact for DEM analysis. No provider target code is
-  /// emitted or submitted while this policy is active.
-  CompileTarget getCompileTarget(const dem_policy &) override {
-    // Skip pipeline substitutions: this path never builds the lowering pipeline
-    // and should not trigger server-helper side effects (e.g. IQM arch fetch).
-    return createCompileTarget(/*skipPipelineSubstitutions=*/true);
-  }
-
-  CompileTarget getCompileTarget(const estimate_policy &) override {
-    return createCompileTarget();
   }
 
   estimate_result launchKernel(const estimate_policy &policy,
