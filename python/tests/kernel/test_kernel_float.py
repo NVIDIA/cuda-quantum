@@ -72,6 +72,55 @@ def test_float_use():
     assert is_close(np.sin(np.pi / 2 + 1), float_np_use())
 
 
+def test_negative_float_literal_keeps_float_type():
+    """The literal `-1.0` must stay a float, not fold to the integer `-1`."""
+
+    @cudaq.kernel
+    def int_base_neg_one() -> float:
+        return 2**-1.0
+
+    @cudaq.kernel
+    def int_base_neg_two() -> float:
+        return 2**-2.0
+
+    @cudaq.kernel
+    def other_int_base_neg_one() -> float:
+        return 3**-1.0
+
+    @cudaq.kernel
+    def float_base_neg_one() -> float:
+        return 2.0**-1.0
+
+    assert is_close(2**-1.0, int_base_neg_one())
+    assert is_close(2**-2.0, int_base_neg_two())
+    assert is_close(3**-1.0, other_int_base_neg_one())
+    assert is_close(2.0**-1.0, float_base_neg_one())
+
+
+def test_negative_one_literal_still_indexes():
+    """Folding `-1` to an integer constant still works for negative indices."""
+
+    @cudaq.kernel
+    def last_list_item() -> int:
+        values = [1, 2, 3]
+        return values[-1]
+
+    @cudaq.kernel
+    def last_float_list_item() -> float:
+        values = [-1.0, 2.5]
+        return values[-1]
+
+    @cudaq.kernel
+    def last_qubit() -> bool:
+        qubits = cudaq.qvector(3)
+        x(qubits[-1])
+        return mz(qubits[-1])
+
+    assert last_list_item() == 3
+    assert is_close(2.5, last_float_list_item())
+    assert last_qubit()
+
+
 def test_math_functions_match_python():
 
     def python_math(function: int, value: float) -> float:
