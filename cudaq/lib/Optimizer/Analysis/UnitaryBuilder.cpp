@@ -70,12 +70,18 @@ LogicalResult UnitaryBuilder::build(func::FuncOp func) {
       }
 
       // When checking mapped circuits, we do a software swap, i.e., just change
-      // the qubit mapping instead of applying the swap operation.
-      if (upToMapping && isa<cudaq::quake::SwapOp>(op)) {
-        auto lhs = qubitMap.find(op->getResult(0));
-        auto rhs = qubitMap.find(op->getResult(1));
+      // the qubit mapping instead of applying the swap operation. Only an
+      // unconditional swap is a relabeling: a controlled swap acts on part of
+      // the space, so it has to be applied like any other operator.
+      if (upToMapping && isa<cudaq::quake::SwapOp>(op) &&
+          optor.getControls().empty()) {
+        ValueRange results = cudaq::quake::getQuantumResults(op);
+        ValueRange swapped = results.empty() ? ValueRange(optor.getTargets())
+                                             : results.take_back(2);
+        auto lhs = qubitMap.find(swapped[0]);
+        auto rhs = qubitMap.find(swapped[1]);
         if (lhs == qubitMap.end() || rhs == qubitMap.end()) {
-          optor.emitOpError("Swap result has no qubit mapping.");
+          optor.emitOpError("Swap target has no qubit mapping.");
           return WalkResult::interrupt();
         }
         std::swap(lhs->second, rhs->second);
