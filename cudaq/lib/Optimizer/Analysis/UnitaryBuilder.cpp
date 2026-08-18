@@ -374,19 +374,51 @@ static void indicies(ArrayRef<UnitaryBuilder::Qubit> qubits,
   }
 }
 
-// TODO:  Optimize!  There are ways to specialize for diagonal and anti-diagonal
-// matrices.
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, Qubit qubit) {
   auto *m = matrix.data();
   const std::size_t bit = std::size_t{1} << qubit;
   const std::size_t end = matrix.size();
-  for (std::size_t base = 0; base < end; base += (bit << 1))
-    for (std::size_t i = base, stop = base + bit; i < stop; ++i) {
-      const Complex lo = m[i];
-      const Complex hi = m[i + bit];
-      m[i] = u[0] * lo + u[2] * hi;
-      m[i + bit] = u[1] * lo + u[3] * hi;
+
+  // Visits every index pair the operator combines (one index with `qubit`
+  // clear, one with it set).
+  auto forEachPair = [&](auto &&apply) {
+    for (std::size_t base = 0; base < end; base += (bit << 1))
+      for (std::size_t i = base, stop = base + bit; i < stop; ++i)
+        apply(i, i + bit);
+  };
+
+  if (u[1] == 0. && u[2] == 0.) {
+    if (u[0] == 1.) {
+      forEachPair([&](std::size_t lo, std::size_t hi) { m[hi] *= u[3]; });
+      return;
     }
+    forEachPair([&](std::size_t lo, std::size_t hi) {
+      m[lo] *= u[0];
+      m[hi] *= u[3];
+    });
+    return;
+  }
+
+  if (u[0] == 0. && u[3] == 0.) {
+    if (u[1] == 1. && u[2] == 1.) {
+      forEachPair(
+          [&](std::size_t lo, std::size_t hi) { std::swap(m[lo], m[hi]); });
+      return;
+    }
+    forEachPair([&](std::size_t lo, std::size_t hi) {
+      const Complex cache = m[lo];
+      m[lo] = u[2] * m[hi];
+      m[hi] = u[1] * cache;
+    });
+    return;
+  }
+
+  forEachPair([&](std::size_t lo, std::size_t hi) {
+    const Complex cacheLo = m[lo];
+    const Complex cacheHi = m[hi];
+    m[lo] = u[0] * cacheLo + u[2] * cacheHi;
+    m[hi] = u[1] * cacheLo + u[3] * cacheHi;
+  });
 }
 
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
