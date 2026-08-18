@@ -24,10 +24,14 @@ config:
   # synthesis, using the same operator-norm tolerance as synthesis.
   # Use the shared conversion pipeline with compiler-bench-ftqc-logical.yml
   # so both FTQC targets enter explicit linear value semantics consistently.
+  # Phase folding runs after exact-angle lowering, before approximate synthesis,
+  # and again immediately after one-qubit Clifford+T optimization. The first
+  # fold exposes shared compact rotations; the second captures exact phase terms
+  # exposed by synthesis before the existing cleanup.
   #
   # Clifford+T synthesis outlines one private helper for each distinct angle.
   # Inline those helpers and simplify before the resource-counting boundary.
   #
   # TODO: Remove fail-on-controlled-rotation after controlled Clifford+T
   # synthesis preserves the synthesis global phase.
-  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1)},func.func(quake-simplify{threshold=%EPSILON:1e-10% rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:1e-10%},normalize-phase-placement,lower-phase,canonicalize,dqe),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=0 fail-on-controlled-rotation=true},inline,func.func(quake-simplify),optimize-1q-clifford-t,func.func(canonicalize,dqe,regtomem),symbol-dce"
+  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1)},func.func(quake-simplify{threshold=%EPSILON:1e-10% rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:1e-10%},normalize-phase-placement,lower-phase,canonicalize,dqe,phase-folding,canonicalize),clifford-t-synthesis{epsilon=%EPSILON:1e-10% skip-below=0 fail-on-controlled-rotation=true},inline,func.func(quake-simplify),optimize-1q-clifford-t,func.func(phase-folding,canonicalize,dqe,regtomem),symbol-dce"
