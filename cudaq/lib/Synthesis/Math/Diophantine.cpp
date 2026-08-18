@@ -232,9 +232,22 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 /// none after.
 constexpr int32_t kWallClockSafetyFactor = 20;
 
+/// Rho iterations one attempt may spend. `L` below is unreachable at deep
+/// epsilon (1.2e10 for a 40-digit composite), which leaves the wall clock as
+/// the real terminator and makes the result depend on host speed. Must stay
+/// below what the smallest shipped clock allows, or the clock binds first.
+constexpr int64_t kMaxFactoringIterations = 500000;
+
+/// The same, summed over one grid candidate's attempts. Capping only the
+/// per-attempt budget moves the host-dependent exit up to the candidate loop
+/// rather than removing it.
+constexpr int64_t kMaxCandidateIterations = 4 * kMaxFactoringIterations;
+
+/// `iterations_out`, if non-null, accumulates the rho iterations spent here.
 llvm::FailureOr<Integer> find_factor(const Integer &n,
                                      int32_t factoring_timeout_ms,
                                      GridsynthStats *stats = nullptr,
+                                     int64_t *iterations_out = nullptr,
                                      int32_t batch_size = 128) {
   CUDAQ_SYNTH_OPEN_SUB("find_factor");
   if (stats)
@@ -272,6 +285,9 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   size_t digits = num_decimal_digits(n);
   double pow_term = std::pow(10.0, static_cast<double>(digits) / 4.0);
   int64_t L = static_cast<int64_t>(pow_term * 1.1774 + 10.0);
+  // Keep the budget reachable, so the exit below is the budget's, not the
+  // clock's. Giving up on a hard composite early is cheap.
+  L = std::min(L, kMaxFactoringIterations);
 
   GmpRng &rng = global_rng();
   Integer a_int = urand_between(1, n - 1, rng);
@@ -303,12 +319,15 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   // spent, so record k however the loop below exits.
   struct IterationRecorder {
     GridsynthStats *stats;
+    int64_t *iterations_out;
     const int64_t &k;
     ~IterationRecorder() {
       if (stats)
         stats->factoring_iterations_total += k;
+      if (iterations_out)
+        *iterations_out += k;
     }
-  } iteration_recorder{stats, k};
+  } iteration_recorder{stats, iterations_out, k};
 
   while (true) {
     // Brent phase: save x = y + n so that x - y stays non-negative, then
@@ -796,6 +815,7 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
   // changes so the bound is per composite rather than a running total.
   Integer retried_p;
   int retries = 0;
+  int64_t iterations = 0;
   while (!factors.empty()) {
     auto [p, k] = factors.back();
     factors.pop_back();
@@ -807,10 +827,10 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
 
     if (is_need_factoring(t_p)) {
       llvm::FailureOr<Integer> factor =
-          find_factor(p, factoring_timeout_ms, stats);
+          find_factor(p, factoring_timeout_ms, stats, &iterations);
       if (llvm::failed(factor)) {
         // Push the unfactored term back and keep going only if this composite
-        // has attempts left and there is still time on the overall budget.
+        // has attempts left and the candidate has budget left.
         factors.emplace_back(p, k);
         retries = (p == retried_p) ? retries + 1 : 0;
         retried_p = p;
@@ -820,11 +840,15 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
+        if (iterations >= kMaxCandidateIterations) {
+          CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
+          return NoSolution{};
+        }
         auto now = std::chrono::steady_clock::now();
         auto elapsed =
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
-        if (elapsed >= diophantine_timeout_ms) {
+        if (elapsed >= diophantine_timeout_ms * kWallClockSafetyFactor) {
           if (stats)
             stats->diophantine_wall_clock_exits++;
           CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
@@ -1002,6 +1026,7 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
   // Per-composite restart budget, as in adj_decompose above.
   Integer retried_n;
   int retries = 0;
+  int64_t iterations = 0;
   while (!factors.empty()) {
     LLVM_DEBUG({
       std::string flist;
@@ -1024,7 +1049,7 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
       if (n < 0)
         n = -n;
       llvm::FailureOr<Integer> fac_n =
-          find_factor(n, factoring_timeout_ms, stats);
+          find_factor(n, factoring_timeout_ms, stats, &iterations);
       if (llvm::failed(fac_n)) {
         factors.emplace_back(eta, k);
         retries = (n == retried_n) ? retries + 1 : 0;
@@ -1035,11 +1060,15 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
           CUDAQ_SYNTH_CLOSE_FAILURE("factoring restart limit reached");
           return NoSolution{};
         }
+        if (iterations >= kMaxCandidateIterations) {
+          CUDAQ_SYNTH_CLOSE_FAILURE("candidate iteration budget exhausted");
+          return NoSolution{};
+        }
         auto now = std::chrono::steady_clock::now();
         auto elapsed =
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
-        if (elapsed >= diophantine_timeout_ms) {
+        if (elapsed >= diophantine_timeout_ms * kWallClockSafetyFactor) {
           if (stats)
             stats->diophantine_wall_clock_exits++;
           CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
