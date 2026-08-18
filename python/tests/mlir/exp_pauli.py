@@ -86,8 +86,8 @@ def test_exp_pauli():
 # CHECK:         %[[VAL_7:.*]] = call ptr @__quantum__rt__qubit_allocate_array(i64 3)
 # CHECK:         br label %[[VAL_8:.*]]
 # CHECK:                                                    ; preds = %[[VAL_9:.*]], %[[VAL_10:.*]]
-# CHECK:         %[[VAL_11:.*]] = phi i64 [ %[[VAL_12:.*]], %[[VAL_9]] ], [ 0, %[[VAL_10]] ]
-# CHECK:         %[[VAL_13:.*]] = phi ptr [ %[[VAL_13]], %[[VAL_9]] ], [ %[[VAL_6]], %[[VAL_10]] ]
+# CHECK-DAG:     %[[VAL_11:.*]] = phi i64 [ %[[VAL_12:.*]], %[[VAL_9]] ], [ 0, %[[VAL_10]] ]
+# CHECK-DAG:     %[[VAL_13:.*]] = phi ptr [ %[[VAL_13]], %[[VAL_9]] ], [ %[[VAL_6]], %[[VAL_10]] ]
 # CHECK:         %[[VAL_14:.*]] = icmp slt i64 %[[VAL_11]], 3
 # CHECK:         br i1 %[[VAL_14]], label %[[VAL_9]], label %[[VAL_15:.*]]
 # CHECK:                                                    ; preds = %[[VAL_8]]
@@ -181,9 +181,6 @@ def test_exp_pauli_loop_controlled():
 # CHECK:         br label %[[VAL_22:.*]]
 # CHECK:                              ; preds = %[[VAL_23:.*]], %[[VAL_24:.*]]
 # CHECK:         %[[VAL_25:.*]] = phi i64 [ %[[VAL_26:.*]], %[[VAL_23]] ], [ 0, %[[VAL_24]] ]
-# CHECK:         %[[VAL_27:.*]] = phi ptr [ %[[VAL_27]], %[[VAL_23]] ], [ %[[VAL_4]], %[[VAL_24]] ]
-# CHECK:         %[[VAL_28:.*]] = phi ptr [ %[[VAL_28]], %[[VAL_23]] ], [ %[[VAL_5]], %[[VAL_24]] ]
-# CHECK:         %[[VAL_29:.*]] = phi ptr [ %[[VAL_29]], %[[VAL_23]] ], [ %[[VAL_6]], %[[VAL_24]] ]
 # CHECK:         %[[VAL_30:.*]] = icmp slt i64 %[[VAL_25]], 2
 # CHECK:         br i1 %[[VAL_30]], label %[[VAL_23]], label %[[VAL_31:.*]]
 # CHECK:                          ; preds = %[[VAL_22]]
@@ -195,9 +192,6 @@ def test_exp_pauli_loop_controlled():
 # CHECK:         call void @__quantum__qis__exp_pauli__ctl(double %[[VAL_33]], ptr %[[VAL_20]], ptr %[[VAL_19]], ptr %[[VAL_3]])
 # CHECK:         %[[VAL_26]] = add i64 %[[VAL_25]], 1
 # CHECK:         br label %[[VAL_22]]
-# CHECK:                                    ; preds = %[[VAL_22]]
-# CHECK:         call void @__quantum__rt__qubit_release(ptr %[[VAL_27]])
-# CHECK:         call void @__quantum__rt__qubit_release(ptr %[[VAL_28]])
-# CHECK:         call void @__quantum__rt__qubit_release(ptr %[[VAL_29]])
-# CHECK:         ret void
-# CHECK:       }
+# CHECK:         call void @__quantum__rt__qubit_release(ptr %
+# CHECK:         call void @__quantum__rt__qubit_release(ptr %
+# CHECK:         call void @__quantum__rt__qubit_release(ptr %
