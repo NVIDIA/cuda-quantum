@@ -428,16 +428,23 @@ void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, Qubit qubit) {
 
 void UnitaryBuilder::applyMatrix(ArrayRef<Complex> u, unsigned numTargets,
                                  ArrayRef<Qubit> qubits) {
+  ArrayRef<Qubit> targets = qubits.take_back(numTargets);
+  unsigned controlMask = 0;
+  for (Qubit control : qubits.drop_back(numTargets))
+    controlMask |= (1u << control);
+
   SmallVector<Qubit, 16> qubitsSorted(qubits);
   llvm::sort(qubitsSorted);
 
   auto *m = matrix.data();
   const std::size_t dim = (1u << numTargets);
-  SmallVector<unsigned, 8> idx(1u << qubits.size());
+  SmallVector<unsigned, 8> idx(dim);
   SmallVector<Complex, 8> cache(dim);
   for (std::size_t k = 0u, end = (matrix.size() >> qubits.size()); k < end;
        ++k) {
-    indicies(qubits, qubitsSorted, k, idx);
+    indicies(targets, qubitsSorted, k, idx);
+    for (std::size_t i = 0; i < dim; i++)
+      idx[i] |= controlMask;
     for (std::size_t i = 0; i < dim; i++) {
       cache[i] = m[idx[i]];
       m[idx[i]] = 0.;
