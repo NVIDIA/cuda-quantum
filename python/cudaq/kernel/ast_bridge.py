@@ -5974,7 +5974,34 @@ class PyASTBridge(ast.NodeVisitor):
                                    remainder).result)
                 return
             if (F64Type.isinstance(left.type) or F32Type.isinstance(left.type)):
-                self.pushValue(arith.RemFOp(left, right).result)
+                # `arith.remf` is C `fmod`: the quotient is truncated towards
+                # zero, so the remainder takes the sign of the dividend.
+                # Python's `%` instead gives the remainder the sign of the
+                # divisor, and gives a zero remainder the divisor's sign.
+                # Apply the same two corrections CPython applies on top of
+                # `fmod`: add the divisor when the remainder is non-zero and
+                # its sign differs from the divisor's, and replace a zero
+                # remainder with a zero carrying the divisor's sign.
+                zero = self.getConstantFloatWithType(0.0, left.type)
+                negZero = self.getConstantFloatWithType(-0.0, left.type)
+                unePred = self.getIntegerAttr(self.getIntegerType(), 13)
+                oltPred = self.getIntegerAttr(self.getIntegerType(), 4)
+                remainder = arith.RemFOp(left, right).result
+                # Unordered inequality, so that a `NaN` remainder counts as
+                # non-zero exactly as it does in CPython's `if (mod)`.
+                isNonZero = arith.CmpFOp(unePred, remainder, zero).result
+                divisorIsNegative = arith.CmpFOp(oltPred, right, zero).result
+                signsDiffer = arith.XOrIOp(
+                    arith.CmpFOp(oltPred, remainder, zero).result,
+                    divisorIsNegative).result
+                needsCorrection = arith.AndIOp(isNonZero, signsDiffer).result
+                corrected = arith.SelectOp(
+                    needsCorrection,
+                    arith.AddFOp(remainder, right).result, remainder).result
+                signedZero = arith.SelectOp(divisorIsNegative, negZero,
+                                            zero).result
+                self.pushValue(
+                    arith.SelectOp(isNonZero, corrected, signedZero).result)
                 return
             else:
                 self.emitFatalError("unhandled BinOp.Mod types",
